@@ -1,0 +1,65 @@
+@config "../../tailwind.config.js";
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body {
+    @apply min-h-full;
+  }
+
+  body {
+    @apply m-0 bg-app-bg p-0 font-body text-app-text;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .auth-shell {
+    @apply min-h-screen bg-app-bg;
+  }
+
+  .auth-card {
+    @apply rounded-card bg-app-card px-card-x py-card-y shadow-card;
+  }
+
+  .auth-title {
+    @apply text-app-text;
+  }
+
+  .auth-note {
+    @apply text-app-muted;
+  }
+
+  .auth-field {
+    @apply h-field rounded-field border border-app-border bg-app-input;
+  }
+
+  .auth-field:focus {
+    @apply border-app-focus outline-none;
+  }
+
+  .auth-button {
+    @apply rounded-field bg-app-primary text-app-white;
+  }
+
+  .auth-link {
+    @apply text-app-primary;
+  }
+
+  .form-helper {
+    @apply text-helper;
+  }
+
+  .form-error {
+    @apply text-app-danger;
+  }
+
+  .form-success {
+    @apply text-app-success;
+  }
+
+  .icon-eye {
+    @apply w-eye;
+  }
+}

@@ -1,0 +1,182 @@
+
+=> All Fregrance 
+
+- Items 
+
+CREATE TABLE IF NOT EXISTS items (
+id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+image VARCHAR (255),
+name VARCHAR(100),
+price DECIMAL,
+description VARCHAR(255),
+brand_id INT,
+category_id INT,
+status_id INT,
+user_id INT
+);
+ 
+
+ - Brands
+
+ CREATE TABLE IF NOT EXISTS brands (
+    id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    name VARCHAR(50),
+    user_id INT 
+ )
+
+ - Categories 
+
+  CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    name VARCHAR(50),
+    user_id INT 
+  )
+
+- Images 
+
+ CREATE TABLE IF NOT EXISTS images (
+   id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+   images TEXT,
+   imageable_type VARCHAR(255),
+   imageable_id INT,
+   user_id INT,
+   created_at TIMESTAMP DEFAULT now(),
+   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE
+ )
+
+
+ - Status 
+
+   CREATE TABLE IF NOT EXISTS status(
+    id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    name VARCHAR(50),
+    user_id INT
+   )
+
+
+ - OrderList 
+
+ CREATE TABLE IF NOT EXISTS orders(
+    id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    item_id INT,
+    price DECIMAL,
+    quantity INT,
+    brand_id INT,
+    user_id INT,
+    guest_id INT,
+    created_at TIMESTAMP DEFAULT now(),
+   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+   FOREIGN KEY(guest_id) REFERENCES guests(id) ON UPDATE CASCADE ON DELETE CASCADE,
+   FOREIGN KEY(item_id) REFERENCES items(id) ON UPDATE CASCADE ON DELETE CASCADE
+ )
+
+
+ -Review and rating
+
+ CREATE TABLE IF NOT EXISTS reviews(
+  id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  reviews TEXT,
+  rating INT,
+  user_id INT,
+  item_id INT,
+  reply_id INT,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE
+ )
+
+
+
+ - Review vote 
+
+  CREATE TABLE IF NOT EXISTS votes (
+    id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    review_id INT,
+    review_reply_id INT,
+    user_id INT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (review_id) REFERENCES reviews(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (review_reply_id) REFERENCES review_reply(reviewreplyid) ON UPDATE CASCADE ON DELETE CASCADE
+  );
+
+
+
+ - Reply reviews
+
+ CREATE TABLE IF NOT EXISTS review_reply(
+  reviewreplyid INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  replies TEXT,
+  review_id INT,
+  replyitem_id INT,
+  reply_id INT,
+  touser_name VARCHAR(150),
+  replyuser_id INT,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY(review_id) REFERENCES reviews(id) ON UPDATE CASCADE ON DELETE CASCADE
+ );
+
+
+
+
+ - Wish List 
+
+ CREATE TABLE IF NOT EXISTS wishes(
+  id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  item_id INT,
+  user_id INT,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY(item_id) REFERENCES items(id) ON UPDATE CASCADE ON DELETE CASCADE
+ );
+
+
+
+
+ - Guest email 
+ 
+CREATE TABLE IF NOT EXISTS guests(
+  id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  email VARCHAR(50),
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ )
+
+
+ - Ship Address 
+
+CREATE TABLE IF NOT EXISTS ship_address(
+  id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  firstname VARCHAR(50),
+  lastname VARCHAR(50),
+  company VARCHAR(50) DEFAULT NULL,
+  address VARCHAR(255),
+  phone VARCHAR(25),
+  zip INT,
+  city VARCHAR(50),
+  state_id INT,
+  country_id INT,
+  
+  user_id INT DEFAULT NULL,
+  guest_id INT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY(guest_id) REFERENCES guests(id) ON UPDATE CASCADE ON DELETE CASCADE
+ );
+
+- Payment 
+
+CREATE TABLE IF NOT EXISTS payments(
+  id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  method ENUM('cod','paypal'),
+  user_id INT DEFAULT NULL,
+  guest_id INT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY(guest_id) REFERENCES guests(id) ON UPDATE CASCADE ON DELETE CASCADE
+ )

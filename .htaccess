@@ -1,0 +1,12 @@
+<ifModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteBase /GP/
+
+    RewriteRule ^login/?$ public/index.php?url=users/login [QSA,L]
+    RewriteRule ^register/?$ public/index.php?url=users/register [QSA,L]
+
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.+)$ public/index.php?url=$1 [QSA,L]
+</ifModule>
