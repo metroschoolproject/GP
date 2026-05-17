@@ -7,6 +7,10 @@ class Resetpw{
     }
 
     public function storeresetpwhash($userid,$tokenHash,$expires){
+        $this->db->dbquery('UPDATE password_resets SET used = 1 WHERE user_id = :id AND used = 0');
+        $this->db->dbbind(':id' ,$userid);
+        $this->db->dbexecute();
+
         $this->db->dbquery('INSERT INTO password_resets(user_id,token_hash,expires_at) VALUES (:id,:token_hash,:exp)');
         $this->db->dbbind(':id' ,$userid);
         $this->db->dbbind(':token_hash',$tokenHash);
@@ -21,7 +25,7 @@ class Resetpw{
 
     public function getUserByEmailAndToken($email, $token_hash) {
         $this->db->dbquery("SELECT * FROM password_resets pr
-                            JOIN users u ON pr.user_id = u.id
+                            JOIN users u ON pr.user_id = u.user_id
                             WHERE u.email = :email AND pr.token_hash = :token AND pr.expires_at > NOW() AND pr.used = 0");
         $this->db->dbbind(':email', $email);
         $this->db->dbbind(':token', $token_hash);
@@ -33,11 +37,8 @@ class Resetpw{
     }
 
     public function updatePassword($email, $hashedPassword) {
-        $updatedAt = (new DateTime())->format('Y-m-d H:i:s');
-
-        $this->db->dbquery("UPDATE users SET password = :pw, updated_at = :up WHERE email = :email");
+        $this->db->dbquery("UPDATE users SET password = :pw WHERE email = :email");
         $this->db->dbbind(':pw', $hashedPassword);
-        $this->db->dbbind(':up', $updatedAt);
         $this->db->dbbind(':email', $email);
         if($this->db->dbexecute()){
             return true;

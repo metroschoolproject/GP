@@ -19,7 +19,7 @@ class Controller
     public function model($model)
     {
         if (file_exists("../app/models/" . ucwords($model) . ".php")) {
-            require "../app/models/" . ucwords($model) . ".php";
+            require_once "../app/models/" . ucwords($model) . ".php";
             return new $model();
         } else {
             die("Model file didn't exit");

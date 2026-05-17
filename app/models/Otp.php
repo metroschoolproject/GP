@@ -6,14 +6,14 @@ class Otp{
         $this->db = new Database();
     }
 
-    public function storeotp($otp_hash,$userid,$expires){
-        $this->db->dbquery('DELETE FROM user_otps WHERE user_id = :id');
+    public function storeotp($otp,$userid,$expires){
+        $this->db->dbquery("UPDATE otps SET is_used = 1 WHERE user_id = :id AND type = 'login' AND is_used = 0");
         $this->db->dbbind(':id' ,$userid);
         $this->db->dbexecute();
 
-        $this->db->dbquery("INSERT INTO user_otps (user_id, otp_hash, expires_at, attempts_left) VALUES (:id, :otp, :exp, :atm)");
+        $this->db->dbquery("INSERT INTO otps (user_id, code, type, expires_at, attempt_count, max_attempts, is_used) VALUES (:id, :otp, 'login', :exp, 0, :atm, 0)");
         $this->db->dbbind(":id",$userid);
-        $this->db->dbbind(":otp",$otp_hash);
+        $this->db->dbbind(":otp",$otp);
         $this->db->dbbind(":exp",$expires);
         $this->db->dbbind(":atm" ,3);
         if( $this->db->dbexecute()){
@@ -24,36 +24,36 @@ class Otp{
     }
 
     public function verifyotp($client_otp,$userid){
-        $this->db->dbquery("SELECT otp_hash,expires_at,attempts_left FROM user_otps where user_id = :id");
+        $this->db->dbquery("SELECT id, code, expires_at, attempt_count, max_attempts FROM otps WHERE user_id = :id AND type = 'login' AND is_used = 0 ORDER BY created_at DESC LIMIT 1");
         $this->db->dbbind(':id',$userid);
         $row = $this->db->getsingledata();
         if (!$row) return false;
 
         if(new DateTime($row['expires_at']) < new DateTime()){
-            expired($userid);
+            $this->expired($userid);
         }
 
-        if ($row['attempts_left'] <= 0) {
+        if ($row['attempt_count'] >= $row['max_attempts']) {
             echo json_encode(['atm_status' => false, 'message' => 'No attempts left']);
             exit;
         }
 
-        $otp_hash = $row['otp_hash'];
-        if(password_verify($client_otp,$otp_hash)){
-            $this->db->dbquery('DELETE FROM user_otps WHERE user_id = :id');
-            $this->db->dbbind(':id' ,$userid);
+        $otp = $row['code'];
+        if(hash_equals($otp, $client_otp)){
+            $this->db->dbquery('UPDATE otps SET is_used = 1 WHERE id = :otp_id');
+            $this->db->dbbind(':otp_id' ,$row['id']);
             $this->db->dbexecute();
             return true;
         }else{
-            $this->db->dbquery("UPDATE user_otps SET attempts_left = attempts_left - 1 WHERE user_id = :id");
-            $this->db->dbbind(":id",$userid);
+            $this->db->dbquery("UPDATE otps SET attempt_count = attempt_count + 1 WHERE id = :otp_id");
+            $this->db->dbbind(":otp_id",$row['id']);
             $this->db->dbexecute();
             return false;
         }
     }
 
     public function expired($userid){
-        $this->db->dbquery('DELETE FROM user_otps WHERE user_id = :id');
+        $this->db->dbquery("UPDATE otps SET is_used = 1 WHERE user_id = :id AND type = 'login' AND is_used = 0");
         $this->db->dbbind(':id' ,$userid);
         $this->db->dbexecute();
         echo json_encode(['expire_status' => 'fail', 'message' => 'Expired']);

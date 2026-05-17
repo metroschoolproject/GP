@@ -37,9 +37,8 @@ class Otps extends Controller{
 
     public function otp(){
         $otp = $this->generateOtpCode(6);
-        $otp_hash = password_hash($otp,PASSWORD_DEFAULT);
         $expires = (new DateTime("+1 minutes"))->format('Y-m-d H:i:s');
-        $storeotp = $this->otpmodel->storeotp($otp_hash,$this->userid,$expires);
+        $storeotp = $this->otpmodel->storeotp($otp,$this->userid,$expires);
 
         if($storeotp){
             $this->otpmailserver->otpMailServer($this->toEmail,$otp);

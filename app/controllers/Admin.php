@@ -6,7 +6,7 @@ class Admin extends Controller
     {
     }   
 
-    public function overview()
+    public function dashboard()
     {
         $this->view('admin/dashboard');
     }

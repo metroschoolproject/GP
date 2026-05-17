@@ -9,7 +9,7 @@ class ResetPasswordMailServer{
 
     public function resetPwMailServer($toEmail,$token){
         $resetUrl = URLROOT . "/resetpassword/resetpassword?token=" . urlencode($token) . '&e=' . urlencode($toEmail);
-        $subject = "Password reset for Perum";
+        $subject = "Password reset for Golden Promise";
         $body = "We recieved a request to reset your password. Click the link below to reset it(expires in 60 minutes):\n\n";
         $body .= $resetUrl . "\n\nIf you did not request this, ignore this email.";
 
@@ -19,7 +19,7 @@ class ResetPasswordMailServer{
             "body" => $body
         ];
 
-        $this->mailserver->sendEmailOtp($data);
+        return $this->mailserver->sendEmailOtp($data);
     }
 }
 ?>

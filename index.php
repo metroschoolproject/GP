@@ -6,7 +6,9 @@
     <title>Home</title>
 </head>
 <body>
-    <h1>This is Home</h1>
+    <div>
+       this is home 
+    </div>
 
     
 </body>

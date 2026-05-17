@@ -62,4 +62,279 @@
   .icon-eye {
     @apply w-eye;
   }
+
+  .reset-shell {
+    @apply flex min-h-screen items-center justify-center bg-app-bg px-[18px] py-7;
+  }
+
+  .reset-card {
+    @apply w-full max-w-[420px] overflow-hidden rounded-[24px] border border-app-border bg-app-card px-10 py-[38px] shadow-card max-[480px]:px-6 max-[480px]:py-8;
+  }
+
+  .reset-card-forgot {
+    @apply min-h-[460px];
+  }
+
+  .reset-card-password {
+    @apply min-h-[520px];
+  }
+
+  .heading-area {
+    @apply mb-7 flex flex-col items-center text-center;
+  }
+
+  .main-heading {
+    @apply mb-1 text-[46px] font-semibold leading-[1.1] text-app-strong max-[480px]:text-[40px];
+    font-family: "Pinyon Script", cursive;
+  }
+
+  .sub-heading {
+    @apply m-0 max-w-[310px] text-[15px] leading-[1.45] text-app-strong;
+  }
+
+  .decor-line {
+    @apply relative mt-2 h-3 w-[188px] opacity-95;
+  }
+
+  .decor-line::before,
+  .decor-line::after {
+    @apply absolute top-1/2 h-px w-[78px] bg-app-strong opacity-75 content-[''];
+  }
+
+  .decor-line::before {
+    @apply left-0;
+  }
+
+  .decor-line::after {
+    @apply right-0;
+  }
+
+  .decor-dot {
+    @apply absolute left-1/2 top-1/2 h-2 w-2 border border-app-strong opacity-85;
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .decorated-input {
+    @apply relative mb-3 w-full;
+  }
+
+  .decorated-input input {
+    @apply h-[58px] w-full rounded-xl border border-app-border bg-app-input px-4 pb-3 pt-5 text-lg text-app-text shadow-[5px_5px_10px_rgba(2,2,2,0.25)] outline-none transition-colors duration-200;
+    font-family: inherit;
+  }
+
+  .decorated-input input::placeholder {
+    @apply text-transparent;
+  }
+
+  .decorated-input label {
+    @apply pointer-events-none absolute left-[18px] top-1/2 -translate-y-1/2 text-sm text-app-muted transition-all duration-200;
+  }
+
+  .decorated-input:hover label,
+  .decorated-input input:focus + label,
+  .decorated-input input:not(:placeholder-shown) + label {
+    @apply top-[5px] translate-y-0 text-app-strong;
+  }
+
+  .decorated-input input:focus {
+    @apply border-app-strong bg-app-soft shadow-[0_0_10px_rgba(109,76,91,0.45)];
+  }
+
+  .decorated-input-with-icon input {
+    @apply pr-12;
+  }
+
+  .reset-btn {
+    @apply relative mt-3 w-full cursor-pointer overflow-hidden rounded-xl border-0 bg-app-strong p-3.5 text-[15px] font-semibold text-app-white shadow-[5px_5px_8px_rgba(0,0,0,0.45)] transition-transform duration-150 hover:-translate-y-px;
+  }
+
+  .btn-shimmer {
+    @apply absolute inset-0 -translate-x-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.18)_50%,transparent_100%)] transition-transform duration-500;
+  }
+
+  .reset-btn:hover .btn-shimmer {
+    @apply translate-x-full;
+  }
+
+  .message-row {
+    @apply mt-3.5 min-h-[22px] text-center text-[13px];
+  }
+
+  .error-message {
+    @apply text-app-danger;
+  }
+
+  .success-message {
+    @apply text-app-success;
+  }
+
+  .back-link {
+    @apply mt-6 block text-center text-sm text-app-strong underline underline-offset-4;
+  }
+
+  .eye-btn {
+    @apply absolute right-[13px] top-1/2 flex h-[30px] w-[30px] -translate-y-1/2 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-app-strong opacity-60 transition-opacity duration-200 hover:opacity-100;
+  }
+
+  .password-rules {
+    @apply mb-2.5 grid gap-1.5 px-1 text-[13px] leading-[1.3] text-app-danger;
+  }
+
+  .password-rules span {
+    @apply transition-colors duration-200;
+  }
+
+  .password-rules span.valid {
+    @apply text-app-success;
+  }
+
+  .admin-shell {
+    @apply min-h-screen bg-app-bg font-ui text-app-text;
+  }
+
+  .admin-frame {
+    @apply flex min-h-screen flex-col lg:flex-row;
+  }
+
+  .admin-sidebar {
+    @apply flex w-full shrink-0 flex-col border-b border-app-border bg-app-sidebar px-4 py-5 lg:w-sidebar lg:border-b-0 lg:border-r;
+  }
+
+  .admin-sidebar-header {
+    @apply flex items-center justify-between rounded-[1.25rem] border border-app-border bg-app-white px-4 py-4 shadow-panel;
+  }
+
+  .admin-brand {
+    @apply flex items-center gap-3;
+  }
+
+  .admin-brand-mark {
+    @apply flex h-10 w-10 items-center justify-center rounded-2xl bg-app-strong text-sm font-semibold text-app-white;
+  }
+
+  .admin-brand-copy {
+    @apply flex flex-col;
+  }
+
+  .admin-brand-title {
+    @apply text-sm font-semibold tracking-[-0.02em] text-app-strong;
+  }
+
+  .admin-brand-subtitle {
+    @apply text-xs text-app-muted;
+  }
+
+  .admin-sidebar-nav {
+    @apply mt-6 flex flex-1 flex-col gap-6 overflow-y-auto pr-1;
+  }
+
+  .admin-sidebar-group {
+    @apply flex flex-col gap-2;
+  }
+
+  .admin-sidebar-label {
+    @apply px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-app-muted;
+  }
+
+  .admin-sidebar-list {
+    @apply flex flex-col gap-1;
+  }
+
+  .admin-sidebar-link {
+    @apply flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-app-muted transition-colors duration-150 hover:bg-app-sidebar-hover hover:text-app-strong;
+  }
+
+  .admin-sidebar-link-active {
+    @apply bg-app-sidebar-active text-app-strong;
+  }
+
+  .admin-sidebar-icon {
+    @apply flex h-9 w-9 items-center justify-center rounded-xl border border-transparent bg-app-white text-app-muted transition-colors duration-150;
+  }
+
+  .admin-sidebar-link-active .admin-sidebar-icon,
+  .admin-sidebar-link:hover .admin-sidebar-icon {
+    @apply border-app-ring bg-app-soft text-app-strong;
+  }
+
+  .admin-sidebar-meta {
+    @apply ml-auto text-xs text-app-muted;
+  }
+
+  .admin-sidebar-footer {
+    @apply mt-6 rounded-[1.5rem] border border-app-border bg-app-white p-4 shadow-panel;
+  }
+
+  .admin-sidebar-footer-title {
+    @apply text-sm font-semibold text-app-strong;
+  }
+
+  .admin-sidebar-footer-copy {
+    @apply mt-1 text-xs leading-5 text-app-muted;
+  }
+
+  .admin-sidebar-footer-button {
+    @apply mt-4 inline-flex items-center rounded-xl bg-app-strong px-4 py-2 text-sm font-medium text-app-white transition-opacity duration-150 hover:opacity-90;
+  }
+
+  .admin-main {
+    @apply flex min-h-screen flex-1 flex-col;
+  }
+
+  .admin-topbar {
+    @apply sticky top-0 z-20 flex min-h-topbar flex-col items-start justify-between gap-4 border-b border-app-border bg-[rgba(245,247,246,0.88)] px-5 py-4 backdrop-blur-xl sm:flex-row sm:items-center lg:px-8;
+  }
+
+  .admin-topbar-heading {
+    @apply flex min-w-0 flex-col;
+  }
+
+  .admin-topbar-title {
+    @apply truncate text-lg font-semibold tracking-[-0.03em] text-app-strong;
+  }
+
+  .admin-topbar-copy {
+    @apply text-sm text-app-muted;
+  }
+
+  .admin-topbar-actions {
+    @apply flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-normal;
+  }
+
+  .admin-icon-button {
+    @apply relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-app-border bg-app-white text-app-muted shadow-panel transition-colors duration-150 hover:border-app-ring hover:text-app-strong;
+  }
+
+  .admin-notification-badge {
+    @apply absolute right-2 top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-app-strong px-1 text-[10px] font-semibold text-app-white;
+  }
+
+  .admin-user-chip {
+    @apply flex items-center gap-3 rounded-2xl border border-app-border bg-app-white px-3 py-2 shadow-panel;
+  }
+
+  .admin-user-avatar {
+    @apply flex h-11 w-11 items-center justify-center rounded-2xl bg-app-strong text-sm font-semibold uppercase text-app-white;
+  }
+
+  .admin-user-copy {
+    @apply block text-left;
+  }
+
+  .admin-user-name {
+    @apply block text-sm font-semibold text-app-strong;
+  }
+
+  .admin-user-role {
+    @apply block text-xs text-app-muted;
+  }
+
+  .admin-workspace {
+    @apply flex-1 px-5 py-6 lg:px-8;
+  }
+
+  .admin-workspace-frame {
+    @apply min-h-[calc(100vh-8.5rem)] rounded-[2rem] border border-dashed border-app-border bg-app-card shadow-panel;
+  }
 }

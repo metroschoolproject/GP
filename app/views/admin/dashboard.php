@@ -1,11 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
+    <?php require_once APPROOT . '/views/dashboardLayout/head.php' ?>
 </head>
-<body>
-    <h1>This is Dashboard Overview</h1>
+<body class="grid grid-cols-[280px_1fr] h-screen gap-0 bg-[#f3f6fb]">
+    <!-- Sidebar  -->
+    <?php require_once APPROOT . '/views/dashboardLayout/sidebar.php' ?>
 </body>
 </html>

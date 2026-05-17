@@ -7,12 +7,14 @@ class AttemptFailAlertMailServer{
         $this->mailserver = new Mailserver();
     }
 
-    public function LoginFailAlertMailServer($toEmail,$token){
-        $resetUrl = URLROOT . "/resetpassword/resetpassword?token=" . urlencode($token) . '&e=' . urlencode($toEmail);
-
+    public function LoginFailAlertMailServer($toEmail,$token = null){
         $subject = "Login Fail!!";
-        $body = "We noticed 5 unsuccessful sign-in attempts to your account. If this wasn't you, reset your password.:\n\n";
-        $body .= $resetUrl;
+        $body = "We noticed 3 unsuccessful sign-in attempts to your account. If this wasn't you, please open the forgot password page and reset your password.";
+
+        if ($token) {
+            $resetUrl = URLROOT . "/resetpassword/resetpassword?token=" . urlencode($token) . '&e=' . urlencode($toEmail);
+            $body .= "\n\n" . $resetUrl;
+        }
 
         $data = [
             "email" => $toEmail,

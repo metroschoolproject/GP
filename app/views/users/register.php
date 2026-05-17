@@ -11,11 +11,15 @@
 
 <head>
     <title>Register</title>
-    <meta name="description" content="Register">
+    <meta name="description" content="Login">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <?php $dashboardCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
+
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo URLROOT; ?>/public/css/app.css">
+
 </head>
 <style>
     #emailvalid {

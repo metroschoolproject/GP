@@ -35,10 +35,28 @@ class Resetpassword extends Controller{
 
     public function singleresettoken(){
         if($_SERVER['REQUEST_METHOD'] === 'POST'){
+            header("Content-Type: application/json; charset=UTF-8");
+
             try{
-                $input = json_decode(file_get_contents("php://input"), true);
-                $email = $input['email'];
-                if($this->usermodel->registeremailcheck($email)){
+            
+
+
+                $rawInput = file_get_contents("php://input");
+                $input = json_decode($rawInput, true);
+
+                if (!is_array($input)) {
+                    $input = $_POST;
+                }
+
+                $email = htmlspecialchars(trim($input['email'] ?? ''), ENT_QUOTES, 'UTF-8');
+                if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid email']);
+                    exit;
+                }
+
+                $user = $this->usermodel->getuserinfo($email);
+                if($user){
+                    $this->userid = $user['user_id'];
                     $tokenPair = $this->resettoken->generateResetToken();
                     $expires = (new DateTime("+1 hour"))->format('Y-m-d H:i:s');
 
@@ -46,16 +64,29 @@ class Resetpassword extends Controller{
                     $storetoken = $this->resetpwmodel->storeresetpwhash($this->userid,$tokenPair['token_hash'],$expires);
 
                     if($storetoken){
-                        $this->resetpwmailserver->resetPwMailServer($email,$tokenPair['token']);
-                        echo json_encode(['tokenPair' => $tokenPair]);
-                        $this->logger->log([
-                            'user_id' => $this->userid,
-                            'identifier' => $email,
-                            'event_type' => 'ResetToken_success',
-                            'ip' => $this->ip,
-                            'ua' => $this->ua,
-                            'details' => 'Reset Token link sent to email successfully.'
-                        ]);
+                        $mailSent = $this->resetpwmailserver->resetPwMailServer($email,$tokenPair['token']);
+                        if ($mailSent) {
+                            echo json_encode(['status' => 'success', 'message' => 'Reset link sent']);
+                            $this->logger->log([
+                                'user_id' => $this->userid,
+                                'identifier' => $email,
+                                'event_type' => 'ResetToken_success',
+                                'ip' => $this->ip,
+                                'ua' => $this->ua,
+                                'details' => 'Reset Token link sent to email successfully.'
+                            ]);
+                        } else {
+                            http_response_code(500);
+                            echo json_encode(['status' => 'error', 'message' => 'Could not send reset email']);
+                            $this->logger->log([
+                                'user_id' => $this->userid,
+                                'identifier' => $email,
+                                'event_type' => 'ResetToken_mail_fail',
+                                'ip' => $this->ip,
+                                'ua' => $this->ua,
+                                'details' => 'Reset token was created, but email sending failed.'
+                            ]);
+                        }
                         exit;
 
                     }else{
@@ -169,6 +200,7 @@ public function setnewpassword() {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
             exit;
         }
+    
     }
 }
 

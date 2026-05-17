@@ -4,62 +4,38 @@ ini_set('display_errors', 1);
 
 class Core
 {
-
-
-
-    protected $curcontroller;
-    protected $curmethod;
+    protected $curcontroller = 'Users';
+    protected $curmethod = 'login';
     protected $params = [];
+
     public function __construct()
     {
         $url = $this->geturl();
+        $controllerName = !empty($url[0]) ? ucwords($url[0]) : $this->curcontroller;
+        $controllerPath = '../app/controllers/' . $controllerName . '.php';
 
-        $this->curcontroller = isset($url[0]) ? ucwords($url[0]) : '';
-
-        // for class 
-
-        if (file_exists('../app/controllers/' . $this->curcontroller . '.php')) {
-            require_once ('../app/controllers/' . $this->curcontroller . '.php');
-            $this->curcontroller = new $this->curcontroller;
-
-            unset($url[0]);
-        } else {
-
-            $this->curmethod = 'sidebar';
-            echo "no class";
+        if (!file_exists($controllerPath)) {
+            http_response_code(404);
+            exit('Controller does not exist: ' . $controllerName);
         }
 
+        require_once $controllerPath;
+        $this->curcontroller = new $controllerName();
+        unset($url[0]);
 
-
-
-        // for method 
-        if (isset($url[1])) {
-            if (method_exists($this->curcontroller, $url[1])) {
-                $this->curmethod = $url[1];
-                unset($url[1]);
-            } else {
-                $this->curmethod = 'index';
-                              echo $url[1];
-
-            }
-        } else {
-            $this->curmethod = 'index';
-            echo $url[1];
-
+        if (isset($url[1]) && method_exists($this->curcontroller, $url[1])) {
+            $this->curmethod = $url[1];
+            unset($url[1]);
         }
-
-
-        // for parameter 
 
         $this->params = $url ? array_values($url) : [];
 
-        if (method_exists($this->curcontroller, $this->curmethod)) {
-
-            call_user_func_array([$this->curcontroller, $this->curmethod], $this->params);
-        } else {
-            echo "Method does not exist: aa " . $this->curmethod;      
-
+        if (!method_exists($this->curcontroller, $this->curmethod)) {
+            http_response_code(404);
+            exit('Method does not exist: ' . $this->curmethod);
         }
+
+        call_user_func_array([$this->curcontroller, $this->curmethod], $this->params);
     }
 
 
@@ -68,14 +44,7 @@ class Core
         // echo rtrim($_GET['url']);  this remove whitespaces and   This function is particularly useful when dealing with user inputs, form submissions, or other situations where you want to clean up or normalize strings.
         $url = isset($_GET['url']) ? rtrim($_GET['url']) : '';
         $url = filter_var($url, FILTER_SANITIZE_URL);
-        $url = explode('/', $url);
-        return $url;
+        return $url === '' ? [] : explode('/', $url);
     }
-
-
-
 }
-
-
-
 ?>

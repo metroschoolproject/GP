@@ -22,7 +22,7 @@ class Mailserver extends Controller{
             $mail->Port       = 587;                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
 
             //Recipients
-            $mail->setFrom('hsumyatm7308@gmail.com', 'Perum');
+            $mail->setFrom('hsumyatm7308@gmail.com', 'Golden Promise');
             $mail->addAddress($data['email']);     //Add a recipient
 
             //Content
@@ -31,9 +31,10 @@ class Mailserver extends Controller{
             $mail->Body    = $data['body'];
 
             $mail->send();
-            // echo 'Message has been sent to $toEmail\n';
+            return true;
         } catch (Exception $e) {
-            echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+            error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
+            return false;
         }
 
     }
