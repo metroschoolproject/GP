@@ -14,12 +14,16 @@ class Users extends Controller
     private $loginalertmail;
     private $resettoken;
     private $resetpwmodel;
+    private $emailverificationmodel;
+    private $emailverificationmail;
 
     public function __construct()
     {
         $this->usermodel = $this->model('User');
         $this->resettoken = new GenerateResetToken();
         $this->resetpwmodel = $this->model('Resetpw');
+        $this->emailverificationmodel = $this->model('EmailVerification');
+        $this->emailverificationmail = new EmailVerificationMailServer();
 
         if (isset($_SESSION['session_uid'])) {
             $this->userid = $_SESSION['session_uid'];
@@ -28,7 +32,7 @@ class Users extends Controller
             $this->userid = null;
         }
         $this->logger = new AuthLogger();
-        $this->ip = $_SERVER['REMOTE_ADDR'];
+        $this->ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
         $this->ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
         $this->logmodel = $this->model('Log');
@@ -80,7 +84,7 @@ private function getPasswordLockResponse($email)
 
 public function register()
 {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         try {
             // header("Content-Type: application/json; charset=UTF-8");
 
@@ -125,11 +129,14 @@ public function register()
             $password = $input['password'] ?? '';
             $compassword = $input['compassword'] ?? $input['confirm_password'] ?? '';
 
+            $role = ($input['role'] ?? $input['type'] ?? '') === 'supplier' ? 'supplier' : 'customer';
+
             $data = [
                 'username' => htmlspecialchars(trim($username), ENT_QUOTES, 'UTF-8'),
                 'email' => htmlspecialchars(trim($input['email'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 'password' => trim($password),
                 'compassword' => trim($compassword),
+                'role' => $role,
             ];
 
             if (
@@ -161,6 +168,12 @@ public function register()
                 exit;
             }
 
+            try {
+                $this->usermodel->cleanupStaleUnverifiedPublicAccounts(7);
+            } catch (Exception $cleanupError) {
+                // Registration should still work if a cleanup query cannot run.
+            }
+
             if ($this->usermodel->registeremailcheck($data['email'])) {
                 echo json_encode([
                     'email' => true
@@ -171,11 +184,14 @@ public function register()
             $pw_sha = hash('sha256', $data['password']);
             $data['password'] = password_hash($pw_sha, PASSWORD_DEFAULT);
 
-            if ($this->usermodel->register($data)) {
+            $registeredUserId = $this->usermodel->register($data);
+
+            if ($registeredUserId) {
+                $this->usermodel->assignRole($registeredUserId, $role);
 
                 try {
                     $this->logger->log([
-                        'user_id' => $this->userid,
+                        'user_id' => $registeredUserId,
                         'identifier' => $data['email'],
                         'event_type' => 'register_success',
                         'ip' => $this->ip,
@@ -186,9 +202,28 @@ public function register()
                     // Do not break register if logging fails
                 }
 
+                $_SESSION['pending_register_user_id'] = $registeredUserId;
+                $_SESSION['pending_register_email'] = $data['email'];
+                $_SESSION['pending_register_name'] = $data['username'];
+                $_SESSION['pending_register_role'] = $role;
+
+                $tokenPair = $this->resettoken->generateResetToken();
+                $expires = (new DateTime('+24 hours'))->format('Y-m-d H:i:s');
+                $tokenStored = $this->emailverificationmodel->storeToken($registeredUserId, $tokenPair['token_hash'], $expires);
+                $mailSent = $tokenStored && $this->emailverificationmail->sendVerificationEmail($data['email'], $tokenPair['token']);
+
+                if (!$mailSent) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Account created, but verification email could not be sent.'
+                    ]);
+                    exit;
+                }
+
                 echo json_encode([
                     'status' => 'success',
-                    'redirect' => 'login'
+                    'role' => $role,
+                    'redirect' => 'users/verificationSent?e=' . urlencode($data['email'])
                 ]);
                 exit;
 
@@ -227,7 +262,56 @@ public function register()
     $this->view('users/auth');
 }
 
-// Get Email From User to Server
+    // Get Email From User to Server
+    public function auth()
+    {
+        $this->view('users/auth');
+    }
+
+    public function verificationSent()
+    {
+        $this->view('users/verification_sent', [
+            'email' => htmlspecialchars(trim($_GET['e'] ?? ''), ENT_QUOTES, 'UTF-8')
+        ]);
+    }
+
+    public function verifyEmail()
+    {
+        $email = htmlspecialchars(trim($_GET['e'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $token = trim($_GET['token'] ?? '');
+        $tokenHash = $token !== '' ? hash('sha256', $token) : '';
+        $user = $email !== '' && $tokenHash !== ''
+            ? $this->emailverificationmodel->getValidUser($email, $tokenHash)
+            : false;
+
+        if (!$user || !$this->emailverificationmodel->markVerified($user['user_id'], $tokenHash)) {
+            $this->view('users/email_verified', [
+                'verified' => false,
+                'redirect' => 'users/auth',
+                'message' => 'This verification link is invalid or expired.'
+            ]);
+            return;
+        }
+
+        $_SESSION['session_uid'] = $user['user_id'];
+        $_SESSION['session_email'] = $user['email'];
+
+        $redirect = $this->getPostLoginRedirect($user['user_id']);
+
+        if ($redirect === 'supplier/onboarding') {
+            $_SESSION['pending_register_user_id'] = $user['user_id'];
+            $_SESSION['pending_register_email'] = $user['email'];
+            $_SESSION['pending_register_name'] = $user['name'] ?? '';
+            $_SESSION['pending_register_role'] = 'supplier';
+        }
+
+        $this->view('users/email_verified', [
+            'verified' => true,
+            'redirect' => $redirect,
+            'message' => 'Your email is verified. Your account is ready.'
+        ]);
+    }
+
     public function login()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -247,6 +331,16 @@ public function register()
                 // ALREADY WORK!!!!!!
 
                 if($this->usermodel->registeremailcheck($input['email'])){
+                    $user = $this->usermodel->getuserinfo($data['email']);
+
+                    if ($user && $this->usermodel->passwordLoginNeedsEmailVerification($user)) {
+                        echo json_encode([
+                            'status' => 'email_unverified',
+                            'email' => $data['email']
+                        ]);
+                        exit;
+                    }
+
                     $lockResponse = $this->getPasswordLockResponse($input['email']);
                     if ($lockResponse) {
                         echo json_encode($lockResponse);
@@ -316,10 +410,11 @@ public function register()
                 if($verifyres){
                     $this->usermodel->markloginsuccess($data['email']);
                     $this->userid = $_SESSION['session_uid'] ?? $this->userid;
+                    $_SESSION['post_login_redirect'] = $this->getPostLoginRedirect($this->userid);
                     $this->logger->log([
                         'user_id' => $this->userid,
                         'identifier' => $input['email'],
-                        'event_type' => 'login_success',
+                        'event_type' => 'login_information_correct',
                         'ip' => $this->ip,
                         'ua' => $this->ua,
                         'details' => 'Authenticated via challenge-response'
@@ -330,7 +425,7 @@ public function register()
                     $this->logger->log([
                         'user_id' => $this->userid,
                         'identifier' => $input['email'],
-                        'event_type' => 'login_fail', 
+                        'event_type' => 'login_information_fail', 
                         'ip' => $this->ip,
                         'ua' => $this->ua,
                         'details' => 'Invalid credentials or challenge mismatch'
@@ -361,7 +456,7 @@ public function register()
         $this->usermodel->recordpasswordfail($email);
         $loginfail_count = $this->logmodel->detect_loginfail($email);
         $attemptime = 3;
-        if ($loginfail_count['loginfails'] >= $attemptime) {
+        if ($loginfail_count['loginfails'] > $attemptime) {
             $lockTime = new DateTime('+15 minutes');
             $this->usermodel->lockaccount($email, $lockTime->format('Y-m-d H:i:s'));
             $user = $this->usermodel->getuserinfo($email);
@@ -384,7 +479,12 @@ public function register()
             ]);
             exit;
         } else {
-            echo json_encode(['loginfailnotyet' => true,"pwd"=> false, $loginfail_count['loginfails']]);
+            echo json_encode([
+                'loginfailnotyet' => true,
+                'pwd' => false,
+                'attempt_count' => (int)$loginfail_count['loginfails'],
+                'max_attempts' => $attemptime
+            ]);
             exit;
         }
     }
@@ -423,8 +523,205 @@ public function register()
         redirect('users/auth_login');
     }
 
-}
+    private function getPostLoginRedirect($userId)
+    {
+        $roles = $this->usermodel->getUserRoles($userId);
 
+        if (in_array('admin', $roles, true)) {
+            return 'admin/dashboard';
+        }
+
+        if (in_array('staff', $roles, true)) {
+            return 'admin/dashboard';
+        }
+
+        if (in_array('supplier', $roles, true)) {
+            return 'supplier/onboarding';
+        }
+
+        return 'main/home';
+    }
+
+
+    private function getPublicOauthIntent()
+    {
+        return ($_GET['type'] ?? '') === 'supplier' ? 'supplier' : 'customer';
+    }
+
+    private function finishSocialLogin($user)
+    {
+        $role = ($_SESSION['oauth_intent'] ?? 'customer') === 'supplier' ? 'supplier' : 'customer';
+
+        $this->usermodel->assignRole($user['user_id'], $role);
+        $this->usermodel->markEmailVerified($user['user_id']);
+
+        $_SESSION['session_uid'] = $user['user_id'];
+        $_SESSION['session_email'] = $user['email'];
+
+        if ($role === 'supplier') {
+            $_SESSION['pending_register_user_id'] = $user['user_id'];
+            $_SESSION['pending_register_email'] = $user['email'];
+            $_SESSION['pending_register_name'] = $user['name'] ?? '';
+            $_SESSION['pending_register_role'] = 'supplier';
+
+            redirect('supplier/onboarding');
+        }
+
+        redirect('main/home');
+    }
+
+
+    // Google 
+    public function google()
+    {
+        $client = new Google_Client();
+        $client->setClientId(GOOGLE_CLIENT_ID);
+        $client->setClientSecret(GOOGLE_CLIENT_SECRET);
+        $client->setRedirectUri(GOOGLE_REDIRECT_URI);
+        $client->addScope('email');
+        $client->addScope('profile');
+
+        $_SESSION['oauth_intent'] = $this->getPublicOauthIntent();
+        $_SESSION['oauth_state'] = bin2hex(random_bytes(16));
+        $client->setState($_SESSION['oauth_state']);
+
+        redirect($client->createAuthUrl());
+    }
+
+    public function googleCallback()
+    {
+        if (isset($_GET['error'])) {
+            exit('Google login error: ' . htmlspecialchars($_GET['error'], ENT_QUOTES, 'UTF-8'));
+        }
+
+        if (!isset($_GET['code'])) {
+            exit('Google login failed: authorization code missing.');
+        }
+
+        if (!isset($_GET['state']) || $_GET['state'] !== ($_SESSION['oauth_state'] ?? '')) {
+            exit('Invalid Google login state');
+        }
+
+        $client = new Google_Client();
+        $client->setClientId(GOOGLE_CLIENT_ID);
+        $client->setClientSecret(GOOGLE_CLIENT_SECRET);
+        $client->setRedirectUri(GOOGLE_REDIRECT_URI);
+
+        $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+        if (isset($token['error'])) {
+            $message = $token['error_description'] ?? $token['error'];
+            exit('Google token error: ' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
+        }
+
+        $client->setAccessToken($token);
+
+        $oauth = new Google_Service_Oauth2($client);
+        $googleUser = $oauth->userinfo->get();
+
+        $user = $this->usermodel->findOrCreateGoogleUser([
+            'google_id' => $googleUser->id,
+            'email' => $googleUser->email,
+            'name' => $googleUser->name,
+            'avatar' => $googleUser->picture
+        ]);
+
+        $this->finishSocialLogin($user);
+    }
+
+    private function getJsonFromUrl($url)
+    {
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            $response = curl_exec($ch);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($response === false) {
+                throw new Exception($error ?: 'Request failed');
+            }
+        } else {
+            $response = file_get_contents($url);
+            if ($response === false) {
+                throw new Exception('Request failed');
+            }
+        }
+
+        $data = json_decode($response, true);
+        if (!is_array($data)) {
+            throw new Exception('Invalid response from Facebook');
+        }
+
+        return $data;
+    }
+
+    public function facebook()
+    {
+        $_SESSION['oauth_intent'] = $this->getPublicOauthIntent();
+        $_SESSION['facebook_oauth_state'] = bin2hex(random_bytes(16));
+
+        $params = [
+            'client_id' => FACEBOOK_APP_ID,
+            'redirect_uri' => FACEBOOK_REDIRECT_URI,
+            'state' => $_SESSION['facebook_oauth_state'],
+            'scope' => 'email,public_profile',
+            'response_type' => 'code'
+        ];
+
+        redirect('https://www.facebook.com/v20.0/dialog/oauth?' . http_build_query($params));
+    }
+
+    public function facebookCallback()
+    {
+        if (isset($_GET['error'])) {
+            exit('Facebook login error: ' . htmlspecialchars($_GET['error_description'] ?? $_GET['error'], ENT_QUOTES, 'UTF-8'));
+        }
+
+        if (!isset($_GET['code'])) {
+            exit('Facebook login failed: authorization code missing.');
+        }
+
+        if (!isset($_GET['state']) || $_GET['state'] !== ($_SESSION['facebook_oauth_state'] ?? '')) {
+            exit('Invalid Facebook login state');
+        }
+
+        try {
+            $token = $this->getJsonFromUrl('https://graph.facebook.com/v20.0/oauth/access_token?' . http_build_query([
+                'client_id' => FACEBOOK_APP_ID,
+                'client_secret' => FACEBOOK_APP_SECRET,
+                'redirect_uri' => FACEBOOK_REDIRECT_URI,
+                'code' => $_GET['code']
+            ]));
+
+            if (isset($token['error']) || empty($token['access_token'])) {
+                $message = $token['error']['message'] ?? 'Facebook token error';
+                exit('Facebook token error: ' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
+            }
+
+            $facebookUser = $this->getJsonFromUrl('https://graph.facebook.com/me?' . http_build_query([
+                'fields' => 'id,name,email,picture.type(large)',
+                'access_token' => $token['access_token']
+            ]));
+
+            if (empty($facebookUser['email'])) {
+                exit('Facebook did not return an email address for this account.');
+            }
+
+            $user = $this->usermodel->findOrCreateFacebookUser([
+                'facebook_id' => $facebookUser['id'],
+                'email' => $facebookUser['email'],
+                'name' => $facebookUser['name'] ?? $facebookUser['email'],
+                'avatar' => $facebookUser['picture']['data']['url'] ?? null
+            ]);
+
+            $this->finishSocialLogin($user);
+        } catch (Exception $e) {
+            exit('Facebook login failed: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
+        }
+    }
+
+}
 
 
 ?>

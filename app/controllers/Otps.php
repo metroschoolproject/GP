@@ -36,6 +36,13 @@ class Otps extends Controller{
     }
 
     public function otp(){
+        if($_SERVER['REQUEST_METHOD'] !== 'POST'){
+            $this->view('otps/otp');
+            return;
+        }
+
+        header('Content-Type: application/json');
+
         $otp = $this->generateOtpCode(6);
         $expires = (new DateTime("+1 minutes"))->format('Y-m-d H:i:s');
         $storeotp = $this->otpmodel->storeotp($otp,$this->userid,$expires);
@@ -50,6 +57,8 @@ class Otps extends Controller{
                 'ua' => $this->ua,
                 'details' => 'OTP sent to email successfully.'
             ]);
+            echo json_encode(['status' => true]);
+            exit;
         }else{
             $this->logger->log([
                 'user_id' => $this->userid,
@@ -59,8 +68,9 @@ class Otps extends Controller{
                 'ua' => $this->ua,
                 'details' => 'Fail to send OTP'
             ]);
+            echo json_encode(['status' => false]);
+            exit;
         }
-        $this->view('otps/otp');
     }
 
     public function generateOtpCode(int $digits = 6):string {
@@ -85,7 +95,10 @@ class Otps extends Controller{
                         'ua' => $this->ua,
                         'details' => 'OTP verifies successfully'
                     ]);
-                    echo json_encode(['otp_try_status' => true]);
+                    echo json_encode([
+                        'otp_try_status' => true,
+                        'redirect' => $_SESSION['post_login_redirect'] ?? 'main/home'
+                    ]);
                     exit;
                 }else{
                     $this->logger->log([
@@ -116,6 +129,14 @@ class Otps extends Controller{
             // lock account until 15 minutes
             $lockTime = new DateTime('+15 minutes');
             $this->usermodel->lockaccount($this->toEmail, $lockTime->format('Y-m-d H:i:s'));
+            $this->logmodel->createAccountLockoutLog([
+                'user_id' => $this->userid,
+                'event' => 'locked',
+                'reason' => 'otp_attempts',
+                'attempt_count' => $otpfail_count['otpfails'],
+                'locked_until' => $lockTime->format('Y-m-d H:i:s'),
+                'ip_address' => $this->ip
+            ]);
             $this->logger->log([
                 'user_id' => $this->userid,
                 'identifier' => $this->toEmail,

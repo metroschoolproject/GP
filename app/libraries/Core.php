@@ -4,15 +4,16 @@ ini_set('display_errors', 1);
 
 class Core
 {
-    protected $curcontroller = 'Users';
-    protected $curmethod = 'login';
+    protected $curcontroller = 'Main';
+    protected $curmethod = 'home';
     protected $params = [];
 
     public function __construct()
     {
         $url = $this->geturl();
         $controllerName = !empty($url[0]) ? ucwords($url[0]) : $this->curcontroller;
-        $controllerPath = '../app/controllers/' . $controllerName . '.php';
+        // $controllerPath = '../app/controllers/' . $controllerName . '.php';
+        $controllerPath = APPROOT . '/controllers/' . $controllerName . '.php';
 
         if (!file_exists($controllerPath)) {
             http_response_code(404);

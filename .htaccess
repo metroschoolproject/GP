@@ -5,6 +5,7 @@
 
     RewriteRule ^login/?$ public/index.php?url=users/login [QSA,L]
     RewriteRule ^register/?$ public/index.php?url=users/register [QSA,L]
+    RewriteRule ^home/?$ public/index.php?url=main/home [QSA,L]
     RewriteRule ^dashboard/?$ public/index.php?url=admin/dashboard [QSA,L]
 
     RewriteCond %{REQUEST_FILENAME} !-d

@@ -1,0 +1,3 @@
+-- No extra supplier application table is needed.
+-- The supplier flow uses your existing tables:
+-- users, roles, user_roles, suppliers, and services.

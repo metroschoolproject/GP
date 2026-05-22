@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --dashboard-bg: #FBFBF9;
+            --dashboard-border: #e7e5e4;
+            --dashboard-text: #1c1917;
+            --accent-color: #673049;
+            --dashboard-primary-soft: #fcefe8;
+            --dashboard-radius-control: 1rem;
+            --dashboard-shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.05);
+            --dashboard-font: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--dashboard-bg);
+            color: var(--dashboard-text);
+            font-family: var(--dashboard-font);
+            font-size: 13px;
+        }
+
+        .chart-container { position: relative; width: 100%; }
+
+        /* Status badge styles */
+        .badge-pending { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+        .badge-full { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .badge-half { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+        /* Withdraw history badges */
+        .badge-completed { background: #d1fae5; color: #065f46; }
+        .badge-processing { background: #dbeafe; color: #1e40af; }
+        .badge-failed { background: #fee2e2; color: #991b1b; }
+
+        /* Scrollable table */
+        .table-scroll { overflow-x: auto; }
+
+        /* Filter tab active */
+        .filter-tab.active {
+            background: var(--accent-color);
+            color: white;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <main class="mx-auto max-w-[1600px] px-4 py-5">
+
+       
+
+        <!-- MAIN LAYOUT: left col (stats + charts) | right col (calendar + events) -->
+        <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_300px] lg:items-stretch">
+        <!-- LEFT: stat cards + charts -->
+        <div class="flex flex-col gap-3 h-full">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+            <!-- Escrow Wallet -->
+            <div class="relative overflow-hidden rounded-[1.2rem] bg-stone-900 p-4 text-white shadow-xl">
+                <div class="relative z-10">
+                    <div class="mb-3 flex items-center gap-2">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white">
+                            <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-white">Escrow Wallet</p>
+                            <p class="text-[11px] text-stone-400">Protected payments</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <p class="text-[10px] uppercase tracking-widest text-stone-500">Total</p>
+                            <p id="escrowTotal" class="mt-1 text-xl font-bold tracking-tight">$38,482</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] uppercase tracking-widest text-stone-500">Pending</p>
+                            <p id="escrowPending" class="mt-1 text-xl font-bold tracking-tight">$13,260</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="mb-1.5 flex justify-between text-[10px] font-bold uppercase tracking-widest text-stone-500">
+                            <span><span id="escrowAvailable">$25,222</span> available</span>
+                            <span id="escrowProgressPercent">0%</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-white/10">
+                            <div id="escrowProgressFill" class="h-full rounded-full bg-indigo-400" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <svg class="absolute -right-6 -top-6 h-24 w-24 text-white/5 rotate-12"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>
+            </div>
+
+            <!-- Total Revenue -->
+            <div class="rounded-[1.2rem] border border-stone-200 bg-white p-4 shadow-sm">
+                <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                    <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M12 7v10"/><path d="M14.35 9A2 2 0 0 0 12 7.5h-1a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-1a2 2 0 0 1-2.35-1.5"/></svg>
+                </div>
+                <p class="text-xs font-medium text-stone-500">Total Revenue</p>
+                <h2 id="totalRevenue" class="mt-1.5 text-2xl font-bold tracking-tighter text-stone-900">$63,400</h2>
+                <div class="mt-3 border-t border-stone-100 pt-3">
+                    <p class="text-[10px] uppercase tracking-widest text-stone-400">Avg Spend</p>
+                    <p id="avgSpend" class="mt-0.5 text-base font-bold text-stone-900">$200</p>
+                </div>
+            </div>
+
+            <!-- Total Bookings -->
+            <div class="rounded-[1.2rem] border border-stone-200 bg-white p-4 shadow-sm">
+                <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+                    <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+                </div>
+                <p class="text-xs font-medium text-stone-500">Total Bookings</p>
+                <h2 id="totalBookings" class="mt-1.5 text-2xl font-bold tracking-tighter text-stone-900">317</h2>
+                <div class="mt-3 grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-stone-400">Confirmed</p>
+                        <p id="confirmedBookings" class="mt-0.5 text-lg font-bold text-emerald-600">217</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-stone-400">Cancelled</p>
+                        <p id="cancelledBookings" class="mt-0.5 text-lg font-bold text-red-600">33</p>
+                    </div>
+                </div>
+            </div>
+
+            </div><!-- end stat cards inner -->
+
+            <!-- CHARTS: two side by side inside left col -->
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 flex-1">
+
+                <!-- Revenue Chart -->
+                <div class="rounded-[1.2rem] border border-stone-200 bg-white p-3 shadow-sm flex flex-col">
+                    <div class="mb-2 flex items-start justify-between">
+                        <div>
+                            <h3 class="text-xs font-bold text-stone-900">Revenue Chart</h3>
+                            <p class="text-[10px] text-stone-400">Monthly revenue</p>
+                        </div>
+                        <span class="self-start inline-flex items-center gap-1 bg-rose-50 text-rose-500 font-bold text-[10px] px-2.5 py-1 rounded-full border border-rose-100">PEAK: FEB</span>
+                    </div>
+                    <div class="chart-container flex-1" style="min-height: 110px;">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Booking Trends -->
+                <div class="rounded-[1.2rem] border border-stone-200 bg-white p-3 shadow-sm flex flex-col">
+                    <div class="mb-2 flex items-start justify-between">
+                        <div>
+                            <h3 class="text-xs font-bold text-stone-900">Booking Trends</h3>
+                            <p class="text-[10px] text-stone-400">Monthly bookings</p>
+                        </div>
+                        <span class="self-start inline-flex items-center gap-1 bg-rose-50 text-rose-500 font-bold text-[10px] px-2.5 py-1 rounded-full border border-rose-100">PEAK: FEB</span>
+                    </div>
+                    <div class="chart-container flex-1" style="min-height: 110px;">
+                        <canvas id="bookingChart"></canvas>
+                    </div>
+                </div>
+            </div><!-- end charts -->
+
+        </div><!-- end left col -->
+
+            <!-- RIGHT: Calendar + Upcoming Events -->
+            <div class="flex flex-col gap-3 h-full">
+
+                <!-- Calendar -->
+                <div class="rounded-[1.2rem] border border-stone-200 bg-white p-4 shadow-sm">
+                    <div class="mb-3 flex items-center justify-between">
+                        <button id="calPrev" class="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-stone-100 transition-colors">
+                            <svg class="h-3.5 w-3.5 text-stone-500"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <h3 class="text-xs font-bold text-stone-900" id="calendarMonthLabel">January</h3>
+                        <button id="calNext" class="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-stone-100 transition-colors">
+                            <svg class="h-3.5 w-3.5 text-stone-500"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 mb-1.5 text-center text-[10px] font-semibold text-stone-400">
+                        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                    </div>
+                    <div id="availabilityCalendarGrid" class="grid grid-cols-7 gap-1"></div>
+
+                    <!-- Legend -->
+                    <div class="mt-3 pt-3 border-t border-stone-100 grid grid-cols-2 gap-1.5">
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-stone-900 shrink-0"></span>
+                            <span class="text-[10px] text-stone-500">Today</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-rose-100 shrink-0"></span>
+                            <span class="text-[10px] text-stone-500">Booked</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-amber-100 shrink-0"></span>
+                            <span class="text-[10px] text-stone-500">Pending</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-50 shrink-0"></span>
+                            <span class="text-[10px] text-stone-500">Available</span>
+                        </div>
+                    </div>
+                    <!-- Day tooltip -->
+                    <div id="calTooltip" class="hidden mt-2 rounded-xl bg-stone-50 border border-stone-100 p-2.5 text-[10px] text-stone-600 transition-all">
+                        <p id="calTooltipText" class="font-medium"></p>
+                    </div>
+                </div>
+
+                <!-- Upcoming Events (below calendar) -->
+                <div class="rounded-[1.2rem] border border-stone-200 bg-white p-4 shadow-sm flex flex-col flex-1">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-stone-900">Upcoming Events</h3>
+                        <button class="text-xs font-medium text-[var(--accent-color)]">View all</button>
+                    </div>
+                    <div id="weddingBookingsList" class="space-y-2 flex-1 overflow-y-auto">
+                        <!-- rendered by JS -->
+                    </div>
+                </div>
+            </div><!-- end right col -->
+        </section>
+
+        <!-- PAYMENT STATUS -->
+        <section class="mb-4">
+            <div class="rounded-[1.2rem] border border-stone-200 bg-white p-4 shadow-sm">
+                <div class="mb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-stone-900">Payment status</h3>
+                    <div class="relative">
+                        <button id="paymentFilterBtn" type="button" aria-expanded="false"
+                            class="flex h-8 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold text-[var(--accent-color)] shadow-sm hover:bg-pink-100 hover:text-pink-600 focus:outline-none">
+                            <svg class="h-3 w-3 text-stone-400"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <span id="paymentFilterLabel">This week</span>
+                            <svg class="h-3 w-3 text-stone-400 transition-transform" id="paymentFilterChevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div id="paymentFilterMenu" class="invisible absolute right-0 top-[calc(100%+6px)] z-30 w-36 origin-top scale-y-95 rounded-xl border border-stone-200 bg-white p-1.5 opacity-0 shadow-lg transition-all duration-150">
+                            <button type="button" data-payment-filter="today" class="flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--accent-color)] hover:bg-pink-100 hover:text-pink-600">Today</button>
+                            <button type="button" data-payment-filter="week" class="flex w-full items-center rounded-lg bg-pink-50 px-3 py-1.5 text-left text-xs font-semibold text-pink-600 hover:bg-pink-100 hover:text-pink-600">This week</button>
+                            <button type="button" data-payment-filter="month" class="flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--accent-color)] hover:bg-pink-100 hover:text-pink-600">This month</button>
+                            <button type="button" data-payment-filter="year" class="flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--accent-color)] hover:bg-pink-100 hover:text-pink-600">This year</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Filter Tabs -->
+                <div class="flex flex-wrap gap-2 mb-4 mt-3">
+                    <button onclick="filterPayments('all')" data-status="all" class="filter-tab active rounded-full px-4 py-1.5 text-xs font-semibold border border-stone-200 transition-all">All</button>
+                    <button onclick="filterPayments('pending')" data-status="pending" class="filter-tab rounded-full px-4 py-1.5 text-xs font-semibold border border-stone-200 text-stone-600 bg-stone-50 transition-all">Pending</button>
+                    <button onclick="filterPayments('full paid')" data-status="full paid" class="filter-tab rounded-full px-4 py-1.5 text-xs font-semibold border border-stone-200 text-stone-600 bg-stone-50 transition-all">Full Paid</button>
+                    <button onclick="filterPayments('half paid')" data-status="half paid" class="filter-tab rounded-full px-4 py-1.5 text-xs font-semibold border border-stone-200 text-stone-600 bg-stone-50 transition-all">Half Paid</button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-scroll">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-stone-100">
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">ID</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Booking ID</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Customer Name</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Event Date</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Payment Method</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Payout Type</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Total</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Paid</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Escrow Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentTableBody">
+                            <!-- Rows rendered by JS -->
+                        </tbody>
+                    </table>
+                    <p id="noPaymentRows" class="hidden text-center text-xs text-stone-400 py-6">No records found.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- WITHDRAW HISTORY -->
+        <section class="mb-4">
+            <div class="rounded-[1.2rem] border border-stone-200 bg-white p-4 shadow-sm">
+                <div class="mb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-stone-900">Withdraw History</h3>
+                    <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <button id="withdrawFilterBtn" type="button" aria-expanded="false"
+                                class="flex h-8 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold text-[var(--accent-color)] shadow-sm hover:bg-pink-100 hover:text-pink-600 focus:outline-none">
+                                <svg class="h-3 w-3 text-stone-400"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                <span id="withdrawFilterLabel">This week</span>
+                                <svg class="h-3 w-3 text-stone-400 transition-transform" id="withdrawFilterChevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                            <div id="withdrawFilterMenu" class="invisible absolute right-0 top-[calc(100%+6px)] z-30 w-36 origin-top scale-y-95 rounded-xl border border-stone-200 bg-white p-1.5 opacity-0 shadow-lg transition-all duration-150">
+                                <button type="button" data-withdraw-filter="today" class="flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--accent-color)] hover:bg-pink-100 hover:text-pink-600">Today</button>
+                                <button type="button" data-withdraw-filter="week" class="flex w-full items-center rounded-lg bg-pink-50 px-3 py-1.5 text-left text-xs font-semibold text-pink-600 hover:bg-pink-100 hover:text-pink-600">This week</button>
+                                <button type="button" data-withdraw-filter="month" class="flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--accent-color)] hover:bg-pink-100 hover:text-pink-600">This month</button>
+                                <button type="button" data-withdraw-filter="year" class="flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-[var(--accent-color)] hover:bg-pink-100 hover:text-pink-600">This year</button>
+                            </div>
+                        </div>
+                        <button class="text-xs font-medium text-[var(--accent-color)]">View all</button>
+                    </div>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-stone-100">
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Withdraw ID</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Date</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Amount</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Bank / Method</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Account No.</th>
+                                <th class="text-left py-2 px-2 text-[10px] uppercase tracking-wider text-stone-400 font-semibold whitespace-nowrap">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="withdrawTableBody">
+                            <!-- Rows rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+<script>
+  /* ── helpers ── */
+  function currency(v) { return `$${Number(v).toLocaleString()}`; }
+
+  /* ── mock data ── */
+  const paymentData = [
+    { id: 1, bookingId: "BK-001", customer: "Aye Aye Chan", eventDate: "May 25, 2026", method: "KBZ Pay",  payout: "Full Paid",  total: 2400, paid: 2400, escrow: "Held in Escrow" },
+    { id: 2, bookingId: "BK-002", customer: "Zin Mar Aung", eventDate: "Jun 3, 2026",  method: "CB Pay",   payout: "Half Paid",  total: 3200, paid: 1600, escrow: "Partially Released" },
+    { id: 3, bookingId: "BK-003", customer: "Mya Sandar",   eventDate: "Jun 15, 2026", method: "Wave Pay", payout: "Pending",    total: 1800, paid: 0,    escrow: "Held in Escrow" },
+    { id: 4, bookingId: "BK-004", customer: "Su Su Hlaing",  eventDate: "Jul 2, 2026",  method: "KBZ Pay",  payout: "Full Paid",  total: 4100, paid: 4100, escrow: "Released" },
+    { id: 5, bookingId: "BK-005", customer: "Nan Ei Phyo",   eventDate: "Jul 8, 2026",  method: "AYA Pay",  payout: "Half Paid",  total: 2750, paid: 1375, escrow: "Partially Released" },
+  ];
+
+  /* ── wedding bookings list ── */
+  function renderWeddingBookings() {
+    const el = document.getElementById("weddingBookingsList");
+    if (!el) return;
+    // Filter only booked (rose/confirmed) wedding-type entries from paymentData
+    const weddings = paymentData.filter(r => r.payout === "Full Paid" || r.payout === "Half Paid");
+    if (weddings.length === 0) {
+      el.innerHTML = `<p class="text-[10px] text-stone-400 text-center py-4">No wedding bookings.</p>`;
+      return;
+    }
+    el.innerHTML = weddings.map(r => {
+      const statusColor = r.payout === "Full Paid" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600";
+      const statusLabel = r.payout === "Full Paid" ? "Confirmed" : "Pending";
+      return `
+        <div class="flex items-center gap-2.5 rounded-xl bg-stone-50 p-2.5">
+          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-100 text-rose-600 shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-stone-900 truncate">${r.customer}</p>
+            <p class="text-[10px] text-stone-500">${r.eventDate}</p>
+          </div>
+          <span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusColor}">${statusLabel}</span>
+        </div>`;
+    }).join("");
+  }
+
+  const withdrawData = [
+    { id: "WD-0021", date: "May 10, 2026", amount: 5000,  bank: "KBZ Bank",  account: "**** 4892", status: "completed"  },
+    { id: "WD-0020", date: "Apr 28, 2026", amount: 3200,  bank: "CB Bank",   account: "**** 7741", status: "completed"  },
+    { id: "WD-0019", date: "Apr 14, 2026", amount: 8500,  bank: "AYA Bank",  account: "**** 3310", status: "processing" },
+    { id: "WD-0018", date: "Mar 30, 2026", amount: 1200,  bank: "KBZ Bank",  account: "**** 4892", status: "failed"     },
+    { id: "WD-0017", date: "Mar 12, 2026", amount: 6000,  bank: "CB Bank",   account: "**** 7741", status: "completed"  },
+  ];
+
+  /* ── payment table ── */
+  let currentPaymentFilter = "all";
+
+  function payoutBadge(type) {
+    const t = type.toLowerCase();
+    if (t === "pending")   return `<span class="badge-pending rounded-full px-2 py-0.5 text-[10px] font-semibold">${type}</span>`;
+    if (t === "full paid") return `<span class="badge-full rounded-full px-2 py-0.5 text-[10px] font-semibold">${type}</span>`;
+    if (t === "half paid") return `<span class="badge-half rounded-full px-2 py-0.5 text-[10px] font-semibold">${type}</span>`;
+    return type;
+  }
+
+  function escrowBadge(status) {
+    const s = status.toLowerCase();
+    if (s === "released")             return `<span class="text-emerald-600 font-medium">${status}</span>`;
+    if (s === "partially released")   return `<span class="text-amber-600 font-medium">${status}</span>`;
+    return `<span class="text-stone-500">${status}</span>`;
+  }
+
+  function filterPayments(status) {
+    currentPaymentFilter = status;
+    document.querySelectorAll(".filter-tab").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.status === status);
+      if (btn.dataset.status !== status) {
+        btn.classList.add("text-stone-600","bg-stone-50");
+      } else {
+        btn.classList.remove("text-stone-600","bg-stone-50");
+      }
+    });
+    renderPaymentTable();
+  }
+
+  function renderPaymentTable() {
+    const tbody = document.getElementById("paymentTableBody");
+    const noRows = document.getElementById("noPaymentRows");
+    const rows = currentPaymentFilter === "all"
+      ? paymentData
+      : paymentData.filter(r => r.payout.toLowerCase() === currentPaymentFilter);
+
+    if (rows.length === 0) {
+      tbody.innerHTML = "";
+      noRows.classList.remove("hidden");
+      return;
+    }
+    noRows.classList.add("hidden");
+    tbody.innerHTML = rows.map(r => `
+      <tr class="border-b border-stone-50 hover:bg-stone-50 transition-colors">
+        <td class="py-2.5 px-2 text-stone-500">${r.id}</td>
+        <td class="py-2.5 px-2 font-medium text-stone-700">${r.bookingId}</td>
+        <td class="py-2.5 px-2 text-stone-700 whitespace-nowrap">${r.customer}</td>
+        <td class="py-2.5 px-2 text-stone-500 whitespace-nowrap">${r.eventDate}</td>
+        <td class="py-2.5 px-2 text-stone-500">${r.method}</td>
+        <td class="py-2.5 px-2">${payoutBadge(r.payout)}</td>
+        <td class="py-2.5 px-2 font-medium text-stone-700">${currency(r.total)}</td>
+        <td class="py-2.5 px-2 font-medium text-stone-700">${currency(r.paid)}</td>
+        <td class="py-2.5 px-2">${escrowBadge(r.escrow)}</td>
+      </tr>
+    `).join("");
+  }
+
+  /* ── withdraw table ── */
+  function withdrawBadge(status) {
+    const cls = {
+      completed:  "badge-completed",
+      processing: "badge-processing",
+      failed:     "badge-failed"
+    }[status] || "";
+    return `<span class="${cls} rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize">${status}</span>`;
+  }
+
+  function renderWithdrawTable() {
+    document.getElementById("withdrawTableBody").innerHTML = withdrawData.map(r => `
+      <tr class="border-b border-stone-50 hover:bg-stone-50 transition-colors">
+        <td class="py-2.5 px-2 font-medium text-stone-700">${r.id}</td>
+        <td class="py-2.5 px-2 text-stone-500 whitespace-nowrap">${r.date}</td>
+        <td class="py-2.5 px-2 font-bold text-stone-900">${currency(r.amount)}</td>
+        <td class="py-2.5 px-2 text-stone-500">${r.bank}</td>
+        <td class="py-2.5 px-2 text-stone-500">${r.account}</td>
+        <td class="py-2.5 px-2">${withdrawBadge(r.status)}</td>
+      </tr>
+    `).join("");
+  }
+
+  /* ── charts ── */
+  function initCharts() {
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const revenueVals = [4200, 6800, 5100, 4700, 5500, 3200, 4900, 5800, 4100, 3800, 4600, 5200];
+    const bookingVals = [28, 45, 34, 29, 38, 21, 32, 41, 27, 24, 31, 36];
+
+    // Revenue: line chart
+    new Chart(document.getElementById("revenueChart"), {
+      type: "line",
+      data: {
+        labels: months,
+        datasets: [{
+          label: "Sales",
+          data: revenueVals,
+          borderColor: "#673049",
+          backgroundColor: "rgba(103,48,73,0.08)",
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: "#673049",
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: "#a8a29e" } },
+          y: { grid: { color: "#f5f5f4" }, ticks: { font: { size: 10 }, color: "#a8a29e" } }
+        }
+      }
+    });
+
+    // Booking: bar chart (unchanged)
+    new Chart(document.getElementById("bookingChart"), {
+      type: "bar",
+      data: {
+        labels: months,
+        datasets: [{ label: "Bookings", data: bookingVals, backgroundColor: "#cbd5e1", borderRadius: 4, borderSkipped: false }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: "#a8a29e" } },
+          y: { grid: { color: "#f5f5f4" }, ticks: { font: { size: 10 }, color: "#a8a29e" } }
+        }
+      }
+    });
+  }
+
+  /* ── calendar ── */
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const today = new Date();
+  let calYear = today.getFullYear();
+  let calMonth = today.getMonth();
+
+  // Booked/pending data keyed by "YYYY-M-D"
+  const bookedMap = {
+    [`${today.getFullYear()}-${today.getMonth()}-2`]: "Wedding: Aye Aye Chan",
+    [`${today.getFullYear()}-${today.getMonth()}-9`]: "Wedding: Zin Mar Aung",
+    [`${today.getFullYear()}-${today.getMonth()}-16`]: "Venue: Grand Palace Hall",
+    [`${today.getFullYear()}-${today.getMonth()}-23`]: "Wedding: Su Su Hlaing",
+  };
+  const pendingMap = {
+    [`${today.getFullYear()}-${today.getMonth()}-5`]: "Pending: Mya Sandar",
+    [`${today.getFullYear()}-${today.getMonth()}-12`]: "Pending: Nan Ei Phyo",
+    [`${today.getFullYear()}-${today.getMonth()}-19`]: "Pending: Review session",
+  };
+
+  function renderAvailabilityCalendar() {
+    const grid = document.getElementById("availabilityCalendarGrid");
+    const label = document.getElementById("calendarMonthLabel");
+    const tooltip = document.getElementById("calTooltip");
+    const tooltipText = document.getElementById("calTooltipText");
+    if (!grid) return;
+
+    if (label) label.textContent = monthNames[calMonth] + " " + calYear;
+    const firstDay = new Date(calYear, calMonth, 1);
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const offset = (firstDay.getDay() + 6) % 7;
+    const isCurrentMonth = calYear === today.getFullYear() && calMonth === today.getMonth();
+
+    grid.innerHTML = "";
+    for (let i = 0; i < offset; i++) grid.insertAdjacentHTML("beforeend", `<div></div>`);
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = `${calYear}-${calMonth}-${day}`;
+      const isToday = isCurrentMonth && day === today.getDate();
+      const isBooked = !!bookedMap[key];
+      const isPending = !!pendingMap[key];
+
+      let bg = "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer";
+      let label2 = "Available";
+      if (isBooked)  { bg = "bg-rose-100 text-rose-600 hover:bg-rose-200 cursor-pointer"; label2 = bookedMap[key]; }
+      if (isPending) { bg = "bg-amber-100 text-amber-700 hover:bg-amber-200 cursor-pointer"; label2 = pendingMap[key]; }
+      if (isToday)   { bg = "bg-stone-900 text-white font-bold cursor-pointer ring-2 ring-offset-1 ring-stone-400"; label2 = "Today — " + label2; }
+
+      const div = document.createElement("div");
+      div.className = `flex h-7 items-center justify-center rounded-md text-[10px] font-semibold transition-all ${bg}`;
+      div.textContent = day;
+      div.addEventListener("click", () => {
+        tooltip.classList.remove("hidden");
+        const dateStr = `${monthNames[calMonth]} ${day}, ${calYear}`;
+        tooltipText.innerHTML = `<span class="text-stone-400">${dateStr}</span> &mdash; ${label2}`;
+      });
+      grid.appendChild(div);
+    }
+
+    // Prev/next wiring
+    document.getElementById("calPrev").onclick = () => {
+      if (calMonth === 0) { calMonth = 11; calYear--; } else calMonth--;
+      if (tooltip) tooltip.classList.add("hidden");
+      renderAvailabilityCalendar();
+      };
+    document.getElementById("calNext").onclick = () => {
+      if (calMonth === 11) { calMonth = 0; calYear++; } else calMonth++;
+      if (tooltip) tooltip.classList.add("hidden");
+      renderAvailabilityCalendar();
+      };
+  }
+
+  /* ── dashboard data ── */
+  function fetchDashboardData() {
+    return new Promise(resolve => setTimeout(() => resolve({
+      totalBookings: 317, confirmedBookings: 217, cancelledBookings: 33,
+      totalRevenue: 63400, avgSpend: 200,
+      escrow: { total: 38482, pendingRelease: 13260, available: 25222 }
+    }), 200));
+  }
+
+  function renderDashboard(data) {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+    set("totalBookings", data.totalBookings.toLocaleString());
+    set("totalRevenue", currency(data.totalRevenue));
+    set("confirmedBookings", data.confirmedBookings);
+    set("cancelledBookings", data.cancelledBookings);
+    set("avgSpend", currency(data.avgSpend));
+    set("escrowTotal", currency(data.escrow.total));
+    set("escrowPending", currency(data.escrow.pendingRelease));
+    set("escrowAvailable", currency(data.escrow.available));
+    const pct = data.escrow.total > 0 ? Math.round((data.escrow.available / data.escrow.total) * 100) : 0;
+    const fill = document.getElementById("escrowProgressFill");
+    if (fill) fill.style.width = `${pct}%`;
+    set("escrowProgressPercent", `${pct}%`);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+
+    /* ── Payment Status filter dropdown ── */
+    const payBtn  = document.getElementById("paymentFilterBtn");
+    const payMenu = document.getElementById("paymentFilterMenu");
+    const payLbl  = document.getElementById("paymentFilterLabel");
+    const payChev = document.getElementById("paymentFilterChevron");
+    const sectionLabels = { today:"Today", week:"This week", month:"This month", year:"This year" };
+
+    function closePayMenu() { payMenu.classList.add("invisible","opacity-0"); payBtn.setAttribute("aria-expanded","false"); payChev.classList.remove("rotate-180"); }
+    function openPayMenu()  { payMenu.classList.remove("invisible","opacity-0"); payBtn.setAttribute("aria-expanded","true"); payChev.classList.add("rotate-180"); }
+    payBtn.addEventListener("click", e => { e.stopPropagation(); payBtn.getAttribute("aria-expanded")==="true" ? closePayMenu() : openPayMenu(); });
+    document.querySelectorAll("[data-payment-filter]").forEach(opt => {
+      opt.addEventListener("click", () => { payLbl.innerText = sectionLabels[opt.dataset.paymentFilter]; closePayMenu(); });
+    });
+    document.addEventListener("click", e => { if (payBtn && !payBtn.contains(e.target) && !payMenu.contains(e.target)) closePayMenu(); });
+
+    /* ── Withdraw History filter dropdown ── */
+    const wdBtn  = document.getElementById("withdrawFilterBtn");
+    const wdMenu = document.getElementById("withdrawFilterMenu");
+    const wdLbl  = document.getElementById("withdrawFilterLabel");
+    const wdChev = document.getElementById("withdrawFilterChevron");
+
+    function closeWdMenu() { wdMenu.classList.add("invisible","opacity-0"); wdBtn.setAttribute("aria-expanded","false"); wdChev.classList.remove("rotate-180"); }
+    function openWdMenu()  { wdMenu.classList.remove("invisible","opacity-0"); wdBtn.setAttribute("aria-expanded","true"); wdChev.classList.add("rotate-180"); }
+    wdBtn.addEventListener("click", e => { e.stopPropagation(); wdBtn.getAttribute("aria-expanded")==="true" ? closeWdMenu() : openWdMenu(); });
+    document.querySelectorAll("[data-withdraw-filter]").forEach(opt => {
+      opt.addEventListener("click", () => { wdLbl.innerText = sectionLabels[opt.dataset.withdrawFilter]; closeWdMenu(); });
+    });
+    document.addEventListener("click", e => { if (wdBtn && !wdBtn.contains(e.target) && !wdMenu.contains(e.target)) closeWdMenu(); });
+
+    /* init */
+    renderAvailabilityCalendar();
+    renderPaymentTable();
+    renderWithdrawTable();
+    renderWeddingBookings();
+    initCharts();
+    fetchDashboardData().then(renderDashboard);
+  });
+</script>
+</body>
+</html>

@@ -9,20 +9,21 @@ class Log{
 
     public function createSystemLog($data){
         $this->db->dbquery("
-           INSERT INTO system_logs (user_id, action, ip_address, user_agent)
-           VALUES (:user_id, :action, :ip, :ua)
+           INSERT INTO system_logs (user_id, action, ip_address, user_agent, login_time, last_active, logout_time, created_at)
+           VALUES (:user_id, :action, :ip, :ua, NOW(), NOW(), :logout_time, NOW())
         ");
         $this->db->dbbind(':user_id', $data['user_id'] ?? null);
         $this->db->dbbind(':action', $data['action']);
         $this->db->dbbind(':ip', $data['ip_address'] ?? null);
         $this->db->dbbind(':ua', $data['user_agent'] ?? null);
+        $this->db->dbbind(':logout_time', $data['logout_time'] ?? null);
         return $this->db->dbexecute();
     }
 
     public function createAccountLockoutLog($data){
         $this->db->dbquery("
-            INSERT INTO account_lockout_logs (user_id, event, reason, attempt_count, unlocked_by, locked_until, ip_address)
-            VALUES (:user_id, :event, :reason, :attempt_count, :unlocked_by, :locked_until, :ip)
+            INSERT INTO account_lockout_logs (user_id, event, reason, attempt_count, unlocked_by, locked_until, ip_address, created_at)
+            VALUES (:user_id, :event, :reason, :attempt_count, :unlocked_by, :locked_until, :ip, NOW())
         ");
         $this->db->dbbind(':user_id', $data['user_id']);
         $this->db->dbbind(':event', $data['event']);

@@ -666,21 +666,26 @@
       <div class="accountnotfound-warning-bar hidden text-[12px] text-red-500 mb-2">Account not found.</div>
       <span class="lock-until-time hidden"></span>
  
-      <div class="divider" id="divider"><span>or continue with</span></div>
-      <div class="grid grid-cols-2 gap-[10px]">
-        <button class="social-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      <?php
+        $authType = $_GET['type'] ?? 'customer';
+        $isInternalLogin = $authType === 'internal';
+        $hideSocialLogin = $isInternalLogin;
+        $socialType = $authType === 'supplier' ? 'supplier' : 'customer';
+      ?>
+      <div class="divider" id="divider" style="<?= $hideSocialLogin ? 'display:none' : '' ?>"><span>or continue with</span></div>
+      <div id="socialAuth" class="grid grid-cols-2 gap-[10px]" style="<?= $hideSocialLogin ? 'display:none' : '' ?>">
+        <a class="social-btn" href="<?= URLROOT ?>/users/google?type=<?= $socialType ?>">          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
           Google
-        </button>
-        <button class="social-btn">
+        </a>
+        <a class="social-btn" href="<?= URLROOT ?>/users/facebook?type=<?= $socialType ?>">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.019 4.388 11.008 10.125 11.927v-8.437H7.078v-3.49h3.047V9.413c0-3.017 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.963h-1.514c-1.491 0-1.956.931-1.956 1.887v2.264h3.328l-.532 3.49h-2.796V24C19.612 23.081 24 18.092 24 12.073z"/></svg>
           Facebook
-        </button>
+        </a>
       </div>
  
       <div class="toggle-row">
         <span class="font-[family-name:var(--header-font)] text-[var(--placeholder)]" id="togglePrompt" data-signin="Don't have an account? " data-signup="Already have an account? ">Don't have an account? </span>
-        <button class="text-[var(--accent)] underline bg-transparent border-none cursor-pointer font-[family-name:var(--body-font)] text-[13.5px]" id="toggleBtn" data-signin="Create one" data-signup="Sign in">Create one</button>
+        <button class="text-[var(--accent)] underline bg-transparent border-none cursor-pointer font-[family-name:var(--body-font)] text-[13.5px]" id="toggleBtn" data-signin="Create one" data-signup="Sign in" style="<?= $isInternalLogin ? 'display:none' : '' ?>">Create one</button>
       </div>
     </div>
     
@@ -697,8 +702,23 @@
     <svg id="{id}-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
   </template>
 
-    <script src="<?= URLROOT; ?>/public/js/login.js"></script>
+  <script src="<?= URLROOT; ?>/public/js/login.js"></script>
     <script>
+            const rawAccountIntent = new URLSearchParams(window.location.search).get('type') || 'customer';
+            const accountIntent = rawAccountIntent === 'supplier' ? 'supplier' : 'customer';
+            const hideSocialLogin = rawAccountIntent === 'internal';
+
+            window.addEventListener('load', () => {
+                if (hideSocialLogin) {
+                    document.getElementById('divider').style.display = 'none';
+                    document.getElementById('socialAuth').style.display = 'none';
+                    document.getElementById('toggleBtn').style.display = 'none';
+                }
+
+                if (accountIntent === 'supplier') {
+                    document.getElementById('toggleBtn')?.click();
+                }
+            });
     
         //   Login 
             // all rules are completed ?
@@ -763,7 +783,13 @@
                             // account not found 
                             if(res.status == 'accountnotfound'){
                                 console.log(res);
-                                accountnotfound_warning_bar.classList.replace('hidden','show');
+                                accountnotfound_warning_bar.classList.replace('hidden','show'); 
+                                accountnotfound_warning_bar.style.display = 'block';
+                                pwvalid.style.display = 'block';
+                            }
+
+                            if(res.status == 'email_unverified'){
+                                window.location.href = "<?= URLROOT ?>/users/verificationSent?e=" + encodeURIComponent(res.email || data.email);
                             }
                         }
 
@@ -800,10 +826,14 @@
                 .then(res => res.json())
                 .then(res => {
                     if(res.loginfailnotyet == true || res.pwd === false || res.status === false){
-                        showScrollMessage('Wrong password. Please try again.');
+                        const attemptText = res.attempt_count && res.max_attempts
+                            ? ` Attempt ${res.attempt_count} of ${res.max_attempts}.`
+                            : '';
+                        const wrongPasswordMessage = `Wrong password. Please try again.${attemptText}`;
+                        showScrollMessage(wrongPasswordMessage);
                         pwvalid.classList.remove('hidden');
                         pwvalid.style.display = 'block';
-                        pwvalid.textContent = 'Wrong password. Please try again.';
+                        pwvalid.textContent = wrongPasswordMessage;
                         passwordInput.style.border = '1px solid red';
                         return;
                     }
@@ -889,7 +919,8 @@
                     username: name,
                     email: email,
                     password: password,
-                    compassword: confirmPassword
+                    compassword: confirmPassword,
+                    role: accountIntent
                 };
 
                 fetch("<?= URLROOT ?>/users/register", {

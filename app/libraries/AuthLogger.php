@@ -18,7 +18,8 @@ class AuthLogger{
             'user_id' => $userId,
             'action' => $eventType,
             'ip_address' => $ip,
-            'user_agent' => $ua
+            'user_agent' => $ua,
+            'logout_time' => $eventType === 'logout' ? date('Y-m-d H:i:s') : null
         ]);
 
         if ($eventType === 'login_fail' && $identifier) {

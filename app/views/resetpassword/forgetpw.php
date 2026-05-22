@@ -192,6 +192,12 @@
             transform: translateY(-1px);
         }
 
+        .reset-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.72;
+            transform: none;
+        }
+
         .btn-shimmer {
             position: absolute;
             inset: 0;
@@ -209,6 +215,33 @@
             margin-top: 14px;
             text-align: center;
             font-size: 13px;
+        }
+
+        .loading-message {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--accent);
+        }
+
+        .loading-message.hidden {
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(109, 76, 91, 0.25);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .error-message {
@@ -260,6 +293,10 @@
             </button>
 
             <div class="message-row">
+                <span class="loading-message hidden" id="loadingMessage">
+                    <span class="loading-spinner" aria-hidden="true"></span>
+                    <span>Sending...</span>
+                </span>
                 <span class="error-message hidden emailmessage">Email isn't registered.</span>
                 <span class="error-message hidden mailmessage">Could not send reset email. Please try again later.</span>
                 <span class="success-message hidden sentmessage">We sent a reset link to this email.</span>
@@ -273,10 +310,17 @@
         const emailmessage = document.querySelector('.emailmessage');
         const mailmessage = document.querySelector('.mailmessage');
         const sentmessage = document.querySelector('.sentmessage');
+        const loadingMessage = document.querySelector('#loadingMessage');
         submitbtn.addEventListener("click",()=>{
             const input = document.querySelector("#resetEmail");
             const value = input.value;
-                       const data = {email : value};
+            const data = {email : value};
+
+            loadingMessage.classList.remove('hidden');
+            emailmessage.classList.add('hidden');
+            sentmessage.classList.add('hidden');
+            mailmessage.classList.add('hidden');
+            submitbtn.disabled = true;
 
             fetch("<?= URLROOT ?>/resetpassword/singleresettoken",{
                 method: "POST",
@@ -285,6 +329,7 @@
             })
             .then(res => res.json())
             .then(data => {
+                loadingMessage.classList.add('hidden');
                 if(data.e_registered == false){
                     emailmessage.classList.remove('hidden');
                     sentmessage.classList.add('hidden');
@@ -302,7 +347,14 @@
                 console.log(data);
             })
             .catch(err => {
+                loadingMessage.classList.add('hidden');
+                mailmessage.classList.remove('hidden');
+                sentmessage.classList.add('hidden');
+                emailmessage.classList.add('hidden');
                 console.error('Error sending OTP:', err);
+            })
+            .finally(() => {
+                submitbtn.disabled = false;
             });
 
         })
