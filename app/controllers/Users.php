@@ -411,6 +411,7 @@ public function register()
                     $this->usermodel->markloginsuccess($data['email']);
                     $this->userid = $_SESSION['session_uid'] ?? $this->userid;
                     $_SESSION['post_login_redirect'] = $this->getPostLoginRedirect($this->userid);
+                    $_SESSION['pending_remember_me'] = !empty($input['remember_me']);
                     $this->logger->log([
                         'user_id' => $this->userid,
                         'identifier' => $input['email'],
@@ -496,6 +497,12 @@ public function register()
     {
         $userid = $_SESSION['session_uid'] ?? null;
         if ($userid) {
+            try {
+                $this->usermodel->clearRememberToken($userid);
+            } catch (Exception $rememberError) {
+                // Continue logout even if remember-token cleanup fails.
+            }
+
             $this->usermodel->marklogout($userid);
             $this->logmodel->markSystemLogout($userid);
             $this->logger->log([
@@ -513,8 +520,10 @@ public function register()
         unset($_SESSION['user_id']);
         unset($_SESSION['user_name']);
         unset($_SESSION['user_email']);
+        unset($_SESSION['pending_remember_me']);
 
         session_destroy();
+        forgetRememberMeCookie();
 
         redirect('users/login');
     }
@@ -536,6 +545,13 @@ public function register()
         }
 
         if (in_array('supplier', $roles, true)) {
+            $supplierProfileModel = $this->model('SupplierProfile');
+            $supplier = $supplierProfileModel->getByUserId($userId);
+
+            if ($supplier && strtolower($supplier['status'] ?? '') === 'pending') {
+                return 'supplier/pending';
+            }
+
             return 'supplier/onboarding';
         }
 
@@ -564,7 +580,7 @@ public function register()
             $_SESSION['pending_register_name'] = $user['name'] ?? '';
             $_SESSION['pending_register_role'] = 'supplier';
 
-            redirect('supplier/onboarding');
+            redirect($this->getPostLoginRedirect($user['user_id']));
         }
 
         redirect('main/home');

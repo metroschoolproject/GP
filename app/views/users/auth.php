@@ -629,8 +629,14 @@
 
 
 
-        <!-- Forgot -->
-        <div class="field-wrap" id="fwForgot" data-modes="signin" data-height="28px" data-margin="4px" style="max-height:28px;opacity:1;margin-bottom:4px;overflow:visible">
+        <!-- Remember & Forgot -->
+        <div class="field-wrap flex items-center justify-between" id="fwForgot" data-modes="signin" data-height="28px" data-margin="4px" style="max-height:28px;opacity:1;margin-bottom:4px;overflow:visible">
+          <div class="text-left">
+            <label class="flex items-center gap-2 text-[13px] text-[var(--accent)] cursor-pointer">
+              <input type="checkbox" id="rememberMe" name="remember_me" class="accent-[var(--accent)]">
+              <span>Remember me</span>
+            </label>
+          </div>
           <div class="text-right">
             <button type="button" id="forgetpwbtn"
               class="text-[13px] text-[var(--accent)] hover:underline transition duration-200 bg-transparent border-none cursor-pointer font-[family-name:var(--body-font)]">
@@ -638,6 +644,8 @@
             </button>
           </div>
         </div>
+
+
         <!-- CONFIRM PASSWORD -->
 
         <!-- Confirm -->
@@ -815,7 +823,8 @@
                 const data = {
                     email: safeInput("email"),
                     pw_sha: pw_sha,        
-                    res_code: response
+                    res_code: response,
+                    remember_me: document.getElementById("rememberMe")?.checked === true
                 };
 
                 fetch("<?= URLROOT ?>/users/verifyChallenge", {

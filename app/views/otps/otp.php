@@ -241,7 +241,7 @@
         <div class="reset-card">
             <div class="heading-area">
                 <h1 class="main-heading">OTP Verification</h1>
-                <p class="sub-heading">Enter the one-time password sent to your registered email to complete verification.</p>
+                <p class="sub-heading" id="otpInstruction">Click the button below to send a one-time password to your registered email.</p>
                 <div class="decor-line" aria-hidden="true"><span class="decor-dot"></span></div>
             </div>
 
@@ -260,7 +260,7 @@
 
             <button type="button" class="reset-btn" id="resentotp">
                 <span class="btn-shimmer"></span>
-                <span>Resend OTP Code</span>
+                <span>Send OTP Code</span>
             </button>
 
             <div class="message-row">
@@ -350,6 +350,9 @@
 
         const resentotp = document.querySelector("#resentotp");
         const resendBtnText = resentotp.querySelector("span:last-child");
+        const otpInstruction = document.querySelector("#otpInstruction");
+        let otpHasBeenSent = false;
+
         resentotp.addEventListener('click',()=>{
             const atm_time = document.querySelector('.atm_time');
             atm_time.innerHTML = "";
@@ -364,6 +367,9 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status == true){
+                    otpHasBeenSent = true;
+                    otpInstruction.textContent = "Enter the one-time password sent to your registered email.";
+                    atm_time.innerHTML = "OTP code sent. Please check your email.";
                     inputs.forEach(input => input.value = "");
                     inputs[0].focus();
                     setTimer();
@@ -378,7 +384,7 @@
             })
             .finally(() => {
                 resentotp.disabled = false;
-                resendBtnText.textContent = "Resend OTP Code";
+                resendBtnText.textContent = otpHasBeenSent ? "Resend OTP Code" : "Send OTP Code";
             });
         })
     </script>

@@ -87,6 +87,11 @@ class Otps extends Controller{
                 $client_otp = $input['otp'];
                 $verifyotp = $this->otpmodel->verifyotp($client_otp,$this->userid);
                 if($verifyotp){
+                    if (!empty($_SESSION['pending_remember_me'])) {
+                        issueRememberMeCookie($this->usermodel, $this->userid);
+                    }
+                    unset($_SESSION['pending_remember_me']);
+
                     $this->logger->log([
                         'user_id' => $this->userid,
                         'identifier' => $this->toEmail,

@@ -90,10 +90,24 @@ Current supplier onboarding mapping:
 
 - onboarding business name -> `suppliers.shop_name`
 - onboarding description -> `suppliers.description`
+- onboarding business URL -> `suppliers.verify_url`
 - new supplier status -> `suppliers.status = pending`
 - onboarding phone -> `users.phone`
-- onboarding location -> `users.address`
-- onboarding service category -> initial inactive `services` row
+- onboarding phone must be exactly 11 digits in the UI
+- onboarding business address -> `users.address`
+- onboarding service category -> `services.category_id`
+- onboarding service name -> initial inactive `services.name`
+- onboarding service description -> `services.description`
+- onboarding starting price -> `services.price`
+- onboarding cover photo -> stored under `public/uploads/suppliers/...`, then saved to `services.thumbnail_url` and `service_media.file_url`
+- onboarding agreement checkbox -> `suppliers.agreement_accepted`, `agreement_accepted_at`, and `agreement_version`
+
+Supplier onboarding UI notes:
+
+- `app/views/supplier/onboarding.php` owns the multi-step onboarding form and its inline JS/CSS.
+- Step transitions intentionally mimic the auth login/register transition: current title dissolves into sparkle particles, fields blur/fade out, next title reassembles character by character, then fields slide/fade in.
+- Keep onboarding-specific transition work scoped to `app/views/supplier/onboarding.php` unless a broader refactor is explicitly requested.
+- The onboarding input sizing was adjusted to match the auth form feel: taller 56px inputs/selects, 18px text, 12px radius, similar shadow and focus styling.
 
 ## Email Verification Decision
 
@@ -122,6 +136,7 @@ Keep `password_resets` separate from email verification even though token logic 
     - `verifyEmail()`
   - password login blocks unverified customer/supplier email accounts before challenge/OTP
   - login destination is stored for OTP role-based redirect
+  - remember-me checkbox is finalized only after OTP success and cleared on logout
   - Google/Facebook OAuth intent only allows customer/supplier
 
 - `app/models/User.php`

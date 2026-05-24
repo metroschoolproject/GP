@@ -157,12 +157,13 @@ class User
         $response = $data['response'];
         $stored_hash = $row['password'];   // bcrypt stored hash
         $challenge = $_SESSION['challenge'] ?? '';
-        $_SESSION['session_uid'] = $row['user_id'];
-        $_SESSION['session_email'] = $data['email'];
 
         if (password_verify($pw_sha, $stored_hash)) {
             $expected = hash('sha256', $pw_sha . $challenge);
             if (hash_equals($expected, $response)) {
+                session_regenerate_id(true);
+                $_SESSION['session_uid'] = $row['user_id'];
+                $_SESSION['session_email'] = $data['email'];
                 return true;
             } else {
                 return false;
@@ -207,6 +208,39 @@ class User
         $roles = $this->getUserRoles($user['user_id']);
 
         return in_array('customer', $roles, true) || in_array('supplier', $roles, true);
+    }
+
+    public function setRememberToken($userId, $tokenHash)
+    {
+        $this->db->dbquery('UPDATE users SET remember_token = :token WHERE user_id = :user_id');
+        $this->db->dbbind(':token', $tokenHash);
+        $this->db->dbbind(':user_id', (int)$userId);
+
+        return $this->db->dbexecute();
+    }
+
+    public function getRememberedUser($userId, $tokenHash)
+    {
+        $this->db->dbquery(
+            "SELECT user_id, email
+             FROM users
+             WHERE user_id = :user_id
+               AND remember_token = :token
+               AND status = 'active'
+             LIMIT 1"
+        );
+        $this->db->dbbind(':user_id', (int)$userId);
+        $this->db->dbbind(':token', $tokenHash);
+
+        return $this->db->getsingledata();
+    }
+
+    public function clearRememberToken($userId)
+    {
+        $this->db->dbquery('UPDATE users SET remember_token = NULL WHERE user_id = :user_id');
+        $this->db->dbbind(':user_id', (int)$userId);
+
+        return $this->db->dbexecute();
     }
 
 
