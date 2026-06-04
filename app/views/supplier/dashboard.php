@@ -1,0 +1,21 @@
+<?php
+$supplier = $supplier ?? [];
+$payment = $payment ?? [];
+$dashboardData = $dashboardData ?? [];
+
+$dashboardTitle = 'Supplier';
+$dashboardCrumb = 'Overview';
+$dashboardContentClass = 'bg-app-content px-6 py-6';
+$dashboardContent = function () use ($supplier, $payment, $dashboardData) {
+    require APPROOT . '/views/supplier/supplierDashboard.php';
+};
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?>
+</head>
+<body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">
+    <?php require APPROOT . '/views/dashboardLayout/suppliersidebar.php'; ?>
+</body>
+</html>

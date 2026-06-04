@@ -7,6 +7,8 @@ module.exports = {
       colors: {
         app: {
           bg: "#f5e8d9",
+          page: "#f3f6fb",
+          content: "#FBFBF9",
           card: "#faf5ef",
           input: "#ffffff",
           text: "#111827",

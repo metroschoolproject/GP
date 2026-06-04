@@ -3,10 +3,14 @@
 class Supplier extends Controller
 {
     private $supplierProfileModel;
+    private $paymentModel;
+    private $notificationModel;
 
     public function __construct()
     {
         $this->supplierProfileModel = $this->model('SupplierProfile');
+        $this->paymentModel = $this->model('Payment');
+        $this->notificationModel = $this->model('Notification');
     }
 
     public function onboarding()
@@ -59,7 +63,8 @@ class Supplier extends Controller
                 !is_numeric($data['service_price']) ||
                 (float)$data['service_price'] < 0 ||
                 !$data['agreement_accepted'] ||
-                !$this->hasUploadedCoverPhoto()
+                !$this->hasUploadedCoverPhoto() ||
+                !$this->hasUploadedBusinessLicense()
             ) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please fill all required supplier information.';
@@ -72,6 +77,9 @@ class Supplier extends Controller
             } elseif (!$this->isValidCoverPhoto($_FILES['cover_photo'])) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please upload a valid cover photo under 5MB.';
+            } elseif (!$this->isValidBusinessLicense($_FILES['business_license'])) {
+                $data['submitted'] = false;
+                $data['message'] = 'Please upload a valid business license document under 5MB.';
             } else {
                 $data['service_price'] = number_format((float)$data['service_price'], 2, '.', '');
                 $data['user_id'] = $userId;
@@ -105,13 +113,54 @@ class Supplier extends Controller
                         return;
                     }
 
+                    $licenseUrl = $this->storeSupplierDocument(
+                        $_FILES['business_license'],
+                        (int)$saved['supplier_id'],
+                        $data['business_name'],
+                        'business-license'
+                    );
+
+                    if (
+                        !$licenseUrl ||
+                        !$this->supplierProfileModel->saveSupplierDocument((int)$saved['supplier_id'], $licenseUrl, 'business_license')
+                    ) {
+                        $data['submitted'] = true;
+                        $data['message'] = 'Your supplier information was saved, but the business license could not be uploaded. Please try again.';
+
+                        if ($isAjax) {
+                            $this->jsonResponse([
+                                'status' => 'error',
+                                'message' => $data['message']
+                            ], 422);
+                        }
+
+                        $this->view('supplier/onboarding', $data);
+                        return;
+                    }
+
                     if ($isAjax) {
+                        $this->notificationModel->notifyAdmins(
+                            'New supplier application',
+                            $data['business_name'] . ' submitted a supplier application.',
+                            'approval',
+                            'supplier',
+                            (int)$saved['supplier_id']
+                        );
+
                         $this->jsonResponse([
                             'status' => 'success',
                             'message' => 'Your supplier application was submitted.',
                             'redirect' => URLROOT . '/supplier/pending'
                         ]);
                     }
+
+                    $this->notificationModel->notifyAdmins(
+                        'New supplier application',
+                        $data['business_name'] . ' submitted a supplier application.',
+                        'approval',
+                        'supplier',
+                        (int)$saved['supplier_id']
+                    );
 
                     redirect('supplier/pending');
                 }
@@ -136,6 +185,11 @@ class Supplier extends Controller
         return isset($_FILES['cover_photo']) && ($_FILES['cover_photo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
     }
 
+    private function hasUploadedBusinessLicense()
+    {
+        return isset($_FILES['business_license']) && ($_FILES['business_license']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+    }
+
     private function isValidCoverPhoto($file)
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -150,6 +204,22 @@ class Supplier extends Controller
         $mimeType = $finfo->file($file['tmp_name']);
 
         return in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true);
+    }
+
+    private function isValidBusinessLicense($file)
+    {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return false;
+        }
+
+        if (($file['size'] ?? 0) > 5 * 1024 * 1024) {
+            return false;
+        }
+
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+
+        return in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], true);
     }
 
     private function storeCoverPhoto($file, $supplierId, $businessName, $serviceId)
@@ -185,11 +255,68 @@ class Supplier extends Controller
         return IMG_ROOT . '/' . $relativeDir . '/' . $filename;
     }
 
+    private function storeSupplierDocument($file, $supplierId, $businessName, $documentType)
+    {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+        $extensions = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'application/pdf' => 'pdf',
+        ];
+        $extension = $extensions[$mimeType] ?? null;
+
+        if (!$extension) {
+            return false;
+        }
+
+        $supplierFolder = $supplierId . '-' . $this->slugify($businessName);
+        $relativeDir = 'uploads/suppliers/' . $supplierFolder . '/documents';
+        $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
+
+        if (!is_dir($absoluteDir) && !mkdir($absoluteDir, 0755, true)) {
+            return false;
+        }
+
+        $filename = $this->slugify($documentType) . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $extension;
+        $absolutePath = $absoluteDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
+            return false;
+        }
+
+        return IMG_ROOT . '/' . $relativeDir . '/' . $filename;
+    }
+
     private function slugify($value)
     {
         $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $value), '-'));
 
         return $slug !== '' ? $slug : 'supplier';
+    }
+
+    public function notificationsJson()
+    {
+        $this->jsonResponse([
+            'unread_count' => $this->notificationModel->getUnreadCount($this->currentUserId()),
+            'notifications' => $this->notificationModel->getLatest($this->currentUserId(), 8),
+        ]);
+    }
+
+    public function markNotificationRead($notificationId = null)
+    {
+        if (!$notificationId) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Notification id is required.'], 422);
+        }
+
+        $this->notificationModel->markRead((int)$notificationId, $this->currentUserId());
+        $this->jsonResponse(['status' => 'success']);
+    }
+
+    private function currentUserId()
+    {
+        return isset($_SESSION['session_uid']) ? (int)$_SESSION['session_uid'] : null;
     }
 
     private function jsonResponse($payload, $statusCode = 200)
@@ -214,9 +341,64 @@ class Supplier extends Controller
             redirect('supplier/onboarding');
         }
 
+        if (in_array(strtolower($supplier['status'] ?? ''), ['approved', 'verified'], true)) {
+            redirect('supplier/dashboard');
+        }
+
         $this->view('supplier/pending', [
             'supplier' => $supplier,
             'email' => $_SESSION['session_email'] ?? $_SESSION['pending_register_email'] ?? ''
+        ]);
+    }
+
+    public function dashboard()
+    {
+        $userId = $_SESSION['session_uid'] ?? $_SESSION['pending_register_user_id'] ?? null;
+
+        if (!$userId) {
+            redirect('users/login');
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+
+        if (!$supplier) {
+            redirect('supplier/onboarding');
+        }
+
+        $status = strtolower($supplier['status'] ?? '');
+
+        if ($status === 'pending') {
+            redirect('supplier/pending');
+        }
+
+        if (!in_array($status, ['approved', 'verified'], true)) {
+            $this->view('supplier/dashboard_locked', [
+                'supplier' => $supplier,
+                'payment' => null,
+                'lockState' => 'profile_not_approved'
+            ]);
+            return;
+        }
+
+        $payment = $this->paymentModel->getLatestSupplierFeePayment((int)$supplier['supplier_id']);
+        $hasPaid = strtolower($supplier['payment_status'] ?? '') === 'paid' ||
+            $this->paymentModel->hasSuccessfulSupplierFeePayment((int)$supplier['supplier_id']);
+
+        if (!$hasPaid) {
+            $this->view('supplier/dashboard_locked', [
+                'supplier' => $supplier,
+                'payment' => $payment,
+                'lockState' => $payment && strtolower($payment['status'] ?? '') === 'pending'
+                    ? 'payment_pending'
+                    : 'payment_required'
+            ]);
+            return;
+        }
+
+        $this->view('supplier/dashboard', [
+            'supplier' => $supplier,
+            'payment' => $payment,
+            'dashboardData' => $this->supplierProfileModel->getDashboardData((int)$supplier['supplier_id']),
         ]);
     }
 }

@@ -552,6 +552,10 @@ public function register()
                 return 'supplier/pending';
             }
 
+            if ($supplier && in_array(strtolower($supplier['status'] ?? ''), ['approved', 'verified'], true)) {
+                return 'supplier/dashboard';
+            }
+
             return 'supplier/onboarding';
         }
 
