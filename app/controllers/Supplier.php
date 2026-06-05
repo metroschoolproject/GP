@@ -42,10 +42,9 @@ class Supplier extends Controller
                 'business_description' => htmlspecialchars(trim($_POST['business_description'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 'phone' => htmlspecialchars(trim($_POST['phone'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 'business_address' => htmlspecialchars(trim($_POST['business_address'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'category_id' => (int)($_POST['category_id'] ?? 0),
-                'service_name' => htmlspecialchars(trim($_POST['service_name'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'service_description' => htmlspecialchars(trim($_POST['service_description'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'service_price' => trim($_POST['service_price'] ?? ''),
+                'category_prompt' => htmlspecialchars(trim($_POST['category_prompt'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'category_ids' => array_map('intval', $_POST['category_ids'] ?? []),
+                'category_source' => 'manual',
                 'business_url' => htmlspecialchars(trim($_POST['business_url'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 'thumbnail_url' => null,
                 'agreement_accepted' => !empty($_POST['agreement_accepted']),
@@ -60,13 +59,8 @@ class Supplier extends Controller
                 $data['business_description'] === '' ||
                 $data['phone'] === '' ||
                 $data['business_address'] === '' ||
-                $data['category_id'] <= 0 ||
-                $data['service_name'] === '' ||
-                $data['service_description'] === '' ||
-                $data['service_price'] === '' ||
                 $data['business_url'] === '' ||
-                !is_numeric($data['service_price']) ||
-                (float)$data['service_price'] < 0 ||
+                empty($data['category_ids']) ||
                 !$data['agreement_accepted'] ||
                 !$this->hasUploadedCoverPhoto() ||
                 !$this->hasUploadedBusinessLicense()
@@ -76,9 +70,9 @@ class Supplier extends Controller
             } elseif (!filter_var(htmlspecialchars_decode($data['business_url'], ENT_QUOTES), FILTER_VALIDATE_URL)) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please enter a valid business URL.';
-            } elseif (!$this->supplierProfileModel->isValidCategory($data['category_id'])) {
+            } elseif (!$this->supplierProfileModel->areValidCategories($data['category_ids'])) {
                 $data['submitted'] = false;
-                $data['message'] = 'Please choose a valid service category.';
+                $data['message'] = 'Please choose at least one valid business category.';
             } elseif (!$this->isValidCoverPhoto($_FILES['cover_photo'])) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please upload a valid cover photo under 5MB.';
@@ -86,23 +80,21 @@ class Supplier extends Controller
                 $data['submitted'] = false;
                 $data['message'] = 'Please upload a valid business license document under 5MB.';
             } else {
-                $data['service_price'] = number_format((float)$data['service_price'], 2, '.', '');
                 $data['user_id'] = $userId;
                 $saved = $this->supplierProfileModel->save($data);
                 $_SESSION['supplier_profile'] = $data;
 
                 if ($saved) {
-                    $coverUrl = $this->storeCoverPhoto(
+                    $coverUrl = $this->storeSupplierDocument(
                         $_FILES['cover_photo'],
                         (int)$saved['supplier_id'],
                         $data['business_name'],
-                        (int)$saved['service_id']
+                        'cover-photo'
                     );
 
                     if (
                         !$coverUrl ||
-                        !$this->supplierProfileModel->updateServiceThumbnail((int)$saved['service_id'], $coverUrl) ||
-                        !$this->supplierProfileModel->addServiceMedia((int)$saved['service_id'], $coverUrl, 'image')
+                        !$this->supplierProfileModel->saveSupplierDocument((int)$saved['supplier_id'], $coverUrl, 'cover_photo')
                     ) {
                         $data['submitted'] = true;
                         $data['message'] = 'Your supplier information was saved, but the cover photo could not be uploaded. Please try again.';
@@ -183,6 +175,120 @@ class Supplier extends Controller
         }
 
         $this->view('supplier/onboarding', $data);
+    }
+
+    public function suggestCategories()
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Method not allowed.'], 405);
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $prompt = trim($input['prompt'] ?? '');
+
+        if ($prompt === '') {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Business description is required.'], 422);
+        }
+
+        $categories = $this->supplierProfileModel->getCategories();
+        $suggestion = $this->suggestCategoriesWithGemini($prompt, $categories);
+
+        if (!$suggestion) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'AI suggestion is unavailable.'], 503);
+        }
+
+        $categoryIds = array_values(array_unique(array_filter(array_map('intval', $suggestion['category_ids'] ?? []), function ($categoryId) {
+            return $categoryId > 0;
+        })));
+
+        if (empty($categoryIds) || !$this->supplierProfileModel->areValidCategories($categoryIds)) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'AI could not match a valid category.'], 422);
+        }
+
+        $this->jsonResponse([
+            'status' => 'success',
+            'category_ids' => $categoryIds,
+            'reason' => $suggestion['reason'] ?? '',
+        ]);
+    }
+
+    private function suggestCategoriesWithGemini($prompt, $categories)
+    {
+        $apiKey = defined('GEMINI_API_KEY') ? trim(GEMINI_API_KEY) : '';
+
+        if ($apiKey === '' || !function_exists('curl_init')) {
+            return false;
+        }
+
+        $categoryList = array_map(function ($category) {
+            return [
+                'id' => (int)$category['id'],
+                'name' => (string)$category['name'],
+            ];
+        }, $categories);
+
+        $requestText = "Classify this wedding supplier business text. The text can be English, Myanmar, or mixed.\n"
+            . "Choose only category IDs from the provided categories. Return categories that genuinely match the business.\n\n"
+            . "Supplier text:\n" . $prompt . "\n\n"
+            . "Available categories:\n" . json_encode($categoryList, JSON_UNESCAPED_UNICODE);
+
+        $payload = [
+            'contents' => [[
+                'parts' => [[
+                    'text' => $requestText,
+                ]],
+            ]],
+            'generationConfig' => [
+                'temperature' => 0.1,
+                'responseMimeType' => 'application/json',
+                'responseJsonSchema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'category_ids' => [
+                            'type' => 'array',
+                            'items' => ['type' => 'integer'],
+                            'description' => 'Matching category IDs from the provided list only.',
+                        ],
+                        'reason' => [
+                            'type' => 'string',
+                            'description' => 'Brief reason for the category match.',
+                        ],
+                    ],
+                    'required' => ['category_ids', 'reason'],
+                ],
+            ],
+        ];
+
+        $ch = curl_init('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-goog-api-key: ' . $apiKey,
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
+            CURLOPT_TIMEOUT => 15,
+        ]);
+
+        $response = curl_exec($ch);
+        $statusCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($response === false || $statusCode < 200 || $statusCode >= 300) {
+            return false;
+        }
+
+        $decoded = json_decode($response, true);
+        $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+
+        if ($text === '') {
+            return false;
+        }
+
+        $suggestion = json_decode($text, true);
+
+        return is_array($suggestion) ? $suggestion : false;
     }
 
     private function hasUploadedCoverPhoto()

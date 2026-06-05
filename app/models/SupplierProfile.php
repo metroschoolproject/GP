@@ -41,6 +41,12 @@ class SupplierProfile
                     users.phone AS owner_phone,
                     users.address AS owner_address,
                     (
+                        SELECT GROUP_CONCAT(categories.name ORDER BY categories.name SEPARATOR \', \')
+                        FROM supplier_categories
+                        LEFT JOIN categories ON categories.id = supplier_categories.category_id
+                        WHERE supplier_categories.supplier_id = suppliers.supplier_id
+                    ) AS category_names,
+                    (
                         SELECT supplier_documents.file_url
                         FROM supplier_documents
                         WHERE supplier_documents.supplier_id = suppliers.supplier_id
@@ -83,6 +89,12 @@ class SupplierProfile
                          suppliers.created_at,
                          users.name AS owner_name,
                          users.email AS owner_email,
+                         (
+                            SELECT GROUP_CONCAT(categories.name ORDER BY categories.name SEPARATOR \', \')
+                            FROM supplier_categories
+                            LEFT JOIN categories ON categories.id = supplier_categories.category_id
+                            WHERE supplier_categories.supplier_id = suppliers.supplier_id
+                         ) AS category_names,
                          (
                             SELECT services.name
                             FROM services
@@ -135,31 +147,17 @@ class SupplierProfile
                     users.phone,
                     users.address,
                     (
-                        SELECT services.name
-                        FROM services
-                        WHERE services.supplier_id = suppliers.supplier_id
-                        ORDER BY services.id ASC
-                        LIMIT 1
-                    ) AS service_name,
+                        SELECT GROUP_CONCAT(categories.name ORDER BY categories.name SEPARATOR \', \')
+                        FROM supplier_categories
+                        LEFT JOIN categories ON categories.id = supplier_categories.category_id
+                        WHERE supplier_categories.supplier_id = suppliers.supplier_id
+                    ) AS category_names,
                     (
-                        SELECT services.description
-                        FROM services
-                        WHERE services.supplier_id = suppliers.supplier_id
-                        ORDER BY services.id ASC
-                        LIMIT 1
-                    ) AS service_description,
-                    (
-                        SELECT services.price
-                        FROM services
-                        WHERE services.supplier_id = suppliers.supplier_id
-                        ORDER BY services.id ASC
-                        LIMIT 1
-                    ) AS service_price,
-                    (
-                        SELECT services.thumbnail_url
-                        FROM services
-                        WHERE services.supplier_id = suppliers.supplier_id
-                        ORDER BY services.id ASC
+                        SELECT supplier_documents.file_url
+                        FROM supplier_documents
+                        WHERE supplier_documents.supplier_id = suppliers.supplier_id
+                          AND supplier_documents.type = \'cover_photo\'
+                        ORDER BY supplier_documents.id DESC
                         LIMIT 1
                     ) AS cover_url,
                     (
@@ -362,56 +360,6 @@ class SupplierProfile
         return $this->db->getsingledata();
     }
 
-    private function saveInitialService($supplierId, $data)
-    {
-        if (empty($data['service_name'])) {
-            return true;
-        }
-
-        $this->db->dbquery('SELECT id FROM services WHERE supplier_id = :supplier_id AND name = :name LIMIT 1');
-        $this->db->dbbind(':supplier_id', $supplierId);
-        $this->db->dbbind(':name', $data['service_name']);
-        $existingService = $this->db->getsingledata();
-
-        if ($existingService) {
-            $this->db->dbquery(
-                'UPDATE services
-                 SET category_id = :category_id,
-                     description = :description,
-                     price = :price,
-                     thumbnail_url = :thumbnail_url,
-                     is_active = :is_active
-                 WHERE id = :id'
-            );
-            $this->db->dbbind(':id', (int)$existingService['id']);
-            $this->db->dbbind(':category_id', $data['category_id']);
-            $this->db->dbbind(':description', $data['service_description']);
-            $this->db->dbbind(':price', $data['service_price']);
-            $this->db->dbbind(':thumbnail_url', $data['thumbnail_url']);
-            $this->db->dbbind(':is_active', 0);
-
-            return $this->db->dbexecute() ? (int)$existingService['id'] : false;
-        }
-
-        $this->db->dbquery(
-            'INSERT INTO services(supplier_id, category_id, name, description, price, thumbnail_url, is_active)
-             VALUES(:supplier_id, :category_id, :name, :description, :price, :thumbnail_url, :is_active)'
-        );
-        $this->db->dbbind(':supplier_id', $supplierId);
-        $this->db->dbbind(':category_id', $data['category_id']);
-        $this->db->dbbind(':name', $data['service_name']);
-        $this->db->dbbind(':description', $data['service_description']);
-        $this->db->dbbind(':price', $data['service_price']);
-        $this->db->dbbind(':thumbnail_url', $data['thumbnail_url']);
-        $this->db->dbbind(':is_active', 0);
-
-        if (!$this->db->dbexecute()) {
-            return false;
-        }
-
-        return (int)$this->db->lastinsertid();
-    }
-
     public function updateServiceThumbnail($serviceId, $thumbnailUrl)
     {
         $this->db->dbquery('UPDATE services SET thumbnail_url = :thumbnail_url WHERE id = :id');
@@ -450,6 +398,71 @@ class SupplierProfile
     public function isValidCategory($categoryId)
     {
         return $this->categoryExists($categoryId);
+    }
+
+    private function normalizeCategoryIds($categoryIds)
+    {
+        if (!is_array($categoryIds)) {
+            $categoryIds = [$categoryIds];
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $categoryIds), function ($categoryId) {
+            return $categoryId > 0;
+        })));
+    }
+
+    public function areValidCategories($categoryIds)
+    {
+        $categoryIds = $this->normalizeCategoryIds($categoryIds);
+
+        if (empty($categoryIds)) {
+            return false;
+        }
+
+        $placeholders = [];
+        foreach ($categoryIds as $index => $categoryId) {
+            $placeholders[] = ':category_' . $index;
+        }
+
+        $this->db->dbquery('SELECT COUNT(*) AS total FROM categories WHERE id IN (' . implode(',', $placeholders) . ')');
+        foreach ($categoryIds as $index => $categoryId) {
+            $this->db->dbbind(':category_' . $index, $categoryId);
+        }
+        $result = $this->db->getsingledata();
+
+        return (int)($result['total'] ?? 0) === count($categoryIds);
+    }
+
+    public function saveSupplierCategories($supplierId, $categoryIds, $source = 'manual')
+    {
+        $categoryIds = $this->normalizeCategoryIds($categoryIds);
+
+        if (!$supplierId || empty($categoryIds) || !$this->areValidCategories($categoryIds)) {
+            return false;
+        }
+
+        $this->db->dbquery('DELETE FROM supplier_categories WHERE supplier_id = :supplier_id');
+        $this->db->dbbind(':supplier_id', (int)$supplierId);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        foreach ($categoryIds as $categoryId) {
+            $this->db->dbquery(
+                'INSERT INTO supplier_categories(supplier_id, category_id, source)
+                 VALUES(:supplier_id, :category_id, :source)'
+            );
+            $this->db->dbbind(':supplier_id', (int)$supplierId);
+            $this->db->dbbind(':category_id', (int)$categoryId);
+            $this->db->dbbind(':source', $source);
+
+            if (!$this->db->dbexecute()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function saveSupplierDocument($supplierId, $fileUrl, $type)
@@ -493,7 +506,7 @@ class SupplierProfile
     {
         $userId = $this->getUserId($data);
 
-        if (!$userId || !$this->categoryExists($data['category_id'])) {
+        if (!$userId || !$this->areValidCategories($data['category_ids'] ?? [])) {
             return false;
         }
 
@@ -569,15 +582,12 @@ class SupplierProfile
             $supplierId = (int)$this->db->lastinsertid();
         }
 
-        $serviceId = $this->saveInitialService($supplierId, $data);
-
-        if (!$serviceId) {
+        if (!$this->saveSupplierCategories($supplierId, $data['category_ids'] ?? [], $data['category_source'] ?? 'manual')) {
             return false;
         }
 
         return [
             'supplier_id' => $supplierId,
-            'service_id' => $serviceId,
         ];
     }
 }

@@ -208,7 +208,7 @@ $dashboardContent = function () use ($suppliers, $status) {
                         <tr>
                             <th>Business</th>
                             <th>Owner</th>
-                            <th>Service</th>
+                            <th>Categories</th>
                             <th>Status</th>
                             <th>Payment</th>
                             <th>Action</th>
@@ -230,7 +230,7 @@ $dashboardContent = function () use ($suppliers, $status) {
                                     <p class="admin-value font-medium"><?= htmlspecialchars($supplier['owner_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
                                     <p class="admin-muted text-xs"><?= htmlspecialchars($supplier['owner_email'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
                                 </td>
-                                <td class="admin-body-copy"><?= htmlspecialchars($supplier['service_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
+                                <td class="admin-body-copy"><?= htmlspecialchars($supplier['category_names'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
                                 <td>
                                     <?php $statusClass = 'admin-badge-' . strtolower($supplier['status'] ?? 'muted'); ?>
                                     <span class="admin-badge <?= htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8') ?>">

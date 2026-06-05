@@ -1,1024 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supplier Onboarding - <?= APPNAME ?></title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            --env-bg: #e8b4b8;
-            --env-dark: #d89aa0;
-            --env-border: #f4c7c4e5;
-            --paper: #f5e8d9;
-            --accent: #6d4c5b;
-            --focus-color: rgb(247, 236, 236);
-            --input-field-color: rgba(249, 237, 228, 0.9);
-            --header-font: "Pinyon Script", cursive;
-            --body-font: serif;
-        }
-
-        body {
-            min-height: 100vh;
-            margin: 0;
-            font-family: var(--body-font);
-            color: rgba(38, 20, 28, 0.92);
-
-        }
-
-        .supplier-card {
-            position: relative;
-            overflow: hidden;
-            background: rgba(245, 232, 217, 0.94);
-            border: 1px solid var(--env-border);
-            box-shadow: 12px 14px 30px rgba(64, 20, 35, 0.22);
-        }
-
-        .sparkle-canvas {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            border-radius: 24px;
-            z-index: 3;
-        }
-
-        .script-heading {
-            font-family: var(--header-font);
-            color: var(--accent);
-            font-weight: 600;
-            letter-spacing: 0;
-        }
-
-        .supplier-eyebrow,
-        .supplier-section-title,
-        .supplier-label {
-            color: var(--accent);
-        }
-
-        .diamond-stepper {
-            position: relative;
-        }
-
-        .diamond-stepper::before {
-            content: "";
-            position: absolute;
-            left: 17%;
-            right: 17%;
-            top: 11px;
-            height: 1px;
-            background: rgba(109, 76, 91, 0.45);
-            z-index: 0;
-        }
-
-        .step-indicator {
-            position: relative;
-            z-index: 1;
-            color: rgba(109, 76, 91, 0.7);
-            text-align: center;
-        }
-
-        .step-diamond {
-            width: 22px;
-            height: 22px;
-            margin: 0 auto 8px;
-            transform: rotate(45deg);
-            border: 1px solid rgba(109, 76, 91, 0.62);
-            background: var(--paper);
-            box-shadow: 2px 2px 5px rgba(64, 20, 35, 0.12);
-            transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .step-diamond span {
-            display: grid;
-            width: 100%;
-            height: 100%;
-            place-items: center;
-            transform: rotate(-45deg);
-            font-size: 10px;
-            font-weight: 700;
-        }
-
-        .step-indicator.is-active,
-        .step-indicator.is-done {
-            color: var(--accent);
-        }
-
-        .step-indicator.is-active .step-diamond {
-            border-color: var(--accent);
-            background: var(--focus-color);
-            color: var(--accent);
-            box-shadow: 0 0 8px rgba(109, 76, 91, 0.28);
-        }
-
-        .step-indicator.is-done .step-diamond {
-            border-color: var(--accent);
-            background: rgba(232, 180, 184, 0.62);
-            color: var(--accent);
-        }
-
-        .supplier-input,
-        #supplierOnboardingForm input:not([type="file"]):not([type="checkbox"]),
-        #supplierOnboardingForm select,
-        #supplierOnboardingForm textarea {
-            width: 100%;
-            background: var(--input-field-color);
-            border: 1px solid var(--env-border);
-            border-radius: 12px;
-            padding: 16px 16px 12px;
-            font-size: 18px;
-            font-family: inherit;
-            color: rgba(15, 1, 1, 0.9);
-            box-shadow: 5px 5px 10px rgba(2, 2, 2, 0.24);
-            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-        }
-
-        #supplierOnboardingForm input:not([type="file"]):not([type="checkbox"]),
-        #supplierOnboardingForm select {
-            min-height: 56px;
-        }
-
-        #supplierOnboardingForm textarea {
-            min-height: 118px;
-            resize: vertical;
-        }
-
-        #supplierOnboardingForm input:not([type="file"]):not([type="checkbox"]):focus,
-        #supplierOnboardingForm select:focus,
-        #supplierOnboardingForm textarea:focus {
-            border-color: var(--accent);
-            background: var(--focus-color);
-            box-shadow: 0 0 10px rgba(109, 76, 91, 0.36);
-        }
-
-        .supplier-primary-btn {
-            background: var(--accent);
-            color: white;
-            box-shadow: 5px 5px 8px rgba(0, 0, 0, 0.28);
-        }
-
-        .supplier-primary-btn:hover {
-            background: #5b3f4c;
-        }
-
-        .supplier-secondary-btn {
-            border-color: var(--env-border);
-            color: var(--accent);
-            background: rgba(249, 237, 228, 0.72);
-        }
-
-        .supplier-upload-card {
-            border-color: var(--env-border);
-            background: rgba(255, 250, 246, 0.46);
-        }
-
-        .supplier-upload-zone {
-            border-color: rgba(109, 76, 91, 0.24);
-            background: rgba(249, 237, 228, 0.55);
-        }
-
-        .supplier-upload-zone:hover {
-            border-color: rgba(109, 76, 91, 0.52);
-            background: rgba(247, 236, 236, 0.76);
-        }
-
-        .supplier-upload-zone.bg-rose-50 {
-            background: rgba(247, 236, 236, 0.86) !important;
-        }
-
-        .step-panel {
-            transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-                        filter 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-                        transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .step-panel.is-dissolving {
-            opacity: 0;
-            filter: blur(6px);
-            transform: translateY(10px) scale(0.985);
-        }
-
-        .step-panel.is-assembling {
-            opacity: 0;
-            filter: blur(6px);
-            transform: translateY(-8px) scale(0.985);
-        }
-
-        .step-char {
-            display: inline-block;
-            white-space: pre;
-            opacity: 0;
-            filter: blur(8px);
-            transform: scale(0.86);
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .step-panel,
-            .step-char {
-                transition: none !important;
-                animation: none !important;
-            }
-        }
-    </style>
-</head>
-<body>
-    <main class="mx-auto flex min-h-screen w-full max-w-3xl items-center px-4 py-10">
-        <section class="supplier-card w-full rounded-2xl p-6">
-            <canvas class="sparkle-canvas" id="supplierSparkleCanvas"></canvas>
-            <div class="mb-6 text-center">
-                <p class="supplier-eyebrow text-sm font-semibold uppercase tracking-wide">Partner application</p>
-                <h1 class="script-heading mt-1 text-5xl">Tell us about your service</h1>
-                <p class="mt-2 text-sm text-stone-700">This information helps admin review and approve supplier accounts.</p>
-            </div>
-
-            <ol class="diamond-stepper mb-6 grid grid-cols-3 gap-2 text-[11px] font-semibold" aria-label="Supplier application steps">
-                <li class="step-indicator is-active" data-step-indicator="0">
-                    <div class="step-diamond"><span>1</span></div>
-                    <span class="block text-[10px] uppercase tracking-wide">Business</span>
-                </li>
-                <li class="step-indicator" data-step-indicator="1">
-                    <div class="step-diamond"><span>2</span></div>
-                    <span class="block text-[10px] uppercase tracking-wide">Service</span>
-                </li>
-                <li class="step-indicator" data-step-indicator="2">
-                    <div class="step-diamond"><span>3</span></div>
-                    <span class="block text-[10px] uppercase tracking-wide">Agreement</span>
-                </li>
-            </ol>
-
-            <?php if (!empty($message)): ?>
-                <div class="mb-5 rounded-md border <?= !empty($submitted) ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700' ?> px-4 py-3 text-sm">
-                    <?= $message ?>
-                </div>
-            <?php endif; ?>
-
-            <form method="POST" action="<?= URLROOT ?>/supplier/onboarding" enctype="multipart/form-data" class="grid gap-5" id="supplierOnboardingForm" novalidate>
-                <label class="grid gap-1 text-sm font-medium">
-                    Account email
-                    <input required readonly name="email" type="email" class="rounded-md border border-stone-300 bg-stone-50 px-3 py-2 font-normal text-stone-600 outline-none focus:border-rose-600" value="<?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                </label>
-
-                <div class="step-panel grid gap-4 border-t border-[#f4c7c4e5] pt-5" data-step-panel="0">
-                    <h2 class="supplier-section-title text-base font-bold">Business information</h2>
-
-                    <label class="grid gap-1 text-sm font-medium">
-                        Business name
-                        <input required name="business_name" type="text" class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600" value="<?= htmlspecialchars($business_name ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    </label>
-
-                    <label class="grid gap-1 text-sm font-medium">
-                        Business description
-                        <textarea required name="business_description" rows="3" class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600"><?= htmlspecialchars($business_description ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
-                    </label>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="grid gap-1 text-sm font-medium">
-                            Phone
-                            <input required name="phone" type="tel" inputmode="numeric" pattern="[0-9]{11}" minlength="11" maxlength="11" title="Phone number must be exactly 11 digits." class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600" value="<?= htmlspecialchars($phone ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </label>
-
-                        <label class="grid gap-1 text-sm font-medium">
-                            Business address
-                            <input required name="business_address" type="text" class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600" value="<?= htmlspecialchars($business_address ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </label>
-                    </div>
-                </div>
-
-                <div class="step-panel hidden gap-4 border-t border-[#f4c7c4e5] pt-5" data-step-panel="1">
-                    <h2 class="supplier-section-title text-base font-bold">Service information</h2>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="grid gap-1 text-sm font-medium">
-                            Service category
-                            <select required name="category_id" class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600">
-                                <?php $selectedCategoryId = (int)($category_id ?? 0); ?>
-                                <option value="">Choose category</option>
-                                <?php foreach (($categories ?? []) as $category): ?>
-                                    <?php $categoryId = (int)$category['id']; ?>
-                                    <option value="<?= $categoryId ?>" <?= $selectedCategoryId === $categoryId ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-
-                        <label class="grid gap-1 text-sm font-medium">
-                            Service name
-                            <input required name="service_name" type="text" class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600" value="<?= htmlspecialchars($service_name ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </label>
-                    </div>
-
-                    <label class="grid gap-1 text-sm font-medium">
-                        Service description
-                        <textarea required name="service_description" rows="4" class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600"><?= htmlspecialchars($service_description ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
-                    </label>
-
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="grid gap-1 text-sm font-medium">
-                            Starting price
-                            <input required name="service_price" type="number" min="0" step="0.01" class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600" value="<?= htmlspecialchars($service_price ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </label>
-                        <label class="grid gap-1 text-sm font-medium">
-                           Business URL
-                            <input required name="business_url" type="url" placeholder="https://example.com" class="rounded-md border border-stone-300 px-3 py-2 font-normal outline-none focus:border-rose-600" value="<?= htmlspecialchars($business_url ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </label>
-                    </div>
-               
-
-                    <div class="supplier-upload-card rounded-lg border">
-                        <div class="border-b border-[#f4c7c4e5] px-4 py-3">
-                            <h3 class="supplier-section-title text-base font-bold">Images</h3>
-                        </div>
-
-                        <div class="p-4">
-                            <label id="coverDropZone" for="coverPhotoInput" class="supplier-upload-zone flex min-h-48 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-8 text-center transition">
-                                <input required id="coverPhotoInput" name="cover_photo" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only">
-                                <span class="inline-flex items-center gap-2 rounded-md border border-[#f4c7c4e5] bg-white/80 px-5 py-2.5 text-sm font-semibold text-stone-900 shadow-sm">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="17 8 12 3 7 8"></polyline>
-                                        <line x1="12" x2="12" y1="3" y2="15"></line>
-                                    </svg>
-                                    Upload
-                                </span>
-                                <span class="mt-5 text-sm text-stone-700">Choose image or drag & drop it here.</span>
-                                <span class="mt-1 text-sm text-stone-500">JPG, JPEG, PNG and WEBP. Max 5 MB.</span>
-                                <span id="coverPhotoName" class="mt-4 hidden rounded-full bg-white px-3 py-1 text-xs font-semibold text-stone-700 shadow-sm"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="step-panel hidden gap-4 border-t border-[#f4c7c4e5] pt-5" data-step-panel="2">
-                    <h2 class="supplier-section-title text-base font-bold">Business agreement</h2>
-                    <div class="rounded-md border border-[#f4c7c4e5] bg-white/40 px-4 py-4 text-sm leading-6 text-stone-700">
-                                        
-                        1. Membership Fees
-                        Supplier Member အဖြစ် စတင်လက်တွဲရန်အတွက် သတ်မှတ်ထားသော Members Fees ကို ကြိုတင်ပေးသွင်းရမည်။
-                        2. Service Fees
-                        Supplier မှ Admin ဘက်သို့ Service Fees ပေးချေသည့်အခါ ပေးချေငွေ၏ 10% ကို Admin Service Charge အဖြစ် ကောက်ခံမည်။
-                        3. Booking Cancelation Policy
-                        Supplier ဘက်မှ Booking Cancel ပြုလုပ်ပါက အောက်ပါစည်းကမ်းများကို လိုက်နာရမည်။
-                        •	သတ်မှတ်ထားသော Service Date/Time မတိုင်မီ အချိန်တစ်ဝက်အလိုတွင် Cancel ပြုလုပ်ပါက
-                        Customer အား စရံငွေပြန်လည်ပေးအပ်ရမည်ဖြစ်ပြီး၊ Customer ရွေးချယ်ထားသော Package တန်ဖိုး၏ 50% ကိုလည်း လျော်ကြေးအဖြစ် ပေးဆောင်ရမည်။ 
-                        •	သတ်မှတ်ချိန်၏ တစ်ဝက်ကျော်သွားပြီးမှ Cancel ပြုလုပ်ပါက
-                        Customer ရွေးချယ်ထားသော Package တန်ဖိုး၏ 100% ကို လျော်ကြေးအဖြစ် ပေးဆောင်ရမည်။ 
-                        •	ထို့အပြင် Supplier သည် Admin ဘက်မှ သတ်မှတ်သော ကာလအပိုင်းအခြားတစ်ခုအတွင်း Temporary Ban ခံရနိုင်သည်။ 
-                        4. Excessive Cancelation
-                        Supplier Member သည် Booking Cancelation ကို 3 ကြိမ်ထက်ကျော်လွန်ပြုလုပ်ပါက Member အဖြစ်မှ အပြီးတိုင် ဖယ်ရှားမည်။
-                        5. Customer Reviews
-                        Customer များထံမှ Bad Review 5 ကြိမ်ထက်ကျော်လွန်လက်ခံရရှိပါက Supplier Member အဖြစ်မှ ဖယ်ရှားမည်။
-                        6. Package Participation Requirement
-                        Supplier သည် Package List တွင် စတင်ပါဝင်နိုင်ရန် အနည်းဆုံး Member ဝင်ပြီး 3 လအတွင်း Booking 5 ကြိမ် ရရှိထားရမည်။
-                        7. Bonus Program
-                        နှစ်စဉ် 3 လအတွင်း သတ်မှတ်ထားသော ရောင်းအား Target ပြည့်မီပြီး၊ အရောင်းရဆုံး နံပါတ် (1) Supplier ဖြစ်ပါက Admin ဘက်မှ Bonus ချီးမြှင့်ပေးမည်။
-                        8. Agreement Acceptance
-                        Supplier Member သည် ဤစာချုပ်ပါ စည်းကမ်းချက်များအား ဖတ်ရှုနားလည်ပြီး သဘောတူညီပါကြောင်း လက်မှတ်ရေးထိုးအတည်ပြုရမည်။
-                        9. Payment Terms
-                        Service ပြီးဆုံးပြီးနောက် သတ်မှတ်ထားသော အချိန်အတွင်း Supplier ထံသို့ ငွေပေးချေမှု ပြုလုပ်မည်။
-                        Admin Service Fees နှင့် အခြားသတ်မှတ်ထားသော Charges များကို နုတ်ယူပြီးမှ ကျန်ရှိသောငွေကို Supplier ထံ လွှဲပြောင်းပေးမည်။
-                        
-                        10. Supplier Responsibilities
-                        Supplier သည် Package တွင် ဖော်ပြထားသော Service Quality နှင့် အချိန်တိကျမှုကို တာဝန်ယူရမည်။
-                        Late ဖြစ်ခြင်း၊ Service Quality မမှီခြင်း၊ သို့မဟုတ် Booking အတိုင်း ဝန်ဆောင်မှုမပေးနိုင်ခြင်းများ ဖြစ်ပေါ်ပါက Admin Team မှ Warning, Temporary Ban သို့မဟုတ် Member Removal အထိ အရေးယူနိုင်သည်။
-                        
-                        11. Fraud and Policy Violations
-                        Supplier သည် Platform ပြင်ပ Customer များနှင့် တိုက်ရိုက်ဆက်သွယ်ပြီး ငွေလက်ခံခြင်း၊ Fake Booking ပြုလုပ်ခြင်း၊ Fake Review တင်ခြင်း သို့မဟုတ် လိမ်လည်မှုတစ်စုံတစ်ရာ ပြုလုပ်ခြင်း မပြုရ။
-                        စည်းကမ်းဖောက်ဖျက်မှု တွေ့ရှိပါက Admin Team မှ Member အဖြစ်မှ ချက်ချင်းဖယ်ရှားနိုင်သည်။
-                        
-                        12. Customer Cancelation and No-Show Policy
-                        Customer ဘက်မှ သတ်မှတ်ချိန်နီးကပ်မှ Booking Cancel ပြုလုပ်ပါက စရံငွေကို ပြန်လည်မပေးနိုင်ပါ။
-                        Customer သည် သတ်မှတ်ထားသောအချိန်တွင် မပေါ်လာပါက Booking ကို Completed အဖြစ် သတ်မှတ်နိုင်သည်။
-                        
-                        13. Marketing and Content Usage
-                        Supplier တင်ထားသော Photo, Video, Logo, Description နှင့် အခြား Content များကို Admin Team မှ Marketing, Advertising နှင့် Promotion ရည်ရွယ်ချက်များအတွက် အသုံးပြုခွင့်ရှိသည်။
-                        
-                        14. Price Control Policy
-                        Booking Confirmed ဖြစ်ပြီးနောက် Supplier သည် သတ်မှတ်ထားသော Package Price ကို တိုးမြှင့်ခြင်း သို့မဟုတ် ပြောင်းလဲခြင်း မပြုလုပ်ရ။
-                        
-                        15. Confidentiality
-                        Supplier သည် Customer ၏ ကိုယ်ရေးအချက်အလက်များ၊ ဖုန်းနံပါတ်များ၊ လိပ်စာများနှင့် အခြား Personal Information များကို ခွင့်ပြုချက်မရှိဘဲ မျှဝေခြင်း၊ ဖြန့်ဝေခြင်း မပြုရ။
-                        
-                        16. Agreement Updates
-                        Admin Team သည် လိုအပ်ပါက ဤ Agreement ပါ စည်းကမ်းချက်များကို ပြင်ဆင်၊ ထပ်မံဖြည့်စွက်နိုင်ပြီး Supplier များအား ကြိုတင်အသိပေးမည်။
-                        
-                        17. Force Majeure
-                        သဘာဝဘေးအန္တရာယ်၊ မီးလောင်မှု၊ စစ်ရေးအခြေအနေ၊ Internet/Network ပြတ်တောက်မှု သို့မဟုတ် ထိန်းချုပ်မရသော အခြေအနေများကြောင့် Service မပေးနိုင်ပါက နှစ်ဖက်စလုံးအား တာဝန်ယူမှုကင်းလွတ်ခွင့် ရှိသည်။
-
-                    </div>
-
-                    <label class="flex gap-3 rounded-md border border-[#f4c7c4e5] bg-white/50 px-4 py-3 text-sm">
-                        <input required name="agreement_accepted" type="checkbox" value="1" class="mt-1 h-4 w-4 rounded border-stone-300 text-rose-700 focus:ring-rose-600" <?= !empty($agreement_accepted) ? 'checked' : '' ?>>
-                        <span class="leading-6 text-stone-700">
-                            I have read and agree to the Golden Promise supplier business agreement.
-                        </span>
-                    </label>
-                </div>
-
-                <p id="stepError" class="hidden rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"></p>
-
-                <div class="mt-2 flex flex-wrap items-center gap-3">
-                    <button type="button" id="backStepBtn" class="supplier-secondary-btn hidden rounded-md border px-5 py-2.5 text-sm font-semibold transition">Back</button>
-                    <button type="button" id="nextStepBtn" class="supplier-primary-btn rounded-md px-5 py-2.5 text-sm font-semibold transition">Continue</button>
-                    <button type="submit" id="submitStepBtn" class="supplier-primary-btn hidden rounded-md px-5 py-2.5 text-sm font-semibold transition">Submit application</button>
-                    <a href="<?= URLROOT ?>/main/home" class="text-sm font-medium text-stone-700 hover:text-stone-950">Back home</a>
-                </div>
-            </form>
-        </section>
-    </main>
-    <script>
-        const form = document.getElementById('supplierOnboardingForm');
-        const panels = Array.from(document.querySelectorAll('[data-step-panel]'));
-        const indicators = Array.from(document.querySelectorAll('[data-step-indicator]'));
-        const backBtn = document.getElementById('backStepBtn');
-        const nextBtn = document.getElementById('nextStepBtn');
-        const submitBtn = document.getElementById('submitStepBtn');
-        const stepError = document.getElementById('stepError');
-        const coverInput = document.getElementById('coverPhotoInput');
-        const coverDropZone = document.getElementById('coverDropZone');
-        const coverPhotoName = document.getElementById('coverPhotoName');
-        const phoneInput = form.querySelector('[name="phone"]');
-        const sparkleCanvas = document.getElementById('supplierSparkleCanvas');
-        const sparkleCtx = sparkleCanvas.getContext('2d');
-        const sparkleParticles = [];
-        const draftKey = 'gp_supplier_onboarding_' + encodeURIComponent(form.elements.email.value || 'guest');
-        const draftFields = [
-            'business_name',
-            'business_description',
-            'phone',
-            'business_address',
-            'category_id',
-            'service_name',
-            'service_description',
-            'service_price',
-            'business_url',
-            'agreement_accepted'
-        ];
-        let currentStep = 0;
-        let previousStep = 0;
-        let isStepAnimating = false;
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-        function getFormField(fieldName) {
-            const field = form.elements[fieldName];
-
-            if (!field) {
-                return null;
-            }
-
-            return typeof field.addEventListener === 'function'
-                ? field
-                : field[0] || null;
-        }
-
-        function resizeSparkleCanvas() {
-            sparkleCanvas.width = sparkleCanvas.parentElement.offsetWidth;
-            sparkleCanvas.height = sparkleCanvas.parentElement.offsetHeight;
-        }
-
-        class SparkleParticle {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 0.35 + Math.random() * 1.4;
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed - 0.35;
-                this.life = 1;
-                this.decay = 0.02 + Math.random() * 0.025;
-                this.size = 0.4 + Math.random() * 1;
-                this.phase = Math.random() * Math.PI * 2;
-                this.color = [
-                    'rgba(255,182,193,0.95)',
-                    'rgba(255,105,180,0.82)',
-                    'rgba(219,112,147,0.72)',
-                    'rgba(255,240,245,0.88)'
-                ][Math.floor(Math.random() * 4)];
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.vy += 0.025;
-                this.vx *= 0.97;
-                this.life -= this.decay;
-                this.phase += 0.2;
-            }
-
-            draw(ctx) {
-                const alpha = Math.max(0, this.life) * (0.6 + 0.4 * Math.sin(this.phase));
-                ctx.globalAlpha = alpha;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.globalAlpha = alpha * 0.22;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size * 2.4, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function emitSparklesAtElement(element, count = 34) {
-            if (!element) {
-                return;
-            }
-
-            const canvasRect = sparkleCanvas.getBoundingClientRect();
-            const rect = element.getBoundingClientRect();
-            const centerX = rect.left - canvasRect.left + rect.width / 2;
-            const centerY = rect.top - canvasRect.top + rect.height / 2;
-
-            for (let i = 0; i < count; i++) {
-                sparkleParticles.push(new SparkleParticle(centerX, centerY));
-            }
-        }
-
-        function emitSparklesAtPoint(x, y, count = 8) {
-            for (let i = 0; i < count; i++) {
-                sparkleParticles.push(new SparkleParticle(x, y));
-            }
-        }
-
-        function buildStepTitleSpans(title, hidden = false) {
-            if (!title) {
-                return;
-            }
-
-            const text = title.dataset.stepTitleText || title.textContent;
-            title.dataset.stepTitleText = text;
-            title.innerHTML = '';
-
-            for (let i = 0; i < text.length; i++) {
-                const span = document.createElement('span');
-                span.className = 'step-char';
-                span.textContent = text[i];
-
-                if (!hidden) {
-                    span.style.opacity = '1';
-                    span.style.filter = 'blur(0)';
-                    span.style.transform = 'scale(1)';
-                }
-
-                title.appendChild(span);
-            }
-        }
-
-        function getStepCharRects(title) {
-            if (!title) {
-                return [];
-            }
-
-            const canvasRect = sparkleCanvas.getBoundingClientRect();
-
-            return Array.from(title.querySelectorAll('.step-char')).map((char) => {
-                const rect = char.getBoundingClientRect();
-
-                return {
-                    char,
-                    cx: rect.left - canvasRect.left + rect.width / 2,
-                    cy: rect.top - canvasRect.top + rect.height / 2
-                };
-            });
-        }
-
-        function dissolveStepTitle(panel) {
-            return new Promise((resolve) => {
-                const title = panel.querySelector('.supplier-section-title');
-
-                if (!title || prefersReducedMotion) {
-                    resolve();
-                    return;
-                }
-
-                buildStepTitleSpans(title, false);
-                const chars = getStepCharRects(title);
-
-                chars.forEach(({ char, cx, cy }, index) => {
-                    setTimeout(() => {
-                        if (char.textContent.trim()) {
-                            emitSparklesAtPoint(cx, cy, 9);
-                        }
-
-                        char.style.transition = 'opacity 0.4s ease, filter 0.4s ease, transform 0.4s ease';
-                        char.style.opacity = '0';
-                        char.style.filter = 'blur(6px)';
-                        char.style.transform = 'scale(0.87)';
-                    }, index * 18);
-                });
-
-                setTimeout(resolve, chars.length * 18 + 220);
-            });
-        }
-
-        function assembleStepTitle(panel) {
-            return new Promise((resolve) => {
-                const title = panel.querySelector('.supplier-section-title');
-
-                if (!title || prefersReducedMotion) {
-                    resolve();
-                    return;
-                }
-
-                buildStepTitleSpans(title, true);
-                const chars = getStepCharRects(title);
-
-                chars.forEach(({ char, cx, cy }, index) => {
-                    setTimeout(() => {
-                        if (char.textContent.trim()) {
-                            emitSparklesAtPoint(cx, cy, 6);
-                        }
-
-                        char.style.transition = 'opacity 0.48s cubic-bezier(0,0,0.2,1), filter 0.48s cubic-bezier(0,0,0.2,1), transform 0.48s cubic-bezier(0,0,0.2,1)';
-                        char.style.opacity = '1';
-                        char.style.filter = 'blur(0)';
-                        char.style.transform = 'scale(1)';
-                    }, index * 20);
-                });
-
-                setTimeout(resolve, chars.length * 20 + 520);
-            });
-        }
-
-        function stepContentElements(panel) {
-            return Array.from(panel.children).filter((child) => !child.classList.contains('supplier-section-title'));
-        }
-
-        function hideStepContent(panel) {
-            stepContentElements(panel).forEach((child, index) => {
-                setTimeout(() => {
-                    child.style.transition = 'opacity 0.34s cubic-bezier(0.4,0,0.2,1), transform 0.34s cubic-bezier(0.4,0,0.2,1), filter 0.34s cubic-bezier(0.4,0,0.2,1)';
-                    child.style.opacity = '0';
-                    child.style.transform = 'translateY(12px)';
-                    child.style.filter = 'blur(4px)';
-                }, index * 45);
-            });
-        }
-
-        function showStepContent(panel) {
-            const elements = stepContentElements(panel);
-
-            elements.forEach((child) => {
-                child.style.opacity = '0';
-                child.style.transform = 'translateY(12px)';
-                child.style.filter = 'blur(4px)';
-            });
-
-            requestAnimationFrame(() => {
-                elements.forEach((child, index) => {
-                    setTimeout(() => {
-                        child.style.transition = 'opacity 0.42s cubic-bezier(0,0,0.2,1), transform 0.42s cubic-bezier(0,0,0.2,1), filter 0.42s cubic-bezier(0,0,0.2,1)';
-                        child.style.opacity = '1';
-                        child.style.transform = 'translateY(0)';
-                        child.style.filter = 'blur(0)';
-                    }, index * 70);
-                });
-            });
-        }
-
-        function resetStepContent(panel) {
-            stepContentElements(panel).forEach((child) => {
-                child.style.transition = '';
-                child.style.opacity = '';
-                child.style.transform = '';
-                child.style.filter = '';
-            });
-        }
-
-        function sparkleLoop() {
-            sparkleCtx.clearRect(0, 0, sparkleCanvas.width, sparkleCanvas.height);
-
-            for (let i = sparkleParticles.length - 1; i >= 0; i--) {
-                sparkleParticles[i].update();
-                sparkleParticles[i].draw(sparkleCtx);
-
-                if (sparkleParticles[i].life <= 0) {
-                    sparkleParticles.splice(i, 1);
-                }
-            }
-
-            requestAnimationFrame(sparkleLoop);
-        }
-
-        resizeSparkleCanvas();
-        window.addEventListener('resize', resizeSparkleCanvas);
-        sparkleLoop();
-
-        function updateStepShell() {
-            indicators.forEach((indicator, indicatorIndex) => {
-                const isActive = indicatorIndex === currentStep;
-                const isDone = indicatorIndex < currentStep;
-                const diamondText = indicator.querySelector('.step-diamond span');
-
-                indicator.classList.toggle('is-active', isActive);
-                indicator.classList.toggle('is-done', isDone);
-
-                if (diamondText) {
-                    diamondText.textContent = isDone ? '✓' : String(indicatorIndex + 1);
-                }
-            });
-
-            backBtn.classList.toggle('hidden', currentStep === 0);
-            nextBtn.classList.toggle('hidden', currentStep === panels.length - 1);
-            submitBtn.classList.toggle('hidden', currentStep !== panels.length - 1);
-            stepError.classList.add('hidden');
-            stepError.textContent = '';
-        }
-
-        function setStepPanelVisibility() {
-            panels.forEach((panel, panelIndex) => {
-                panel.classList.remove('is-dissolving', 'is-assembling');
-                panel.classList.toggle('hidden', panelIndex !== currentStep);
-                panel.classList.toggle('grid', panelIndex === currentStep);
-                resetStepContent(panel);
-                buildStepTitleSpans(panel.querySelector('.supplier-section-title'), false);
-            });
-        }
-
-        async function showStep(index, animate = true) {
-            if (isStepAnimating || index === currentStep) {
-                return;
-            }
-
-            if (index < 0 || index >= panels.length) {
-                return;
-            }
-
-            previousStep = currentStep;
-            const previousPanel = panels[previousStep];
-            const nextPanel = panels[index];
-            isStepAnimating = animate && !prefersReducedMotion;
-            nextBtn.disabled = isStepAnimating;
-            backBtn.disabled = isStepAnimating;
-
-            if (isStepAnimating) {
-                hideStepContent(previousPanel);
-                previousPanel.classList.add('is-dissolving');
-                await dissolveStepTitle(previousPanel);
-            }
-
-            currentStep = index;
-            saveDraft();
-            setStepPanelVisibility();
-            updateStepShell();
-
-            if (isStepAnimating) {
-                nextPanel.classList.add('is-assembling');
-
-                requestAnimationFrame(() => {
-                    nextPanel.classList.remove('is-assembling');
-                    showStepContent(nextPanel);
-                });
-
-                emitSparklesAtElement(indicators[currentStep]?.querySelector('.step-diamond'), 28);
-                await assembleStepTitle(nextPanel);
-            } else {
-                emitSparklesAtElement(indicators[currentStep]?.querySelector('.step-diamond'), 20);
-            }
-
-            nextBtn.disabled = false;
-            backBtn.disabled = false;
-            isStepAnimating = false;
-        }
-
-        function getDraft() {
-            try {
-                return JSON.parse(localStorage.getItem(draftKey)) || {};
-            } catch (error) {
-                return {};
-            }
-        }
-
-        function saveDraft() {
-            const draft = {
-                currentStep,
-                updatedAt: new Date().toISOString(),
-                fields: {}
-            };
-
-            draftFields.forEach((fieldName) => {
-                const field = getFormField(fieldName);
-
-                if (!field) {
-                    return;
-                }
-
-                draft.fields[fieldName] = field.type === 'checkbox' ? field.checked : field.value;
-            });
-
-            localStorage.setItem(draftKey, JSON.stringify(draft));
-        }
-
-        function restoreDraft() {
-            const draft = getDraft();
-
-            if (!draft.fields) {
-                return 0;
-            }
-
-            draftFields.forEach((fieldName) => {
-                const field = getFormField(fieldName);
-
-                if (!field || typeof draft.fields[fieldName] === 'undefined') {
-                    return;
-                }
-
-                if (field.type === 'checkbox') {
-                    field.checked = draft.fields[fieldName] === true;
-                    return;
-                }
-
-                field.value = draft.fields[fieldName];
-            });
-
-            const restoredStep = Number.parseInt(draft.currentStep, 10);
-
-            return Number.isInteger(restoredStep)
-                ? Math.min(Math.max(restoredStep, 0), panels.length - 1)
-                : 0;
-        }
-
-        function validateStep(stepIndex) {
-            const fields = Array.from(panels[stepIndex].querySelectorAll('input, select, textarea'));
-            const invalidField = fields.find((field) => !field.checkValidity());
-
-            if (!invalidField) {
-                stepError.classList.add('hidden');
-                stepError.textContent = '';
-                return true;
-            }
-
-            if (stepIndex !== currentStep) {
-                showStep(stepIndex, false);
-            }
-
-            invalidField.reportValidity();
-            invalidField.focus();
-            stepError.textContent = invalidField.validationMessage || 'Please complete this step before continuing.';
-            stepError.classList.remove('hidden');
-            return false;
-        }
-
-        function validateCurrentStep() {
-            return validateStep(currentStep);
-        }
-
-        function validateAllSteps() {
-            return panels.every((panel, panelIndex) => validateStep(panelIndex));
-        }
-
-        function showFormMessage(message, type = 'error') {
-            stepError.textContent = message;
-            stepError.classList.remove('hidden', 'border-rose-200', 'bg-rose-50', 'text-rose-700', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-700');
-
-            if (type === 'success') {
-                stepError.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-700');
-                return;
-            }
-
-            stepError.classList.add('border-rose-200', 'bg-rose-50', 'text-rose-700');
-        }
-
-        function showSelectedCover(file) {
-            if (!file) {
-                coverPhotoName.classList.add('hidden');
-                coverPhotoName.textContent = '';
-                return;
-            }
-
-            coverPhotoName.textContent = file.name;
-            coverPhotoName.classList.remove('hidden');
-        }
-
-        coverInput.addEventListener('change', () => {
-            showSelectedCover(coverInput.files[0]);
-        });
-
-        ['dragenter', 'dragover'].forEach((eventName) => {
-            coverDropZone.addEventListener(eventName, (event) => {
-                event.preventDefault();
-                coverDropZone.classList.add('border-rose-400', 'bg-rose-50');
-            });
-        });
-
-        ['dragleave', 'drop'].forEach((eventName) => {
-            coverDropZone.addEventListener(eventName, (event) => {
-                event.preventDefault();
-                coverDropZone.classList.remove('border-rose-400', 'bg-rose-50');
-            });
-        });
-
-        coverDropZone.addEventListener('drop', (event) => {
-            const file = event.dataTransfer.files[0];
-
-            if (!file) {
-                return;
-            }
-
-            const transfer = new DataTransfer();
-            transfer.items.add(file);
-            coverInput.files = transfer.files;
-            coverInput.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-
-        draftFields.forEach((fieldName) => {
-            const field = getFormField(fieldName);
-
-            if (!field) {
-                return;
-            }
-
-            field.addEventListener('input', saveDraft);
-            field.addEventListener('change', saveDraft);
-        });
-
-        phoneInput?.addEventListener('input', () => {
-            phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 11);
-            phoneInput.setCustomValidity(
-                phoneInput.value.length === 11 ? '' : 'Phone number must be exactly 11 digits.'
-            );
-        });
-
-        nextBtn.addEventListener('click', () => {
-            if (isStepAnimating) {
-                return;
-            }
-
-            if (validateCurrentStep()) {
-                showStep(Math.min(currentStep + 1, panels.length - 1));
-            }
-        });
-
-        backBtn.addEventListener('click', () => {
-            if (isStepAnimating) {
-                return;
-            }
-
-            showStep(Math.max(currentStep - 1, 0));
-        });
-
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            if (!validateCurrentStep()) {
-                return;
-            }
-
-            if (currentStep < panels.length - 1) {
-                showStep(currentStep + 1);
-                return;
-            }
-
-            if (!validateAllSteps()) {
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitting...';
-
-            try {
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    },
-                    body: new FormData(form)
-                });
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    showFormMessage(result.message || 'Application submitted successfully.', 'success');
-                    localStorage.removeItem(draftKey);
-                    window.location.href = result.redirect || "<?= URLROOT ?>/supplier/pending";
-                    return;
-                }
-
-                showFormMessage(result.message || 'Please check your supplier information and try again.');
-            } catch (error) {
-                showFormMessage('Something went wrong while submitting. Please try again.');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit application';
-            }
-        });
-
-        const restoredStep = restoreDraft();
-
-        if (restoredStep === currentStep) {
-            setStepPanelVisibility();
-            updateStepShell();
-        } else {
-            showStep(restoredStep, false);
-        }
-    </script>
-</body>
-</html> -->
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1026,1232 +5,1242 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier Onboarding - <?= APPNAME ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --env-bg: #d99aa3;
-            --env-dark: #8a4e5a;
-            --env-border: rgba(198, 154, 112, 0.48);
-            --paper: #fff7ed;
-            --accent: #5d3043;
-            --accent-hover: #442231;
-            --gold: #b38a52;
-            --ink-soft: rgba(38, 20, 28, 0.72);
-            --focus-color: rgb(247, 236, 236);
-            --input-field-color: rgba(255, 250, 245, 0.84);
-            --header-font: "Pinyon Script", cursive;
-            --body-font: "Cormorant Garamond", Georgia, serif;
+            --env-border: rgba(118,90,70,0.22);
+            --paper: #f5e8d9;
+            --paper-light: #fff4e6;
+            --accent: #530b0a;
+            --accent-hover: #3f0908;
+            --gold: #d8b46a;
+            --gold-soft: #f3d9a4;
+            --focus-color: #fff8ef;
+            --input-bg: rgba(255,244,230,0.74);
+            --header-font: "Great Vibes", cursive;
+            --body-font: "Playfair Display", Georgia, serif;
             --ui-font: system-ui, -apple-system, sans-serif;
+            --ink: #211d1a;
+            --ink-muted: rgba(111,98,90,0.82);
         }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        * { box-sizing: border-box; }
+        html, body { height: 100%; }
 
         body {
-            min-height: 100vh;
-            margin: 0;
             font-family: var(--body-font);
-            color: rgba(38, 20, 28, 0.92);
-            /* background:
-                linear-gradient(125deg, rgba(255, 248, 240, 0.28), transparent 32%),
-                linear-gradient(145deg, #e8b4b8 0%, #ca858f 45%, #965a68 100%); */
-
-                            background:
-                linear-gradient(90deg, rgba(179, 138, 82, 0.14), transparent 120px),
-                rgba(255, 247, 237, 0.94);
-        }
-
-        /* ── Progress bar ── */
-        .progress-track {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: rgba(255, 250, 245, 0.22);
-            z-index: 100;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #fff7ed, #d7b06d);
-            transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
-            border-radius: 0 2px 2px 0;
-        }
-        .step-counter {
-            position: fixed;
-            top: 12px; right: 18px;
-            font-family: var(--ui-font);
-            font-size: 11px; font-weight: 500;
-            letter-spacing: 0.08em;
-            color: rgba(255,255,255,0.72);
-            z-index: 100;
-        }
-
-        /* ── Luxury application surface ── */
-        .supplier-card {
-            position: relative;
-            isolation: isolate;
-            background:
-                linear-gradient(90deg, rgba(179, 138, 82, 0.14), transparent 120px),
-                rgba(255, 247, 237, 0.94);
-            border: 1px solid rgba(255, 247, 237, 0.52);
-            border-top-color: rgba(255, 247, 237, 0.82);
-            border-radius: 4px;
-            box-shadow:
-                0 34px 90px rgba(57, 19, 35, 0.28),
-                0 1px 0 rgba(255, 255, 255, 0.52) inset;
+            color: var(--ink);
+            background: var(--paper);
             overflow: hidden;
-            width: 100%;
-            /* max-width: 720px; */
         }
-        .supplier-card::before,
-        .supplier-card::after {
-            content: "";
-            position: absolute;
-            pointer-events: none;
-            z-index: 1;
+
+        /* ── Split layout ── */
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: 100vh;
         }
-        .supplier-card::before {
-            inset: 18px;
-            border: 1px solid rgba(179, 138, 82, 0.42);
-        }
-        .supplier-card::after {
-            top: 0;
-            bottom: 0;
-            left: 72px;
-            width: 1px;
-            background: linear-gradient(
-                to bottom,
-                transparent,
-                rgba(179, 138, 82, 0.64) 16%,
-                rgba(179, 138, 82, 0.64) 84%,
-                transparent
-            );
-        }
-        .supplier-card > *:not(.sparkle-canvas) {
+
+        /* ── LEFT PANEL ── */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 64px 60px;
             position: relative;
+            background:
+                radial-gradient(ellipse at 18% 18%, rgba(255,255,255,0.68) 0 10%, transparent 28%),
+                radial-gradient(ellipse at 86% 74%, rgba(216,180,106,0.14), transparent 34%),
+                linear-gradient(180deg, #fff4e6 0%, #f5e8d9 100%);
             z-index: 2;
         }
 
-        /* ── Sparkle canvas ── */
-        .sparkle-canvas {
+        .brand {
             position: absolute;
-            inset: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 3;
+            top: 32px; left: 48px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .brand-name {
+            font-family: var(--header-font);
+            font-size: 34px;
+            color: var(--accent);
         }
 
-        /* ── Typography ── */
-        .script-heading {
-            font-family: var(--header-font);
-            color: var(--accent);
-            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+        .step-counter-left {
+            position: absolute;
+            bottom: 32px; left: 48px;
+            font-family: var(--ui-font);
+            font-size: 11px; font-weight: 500;
+            letter-spacing: 0.1em;
+            color: var(--ink-muted);
+            display: flex; align-items: center; gap: 12px;
         }
+        .step-dots {
+            display: flex; gap: 6px;
+        }
+        .step-dot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: rgba(118,90,70,0.24);
+            transition: background 0.35s, transform 0.35s;
+        }
+        .step-dot.active {
+            background: var(--accent);
+            transform: scale(1.3);
+        }
+        .step-dot.done {
+            background: rgba(216,180,106,0.78);
+        }
+
+        /* ── Step panel (question area) ── */
+        .step-panel {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 80px 60px 80px;
+            transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1),
+                        transform 0.45s cubic-bezier(0.4,0,0.2,1),
+                        filter 0.45s cubic-bezier(0.4,0,0.2,1);
+        }
+        .step-panel.hidden-panel {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
+            filter: blur(4px);
+        }
+        .step-panel.enter-panel {
+            opacity: 0;
+            transform: translateY(-16px);
+            filter: blur(4px);
+        }
+
         .eyebrow {
             font-family: var(--ui-font);
             font-size: 10px; font-weight: 600;
-            letter-spacing: 0.12em; text-transform: uppercase;
-            color: rgba(93, 48, 67, 0.62);
-            margin-bottom: 6px;
+            letter-spacing: 0.14em; text-transform: uppercase;
+            color: #9a687f;
+            margin-bottom: 10px;
         }
-        .panel-question {
-            font-family: var(--body-font);
-            font-size: 32px; font-weight: 400;
-            line-height: 1.28;
-            color: rgba(38,20,28,0.92);
-            margin-bottom: 6px;
+        .question {
+            font-size: 42px; font-weight: 600;
+            line-height: 1.05;
+            color: var(--ink);
+            margin-bottom: 8px;
+            font-style: normal;
+            letter-spacing: 0;
         }
-        .panel-hint {
+        .hint {
             font-family: var(--ui-font);
-            font-size: 13px;
-            color: var(--ink-soft);
-            line-height: 1.55;
-            margin-bottom: 30px;
+            font-size: 13px; line-height: 1.6;
+            color: var(--ink-muted);
+            margin-bottom: 36px;
         }
 
         /* ── Inputs ── */
-        #supplierOnboardingForm input:not([type="file"]):not([type="checkbox"]),
-        #supplierOnboardingForm select,
-        #supplierOnboardingForm textarea {
+        .q-input {
             width: 100%;
-            background: var(--input-field-color);
-            border: 1px solid rgba(179, 138, 82, 0.36);
-            border-radius: 3px;
-            padding: 15px 16px;
-            font-size: 17px;
+            background: var(--input-bg);
+            border: 1px solid var(--env-border);
+            border-radius: 8px;
+            padding: 13px 14px;
+            font-size: 18px;
             font-family: var(--body-font);
-            color: rgba(15,1,1,0.9);
-            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.62) inset;
-            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+            color: var(--ink);
             outline: none;
+            box-shadow: 0 18px 38px rgba(92,67,48,0.07);
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+            margin-bottom: 8px;
         }
-        #supplierOnboardingForm input:not([type="file"]):not([type="checkbox"]):focus,
-        #supplierOnboardingForm select:focus,
-        #supplierOnboardingForm textarea:focus {
+        .q-input:focus {
             border-color: var(--accent);
             background: var(--focus-color);
-            box-shadow: 0 0 0 3px rgba(179, 138, 82, 0.18);
+            box-shadow: 0 18px 38px rgba(92,67,48,0.1);
         }
-        #supplierOnboardingForm input:not([type="file"]):not([type="checkbox"]) {
-            min-height: 52px;
+        .q-input::placeholder {
+            color: rgba(111,98,90,0.5);
+            font-style: normal;
         }
-        #supplierOnboardingForm select {
-            min-height: 52px;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236d4c5b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            padding-right: 40px;
-        }
-        #supplierOnboardingForm textarea {
-            min-height: 120px;
+        .q-input.textarea-input {
             resize: none;
+            min-height: 90px;
+            font-size: 17px;
+            line-height: 1.6;
         }
-        .field-label {
-            font-family: var(--ui-font);
-            font-size: 11px; font-weight: 600;
-            letter-spacing: 0.07em; text-transform: uppercase;
-            color: rgba(93, 48, 67, 0.72);
-            display: block; margin-bottom: 6px;
+        .q-input.small-input {
+            font-size: 17px;
         }
 
-        /* ── Choice tiles ── */
+        .field-group { margin-bottom: 20px; }
+        .field-label {
+            font-family: var(--ui-font);
+            font-size: 10px; font-weight: 600;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: #765a46;
+            display: block; margin-bottom: 4px;
+        }
+
+        /* ── Category tiles ── */
         .choice-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 28px;
+            gap: 9px;
+            margin-bottom: 32px;
+        }
+        .choice-grid.is-hidden {
+            display: none;
         }
         .choice-tile {
-            background: var(--input-field-color);
-            border: 1px solid rgba(179, 138, 82, 0.34);
-            border-radius: 3px;
-            padding: 16px 14px;
+            background: transparent;
+            border: 1px solid var(--env-border);
+            border-radius: 8px;
+            padding: 13px 14px;
             cursor: pointer;
             text-align: left;
-            transition: border-color 0.18s, background 0.18s, transform 0.12s, box-shadow 0.18s;
             font-family: inherit;
-            display: flex; flex-direction: column; gap: 3px;
+            transition: border-color 0.18s, background 0.18s, transform 0.12s;
+            display: flex; align-items: center; gap: 10px;
         }
         .choice-tile:hover {
             border-color: var(--accent);
-            background: rgba(247,236,236,0.9);
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(64,20,35,0.13);
+            background: rgba(216,180,106,0.12);
+            transform: translateY(-1px);
         }
         .choice-tile.selected {
             border-color: var(--accent);
-            background: rgba(255, 247, 237, 0.95);
-            box-shadow: 0 0 0 3px rgba(179, 138, 82, 0.16);
+            background: rgba(216,180,106,0.2);
         }
-        .choice-tile .tile-icon { font-size: 22px; line-height: 1; margin-bottom: 4px; }
-        .choice-tile .tile-label {
-            font-size: 14px; font-weight: 500;
-            color: var(--accent); font-family: var(--ui-font);
+        .choice-tile.suggested {
+            border-color: rgba(216,180,106,0.9);
+            box-shadow: 0 12px 28px rgba(216,180,106,0.14);
         }
-        .choice-tile .tile-sub {
-            font-size: 11px;
-            color: rgba(109,76,91,0.6);
+        .choice-tile.is-filtered-out {
+            display: none;
+        }
+        .tile-icon { font-size: 18px; flex-shrink: 0; }
+        .tile-label {
+            font-size: 13px; font-weight: 500;
+            color: var(--ink); font-family: var(--ui-font);
+        }
+        .ai-category-box {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .category-suggest-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .category-suggestion-note {
             font-family: var(--ui-font);
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--ink-muted);
         }
-
-        /* ── Upload zone ── */
-        .upload-zone {
-            border: 1px dashed rgba(179, 138, 82, 0.54);
-            border-radius: 3px;
-            background: rgba(255,250,246,0.62);
-            padding: 32px 20px;
-            text-align: center;
+        .btn-suggest {
+            align-self: start;
+            border: 1px solid var(--env-border);
+            border-radius: 999px;
+            background: rgba(255,244,230,0.78);
+            color: var(--accent);
             cursor: pointer;
-            transition: border-color 0.18s, background 0.18s;
-            display: block;
-            margin-bottom: 20px;
-        }
-        .upload-zone:hover,
-        .upload-zone.drag-over {
-            border-color: var(--accent);
-            background: rgba(247,236,236,0.68);
-        }
-
-        /* ── Agreement box ── */
-        .agreement-scroll {
-            background: rgba(255,250,246,0.72);
-            border: 1px solid rgba(179, 138, 82, 0.36);
-            border-radius: 3px;
-            padding: 16px 18px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-size: 13px;
-            line-height: 1.75;
-            color: rgba(38,20,28,0.82);
             font-family: var(--ui-font);
-            margin-bottom: 16px;
-            scroll-behavior: smooth;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 10px 16px;
+            transition: border-color 0.15s, background 0.15s, transform 0.1s;
         }
-        .agreement-scroll::-webkit-scrollbar { width: 4px; }
-        .agreement-scroll::-webkit-scrollbar-track { background: transparent; }
-        .agreement-scroll::-webkit-scrollbar-thumb { background: rgba(109,76,91,0.3); border-radius: 4px; }
+        .btn-suggest:hover {
+            border-color: var(--accent);
+            background: var(--focus-color);
+            transform: translateY(-1px);
+        }
 
         /* ── Buttons ── */
-        .btn-primary {
+        .btn-row {
+            display: flex; align-items: center; gap: 16px;
+            margin-top: 4px;
+        }
+        .btn-next {
             background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 13px 28px;
+            color: var(--paper-light); border: none;
+            border-radius: 999px;
+            padding: 12px 26px;
             font-family: var(--ui-font);
-            font-size: 14px; font-weight: 600;
-            letter-spacing: 0.04em;
+            font-size: 13px; font-weight: 600;
+            letter-spacing: 0.03em;
             cursor: pointer;
-            box-shadow: 0 12px 26px rgba(64,20,35,0.22);
+            box-shadow: 0 16px 34px rgba(83,11,10,0.16);
             transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
         }
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 16px 30px rgba(64,20,35,0.28); }
-        .btn-primary:active { transform: translateY(0); }
-        .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-        .btn-primary.success { background: #4a7c59; }
-        .btn-primary.success:hover { background: #3d6849; }
+        .btn-next:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-next:active { transform: translateY(0); }
+        .btn-next:disabled { opacity: 0.38; cursor: not-allowed; transform: none; }
+        .btn-next.submit-btn { background: #765a46; }
+        .btn-next.submit-btn:hover { background: #5f4636; }
 
         .btn-back {
             background: none; border: none;
             font-family: var(--ui-font);
-            font-size: 13px; font-weight: 500;
-            color: rgba(109,76,91,0.65);
-            cursor: pointer; padding: 8px 0;
-            display: flex; align-items: center; gap: 5px;
+            font-size: 13px; color: var(--ink-muted);
+            cursor: pointer; padding: 0;
             transition: color 0.15s;
         }
         .btn-back:hover { color: var(--accent); }
 
         .enter-hint {
             font-family: var(--ui-font);
-            font-size: 11px;
-            color: rgba(109,76,91,0.5);
-            margin-right: 10px;
+            font-size: 11px; color: rgba(111,98,90,0.62);
         }
         kbd {
-            background: rgba(109,76,91,0.1);
-            border: 1px solid rgba(179, 138, 82, 0.34);
-            border-radius: 3px;
-            padding: 1px 5px;
-            font-size: 10px;
-            font-family: var(--ui-font);
+            background: rgba(216,180,106,0.16);
+            border: 1px solid var(--env-border);
+            border-radius: 3px; padding: 1px 5px;
+            font-size: 10px; font-family: var(--ui-font);
             color: var(--accent);
         }
 
-        /* ── Step panels ── */
-        .step-panel {
-            transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1),
-                        transform 0.4s cubic-bezier(0.4,0,0.2,1),
-                        filter 0.4s cubic-bezier(0.4,0,0.2,1);
-            padding: 2rem 3.25rem 2.25rem 7rem !important;
+        /* ── Upload zone ── */
+        .upload-zone {
+            border: 1.5px dashed rgba(118,90,70,0.34);
+            border-radius: 8px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.18s, background 0.18s;
+            display: block;
+            margin-bottom: 28px;
         }
-        .step-panel.is-dissolving {
-            opacity: 0;
-            filter: blur(5px);
-            transform: translateY(14px) scale(0.984);
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(216,180,106,0.12);
         }
-        .step-panel.is-assembling {
-            opacity: 0;
-            filter: blur(5px);
-            transform: translateY(-10px) scale(0.984);
-        }
+        .upload-zone-icon { font-size: 26px; margin-bottom: 6px; }
+        .upload-zone p { font-family: var(--ui-font); font-size: 12px; color: var(--ink-muted); line-height: 1.5; }
 
-        /* ── Review panel ── */
-        .review-row {
-            display: flex; justify-content: space-between; align-items: baseline;
-            padding: 9px 0;
-            border-bottom: 1px solid rgba(109,76,91,0.1);
-            font-size: 14px;
-        }
-        .review-row:last-child { border-bottom: none; }
-        .review-key {
-            font-family: var(--ui-font); font-size: 11px; font-weight: 600;
-            letter-spacing: 0.06em; text-transform: uppercase;
-            color: rgba(109,76,91,0.55); flex-shrink: 0; margin-right: 12px;
-        }
-        .review-val {
-            color: rgba(38,20,28,0.88); text-align: right;
-            font-family: var(--body-font); font-size: 15px;
-            word-break: break-word;
-        }
-
-        /* ── Divider ── */
-        .panel-divider {
-            height: 1px;
-            background: linear-gradient(90deg, rgba(179, 138, 82, 0.72), rgba(179, 138, 82, 0.08));
-            margin: 0 0 32px;
-        }
-
-        .supplier-card > .px-8,
-        .supplier-card form > .px-8.pb-6 {
-            padding-left: 7rem !important;
-            padding-right: 3.25rem !important;
-        }
-
-        .supplier-card form > #stepErrorGlobal {
-            margin-left: 7rem !important;
-            margin-right: 3.25rem !important;
-        }
-
-        /* ── Error message ── */
-        #stepError {
+        /* ── Agreement ── */
+        .agreement-scroll {
+            border: 1px solid var(--env-border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.75;
+            color: rgba(33,29,26,0.72);
             font-family: var(--ui-font);
-            font-size: 13px;
+            margin-bottom: 16px;
+            background: rgba(255,244,230,0.58);
         }
+        .agreement-scroll::-webkit-scrollbar { width: 3px; }
+        .agreement-scroll::-webkit-scrollbar-thumb { background: rgba(118,90,70,0.32); border-radius: 4px; }
 
-        /* ── Email field (readonly) ── */
-        .email-readonly {
-            width: 100%;
-            background: rgba(255,250,246,0.62);
-            border: 1px solid rgba(179, 138, 82, 0.34);
-            border-radius: 3px;
-            padding: 12px 16px;
-            font-size: 15px;
-            font-family: var(--body-font);
-            color: rgba(109,76,91,0.7);
-            outline: none;
-        }
-
-        /* ── Step char animation ── */
-        .step-char {
-            display: inline-block;
-            white-space: pre;
-            opacity: 0;
-            filter: blur(8px);
-            transform: scale(0.86);
-        }
-
-        /* ── Checkbox ── */
         .agree-check-row {
             display: flex; align-items: flex-start; gap: 10px;
             font-family: var(--ui-font); font-size: 13px;
-            line-height: 1.6; color: rgba(38,20,28,0.82);
-            cursor: pointer;
+            line-height: 1.6; color: rgba(33,29,26,0.8);
+            cursor: pointer; margin-bottom: 28px;
         }
         .agree-check-row input[type="checkbox"] {
-            width: 16px; height: 16px; margin-top: 2px;
-            accent-color: var(--accent);
-            flex-shrink: 0;
+            width: 15px; height: 15px; margin-top: 2px;
+            accent-color: var(--accent); flex-shrink: 0;
         }
 
-        @media (prefers-reduced-motion: reduce) {
-            .step-panel, .step-char {
-                transition: none !important;
-                animation: none !important;
-            }
+        /* ── Error ── */
+        .step-error {
+            font-family: var(--ui-font);
+            font-size: 12px;
+            color: #b91c1c;
+            margin-bottom: 12px;
+            display: none;
         }
-        @media (max-width: 560px) {
-            .supplier-card {
-                border-radius: 3px;
-            }
-            .supplier-card::before {
-                inset: 12px;
-            }
-            .supplier-card::after {
-                display: none;
-            }
-            .step-panel,
-            .supplier-card > .px-8,
-            .supplier-card form > .px-8.pb-6 {
-                padding-left: 1.5rem !important;
-                padding-right: 1.5rem !important;
-            }
-            .supplier-card form > #stepErrorGlobal {
-                margin-left: 1.5rem !important;
-                margin-right: 1.5rem !important;
-            }
-            .panel-question { font-size: 25px; }
-            .choice-grid { grid-template-columns: 1fr 1fr; }
+        .step-error.visible { display: block; }
+
+        /* ── Email readonly ── */
+        .email-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(216,180,106,0.14);
+            border: 1px solid var(--env-border);
+            border-radius: 100px;
+            padding: 8px 16px;
+            font-family: var(--ui-font);
+            font-size: 13px; color: var(--accent);
+            margin-bottom: 36px;
+        }
+        .email-chip svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+        /* ── RIGHT PANEL (loose home-style photo collage) ── */
+        .right-panel {
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at 78% 20%, rgba(216,180,106,0.2), transparent 34%),
+                linear-gradient(160deg, #211d1a 0%, #4a342f 46%, #765a46 100%);
+        }
+
+        .right-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            background:
+                linear-gradient(180deg, rgba(33,29,26,0.08), rgba(33,29,26,0.72)),
+                radial-gradient(ellipse at 42% 50%, transparent 0 36%, rgba(33,29,26,0.34) 70%);
+            pointer-events: none;
+        }
+
+        .image-slide {
+            position: absolute;
+            inset: 0;
+            transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1);
+            opacity: 0;
+        }
+        .image-slide.active { opacity: 1; }
+
+        .img-cell {
+            position: absolute;
+            overflow: hidden;
+            background: #211d1a;
+            border: 1px solid rgba(255,244,230,0.16);
+            border-radius: 16px;
+            box-shadow: 0 28px 70px rgba(33,29,26,0.28);
+        }
+        .img-cell.span-col,
+        .img-cell.span-row { grid-column: auto; grid-row: auto; }
+
+        .img-cell:nth-child(1) {
+            left: 9%;
+            top: 10%;
+            width: 62%;
+            height: 42%;
+            transform: rotate(-2.6deg);
+        }
+        .img-cell:nth-child(2) {
+            right: 8%;
+            top: 38%;
+            width: 48%;
+            height: 32%;
+            z-index: 1;
+            transform: rotate(3.2deg);
+        }
+        .img-cell:nth-child(3) {
+            left: 14%;
+            bottom: 9%;
+            width: 44%;
+            height: 30%;
+            transform: rotate(-1.4deg);
+        }
+        .img-cell:nth-child(4) {
+            right: 15%;
+            top: 9%;
+            width: 30%;
+            height: 24%;
+            transform: rotate(4deg);
+        }
+
+        .img-cell img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: block;
+            transform: scale(1.04);
+            transition: transform 8s cubic-bezier(0.25,0,0,1);
+            filter: saturate(0.92) brightness(0.94);
+        }
+        .image-slide.active .img-cell img {
+            transform: scale(1);
+        }
+
+        /* Overlay text on right panel */
+        .right-overlay {
+            position: absolute;
+            bottom: 36px; left: 36px; right: 36px;
+            z-index: 10;
+        }
+        .right-caption {
+            font-family: var(--header-font);
+            font-size: 56px;
+            color: #fff4e6;
+            line-height: 1.1;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .right-sub {
+            font-family: var(--ui-font);
+            font-size: 11px; font-weight: 500;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(243,217,164,0.78);
+            margin-top: 6px;
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        /* ── Sparkle canvas (left panel only) ── */
+        .sparkle-canvas {
+            position: absolute;
+            inset: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5;
+        }
+
+        /* ── sr-only ── */
+        .sr-only {
+            position: absolute; width: 1px; height: 1px;
+            padding: 0; margin: -1px; overflow: hidden;
+            clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
+        }
+
+        /* ── Mobile ── */
+        @media (max-width: 768px) {
+            body { overflow: auto; }
+            .split { grid-template-columns: 1fr; height: auto; }
+            .right-panel { height: 44vh; order: -1; }
+            .left-panel { padding: 48px 28px 80px; }
+            .step-panel { padding: 64px 28px 80px; }
+            .brand { left: 28px; }
+            .step-counter-left { left: 28px; }
+            .question { font-size: 34px; }
+            .right-caption { font-size: 42px; }
+            .img-cell { border-radius: 12px; }
         }
     </style>
 </head>
 <body>
-    <!-- Progress bar -->
-    <div class="progress-track">
-        <div class="progress-fill" id="progressFill" style="width: 14.28%"></div>
-    </div>
-    <div class="step-counter" id="stepCounter">1 of 7</div>
+<div class="split">
 
-    <main class="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-4 py-14">
-        <div class="supplier-card w-full">
-            <canvas class="sparkle-canvas" id="supplierSparkleCanvas"></canvas>
+    <!-- ════════════════════════════════
+         LEFT PANEL
+    ════════════════════════════════ -->
+    <div class="left-panel" id="leftPanel">
+        <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
 
-            <!-- Card header -->
-            <div class="px-8 pt-8 pb-2 text-center">
-                <p class="eyebrow">Partner application</p>
-                <h1 class="script-heading text-5xl mt-1">Golden Promise</h1>
+        <div class="brand">
+            <span class="brand-name">Golden Promise</span>
+        </div>
+
+        <?php if (!empty($message)): ?>
+        <div style="position:absolute;top:80px;left:48px;right:48px;padding:12px 16px;border-radius:10px;font-family:system-ui;font-size:13px;border:1px solid <?= !empty($submitted) ? '#a7f3d0' : '#fecaca' ?>;background:<?= !empty($submitted) ? '#f0fdf4' : '#fef2f2' ?>;color:<?= !empty($submitted) ? '#065f46' : '#b91c1c' ?>">
+            <?= $message ?>
+        </div>
+        <?php endif; ?>
+
+        <form method="POST" action="<?= URLROOT ?>/supplier/onboarding" enctype="multipart/form-data" id="supplierOnboardingForm" novalidate>
+
+            <!-- hidden email -->
+            <input type="hidden" name="email" value="<?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8') ?>">
+
+            <?php $selectedCategoryIds = array_map('intval', $category_ids ?? []); ?>
+
+            <!-- ── PANEL 0: Welcome ── -->
+            <div class="step-panel" data-panel="0">
+                <div class="eyebrow">Partner application</div>
+                <h2 class="question">Welcome,<br>let's get you started.</h2>
+                <p class="hint">You're applying as a supplier under this account. This takes about 3 minutes.</p>
+                <div class="email-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8') ?>
+                </div>
+                <div class="btn-row">
+                    <button type="button" class="btn-next js-next">Begin →</button>
+                </div>
             </div>
 
-            <?php if (!empty($message)): ?>
-                <div class="mx-8 mb-2 mt-4 rounded-xl border <?= !empty($submitted) ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700' ?> px-4 py-3 text-sm font-sans">
-                    <?= $message ?>
+            <!-- ── PANEL 1: Business name ── -->
+            <div class="step-panel hidden-panel" data-panel="1">
+                <div class="eyebrow">Step 1 of 5 — Business identity</div>
+                <h2 class="question">What's your<br>business name?</h2>
+                <p class="hint">This is how couples will find you on the platform.</p>
+                <input class="q-input" name="business_name" type="text" placeholder="e.g. Blossom & Co."
+                       value="<?= htmlspecialchars($business_name ?? '', ENT_QUOTES, 'UTF-8') ?>" required autocomplete="organization">
+                <div class="step-error" id="err1"></div>
+                <div class="btn-row">
+                    <button type="button" class="btn-next js-next">Continue</button>
+                    <button type="button" class="btn-back js-back">← Back</button>
+                    <span class="enter-hint">or press <kbd>Enter</kbd></span>
                 </div>
-            <?php endif; ?>
+            </div>
 
-            <form method="POST" action="<?= URLROOT ?>/supplier/onboarding" enctype="multipart/form-data" id="supplierOnboardingForm" novalidate>
-
-                <!-- Hidden email field (always submitted) -->
-                <input type="hidden" name="email" value="<?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8') ?>">
-
-                <!-- ══════════════════════════════════════════
-                     PANEL 0 — Welcome / email confirm
-                ══════════════════════════════════════════ -->
-                <div class="step-panel px-8 pt-6 pb-8" data-step-panel="0">
-                    <div class="panel-divider"></div>
-                    <div class="eyebrow">Account</div>
-                    <h2 class="panel-question">Let's confirm who you are</h2>
-                    <p class="panel-hint">You're registering as a supplier under this account.</p>
-
-                    <div class="mb-6">
-                        <label class="field-label">Account email</label>
-                        <input class="email-readonly" type="email" value="<?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8') ?>" readonly tabindex="-1">
-                    </div>
-
-                    <div class="flex items-center justify-between mt-2">
-                        <span></span>
-                        <div class="flex items-center">
-                            <span class="enter-hint">Press <kbd>Enter</kbd></span>
-                            <button type="button" id="nextStepBtn" class="btn-primary">Let's begin →</button>
-                        </div>
+            <!-- ── PANEL 2: Category ── -->
+            <div class="step-panel hidden-panel" data-panel="2">
+                <div class="eyebrow">Step 2 of 5 — Business categories</div>
+                <h2 class="question">What can your<br>business provide?</h2>
+                <p class="hint">Describe the business. We'll suggest categories, then you can confirm or edit them.</p>
+                <div class="ai-category-box">
+                    <textarea class="q-input textarea-input" id="categoryPrompt" name="category_prompt"
+                              placeholder="e.g. We rent bridal dresses, accessories, and provide pre-wedding studio photos."><?= htmlspecialchars($category_prompt ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                    <div class="category-suggest-row">
+                        <button type="button" class="btn-suggest" id="suggestCategoryBtn">Suggest categories</button>
+                        <span class="category-suggestion-note" id="categorySuggestionNote">Use suggestions as a starting point. You can still choose manually.</span>
                     </div>
                 </div>
+                <div class="choice-grid <?= empty($selectedCategoryIds) ? 'is-hidden' : '' ?>" id="categoryTiles">
+                    <?php
+                    $icons = ['Accessories'=>'💍','Dress'=>'👗','Food'=>'🍽️','Package'=>'🎁','Studio'=>'📸','Venue'=>'🏛️','Photography'=>'📸','Floral'=>'🌸','Catering'=>'🎂','Music'=>'🎵','Beauty'=>'💄','Transport'=>'🚗','Decoration'=>'🎀'];
+                    foreach (($categories ?? []) as $cat):
+                        $cid  = (int)$cat['id'];
+                        $cname = htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8');
+                        $icon  = $icons[$cat['name']] ?? '✨';
+                        $isSelected = in_array($cid, $selectedCategoryIds, true);
+                    ?>
+                    <button type="button" class="choice-tile <?= $isSelected ? 'selected' : '' ?>"
+                            data-cid="<?= $cid ?>"
+                            data-name="<?= $cname ?>"
+                            aria-pressed="<?= $isSelected ? 'true' : 'false' ?>">
+                        <input type="checkbox" name="category_ids[]" value="<?= $cid ?>" class="sr-only category-check" <?= $isSelected ? 'checked' : '' ?>>
+                        <span class="tile-icon"><?= $icon ?></span>
+                        <span class="tile-label"><?= $cname ?></span>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+                <div class="step-error" id="err2"></div>
+                <div class="btn-row">
+                    <button type="button" class="btn-next js-next" id="catNextBtn" <?= !empty($selectedCategoryIds) ? '' : 'disabled' ?>>Continue</button>
+                    <button type="button" class="btn-back js-back">← Back</button>
+                </div>
+            </div>
 
-                <!-- ══════════════════════════════════════════
-                     PANEL 1 — Business name
-                ══════════════════════════════════════════ -->
-                <div class="step-panel hidden px-8 pt-6 pb-8" data-step-panel="1">
-                    <div class="panel-divider"></div>
-                    <div class="eyebrow">Business identity</div>
-                    <h2 class="panel-question supplier-panel-title">What's your business name?</h2>
-                    <p class="panel-hint">This is how couples will find and recognise you on the platform.</p>
-
-                    <div class="mb-6">
-                        <input required name="business_name" type="text"
-                               placeholder="e.g. Blossom & Co."
-                               value="<?= htmlspecialchars($business_name ?? '', ENT_QUOTES, 'UTF-8') ?>">
+            <!-- ── PANEL 3: Contact ── -->
+            <div class="step-panel hidden-panel" data-panel="3">
+                <div class="eyebrow">Step 3 of 5 — Contact</div>
+                <h2 class="question">How can clients<br>reach you?</h2>
+                <p class="hint">Your phone, location, and public link help admin verify your business.</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:8px">
+                    <div class="field-group">
+                        <label class="field-label">Phone number</label>
+                        <input class="q-input small-input" name="phone" type="tel" inputmode="numeric"
+                               pattern="[0-9]{11}" minlength="11" maxlength="11"
+                               title="Phone number must be exactly 11 digits."
+                               placeholder="09xxxxxxxxx"
+                               value="<?= htmlspecialchars($phone ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
                     </div>
-
-                    <div class="flex items-center justify-between mt-2">
-                        <button type="button" id="backStepBtn" class="btn-back">← Back</button>
-                        <div class="flex items-center">
-                            <span class="enter-hint">Press <kbd>Enter</kbd></span>
-                            <button type="button" id="nextStepBtn" class="btn-primary">Continue →</button>
-                        </div>
+                    <div class="field-group">
+                        <label class="field-label">Business address</label>
+                        <input class="q-input small-input" name="business_address" type="text"
+                               placeholder="City or area"
+                               value="<?= htmlspecialchars($business_address ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
                     </div>
                 </div>
-
-                <!-- ══════════════════════════════════════════
-                     PANEL 2 — Service category (choice tiles)
-                ══════════════════════════════════════════ -->
-                <div class="step-panel hidden px-8 pt-6 pb-8" data-step-panel="2">
-                    <div class="panel-divider"></div>
-                    <div class="eyebrow">Service category</div>
-                    <h2 class="panel-question supplier-panel-title">What kind of service do you offer?</h2>
-                    <p class="panel-hint">Choose the category that best describes your work.</p>
-
-                    <!-- Hidden real select (submitted with form) -->
-                    <select required name="category_id" id="categorySelect" class="sr-only" aria-hidden="true" tabindex="-1">
-                        <?php $selectedCategoryId = (int)($category_id ?? 0); ?>
-                        <option value="">Choose category</option>
-                        <?php foreach (($categories ?? []) as $category): ?>
-                            <?php $categoryId = (int)$category['id']; ?>
-                            <option value="<?= $categoryId ?>" <?= $selectedCategoryId === $categoryId ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <!-- Visual tiles (JS-driven, syncs to select above) -->
-                    <div class="choice-grid" id="categoryTiles">
-                        <?php
-                        $categoryIcons = [
-                            'Photography' => ['📸', 'Photo & video'],
-                            'Floral'      => ['🌸', 'Flowers & décor'],
-                            'Catering'    => ['🎂', 'Food & cake'],
-                            'Music'       => ['🎵', 'Music & events'],
-                            'Beauty'      => ['💄', 'Hair & makeup'],
-                            'Transport'   => ['🚗', 'Cars & logistics'],
-                        ];
-                        foreach (($categories ?? []) as $category):
-                            $catId   = (int)$category['id'];
-                            $catName = htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8');
-                            $meta    = $categoryIcons[$category['name']] ?? ['🎀', 'Wedding service'];
-                            $isSelected = $selectedCategoryId === $catId ? 'selected' : '';
-                        ?>
-                        <button type="button"
-                                class="choice-tile <?= $isSelected ?>"
-                                data-category-id="<?= $catId ?>"
-                                data-category-name="<?= $catName ?>">
-                            <span class="tile-icon"><?= $meta[0] ?></span>
-                            <span class="tile-label"><?= $catName ?></span>
-                            <span class="tile-sub"><?= htmlspecialchars($meta[1], ENT_QUOTES, 'UTF-8') ?></span>
-                        </button>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <div class="flex items-center justify-between mt-2">
-                        <button type="button" id="backStepBtn" class="btn-back">← Back</button>
-                        <button type="button" id="nextStepBtn" class="btn-primary" disabled>Continue →</button>
-                    </div>
+                <div class="field-group">
+                    <label class="field-label">Website or social link</label>
+                    <input class="q-input small-input" name="business_url" type="url"
+                           placeholder="https://example.com"
+                           value="<?= htmlspecialchars($business_url ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
                 </div>
-
-                <!-- ══════════════════════════════════════════
-                     PANEL 3 — Service details (name + price)
-                ══════════════════════════════════════════ -->
-                <div class="step-panel hidden px-8 pt-6 pb-8" data-step-panel="3">
-                    <div class="panel-divider"></div>
-                    <div class="eyebrow">Your service</div>
-                    <h2 class="panel-question supplier-panel-title">Tell us about your service</h2>
-                    <p class="panel-hint">A clear name and starting price helps couples find you quickly.</p>
-
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="field-label">Service name</label>
-                            <input required name="service_name" type="text"
-                                   placeholder="e.g. Full-day coverage"
-                                   value="<?= htmlspecialchars($service_name ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </div>
-                        <div>
-                            <label class="field-label">Starting price (MMK)</label>
-                            <input required name="service_price" type="number" min="0" step="0.01"
-                                   placeholder="0"
-                                   value="<?= htmlspecialchars($service_price ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </div>
-                    </div>
-                    <div class="mb-2">
-                        <label class="field-label">Website or social link</label>
-                        <input required name="business_url" type="url"
-                               placeholder="https://example.com"
-                               value="<?= htmlspecialchars($business_url ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                    </div>
-
-                    <div class="flex items-center justify-between mt-6">
-                        <button type="button" id="backStepBtn" class="btn-back">← Back</button>
-                        <div class="flex items-center">
-                            <span class="enter-hint">Press <kbd>Enter</kbd></span>
-                            <button type="button" id="nextStepBtn" class="btn-primary">Continue →</button>
-                        </div>
-                    </div>
+                <div class="step-error" id="err3"></div>
+                <div class="btn-row">
+                    <button type="button" class="btn-next js-next">Continue</button>
+                    <button type="button" class="btn-back js-back">← Back</button>
+                    <span class="enter-hint">or press <kbd>Enter</kbd></span>
                 </div>
+            </div>
 
-                <!-- ══════════════════════════════════════════
-                     PANEL 4 — Contact & location
-                ══════════════════════════════════════════ -->
-                <div class="step-panel hidden px-8 pt-6 pb-8" data-step-panel="4">
-                    <div class="panel-divider"></div>
-                    <div class="eyebrow">Contact details</div>
-                    <h2 class="panel-question supplier-panel-title">How can clients reach you?</h2>
-                    <p class="panel-hint">Your phone and location help us match you with nearby couples.</p>
-
-                    <div class="grid grid-cols-2 gap-4 mb-2">
-                        <div>
-                            <label class="field-label">Phone number</label>
-                            <input required name="phone" type="tel" inputmode="numeric"
-                                   pattern="[0-9]{11}" minlength="11" maxlength="11"
-                                   title="Phone number must be exactly 11 digits."
-                                   placeholder="09xxxxxxxxx"
-                                   value="<?= htmlspecialchars($phone ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </div>
-                        <div>
-                            <label class="field-label">Business address</label>
-                            <input required name="business_address" type="text"
-                                   placeholder="City or full address"
-                                   value="<?= htmlspecialchars($business_address ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between mt-6">
-                        <button type="button" id="backStepBtn" class="btn-back">← Back</button>
-                        <div class="flex items-center">
-                            <span class="enter-hint">Press <kbd>Enter</kbd></span>
-                            <button type="button" id="nextStepBtn" class="btn-primary">Continue →</button>
-                        </div>
-                    </div>
+            <!-- ── PANEL 4: Description + uploads ── -->
+            <div class="step-panel hidden-panel" data-panel="4">
+                <div class="eyebrow">Step 4 of 5 — Your story</div>
+                <h2 class="question">Describe your<br>business</h2>
+                <p class="hint">Admin reads this first. Keep it clear, warm, and genuine.</p>
+                <div class="field-group">
+                    <label class="field-label">Business description</label>
+                    <textarea class="q-input textarea-input" name="business_description"
+                              placeholder="Tell us what your business provides..." required><?= htmlspecialchars($business_description ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                 </div>
-
-                <!-- ══════════════════════════════════════════
-                     PANEL 5 — Descriptions + cover photo
-                ══════════════════════════════════════════ -->
-                <div class="step-panel hidden px-8 pt-6 pb-8" data-step-panel="5">
-                    <div class="panel-divider"></div>
-                    <div class="eyebrow">Your story</div>
-                    <h2 class="panel-question supplier-panel-title">Describe your business & service</h2>
-                    <p class="panel-hint">Couples read this first. Keep it warm and genuine.</p>
-
-                    <div class="mb-4">
-                        <label class="field-label">Business description</label>
-                        <textarea required name="business_description"
-                                  placeholder="We specialise in capturing..."><?= htmlspecialchars($business_description ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label class="field-label">Service description</label>
-                        <textarea required name="service_description"
-                                  placeholder="Our signature package includes..."><?= htmlspecialchars($service_description ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
-                    </div>
-
-                    <!-- Cover photo upload -->
-                    <label class="field-label mt-2">Cover photo</label>
-                    <label id="coverDropZone" for="coverPhotoInput" class="upload-zone">
-                        <input required id="coverPhotoInput" name="cover_photo" type="file"
-                               accept="image/jpeg,image/png,image/webp" class="sr-only">
-                        <div class="text-4xl mb-3">🖼️</div>
-                        <p class="text-sm font-semibold text-stone-700 mb-1">Click or drag & drop your best photo</p>
-                        <p class="text-xs text-stone-500">JPG, PNG, WEBP · max 5 MB</p>
-                        <span id="coverPhotoName" class="hidden mt-3 inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold text-stone-700 shadow-sm"></span>
-                    </label>
-
-                    <label class="field-label mt-2">Business license</label>
-                    <label for="businessLicenseInput" class="upload-zone">
-                        <input required id="businessLicenseInput" name="business_license" type="file"
-                               accept="image/jpeg,image/png,image/webp,application/pdf" class="sr-only">
-                        <div class="text-4xl mb-3">▣</div>
-                        <p class="text-sm font-semibold text-stone-700 mb-1">Upload your license or registration document</p>
-                        <p class="text-xs text-stone-500">PDF, JPG, PNG, WEBP · max 5 MB</p>
-                        <span id="businessLicenseName" class="hidden mt-3 inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold text-stone-700 shadow-sm"></span>
-                    </label>
-
-                    <div class="flex items-center justify-between mt-4">
-                        <button type="button" id="backStepBtn" class="btn-back">← Back</button>
-                        <button type="button" id="nextStepBtn" class="btn-primary">Continue →</button>
-                    </div>
+                <label class="upload-zone" id="coverDropZone" for="coverPhotoInput">
+                    <input id="coverPhotoInput" name="cover_photo" type="file"
+                           accept="image/jpeg,image/png,image/webp" class="sr-only" required>
+                    <div class="upload-zone-icon">🖼️</div>
+                    <p id="uploadLabel">Click or drag & drop your best photo<br><span style="font-size:11px;opacity:0.7">JPG, PNG, WEBP · max 5 MB</span></p>
+                </label>
+                <label class="upload-zone" id="licenseDropZone" for="businessLicenseInput">
+                    <input id="businessLicenseInput" name="business_license" type="file"
+                           accept="image/jpeg,image/png,image/webp,application/pdf" class="sr-only" required>
+                    <div class="upload-zone-icon">📄</div>
+                    <p id="licenseLabel">Click or drag & drop your business license<br><span style="font-size:11px;opacity:0.7">PDF, JPG, PNG, WEBP · max 5 MB</span></p>
+                </label>
+                <div class="step-error" id="err4"></div>
+                <div class="btn-row">
+                    <button type="button" class="btn-next js-next">Continue</button>
+                    <button type="button" class="btn-back js-back">← Back</button>
                 </div>
+            </div>
 
-                <!-- ══════════════════════════════════════════
-                     PANEL 6 — Agreement + submit
-                ══════════════════════════════════════════ -->
-                <div class="step-panel hidden px-8 pt-6 pb-8" data-step-panel="6">
-                    <div class="panel-divider"></div>
-                    <div class="eyebrow">Almost done</div>
-                    <h2 class="panel-question supplier-panel-title">Review the supplier agreement</h2>
-                    <p class="panel-hint">Please read through the terms before submitting your application.</p>
-
-                    <div class="agreement-scroll mb-4">
-                        <strong>1. Membership Fees</strong><br>
-                        Supplier Member အဖြစ် စတင်လက်တွဲရန်အတွက် သတ်မှတ်ထားသော Members Fees ကို ကြိုတင်ပေးသွင်းရမည်။<br><br>
-                        <strong>2. Service Fees</strong><br>
-                        Supplier မှ Admin ဘက်သို့ Service Fees ပေးချေသည့်အခါ ပေးချေငွေ၏ 10% ကို Admin Service Charge အဖြစ် ကောက်ခံမည်။<br><br>
-                        <strong>3. Booking Cancelation Policy</strong><br>
-                        Supplier ဘက်မှ Booking Cancel ပြုလုပ်ပါက အောက်ပါစည်းကမ်းများကို လိုက်နာရမည်။<br>
-                        • သတ်မှတ်ထားသော Service Date/Time မတိုင်မီ အချိန်တစ်ဝက်အလိုတွင် Cancel ပြုလုပ်ပါက Customer အား စရံငွေပြန်လည်ပေးအပ်ရမည်ဖြစ်ပြီး Package တန်ဖိုး၏ 50% ကိုလည်း လျော်ကြေးအဖြစ် ပေးဆောင်ရမည်။<br>
-                        • သတ်မှတ်ချိန်၏ တစ်ဝက်ကျော်သွားပြီးမှ Cancel ပြုလုပ်ပါက Package တန်ဖိုး၏ 100% ကို လျော်ကြေးအဖြစ် ပေးဆောင်ရမည်။<br><br>
-                        <strong>4. Excessive Cancelation</strong><br>
-                        Booking Cancelation ကို 3 ကြိမ်ထက်ကျော်လွန်ပြုလုပ်ပါက Member အဖြစ်မှ အပြီးတိုင် ဖယ်ရှားမည်။<br><br>
-                        <strong>5. Customer Reviews</strong><br>
-                        Bad Review 5 ကြိမ်ထက်ကျော်လွန်လက်ခံရရှိပါက Supplier Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
-                        <strong>6. Package Participation Requirement</strong><br>
-                        Package List တွင် စတင်ပါဝင်နိုင်ရန် Member ဝင်ပြီး 3 လအတွင်း Booking 5 ကြိမ် ရရှိထားရမည်။<br><br>
-                        <strong>7. Bonus Program</strong><br>
-                        နှစ်စဉ် 3 လအတွင်း သတ်မှတ်ထားသော ရောင်းအား Target ပြည့်မီပြီး အရောင်းရဆုံး နံပါတ် (1) Supplier ဖြစ်ပါက Admin ဘက်မှ Bonus ချီးမြှင့်ပေးမည်။<br><br>
-                        <strong>8. Agreement Acceptance</strong><br>
-                        Supplier Member သည် ဤစာချုပ်ပါ စည်းကမ်းချက်များအား ဖတ်ရှုနားလည်ပြီး သဘောတူညီပါကြောင်း လက်မှတ်ရေးထိုးအတည်ပြုရမည်။<br><br>
-                        <strong>9. Payment Terms</strong><br>
-                        Service ပြီးဆုံးပြီးနောက် သတ်မှတ်ထားသော အချိန်အတွင်း Supplier ထံသို့ ငွေပေးချေမှု ပြုလုပ်မည်။ Admin Service Fees နှင့် အခြားသတ်မှတ်ထားသော Charges များကို နုတ်ယူပြီးမှ ကျန်ရှိသောငွေကို Supplier ထံ လွှဲပြောင်းပေးမည်။<br><br>
-                        <strong>10. Supplier Responsibilities</strong><br>
-                        Supplier သည် Package တွင် ဖော်ပြထားသော Service Quality နှင့် အချိန်တိကျမှုကို တာဝန်ယူရမည်။<br><br>
-                        <strong>11. Fraud and Policy Violations</strong><br>
-                        Supplier သည် Platform ပြင်ပ Customer များနှင့် တိုက်ရိုက်ဆက်သွယ်ပြီး ငွေလက်ခံခြင်း၊ Fake Booking/Review ပြုလုပ်ခြင်း မပြုရ။<br><br>
-                        <strong>12. Customer Cancelation and No-Show Policy</strong><br>
-                        Customer ဘက်မှ သတ်မှတ်ချိန်နီးကပ်မှ Cancel ပြုလုပ်ပါက စရံငွေကို ပြန်လည်မပေးနိုင်ပါ။<br><br>
-                        <strong>13. Marketing and Content Usage</strong><br>
-                        Supplier တင်ထားသော Photo, Video, Logo, Description များကို Admin Team မှ Marketing ရည်ရွယ်ချက်များအတွက် အသုံးပြုခွင့်ရှိသည်။<br><br>
-                        <strong>14. Price Control Policy</strong><br>
-                        Booking Confirmed ဖြစ်ပြီးနောက် Package Price ကို တိုးမြှင့်ခြင်း သို့မဟုတ် ပြောင်းလဲခြင်း မပြုလုပ်ရ။<br><br>
-                        <strong>15. Confidentiality</strong><br>
-                        Customer ၏ Personal Information များကို ခွင့်ပြုချက်မရှိဘဲ မျှဝေခြင်း မပြုရ။<br><br>
-                        <strong>16. Agreement Updates</strong><br>
-                        Admin Team သည် လိုအပ်ပါက Agreement ပါ စည်းကမ်းချက်များကို ပြင်ဆင်နိုင်ပြီး Supplier များအား ကြိုတင်အသိပေးမည်။<br><br>
-                        <strong>17. Force Majeure</strong><br>
-                        သဘာဝဘေးအန္တရာယ်၊ စစ်ရေးအခြေအနေ၊ Network ပြတ်တောက်မှု သို့မဟုတ် ထိန်းချုပ်မရသော အခြေအနေများကြောင့် Service မပေးနိုင်ပါက နှစ်ဖက်စလုံးအား တာဝန်ယူမှုကင်းလွတ်ခွင့် ရှိသည်။
-                    </div>
-
-                    <label class="agree-check-row mb-6">
-                        <input required name="agreement_accepted" type="checkbox" value="1" <?= !empty($agreement_accepted) ? 'checked' : '' ?>>
-                        <span>I have read and agree to the Golden Promise supplier business agreement.</span>
-                    </label>
-
-                    <p id="stepError" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 mb-4"></p>
-
-                    <div class="flex items-center justify-between">
-                        <button type="button" id="backStepBtn" class="btn-back">← Back</button>
-                        <button type="submit" id="submitStepBtn" class="btn-primary success">Submit application ✦</button>
-                    </div>
+            <!-- ── PANEL 5: Agreement + submit ── -->
+            <div class="step-panel hidden-panel" data-panel="5">
+                <div class="eyebrow">Step 5 of 5 — Agreement</div>
+                <h2 class="question">One last step —<br>review &amp; agree</h2>
+                <p class="hint">Please read through the supplier terms before submitting.</p>
+                <div class="agreement-scroll">
+                    <strong>1. Membership Fees</strong><br>Supplier Member အဖြစ် စတင်လက်တွဲရန် သတ်မှတ်ထားသော Members Fees ကို ကြိုတင်ပေးသွင်းရမည်။<br><br>
+                    <strong>2. Service Fees</strong><br>ပေးချေငွေ၏ 10% ကို Admin Service Charge အဖြစ် ကောက်ခံမည်။<br><br>
+                    <strong>3. Booking Cancelation Policy</strong><br>အချိန်တစ်ဝက်အလိုတွင် Cancel ပြုလုပ်ပါက Package တန်ဖိုး၏ 50%, တစ်ဝက်ကျော်ပါက 100% လျော်ကြေးပေးဆောင်ရမည်။<br><br>
+                    <strong>4. Excessive Cancelation</strong><br>Booking Cancelation 3 ကြိမ်ထက်ကျော်ပါက Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
+                    <strong>5. Customer Reviews</strong><br>Bad Review 5 ကြိမ်ထက်ကျော်ပါက Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
+                    <strong>6. Package Participation</strong><br>Member ဝင်ပြီး 3 လအတွင်း Booking 5 ကြိမ် ရရှိထားရမည်။<br><br>
+                    <strong>7. Bonus Program</strong><br>အရောင်းရဆုံး နံပါတ် (1) Supplier ဖြစ်ပါက Bonus ချီးမြှင့်ပေးမည်။<br><br>
+                    <strong>8. Payment Terms</strong><br>Admin Service Fees နှင့် Charges များ နုတ်ယူပြီးမှ ကျန်ရှိသောငွေကို Supplier ထံ လွှဲပြောင်းပေးမည်။<br><br>
+                    <strong>9. Supplier Responsibilities</strong><br>Service Quality နှင့် အချိန်တိကျမှုကို တာဝန်ယူရမည်။<br><br>
+                    <strong>10. Fraud & Policy Violations</strong><br>Platform ပြင်ပ Customer များနှင့် တိုက်ရိုက်ဆက်သွယ်ပြီး ငွေလက်ခံခြင်း မပြုရ။<br><br>
+                    <strong>11. Marketing & Content Usage</strong><br>Admin Team မှ Photo, Video, Content များကို Marketing ရည်ရွယ်ချက်တွက် အသုံးပြုခွင့်ရှိသည်။<br><br>
+                    <strong>12. Price Control</strong><br>Booking Confirmed ပြီးနောက် Package Price ပြောင်းလဲခြင်း မပြုလုပ်ရ။<br><br>
+                    <strong>13. Confidentiality</strong><br>Customer ၏ Personal Information များကို ခွင့်ပြုချက်မရှိဘဲ မျှဝေခြင်း မပြုရ။<br><br>
+                    <strong>14. Force Majeure</strong><br>ထိန်းချုပ်မရသော အခြေအနေများကြောင့် Service မပေးနိုင်ပါက နှစ်ဖက်စလုံးအား တာဝန်ကင်းလွတ်ခွင့် ရှိသည်။
                 </div>
-
-                <!-- Global error (non-last panels) -->
-                <p id="stepErrorGlobal" class="hidden mx-8 mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"></p>
-
-                <!-- Back home link -->
-                <div class="px-8 pb-6 text-center">
-                    <a href="<?= URLROOT ?>/main/home" class="text-xs font-sans text-stone-500 hover:text-stone-700 transition-colors">← Back to home</a>
+                <label class="agree-check-row">
+                    <input name="agreement_accepted" type="checkbox" value="1" required <?= !empty($agreement_accepted) ? 'checked' : '' ?>>
+                    <span>I have read and agree to the Golden Promise supplier business agreement.</span>
+                </label>
+                <div class="step-error" id="err5"></div>
+                <div class="btn-row">
+                    <button type="submit" class="btn-next submit-btn" id="submitBtn">Submit application ✦</button>
+                    <button type="button" class="btn-back js-back">← Back</button>
                 </div>
+            </div>
 
-            </form>
+        </form><!-- /form -->
+
+        <!-- Dot nav -->
+        <div class="step-counter-left">
+            <div class="step-dots" id="stepDots"></div>
+            <a href="<?= URLROOT ?>/main/home" style="font-family:system-ui;font-size:11px;color:rgba(111,98,90,0.72);text-decoration:none;margin-left:8px;">Back home</a>
         </div>
-    </main>
+    </div><!-- /left-panel -->
 
-    <script>
-    (() => {
-        // ── Element refs ──
-        const form        = document.getElementById('supplierOnboardingForm');
-        const panels      = Array.from(document.querySelectorAll('[data-step-panel]'));
-        const progressFill = document.getElementById('progressFill');
-        const stepCounter  = document.getElementById('stepCounter');
-        const coverInput   = document.getElementById('coverPhotoInput');
-        const coverDropZone = document.getElementById('coverDropZone');
-        const coverPhotoName = document.getElementById('coverPhotoName');
-        const businessLicenseInput = document.getElementById('businessLicenseInput');
-        const businessLicenseName = document.getElementById('businessLicenseName');
-        const phoneInput   = form.querySelector('[name="phone"]');
-        const sparkleCanvas = document.getElementById('supplierSparkleCanvas');
-        const sparkleCtx   = sparkleCanvas.getContext('2d');
-        const categorySelect = document.getElementById('categorySelect');
-        const categoryTiles  = document.getElementById('categoryTiles');
+    <!-- ════════════════════════════════
+         RIGHT PANEL (imagery)
+    ════════════════════════════════ -->
+    <div class="right-panel" id="rightPanel">
 
-        const TOTAL_STEPS = panels.length; // 7
+        <!-- Each slide corresponds to a step. Uses free Unsplash wedding images. -->
+        <!-- Slide 0: Welcome -->
+        <div class="image-slide active" data-slide="0">
+            <div class="img-cell span-col">
+                <img src="https://images.unsplash.com/photo-1519741497674-611481863552?w=900&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1537633552985-df8429e8048b?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1522413452208-996ff3f3e740?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+        </div>
 
-        const draftKey = 'gp_supplier_onboarding_' + encodeURIComponent(
-            (form.querySelector('[name="email"]') || {}).value || 'guest'
-        );
-        const draftFields = [
-            'business_name','business_description','phone','business_address',
-            'category_id','service_name','service_description',
-            'service_price','business_url','agreement_accepted'
-        ];
+        <!-- Slide 1: Business name -->
+        <div class="image-slide" data-slide="1">
+            <div class="img-cell span-row">
+                <img src="https://images.unsplash.com/photo-1604017011826-d3b4c23f8914?w=600&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+        </div>
 
-        let currentStep = 0;
-        let isStepAnimating = false;
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        <!-- Slide 2: Category -->
+        <div class="image-slide" data-slide="2">
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1563827576-217f33e5b28a?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1531956656798-56686eeef3d4?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+        </div>
 
-        // ── Sparkle engine ──
-        const sparkleParticles = [];
+        <!-- Slide 3: Service -->
+        <div class="image-slide" data-slide="3">
+            <div class="img-cell span-col">
+                <img src="https://images.unsplash.com/photo-1606800052052-a08af7148866?w=900&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+        </div>
 
-        function resizeSparkleCanvas() {
-            sparkleCanvas.width  = sparkleCanvas.parentElement.offsetWidth;
-            sparkleCanvas.height = sparkleCanvas.parentElement.offsetHeight;
+        <!-- Slide 4: Contact -->
+        <div class="image-slide" data-slide="4">
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1529636798458-92182e662485?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell span-col">
+                <img src="https://images.unsplash.com/photo-1543157145-ea5d00ceeede?w=900&q=80&auto=format&fit=crop" alt="">
+            </div>
+        </div>
+
+        <!-- Slide 5: Story -->
+        <div class="image-slide" data-slide="5">
+            <div class="img-cell span-row">
+                <img src="https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=600&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1470116945706-e6bf5d5a53ca?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+        </div>
+
+        <!-- Slide 6: Agreement -->
+        <div class="image-slide" data-slide="6">
+            <div class="img-cell span-col">
+                <img src="https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=900&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+            <div class="img-cell">
+                <img src="https://images.unsplash.com/photo-1507504031003-b417219a0fde?w=500&q=80&auto=format&fit=crop" alt="">
+            </div>
+        </div>
+
+        <!-- Captions -->
+        <div class="right-overlay">
+            <div class="right-caption" id="rightCaption">Begin your journey</div>
+            <div class="right-sub" id="rightSub">Golden Promise · Partner Program</div>
+        </div>
+    </div><!-- /right-panel -->
+
+</div><!-- /split -->
+
+<script>
+(() => {
+    const TOTAL = 6;
+    const panels   = Array.from(document.querySelectorAll('[data-panel]'));
+    const slides   = Array.from(document.querySelectorAll('[data-slide]'));
+    const dotsWrap = document.getElementById('stepDots');
+    const caption  = document.getElementById('rightCaption');
+    const sub      = document.getElementById('rightSub');
+    const form     = document.getElementById('supplierOnboardingForm');
+    const catTiles  = document.getElementById('categoryTiles');
+    const catNextBtn = document.getElementById('catNextBtn');
+    const categoryPrompt = document.getElementById('categoryPrompt');
+    const suggestCategoryBtn = document.getElementById('suggestCategoryBtn');
+    const categorySuggestionNote = document.getElementById('categorySuggestionNote');
+    const coverInput = document.getElementById('coverPhotoInput');
+    const coverDrop  = document.getElementById('coverDropZone');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const licenseInput = document.getElementById('businessLicenseInput');
+    const licenseDrop = document.getElementById('licenseDropZone');
+    const licenseLabel = document.getElementById('licenseLabel');
+    const phoneInput = form.querySelector('[name="phone"]');
+    const submitBtn  = document.getElementById('submitBtn');
+    const sparkleCanvas = document.getElementById('sparkleCanvas');
+    const sparkleCtx = sparkleCanvas.getContext('2d');
+
+    const CAPTIONS = [
+        ['Begin your journey',           'Golden Promise · Partner Program'],
+        ['Your name, your brand',         'Business identity'],
+        ['Choose your specialties',       'Business categories'],
+        ['Be found by the right couples', 'Contact details'],
+        ['Your story matters',           'Profile & documents'],
+        ['Almost there',                 'Review & agree'],
+    ];
+
+    const draftKey = 'gp_sup_v2_' + encodeURIComponent((form.querySelector('[name="email"]') || {}).value || 'g');
+    const draftFields = ['business_name','business_description','phone','business_address','category_prompt','category_ids[]','business_url','agreement_accepted'];
+
+    let current = 0;
+    let busy = false;
+    const pm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ── Dots ──
+    function buildDots() {
+        dotsWrap.innerHTML = '';
+        for (let i = 0; i < TOTAL; i++) {
+            const d = document.createElement('div');
+            d.className = 'step-dot' + (i === current ? ' active' : i < current ? ' done' : '');
+            dotsWrap.appendChild(d);
+        }
+    }
+
+    // ── Slides ──
+    function updateSlide(idx) {
+        slides.forEach(s => s.classList.remove('active'));
+        const s = slides[idx];
+        if (s) s.classList.add('active');
+        if (caption && CAPTIONS[idx]) {
+            caption.style.opacity = '0'; caption.style.transform = 'translateY(8px)';
+            sub.style.opacity = '0';
+            setTimeout(() => {
+                caption.textContent = CAPTIONS[idx][0];
+                sub.textContent     = CAPTIONS[idx][1];
+                caption.style.transition = 'opacity 0.5s, transform 0.5s';
+                sub.style.transition     = 'opacity 0.5s 0.1s';
+                caption.style.opacity = '1'; caption.style.transform = 'translateY(0)';
+                sub.style.opacity     = '1';
+            }, 200);
+        }
+    }
+
+    // ── Panel transition ──
+    async function goTo(idx, animate = true) {
+        if (busy || idx === current || idx < 0 || idx >= TOTAL) return;
+        busy = true;
+
+        const from = panels[current];
+        const to   = panels[idx];
+
+        if (animate && !pm) {
+            from.style.transition = 'opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease';
+            from.style.opacity = '0'; from.style.transform = 'translateY(16px)'; from.style.filter = 'blur(4px)';
+            await wait(320);
         }
 
-        class SparkleParticle {
-            constructor(x, y) {
-                this.x = x; this.y = y;
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 0.35 + Math.random() * 1.4;
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed - 0.35;
-                this.life  = 1;
-                this.decay = 0.02 + Math.random() * 0.025;
-                this.size  = 0.4 + Math.random() * 1;
-                this.phase = Math.random() * Math.PI * 2;
-                this.color = ['rgba(255,182,193,0.95)','rgba(255,105,180,0.82)','rgba(219,112,147,0.72)','rgba(255,240,245,0.88)'][Math.floor(Math.random() * 4)];
-            }
-            update() {
-                this.x += this.vx; this.y += this.vy;
-                this.vy += 0.025; this.vx *= 0.97;
-                this.life -= this.decay; this.phase += 0.2;
-            }
-            draw(ctx) {
-                const alpha = Math.max(0, this.life) * (0.6 + 0.4 * Math.sin(this.phase));
-                ctx.globalAlpha = alpha;
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-                ctx.globalAlpha = alpha * 0.22;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size * 2.4, 0, Math.PI * 2); ctx.fill();
-            }
+        from.classList.add('hidden-panel');
+        from.style.cssText = '';
+
+        current = idx;
+        saveDraft();
+        buildDots();
+        updateSlide(idx);
+        clearErrors();
+
+        to.classList.remove('hidden-panel');
+        if (animate && !pm) {
+            to.style.opacity = '0'; to.style.transform = 'translateY(-14px)'; to.style.filter = 'blur(4px)';
+            await wait(20);
+            to.style.transition = 'opacity 0.4s cubic-bezier(0,0,0.2,1), transform 0.4s cubic-bezier(0,0,0.2,1), filter 0.4s cubic-bezier(0,0,0.2,1)';
+            to.style.opacity = '1'; to.style.transform = 'translateY(0)'; to.style.filter = 'blur(0)';
+            await wait(400);
+            to.style.cssText = '';
         }
 
-        function emitSparklesAtElement(element, count = 30) {
-            if (!element) return;
-            const canvasRect = sparkleCanvas.getBoundingClientRect();
-            const rect = element.getBoundingClientRect();
-            const cx = rect.left - canvasRect.left + rect.width  / 2;
-            const cy = rect.top  - canvasRect.top  + rect.height / 2;
-            for (let i = 0; i < count; i++) sparkleParticles.push(new SparkleParticle(cx, cy));
-        }
+        emitSparkles(12);
 
-        function emitSparklesAtPoint(x, y, count = 8) {
-            for (let i = 0; i < count; i++) sparkleParticles.push(new SparkleParticle(x, y));
-        }
+        // Focus first input
+        const inp = to.querySelector('input:not([type=hidden]):not([type=checkbox]):not(.sr-only), textarea');
+        if (inp && inp.type !== 'file') setTimeout(() => inp.focus(), 60);
 
-        function sparkleLoop() {
-            sparkleCtx.clearRect(0, 0, sparkleCanvas.width, sparkleCanvas.height);
-            for (let i = sparkleParticles.length - 1; i >= 0; i--) {
-                sparkleParticles[i].update();
-                sparkleParticles[i].draw(sparkleCtx);
-                if (sparkleParticles[i].life <= 0) sparkleParticles.splice(i, 1);
-            }
-            requestAnimationFrame(sparkleLoop);
-        }
+        busy = false;
+    }
 
-        resizeSparkleCanvas();
-        window.addEventListener('resize', resizeSparkleCanvas);
-        sparkleLoop();
+    function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-        // ── Title char animation ──
-        function buildTitleSpans(title, hidden = false) {
-            if (!title) return;
-            const text = title.dataset.titleText || title.textContent;
-            title.dataset.titleText = text;
-            title.innerHTML = '';
-            for (let i = 0; i < text.length; i++) {
-                const span = document.createElement('span');
-                span.className = 'step-char';
-                span.textContent = text[i];
-                if (!hidden) {
-                    span.style.opacity   = '1';
-                    span.style.filter    = 'blur(0)';
-                    span.style.transform = 'scale(1)';
-                }
-                title.appendChild(span);
-            }
-        }
-
-        function getCharRects(title) {
-            if (!title) return [];
-            const canvasRect = sparkleCanvas.getBoundingClientRect();
-            return Array.from(title.querySelectorAll('.step-char')).map(char => {
-                const r = char.getBoundingClientRect();
-                return { char, cx: r.left - canvasRect.left + r.width / 2, cy: r.top - canvasRect.top + r.height / 2 };
-            });
-        }
-
-        function dissolveTitle(panel) {
-            return new Promise(resolve => {
-                const title = panel.querySelector('.supplier-panel-title');
-                if (!title || prefersReducedMotion) { resolve(); return; }
-                buildTitleSpans(title, false);
-                const chars = getCharRects(title);
-                chars.forEach(({ char, cx, cy }, i) => {
-                    setTimeout(() => {
-                        if (char.textContent.trim()) emitSparklesAtPoint(cx, cy, 7);
-                        char.style.transition = 'opacity 0.36s ease, filter 0.36s ease, transform 0.36s ease';
-                        char.style.opacity = '0'; char.style.filter = 'blur(6px)'; char.style.transform = 'scale(0.87)';
-                    }, i * 16);
-                });
-                setTimeout(resolve, chars.length * 16 + 200);
-            });
-        }
-
-        function assembleTitle(panel) {
-            return new Promise(resolve => {
-                const title = panel.querySelector('.supplier-panel-title');
-                if (!title || prefersReducedMotion) { resolve(); return; }
-                buildTitleSpans(title, true);
-                const chars = getCharRects(title);
-                chars.forEach(({ char, cx, cy }, i) => {
-                    setTimeout(() => {
-                        if (char.textContent.trim()) emitSparklesAtPoint(cx, cy, 5);
-                        char.style.transition = 'opacity 0.44s cubic-bezier(0,0,0.2,1), filter 0.44s cubic-bezier(0,0,0.2,1), transform 0.44s cubic-bezier(0,0,0.2,1)';
-                        char.style.opacity = '1'; char.style.filter = 'blur(0)'; char.style.transform = 'scale(1)';
-                    }, i * 18);
-                });
-                setTimeout(resolve, chars.length * 18 + 480);
-            });
-        }
-
-        // ── Content stagger ──
-        function contentElements(panel) {
-            return Array.from(panel.children).filter(c => !c.classList.contains('supplier-panel-title') && !c.classList.contains('panel-divider'));
-        }
-
-        function hideContent(panel) {
-            contentElements(panel).forEach((child, i) => {
-                setTimeout(() => {
-                    child.style.transition = 'opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease';
-                    child.style.opacity = '0'; child.style.transform = 'translateY(10px)'; child.style.filter = 'blur(3px)';
-                }, i * 40);
-            });
-        }
-
-        function showContent(panel) {
-            const els = contentElements(panel);
-            els.forEach(child => { child.style.opacity = '0'; child.style.transform = 'translateY(10px)'; child.style.filter = 'blur(3px)'; });
-            requestAnimationFrame(() => {
-                els.forEach((child, i) => {
-                    setTimeout(() => {
-                        child.style.transition = 'opacity 0.4s cubic-bezier(0,0,0.2,1), transform 0.4s cubic-bezier(0,0,0.2,1), filter 0.4s cubic-bezier(0,0,0.2,1)';
-                        child.style.opacity = '1'; child.style.transform = 'translateY(0)'; child.style.filter = 'blur(0)';
-                    }, i * 65);
-                });
-            });
-        }
-
-        function resetContent(panel) {
-            contentElements(panel).forEach(child => {
-                child.style.transition = ''; child.style.opacity = ''; child.style.transform = ''; child.style.filter = '';
-            });
-        }
-
-        // ── Progress & step shell ──
-        function updateProgress() {
-            const pct = ((currentStep + 1) / TOTAL_STEPS) * 100;
-            progressFill.style.width = pct + '%';
-            stepCounter.textContent  = (currentStep + 1) + ' of ' + TOTAL_STEPS;
-        }
-
-        function setVisibility() {
-            panels.forEach((panel, i) => {
-                panel.classList.remove('is-dissolving', 'is-assembling');
-                const active = i === currentStep;
-                panel.classList.toggle('hidden', !active);
-                panel.classList.toggle('grid',   active);
-                resetContent(panel);
-                buildTitleSpans(panel.querySelector('.supplier-panel-title'), false);
-            });
-        }
-
-        // ── Navigation ──
-        async function showStep(index, animate = true) {
-            if (isStepAnimating || index === currentStep) return;
-            if (index < 0 || index >= TOTAL_STEPS) return;
-
-            const prevPanel = panels[currentStep];
-            const nextPanel = panels[index];
-            isStepAnimating = animate && !prefersReducedMotion;
-
-            setNavDisabled(isStepAnimating);
-
-            if (isStepAnimating) {
-                hideContent(prevPanel);
-                prevPanel.classList.add('is-dissolving');
-                await dissolveTitle(prevPanel);
-            }
-
-            currentStep = index;
-            saveDraft();
-            setVisibility();
-            updateProgress();
-            updateCategoryNextBtn();
-
-            if (isStepAnimating) {
-                nextPanel.classList.add('is-assembling');
-                requestAnimationFrame(() => {
-                    nextPanel.classList.remove('is-assembling');
-                    showContent(nextPanel);
-                });
-                emitSparklesAtElement(progressFill, 22);
-                await assembleTitle(nextPanel);
-            } else {
-                emitSparklesAtElement(progressFill, 14);
-            }
-
-            setNavDisabled(false);
-            isStepAnimating = false;
-
-            // Focus first input in new panel
-            const firstInput = nextPanel.querySelector('input:not([type="hidden"]):not([type="checkbox"]):not(.email-readonly), select, textarea');
-            if (firstInput && firstInput.type !== 'file') setTimeout(() => firstInput.focus(), 80);
-        }
-
-        function setNavDisabled(disabled) {
-            panels.forEach(panel => {
-                panel.querySelectorAll('#nextStepBtn, #backStepBtn, #submitStepBtn').forEach(btn => {
-                    btn.disabled = disabled;
-                });
-            });
-        }
-
-        // ── Validation ──
-        function clearError() {
-            document.querySelectorAll('#stepError, #stepErrorGlobal').forEach(el => {
-                el.classList.add('hidden'); el.textContent = '';
-            });
-        }
-
-        function showError(msg, panelIndex) {
-            const errorEl = (panelIndex === TOTAL_STEPS - 1)
-                ? document.getElementById('stepError')
-                : document.getElementById('stepErrorGlobal');
-            if (!errorEl) return;
-            errorEl.textContent = msg;
-            errorEl.classList.remove('hidden');
-        }
-
-        function validateStep(stepIndex) {
-            const fields = Array.from(panels[stepIndex].querySelectorAll('input:not([aria-hidden]), select:not([aria-hidden]), textarea'));
-            const invalidField = fields.find(f => !f.checkValidity());
-            if (!invalidField) { clearError(); return true; }
-            if (stepIndex !== currentStep) showStep(stepIndex, false);
-            invalidField.reportValidity();
-            invalidField.focus();
-            showError(invalidField.validationMessage || 'Please complete this field before continuing.', stepIndex);
+    // ── Validation ──
+    function clearErrors() {
+        document.querySelectorAll('.step-error').forEach(e => { e.textContent = ''; e.classList.remove('visible'); });
+    }
+    function showError(panelIdx, msg) {
+        const el = document.getElementById('err' + panelIdx);
+        if (el) { el.textContent = msg; el.classList.add('visible'); }
+    }
+    function validatePanel(idx) {
+        const panel = panels[idx];
+        const fields = Array.from(panel.querySelectorAll('input:not([type=hidden]):not(.category-check):not([aria-hidden]), select:not([aria-hidden]), textarea'));
+        if (idx === 2 && !getSelectedCategoryChecks().length) {
+            showError(2, 'Please select at least one business category.');
             return false;
         }
+        const bad = fields.find(f => !f.checkValidity());
+        if (!bad) return true;
+        bad.reportValidity(); bad.focus();
+        showError(idx, bad.validationMessage || 'Please fill in this field.');
+        return false;
+    }
+    function validateAll() { return panels.every((_, i) => validatePanel(i)); }
 
-        function validateCurrentStep() { return validateStep(currentStep); }
-        function validateAllSteps()    { return panels.every((_, i) => validateStep(i)); }
+    // ── Nav delegation ──
+    document.addEventListener('click', e => {
+        if (busy) return;
+        if (e.target.closest('.js-next')) {
+            if (validatePanel(current)) goTo(current + 1);
+        }
+        if (e.target.closest('.js-back')) {
+            goTo(current - 1);
+        }
+    });
 
-        // ── Category tiles ──
-        function updateCategoryNextBtn() {
-            if (currentStep !== 2) return;
-            const nextBtn = panels[2].querySelector('#nextStepBtn');
-            if (nextBtn) nextBtn.disabled = !categorySelect?.value;
+    // ── Enter key ──
+    form.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' || e.target.tagName === 'TEXTAREA' || e.target.type === 'checkbox') return;
+        e.preventDefault();
+        if (validatePanel(current)) goTo(current + 1);
+    });
+
+    // ── Category tiles ──
+    function getSelectedCategoryChecks() {
+        return Array.from(form.querySelectorAll('input[name="category_ids[]"]:checked'));
+    }
+
+    function syncCategoryNextBtn() {
+        if (catNextBtn) catNextBtn.disabled = getSelectedCategoryChecks().length === 0;
+    }
+
+    function showCategoryTiles(show = true) {
+        catTiles?.classList.toggle('is-hidden', !show);
+    }
+
+    function setCategoryTile(tile, checked, suggested = false) {
+        const checkbox = tile.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.checked = checked;
+        tile.classList.toggle('selected', checked);
+        tile.classList.toggle('suggested', suggested);
+        tile.setAttribute('aria-pressed', checked ? 'true' : 'false');
+    }
+
+    function applySuggestedCategoryIds(categoryIds, reason = '') {
+        const ids = (categoryIds || []).map(String);
+        let matches = 0;
+
+        catTiles?.querySelectorAll('.choice-tile').forEach(tile => {
+            const suggested = ids.includes(String(tile.dataset.cid));
+            if (suggested) matches++;
+            tile.classList.toggle('is-filtered-out', !suggested);
+            setCategoryTile(tile, suggested, suggested);
+        });
+
+        showCategoryTiles(matches > 0);
+        syncCategoryNextBtn();
+        saveDraft();
+
+        if (!categorySuggestionNote) return;
+        categorySuggestionNote.textContent = matches
+            ? `${matches} AI suggested. ${reason || 'Review the highlighted categories before continuing.'}`
+            : 'AI could not match a valid category. Try adding more detail.';
+    }
+
+    function suggestCategoriesLocal() {
+        const text = (categoryPrompt?.value || '').toLowerCase();
+        const keywordMap = {
+            accessories: ['accessory','accessories','jewelry','jewellery','ring','rings','earring','necklace','tiara','veil','bouquet','shoe','shoes','လက်ဝတ်','လက်ဝတ်ရတနာ','ရတနာ','လက်စွပ်','နားကပ်','လည်ဆွဲ','သရဖူ','ပန်းစည်း','ဖိနပ်','ဆက်စပ်ပစ္စည်း'],
+            dress: ['dress','dresses','gown','bridal','bride','suit','tuxedo','outfit','attire','rental','rent','ဝတ်စုံ','မင်္ဂလာဝတ်စုံ','သတို့သမီးဝတ်စုံ','ဂါဝန်','အငှား','ငှား','ဝတ်စုံအငှား','သတို့သားဝတ်စုံ'],
+            food: ['food','catering','cater','buffet','meal','menu','cake','dessert','snack','drink','beverage','အစားအစာ','အစားအသောက်','ကိတ်','မုန့်','ဘူဖေး','ကျွေးမွေး','အချိုပွဲ','သောက်စရာ','အဖျော်ယမကာ'],
+            package: ['package','bundle','full service','all in one','complete','combo','planning','coordination','ပက်ကေ့ချ်','package','အစုံလိုက်','အပြီးအစီး','စီစဉ်','စီစဉ်ပေး','မင်္ဂလာအစီအစဉ်'],
+            studio: ['studio','photo','photography','photographer','video','portrait','pre-wedding','pre wedding','shoot','camera','album','စတူဒီယို','ဓာတ်ပုံ','ဓါတ်ပုံ','ဗီဒီယို','ရိုက်ကူး','ပုံရိုက်','မင်္ဂလာဓာတ်ပုံ','prewedding','အယ်လ်ဘမ်'],
+            venue: ['venue','hall','hotel','garden','ballroom','room','space','reception','ceremony location','နေရာ','ခန်းမ','ဟိုတယ်','ဥယျာဉ်','မင်္ဂလာခန်းမ','ဧည့်ခံပွဲ','နေရာငှား','အခန်း']
+        };
+        let matches = 0;
+        const hasText = text.trim().length >= 2;
+
+        catTiles?.querySelectorAll('.choice-tile').forEach(tile => {
+            const name = (tile.dataset.name || '').toLowerCase();
+            const words = keywordMap[name] || [name];
+            const suggested = hasText && words.some(word => text.includes(word));
+            if (suggested) matches++;
+            tile.classList.toggle('is-filtered-out', hasText && !suggested);
+            setCategoryTile(tile, suggested, suggested);
+        });
+
+        showCategoryTiles(hasText && matches > 0);
+        syncCategoryNextBtn();
+        saveDraft();
+
+        if (!categorySuggestionNote) return;
+        if (!hasText) {
+            categorySuggestionNote.textContent = 'Type a business description or one category word to get suggestions.';
+            return;
+        }
+        categorySuggestionNote.textContent = matches
+            ? `${matches} suggested. Review the highlighted categories before continuing.`
+            : 'No confident match yet. Try words like dress, studio, venue, ဝတ်စုံ, ဓာတ်ပုံ, or ခန်းမ.';
+    }
+
+    let activeSuggestRequest = null;
+    let lastSuggestedPrompt = '';
+
+    async function suggestCategories({silent = false} = {}) {
+        const prompt = (categoryPrompt?.value || '').trim();
+
+        if (prompt.length < 2) {
+            suggestCategoriesLocal();
+            return;
         }
 
-        if (categoryTiles) {
-            categoryTiles.addEventListener('click', e => {
-                const tile = e.target.closest('.choice-tile');
-                if (!tile) return;
-                categoryTiles.querySelectorAll('.choice-tile').forEach(t => t.classList.remove('selected'));
-                tile.classList.add('selected');
-                if (categorySelect) categorySelect.value = tile.dataset.categoryId;
-                updateCategoryNextBtn();
-                // Auto-advance after brief delay
-                setTimeout(() => {
-                    if (validateCurrentStep()) showStep(currentStep + 1);
-                }, 320);
-            });
+        if (prompt === lastSuggestedPrompt && getSelectedCategoryChecks().length > 0) {
+            return;
         }
 
-        // ── Enter key to advance ──
-        form.addEventListener('keydown', e => {
-            if (e.key !== 'Enter') return;
-            const tag = e.target.tagName;
-            if (tag === 'TEXTAREA') return; // allow newlines
-            if (e.target.type === 'checkbox') return;
-            e.preventDefault();
-            const panel = panels[currentStep];
-            const nextBtn = panel.querySelector('#nextStepBtn');
-            if (nextBtn && !nextBtn.disabled) nextBtn.click();
-        });
+        lastSuggestedPrompt = prompt;
 
-        // ── Next / Back button delegation ──
-        panels.forEach((panel, panelIndex) => {
-            panel.addEventListener('click', e => {
-                if (isStepAnimating) return;
-                const btn = e.target.closest('button');
-                if (!btn) return;
-                if (btn.id === 'nextStepBtn') {
-                    if (validateCurrentStep()) showStep(currentStep + 1);
-                }
-                if (btn.id === 'backStepBtn') {
-                    showStep(currentStep - 1);
-                }
-            });
-        });
-
-        // ── File upload ──
-        coverInput?.addEventListener('change', () => {
-            const file = coverInput.files[0];
-            if (!file) { coverPhotoName.classList.add('hidden'); coverPhotoName.textContent = ''; return; }
-            coverPhotoName.textContent = '✓ ' + file.name;
-            coverPhotoName.classList.remove('hidden');
-        });
-
-        businessLicenseInput?.addEventListener('change', () => {
-            const file = businessLicenseInput.files[0];
-            if (!file) { businessLicenseName.classList.add('hidden'); businessLicenseName.textContent = ''; return; }
-            businessLicenseName.textContent = '✓ ' + file.name;
-            businessLicenseName.classList.remove('hidden');
-        });
-
-        ['dragenter', 'dragover'].forEach(ev => {
-            coverDropZone?.addEventListener(ev, e => { e.preventDefault(); coverDropZone.classList.add('drag-over'); });
-        });
-        ['dragleave', 'drop'].forEach(ev => {
-            coverDropZone?.addEventListener(ev, e => { e.preventDefault(); coverDropZone.classList.remove('drag-over'); });
-        });
-        coverDropZone?.addEventListener('drop', e => {
-            const file = e.dataTransfer.files[0];
-            if (!file) return;
-            const dt = new DataTransfer(); dt.items.add(file);
-            coverInput.files = dt.files;
-            coverInput.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-
-        // ── Phone — digits only ──
-        phoneInput?.addEventListener('input', () => {
-            phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 11);
-            phoneInput.setCustomValidity(phoneInput.value.length === 11 ? '' : 'Phone number must be exactly 11 digits.');
-        });
-
-        // ── Draft save / restore ──
-        function getFormField(name) {
-            const field = form.elements[name];
-            if (!field) return null;
-            return typeof field.addEventListener === 'function' ? field : (field[0] || null);
+        if (activeSuggestRequest) {
+            activeSuggestRequest.abort();
         }
 
-        function saveDraft() {
-            const draft = { currentStep, updatedAt: new Date().toISOString(), fields: {} };
-            draftFields.forEach(name => {
-                const field = getFormField(name);
-                if (!field) return;
-                draft.fields[name] = field.type === 'checkbox' ? field.checked : field.value;
-            });
-            try { localStorage.setItem(draftKey, JSON.stringify(draft)); } catch (_) {}
+        activeSuggestRequest = new AbortController();
+
+        if (!silent && categorySuggestionNote) {
+            categorySuggestionNote.textContent = 'AI is reading your business description...';
         }
 
-        function restoreDraft() {
-            let draft = {};
-            try { draft = JSON.parse(localStorage.getItem(draftKey)) || {}; } catch (_) {}
-            if (!draft.fields) return 0;
-            draftFields.forEach(name => {
-                const field = getFormField(name);
-                if (!field || typeof draft.fields[name] === 'undefined') return;
-                if (field.type === 'checkbox') { field.checked = draft.fields[name] === true; return; }
-                field.value = draft.fields[name];
+        try {
+            const response = await fetch('<?= URLROOT ?>/supplier/suggestCategories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ prompt }),
+                signal: activeSuggestRequest.signal,
             });
-            // Sync category tiles after restore
-            if (categorySelect?.value) {
-                categoryTiles?.querySelectorAll('.choice-tile').forEach(t => {
-                    t.classList.toggle('selected', t.dataset.categoryId === categorySelect.value);
-                });
+            const result = await response.json();
+
+            if (result.status !== 'success') {
+                throw new Error(result.message || 'AI suggestion failed.');
             }
-            const step = parseInt(draft.currentStep, 10);
-            return (Number.isInteger(step)) ? Math.min(Math.max(step, 0), TOTAL_STEPS - 1) : 0;
-        }
 
-        draftFields.forEach(name => {
-            const field = getFormField(name);
-            if (!field) return;
-            field.addEventListener('input',  saveDraft);
-            field.addEventListener('change', saveDraft);
-        });
-
-        // ── Form submit (AJAX) ──
-        form.addEventListener('submit', async e => {
-            e.preventDefault();
-            if (!validateCurrentStep()) return;
-            if (currentStep < TOTAL_STEPS - 1) { showStep(currentStep + 1); return; }
-            if (!validateAllSteps()) return;
-
-            const submitBtn = document.getElementById('submitStepBtn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitting…';
-
-            try {
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                    body: new FormData(form)
-                });
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    clearError();
-                    try { localStorage.removeItem(draftKey); } catch (_) {}
-                    window.location.href = result.redirect || '<?= URLROOT ?>/supplier/pending';
-                    return;
-                }
-                showError(result.message || 'Please check your information and try again.', currentStep);
-            } catch (_) {
-                showError('Something went wrong. Please try again.', currentStep);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit application ✦';
+            applySuggestedCategoryIds(result.category_ids || [], result.reason || '');
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            suggestCategoriesLocal();
+            if (!silent && categorySuggestionNote) {
+                categorySuggestionNote.textContent += ' Local suggestions were used because AI was unavailable.';
             }
-        });
-
-        // ── Init ──
-        const restoredStep = restoreDraft();
-        if (restoredStep === 0) {
-            setVisibility();
-            updateProgress();
-            updateCategoryNextBtn();
-        } else {
-            currentStep = restoredStep - 1; // showStep will increment
-            showStep(restoredStep, false);
+        } finally {
+            activeSuggestRequest = null;
         }
-    })();
-    </script>
+    }
+
+    catTiles?.addEventListener('click', e => {
+        const tile = e.target.closest('.choice-tile');
+        if (!tile) return;
+        const checkbox = tile.querySelector('input[type="checkbox"]');
+        if (!checkbox) return;
+        setCategoryTile(tile, !checkbox.checked, false);
+        showCategoryTiles(true);
+        syncCategoryNextBtn();
+        saveDraft();
+    });
+
+    suggestCategoryBtn?.addEventListener('click', suggestCategories);
+    let suggestTimer = null;
+    categoryPrompt?.addEventListener('input', () => {
+        window.clearTimeout(suggestTimer);
+        suggestTimer = window.setTimeout(() => suggestCategories({silent: true}), 900);
+    });
+
+    // ── Phone ──
+    phoneInput?.addEventListener('input', () => {
+        phoneInput.value = phoneInput.value.replace(/\D/g,'').slice(0,11);
+        phoneInput.setCustomValidity(phoneInput.value.length === 11 ? '' : 'Phone number must be exactly 11 digits.');
+    });
+
+    // ── File upload ──
+    coverInput?.addEventListener('change', () => {
+        const f = coverInput.files[0];
+        if (f && uploadLabel) uploadLabel.innerHTML = '✓ ' + f.name;
+    });
+    licenseInput?.addEventListener('change', () => {
+        const f = licenseInput.files[0];
+        if (f && licenseLabel) licenseLabel.innerHTML = '✓ ' + f.name;
+    });
+    ['dragenter','dragover'].forEach(ev => coverDrop?.addEventListener(ev, e => { e.preventDefault(); coverDrop.classList.add('drag-over'); }));
+    ['dragleave','drop'].forEach(ev => coverDrop?.addEventListener(ev, e => { e.preventDefault(); coverDrop.classList.remove('drag-over'); }));
+    coverDrop?.addEventListener('drop', e => {
+        const f = e.dataTransfer.files[0]; if (!f) return;
+        const dt = new DataTransfer(); dt.items.add(f); coverInput.files = dt.files;
+        coverInput.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+    ['dragenter','dragover'].forEach(ev => licenseDrop?.addEventListener(ev, e => { e.preventDefault(); licenseDrop.classList.add('drag-over'); }));
+    ['dragleave','drop'].forEach(ev => licenseDrop?.addEventListener(ev, e => { e.preventDefault(); licenseDrop.classList.remove('drag-over'); }));
+    licenseDrop?.addEventListener('drop', e => {
+        const f = e.dataTransfer.files[0]; if (!f) return;
+        const dt = new DataTransfer(); dt.items.add(f); licenseInput.files = dt.files;
+        licenseInput.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+
+    // ── Draft ──
+    function getField(name) { const f = form.elements[name]; if (!f) return null; return typeof f.addEventListener==='function' ? f : (f[0]||null); }
+    function saveDraft() {
+        const d = { current, fields: {} };
+        draftFields.forEach(n => {
+            if (n === 'category_ids[]') {
+                d.fields[n] = getSelectedCategoryChecks().map(f => f.value);
+                return;
+            }
+            const f = getField(n); if (!f) return; d.fields[n] = f.type==='checkbox' ? f.checked : f.value;
+        });
+        try { localStorage.setItem(draftKey, JSON.stringify(d)); } catch(_) {}
+    }
+    function restoreDraft() {
+        let d = {}; try { d = JSON.parse(localStorage.getItem(draftKey))||{}; } catch(_) {}
+        if (!d.fields) return 0;
+        draftFields.forEach(n => {
+            if (n === 'category_ids[]') {
+                const selected = Array.isArray(d.fields[n]) ? d.fields[n].map(String) : [];
+                catTiles?.querySelectorAll('.choice-tile').forEach(t => {
+                    const checked = selected.includes(String(t.dataset.cid));
+                    setCategoryTile(t, checked, false);
+                });
+                return;
+            }
+            const f = getField(n); if (!f || d.fields[n]==null) return; if (f.type==='checkbox') { f.checked = d.fields[n]===true; return; } f.value = d.fields[n];
+        });
+        syncCategoryNextBtn();
+        const s = parseInt(d.current, 10);
+        return Number.isInteger(s) ? Math.min(Math.max(s,0), TOTAL-1) : 0;
+    }
+    draftFields.forEach(n => {
+        if (n === 'category_ids[]') return;
+        const f = getField(n); if (f) { f.addEventListener('input', saveDraft); f.addEventListener('change', saveDraft); }
+    });
+
+    // ── Submit ──
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        if (current < TOTAL - 1) { if (validatePanel(current)) goTo(current+1); return; }
+        if (!validateAll()) return;
+        submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
+        try {
+            const r = await fetch(form.action, { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}, body: new FormData(form) });
+            const res = await r.json();
+            if (res.status === 'success') {
+                try { localStorage.removeItem(draftKey); } catch(_) {}
+                window.location.href = res.redirect || '<?= URLROOT ?>/supplier/pending';
+                return;
+            }
+            showError(current, res.message || 'Please check your information and try again.');
+        } catch(_) {
+            showError(current, 'Something went wrong. Please try again.');
+        } finally {
+            submitBtn.disabled = false; submitBtn.textContent = 'Submit application ✦';
+        }
+    });
+
+    // ── Sparkles ──
+    const particles = [];
+    function resizeCanvas() { sparkleCanvas.width = sparkleCanvas.parentElement.offsetWidth; sparkleCanvas.height = sparkleCanvas.parentElement.offsetHeight; }
+    class Particle {
+        constructor() {
+            this.x = Math.random() * sparkleCanvas.width;
+            this.y = Math.random() * sparkleCanvas.height;
+            const a = Math.random()*Math.PI*2, sp = 0.5+Math.random()*1.2;
+            this.vx = Math.cos(a)*sp; this.vy = Math.sin(a)*sp - 0.3;
+            this.life = 1; this.decay = 0.018+Math.random()*0.022;
+            this.size = 0.5+Math.random()*1.2;
+            this.color = ['rgba(216,180,106,0.88)','rgba(243,217,164,0.78)','rgba(83,11,10,0.42)'][Math.floor(Math.random()*3)];
+        }
+        update() { this.x+=this.vx; this.y+=this.vy; this.vy+=0.02; this.life-=this.decay; }
+        draw(ctx) { ctx.globalAlpha=Math.max(0,this.life); ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill(); }
+    }
+    function emitSparkles(n) { for (let i=0;i<n;i++) particles.push(new Particle()); }
+    function loop() {
+        sparkleCtx.clearRect(0,0,sparkleCanvas.width,sparkleCanvas.height);
+        for (let i=particles.length-1;i>=0;i--) { particles[i].update(); particles[i].draw(sparkleCtx); if(particles[i].life<=0) particles.splice(i,1); }
+        requestAnimationFrame(loop);
+    }
+    resizeCanvas(); window.addEventListener('resize', resizeCanvas); loop();
+
+    // ── Init ──
+    const start = restoreDraft();
+    current = start;
+    syncCategoryNextBtn();
+    showCategoryTiles(getSelectedCategoryChecks().length > 0);
+    buildDots();
+    updateSlide(start);
+    panels.forEach((p, i) => p.classList.toggle('hidden-panel', i !== start));
+})();
+</script>
 </body>
 </html>

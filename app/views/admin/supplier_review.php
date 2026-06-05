@@ -10,8 +10,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
         'Email' => $supplier['owner_email'] ?? '-',
         'Phone' => $supplier['phone'] ?? '-',
         'Address' => $supplier['address'] ?? '-',
-        'Service' => $supplier['service_name'] ?? '-',
-        'Starting price' => isset($supplier['service_price']) ? number_format((float)$supplier['service_price']) . ' MMK' : '-',
+        'Categories' => $supplier['category_names'] ?? '-',
         'Agreement accepted' => !empty($supplier['agreement_accepted']) ? 'Yes' : 'No',
         'Payment status' => $supplier['payment_status'] ?? '-',
     ];
@@ -225,7 +224,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
                 </a>
                 <p class="admin-stat-label mt-5">Supplier Application</p>
                 <h1 class="admin-section-heading mt-1 text-2xl font-bold tracking-tight"><?= $supplierName ?></h1>
-                <p class="admin-muted mt-1 text-sm">Review business profile, social verification, license document, and service details.</p>
+                <p class="admin-muted mt-1 text-sm">Review business profile, categories, social verification, and license document.</p>
             </div>
             <?php $statusClass = 'admin-badge-' . ($status ?: 'muted'); ?>
             <span class="admin-badge <?= htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8') ?>">
@@ -250,8 +249,8 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
             <div class="supplier-review-meta-item">
                 <span class="icon-box"><i data-lucide="badge-dollar-sign" class="h-4 w-4"></i></span>
                 <div class="min-w-0">
-                    <p class="admin-stat-label">Starting price</p>
-                    <p class="admin-value truncate font-bold"><?= htmlspecialchars($rows['Starting price'], ENT_QUOTES, 'UTF-8') ?></p>
+                    <p class="admin-stat-label">Categories</p>
+                    <p class="admin-value truncate font-bold"><?= htmlspecialchars($supplier['category_names'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
             </div>
             <div class="supplier-review-meta-item">
@@ -270,7 +269,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
                         <i data-lucide="store" class="admin-section-icon h-4 w-4"></i>
                         <h2 class="admin-section-heading text-sm font-bold">Business Details</h2>
                     </div>
-                    <p class="admin-muted mt-1 text-xs">Core information submitted by the supplier.</p>
+                    <p class="admin-muted mt-1 text-xs">Core business information submitted by the supplier.</p>
                 </div>
                 <div class="grid gap-4 p-5 text-sm">
                     <?php foreach ($rows as $label => $value): ?>
@@ -282,10 +281,6 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
                     <div class="admin-queue-item">
                         <p class="admin-stat-label">Business description</p>
                         <p class="admin-body-copy mt-2 leading-6"><?= htmlspecialchars($supplier['description'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                    </div>
-                    <div class="admin-queue-item">
-                        <p class="admin-stat-label">Service description</p>
-                        <p class="admin-body-copy mt-2 leading-6"><?= htmlspecialchars($supplier['service_description'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
                     </div>
                 </div>
             </section>
