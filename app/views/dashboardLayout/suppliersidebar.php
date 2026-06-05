@@ -143,7 +143,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         </nav>
 
         <div class="mt-auto border-t border-app-panel-border px-4 py-4">
-            <a href="<?= URLROOT ?>/users/logout" class="group flex w-full items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-app-input hover:shadow-sm">
+            <a href="<?= URLROOT ?>/supplier/logout" class="group flex w-full items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-app-input hover:shadow-sm">
                 <span class="flex h-8 w-8 items-center justify-center rounded-xl text-app-danger transition group-hover:bg-app-danger-soft">
                     <i data-lucide="log-out" class="h-5 w-5"></i>
                 </span>

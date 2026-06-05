@@ -18,6 +18,11 @@ class Admin extends Controller
         $this->view('admin/dashboard');
     }
 
+    public function logout()
+    {
+        redirect('users/logout');
+    }
+
     public function overview()
     {
         $this->view('admin/admin_dashboard');
@@ -115,6 +120,7 @@ class Admin extends Controller
     public function payments()
     {
         $status = $_GET['status'] ?? 'pending';
+        $status = $status === 'rejected' ? 'failed' : $status;
         $allowedStatuses = ['pending', 'success', 'failed', 'all'];
 
         if (!in_array($status, $allowedStatuses, true)) {

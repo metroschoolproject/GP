@@ -9,7 +9,7 @@ class Payment
         $this->db = new Database();
     }
 
-    public function createSupplierFeePayment($supplierId, $amount, $method, $transactionRef)
+    public function createSupplierFeePayment($supplierId, $amount, $method, $transactionRef = null)
     {
         $this->db->dbquery(
             'INSERT INTO payments(
@@ -43,7 +43,7 @@ class Payment
         $this->db->dbbind(':type', 'supplier_fee');
         $this->db->dbbind(':method', $method);
         $this->db->dbbind(':status', 'pending');
-        $this->db->dbbind(':transaction_ref', $transactionRef);
+        $this->db->dbbind(':transaction_ref', $transactionRef !== '' ? $transactionRef : null);
 
         if (!$this->db->dbexecute()) {
             return false;
@@ -100,6 +100,8 @@ class Payment
 
     public function getSupplierFeeQueue($status = 'pending')
     {
+        $status = $status === 'rejected' ? 'failed' : $status;
+
         $query = 'SELECT payments.id,
                          payments.supplier_id,
                          payments.amount,
@@ -175,6 +177,26 @@ class Payment
         $this->db->dbbind(':verified_by', $adminId ? (int)$adminId : null);
         $this->db->dbbind(':id', (int)$paymentId);
         $this->db->dbbind(':type', 'supplier_fee');
+
+        return $this->db->dbexecute();
+    }
+
+    public function updateSupplierFeeGatewaySuccess($paymentId, $transactionRef)
+    {
+        $this->db->dbquery(
+            'UPDATE payments
+             SET status = :status,
+                 transaction_ref = :transaction_ref,
+                 verified_at = NOW()
+             WHERE id = :id
+               AND type = :type
+               AND status = :pending_status'
+        );
+        $this->db->dbbind(':status', 'success');
+        $this->db->dbbind(':transaction_ref', $transactionRef);
+        $this->db->dbbind(':id', (int)$paymentId);
+        $this->db->dbbind(':type', 'supplier_fee');
+        $this->db->dbbind(':pending_status', 'pending');
 
         return $this->db->dbexecute();
     }

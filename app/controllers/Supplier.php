@@ -13,6 +13,11 @@ class Supplier extends Controller
         $this->notificationModel = $this->model('Notification');
     }
 
+    public function logout()
+    {
+        redirect('users/logout');
+    }
+
     public function onboarding()
     {
         $userId = $_SESSION['pending_register_user_id'] ?? $_SESSION['session_uid'] ?? null;

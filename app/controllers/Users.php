@@ -496,6 +496,8 @@ public function register()
     public function logout()
     {
         $userid = $_SESSION['session_uid'] ?? null;
+        $email = $_SESSION['session_email'] ?? $_SESSION['pending_register_email'] ?? null;
+
         if ($userid) {
             try {
                 $this->usermodel->clearRememberToken($userid);
@@ -503,27 +505,39 @@ public function register()
                 // Continue logout even if remember-token cleanup fails.
             }
 
-            $this->usermodel->marklogout($userid);
-            $this->logmodel->markSystemLogout($userid);
-            $this->logger->log([
-                'user_id' => $userid,
-                'identifier' => $_SESSION['session_email'] ?? null,
-                'event_type' => 'logout',
-                'ip' => $this->ip,
-                'ua' => $this->ua,
-                'details' => 'User logged out'
+            try {
+                $this->usermodel->marklogout($userid);
+                $this->logmodel->markSystemLogout($userid);
+                $this->logger->log([
+                    'user_id' => $userid,
+                    'identifier' => $email,
+                    'event_type' => 'logout',
+                    'ip' => $this->ip,
+                    'ua' => $this->ua,
+                    'details' => 'User logged out'
+                ]);
+            } catch (Exception $logError) {
+                // Logging should not prevent the session from ending.
+            }
+        }
+
+        $_SESSION = [];
+
+        forgetRememberMeCookie();
+
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', [
+                'expires' => time() - 42000,
+                'path' => $params['path'],
+                'domain' => $params['domain'],
+                'secure' => $params['secure'],
+                'httponly' => $params['httponly'],
+                'samesite' => $params['samesite'] ?? 'Lax',
             ]);
         }
 
-        unset($_SESSION['session_uid']);
-        unset($_SESSION['session_email']);
-        unset($_SESSION['user_id']);
-        unset($_SESSION['user_name']);
-        unset($_SESSION['user_email']);
-        unset($_SESSION['pending_remember_me']);
-
         session_destroy();
-        forgetRememberMeCookie();
 
         redirect('users/login');
     }

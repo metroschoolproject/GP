@@ -3,6 +3,7 @@ $adminEmail = htmlspecialchars($_SESSION['session_email'] ?? 'admin@example.com'
 $adminName = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['session_name'] ?? 'Admin User', ENT_QUOTES, 'UTF-8');
 $adminInitials = strtoupper(substr(trim($adminName) !== '' ? $adminName : 'Admin', 0, 1));
 $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+$paymentStatusFilter = $_GET['status'] ?? 'pending';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, suppliers...';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'admin',
@@ -151,6 +152,28 @@ if (!function_exists('dashboard_admin_nav_class')) {
             </div>
 
             <div class="space-y-1">
+                <button type="button" data-subnav-toggle="payments" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+                    <i data-lucide="store" class="h-4 w-4 text-app-header-muted"></i>
+                    <span class="flex-1 text-left">Payments</span>
+                    <i data-chevron="payments" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
+                </button>
+                <div data-subnav-panel="payments" class="<?= strpos($currentPath, 'admin/payments') !== false ? '' : 'hidden' ?> pl-6">
+                    <div class="space-y-0.5 border-l border-app-panel-border py-1">
+                        <a href="<?= URLROOT ?>/admin/payments?status=all" class="<?= $paymentStatusFilter === 'all' ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
+                            <i data-lucide="credit-card" class="h-3.5 w-3.5 text-app-header-muted"></i>
+                            <span>History</span>
+                        </a>
+                        <a href="<?= URLROOT ?>/admin/payments?status=pending" class="<?= $paymentStatusFilter === 'pending' ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
+                            <i data-lucide="clock" class="h-3.5 w-3.5 text-app-header-muted"></i>
+                            <span>Pending</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="space-y-1">
                 <button type="button" data-subnav-toggle="staff" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
                     <i data-lucide="briefcase-business" class="h-4 w-4 text-app-header-muted"></i>
                     <span class="flex-1 text-left">Staff</span>
@@ -173,10 +196,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
             <div>
                 <p class="mb-1 mt-8 px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-app-header-muted">System</p>
                 <div class="space-y-1">
-                    <a href="<?= URLROOT ?>/admin/payments" class="<?= dashboard_admin_nav_class('admin/payments', $currentPath) ?>">
-                        <i data-lucide="credit-card" class="h-4 w-4 <?= strpos($currentPath, 'admin/payments') !== false ? '' : 'text-app-header-muted' ?>"></i>
-                        <span class="flex-1">Payment Queue</span>
-                    </a>
+
                     <a href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
                         <i data-lucide="bell" class="h-4 w-4 text-app-header-muted"></i>
                         <span class="flex-1">Notifications</span>
@@ -190,7 +210,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
         </nav>
 
         <div class="mt-auto border-t border-app-panel-border px-4 py-4">
-            <a href="<?= URLROOT ?>/users/logout" class="group flex w-full items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-app-input hover:shadow-sm">
+            <a href="<?= URLROOT ?>/admin/logout" class="group flex w-full items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-app-input hover:shadow-sm">
                 <span class="flex h-8 w-8 items-center justify-center rounded-xl text-app-danger transition group-hover:bg-app-danger-soft">
                     <i data-lucide="log-out" class="h-5 w-5"></i>
                 </span>

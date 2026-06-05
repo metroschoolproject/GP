@@ -37,8 +37,10 @@ $submitLabel = htmlspecialchars($paymentContext['submitLabel'] ?? 'Submit paymen
             <?php endforeach; ?>
         </div>
 
-        <label class="payment-label" for="transactionRef">Transaction reference</label>
-        <input id="transactionRef" required name="transaction_ref" type="text" placeholder="Enter payment transaction ID or receipt reference">
+        <div id="transactionRefField">
+            <label class="payment-label" for="transactionRef">Transaction reference</label>
+            <input id="transactionRef" name="transaction_ref" type="text" placeholder="Enter bank transfer transaction ID or receipt reference">
+        </div>
 
         <label class="payment-label" for="payerNote">Note</label>
         <textarea id="payerNote" name="payer_note" rows="3" placeholder="Optional note for admin"></textarea>
@@ -53,3 +55,23 @@ $submitLabel = htmlspecialchars($paymentContext['submitLabel'] ?? 'Submit paymen
         <button type="submit" class="payment-submit"><?= $submitLabel ?></button>
     </div>
 </form>
+<script>
+    (function () {
+        const methodInputs = document.querySelectorAll('input[name="method"]');
+        const transactionRefField = document.getElementById('transactionRefField');
+        const transactionRefInput = document.getElementById('transactionRef');
+        const submitButton = document.querySelector('.payment-submit');
+
+        function syncGatewayFields() {
+            const selected = document.querySelector('input[name="method"]:checked');
+            const isGateway = selected && selected.value === 'KBZ Pay';
+
+            transactionRefField.style.display = isGateway ? 'none' : 'block';
+            transactionRefInput.required = !isGateway;
+            submitButton.textContent = isGateway ? 'Continue to KBZ Pay' : 'Submit payment for review';
+        }
+
+        methodInputs.forEach((input) => input.addEventListener('change', syncGatewayFields));
+        syncGatewayFields();
+    })();
+</script>
