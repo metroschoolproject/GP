@@ -15,6 +15,7 @@ $dashboardContentClass = 'bg-[#f7f3ed] px-0 py-0';
 $dashboardContent = function () use ($serviceManagementData) {
     $serviceManagementPath = APPROOT . '/views/supplier/service_management.html';
     $serviceManagementHtml = file_exists($serviceManagementPath) ? file_get_contents($serviceManagementPath) : '';
+    $serviceManagementScript = '<script src="' . URLROOT . '/public/js/supplier-service-management.js?v=' . rawurlencode((string)@filemtime(dirname(APPROOT) . '/public/js/supplier-service-management.js')) . '"></script>';
 
     $serviceManagementConfigScript = '<script>window.serviceManagementConfig = ' . json_encode([
         'urls' => [
@@ -30,7 +31,10 @@ $dashboardContent = function () use ($serviceManagementData) {
             'packageStatus' => URLROOT . '/supplier/packageStatus/',
         ],
         'initialData' => $serviceManagementData ?? ['services' => [], 'packages' => [], 'categories' => []],
+        'pageSize' => 24,
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ';</script><base target="_top">';
+
+    $serviceManagementHtml = str_replace('<!-- SERVICE_MANAGEMENT_SCRIPT -->', $serviceManagementScript, $serviceManagementHtml);
 
     if (preg_match('/<head\b[^>]*>/i', $serviceManagementHtml)) {
         $serviceManagementHtml = preg_replace('/<head\b[^>]*>/i', '$0' . $serviceManagementConfigScript, $serviceManagementHtml, 1);

@@ -7,47 +7,23 @@ class SupplierServiceManager
     public function __construct()
     {
         $this->db = new Database();
-        $this->ensureSchema();
     }
 
-    private function ensureSchema()
+    public function getInitialData($supplierId, $options = [])
     {
-        $this->addColumnIfMissing('supplier_packages', 'thumbnail_url', 'ALTER TABLE supplier_packages ADD COLUMN thumbnail_url VARCHAR(255) DEFAULT NULL AFTER total_price');
-        $this->addColumnIfMissing('supplier_packages', 'is_active', 'ALTER TABLE supplier_packages ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER thumbnail_url');
-        $this->addColumnIfMissing('supplier_packages', 'categories_json', 'ALTER TABLE supplier_packages ADD COLUMN categories_json TEXT DEFAULT NULL AFTER is_active');
-    }
+        $serviceLimit = $this->normalizeLimit($options['service_limit'] ?? $options['limit'] ?? null);
+        $serviceOffset = max(0, (int)($options['service_offset'] ?? 0));
+        $packageLimit = $this->normalizeLimit($options['package_limit'] ?? $options['limit'] ?? null);
+        $packageOffset = max(0, (int)($options['package_offset'] ?? 0));
 
-    private function addColumnIfMissing($table, $column, $alterSql)
-    {
-        try {
-            $this->db->dbquery(
-                'SELECT COUNT(*) AS total
-                 FROM INFORMATION_SCHEMA.COLUMNS
-                 WHERE TABLE_SCHEMA = DATABASE()
-                   AND TABLE_NAME = :table_name
-                   AND COLUMN_NAME = :column_name'
-            );
-            $this->db->dbbind(':table_name', $table);
-            $this->db->dbbind(':column_name', $column);
-            $row = $this->db->getsingledata();
-
-            if ((int)($row['total'] ?? 0) === 0) {
-                $this->db->dbquery($alterSql);
-                $this->db->dbexecute();
-            }
-        } catch (Throwable $e) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public function getInitialData($supplierId)
-    {
         return [
-            'services' => $this->getServices($supplierId),
-            'packages' => $this->getPackages($supplierId),
+            'services' => $this->getServices($supplierId, $serviceLimit, $serviceOffset),
+            'packages' => $this->getPackages($supplierId, $packageLimit, $packageOffset),
             'categories' => $this->getCategories(),
+            'meta' => [
+                'services' => $this->paginationMeta($serviceLimit, $serviceOffset, $this->countServices($supplierId)),
+                'packages' => $this->paginationMeta($packageLimit, $packageOffset, $this->countPackages($supplierId)),
+            ],
         ];
     }
 
@@ -83,41 +59,51 @@ class SupplierServiceManager
         return (int)$this->db->lastinsertid();
     }
 
-    public function getServices($supplierId)
+    public function getServices($supplierId, $limit = null, $offset = 0)
     {
-        $this->db->dbquery(
-            'SELECT services.id,
-                    services.name,
-                    services.description,
-                    services.price,
-                    services.thumbnail_url,
-                    services.is_active,
-                    services.booking_type,
-                    services.duration_minutes,
-                    services.buffer_minutes,
-                    services.pricing_unit,
-                    services.max_concurrent,
-                    categories.name AS category
-             FROM services
-             LEFT JOIN categories ON categories.id = services.category_id
-             WHERE services.supplier_id = :supplier_id
-             ORDER BY services.created_at DESC, services.id DESC'
-        );
+        $query = 'SELECT services.id,
+                         services.name,
+                         services.description,
+                         services.price,
+                         services.thumbnail_url,
+                         services.is_active,
+                         services.booking_type,
+                         services.duration_minutes,
+                         services.buffer_minutes,
+                         services.pricing_unit,
+                         services.max_concurrent,
+                         categories.name AS category
+                  FROM services
+                  LEFT JOIN categories ON categories.id = services.category_id
+                  WHERE services.supplier_id = :supplier_id
+                  ORDER BY services.created_at DESC, services.id DESC';
+
+        if ($limit !== null) {
+            $query .= ' LIMIT :limit OFFSET :offset';
+        }
+
+        $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        $this->bindPagination($limit, $offset);
 
         return array_map([$this, 'formatService'], $this->db->getmultidata());
     }
 
-    public function getPackages($supplierId)
+    public function getPackages($supplierId, $limit = null, $offset = 0)
     {
-        $this->db->dbquery(
-            'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
-             FROM supplier_packages
-             WHERE supplier_id = :supplier_id
-               AND deleted_at IS NULL
-             ORDER BY created_at DESC, id DESC'
-        );
+        $query = 'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
+                  FROM supplier_packages
+                  WHERE supplier_id = :supplier_id
+                    AND deleted_at IS NULL
+                  ORDER BY created_at DESC, id DESC';
+
+        if ($limit !== null) {
+            $query .= ' LIMIT :limit OFFSET :offset';
+        }
+
+        $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        $this->bindPagination($limit, $offset);
 
         return array_map([$this, 'formatPackage'], $this->db->getmultidata());
     }
@@ -310,6 +296,61 @@ class SupplierServiceManager
         $service = $this->db->getsingledata();
 
         return $service ? $this->formatService($service) : null;
+    }
+
+    private function countServices($supplierId)
+    {
+        $this->db->dbquery('SELECT COUNT(*) AS total FROM services WHERE supplier_id = :supplier_id');
+        $this->db->dbbind(':supplier_id', (int)$supplierId);
+        $row = $this->db->getsingledata();
+
+        return (int)($row['total'] ?? 0);
+    }
+
+    private function countPackages($supplierId)
+    {
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM supplier_packages
+             WHERE supplier_id = :supplier_id
+               AND deleted_at IS NULL'
+        );
+        $this->db->dbbind(':supplier_id', (int)$supplierId);
+        $row = $this->db->getsingledata();
+
+        return (int)($row['total'] ?? 0);
+    }
+
+    private function normalizeLimit($limit)
+    {
+        if ($limit === null || $limit === '') {
+            return null;
+        }
+
+        return max(0, min(100, (int)$limit));
+    }
+
+    private function bindPagination($limit, $offset)
+    {
+        if ($limit === null) {
+            return;
+        }
+
+        $this->db->dbbind(':limit', (int)$limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', max(0, (int)$offset), PDO::PARAM_INT);
+    }
+
+    private function paginationMeta($limit, $offset, $total)
+    {
+        $offset = max(0, (int)$offset);
+        $total = max(0, (int)$total);
+
+        return [
+            'limit' => $limit,
+            'offset' => $offset,
+            'total' => $total,
+            'has_more' => $limit !== null && ($offset + (int)$limit) < $total,
+        ];
     }
 
     public function getServiceDetail($supplierId, $serviceId)
@@ -575,28 +616,33 @@ class SupplierServiceManager
 
     public function reserveBookingItemSlot($bookingItemId)
     {
-        $this->db->dbquery('SELECT slot_id FROM booking_items WHERE id = :id LIMIT 1');
-        $this->db->dbbind(':id', (int)$bookingItemId);
-        $item = $this->db->getsingledata();
+        $slotId = $this->getBookingItemSlotId($bookingItemId);
 
-        if (empty($item['slot_id'])) {
+        if (!$slotId) {
             return false;
         }
 
-        return $this->reserveServiceSlot((int)$item['slot_id']);
+        return $this->reserveServiceSlot($slotId);
     }
 
     public function releaseBookingItemSlot($bookingItemId)
+    {
+        $slotId = $this->getBookingItemSlotId($bookingItemId);
+
+        if (!$slotId) {
+            return false;
+        }
+
+        return $this->releaseServiceSlot($slotId);
+    }
+
+    private function getBookingItemSlotId($bookingItemId)
     {
         $this->db->dbquery('SELECT slot_id FROM booking_items WHERE id = :id LIMIT 1');
         $this->db->dbbind(':id', (int)$bookingItemId);
         $item = $this->db->getsingledata();
 
-        if (empty($item['slot_id'])) {
-            return false;
-        }
-
-        return $this->releaseServiceSlot((int)$item['slot_id']);
+        return empty($item['slot_id']) ? null : (int)$item['slot_id'];
     }
 
     public function reserveBookingSlots($bookingId)

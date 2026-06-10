@@ -287,14 +287,59 @@ class Payments extends Controller
             return false;
         }
 
-        $filename = 'payment-slip-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $extension;
+        $basename = 'payment-slip-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename = $basename . '.' . $extension;
         $absolutePath = $absoluteDir . '/' . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
             return false;
         }
 
-        return IMG_ROOT . '/' . $relativeDir . '/' . $filename;
+        $optimizedFilename = $this->createOptimizedImageVariant($absolutePath, $absoluteDir, $basename, $mimeType, 1280, 720);
+
+        return IMG_ROOT . '/' . $relativeDir . '/' . ($optimizedFilename ?: $filename);
+    }
+
+    private function createOptimizedImageVariant($sourcePath, $targetDir, $basename, $mimeType, $maxWidth, $maxHeight)
+    {
+        if (!function_exists('imagewebp') || !function_exists('imagescale')) {
+            return null;
+        }
+
+        $source = null;
+        if ($mimeType === 'image/jpeg' && function_exists('imagecreatefromjpeg')) {
+            $source = @imagecreatefromjpeg($sourcePath);
+        } elseif ($mimeType === 'image/png' && function_exists('imagecreatefrompng')) {
+            $source = @imagecreatefrompng($sourcePath);
+        } elseif ($mimeType === 'image/webp' && function_exists('imagecreatefromwebp')) {
+            $source = @imagecreatefromwebp($sourcePath);
+        }
+
+        if (!$source) {
+            return null;
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $scale = min(1, $maxWidth / max(1, $sourceWidth), $maxHeight / max(1, $sourceHeight));
+        $image = $scale < 1
+            ? imagescale($source, max(1, (int)floor($sourceWidth * $scale)), max(1, (int)floor($sourceHeight * $scale)), IMG_BICUBIC)
+            : $source;
+
+        if (!$image) {
+            imagedestroy($source);
+            return null;
+        }
+
+        $optimizedFilename = $basename . '-optimized.webp';
+        $saved = imagewebp($image, $targetDir . '/' . $optimizedFilename, 82);
+
+        if ($image !== $source) {
+            imagedestroy($image);
+        }
+        imagedestroy($source);
+
+        return $saved ? $optimizedFilename : null;
     }
 
     private function slugify($value)

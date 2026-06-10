@@ -2,6 +2,8 @@
 
 class Supplier extends Controller
 {
+    private const SERVICE_MANAGEMENT_PAGE_SIZE = 24;
+
     private $supplierProfileModel;
     private $paymentModel;
     private $notificationModel;
@@ -362,14 +364,17 @@ class Supplier extends Controller
             return false;
         }
 
-        $filename = 'cover-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $extension;
+        $basename = 'cover-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename = $basename . '.' . $extension;
         $absolutePath = $absoluteDir . '/' . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
             return false;
         }
 
-        return IMG_ROOT . '/' . $relativeDir . '/' . $filename;
+        $optimizedFilename = $this->createOptimizedImageVariant($absolutePath, $absoluteDir, $basename, $mimeType, 1280, 720);
+
+        return IMG_ROOT . '/' . $relativeDir . '/' . ($optimizedFilename ?: $filename);
     }
 
     private function storeSupplierDocument($file, $supplierId, $businessName, $documentType)
@@ -396,11 +401,19 @@ class Supplier extends Controller
             return false;
         }
 
-        $filename = $this->slugify($documentType) . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $extension;
+        $basename = $this->slugify($documentType) . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename = $basename . '.' . $extension;
         $absolutePath = $absoluteDir . '/' . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
             return false;
+        }
+
+        if (strpos($mimeType, 'image/') === 0) {
+            $optimizedFilename = $this->createOptimizedImageVariant($absolutePath, $absoluteDir, $basename, $mimeType, 1280, 720);
+            if ($optimizedFilename) {
+                return IMG_ROOT . '/' . $relativeDir . '/' . $optimizedFilename;
+            }
         }
 
         return IMG_ROOT . '/' . $relativeDir . '/' . $filename;
@@ -567,16 +580,33 @@ class Supplier extends Controller
             'supplier' => $supplier,
             'payment' => $payment,
             'dashboardData' => $this->supplierProfileModel->getDashboardData((int)$supplier['supplier_id']),
-            'serviceManagementData' => $this->serviceManagementModel->getInitialData((int)$supplier['supplier_id']),
+            'serviceManagementData' => $this->serviceManagementModel->getInitialData((int)$supplier['supplier_id'], [
+                'limit' => self::SERVICE_MANAGEMENT_PAGE_SIZE,
+            ]),
         ]);
     }
 
     public function serviceManagementData()
     {
         $supplier = $this->authorizedSupplierForServiceManagement();
+        $payload = $this->jsonPayload();
+        $tab = ($payload['tab'] ?? 'all') === 'packages' ? 'packages' : (($payload['tab'] ?? 'all') === 'services' ? 'services' : 'all');
+        $limit = max(1, min(100, (int)($payload['limit'] ?? self::SERVICE_MANAGEMENT_PAGE_SIZE)));
+        $offset = max(0, (int)($payload['offset'] ?? 0));
+        $options = [
+            'service_limit' => $tab === 'packages' ? 0 : $limit,
+            'package_limit' => $tab === 'services' ? 0 : $limit,
+            'service_offset' => $tab === 'services' ? $offset : 0,
+            'package_offset' => $tab === 'packages' ? $offset : 0,
+        ];
+
+        if ($tab === 'all') {
+            $options = ['limit' => $limit];
+        }
+
         $this->jsonResponse([
             'status' => 'success',
-            'data' => $this->serviceManagementModel->getInitialData((int)$supplier['supplier_id']),
+            'data' => $this->serviceManagementModel->getInitialData((int)$supplier['supplier_id'], $options),
         ]);
     }
 
@@ -981,12 +1011,73 @@ class Supplier extends Controller
             return '';
         }
 
-        $filename = date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $extension;
+        $basename = date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename = $basename . '.' . $extension;
 
         if (file_put_contents($absoluteDir . '/' . $filename, $binary) === false) {
             return '';
         }
 
-        return IMG_ROOT . '/' . $relativeDir . '/' . $filename;
+        $optimizedFilename = $this->createOptimizedImageVariant($absoluteDir . '/' . $filename, $absoluteDir, $basename, 'image/' . ($extension === 'jpg' ? 'jpeg' : $extension), 960, 540);
+
+        return IMG_ROOT . '/' . $relativeDir . '/' . ($optimizedFilename ?: $filename);
+    }
+
+    private function createOptimizedImageVariant($sourcePath, $targetDir, $basename, $mimeType, $maxWidth, $maxHeight)
+    {
+        if (!function_exists('imagewebp') || !function_exists('imagescale')) {
+            return null;
+        }
+
+        $source = $this->imageResourceFromFile($sourcePath, $mimeType);
+
+        if (!$source) {
+            return null;
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+
+        if ($sourceWidth <= 0 || $sourceHeight <= 0) {
+            imagedestroy($source);
+            return null;
+        }
+
+        $scale = min(1, $maxWidth / $sourceWidth, $maxHeight / $sourceHeight);
+        $targetWidth = max(1, (int)floor($sourceWidth * $scale));
+        $targetHeight = max(1, (int)floor($sourceHeight * $scale));
+        $image = $scale < 1 ? imagescale($source, $targetWidth, $targetHeight, IMG_BICUBIC) : $source;
+
+        if (!$image) {
+            imagedestroy($source);
+            return null;
+        }
+
+        $optimizedFilename = $basename . '-optimized.webp';
+        $saved = imagewebp($image, $targetDir . '/' . $optimizedFilename, 82);
+
+        if ($image !== $source) {
+            imagedestroy($image);
+        }
+        imagedestroy($source);
+
+        return $saved ? $optimizedFilename : null;
+    }
+
+    private function imageResourceFromFile($path, $mimeType)
+    {
+        if ($mimeType === 'image/jpeg' && function_exists('imagecreatefromjpeg')) {
+            return @imagecreatefromjpeg($path);
+        }
+
+        if ($mimeType === 'image/png' && function_exists('imagecreatefrompng')) {
+            return @imagecreatefrompng($path);
+        }
+
+        if ($mimeType === 'image/webp' && function_exists('imagecreatefromwebp')) {
+            return @imagecreatefromwebp($path);
+        }
+
+        return null;
     }
 }
