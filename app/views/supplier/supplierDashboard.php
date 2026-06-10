@@ -102,6 +102,20 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     <div class="chart-container min-h-28 flex-1">
                         <canvas id="revenueChart"></canvas>
                     </div>
+                    <div class="mt-2 flex flex-wrap items-center gap-3 border-t border-app-panel-border pt-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-2.5 rounded-full bg-app-primary"></span>
+                            <span class="text-[10px] font-medium text-app-secondary">Revenue</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-4 rounded-full bg-app-primary/10 ring-1 ring-app-panel-border"></span>
+                            <span class="text-[10px] font-medium text-app-secondary">Filled area</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-2.5 rounded-full bg-app-danger-soft ring-1 ring-app-primary"></span>
+                            <span class="text-[10px] font-medium text-app-secondary">Peak month</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Booking Trends -->
@@ -115,6 +129,16 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     </div>
                     <div class="chart-container min-h-28 flex-1">
                         <canvas id="bookingChart"></canvas>
+                    </div>
+                    <div class="mt-2 flex flex-wrap items-center gap-3 border-t border-app-panel-border pt-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-app-ring ring-1 ring-app-panel-border"></span>
+                            <span class="text-[10px] font-medium text-app-secondary">Bookings</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-app-danger-soft"></span>
+                            <span class="text-[10px] font-medium text-app-secondary">Peak month</span>
+                        </div>
                     </div>
                 </div>
             </div><!-- end charts -->
@@ -431,6 +455,9 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     const mutedColor = readUtilityColor("text-app-muted");
     const gridColor = readUtilityColor("border-app-panel-border border", "borderTopColor");
     const barColor = readUtilityColor("bg-app-ring", "backgroundColor");
+    const peakColor = readUtilityColor("bg-app-danger-soft", "backgroundColor");
+    const revenuePeakIndex = revenueVals.indexOf(Math.max(...revenueVals));
+    const bookingPeakIndex = bookingVals.indexOf(Math.max(...bookingVals));
 
     // Revenue: line chart
     new Chart(document.getElementById("revenueChart"), {
@@ -444,7 +471,9 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
           backgroundColor: withAlpha(primaryColor, 0.08),
           borderWidth: 2,
           pointRadius: 3,
-          pointBackgroundColor: primaryColor,
+          pointBackgroundColor: revenueVals.map((_, index) => index === revenuePeakIndex ? peakColor : primaryColor),
+          pointBorderColor: revenueVals.map((_, index) => index === revenuePeakIndex ? primaryColor : primaryColor),
+          pointBorderWidth: revenueVals.map((_, index) => index === revenuePeakIndex ? 2 : 0),
           tension: 0.4,
           fill: true
         }]
@@ -454,8 +483,20 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: mutedColor } },
-          y: { grid: { color: gridColor }, ticks: { font: { size: 10 }, color: mutedColor } }
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10 }, color: mutedColor },
+            title: { display: true, text: "Month", color: mutedColor, font: { size: 10, weight: "600" } }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: {
+              font: { size: 10 },
+              color: mutedColor,
+              callback: (value) => `$${Number(value).toLocaleString()}`
+            },
+            title: { display: true, text: "Revenue (USD)", color: mutedColor, font: { size: 10, weight: "600" } }
+          }
         }
       }
     });
@@ -465,15 +506,29 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
       type: "bar",
       data: {
         labels: months,
-        datasets: [{ label: "Bookings", data: bookingVals, backgroundColor: barColor, borderRadius: 4, borderSkipped: false }]
+        datasets: [{
+          label: "Bookings",
+          data: bookingVals,
+          backgroundColor: bookingVals.map((_, index) => index === bookingPeakIndex ? peakColor : barColor),
+          borderRadius: 4,
+          borderSkipped: false
+        }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: mutedColor } },
-          y: { grid: { color: gridColor }, ticks: { font: { size: 10 }, color: mutedColor } }
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10 }, color: mutedColor },
+            title: { display: true, text: "Month", color: mutedColor, font: { size: 10, weight: "600" } }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: { font: { size: 10 }, color: mutedColor, precision: 0 },
+            title: { display: true, text: "Bookings", color: mutedColor, font: { size: 10, weight: "600" } }
+          }
         }
       }
     });

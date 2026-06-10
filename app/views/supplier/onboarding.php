@@ -4,24 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier Onboarding - <?= APPNAME ?></title>
+    <?php $dashboardCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
+    <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $dashboardCssVersion ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --env-border: rgba(118,90,70,0.22);
+            --env-border: #ead8c7;
             --paper: #f5e8d9;
-            --paper-light: #fff4e6;
-            --accent: #530b0a;
-            --accent-hover: #3f0908;
-            --gold: #d8b46a;
-            --gold-soft: #f3d9a4;
-            --focus-color: #fff8ef;
-            --input-bg: rgba(255,244,230,0.74);
+            --paper-light: #faf5ef;
+            --paper-panel: #faf5ef;
+            --accent: #6d4c5b;
+            --accent-hover: #7b5c69;
+            --gold: #c8b1a1;
+            --gold-soft: #e8d7ca;
+            --danger: #b94b4b;
+            --focus-color: #faf5ef;
+            --input-bg: #faf5ef;
             --header-font: "Great Vibes", cursive;
-            --body-font: "Playfair Display", Georgia, serif;
+            --body-font: system-ui, -apple-system, sans-serif;
             --ui-font: system-ui, -apple-system, sans-serif;
-            --ink: #211d1a;
-            --ink-muted: rgba(111,98,90,0.82);
+            --ink: #111827;
+            --ink-muted: #7b5c69;
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -30,7 +34,6 @@
         body {
             font-family: var(--body-font);
             color: var(--ink);
-            background: var(--paper);
             overflow: hidden;
         }
 
@@ -39,6 +42,11 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             height: 100vh;
+            transition: grid-template-columns 0.35s ease;
+        }
+        .split.agreement-mode {
+            grid-template-columns: 1fr;
+            overflow-y: auto;
         }
 
         /* ── LEFT PANEL ── */
@@ -48,11 +56,15 @@
             justify-content: center;
             padding: 64px 60px;
             position: relative;
-            background:
-                radial-gradient(ellipse at 18% 18%, rgba(255,255,255,0.68) 0 10%, transparent 28%),
-                radial-gradient(ellipse at 86% 74%, rgba(216,180,106,0.14), transparent 34%),
-                linear-gradient(180deg, #fff4e6 0%, #f5e8d9 100%);
             z-index: 2;
+        }
+        .agreement-mode .left-panel {
+            min-height: 100vh;
+            border-right: 0;
+            padding: 42px 60px 82px;
+        }
+        .agreement-mode .right-panel {
+            display: none;
         }
 
         .brand {
@@ -81,7 +93,7 @@
         .step-dot {
             width: 5px; height: 5px;
             border-radius: 50%;
-            background: rgba(118,90,70,0.24);
+            background: var(--gold-soft);
             transition: background 0.35s, transform 0.35s;
         }
         .step-dot.active {
@@ -89,7 +101,7 @@
             transform: scale(1.3);
         }
         .step-dot.done {
-            background: rgba(216,180,106,0.78);
+            background: var(--gold);
         }
 
         /* ── Step panel (question area) ── */
@@ -99,7 +111,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            padding: 80px 60px 80px;
+            padding: 80px 80px 80px;
             transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1),
                         transform 0.45s cubic-bezier(0.4,0,0.2,1),
                         filter 0.45s cubic-bezier(0.4,0,0.2,1);
@@ -118,55 +130,58 @@
 
         .eyebrow {
             font-family: var(--ui-font);
-            font-size: 10px; font-weight: 600;
-            letter-spacing: 0.14em; text-transform: uppercase;
-            color: #9a687f;
-            margin-bottom: 10px;
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--accent-hover);
+            margin-bottom: 16px;
         }
         .question {
-            font-size: 42px; font-weight: 600;
-            line-height: 1.05;
-            color: var(--ink);
-            margin-bottom: 8px;
+            max-width: 540px;
+            font-size: 32px; font-weight: 800;
+            line-height: 1.16;
+            color: var(--accent);
+            margin-bottom: 10px;
             font-style: normal;
             letter-spacing: 0;
         }
         .hint {
             font-family: var(--ui-font);
-            font-size: 13px; line-height: 1.6;
+            max-width: 500px;
+            font-size: 14px; line-height: 1.5;
             color: var(--ink-muted);
-            margin-bottom: 36px;
+            margin-bottom: 28px;
         }
 
         /* ── Inputs ── */
         .q-input {
             width: 100%;
+            max-width: 560px;
             background: var(--input-bg);
             border: 1px solid var(--env-border);
-            border-radius: 8px;
-            padding: 13px 14px;
-            font-size: 18px;
-            font-family: var(--body-font);
+            border-radius: 14px;
+            padding: 16px 18px;
+            font-size: 16px;
+            font-family: var(--ui-font);
             color: var(--ink);
             outline: none;
-            box-shadow: 0 18px 38px rgba(92,67,48,0.07);
+            box-shadow: none;
             transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
             margin-bottom: 8px;
         }
         .q-input:focus {
             border-color: var(--accent);
             background: var(--focus-color);
-            box-shadow: 0 18px 38px rgba(92,67,48,0.1);
+            box-shadow: 0 0 0 3px var(--gold-soft);
         }
         .q-input::placeholder {
-            color: rgba(111,98,90,0.5);
+            color: var(--ink-muted);
             font-style: normal;
         }
         .q-input.textarea-input {
             resize: none;
-            min-height: 90px;
-            font-size: 17px;
-            line-height: 1.6;
+            min-height: 96px;
+            font-size: 16px;
+            line-height: 1.55;
         }
         .q-input.small-input {
             font-size: 17px;
@@ -177,56 +192,74 @@
             font-family: var(--ui-font);
             font-size: 10px; font-weight: 600;
             letter-spacing: 0.1em; text-transform: uppercase;
-            color: #765a46;
+            color: var(--ink-muted);
             display: block; margin-bottom: 4px;
         }
 
         /* ── Category tiles ── */
         .choice-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 9px;
-            margin-bottom: 32px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 24px;
+            max-width: 560px;
+        }
+        .choice-grid::before {
+            content: "Suggestions:";
+            flex: 0 0 100%;
+            font-family: var(--ui-font);
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-muted);
+            text-align: left;
         }
         .choice-grid.is-hidden {
             display: none;
         }
         .choice-tile {
-            background: transparent;
+            min-height: 38px;
+            background: var(--input-bg);
             border: 1px solid var(--env-border);
-            border-radius: 8px;
-            padding: 13px 14px;
+            border-radius: 999px;
+            padding: 0 16px;
             cursor: pointer;
-            text-align: left;
+            text-align: center;
             font-family: inherit;
             transition: border-color 0.18s, background 0.18s, transform 0.12s;
-            display: flex; align-items: center; gap: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: none;
         }
         .choice-tile:hover {
             border-color: var(--accent);
-            background: rgba(216,180,106,0.12);
+            background: var(--paper-panel);
             transform: translateY(-1px);
         }
         .choice-tile.selected {
             border-color: var(--accent);
-            background: rgba(216,180,106,0.2);
+            background: var(--gold-soft);
+            box-shadow: inset 0 0 0 1px var(--gold);
         }
         .choice-tile.suggested {
-            border-color: rgba(216,180,106,0.9);
-            box-shadow: 0 12px 28px rgba(216,180,106,0.14);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--gold-soft);
         }
         .choice-tile.is-filtered-out {
             display: none;
         }
-        .tile-icon { font-size: 18px; flex-shrink: 0; }
         .tile-label {
-            font-size: 13px; font-weight: 500;
+            font-size: 13px; font-weight: 700;
             color: var(--ink); font-family: var(--ui-font);
         }
-        .ai-category-box {
+        .suggestion-category-box {
             display: grid;
             gap: 12px;
             margin-bottom: 18px;
+            max-width: 560px;
         }
         .category-suggest-row {
             display: flex;
@@ -244,7 +277,7 @@
             align-self: start;
             border: 1px solid var(--env-border);
             border-radius: 999px;
-            background: rgba(255,244,230,0.78);
+            background: var(--paper-light);
             color: var(--accent);
             cursor: pointer;
             font-family: var(--ui-font);
@@ -255,7 +288,7 @@
         }
         .btn-suggest:hover {
             border-color: var(--accent);
-            background: var(--focus-color);
+            background: var(--gold-soft);
             transform: translateY(-1px);
         }
 
@@ -268,19 +301,19 @@
             background: var(--accent);
             color: var(--paper-light); border: none;
             border-radius: 999px;
-            padding: 12px 26px;
+            padding: 13px 28px;
             font-family: var(--ui-font);
             font-size: 13px; font-weight: 600;
             letter-spacing: 0.03em;
             cursor: pointer;
-            box-shadow: 0 16px 34px rgba(83,11,10,0.16);
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
             transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
         }
         .btn-next:hover { background: var(--accent-hover); transform: translateY(-1px); }
         .btn-next:active { transform: translateY(0); }
         .btn-next:disabled { opacity: 0.38; cursor: not-allowed; transform: none; }
-        .btn-next.submit-btn { background: #765a46; }
-        .btn-next.submit-btn:hover { background: #5f4636; }
+        .btn-next.submit-btn { background: var(--accent); }
+        .btn-next.submit-btn:hover { background: var(--accent-hover); }
 
         .btn-back {
             background: none; border: none;
@@ -292,11 +325,10 @@
         .btn-back:hover { color: var(--accent); }
 
         .enter-hint {
-            font-family: var(--ui-font);
-            font-size: 11px; color: rgba(111,98,90,0.62);
+            display: none;
         }
         kbd {
-            background: rgba(216,180,106,0.16);
+            background: var(--gold-soft);
             border: 1px solid var(--env-border);
             border-radius: 3px; padding: 1px 5px;
             font-size: 10px; font-family: var(--ui-font);
@@ -305,18 +337,20 @@
 
         /* ── Upload zone ── */
         .upload-zone {
-            border: 1.5px dashed rgba(118,90,70,0.34);
-            border-radius: 8px;
+            border: 1px dashed var(--gold);
+            border-radius: 14px;
             padding: 24px 16px;
+            max-width: 560px;
             text-align: center;
             cursor: pointer;
             transition: border-color 0.18s, background 0.18s;
             display: block;
             margin-bottom: 28px;
+            background: var(--paper-light);
         }
         .upload-zone:hover, .upload-zone.drag-over {
             border-color: var(--accent);
-            background: rgba(216,180,106,0.12);
+            background: var(--gold-soft);
         }
         .upload-zone-icon { font-size: 26px; margin-bottom: 6px; }
         .upload-zone p { font-family: var(--ui-font); font-size: 12px; color: var(--ink-muted); line-height: 1.5; }
@@ -326,34 +360,145 @@
             border: 1px solid var(--env-border);
             border-radius: 8px;
             padding: 14px 16px;
+            max-width: 560px;
             max-height: 180px;
             overflow-y: auto;
             font-size: 12px;
             line-height: 1.75;
-            color: rgba(33,29,26,0.72);
+            color: var(--ink-muted);
             font-family: var(--ui-font);
             margin-bottom: 16px;
-            background: rgba(255,244,230,0.58);
+            background: var(--paper-light);
         }
         .agreement-scroll::-webkit-scrollbar { width: 3px; }
-        .agreement-scroll::-webkit-scrollbar-thumb { background: rgba(118,90,70,0.32); border-radius: 4px; }
+        .agreement-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
 
         .agree-check-row {
             display: flex; align-items: flex-start; gap: 10px;
             font-family: var(--ui-font); font-size: 13px;
-            line-height: 1.6; color: rgba(33,29,26,0.8);
+            line-height: 1.6; color: var(--ink);
             cursor: pointer; margin-bottom: 28px;
         }
         .agree-check-row input[type="checkbox"] {
             width: 15px; height: 15px; margin-top: 2px;
             accent-color: var(--accent); flex-shrink: 0;
         }
+        .agreement-panel {
+            justify-content: flex-start;
+            padding: 112px clamp(32px, 7vw, 96px) 96px;
+            overflow-y: auto;
+        }
+        .agreement-shell {
+            width: min(100%, 1120px);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 20px;
+            align-items: start;
+        }
+        .agreement-document,
+        .agreement-aside {
+            border: 1px solid var(--env-border);
+            border-radius: 14px;
+            background: var(--paper-light);
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
+        }
+        .agreement-document {
+            overflow: hidden;
+            border-color: var(--accent);
+            box-shadow: 0 18px 45px rgb(109 76 91 / 0.12);
+        }
+        .agreement-document-head {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--env-border);
+            background: var(--paper-panel);
+        }
+        .agreement-panel .question {
+            max-width: 760px;
+            margin-bottom: 8px;
+            font-size: clamp(24px, 3vw, 34px);
+        }
+        .agreement-panel .hint {
+            max-width: 720px;
+            margin-bottom: 0;
+            font-size: 12px;
+        }
+        .agreement-panel .agreement-scroll {
+            max-width: none;
+            max-height: min(56vh, 560px);
+            margin: 0;
+            border: 0;
+            border-radius: 0;
+            background: #fff;
+            padding: 28px 32px;
+            font-size: 15px;
+            line-height: 1.95;
+            color: var(--ink);
+        }
+        .agreement-panel .agreement-scroll strong {
+            display: inline-block;
+            margin-bottom: 3px;
+            color: var(--accent);
+            font-size: 15px;
+        }
+        .agreement-footer {
+            padding: 18px 24px 22px;
+            border-top: 1px solid var(--env-border);
+            background: var(--paper-light);
+        }
+        .agreement-panel .agree-check-row {
+            margin-bottom: 16px;
+        }
+        .agreement-panel .btn-row {
+            justify-content: space-between;
+        }
+        .agreement-aside {
+            padding: 14px;
+            opacity: 0.82;
+        }
+        .agreement-aside-title {
+            font-family: var(--ui-font);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--ink);
+            margin-bottom: 10px;
+        }
+        .agreement-summary {
+            display: grid;
+            gap: 10px;
+        }
+        .agreement-summary-item {
+            border: 1px solid var(--env-border);
+            border-radius: 12px;
+            background: #fff;
+            padding: 10px;
+        }
+        .agreement-summary-item span {
+            display: block;
+            margin-bottom: 4px;
+            font-family: var(--ui-font);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--ink-muted);
+        }
+        .agreement-summary-item strong {
+            display: block;
+            font-family: var(--ui-font);
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--ink);
+            word-break: break-word;
+        }
 
         /* ── Error ── */
         .step-error {
             font-family: var(--ui-font);
             font-size: 12px;
-            color: #b91c1c;
+            color: var(--danger);
             margin-bottom: 12px;
             display: none;
         }
@@ -362,13 +507,14 @@
         /* ── Email readonly ── */
         .email-chip {
             display: inline-flex; align-items: center; gap: 8px;
-            background: rgba(216,180,106,0.14);
+            background: var(--paper-light);
             border: 1px solid var(--env-border);
             border-radius: 100px;
             padding: 8px 16px;
             font-family: var(--ui-font);
             font-size: 13px; color: var(--accent);
             margin-bottom: 36px;
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
         }
         .email-chip svg { width: 13px; height: 13px; flex-shrink: 0; }
 
@@ -376,69 +522,89 @@
         .right-panel {
             position: relative;
             overflow: hidden;
-            background:
-                radial-gradient(ellipse at 78% 20%, rgba(216,180,106,0.2), transparent 34%),
-                linear-gradient(160deg, #211d1a 0%, #4a342f 46%, #765a46 100%);
+            background: var(--gold);
         }
 
         .right-panel::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            z-index: 2;
-            background:
-                linear-gradient(180deg, rgba(33,29,26,0.08), rgba(33,29,26,0.72)),
-                radial-gradient(ellipse at 42% 50%, transparent 0 36%, rgba(33,29,26,0.34) 70%);
-            pointer-events: none;
+            display: none;
         }
 
         .image-slide {
             position: absolute;
             inset: 0;
-            transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1);
             opacity: 0;
+            transform: translateY(10px) scale(0.98);
+            z-index: 1;
+            pointer-events: none;
+            transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1),
+                        transform 0.55s cubic-bezier(0.4,0,0.2,1);
         }
-        .image-slide.active { opacity: 1; }
+        .image-slide::before {
+            display: none;
+        }
+        .image-slide.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            z-index: 3;
+        }
+        .image-slide.leaving {
+            opacity: 1;
+            transform: translateY(-12px) scale(1.02);
+            z-index: 2;
+        }
 
         .img-cell {
             position: absolute;
             overflow: hidden;
-            background: #211d1a;
-            border: 1px solid rgba(255,244,230,0.16);
-            border-radius: 16px;
-            box-shadow: 0 28px 70px rgba(33,29,26,0.28);
+            background: var(--ink);
+            border: 1px solid var(--paper-panel);
+            border-radius: 10px;
+            box-shadow: 0 18px 45px rgb(0 0 0 / 0.06);
+            opacity: 0;
+            transform: translateY(14px) scale(0.97);
         }
+        .image-slide.active .img-cell {
+            animation: photoSettle 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .image-slide.leaving .img-cell {
+            animation: photoOverlapOut 0.58s cubic-bezier(0.4,0,0.2,1) both;
+        }
+        .image-slide.active .img-cell:nth-child(2) { animation-delay: 0.06s; }
+        .image-slide.active .img-cell:nth-child(3) { animation-delay: 0.12s; }
+        .image-slide.active .img-cell:nth-child(4) { animation-delay: 0.18s; }
+        .image-slide.leaving .img-cell:nth-child(2) { animation-delay: 0.04s; }
+        .image-slide.leaving .img-cell:nth-child(3) { animation-delay: 0.08s; }
+        .image-slide.leaving .img-cell:nth-child(4) { animation-delay: 0.12s; }
         .img-cell.span-col,
         .img-cell.span-row { grid-column: auto; grid-row: auto; }
 
         .img-cell:nth-child(1) {
-            left: 9%;
-            top: 10%;
-            width: 62%;
-            height: 42%;
-            transform: rotate(-2.6deg);
+            left: 22%;
+            top: -6%;
+            width: 46%;
+            height: 28%;
+            z-index: 2;
         }
         .img-cell:nth-child(2) {
-            right: 8%;
-            top: 38%;
-            width: 48%;
-            height: 32%;
-            z-index: 1;
-            transform: rotate(3.2deg);
+            right: 16%;
+            top: 22%;
+            width: 34%;
+            height: 28%;
+            z-index: 4;
         }
         .img-cell:nth-child(3) {
-            left: 14%;
-            bottom: 9%;
-            width: 44%;
-            height: 30%;
-            transform: rotate(-1.4deg);
+            left: 17%;
+            top: 56%;
+            width: 52%;
+            height: 28%;
+            z-index: 3;
         }
         .img-cell:nth-child(4) {
-            right: 15%;
-            top: 9%;
-            width: 30%;
-            height: 24%;
-            transform: rotate(4deg);
+            right: 20%;
+            top: 86%;
+            width: 40%;
+            height: 25%;
+            z-index: 5;
         }
 
         .img-cell img {
@@ -447,33 +613,67 @@
             display: block;
             transform: scale(1.04);
             transition: transform 8s cubic-bezier(0.25,0,0,1);
-            filter: saturate(0.92) brightness(0.94);
+            filter: saturate(0.94) contrast(0.98) sepia(0.04);
         }
         .image-slide.active .img-cell img {
             transform: scale(1);
         }
 
+        @keyframes photoSettle {
+            from {
+                opacity: 0;
+                transform: translateY(18px) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        @keyframes photoOverlapOut {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-18px) scale(1.04);
+            }
+        }
+
         /* Overlay text on right panel */
         .right-overlay {
             position: absolute;
-            bottom: 36px; left: 36px; right: 36px;
-            z-index: 10;
+            left: clamp(28px, 6vw, 76px);
+            bottom: clamp(36px, 7vw, 82px);
+            z-index: 4;
+            max-width: 440px;
         }
         .right-caption {
             font-family: var(--header-font);
             font-size: 56px;
-            color: #fff4e6;
+            color: var(--paper-light);
             line-height: 1.1;
-            text-shadow: 0 2px 20px rgba(0,0,0,0.4);
             transition: opacity 0.5s, transform 0.5s;
         }
         .right-sub {
             font-family: var(--ui-font);
             font-size: 11px; font-weight: 500;
             letter-spacing: 0.1em; text-transform: uppercase;
-            color: rgba(243,217,164,0.78);
+            color: var(--paper-light);
             margin-top: 6px;
             transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .home-link {
+            font-family: var(--ui-font);
+            font-size: 11px;
+            color: var(--accent);
+            text-decoration: none;
+            margin-left: 8px;
+            transition: color 0.15s;
+        }
+        .home-link:hover {
+            color: var(--accent);
         }
 
         /* ── Sparkle canvas (left panel only) ── */
@@ -497,21 +697,26 @@
             .right-panel { height: 44vh; order: -1; }
             .left-panel { padding: 48px 28px 80px; }
             .step-panel { padding: 64px 28px 80px; }
+            .agreement-mode .left-panel { padding: 28px 18px 82px; }
+            .agreement-panel { position: relative; padding: 92px 0 40px; }
+            .agreement-shell { grid-template-columns: 1fr; gap: 14px; }
+            .agreement-panel .agreement-scroll { max-height: none; }
             .brand { left: 28px; }
             .step-counter-left { left: 28px; }
             .question { font-size: 34px; }
             .right-caption { font-size: 42px; }
+            .right-overlay { display: none; }
             .img-cell { border-radius: 12px; }
         }
     </style>
 </head>
-<body>
-<div class="split">
+<body class="bg-app-bg font-ui text-app-text">
+<div class="split bg-app-bg">
 
     <!-- ════════════════════════════════
          LEFT PANEL
     ════════════════════════════════ -->
-    <div class="left-panel" id="leftPanel">
+    <div class="left-panel border-r border-app-border bg-app-sidebar shadow-panel" id="leftPanel">
         <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
 
         <div class="brand">
@@ -519,7 +724,7 @@
         </div>
 
         <?php if (!empty($message)): ?>
-        <div style="position:absolute;top:80px;left:48px;right:48px;padding:12px 16px;border-radius:10px;font-family:system-ui;font-size:13px;border:1px solid <?= !empty($submitted) ? '#a7f3d0' : '#fecaca' ?>;background:<?= !empty($submitted) ? '#f0fdf4' : '#fef2f2' ?>;color:<?= !empty($submitted) ? '#065f46' : '#b91c1c' ?>">
+        <div class="<?= !empty($submitted) ? 'border-app-border bg-app-soft text-app-success' : 'border-app-border bg-app-danger-soft text-app-danger' ?>" style="position:absolute;top:80px;left:48px;right:48px;padding:12px 16px;border-radius:10px;font-family:system-ui;font-size:13px;border-width:1px;border-style:solid;">
             <?= $message ?>
         </div>
         <?php endif; ?>
@@ -535,7 +740,7 @@
             <div class="step-panel" data-panel="0">
                 <div class="eyebrow">Partner application</div>
                 <h2 class="question">Welcome,<br>let's get you started.</h2>
-                <p class="hint">You're applying as a supplier under this account. This takes about 3 minutes.</p>
+                <p class="hint">Supplier account.</p>
                 <div class="email-chip">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                     <?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8') ?>
@@ -549,14 +754,13 @@
             <div class="step-panel hidden-panel" data-panel="1">
                 <div class="eyebrow">Step 1 of 5 — Business identity</div>
                 <h2 class="question">What's your<br>business name?</h2>
-                <p class="hint">This is how couples will find you on the platform.</p>
+                <p class="hint">Public business name.</p>
                 <input class="q-input" name="business_name" type="text" placeholder="e.g. Blossom & Co."
                        value="<?= htmlspecialchars($business_name ?? '', ENT_QUOTES, 'UTF-8') ?>" required autocomplete="organization">
                 <div class="step-error" id="err1"></div>
                 <div class="btn-row">
                     <button type="button" class="btn-next js-next">Continue</button>
                     <button type="button" class="btn-back js-back">← Back</button>
-                    <span class="enter-hint">or press <kbd>Enter</kbd></span>
                 </div>
             </div>
 
@@ -564,22 +768,20 @@
             <div class="step-panel hidden-panel" data-panel="2">
                 <div class="eyebrow">Step 2 of 5 — Business categories</div>
                 <h2 class="question">What can your<br>business provide?</h2>
-                <p class="hint">Describe the business. We'll suggest categories, then you can confirm or edit them.</p>
-                <div class="ai-category-box">
+                <p class="hint">Type a service, description, or Myanmar keyword.</p>
+                <div class="suggestion-category-box">
                     <textarea class="q-input textarea-input" id="categoryPrompt" name="category_prompt"
                               placeholder="e.g. We rent bridal dresses, accessories, and provide pre-wedding studio photos."><?= htmlspecialchars($category_prompt ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                     <div class="category-suggest-row">
-                        <button type="button" class="btn-suggest" id="suggestCategoryBtn">Suggest categories</button>
-                        <span class="category-suggestion-note" id="categorySuggestionNote">Use suggestions as a starting point. You can still choose manually.</span>
+                        <button type="button" class="btn-suggest" id="suggestCategoryBtn">Show suggestions</button>
+                        <span class="category-suggestion-note" id="categorySuggestionNote"></span>
                     </div>
                 </div>
                 <div class="choice-grid <?= empty($selectedCategoryIds) ? 'is-hidden' : '' ?>" id="categoryTiles">
                     <?php
-                    $icons = ['Accessories'=>'💍','Dress'=>'👗','Food'=>'🍽️','Package'=>'🎁','Studio'=>'📸','Venue'=>'🏛️','Photography'=>'📸','Floral'=>'🌸','Catering'=>'🎂','Music'=>'🎵','Beauty'=>'💄','Transport'=>'🚗','Decoration'=>'🎀'];
                     foreach (($categories ?? []) as $cat):
                         $cid  = (int)$cat['id'];
                         $cname = htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8');
-                        $icon  = $icons[$cat['name']] ?? '✨';
                         $isSelected = in_array($cid, $selectedCategoryIds, true);
                     ?>
                     <button type="button" class="choice-tile <?= $isSelected ? 'selected' : '' ?>"
@@ -587,7 +789,6 @@
                             data-name="<?= $cname ?>"
                             aria-pressed="<?= $isSelected ? 'true' : 'false' ?>">
                         <input type="checkbox" name="category_ids[]" value="<?= $cid ?>" class="sr-only category-check" <?= $isSelected ? 'checked' : '' ?>>
-                        <span class="tile-icon"><?= $icon ?></span>
                         <span class="tile-label"><?= $cname ?></span>
                     </button>
                     <?php endforeach; ?>
@@ -603,7 +804,7 @@
             <div class="step-panel hidden-panel" data-panel="3">
                 <div class="eyebrow">Step 3 of 5 — Contact</div>
                 <h2 class="question">How can clients<br>reach you?</h2>
-                <p class="hint">Your phone, location, and public link help admin verify your business.</p>
+                <p class="hint">Verification details.</p>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:8px">
                     <div class="field-group">
                         <label class="field-label">Phone number</label>
@@ -630,7 +831,6 @@
                 <div class="btn-row">
                     <button type="button" class="btn-next js-next">Continue</button>
                     <button type="button" class="btn-back js-back">← Back</button>
-                    <span class="enter-hint">or press <kbd>Enter</kbd></span>
                 </div>
             </div>
 
@@ -638,7 +838,7 @@
             <div class="step-panel hidden-panel" data-panel="4">
                 <div class="eyebrow">Step 4 of 5 — Your story</div>
                 <h2 class="question">Describe your<br>business</h2>
-                <p class="hint">Admin reads this first. Keep it clear, warm, and genuine.</p>
+                <p class="hint">Profile and documents.</p>
                 <div class="field-group">
                     <label class="field-label">Business description</label>
                     <textarea class="q-input textarea-input" name="business_description"
@@ -664,34 +864,64 @@
             </div>
 
             <!-- ── PANEL 5: Agreement + submit ── -->
-            <div class="step-panel hidden-panel" data-panel="5">
-                <div class="eyebrow">Step 5 of 5 — Agreement</div>
-                <h2 class="question">One last step —<br>review &amp; agree</h2>
-                <p class="hint">Please read through the supplier terms before submitting.</p>
-                <div class="agreement-scroll">
-                    <strong>1. Membership Fees</strong><br>Supplier Member အဖြစ် စတင်လက်တွဲရန် သတ်မှတ်ထားသော Members Fees ကို ကြိုတင်ပေးသွင်းရမည်။<br><br>
-                    <strong>2. Service Fees</strong><br>ပေးချေငွေ၏ 10% ကို Admin Service Charge အဖြစ် ကောက်ခံမည်။<br><br>
-                    <strong>3. Booking Cancelation Policy</strong><br>အချိန်တစ်ဝက်အလိုတွင် Cancel ပြုလုပ်ပါက Package တန်ဖိုး၏ 50%, တစ်ဝက်ကျော်ပါက 100% လျော်ကြေးပေးဆောင်ရမည်။<br><br>
-                    <strong>4. Excessive Cancelation</strong><br>Booking Cancelation 3 ကြိမ်ထက်ကျော်ပါက Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
-                    <strong>5. Customer Reviews</strong><br>Bad Review 5 ကြိမ်ထက်ကျော်ပါက Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
-                    <strong>6. Package Participation</strong><br>Member ဝင်ပြီး 3 လအတွင်း Booking 5 ကြိမ် ရရှိထားရမည်။<br><br>
-                    <strong>7. Bonus Program</strong><br>အရောင်းရဆုံး နံပါတ် (1) Supplier ဖြစ်ပါက Bonus ချီးမြှင့်ပေးမည်။<br><br>
-                    <strong>8. Payment Terms</strong><br>Admin Service Fees နှင့် Charges များ နုတ်ယူပြီးမှ ကျန်ရှိသောငွေကို Supplier ထံ လွှဲပြောင်းပေးမည်။<br><br>
-                    <strong>9. Supplier Responsibilities</strong><br>Service Quality နှင့် အချိန်တိကျမှုကို တာဝန်ယူရမည်။<br><br>
-                    <strong>10. Fraud & Policy Violations</strong><br>Platform ပြင်ပ Customer များနှင့် တိုက်ရိုက်ဆက်သွယ်ပြီး ငွေလက်ခံခြင်း မပြုရ။<br><br>
-                    <strong>11. Marketing & Content Usage</strong><br>Admin Team မှ Photo, Video, Content များကို Marketing ရည်ရွယ်ချက်တွက် အသုံးပြုခွင့်ရှိသည်။<br><br>
-                    <strong>12. Price Control</strong><br>Booking Confirmed ပြီးနောက် Package Price ပြောင်းလဲခြင်း မပြုလုပ်ရ။<br><br>
-                    <strong>13. Confidentiality</strong><br>Customer ၏ Personal Information များကို ခွင့်ပြုချက်မရှိဘဲ မျှဝေခြင်း မပြုရ။<br><br>
-                    <strong>14. Force Majeure</strong><br>ထိန်းချုပ်မရသော အခြေအနေများကြောင့် Service မပေးနိုင်ပါက နှစ်ဖက်စလုံးအား တာဝန်ကင်းလွတ်ခွင့် ရှိသည်။
-                </div>
-                <label class="agree-check-row">
-                    <input name="agreement_accepted" type="checkbox" value="1" required <?= !empty($agreement_accepted) ? 'checked' : '' ?>>
-                    <span>I have read and agree to the Golden Promise supplier business agreement.</span>
-                </label>
-                <div class="step-error" id="err5"></div>
-                <div class="btn-row">
-                    <button type="submit" class="btn-next submit-btn" id="submitBtn">Submit application ✦</button>
-                    <button type="button" class="btn-back js-back">← Back</button>
+            <div class="step-panel agreement-panel hidden-panel" data-panel="5">
+                <div class="agreement-shell">
+                    <section class="agreement-document">
+                        <div class="agreement-document-head">
+                            <div class="eyebrow">Step 5 of 5 — Supplier agreement</div>
+                            <h2 class="question">Review the agreement before submitting</h2>
+                            <p class="hint">This agreement controls membership fees, service quality, cancellations, payment handling, and platform rules.</p>
+                        </div>
+                        <div class="agreement-scroll">
+                            <strong>1. Membership Fees</strong><br>Supplier Member အဖြစ် စတင်လက်တွဲရန် သတ်မှတ်ထားသော Members Fees ကို ကြိုတင်ပေးသွင်းရမည်။<br><br>
+                            <strong>2. Service Fees</strong><br>ပေးချေငွေ၏ 10% ကို Admin Service Charge အဖြစ် ကောက်ခံမည်။<br><br>
+                            <strong>3. Booking Cancelation Policy</strong><br>အချိန်တစ်ဝက်အလိုတွင် Cancel ပြုလုပ်ပါက Package တန်ဖိုး၏ 50%, တစ်ဝက်ကျော်ပါက 100% လျော်ကြေးပေးဆောင်ရမည်။<br><br>
+                            <strong>4. Excessive Cancelation</strong><br>Booking Cancelation 3 ကြိမ်ထက်ကျော်ပါက Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
+                            <strong>5. Customer Reviews</strong><br>Bad Review 5 ကြိမ်ထက်ကျော်ပါက Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
+                            <strong>6. Package Participation</strong><br>Member ဝင်ပြီး 3 လအတွင်း Booking 5 ကြိမ် ရရှိထားရမည်။<br><br>
+                            <strong>7. Bonus Program</strong><br>အရောင်းရဆုံး နံပါတ် (1) Supplier ဖြစ်ပါက Bonus ချီးမြှင့်ပေးမည်။<br><br>
+                            <strong>8. Payment Terms</strong><br>Admin Service Fees နှင့် Charges များ နုတ်ယူပြီးမှ ကျန်ရှိသောငွေကို Supplier ထံ လွှဲပြောင်းပေးမည်။<br><br>
+                            <strong>9. Supplier Responsibilities</strong><br>Service Quality နှင့် အချိန်တိကျမှုကို တာဝန်ယူရမည်။<br><br>
+                            <strong>10. Fraud & Policy Violations</strong><br>Platform ပြင်ပ Customer များနှင့် တိုက်ရိုက်ဆက်သွယ်ပြီး ငွေလက်ခံခြင်း မပြုရ။<br><br>
+                            <strong>11. Marketing & Content Usage</strong><br>Admin Team မှ Photo, Video, Content များကို Marketing ရည်ရွယ်ချက်တွက် အသုံးပြုခွင့်ရှိသည်။<br><br>
+                            <strong>12. Price Control</strong><br>Booking Confirmed ပြီးနောက် Package Price ပြောင်းလဲခြင်း မပြုလုပ်ရ။<br><br>
+                            <strong>13. Confidentiality</strong><br>Customer ၏ Personal Information များကို ခွင့်ပြုချက်မရှိဘဲ မျှဝေခြင်း မပြုရ။<br><br>
+                            <strong>14. Force Majeure</strong><br>ထိန်းချုပ်မရသော အခြေအနေများကြောင့် Service မပေးနိုင်ပါက နှစ်ဖက်စလုံးအား တာဝန်ကင်းလွတ်ခွင့် ရှိသည်။
+                        </div>
+                        <div class="agreement-footer">
+                            <label class="agree-check-row">
+                                <input name="agreement_accepted" type="checkbox" value="1" required <?= !empty($agreement_accepted) ? 'checked' : '' ?>>
+                                <span>I have read and agree to the Golden Promise supplier business agreement.</span>
+                            </label>
+                            <div class="step-error" id="err5"></div>
+                            <div class="btn-row">
+                                <button type="button" class="btn-back js-back">← Back to application</button>
+                                <button type="submit" class="btn-next submit-btn" id="submitBtn">Submit application</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <aside class="agreement-aside">
+                        <h3 class="agreement-aside-title">Application summary</h3>
+                        <div class="agreement-summary">
+                            <div class="agreement-summary-item">
+                                <span>Business</span>
+                                <strong id="agreementBusinessName">-</strong>
+                            </div>
+                            <div class="agreement-summary-item">
+                                <span>Contact</span>
+                                <strong id="agreementPhone">-</strong>
+                            </div>
+                            <div class="agreement-summary-item">
+                                <span>Business link</span>
+                                <strong id="agreementBusinessUrl">-</strong>
+                            </div>
+                            <div class="agreement-summary-item">
+                                <span>Agreement version</span>
+                                <strong>supplier-v1</strong>
+                            </div>
+                        </div>
+                    </aside>
                 </div>
             </div>
 
@@ -700,7 +930,7 @@
         <!-- Dot nav -->
         <div class="step-counter-left">
             <div class="step-dots" id="stepDots"></div>
-            <a href="<?= URLROOT ?>/main/home" style="font-family:system-ui;font-size:11px;color:rgba(111,98,90,0.72);text-decoration:none;margin-left:8px;">Back home</a>
+            <a href="<?= URLROOT ?>/main/home" class="home-link">Back home</a>
         </div>
     </div><!-- /left-panel -->
 
@@ -816,6 +1046,7 @@
 <script>
 (() => {
     const TOTAL = 6;
+    const split    = document.querySelector('.split');
     const panels   = Array.from(document.querySelectorAll('[data-panel]'));
     const slides   = Array.from(document.querySelectorAll('[data-slide]'));
     const dotsWrap = document.getElementById('stepDots');
@@ -837,6 +1068,9 @@
     const submitBtn  = document.getElementById('submitBtn');
     const sparkleCanvas = document.getElementById('sparkleCanvas');
     const sparkleCtx = sparkleCanvas.getContext('2d');
+    const agreementBusinessName = document.getElementById('agreementBusinessName');
+    const agreementPhone = document.getElementById('agreementPhone');
+    const agreementBusinessUrl = document.getElementById('agreementBusinessUrl');
 
     const CAPTIONS = [
         ['Begin your journey',           'Golden Promise · Partner Program'],
@@ -864,11 +1098,42 @@
         }
     }
 
+    function syncAgreementSummary() {
+        const businessName = form.elements.business_name?.value?.trim() || '-';
+        const phone = form.elements.phone?.value?.trim() || '-';
+        const businessUrl = form.elements.business_url?.value?.trim() || '-';
+
+        if (agreementBusinessName) agreementBusinessName.textContent = businessName;
+        if (agreementPhone) agreementPhone.textContent = phone;
+        if (agreementBusinessUrl) agreementBusinessUrl.textContent = businessUrl;
+    }
+
+    function syncAgreementMode(idx) {
+        split?.classList.toggle('agreement-mode', idx === TOTAL - 1);
+        document.body.style.overflow = idx === TOTAL - 1 ? 'auto' : '';
+        syncAgreementSummary();
+        window.setTimeout(resizeCanvas, 60);
+    }
+
     // ── Slides ──
     function updateSlide(idx) {
-        slides.forEach(s => s.classList.remove('active'));
+        const previous = slides.find(s => s.classList.contains('active'));
         const s = slides[idx];
-        if (s) s.classList.add('active');
+        slides.forEach(slide => {
+            if (slide !== previous && slide !== s) {
+                slide.classList.remove('active', 'leaving');
+            }
+        });
+        if (previous && previous !== s) {
+            previous.classList.remove('active');
+            previous.classList.add('leaving');
+            window.setTimeout(() => previous.classList.remove('leaving'), 620);
+        }
+        if (s) {
+            s.classList.remove('leaving', 'active');
+            void s.offsetWidth;
+            s.classList.add('active');
+        }
         if (caption && CAPTIONS[idx]) {
             caption.style.opacity = '0'; caption.style.transform = 'translateY(8px)';
             sub.style.opacity = '0';
@@ -903,6 +1168,7 @@
         current = idx;
         saveDraft();
         buildDots();
+        syncAgreementMode(idx);
         updateSlide(idx);
         clearErrors();
 
@@ -944,7 +1210,12 @@
         }
         const bad = fields.find(f => !f.checkValidity());
         if (!bad) return true;
-        bad.reportValidity(); bad.focus();
+        if (bad.type === 'file') {
+            goTo(idx);
+        } else {
+            bad.reportValidity();
+            bad.focus();
+        }
         showError(idx, bad.validationMessage || 'Please fill in this field.');
         return false;
     }
@@ -1005,9 +1276,7 @@
         saveDraft();
 
         if (!categorySuggestionNote) return;
-        categorySuggestionNote.textContent = matches
-            ? `${matches} AI suggested. ${reason || 'Review the highlighted categories before continuing.'}`
-            : 'AI could not match a valid category. Try adding more detail.';
+        categorySuggestionNote.textContent = matches ? '' : 'No matching suggestions.';
     }
 
     function suggestCategoriesLocal() {
@@ -1038,12 +1307,10 @@
 
         if (!categorySuggestionNote) return;
         if (!hasText) {
-            categorySuggestionNote.textContent = 'Type a business description or one category word to get suggestions.';
+            categorySuggestionNote.textContent = '';
             return;
         }
-        categorySuggestionNote.textContent = matches
-            ? `${matches} suggested. Review the highlighted categories before continuing.`
-            : 'No confident match yet. Try words like dress, studio, venue, ဝတ်စုံ, ဓာတ်ပုံ, or ခန်းမ.';
+        categorySuggestionNote.textContent = matches ? '' : 'No matching suggestions.';
     }
 
     let activeSuggestRequest = null;
@@ -1070,7 +1337,7 @@
         activeSuggestRequest = new AbortController();
 
         if (!silent && categorySuggestionNote) {
-            categorySuggestionNote.textContent = 'AI is reading your business description...';
+            categorySuggestionNote.textContent = 'Suggesting...';
         }
 
         try {
@@ -1087,7 +1354,7 @@
             const result = await response.json();
 
             if (result.status !== 'success') {
-                throw new Error(result.message || 'AI suggestion failed.');
+                throw new Error(result.message || 'Suggestion failed.');
             }
 
             applySuggestedCategoryIds(result.category_ids || [], result.reason || '');
@@ -1095,7 +1362,7 @@
             if (error.name === 'AbortError') return;
             suggestCategoriesLocal();
             if (!silent && categorySuggestionNote) {
-                categorySuggestionNote.textContent += ' Local suggestions were used because AI was unavailable.';
+                categorySuggestionNote.textContent += categorySuggestionNote.textContent ? ' Try a different word.' : '';
             }
         } finally {
             activeSuggestRequest = null;
@@ -1149,6 +1416,13 @@
         const dt = new DataTransfer(); dt.items.add(f); licenseInput.files = dt.files;
         licenseInput.dispatchEvent(new Event('change', {bubbles:true}));
     });
+    window.addEventListener('beforeunload', e => {
+        if (submitBtn?.disabled) return;
+        const hasUnsavedFiles = (coverInput?.files?.length || 0) > 0 || (licenseInput?.files?.length || 0) > 0;
+        if (!hasUnsavedFiles) return;
+        e.preventDefault();
+        e.returnValue = '';
+    });
 
     // ── Draft ──
     function getField(name) { const f = form.elements[name]; if (!f) return null; return typeof f.addEventListener==='function' ? f : (f[0]||null); }
@@ -1179,11 +1453,21 @@
         });
         syncCategoryNextBtn();
         const s = parseInt(d.current, 10);
-        return Number.isInteger(s) ? Math.min(Math.max(s,0), TOTAL-1) : 0;
+        if (!Number.isInteger(s)) return 0;
+
+        // Browsers clear file inputs after refresh, so never restore past the upload step.
+        return Math.min(Math.max(s, 0), 4);
     }
     draftFields.forEach(n => {
         if (n === 'category_ids[]') return;
         const f = getField(n); if (f) { f.addEventListener('input', saveDraft); f.addEventListener('change', saveDraft); }
+    });
+    ['business_name','phone','business_url'].forEach(name => {
+        const f = getField(name);
+        if (f) {
+            f.addEventListener('input', syncAgreementSummary);
+            f.addEventListener('change', syncAgreementSummary);
+        }
     });
 
     // ── Submit ──
@@ -1194,15 +1478,27 @@
         submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
         try {
             const r = await fetch(form.action, { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}, body: new FormData(form) });
-            const res = await r.json();
+            const responseText = await r.text();
+            let res = null;
+
+            try {
+                res = JSON.parse(responseText);
+            } catch (_) {
+                if (r.redirected || responseText.toLowerCase().includes('<!doctype') || responseText.toLowerCase().includes('<html')) {
+                    throw new Error('The server returned a page instead of JSON. Please make sure you are still signed in and the uploaded files are under 5MB.');
+                }
+
+                throw new Error(responseText.trim() || 'The server response could not be read.');
+            }
+
             if (res.status === 'success') {
                 try { localStorage.removeItem(draftKey); } catch(_) {}
                 window.location.href = res.redirect || '<?= URLROOT ?>/supplier/pending';
                 return;
             }
             showError(current, res.message || 'Please check your information and try again.');
-        } catch(_) {
-            showError(current, 'Something went wrong. Please try again.');
+        } catch(error) {
+            showError(current, error.message || 'Something went wrong. Please try again.');
         } finally {
             submitBtn.disabled = false; submitBtn.textContent = 'Submit application ✦';
         }
@@ -1210,6 +1506,10 @@
 
     // ── Sparkles ──
     const particles = [];
+    const themeStyles = getComputedStyle(document.documentElement);
+    const sparkleColors = ['--gold', '--gold-soft', '--accent']
+        .map(name => themeStyles.getPropertyValue(name).trim())
+        .filter(Boolean);
     function resizeCanvas() { sparkleCanvas.width = sparkleCanvas.parentElement.offsetWidth; sparkleCanvas.height = sparkleCanvas.parentElement.offsetHeight; }
     class Particle {
         constructor() {
@@ -1219,7 +1519,7 @@
             this.vx = Math.cos(a)*sp; this.vy = Math.sin(a)*sp - 0.3;
             this.life = 1; this.decay = 0.018+Math.random()*0.022;
             this.size = 0.5+Math.random()*1.2;
-            this.color = ['rgba(216,180,106,0.88)','rgba(243,217,164,0.78)','rgba(83,11,10,0.42)'][Math.floor(Math.random()*3)];
+            this.color = sparkleColors[Math.floor(Math.random()*sparkleColors.length)] || '#6d4c5b';
         }
         update() { this.x+=this.vx; this.y+=this.vy; this.vy+=0.02; this.life-=this.decay; }
         draw(ctx) { ctx.globalAlpha=Math.max(0,this.life); ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill(); }
@@ -1238,6 +1538,7 @@
     syncCategoryNextBtn();
     showCategoryTiles(getSelectedCategoryChecks().length > 0);
     buildDots();
+    syncAgreementMode(start);
     updateSlide(start);
     panels.forEach((p, i) => p.classList.toggle('hidden-panel', i !== start));
 })();

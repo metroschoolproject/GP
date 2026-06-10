@@ -119,6 +119,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
                             <i data-lucide="clipboard-check" class="h-3.5 w-3.5 text-app-header-muted"></i>
                             <span>Applications</span>
                         </a>
+                    
                         <a href="<?= URLROOT ?>/admin/suppliers?status=verified" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
                             <i data-lucide="badge-check" class="h-3.5 w-3.5 text-app-header-muted"></i>
                             <span>Verified</span>

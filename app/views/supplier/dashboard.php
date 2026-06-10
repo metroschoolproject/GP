@@ -5,6 +5,10 @@ $dashboardData = $dashboardData ?? [];
 
 $dashboardTitle = 'Supplier';
 $dashboardCrumb = 'Overview';
+$dashboardBreadcrumbs = [
+    ['label' => 'Dashboard', 'url' => URLROOT . '/supplier/dashboard'],
+    ['label' => 'Overview', 'url' => null],
+];
 $dashboardContentClass = 'bg-app-content px-6 py-6';
 $dashboardContent = function () use ($supplier, $payment, $dashboardData) {
     require APPROOT . '/views/supplier/supplierDashboard.php';

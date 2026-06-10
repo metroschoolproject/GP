@@ -3,7 +3,7 @@ $supplierName = htmlspecialchars($supplier['shop_name'] ?? 'Supplier', ENT_QUOTE
 $status = strtolower($supplier['status'] ?? 'pending');
 $dashboardTitle = 'Suppliers';
 $dashboardCrumb = 'Review';
-$dashboardContentClass = 'supplier-review-content px-6 py-6';
+$dashboardContentClass = 'supplier-review-content';
 $dashboardContent = function () use ($supplier, $supplierName, $status, $message) {
     $rows = [
         'Owner' => $supplier['owner_name'] ?? '-',
@@ -17,136 +17,213 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
 ?>
     <style>
         .supplier-review-shell {
-            color: #1c1917;
+            --review-bg: #FBFBF9;
+            --review-surface: #ffffff;
+            --review-soft: #faf5ef;
+            --review-soft-hover: #eddecc;
+            --review-border: #ead8c7;
+            --review-border-light: #eddecc;
+            --review-primary: #6d4c5b;
+            --review-primary-hover: #7b5c69;
+            --review-primary-soft: #eddecc;
+            --review-text: #111827;
+            --review-muted: #b79c8b;
+            --review-body: #7b5c69;
+            --review-success-bg: #d1fae5;
+            --review-success-text: #065f46;
+            --review-warn-bg: #fef3c7;
+            --review-warn-text: #92400e;
+            --review-danger-bg: #fee2e2;
+            --review-danger-text: #991b1b;
+            --review-neutral-bg: #f3f4f6;
+            color: var(--review-text);
             font-size: 13px;
             max-width: 1600px;
+            margin: 0 auto;
         }
 
         .supplier-review-content {
             min-height: 100%;
-            background: #FBFBF9;
+            background: var(--review-bg);
+            padding: 28px 32px;
         }
 
-        .admin-section-heading,
-        .admin-value {
-            color: #1c1917;
+        .review-page-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 22px;
         }
 
-        .admin-muted {
-            color: #a8a29e;
-        }
-
-        .admin-body-copy {
-            color: #57534e;
-        }
-
-        .admin-section-icon {
-            color: #673049;
-        }
-
-        .admin-card {
-            background: #fff;
-            border: 1px solid #e7e5e4;
-            border-radius: 1.2rem;
-            box-shadow: 0 1px 2px rgba(28, 25, 23, 0.05);
-            transition: box-shadow 0.18s ease, transform 0.18s ease;
-        }
-
-        .admin-card:hover {
-            box-shadow: 0 4px 12px rgba(28, 25, 23, 0.08);
-        }
-
-        .admin-card-header {
-            border-bottom: 1px solid #e7e5e4;
-            padding: 1rem 1.25rem;
-        }
-
-        .admin-stat-label {
+        .review-eyebrow,
+        .review-label {
             font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.1em;
+            font-weight: 800;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
-            color: #a8a29e;
+            color: var(--review-muted);
         }
 
-        .admin-queue-item {
-            background: #f5f5f3;
-            border: 1px solid transparent;
+        .review-title {
+            margin: 0;
+            color: var(--review-text);
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+        }
+
+        .review-subtitle {
+            margin-top: 4px;
+            max-width: 46rem;
+            color: var(--review-body);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .review-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .review-panel {
+            background: var(--review-surface);
+            border: 1px solid var(--review-border);
             border-radius: 0.75rem;
-            padding: 0.75rem 0.9rem;
-            transition: all 0.12s ease;
+            box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+            overflow: hidden;
         }
 
-        .admin-queue-item:hover {
-            background: #eeece9;
-            border-color: #e7e5e4;
+        .review-primary-panel {
+            min-height: 0;
         }
 
-        .admin-icon-link {
+        .review-panel-header {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            color: #673049;
-            font-size: 13px;
-            font-weight: 700;
+            justify-content: space-between;
+            gap: 1rem;
+            border-bottom: 1px solid var(--review-border-light);
+            padding: 14px 20px;
         }
 
-        .admin-icon-link .icon-box,
-        .supplier-review-meta .icon-box {
+        .review-panel-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .review-icon {
             display: inline-flex;
-            height: 2rem;
-            width: 2rem;
-            flex-shrink: 0;
             align-items: center;
             justify-content: center;
-            border-radius: 0.5rem;
-            background: #fde8ef;
-            color: #673049;
+            width: 28px;
+            height: 28px;
+            flex: 0 0 auto;
+            border-radius: 0.75rem;
+            background: var(--review-primary-soft);
+            color: var(--review-primary);
         }
 
-        .supplier-review-meta {
+        .review-panel-title {
+            color: var(--review-text);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .review-panel-note {
+            margin-top: 2px;
+            color: var(--review-muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .review-section {
+            padding: 20px;
+        }
+
+        .review-section + .review-section {
+            border-top: 1px solid var(--review-border-light);
+        }
+
+        .review-summary-grid {
             display: grid;
-            gap: 0.75rem;
             grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
         }
 
-        .supplier-review-grid {
+        .review-summary-item {
+            border: 1px solid var(--review-border);
+            border-radius: 0.75rem;
+            background: var(--review-surface);
+            padding: 14px 16px;
+        }
+
+        .review-summary-value {
+            margin-top: 4px;
+            color: var(--review-text);
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .review-detail-list {
             display: grid;
-            gap: 1.25rem;
-            grid-template-columns: 1.15fr 0.85fr;
+            gap: 0;
         }
 
-        .supplier-review-meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            border: 1px solid #e7e5e4;
-            border-radius: 1rem;
-            background: #fff;
-            padding: 0.85rem;
-            box-shadow: 0 1px 2px rgba(28, 25, 23, 0.05);
+        .review-detail-row {
+            display: grid;
+            grid-template-columns: minmax(9rem, 0.34fr) minmax(0, 1fr);
+            gap: 1rem;
+            padding: 13px 0;
+            border-bottom: 1px solid var(--review-border-light);
+            align-items: start;
         }
 
-        .admin-divider-row:last-child {
+        .review-detail-row:first-child {
+            padding-top: 0;
+        }
+
+        .review-detail-row:last-child {
             border-bottom: 0;
             padding-bottom: 0;
         }
 
-        .admin-detail-row {
-            border-bottom: 1px solid #e7e5e4;
-            padding-bottom: 0.75rem;
+        .review-value {
+            color: var(--review-text);
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.55;
+            overflow-wrap: anywhere;
         }
 
-        .admin-detail-value {
-            max-width: 60%;
-            text-align: right;
+        .review-description {
+            border: 1px solid var(--review-border-light);
+            border-radius: 0.75rem;
+            background: var(--review-soft);
+            padding: 14px 16px;
+        }
+
+        .review-description p {
+            margin-top: 0.55rem;
+            color: var(--review-body);
+            line-height: 1.75;
         }
 
         .admin-message {
-            border: 1px solid #a7f3d0;
-            border-radius: 1.2rem;
-            background: #ecfdf5;
-            color: #047857;
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--review-success-bg);
+            border-radius: 0.75rem;
+            background: var(--review-success-bg);
+            color: var(--review-success-text);
+            padding: 12px 14px;
+            font-size: 13px;
+            font-weight: 700;
         }
 
         .admin-badge {
@@ -160,71 +237,140 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
             text-transform: uppercase;
         }
 
-        .admin-badge-pending { background: #fef3c7; color: #92400e; }
-        .admin-badge-approved { background: #d1fae5; color: #065f46; }
-        .admin-badge-rejected { background: #fee2e2; color: #991b1b; }
-        .admin-badge-muted { background: #f3f4f6; color: #57534e; border: 1px solid #d1d5db; }
+        .admin-badge-pending { background: var(--review-warn-bg); color: var(--review-warn-text); }
+        .admin-badge-approved { background: var(--review-success-bg); color: var(--review-success-text); }
+        .admin-badge-rejected { background: var(--review-danger-bg); color: var(--review-danger-text); }
+        .admin-badge-muted { background: var(--review-neutral-bg); color: var(--review-body); border: 1px solid var(--review-border); }
+
+        .review-rail {
+            display: grid;
+            gap: 1rem;
+            position: sticky;
+            top: 20px;
+        }
+
+        .review-link-list,
+        .review-action-stack {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+        }
+
+        .review-file-link {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            min-height: 42px;
+            border: 1px solid var(--review-border);
+            border-radius: 0.75rem;
+            background: var(--review-surface);
+            padding: 9px 10px;
+            color: var(--review-primary);
+            font-size: 13px;
+            font-weight: 800;
+            text-decoration: none;
+            transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+        }
+
+        .review-file-link:hover {
+            border-color: var(--review-border);
+            background: var(--review-soft-hover);
+            transform: translateY(-1px);
+        }
+
+        .review-empty {
+            border: 1px dashed var(--review-border);
+            border-radius: 0.75rem;
+            background: var(--review-soft);
+            padding: 1.2rem;
+            color: var(--review-muted);
+            text-align: center;
+            line-height: 1.6;
+        }
 
         .admin-action-primary,
-        .admin-action-danger,
-        .admin-action-ghost {
+        .admin-action-danger {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
+            width: 100%;
+            min-height: 34px;
             border-radius: 0.75rem;
-            padding: 0.65rem 1rem;
-            font-size: 13px;
-            font-weight: 700;
+            padding: 0 12px;
+            font-size: 12px;
+            font-weight: 800;
             box-shadow: 0 1px 2px rgba(28, 25, 23, 0.05);
             transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
         }
 
         .admin-action-primary {
-            background: #673049;
-            color: #fff;
+            background: var(--review-primary);
+            color: var(--review-surface);
         }
 
         .admin-action-primary:hover {
-            background: #9b1c4a;
+            background: var(--review-primary-hover);
+            transform: translateY(-1px);
         }
 
         .admin-action-danger {
-            background: #991b1b;
-            color: #fff;
+            background: var(--review-danger-text);
+            color: var(--review-surface);
         }
 
         .admin-action-danger:hover {
-            background: #7f1d1d;
+            background: var(--review-danger-text);
+            transform: translateY(-1px);
         }
 
-        .admin-action-ghost {
-            border: 1px solid #e7e5e4;
-            background: #fff;
-            color: #673049;
+        .review-reviewed {
+            border: 1px solid var(--review-border);
+            border-radius: 0.75rem;
+            background: var(--review-soft);
+            padding: 1rem;
+            color: var(--review-body);
+            line-height: 1.6;
         }
 
-        .admin-action-ghost:hover {
-            background: #fde8ef;
-            border-color: #f9c0d2;
-        }
-
-        @media (max-width: 900px) {
-            .supplier-review-meta,
-            .supplier-review-grid {
+        @media (max-width: 1100px) {
+            .review-layout {
                 grid-template-columns: 1fr;
+            }
+
+            .review-rail {
+                position: static;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 760px) {
+            .supplier-review-content {
+                padding: 20px 16px;
+            }
+
+            .review-page-header,
+            .review-panel-header {
+                flex-direction: column;
+            }
+
+            .review-summary-grid,
+            .review-rail {
+                grid-template-columns: 1fr;
+            }
+
+            .review-detail-row {
+                grid-template-columns: 1fr;
+                gap: 0.35rem;
             }
         }
     </style>
-    <div class="supplier-review-shell mx-auto">
-        <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
+    <div class="supplier-review-shell">
+        <div class="review-page-header mb-5">
             <div>
-                <a href="<?= URLROOT ?>/admin/suppliers" class="admin-action-ghost">
-                    <i data-lucide="arrow-left" class="h-4 w-4"></i>
-                    <span>Suppliers</span>
-                </a>
-                <p class="admin-stat-label mt-5">Supplier Application</p>
-                <h1 class="admin-section-heading mt-1 text-2xl font-bold tracking-tight"><?= $supplierName ?></h1>
-                <p class="admin-muted mt-1 text-sm">Review business profile, categories, social verification, and license document.</p>
+                <p class="review-eyebrow mb-3">Supplier Application</p>
+                <h1 class="review-title mt-3"><?= $supplierName ?></h1>
+                <!-- <p class="review-subtitle">Review the submitted business profile, verification links, uploaded documents, and decision status in one focused workspace.</p> -->
             </div>
             <?php $statusClass = 'admin-badge-' . ($status ?: 'muted'); ?>
             <span class="admin-badge <?= htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8') ?>">
@@ -233,101 +379,105 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
         </div>
 
         <?php if (!empty($message)): ?>
-            <div class="admin-message mb-5 px-4 py-3 text-sm font-semibold">
+            <div class="admin-message">
                 <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
             </div>
         <?php endif; ?>
 
-        <div class="supplier-review-meta mb-5">
-            <div class="supplier-review-meta-item">
-                <span class="icon-box"><i data-lucide="user-round" class="h-4 w-4"></i></span>
-                <div class="min-w-0">
-                    <p class="admin-stat-label">Owner</p>
-                    <p class="admin-value truncate font-bold"><?= htmlspecialchars($supplier['owner_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-            </div>
-            <div class="supplier-review-meta-item">
-                <span class="icon-box"><i data-lucide="badge-dollar-sign" class="h-4 w-4"></i></span>
-                <div class="min-w-0">
-                    <p class="admin-stat-label">Categories</p>
-                    <p class="admin-value truncate font-bold"><?= htmlspecialchars($supplier['category_names'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-            </div>
-            <div class="supplier-review-meta-item">
-                <span class="icon-box"><i data-lucide="credit-card" class="h-4 w-4"></i></span>
-                <div class="min-w-0">
-                    <p class="admin-stat-label">Payment</p>
-                    <p class="admin-value truncate font-bold"><?= htmlspecialchars($supplier['payment_status'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                </div>
-            </div>
-        </div>
-
-        <div class="supplier-review-grid">
-            <section class="admin-card">
-                <div class="admin-card-header">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="store" class="admin-section-icon h-4 w-4"></i>
-                        <h2 class="admin-section-heading text-sm font-bold">Business Details</h2>
+        <div class="review-layout">
+            <section class="review-panel review-primary-panel">
+                <div class="review-panel-header">
+                    <div>
+                        <div class="review-panel-title-row">
+                            <span class="review-icon"><i data-lucide="store" class="h-4 w-4"></i></span>
+                            <h2 class="review-panel-title">Business Profile</h2>
+                        </div>
                     </div>
-                    <p class="admin-muted mt-1 text-xs">Core business information submitted by the supplier.</p>
                 </div>
-                <div class="grid gap-4 p-5 text-sm">
+
+                <div class="review-section">
+                    <div class="review-summary-grid">
+                        <div class="review-summary-item">
+                            <p class="review-label">Owner</p>
+                            <p class="review-summary-value"><?= htmlspecialchars($supplier['owner_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
+                        </div>
+                        <div class="review-summary-item">
+                            <p class="review-label">Categories</p>
+                            <p class="review-summary-value"><?= htmlspecialchars($supplier['category_names'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
+                        </div>
+                        <div class="review-summary-item">
+                            <p class="review-label">Payment</p>
+                            <p class="review-summary-value"><?= htmlspecialchars($supplier['payment_status'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-section">
+                    <div class="review-detail-list">
                     <?php foreach ($rows as $label => $value): ?>
-                        <div class="admin-divider-row admin-detail-row flex justify-between gap-4">
-                            <span class="admin-stat-label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
-                            <strong class="admin-value admin-detail-value"><?= htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8') ?></strong>
+                        <div class="review-detail-row">
+                            <span class="review-label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+                            <strong class="review-value"><?= htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8') ?></strong>
                         </div>
                     <?php endforeach; ?>
-                    <div class="admin-queue-item">
-                        <p class="admin-stat-label">Business description</p>
-                        <p class="admin-body-copy mt-2 leading-6"><?= htmlspecialchars($supplier['description'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
+                    </div>
+                </div>
+
+                <div class="review-section">
+                    <div class="review-description">
+                        <p class="review-label">Business description</p>
+                        <p><?= htmlspecialchars($supplier['description'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
                     </div>
                 </div>
             </section>
 
-            <aside class="grid content-start gap-5">
-                <section class="admin-card">
-                    <div class="admin-card-header">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="shield-check" class="admin-section-icon h-4 w-4"></i>
-                            <h2 class="admin-section-heading text-sm font-bold">Verification</h2>
+            <aside class="review-rail">
+                <section class="review-panel">
+                    <div class="review-panel-header">
+                        <div>
+                            <div class="review-panel-title-row">
+                                <span class="review-icon"><i data-lucide="shield-check" class="h-4 w-4"></i></span>
+                                <h2 class="review-panel-title">Verification</h2>
+                            </div>
+                            <p class="review-panel-note">Open each submitted file or link before deciding.</p>
                         </div>
-                        <p class="admin-muted mt-1 text-xs">Open each item before deciding.</p>
                     </div>
-                    <div class="grid gap-3 p-5">
+                    <div class="review-link-list">
                         <?php if (!empty($supplier['verify_url'])): ?>
-                            <a href="<?= htmlspecialchars($supplier['verify_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="admin-queue-item admin-icon-link">
-                                <span class="icon-box"><i data-lucide="external-link" class="h-4 w-4"></i></span>
+                            <a href="<?= htmlspecialchars($supplier['verify_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="review-file-link">
+                                <span class="review-icon"><i data-lucide="external-link" class="h-4 w-4"></i></span>
                                 <span>Open website / social link</span>
                             </a>
                         <?php endif; ?>
                         <?php if (!empty($supplier['business_license_url'])): ?>
-                            <a href="<?= htmlspecialchars($supplier['business_license_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="admin-queue-item admin-icon-link">
-                                <span class="icon-box"><i data-lucide="file-badge" class="h-4 w-4"></i></span>
+                            <a href="<?= htmlspecialchars($supplier['business_license_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="review-file-link">
+                                <span class="review-icon"><i data-lucide="file-badge" class="h-4 w-4"></i></span>
                                 <span>Open business license</span>
                             </a>
                         <?php endif; ?>
                         <?php if (!empty($supplier['cover_url'])): ?>
-                            <a href="<?= htmlspecialchars($supplier['cover_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="admin-queue-item admin-icon-link">
-                                <span class="icon-box"><i data-lucide="image" class="h-4 w-4"></i></span>
+                            <a href="<?= htmlspecialchars($supplier['cover_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="review-file-link">
+                                <span class="review-icon"><i data-lucide="image" class="h-4 w-4"></i></span>
                                 <span>Open cover image</span>
                             </a>
                         <?php endif; ?>
                         <?php if (empty($supplier['verify_url']) && empty($supplier['business_license_url']) && empty($supplier['cover_url'])): ?>
-                            <p class="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">No verification files found.</p>
+                            <p class="review-empty">No verification files found.</p>
                         <?php endif; ?>
                     </div>
                 </section>
 
-                <section class="admin-card">
-                    <div class="admin-card-header">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="list-checks" class="admin-section-icon h-4 w-4"></i>
-                            <h2 class="admin-section-heading text-sm font-bold">Decision</h2>
+                <section class="review-panel">
+                    <div class="review-panel-header">
+                        <div>
+                            <div class="review-panel-title-row">
+                                <span class="review-icon"><i data-lucide="list-checks" class="h-4 w-4"></i></span>
+                                <h2 class="review-panel-title">Decision</h2>
+                            </div>
+                            <p class="review-panel-note">Approved suppliers can enter the locked dashboard and submit payment.</p>
                         </div>
-                        <p class="admin-muted mt-1 text-xs">Approved suppliers can enter the locked dashboard and submit payment.</p>
                     </div>
-                    <div class="flex flex-wrap gap-3 p-5">
+                    <div class="review-action-stack">
                         <?php if ($status === 'pending'): ?>
                             <form method="POST" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>">
                                 <button class="admin-action-primary" type="submit">
@@ -342,7 +492,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
                                 </button>
                             </form>
                         <?php else: ?>
-                            <p class="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-500">This supplier has already been reviewed.</p>
+                            <p class="review-reviewed">This supplier has already been reviewed.</p>
                         <?php endif; ?>
                     </div>
                 </section>

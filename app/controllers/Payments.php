@@ -40,20 +40,24 @@ class Payments extends Controller
             redirect('supplier/dashboard');
         }
 
-        if (
-            ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' &&
-            $this->paymentModel->hasPendingSupplierFeePayment((int)$supplier['supplier_id'])
-        ) {
-            redirect('supplier/dashboard');
-        }
+        $pendingPayment = $this->paymentModel->getLatestSupplierFeePayment((int)$supplier['supplier_id'], 'pending');
 
         $data = $this->supplierFeeViewData($supplier);
         $data['message'] = $_SESSION['payment_flash'] ?? $data['message'];
         unset($_SESSION['payment_flash']);
 
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' && $pendingPayment) {
+            if (($pendingPayment['method'] ?? '') === 'KBZ Pay') {
+                $data['paymentContext']['gatewayPayment'] = $this->kbzGatewayViewData($pendingPayment);
+                $this->view('payments/supplier_fee', $data);
+                return;
+            }
+
+            redirect('supplier/dashboard');
+        }
+
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $method = trim($_POST['method'] ?? '');
-            $transactionRef = trim($_POST['transaction_ref'] ?? '');
 
             if ($method === '') {
                 $data['message'] = 'Please choose a payment method.';
@@ -67,60 +71,77 @@ class Payments extends Controller
                 return;
             }
 
-            if ($this->isGatewayMethod($method)) {
-                $payment = $this->paymentModel->getLatestSupplierFeePayment((int)$supplier['supplier_id'], 'pending');
-
-                if ($payment && ($payment['method'] ?? '') === $method) {
-                    redirect('fakekbz/checkout/' . (int)$payment['id']);
-                }
-
-                if (!$payment) {
-                    $paymentId = $this->paymentModel->createSupplierFeePayment(
-                        (int)$supplier['supplier_id'],
-                        self::SUPPLIER_MEMBERSHIP_FEE,
-                        $method
-                    );
-
-                    if (!$paymentId) {
-                        $data['message'] = 'We could not start your payment. Please try again.';
-                        $this->view('payments/supplier_fee', $data);
-                        return;
-                    }
-
-                    redirect('fakekbz/checkout/' . $paymentId);
+            if ($pendingPayment) {
+                if (($pendingPayment['method'] ?? '') === 'KBZ Pay') {
+                    $data['paymentContext']['gatewayPayment'] = $this->kbzGatewayViewData($pendingPayment);
+                    $this->view('payments/supplier_fee', $data);
+                    return;
                 }
 
                 redirect('supplier/dashboard');
             }
 
-            if ($transactionRef === '') {
-                $data['message'] = 'Please enter your bank transfer transaction reference.';
-                $this->view('payments/supplier_fee', $data);
-                return;
-            }
-
-            if (!$this->paymentModel->hasPendingSupplierFeePayment((int)$supplier['supplier_id'])) {
+            if ($this->isGatewayMethod($method)) {
                 $paymentId = $this->paymentModel->createSupplierFeePayment(
                     (int)$supplier['supplier_id'],
                     self::SUPPLIER_MEMBERSHIP_FEE,
                     $method,
-                    $transactionRef
+                    null
                 );
 
                 if (!$paymentId) {
-                    $data['message'] = 'We could not save your payment information. Please try again.';
+                    $data['message'] = 'We could not create your KBZ Pay payment. Please try again.';
                     $this->view('payments/supplier_fee', $data);
                     return;
                 }
 
-                $this->notificationModel->notifyAdmins(
-                    'Supplier payment submitted',
-                    ($supplier['shop_name'] ?? 'A supplier') . ' submitted membership payment details.',
-                    'payment',
-                    'payment',
-                    $paymentId
-                );
+                $payment = $this->paymentModel->getSupplierFeePaymentById($paymentId);
+                $data['message'] = 'KBZ Pay payment created. Scan the QR code with your phone and use demo PIN 123456.';
+                $data['paymentContext']['gatewayPayment'] = $this->kbzGatewayViewData($payment);
+                $this->view('payments/supplier_fee', $data);
+                return;
             }
+
+            if (!$this->hasUploadedPaymentSlip()) {
+                $data['message'] = 'Please upload your payment slip screenshot.';
+                $this->view('payments/supplier_fee', $data);
+                return;
+            }
+
+            if (!$this->isValidPaymentSlip($_FILES['payment_slip'])) {
+                $data['message'] = 'Please upload a valid payment slip image under 5MB.';
+                $this->view('payments/supplier_fee', $data);
+                return;
+            }
+
+            $slipUrl = $this->storePaymentSlip($_FILES['payment_slip'], (int)$supplier['supplier_id'], $supplier['shop_name'] ?? 'supplier');
+
+            if (!$slipUrl) {
+                $data['message'] = 'We could not upload your payment slip. Please try again.';
+                $this->view('payments/supplier_fee', $data);
+                return;
+            }
+
+            $paymentId = $this->paymentModel->createSupplierFeePayment(
+                (int)$supplier['supplier_id'],
+                self::SUPPLIER_MEMBERSHIP_FEE,
+                $method,
+                $slipUrl
+            );
+
+            if (!$paymentId) {
+                $data['message'] = 'We could not save your payment information. Please try again.';
+                $this->view('payments/supplier_fee', $data);
+                return;
+            }
+
+            $this->notificationModel->notifyAdmins(
+                'Supplier payment submitted',
+                ($supplier['shop_name'] ?? 'A supplier') . ' uploaded an AYA Bank Transfer payment slip.',
+                'payment',
+                'payment',
+                $paymentId
+            );
 
             redirect('supplier/dashboard');
         }
@@ -184,7 +205,7 @@ class Payments extends Controller
             'paymentContext' => [
                 'eyebrow' => 'Supplier membership',
                 'title' => 'Complete your partner payment',
-                'intro' => 'Submit the membership fee transaction details so admin can verify your payment and unlock the dashboard.',
+                'intro' => 'Choose KBZ Pay for instant demo checkout, or use AYA Bank Transfer for manual slip review.',
                 'amountLabel' => 'Membership fee',
                 'amount' => self::SUPPLIER_MEMBERSHIP_FEE,
                 'currency' => 'MMK',
@@ -196,24 +217,91 @@ class Payments extends Controller
                 ],
                 'methods' => [
                     'KBZ Pay',
-                    'Bank Transfer',
+                    'AYA Bank Transfer',
                 ],
                 'action' => URLROOT . '/payments/supplierFee',
                 'backUrl' => URLROOT . '/supplier/dashboard',
-                'submitLabel' => 'Submit payment for review',
-                'note' => 'Your dashboard stays locked until admin verifies this payment.',
+                'submitLabel' => 'Continue',
+                'note' => 'KBZ Pay unlocks automatically after demo PIN success. AYA Bank Transfer stays pending until admin approves the uploaded slip.',
+                'bankTransfer' => [
+                    'Bank' => 'AYA Bank',
+                    'Account name' => APPNAME,
+                    'Account number' => 'AYA-001-234-567',
+                    'Reference' => 'Supplier fee - ' . ($supplier['shop_name'] ?? 'Supplier'),
+                ],
             ],
         ];
     }
 
     private function isAllowedMethod($method)
     {
-        return in_array($method, ['KBZ Pay', 'Bank Transfer'], true);
+        return in_array($method, ['KBZ Pay', 'AYA Bank Transfer'], true);
     }
 
     private function isGatewayMethod($method)
     {
         return $method === 'KBZ Pay';
+    }
+
+    private function hasUploadedPaymentSlip()
+    {
+        return isset($_FILES['payment_slip']) && ($_FILES['payment_slip']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+    }
+
+    private function isValidPaymentSlip($file)
+    {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return false;
+        }
+
+        if (($file['size'] ?? 0) > 5 * 1024 * 1024) {
+            return false;
+        }
+
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+
+        return in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true);
+    }
+
+    private function storePaymentSlip($file, $supplierId, $businessName)
+    {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+        $extensions = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+        ];
+        $extension = $extensions[$mimeType] ?? null;
+
+        if (!$extension) {
+            return false;
+        }
+
+        $supplierFolder = $supplierId . '-' . $this->slugify($businessName);
+        $relativeDir = 'uploads/payments/supplier-fees/' . $supplierFolder;
+        $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
+
+        if (!is_dir($absoluteDir) && !mkdir($absoluteDir, 0755, true)) {
+            return false;
+        }
+
+        $filename = 'payment-slip-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $extension;
+        $absolutePath = $absoluteDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
+            return false;
+        }
+
+        return IMG_ROOT . '/' . $relativeDir . '/' . $filename;
+    }
+
+    private function slugify($value)
+    {
+        $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $value), '-'));
+
+        return $slug !== '' ? $slug : 'supplier';
     }
 
     private function isValidGatewayToken($paymentId, $token)
@@ -223,6 +311,20 @@ class Payments extends Controller
 
     private function gatewayToken($paymentId)
     {
-        return hash('sha256', (int)$paymentId . '|' . session_id() . '|' . APPNAME);
+        return hash('sha256', (int)$paymentId . '|' . APPNAME . '|' . DB_NAME);
+    }
+
+    private function kbzGatewayViewData($payment)
+    {
+        $paymentId = (int)($payment['id'] ?? 0);
+        $baseUrl = defined('NETWORK_URLROOT') && NETWORK_URLROOT !== '' ? NETWORK_URLROOT : URLROOT;
+        $checkoutUrl = rtrim($baseUrl, '/') . '/fakekbz/checkout/' . $paymentId . '?token=' . $this->gatewayToken($paymentId);
+
+        return [
+            'id' => $paymentId,
+            'amount' => (float)($payment['amount'] ?? self::SUPPLIER_MEMBERSHIP_FEE),
+            'checkoutUrl' => $checkoutUrl,
+            'qrUrl' => 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=' . rawurlencode($checkoutUrl),
+        ];
     }
 }

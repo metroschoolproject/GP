@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Service Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <style>
+    /* .service-management-outlet, .service-management-outlet * { font-family: 'DM Sans', sans-serif; } */
+    
+    /* Global Background matched to the clean aesthetic from image_499edf.jpg */
+    .service-management-outlet { background: #f7f3ed; color: #4a3b32; }
+
+    /* Clean professional color overrides based on the reference photo */
+    .tab-btn.active { color: #6e4e58; border-bottom: 2px solid #6e4e58; }
+    .text-custom-primary { color: #6e4e58; }
+    .bg-custom-primary { background-color: #6e4e58; }
+    .bg-custom-primary:hover { background-color: #593e46; }
+    .border-custom-accent { border-color: #e8ded1; }
+
+    .badge-venue    { background:#ebdcd0; color:#593e46; }
+    .badge-makeup   { background:#f5e6e8; color:#7a525d; }
+    .badge-photo    { background:#dbe8f5; color:#324a6e; }
+    .badge-catering { background:#dcf5e8; color:#27543f; }
+    .badge-decor    { background:#fdf2db; color:#6e5621; }
+    .badge-music    { background:#fbe3e4; color:#732633; }
+    .badge-others   { background:#edebe9; color:#403e3d; }
+
+    /* hover dropdown for Add New Service */
+    .add-svc-wrap:hover .add-svc-menu,
+    .add-svc-menu:hover { display:block; }
+    .add-svc-menu { display:none; }
+
+    /* modal */
+    .modal-body { overflow-y:auto; }
+
+    /* image upload */
+    .img-upload { border:2px dashed #d1c7bd; cursor:pointer; }
+    .img-upload:hover { border-color:#6e4e58; background:#fbf9f6; }
+
+    .service-management-outlet input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
+
+    /* Status pill */
+    .status-pill { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; border:1px solid transparent; user-select:none; pointer-events:none; letter-spacing:0.02em; backdrop-filter:blur(4px); }
+    .status-pill.active-pill   { background:rgba(220,252,231,0.92); color:#166534; border-color:rgba(187,247,208,0.8); }
+    .status-pill.inactive-pill { background:rgba(243,244,246,0.92); color:#6B7280; border-color:rgba(229,231,235,0.8); }
+    .status-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .dot-green  { background:#22C55E; }
+    .dot-gray   { background:#9CA3AF; }
+
+    /* Card subtle design refinements */
+    .service-card {
+      transition: box-shadow 0.26s ease, transform 0.26s ease, border-color 0.2s;
+      background-color: #1a1512;
+      border-color: #2e2520;
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 3 / 4;
+      min-height: 300px;
+    }
+    .service-card > .p-4 {
+      background-color: transparent;
+    }
+    .service-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px -8px rgba(74, 59, 50, 0.3), 0 4px 12px -2px rgba(74, 59, 50, 0.2);
+      border-color: #d7c8aa;
+    }
+
+    /* Full-bleed image — fills the entire card */
+    .card-img-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .card-img-wrap img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      display: block;
+    }
+    .card-icon {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .service-card:hover .card-img-wrap img { transform: scale(1.07); }
+    .service-card:hover .card-img-wrap .card-icon { transform: scale(1.05); }
+
+    /* Layered progressive blur — true frosted glass fading in from bottom */
+    .card-img-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .card-img-overlay::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 70%;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: linear-gradient(
+        to top,
+        rgba(8, 6, 5, 0.85) 0%,
+        rgba(8, 6, 5, 0.60) 30%,
+        rgba(8, 6, 5, 0.20) 60%,
+        transparent 100%
+      );
+      -webkit-mask-image: linear-gradient(to top, black 35%, transparent 100%);
+      mask-image: linear-gradient(to top, black 35%, transparent 100%);
+    }
+
+    /* Content sits above overlay */
+    .card-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      height: 100%;
+      padding-top: 0;
+    }
+
+    /* Text color adjustments for dark overlay */
+    .service-card h3 { color: #f5ede4 !important; }
+    .service-card .text-custom-primary { color: #e8c9a0 !important; }
+    .service-card .text-gray-400 { color: #b0a090 !important; }
+    .service-card .border-t { border-color: rgba(255,255,255,0.12) !important; }
+
+    /* Card buttons */
+    .btn-card {
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
+      font-size: 12px; font-weight: 600;
+    }
+    .btn-card:hover { transform: translateY(-1px); }
+    .btn-edit:hover   { background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.12); }
+    .btn-delete:hover { background:#FEE2E2; color:#B91C1C; box-shadow:0 2px 8px rgba(239,68,68,0.15); }
+    .btn-act:hover    { background:#D1FAE5; box-shadow:0 2px 8px rgba(16,185,129,0.2); }
+    .btn-inact:hover  { background:#FEE2E2; box-shadow:0 2px 8px rgba(239,68,68,0.15); }
+
+    .service-management-outlet header button, .service-management-outlet .tab-btn, .service-management-outlet .sf-btn {
+      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+    .service-management-outlet header button:active { transform: scale(0.97); }
+
+    /* Animations */
+    .modal-box { animation: modalIn 0.28s cubic-bezier(0.34, 1.3, 0.64, 1) both; }
+    @keyframes modalIn {
+      from { opacity:0; transform: scale(0.95) translateY(12px); }
+      to   { opacity:1; transform: scale(1) translateY(0); }
+    }
+
+    .add-svc-menu > div { animation: dropIn 0.18s cubic-bezier(0.34, 1.3, 0.64, 1) both; }
+    @keyframes dropIn {
+      from { opacity:0; transform: translateY(-6px) scale(0.97); }
+      to   { opacity:1; transform: translateY(0) scale(1); }
+    }
+
+    .service-management-outlet input:focus, .service-management-outlet select:focus, .service-management-outlet textarea:focus { outline: none; box-shadow: 0 0 0 3px rgba(110,78,88,0.12); border-color: #6e4e58 !important; }
+    .line-clamp-2 { display:-webkit-box; line-clamp:2; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+    .modal-body::-webkit-scrollbar { width:4px; }
+    .modal-body::-webkit-scrollbar-thumb { background:#e5e0da; border-radius:4px; }
+    .modal-body::-webkit-scrollbar-thumb:hover { background:#ccc5bd; }
+    .img-upload-container:hover .edit-icon-btn { opacity: 1; }
+  </style>
+</head>
+<body class="min-h-screen  service-management-outlet">
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<!-- Search bar and Categories removed as requested. Kept clean branding layout structure -->
+<!-- ══════════════════ MAIN ══════════════════ -->
+<main class="max-w-7xl mx-auto px-8 py-8">
+  
+  <!-- Row 2 combined: Tabs, Filters, and "Add/Create" buttons grouped together -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 mb-7 gap-4 pb-2">
+    
+    <div class="flex flex-wrap items-center gap-6">
+      <!-- Tabs Structure -->
+      <div class="flex items-center">
+        <button id="tab-services" onclick="switchTab('services')" class="tab-btn active px-4 py-3 text-sm font-semibold text-gray-800 border-b-2 -mb-[10px]">Services</button>
+        <button id="tab-packages" onclick="switchTab('packages')" class="tab-btn px-4 py-3 text-sm font-semibold text-gray-400 hover:text-gray-600 border-b-2 border-transparent -mb-[10px]">Packages</button>
+      </div>
+
+      <div class="hidden md:block w-px h-5 bg-gray-200"></div>
+
+      <!-- Status Filters -->
+      <div class="flex items-center gap-1">
+        <button id="sf-all"      onclick="setStatusFilter('all')"      class="sf-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-custom-primary text-white">All</button>
+        <button id="sf-active"   onclick="setStatusFilter('active')"   class="sf-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 text-gray-500 hover:border-gray-300">Active</button>
+        <button id="sf-inactive" onclick="setStatusFilter('inactive')" class="sf-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 text-gray-500 hover:border-gray-300">Inactive</button>
+      </div>
+    </div>
+
+    <!-- Action Group Items Moved into the Second Row -->
+    <div class="flex items-center gap-2.5 self-end md:self-auto">
+      <div class="add-svc-wrap relative">
+        <button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-custom-primary text-white text-sm font-semibold transition" style="box-shadow:0 1px 3px rgba(110,78,88,0.2)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+          Add New Service
+          <svg class="w-3 h-3 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="add-svc-menu absolute right-0 top-full pt-1.5 z-50">
+          <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-44 overflow-hidden">
+            <button onclick="openAddVenue()" class="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-amber-50/50 flex items-center gap-2.5">
+              Venue
+            </button>
+            <button onclick="openAddOthers()" class="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-amber-50/50 flex items-center gap-2.5">
+              Others
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="openPackageModal()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-semibold transition">
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0v10l-8 4m0-14L4 17m8-14v14"/></svg>
+        Create Package
+      </button>
+    </div>
+
+  </div>
+
+  <div id="cardsGrid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+  <p id="emptyState" class="hidden text-center text-gray-400 text-sm py-20">No items found.</p>
+</main>
+
+
+<!-- ══════════════════ MODAL: ADD VENUE ══════════════════ -->
+<div id="venueModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
+    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+      <h2 class="text-xl font-bold text-gray-800">Add service (for venue)</h2>
+      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:70vh">
+      <label id="venueImgBox" for="venueImgInput" onclick="triggerBrowse(event,'venueImgInput')" class="img-upload rounded-xl h-40 flex flex-col items-center justify-center gap-2 bg-gray-50 transition">
+        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="text-sm text-gray-500 font-medium">Upload image</span>
+        <span class="text-xs text-gray-400">Click to browse</span>
+      </label>
+      <input id="venueImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('venueImgInput','venueImgBox','vImgData', 16/9)"/>
+      <input type="hidden" id="vImgData"/>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Service Name</label>
+          <input id="vName" type="text" placeholder="e.g. Grand Ballroom" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Category</label>
+          <input type="text" value="Venue" readonly class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"/>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
+        <textarea id="vDesc" rows="3" placeholder="Describe the venue…" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition resize-none"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Base Price (RM)</label>
+          <input id="vPrice" type="number" placeholder="e.g. 3500" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Max Capacity</label>
+          <input id="vCapacity" type="number" placeholder="e.g. 300" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition"/>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Booking Type</label>
+          <div class="flex gap-2">
+            <label class="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-gray-400 transition">
+              <input type="radio" name="vBooking" value="full" class="accent-neutral-700" checked onchange="toggleVenueTimeSlot(this.value)"/> Full Day
+            </label>
+            <label class="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-gray-400 transition">
+              <input type="radio" name="vBooking" value="timeslot" class="accent-neutral-700" onchange="toggleVenueTimeSlot(this.value)"/> Time Slot
+            </label>
+          </div>
+        </div>
+        <div id="vTimeSlotWrap" class="hidden">
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Time Slot</label>
+          <input id="vTimeSlot" type="text" placeholder="e.g. 09:00 – 17:00" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Type</label>
+          <select id="vType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition bg-white">
+            <option value="">Select type…</option>
+            <option value="Indoor">Indoor</option>
+            <option value="Outdoor">Outdoor</option>
+            <option value="Indoor+Outdoor">Indoor + Outdoor</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Venue</label>
+          <input id="vVenue" type="text" placeholder="e.g. KL Convention Centre" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
+      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
+      <button onclick="saveVenue()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ MODAL: ADD OTHERS ══════════════════ -->
+<div id="othersModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
+    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+      <h2 class="text-xl font-bold text-gray-800">Add service (others)</h2>
+      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:70vh">
+      <label id="othersImgBox" for="othersImgInput" onclick="triggerBrowse(event,'othersImgInput')"
+        class="img-upload rounded-xl h-40 flex flex-col items-center justify-center gap-2 bg-gray-50 transition w-full overflow-hidden">
+        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="text-sm text-gray-500 font-medium">Upload image</span>
+        <span class="text-xs text-gray-400">Click to browse</span>
+      </label>
+      <input id="othersImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('othersImgInput','othersImgBox','oImgData', 16/9)"/>
+      <input type="hidden" id="oImgData"/>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Service Name</label>
+          <input id="oName" type="text" placeholder="e.g. Live Band" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Category</label>
+          <select id="oCategory" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition bg-white"></select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
+        <textarea id="oDesc" rows="4" placeholder="Describe the service…" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition resize-none"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Base Price (RM)</label>
+          <input id="oPrice" type="number" placeholder="e.g. 800" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Max Capacity</label>
+          <input id="oCapacity" type="number" placeholder="e.g. 50" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Booking Type</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-gray-400 transition">
+              <input type="radio" name="oBooking" value="full" class="accent-neutral-700" checked onchange="toggleOthersTimeSlot(this.value)"/> Full
+            </label>
+            <label class="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-gray-400 transition">
+              <input type="radio" name="oBooking" value="timeslot" class="accent-neutral-700" onchange="toggleOthersTimeSlot(this.value)"/> Time Slot
+            </label>
+          </div>
+        </div>
+        <div id="oTimeSlotWrap" class="hidden">
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Time Slot</label>
+          <input id="oTimeSlot" type="text" placeholder="e.g. 09:00 – 17:00" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
+      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
+      <button onclick="saveOthers()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ MODAL: EDIT SERVICE ══════════════════ -->
+<div id="editServiceModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
+    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+      <h2 class="text-xl font-bold text-gray-800">Edit Service</h2>
+      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:72vh">
+      <label id="esImgBox" for="esImgInput" onclick="triggerBrowse(event,'esImgInput')" class="img-upload rounded-xl h-40 flex flex-col items-center justify-center gap-2 bg-gray-50 transition w-full overflow-hidden">
+        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="text-sm text-gray-500 font-medium">Upload image</span>
+        <span class="text-xs text-gray-400">Click to browse</span>
+      </label>
+      <input id="esImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('esImgInput','esImgBox','esImgData', 16/9)"/>
+      <input type="hidden" id="esImgData"/>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Name</label>
+        <input id="esName" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
+        <textarea id="esDesc" rows="3" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition resize-none"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Price (RM)</label>
+        <input id="esPrice" type="number" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+      </div>
+      <div id="esVenueExtras" class="hidden space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Max Capacity</label>
+            <input id="esCapacity" type="number" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Type</label>
+            <select id="esType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition bg-white">
+              <option value="Indoor">Indoor</option>
+              <option value="Outdoor">Outdoor</option>
+              <option value="Indoor+Outdoor">Indoor + Outdoor</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Time Slot</label>
+          <input id="esTimeSlot" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Venue Name</label>
+          <input id="esVenue" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
+      <button onclick="deleteCurrentService()" class="mr-auto px-6 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-600 hover:bg-rose-100 transition">Delete</button>
+      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
+      <button onclick="updateService()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Update</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ MODAL: EDIT PACKAGE ══════════════════ -->
+<div id="editPackageModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
+    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+      <h2 class="text-xl font-bold text-gray-800">Edit Package</h2>
+      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:72vh">
+      <label id="epImgBox" for="epImgInput" onclick="triggerBrowse(event,'epImgInput')" class="img-upload rounded-xl h-40 flex flex-col items-center justify-center gap-2 bg-gray-50 transition w-full overflow-hidden">
+        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="text-sm text-gray-500 font-medium">Upload image</span>
+        <span class="text-xs text-gray-400">Click to browse</span>
+      </label>
+      <input id="epImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('epImgInput','epImgBox','epImgData', 16/9)"/>
+      <input type="hidden" id="epImgData"/>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Package Name</label>
+        <input id="epName" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
+        <textarea id="epDesc" rows="3" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition resize-none"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Price (RM)</label>
+        <input id="epPrice" type="number" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Included Services</label>
+        <div id="epCategoryList" class="flex flex-wrap gap-3"></div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
+      <button onclick="deleteCurrentPackage()" class="mr-auto px-6 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-600 hover:bg-rose-100 transition">Delete</button>
+      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
+      <button onclick="updatePackage()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Update</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ MODAL: CREATE PACKAGE ══════════════════ -->
+<div id="createPackageModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
+    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+      <h2 class="text-xl font-bold text-gray-800">Create Package</h2>
+      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:72vh">
+      <label id="cpImgBox" for="cpImgInput" onclick="triggerBrowse(event,'cpImgInput')" class="img-upload rounded-xl h-36 flex flex-col items-center justify-center gap-2 bg-gray-50 transition">
+        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="text-sm text-gray-500 font-medium">Upload image</span>
+      </label>
+      <input id="cpImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('cpImgInput','cpImgBox','cpImgData', 16/9)"/>
+      <input type="hidden" id="cpImgData"/>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Package Name</label>
+        <input id="cpName" type="text" placeholder="e.g. Dream Wedding" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
+        <textarea id="cpDesc" rows="3" placeholder="Describe this package…" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition resize-none"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Price (RM)</label>
+        <input id="cpPrice" type="number" placeholder="e.g. 9800" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+      </div>
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Included Services</label>
+          <span id="cpCount" class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">0 selected</span>
+        </div>
+        <div id="cpCategoryList" class="flex flex-wrap gap-3"></div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
+      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
+      <button onclick="savePackage()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ SCRIPT ══════════════════ -->
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const BADGE = { Venue:'badge-venue', Accessories:'badge-decor', Dress:'badge-makeup', Food:'badge-catering', Package:'badge-others', Studio:'badge-photo', Makeup:'badge-makeup', Photography:'badge-photo', Catering:'badge-catering', Decor:'badge-decor', Music:'badge-music', Others:'badge-others' };
+const GRAD  = { Venue:'from-amber-50 to-orange-50', Accessories:'from-yellow-50 to-amber-50', Dress:'from-rose-50 to-orange-50', Food:'from-stone-50 to-emerald-50', Package:'from-stone-50 to-zinc-50', Studio:'from-blue-50 to-stone-50', Makeup:'from-rose-50 to-orange-50', Photography:'from-blue-50 to-stone-50', Catering:'from-stone-50 to-emerald-50', Decor:'from-yellow-50 to-amber-50', Music:'from-red-50 to-stone-50', Others:'from-stone-50 to-zinc-50' };
+const ICON  = { Venue:'🏛️', Accessories:'✨', Dress:'👗', Food:'🍽️', Package:'🎀', Studio:'📸', Makeup:'💄', Photography:'📸', Catering:'🍽️', Decor:'🌸', Music:'🎵', Others:'✨' };
+
+const serviceManagementConfig = window.serviceManagementConfig || {};
+const serviceManagementUrls = serviceManagementConfig.urls || {};
+
+let currentTab = 'services', currentFilter = 'All', statusFilter = 'all', nextId = 200;
+let editingSvcId = null, editingPkgId = null;
+
+function normalizeServiceItem(item) {
+  if (!item || typeof item !== 'object') return null;
+
+  return {
+    ...item,
+    id: Number(item.id),
+    name: item.name || 'Untitled Service',
+    price: Number(item.price || 0),
+    category: item.category || 'Others',
+    status: item.status === 'inactive' ? 'inactive' : 'active',
+    desc: item.desc || item.description || '',
+    img: item.img || item.thumbnail_url || '',
+    capacity: Number(item.capacity || 1)
+  };
+}
+
+function normalizePackageItem(item) {
+  if (!item || typeof item !== 'object') return null;
+
+  return {
+    ...item,
+    id: Number(item.id),
+    name: item.name || 'Untitled Package',
+    price: Number(item.price || item.total_price || 0),
+    categories: Array.isArray(item.categories) ? item.categories : [],
+    status: item.status === 'inactive' ? 'inactive' : 'active',
+    desc: item.desc || item.description || '',
+    img: item.img || item.thumbnail_url || ''
+  };
+}
+
+let services = (serviceManagementConfig.initialData?.services || []).map(normalizeServiceItem).filter(Boolean);
+let packages = (serviceManagementConfig.initialData?.packages || []).map(normalizePackageItem).filter(Boolean);
+let serviceCategories = (serviceManagementConfig.initialData?.categories || [])
+  .map(category => category.name || category)
+  .filter(Boolean);
+
+if (!serviceCategories.length) {
+  serviceCategories = ['Accessories', 'Dress', 'Food', 'Package', 'Studio', 'Venue'];
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[char]));
+}
+
+function categoryOptionHtml(category) {
+  const safeCategory = escapeHtml(category);
+  return `<option value="${safeCategory}">${safeCategory}</option>`;
+}
+
+function packageCheckboxHtml(category, className) {
+  const safeCategory = escapeHtml(category);
+  return `<label class="flex items-center gap-1.5 text-sm cursor-pointer"><input type="checkbox" value="${safeCategory}" class="accent-neutral-700 ${className}" onchange="updateCpCount()"/> ${safeCategory}</label>`;
+}
+
+function renderCategoryControls() {
+  const othersSelect = document.getElementById('oCategory');
+  const epCategoryList = document.getElementById('epCategoryList');
+  const cpCategoryList = document.getElementById('cpCategoryList');
+  const nonVenueCategories = serviceCategories.filter(category => category !== 'Venue');
+  const selectableCategories = nonVenueCategories.length ? nonVenueCategories : serviceCategories;
+
+  if (othersSelect) {
+    othersSelect.innerHTML = selectableCategories.map(categoryOptionHtml).join('');
+  }
+
+  if (epCategoryList) {
+    epCategoryList.innerHTML = serviceCategories.map(category => packageCheckboxHtml(category, 'ep-cb')).join('');
+  }
+
+  if (cpCategoryList) {
+    cpCategoryList.innerHTML = serviceCategories.map(category => packageCheckboxHtml(category, 'cp-cb')).join('');
+  }
+}
+
+async function apiRequest(url, payload = null) {
+  if (!url) {
+    throw new Error('Service management endpoint is not configured.');
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: payload ? JSON.stringify(payload) : '{}'
+  });
+
+  const responseText = await response.text();
+  let data = null;
+
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (error) {
+    throw new Error('Server returned an invalid response. Please check the PHP error shown on the page or server log.');
+  }
+
+  if (!response.ok || data.status === 'error') {
+    throw new Error(data.message || 'Request failed.');
+  }
+  return data;
+}
+
+function upsertItem(list, item) {
+  if (!item || typeof item !== 'object') {
+    throw new Error('Saved item was not returned by the server.');
+  }
+
+  const index = list.findIndex(existing => Number(existing.id) === Number(item.id));
+  if (index >= 0) list[index] = item;
+  else list.unshift(item);
+}
+
+function serviceFormPayload(prefix, category) {
+  return {
+    name: document.getElementById(prefix + 'Name').value.trim(),
+    desc: document.getElementById(prefix + 'Desc').value.trim(),
+    price: document.getElementById(prefix + 'Price').value,
+    category,
+    status: 'active',
+    img: document.getElementById(prefix + 'ImgData').value,
+    capacity: parseInt(document.getElementById(prefix + 'Capacity')?.value || '1') || 1,
+    type: document.getElementById(prefix + 'Type')?.value || '',
+    timeslot: document.getElementById(prefix + 'TimeSlot')?.value.trim() || '',
+    venue: document.getElementById(prefix + 'Venue')?.value.trim() || ''
+  };
+}
+
+function formatPrice(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount.toLocaleString() : '0';
+}
+
+function serviceDetailUrl(id) {
+  return (serviceManagementUrls.serviceDetail || '#') + encodeURIComponent(id);
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render() {
+  const grid  = document.getElementById('cardsGrid');
+  const empty = document.getElementById('emptyState');
+  let items = currentTab === 'services' ? services : packages;
+
+  items = items.filter(Boolean).filter(i => {
+    const catOk = currentTab === 'services'
+      ? (currentFilter === 'All' || i.category === currentFilter)
+      : (currentFilter === 'All' || (i.categories||[]).includes(currentFilter));
+    const statusOk = statusFilter === 'all' || i.status === statusFilter;
+    return catOk && statusOk;
+  });
+
+  grid.innerHTML = '';
+  if (!items.length) { empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  items.forEach(item => grid.insertAdjacentHTML('beforeend', currentTab === 'services' ? svcCard(item) : pkgCard(item)));
+}
+
+function svcCard(item) {
+  item = normalizeServiceItem(item);
+  if (!item) return '';
+  const grad = GRAD[item.category]||'from-stone-100 to-stone-200';
+  const icon = ICON[item.category]||'✨';
+  const isActive = item.status === 'active';
+  const imgInner = item.img
+    ? `<img src="${item.img}" alt="${item.name}"/>`
+    : `<div class="card-icon"><span style="font-size:2.8rem;line-height:1">${icon}</span></div>`;
+  return `
+  <div class="service-card rounded-xl border border-gray-100 overflow-hidden" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
+    <div class="card-img-wrap bg-gradient-to-br ${grad}">
+      ${imgInner}
+    </div>
+    <div class="card-img-overlay"></div>
+    <!-- Edit icon top-left -->
+    <button onclick='openEditService(${item.id})' class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+    <button onclick='deleteService(${item.id})' class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete service">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+    </button>
+    <!-- Status pill top-right -->
+    <span class="status-pill ${isActive?'active-pill':'inactive-pill'} absolute top-2.5 right-2.5 z-10">
+      <span class="status-dot ${isActive?'dot-green':'dot-gray'}"></span>
+      ${isActive?'Active':'Inactive'}
+    </span>
+    <div class="card-content p-4 flex flex-col gap-2.5 justify-end">
+      <div class="flex-1 flex flex-col justify-end">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE[item.category]||''}">${item.category}</span>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
+        <p class="text-custom-primary font-bold text-sm mt-0.5">RM ${formatPrice(item.price)}</p>
+        ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
+      </div>
+      <div class="pt-2.5 border-t border-gray-100">
+        <a href="${serviceDetailUrl(item.id)}"
+          class="btn-card flex w-full items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-semibold bg-white/90 text-gray-800 border border-white/30 hover:bg-white">
+          Manage details
+        </a>
+      </div>
+    </div>
+  </div>`;
+}
+
+function pkgCard(item) {
+  item = normalizePackageItem(item);
+  if (!item) return '';
+  const cats = item.categories||[];
+  const grad = cats.length ? (GRAD[cats[0]]||'from-stone-50 to-stone-100') : 'from-stone-50 to-stone-100';
+  const icons = cats.map(c=>ICON[c]||'🎀').join(' ');
+  const isActive = item.status === 'active';
+  const badges = cats.map(c=>`<span class="text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE[c]||''}">${c}</span>`).join('');
+  const imgInner = item.img
+    ? `<img src="${item.img}" alt="${item.name}"/>`
+    : `<div class="card-icon"><span style="font-size:2.4rem;line-height:1;letter-spacing:0.1em">${icons||'🎀'}</span></div>`;
+  return `
+  <div class="service-card rounded-xl border border-gray-100 overflow-hidden" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
+    <div class="card-img-wrap bg-gradient-to-br ${grad}">
+      ${imgInner}
+    </div>
+    <div class="card-img-overlay"></div>
+    <!-- Edit icon top-left -->
+    <button onclick='openEditPackage(${item.id})' class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+    <button onclick='deletePackage(${item.id})' class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete package">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+    </button>
+    <!-- Status pill top-right -->
+    <span class="status-pill ${isActive?'active-pill':'inactive-pill'} absolute top-2.5 right-2.5 z-10">
+      <span class="status-dot ${isActive?'dot-green':'dot-gray'}"></span>
+      ${isActive?'Active':'Inactive'}
+    </span>
+    <div class="card-content p-4 flex flex-col gap-2.5 justify-end">
+      <div class="flex-1 flex flex-col justify-end">
+        <div class="mb-1.5">
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-stone-100 text-stone-700">Package</span>
+        </div>
+        <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
+        <p class="text-custom-primary font-bold text-sm mt-0.5">RM ${formatPrice(item.price)}</p>
+        ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
+        <div class="flex flex-wrap gap-1 mt-2">${badges}</div>
+      </div>
+      <div class="pt-2.5 border-t border-gray-100">
+        <button type="button"
+          class="btn-card w-full py-1.5 rounded-lg text-xs font-semibold bg-white/90 text-gray-800 border border-white/30">
+          Package details
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.remove('active','text-gray-800','border-gray-800');
+    b.classList.add('text-gray-400','border-transparent');
+  });
+  const el = document.getElementById('tab-'+tab);
+  el.classList.add('active','text-gray-800','border-gray-800');
+  el.classList.remove('text-gray-400','border-transparent');
+  currentFilter = 'All';
+  render();
+}
+
+// ── STATUS FILTER ─────────────────────────────────────────────
+function setStatusFilter(f) {
+  statusFilter = f;
+  document.querySelectorAll('.sf-btn').forEach(b => {
+    b.classList.remove('bg-custom-primary','text-white');
+    b.classList.add('bg-white','border','border-gray-200','text-gray-500');
+  });
+  const el = document.getElementById('sf-'+f);
+  el.classList.add('bg-custom-primary','text-white');
+  el.classList.remove('bg-white','border','border-gray-200','text-gray-500');
+  render();
+}
+
+// ── CLOSE ALL MODALS ──────────────────────────────────────────
+function closeAll() {
+  if(currentCropperInstance) { currentCropperInstance.destroy(); currentCropperInstance = null; }
+  ['venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+
+// ── ADD VENUE ─────────────────────────────────────────────────
+function openAddVenue() {
+  ['vName','vDesc','vPrice','vCapacity','vTimeSlot','vVenue','vImgData'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('vType').value='';
+  document.querySelectorAll('input[name="vBooking"]')[0].checked=true;
+  resetImgBox('venueImgBox', true);
+  document.getElementById('venueModal').classList.remove('hidden');
+}
+async function saveVenue() {
+  const name=document.getElementById('vName').value.trim(), price=parseFloat(document.getElementById('vPrice').value);
+  if (!name||isNaN(price)) { alert('Please fill in service name and price.'); return; }
+  try {
+    const result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('v', 'Venue'));
+    upsertItem(services, result.item);
+    closeAll(); currentTab='services'; switchTab('services');
+  } catch (error) { alert(error.message); }
+}
+
+// ── ADD OTHERS ────────────────────────────────────────────────
+function openAddOthers() {
+  ['oName','oDesc','oPrice','oCapacity','oTimeSlot','oImgData'].forEach(id => document.getElementById(id).value='');
+  document.querySelectorAll('input[name="oBooking"]')[0].checked=true;
+  document.getElementById('oTimeSlotWrap').classList.add('hidden');
+  resetImgBox('othersImgBox', true);
+  document.getElementById('othersModal').classList.remove('hidden');
+}
+async function saveOthers() {
+  const name=document.getElementById('oName').value.trim(), price=parseFloat(document.getElementById('oPrice').value);
+  if (!name||isNaN(price)) { alert('Please fill in service name and price.'); return; }
+  try {
+    const result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('o', document.getElementById('oCategory').value));
+    upsertItem(services, result.item);
+    closeAll(); currentTab='services'; switchTab('services');
+  } catch (error) { alert(error.message); }
+}
+
+// ── EDIT SERVICE ──────────────────────────────────────────────
+function openEditService(id) {
+  const item=services.find(s=>s.id===id); if (!item) return;
+  editingSvcId=id;
+  document.getElementById('esName').value=item.name;
+  document.getElementById('esDesc').value=item.desc||'';
+  document.getElementById('esPrice').value=item.price;
+  document.getElementById('esImgData').value=item.img||'';
+  if (item.img) renderConfirmedImage(item.img, item.img, 'esImgInput', 'esImgBox', 'esImgData', 16/9);
+  else resetImgBox('esImgBox', true);
+  const extras=document.getElementById('esVenueExtras');
+  if (item.category==='Venue') {
+    extras.classList.remove('hidden');
+    document.getElementById('esCapacity').value=item.capacity||'';
+    document.getElementById('esType').value=item.type||'';
+    document.getElementById('esTimeSlot').value=item.timeslot||'';
+    document.getElementById('esVenue').value=item.venue||'';
+  } else extras.classList.add('hidden');
+  document.getElementById('editServiceModal').classList.remove('hidden');
+}
+async function updateService() {
+  const item=services.find(s=>s.id===editingSvcId); if (!item) return;
+  const payload = {
+    ...item,
+    name: document.getElementById('esName').value.trim()||item.name,
+    desc: document.getElementById('esDesc').value.trim(),
+    price: parseFloat(document.getElementById('esPrice').value)||item.price,
+    img: document.getElementById('esImgData').value,
+    capacity: parseInt(document.getElementById('esCapacity')?.value || item.capacity || '1') || 1,
+    type: document.getElementById('esType')?.value || item.type || '',
+    timeslot: document.getElementById('esTimeSlot')?.value.trim() || item.timeslot || '',
+    venue: document.getElementById('esVenue')?.value.trim() || item.venue || ''
+  };
+  try {
+    const result = await apiRequest(serviceManagementUrls.serviceUpdate + editingSvcId, payload);
+    upsertItem(services, result.item);
+    closeAll(); render();
+  } catch (error) { alert(error.message); }
+}
+
+async function deleteService(id) {
+  const item=services.find(s=>s.id===id); if (!item) return;
+  if (!confirm(`Delete "${item.name}"?`)) return;
+  try {
+    await apiRequest(serviceManagementUrls.serviceDelete + id);
+    services=services.filter(s=>Number(s.id)!==Number(id));
+    closeAll(); render();
+  } catch (error) { alert(error.message); }
+}
+
+function deleteCurrentService() {
+  if (editingSvcId===null) return;
+  deleteService(editingSvcId);
+}
+
+// ── EDIT PACKAGE ──────────────────────────────────────────────
+function openEditPackage(id) {
+  const item=packages.find(p=>p.id===id); if (!item) return;
+  editingPkgId=id;
+  document.getElementById('epName').value=item.name;
+  document.getElementById('epDesc').value=item.desc||'';
+  document.getElementById('epPrice').value=item.price;
+  document.getElementById('epImgData').value=item.img||'';
+  if (item.img) renderConfirmedImage(item.img, item.img, 'epImgInput', 'epImgBox', 'epImgData', 16/9);
+  else resetImgBox('epImgBox', true);
+  document.querySelectorAll('.ep-cb').forEach(checkbox=>{
+    checkbox.checked=(item.categories||[]).includes(checkbox.value);
+  });
+  document.getElementById('editPackageModal').classList.remove('hidden');
+}
+async function updatePackage() {
+  const item=packages.find(p=>p.id===editingPkgId); if (!item) return;
+  const payload = {
+    ...item,
+    name: document.getElementById('epName').value.trim()||item.name,
+    desc: document.getElementById('epDesc').value.trim(),
+    price: parseFloat(document.getElementById('epPrice').value)||item.price,
+    img: document.getElementById('epImgData').value,
+    categories: Array.from(document.querySelectorAll('.ep-cb:checked')).map(c=>c.value)
+  };
+  try {
+    const result = await apiRequest(serviceManagementUrls.packageUpdate + editingPkgId, payload);
+    upsertItem(packages, result.item);
+    closeAll(); render();
+  } catch (error) { alert(error.message); }
+}
+
+async function deletePackage(id) {
+  const item=packages.find(p=>p.id===id); if (!item) return;
+  if (!confirm(`Delete "${item.name}"?`)) return;
+  try {
+    await apiRequest(serviceManagementUrls.packageDelete + id);
+    packages=packages.filter(p=>Number(p.id)!==Number(id));
+    closeAll(); render();
+  } catch (error) { alert(error.message); }
+}
+
+function deleteCurrentPackage() {
+  if (editingPkgId===null) return;
+  deletePackage(editingPkgId);
+}
+
+// ── CREATE PACKAGE ────────────────────────────────────────────
+function openPackageModal() {
+  ['cpName','cpDesc','cpPrice','cpImgData'].forEach(id=>document.getElementById(id).value='');
+  document.querySelectorAll('.cp-cb').forEach(c=>c.checked=false);
+  resetImgBox('cpImgBox', true);
+  updateCpCount();
+  document.getElementById('createPackageModal').classList.remove('hidden');
+}
+function updateCpCount() {
+  const n=document.querySelectorAll('.cp-cb:checked').length;
+  document.getElementById('cpCount').textContent=n+' selected';
+}
+async function savePackage() {
+  const name=document.getElementById('cpName').value.trim(), price=parseFloat(document.getElementById('cpPrice').value);
+  if (!name||isNaN(price)) { alert('Please fill in package name and price.'); return; }
+  try {
+    const result = await apiRequest(serviceManagementUrls.packageCreate, {
+      name,
+      price,
+      desc: document.getElementById('cpDesc').value.trim(),
+      img: document.getElementById('cpImgData').value,
+      categories: Array.from(document.querySelectorAll('.cp-cb:checked')).map(c=>c.value),
+      status: 'active'
+    });
+    upsertItem(packages, result.item);
+    closeAll(); currentTab='packages'; switchTab('packages');
+  } catch (error) { alert(error.message); }
+}
+
+// ── TOGGLE STATUS ────────────────────────────────────────────
+async function toggleStatus(id, type) {
+  const list=type==='service'?services:packages;
+  const item=list.find(i=>i.id===id);
+  if (!item) return;
+  const nextStatus = item.status==='active'?'inactive':'active';
+  try {
+    const url = type === 'service' ? serviceManagementUrls.serviceStatus : serviceManagementUrls.packageStatus;
+    const result = await apiRequest(url + id, { status: nextStatus });
+    upsertItem(list, result.item);
+    render();
+  } catch (error) { alert(error.message); }
+}
+
+// ── PHOTO HANDLING EXTENSIONS ────────────────────────────────
+let currentCropperInstance = null;
+
+function triggerBrowse(e, inputId) {
+  if (e.target.closest('.adjust-overlay-bar') || e.target.closest('.edit-icon-btn')) return;
+  if (e.currentTarget && e.currentTarget.dataset.mode === 'adjusting') return;
+  const input = document.getElementById(inputId);
+  input.value = '';
+  if (e.currentTarget && e.currentTarget.getAttribute('for') === inputId) return;
+  input.click();
+}
+
+function hasCropperSupport() { return typeof Cropper !== 'undefined'; }
+
+function destroyCurrentCropper() {
+  if (currentCropperInstance) {
+    currentCropperInstance.destroy();
+    currentCropperInstance = null;
+  }
+}
+
+function renderConfirmedImage(dataURL, sourceImageURL, inputId, boxId, dataId, aspectRatio) {
+  const box = document.getElementById(boxId);
+  box.removeAttribute('for');
+  box.dataset.masterSource = sourceImageURL || dataURL;
+  box.dataset.mode = 'confirmed';
+  document.getElementById(dataId).value = dataURL;
+  box.style.border = 'none';
+
+  const adjustButton = hasCropperSupport() ? `
+        <button type="button" 
+          onclick="reopenAdjustmentFrameworkFromBox('${inputId}', '${boxId}', '${dataId}', ${aspectRatio})"
+          class="p-1.5 hover:bg-white/20 rounded-lg text-white transition flex items-center justify-center" 
+          title="Adjust Position">
+          <svg class="w-4 h-4 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <div class="h-4 w-px bg-white/20"></div>` : '';
+
+  box.innerHTML = `
+    <div class="img-upload-container w-full h-full relative group">
+      <img src="${dataURL}" class="w-full h-full object-cover rounded-xl"/>
+      <div class="edit-icon-btn absolute top-2 right-2 flex items-center gap-1.5 bg-black/70 backdrop-blur-md p-1 rounded-xl shadow-lg border border-white/10 transition-opacity duration-200 md:opacity-0" onclick="event.stopPropagation()">
+        ${adjustButton}
+        <button type="button" onclick="uploadDifferentPhoto('${inputId}')" class="p-1.5 hover:bg-white/20 rounded-lg text-white transition flex items-center justify-center">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function uploadDifferentPhoto(inputId) {
+  const input = document.getElementById(inputId);
+  input.value = '';
+  input.click();
+}
+
+function initAdjustmentFramework(inputId, boxId, dataId, aspectRatio) {
+  const file = document.getElementById(inputId).files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const box = document.getElementById(boxId);
+    box.removeAttribute('for');
+    box.dataset.mode = 'adjusting';
+    box.style.border = 'none';
+    
+    destroyCurrentCropper();
+
+    if (!hasCropperSupport()) {
+      renderConfirmedImage(e.target.result, e.target.result, inputId, boxId, dataId, aspectRatio);
+      return;
+    }
+
+    box.innerHTML = `
+      <div class="w-full h-full relative bg-black flex items-center justify-center">
+        <img id="${boxId}_cropTarget" src="${e.target.result}" class="max-w-full max-h-full block">
+        <div class="adjust-overlay-bar absolute top-2 right-2 flex items-center gap-1 bg-black/75 backdrop-blur-md px-2 py-1.5 rounded-xl z-30 shadow-lg border border-white/10" onclick="event.stopPropagation()">
+          <button type="button" onclick="cropperAction('move')" class="p-1.5 hover:bg-white/20 rounded-lg text-white text-xs font-medium flex items-center gap-1 transition"><span>Adjust Position</span></button>
+          <button type="button" onclick="cropperAction('zoomIn')" class="p-1.5 hover:bg-white/20 rounded-lg text-white transition">+</button>
+          <button type="button" onclick="cropperAction('zoomOut')" class="p-1.5 hover:bg-white/20 rounded-lg text-white transition">-</button>
+          <button type="button" onclick="finalizeAdjustment('${boxId}_cropTarget', '${dataId}', '${boxId}', '${inputId}', ${aspectRatio})" class="ml-1 px-2.5 py-1 bg-custom-primary text-white rounded-md text-xs font-bold transition shadow-sm">Apply</button>
+        </div>
+      </div>
+    `;
+
+    try {
+      currentCropperInstance = new Cropper(document.getElementById(`${boxId}_cropTarget`), {
+        aspectRatio: aspectRatio, viewMode: 1, dragMode: 'move', autoCropArea: 1, restore: false, guides: false, center: true, highlight: false, cropBoxMovable: false, cropBoxResizable: false, toggleDragModeOnDblclick: false
+      });
+    } catch (error) {
+      destroyCurrentCropper();
+      renderConfirmedImage(e.target.result, e.target.result, inputId, boxId, dataId, aspectRatio);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function cropperAction(action) {
+  if (!currentCropperInstance) return;
+  if (action === 'move') currentCropperInstance.setDragMode('move');
+  if (action === 'zoomIn') currentCropperInstance.zoom(0.1);
+  if (action === 'zoomOut') currentCropperInstance.zoom(-0.1);
+}
+
+function finalizeAdjustment(imgTargetId, dataId, boxId, inputId, aspectRatio) {
+  if (!currentCropperInstance) return;
+  const canvas = currentCropperInstance.getCroppedCanvas({ width: 640, height: 360 });
+  if (!canvas) return;
+  const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+  const masterSource = currentCropperInstance.element.src || dataURL;
+  destroyCurrentCropper();
+  renderConfirmedImage(dataURL, masterSource, inputId, boxId, dataId, aspectRatio);
+}
+
+function reopenAdjustmentFrameworkFromBox(inputId, boxId, dataId, aspectRatio) {
+  const box = document.getElementById(boxId);
+  const sourceImageURL = box.dataset.masterSource || document.getElementById(dataId).value;
+  if (sourceImageURL) reopenAdjustmentFramework(sourceImageURL, inputId, boxId, dataId, aspectRatio);
+}
+
+function reopenAdjustmentFramework(sourceImageURL, inputId, boxId, dataId, aspectRatio) {
+  if (!hasCropperSupport()) return;
+  destroyCurrentCropper();
+  
+  const box = document.getElementById(boxId);
+  box.removeAttribute('for');
+  box.dataset.mode = 'adjusting';
+
+  box.innerHTML = `
+    <div class="w-full h-full relative bg-black flex items-center justify-center">
+      <img id="${boxId}_cropTarget" src="${sourceImageURL}" class="max-w-full max-h-full block">
+      <div class="adjust-overlay-bar absolute top-2 right-2 flex items-center gap-1 bg-black/75 backdrop-blur-md px-2 py-1.5 rounded-xl z-30 shadow-lg border border-white/10" onclick="event.stopPropagation()">
+        <button type="button" onclick="cancelAdjustmentFromBox('${dataId}', '${boxId}', '${inputId}', ${aspectRatio})" class="px-2.5 py-1 bg-gray-600 text-white rounded-md text-xs font-medium transition">Cancel</button>
+        <button type="button" onclick="finalizeAdjustment('${boxId}_cropTarget', '${dataId}', '${boxId}', '${inputId}', ${aspectRatio})" class="px-2.5 py-1 bg-custom-primary text-white rounded-md text-xs font-bold transition shadow-sm">Apply</button>
+      </div>
+    </div>
+  `;
+
+  try {
+    currentCropperInstance = new Cropper(document.getElementById(`${boxId}_cropTarget`), {
+      aspectRatio: aspectRatio, viewMode: 1, dragMode: 'move', autoCropArea: 1, restore: false, guides: false, center: true, highlight: false, cropBoxMovable: false, cropBoxResizable: false, toggleDragModeOnDblclick: false
+    });
+  } catch (error) {
+    destroyCurrentCropper();
+    renderConfirmedImage(sourceImageURL, sourceImageURL, inputId, boxId, dataId, aspectRatio);
+  }
+}
+
+function cancelAdjustmentFromBox(dataId, boxId, inputId, aspectRatio) {
+  const box = document.getElementById(boxId);
+  destroyCurrentCropper();
+  const savedData = document.getElementById(dataId).value;
+  renderConfirmedImage(savedData, box.dataset.masterSource || savedData, inputId, boxId, dataId, aspectRatio);
+}
+
+function resetImgBox(boxId, wide) {
+  const box = document.getElementById(boxId);
+  box.style.border = '';
+  delete box.dataset.masterSource;
+  box.dataset.mode = 'empty';
+  const inputMap = { venueImgBox: 'venueImgInput', othersImgBox: 'othersImgInput', esImgBox: 'esImgInput', epImgBox: 'epImgInput', cpImgBox: 'cpImgInput' };
+  box.setAttribute('for', inputMap[boxId]);
+  
+  if (wide) {
+    box.innerHTML = `<svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="text-sm text-gray-500 font-medium">Upload image</span>`;
+  }
+}
+
+function toggleVenueTimeSlot(val) {
+  const wrap = document.getElementById('vTimeSlotWrap');
+  if (val === 'timeslot') wrap.classList.remove('hidden');
+  else { wrap.classList.add('hidden'); document.getElementById('vTimeSlot').value = ''; }
+}
+
+function toggleOthersTimeSlot(val) {
+  const wrap = document.getElementById('oTimeSlotWrap');
+  if (val === 'timeslot') wrap.classList.remove('hidden');
+  else { wrap.classList.add('hidden'); document.getElementById('oTimeSlot').value = ''; }
+}
+
+// Close when overlay is clicked
+['venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click', function(e){ if(e.target===this) closeAll(); });
+});
+
+renderCategoryControls();
+render();
+</script>
+</body>
+</html>

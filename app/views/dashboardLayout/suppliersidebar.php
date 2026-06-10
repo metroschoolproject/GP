@@ -109,8 +109,8 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                     <span class="rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-warning"><?= $pendingBookings ?></span>
                 <?php endif; ?>
             </a>
-            <a href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
-                <i data-lucide="briefcase-business" class="h-4 w-4 text-app-header-muted"></i>
+            <a href="<?= URLROOT ?>/supplier/services" class="<?= dashboard_supplier_nav_class('supplier/services', $currentPath, true) ?>">
+                <i data-lucide="briefcase-business" class="h-4 w-4"></i>
                 <span class="flex-1">Services</span>
             </a>
             <a href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
@@ -157,9 +157,29 @@ if (!function_exists('dashboard_supplier_path_matches')) {
 <main class="overflow-y-auto">
     <div class="sticky top-0 z-40 flex flex-col gap-4 border-b border-app-border bg-app-sidebar/95 px-6 py-[18px] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-app-header-muted">
-                <span class="text-app-text"><?= htmlspecialchars($dashboardTitle ?? 'Supplier', ENT_QUOTES, 'UTF-8') ?></span> / <?= htmlspecialchars($dashboardCrumb ?? 'Overview', ENT_QUOTES, 'UTF-8') ?>
-            </p>
+            <?php
+            $dashboardBreadcrumbs = $dashboardBreadcrumbs ?? [
+                ['label' => $dashboardTitle ?? 'Supplier', 'url' => null],
+                ['label' => $dashboardCrumb ?? 'Overview', 'url' => null],
+            ];
+            ?>
+            <nav aria-label="Breadcrumb" class="mb-1 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-app-header-muted">
+                <?php foreach ($dashboardBreadcrumbs as $index => $crumb): ?>
+                    <?php
+                    $crumbLabel = htmlspecialchars($crumb['label'] ?? '', ENT_QUOTES, 'UTF-8');
+                    $crumbUrl = $crumb['url'] ?? null;
+                    $isLastCrumb = $index === count($dashboardBreadcrumbs) - 1;
+                    ?>
+                    <?php if ($index > 0): ?>
+                        <span class="text-app-header-muted">/</span>
+                    <?php endif; ?>
+                    <?php if (!$isLastCrumb && $crumbUrl): ?>
+                        <a href="<?= htmlspecialchars($crumbUrl, ENT_QUOTES, 'UTF-8') ?>" class="text-app-header-muted transition hover:text-app-text"><?= $crumbLabel ?></a>
+                    <?php else: ?>
+                        <span class="<?= $isLastCrumb ? 'text-app-text' : 'text-app-header-muted' ?>"><?= $crumbLabel ?></span>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </nav>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">

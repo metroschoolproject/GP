@@ -12,7 +12,13 @@ class SupplierProfile
     private function getUserId($data)
     {
         if (!empty($data['user_id'])) {
-            return (int)$data['user_id'];
+            $this->db->dbquery('SELECT user_id FROM users WHERE user_id = :user_id LIMIT 1');
+            $this->db->dbbind(':user_id', (int)$data['user_id']);
+            $user = $this->db->getsingledata();
+
+            if ($user) {
+                return (int)$user['user_id'];
+            }
         }
 
         $this->db->dbquery('SELECT user_id FROM users WHERE email = :email LIMIT 1');
