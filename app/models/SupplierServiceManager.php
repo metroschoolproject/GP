@@ -524,8 +524,119 @@ class SupplierServiceManager
         $duration = max(15, (int)($service['duration_minutes'] ?? 60));
         $buffer = max(0, (int)($service['buffer_minutes'] ?? 0));
         $slots = $this->buildSlots($date, $openTime, $closeTime, $duration, $buffer);
+        $slots = array_map(function ($slot) use ($serviceId, $date, $service) {
+            return $this->ensureServiceTimeSlot(
+                $serviceId,
+                $date,
+                $slot['start_time'],
+                $slot['end_time'],
+                (int)($service['capacity'] ?? 1)
+            );
+        }, $slots);
 
         return ['date' => $date, 'status' => empty($slots) ? 'closed' : 'open', 'slots' => $slots];
+    }
+
+    public function reserveServiceSlot($slotId)
+    {
+        $this->db->dbquery(
+            "UPDATE service_time_slots
+             SET confirmed_count = confirmed_count + 1,
+                 status = CASE
+                    WHEN confirmed_count + 1 >= max_concurrent THEN 'full'
+                    ELSE 'available'
+                 END
+             WHERE id = :id
+               AND status = 'available'
+               AND confirmed_count < max_concurrent"
+        );
+        $this->db->dbbind(':id', (int)$slotId);
+        $this->db->dbexecute();
+
+        return $this->db->rowcount() > 0;
+    }
+
+    public function releaseServiceSlot($slotId)
+    {
+        $this->db->dbquery(
+            "UPDATE service_time_slots
+             SET confirmed_count = GREATEST(confirmed_count - 1, 0),
+                 status = CASE
+                    WHEN GREATEST(confirmed_count - 1, 0) >= max_concurrent THEN 'full'
+                    ELSE 'available'
+                 END
+             WHERE id = :id"
+        );
+        $this->db->dbbind(':id', (int)$slotId);
+        $this->db->dbexecute();
+
+        return $this->db->rowcount() > 0;
+    }
+
+    public function reserveBookingItemSlot($bookingItemId)
+    {
+        $this->db->dbquery('SELECT slot_id FROM booking_items WHERE id = :id LIMIT 1');
+        $this->db->dbbind(':id', (int)$bookingItemId);
+        $item = $this->db->getsingledata();
+
+        if (empty($item['slot_id'])) {
+            return false;
+        }
+
+        return $this->reserveServiceSlot((int)$item['slot_id']);
+    }
+
+    public function releaseBookingItemSlot($bookingItemId)
+    {
+        $this->db->dbquery('SELECT slot_id FROM booking_items WHERE id = :id LIMIT 1');
+        $this->db->dbbind(':id', (int)$bookingItemId);
+        $item = $this->db->getsingledata();
+
+        if (empty($item['slot_id'])) {
+            return false;
+        }
+
+        return $this->releaseServiceSlot((int)$item['slot_id']);
+    }
+
+    public function reserveBookingSlots($bookingId)
+    {
+        $this->db->dbquery(
+            'SELECT slot_id
+             FROM booking_items
+             WHERE booking_id = :booking_id
+               AND slot_id IS NOT NULL
+               AND status <> :cancelled_status'
+        );
+        $this->db->dbbind(':booking_id', (int)$bookingId);
+        $this->db->dbbind(':cancelled_status', 'cancelled');
+        $items = $this->db->getmultidata();
+
+        foreach ($items as $item) {
+            if (!$this->reserveServiceSlot((int)$item['slot_id'])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function releaseBookingSlots($bookingId)
+    {
+        $this->db->dbquery(
+            'SELECT slot_id
+             FROM booking_items
+             WHERE booking_id = :booking_id
+               AND slot_id IS NOT NULL'
+        );
+        $this->db->dbbind(':booking_id', (int)$bookingId);
+        $items = $this->db->getmultidata();
+
+        foreach ($items as $item) {
+            $this->releaseServiceSlot((int)$item['slot_id']);
+        }
+
+        return true;
     }
 
     public function getServiceMedia($serviceId, $supplierId)
@@ -677,6 +788,78 @@ class SupplierServiceManager
         }
 
         return $slots;
+    }
+
+    private function ensureServiceTimeSlot($serviceId, $date, $startTime, $endTime, $maxConcurrent)
+    {
+        $startTime = strlen($startTime) === 5 ? $startTime . ':00' : $startTime;
+        $endTime = strlen($endTime) === 5 ? $endTime . ':00' : $endTime;
+        $maxConcurrent = max(1, (int)$maxConcurrent);
+
+        $this->db->dbquery(
+            'SELECT id, confirmed_count, max_concurrent, status
+             FROM service_time_slots
+             WHERE service_id = :service_id
+               AND date = :date
+               AND start_time = :start_time
+               AND end_time = :end_time
+             LIMIT 1'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':date', $date);
+        $this->db->dbbind(':start_time', $startTime);
+        $this->db->dbbind(':end_time', $endTime);
+        $slot = $this->db->getsingledata();
+
+        if ($slot) {
+            if ((int)$slot['max_concurrent'] !== $maxConcurrent) {
+                $status = (int)$slot['confirmed_count'] >= $maxConcurrent ? 'full' : 'available';
+                $this->db->dbquery(
+                    'UPDATE service_time_slots
+                     SET max_concurrent = :max_concurrent,
+                         status = :status
+                     WHERE id = :id'
+                );
+                $this->db->dbbind(':max_concurrent', $maxConcurrent);
+                $this->db->dbbind(':status', $status);
+                $this->db->dbbind(':id', (int)$slot['id']);
+                $this->db->dbexecute();
+
+                $slot['max_concurrent'] = $maxConcurrent;
+                $slot['status'] = $status;
+            }
+
+            return [
+                'id' => (int)$slot['id'],
+                'start_time' => substr($startTime, 0, 5),
+                'end_time' => substr($endTime, 0, 5),
+                'confirmed_count' => (int)$slot['confirmed_count'],
+                'max_concurrent' => (int)$slot['max_concurrent'],
+                'status' => $slot['status'],
+            ];
+        }
+
+        $this->db->dbquery(
+            'INSERT INTO service_time_slots(service_id, date, start_time, end_time, confirmed_count, max_concurrent, status)
+             VALUES(:service_id, :date, :start_time, :end_time, :confirmed_count, :max_concurrent, :status)'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':date', $date);
+        $this->db->dbbind(':start_time', $startTime);
+        $this->db->dbbind(':end_time', $endTime);
+        $this->db->dbbind(':confirmed_count', 0);
+        $this->db->dbbind(':max_concurrent', $maxConcurrent);
+        $this->db->dbbind(':status', 'available');
+        $this->db->dbexecute();
+
+        return [
+            'id' => (int)$this->db->lastinsertid(),
+            'start_time' => substr($startTime, 0, 5),
+            'end_time' => substr($endTime, 0, 5),
+            'confirmed_count' => 0,
+            'max_concurrent' => $maxConcurrent,
+            'status' => 'available',
+        ];
     }
 
     private function formatPackage($package)

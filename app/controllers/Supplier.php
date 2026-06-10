@@ -791,6 +791,26 @@ class Supplier extends Controller
         $this->jsonResponse(['status' => 'success', 'preview' => $preview]);
     }
 
+    public function serviceSlotReserve($slotId = null)
+    {
+        $this->authorizedSupplierForServiceManagement();
+        $reserved = $this->serviceManagementModel->reserveServiceSlot((int)$slotId);
+
+        if (!$reserved) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'This slot is already full or unavailable.'], 409);
+        }
+
+        $this->jsonResponse(['status' => 'success']);
+    }
+
+    public function serviceSlotRelease($slotId = null)
+    {
+        $this->authorizedSupplierForServiceManagement();
+        $released = $this->serviceManagementModel->releaseServiceSlot((int)$slotId);
+
+        $this->jsonResponse(['status' => $released ? 'success' : 'error']);
+    }
+
     public function packageCreate()
     {
         $supplier = $this->authorizedSupplierForServiceManagement();
