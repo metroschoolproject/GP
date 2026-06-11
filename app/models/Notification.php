@@ -67,6 +67,68 @@ class Notification
         return $this->db->getmultidata();
     }
 
+    public function getAll($userId = null, $limit = 50)
+    {
+        $query = 'SELECT id, title, message, type, reference_type, reference_id, is_read, created_at
+                  FROM notifications';
+
+        if ($userId) {
+            $query .= ' WHERE user_id = :user_id OR user_id IS NULL';
+        }
+
+        $query .= ' ORDER BY id DESC LIMIT :limit';
+
+        $this->db->dbquery($query);
+
+        if ($userId) {
+            $this->db->dbbind(':user_id', (int)$userId);
+        }
+
+        $this->db->dbbind(':limit', max(1, min(100, (int)$limit)), PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
+    }
+
+    public function getById($notificationId, $userId = null)
+    {
+        $query = 'SELECT id, title, message, type, reference_type, reference_id, is_read, created_at
+                  FROM notifications
+                  WHERE id = :id';
+
+        if ($userId) {
+            $query .= ' AND (user_id = :user_id OR user_id IS NULL)';
+        }
+
+        $query .= ' LIMIT 1';
+
+        $this->db->dbquery($query);
+        $this->db->dbbind(':id', (int)$notificationId);
+
+        if ($userId) {
+            $this->db->dbbind(':user_id', (int)$userId);
+        }
+
+        return $this->db->getsingledata();
+    }
+
+    public function getLatestForReference($type, $referenceType, $referenceId)
+    {
+        $this->db->dbquery(
+            'SELECT id, title, message, type, reference_type, reference_id, is_read, created_at
+             FROM notifications
+             WHERE type = :type
+               AND reference_type = :reference_type
+               AND reference_id = :reference_id
+             ORDER BY id DESC
+             LIMIT 1'
+        );
+        $this->db->dbbind(':type', $type);
+        $this->db->dbbind(':reference_type', $referenceType);
+        $this->db->dbbind(':reference_id', (int)$referenceId);
+
+        return $this->db->getsingledata();
+    }
+
     public function markRead($notificationId, $userId = null)
     {
         $query = 'UPDATE notifications SET is_read = 1 WHERE id = :id';

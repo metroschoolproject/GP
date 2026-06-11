@@ -3,6 +3,8 @@
 class SupplierServiceManager
 {
     private $db;
+    private $hasServicePriceRangeColumns = null;
+    private $hasVenueServiceColumn = null;
 
     public function __construct()
     {
@@ -61,10 +63,14 @@ class SupplierServiceManager
 
     public function getServices($supplierId, $limit = null, $offset = 0)
     {
+        $priceRangeFields = $this->servicePriceRangeSelectFields();
+        $venueSelectFields = $this->venueSelectFields();
+        $venueJoin = $this->venueJoinClause();
         $query = 'SELECT services.id,
                          services.name,
                          services.description,
                          services.price,
+                         ' . $priceRangeFields . '
                          services.thumbnail_url,
                          services.is_active,
                          services.booking_type,
@@ -72,9 +78,11 @@ class SupplierServiceManager
                          services.buffer_minutes,
                          services.pricing_unit,
                          services.max_concurrent,
+                         ' . $venueSelectFields . '
                          categories.name AS category
                   FROM services
                   LEFT JOIN categories ON categories.id = services.category_id
+                  ' . $venueJoin . '
                   WHERE services.supplier_id = :supplier_id
                   ORDER BY services.created_at DESC, services.id DESC';
 
@@ -111,20 +119,25 @@ class SupplierServiceManager
     public function createService($supplierId, $data)
     {
         $categoryId = $this->findOrCreateCategory($data['category'] ?? 'Others');
+        $priceRangeColumns = $this->hasServicePriceRangeColumns() ? ', price_min, price_max' : '';
+        $priceRangeValues = $this->hasServicePriceRangeColumns() ? ', :price_min, :price_max' : '';
 
         $this->db->dbquery(
             'INSERT INTO services(
-                supplier_id, category_id, name, description, price, thumbnail_url,
+                supplier_id, category_id, name, description, price' . $priceRangeColumns . ', thumbnail_url,
                 is_active, booking_type, duration_minutes, pricing_unit, max_concurrent
              ) VALUES(
-                :supplier_id, :category_id, :name, :description, :price, :thumbnail_url,
+                :supplier_id, :category_id, :name, :description, :price' . $priceRangeValues . ', :thumbnail_url,
                 :is_active, :booking_type, :duration_minutes, :pricing_unit, :max_concurrent
              )'
         );
         $this->bindServiceFields($supplierId, $categoryId, $data);
         $this->db->dbexecute();
 
-        return $this->getServiceById((int)$this->db->lastinsertid(), $supplierId);
+        $serviceId = (int)$this->db->lastinsertid();
+        $this->saveVenueDetails($supplierId, $serviceId, $data);
+
+        return $this->getServiceById($serviceId, $supplierId);
     }
 
     public function updateService($supplierId, $serviceId, $data)
@@ -135,14 +148,27 @@ class SupplierServiceManager
             return null;
         }
 
+        if (!array_key_exists('booking_type', $data) && empty($data['timeslot'])) {
+            $data['booking_type'] = !empty($service['timeslot']) ? 'slot' : 'fullday';
+        }
+
+        if (!array_key_exists('duration_minutes', $data) && !empty($service['duration_minutes'])) {
+            $data['duration_minutes'] = (int)$service['duration_minutes'];
+        }
+
         $categoryId = $this->findOrCreateCategory($data['category'] ?? $service['category'] ?? 'Others');
+        $priceRangeUpdate = $this->hasServicePriceRangeColumns()
+            ? ',
+                 price_min = :price_min,
+                 price_max = :price_max'
+            : '';
 
         $this->db->dbquery(
             'UPDATE services
              SET category_id = :category_id,
                  name = :name,
                  description = :description,
-                 price = :price,
+                 price = :price' . $priceRangeUpdate . ',
                  thumbnail_url = :thumbnail_url,
                  is_active = :is_active,
                  booking_type = :booking_type,
@@ -155,6 +181,7 @@ class SupplierServiceManager
         $this->bindServiceFields($supplierId, $categoryId, $data);
         $this->db->dbbind(':id', (int)$serviceId);
         $this->db->dbexecute();
+        $this->saveVenueDetails($supplierId, $serviceId, $data);
 
         return $this->getServiceById($serviceId, $supplierId);
     }
@@ -190,6 +217,79 @@ class SupplierServiceManager
         $this->db->dbexecute();
 
         return $this->getServiceById($serviceId, $supplierId);
+    }
+
+    public function getAdminServiceDetail($serviceId)
+    {
+        $serviceId = (int)$serviceId;
+        $priceRangeFields = $this->servicePriceRangeSelectFields();
+        $venueSelectFields = $this->venueSelectFields();
+        $venueJoin = $this->venueJoinClause();
+
+        $this->db->dbquery(
+            'SELECT services.id,
+                    services.supplier_id,
+                    services.name,
+                    services.description,
+                    services.price,
+                    ' . $priceRangeFields . '
+                    services.thumbnail_url,
+                    services.is_active,
+                    services.booking_type,
+                    services.duration_minutes,
+                    services.buffer_minutes,
+                    services.pricing_unit,
+                    services.max_concurrent,
+                    ' . $venueSelectFields . '
+                    categories.name AS category,
+                    suppliers.shop_name AS supplier_name,
+                    users.name AS owner_name,
+                    users.email AS owner_email,
+                    users.phone AS supplier_phone,
+                    suppliers.status AS supplier_status,
+                    suppliers.payment_status AS supplier_payment_status
+             FROM services
+             INNER JOIN suppliers ON suppliers.supplier_id = services.supplier_id
+             LEFT JOIN users ON users.user_id = suppliers.user_id
+             LEFT JOIN categories ON categories.id = services.category_id
+             ' . $venueJoin . '
+             WHERE services.id = :id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':id', $serviceId);
+        $row = $this->db->getsingledata();
+
+        if (!$row) {
+            return null;
+        }
+
+        $service = $this->formatService($row);
+        $supplierId = (int)($row['supplier_id'] ?? 0);
+        $service['supplier_id'] = $supplierId;
+        $service['supplier_name'] = $row['supplier_name'] ?? '';
+        $service['owner_name'] = $row['owner_name'] ?? '';
+        $service['owner_email'] = $row['owner_email'] ?? '';
+        $service['supplier_phone'] = $row['supplier_phone'] ?? '';
+        $service['supplier_status'] = $row['supplier_status'] ?? '';
+        $service['supplier_payment_status'] = $row['supplier_payment_status'] ?? '';
+        $service['media'] = $this->getServiceMedia($serviceId, $supplierId);
+        $service['availability'] = $this->getAvailability($supplierId, $serviceId);
+        $service['readiness'] = $this->servicePublishReadiness($supplierId, $serviceId);
+
+        return $service;
+    }
+
+    public function unpublishServiceIfIncomplete($supplierId, $serviceId)
+    {
+        $readiness = $this->servicePublishReadiness($supplierId, $serviceId);
+
+        if (!$readiness || !empty($readiness['ready']) || ($readiness['service']['status'] ?? 'inactive') !== 'active') {
+            return false;
+        }
+
+        $this->setServiceStatus($supplierId, $serviceId, false);
+
+        return true;
     }
 
     public function createPackage($supplierId, $data)
@@ -272,11 +372,15 @@ class SupplierServiceManager
 
     private function getServiceById($serviceId, $supplierId)
     {
+        $priceRangeFields = $this->servicePriceRangeSelectFields();
+        $venueSelectFields = $this->venueSelectFields();
+        $venueJoin = $this->venueJoinClause();
         $this->db->dbquery(
             'SELECT services.id,
                     services.name,
                     services.description,
                     services.price,
+                    ' . $priceRangeFields . '
                     services.thumbnail_url,
                     services.is_active,
                     services.booking_type,
@@ -284,9 +388,11 @@ class SupplierServiceManager
                     services.buffer_minutes,
                     services.pricing_unit,
                     services.max_concurrent,
+                    ' . $venueSelectFields . '
                     categories.name AS category
              FROM services
              LEFT JOIN categories ON categories.id = services.category_id
+             ' . $venueJoin . '
              WHERE services.id = :id
                AND services.supplier_id = :supplier_id
              LIMIT 1'
@@ -365,6 +471,56 @@ class SupplierServiceManager
         $service['availability'] = $this->getAvailability($supplierId, $serviceId);
 
         return $service;
+    }
+
+    public function servicePublishReadiness($supplierId, $serviceId)
+    {
+        $service = $this->getServiceDetail($supplierId, $serviceId);
+
+        if (!$service) {
+            return null;
+        }
+
+        $missing = [];
+        $name = trim((string)($service['name'] ?? ''));
+        $description = trim((string)($service['desc'] ?? $service['description'] ?? ''));
+        $price = (float)($service['price_min'] ?? $service['price'] ?? 0);
+        $media = is_array($service['media'] ?? null) ? $service['media'] : [];
+        $weekly = is_array($service['availability']['weekly'] ?? null) ? $service['availability']['weekly'] : [];
+        $isVenue = strtolower((string)($service['category'] ?? '')) === 'venue';
+        $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'] : [];
+
+        if ($name === '') {
+            $missing[] = 'Add the service name.';
+        }
+
+        if ($description === '') {
+            $missing[] = 'Add a service description.';
+        }
+
+        if ($price <= 0) {
+            $missing[] = 'Add a valid starting price.';
+        }
+
+        if (empty($media)) {
+            $missing[] = 'Upload at least one portfolio photo.';
+        }
+
+        if ($isVenue) {
+            if (empty($venueRooms)) {
+                $missing[] = 'Add at least one hall or room.';
+            } elseif (!$this->hasValidVenueRooms($venueRooms)) {
+                $missing[] = 'Each hall needs a name, capacity, price, start time, and end time.';
+            }
+        } elseif (!$this->hasOpenWeeklySchedule($weekly)) {
+            $missing[] = 'Set at least one weekly available day with valid start and end time.';
+        }
+
+        return [
+            'ready' => empty($missing),
+            'missing' => $missing,
+            'service' => $service,
+        ];
     }
 
     public function getAvailability($supplierId, $serviceId)
@@ -761,17 +917,24 @@ class SupplierServiceManager
 
     private function bindServiceFields($supplierId, $categoryId, $data)
     {
+        $priceMin = max(0, (float)($data['price_min'] ?? $data['priceMin'] ?? $data['price'] ?? 0));
+        $priceMax = max($priceMin, (float)($data['price_max'] ?? $data['priceMax'] ?? $priceMin));
+
         $this->db->dbbind(':supplier_id', (int)$supplierId);
         $this->db->dbbind(':category_id', $categoryId ? (int)$categoryId : null);
         $this->db->dbbind(':name', trim((string)($data['name'] ?? '')));
         $this->db->dbbind(':description', trim((string)($data['desc'] ?? $data['description'] ?? '')));
-        $this->db->dbbind(':price', number_format((float)($data['price'] ?? 0), 2, '.', ''), PDO::PARAM_STR);
+        $this->db->dbbind(':price', number_format($priceMin, 2, '.', ''), PDO::PARAM_STR);
+        if ($this->hasServicePriceRangeColumns()) {
+            $this->db->dbbind(':price_min', number_format($priceMin, 2, '.', ''), PDO::PARAM_STR);
+            $this->db->dbbind(':price_max', number_format($priceMax, 2, '.', ''), PDO::PARAM_STR);
+        }
         $this->db->dbbind(':thumbnail_url', $data['img'] ?? $data['thumbnail_url'] ?? null);
         $this->db->dbbind(':is_active', ($data['status'] ?? 'active') === 'inactive' ? 0 : 1);
         $this->db->dbbind(':booking_type', ($data['booking_type'] ?? '') === 'slot' || !empty($data['timeslot']) ? 'slot' : 'fullday');
         $this->db->dbbind(':duration_minutes', !empty($data['duration_minutes']) ? (int)$data['duration_minutes'] : null);
         $this->db->dbbind(':pricing_unit', $data['pricing_unit'] ?? 'per_session');
-        $this->db->dbbind(':max_concurrent', max(1, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1)));
+        $this->db->dbbind(':max_concurrent', max(1, min(65535, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1))));
     }
 
     private function bindPackageFields($supplierId, $data, $categories)
@@ -787,10 +950,16 @@ class SupplierServiceManager
 
     private function formatService($service)
     {
+        $priceMin = (float)($service['price_min'] ?? $service['price'] ?? 0);
+        $priceMax = max($priceMin, (float)($service['price_max'] ?? $priceMin));
+        $venueName = trim((string)($service['venue_name'] ?? ''));
+
         return [
             'id' => (int)$service['id'],
             'name' => $service['name'] ?? '',
-            'price' => (float)($service['price'] ?? 0),
+            'price' => (float)($service['price'] ?? $priceMin),
+            'price_min' => $priceMin,
+            'price_max' => $priceMax,
             'category' => $service['category'] ?: 'Others',
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
             'desc' => $service['description'] ?? '',
@@ -799,7 +968,301 @@ class SupplierServiceManager
             'duration_minutes' => (int)($service['duration_minutes'] ?? 60),
             'buffer_minutes' => (int)($service['buffer_minutes'] ?? 0),
             'timeslot' => ($service['booking_type'] ?? '') === 'slot' ? 'Custom slot' : '',
+            'venue_id' => isset($service['venue_id']) ? (int)$service['venue_id'] : null,
+            'venue' => $venueName,
+            'venue_name' => $venueName,
+            'venue_location' => $service['venue_location'] ?? '',
+            'venue_rooms' => !empty($service['venue_id']) ? $this->getVenueRooms((int)$service['venue_id']) : [],
         ];
+    }
+
+    private function saveVenueDetails($supplierId, $serviceId, $data)
+    {
+        if (!$this->hasVenueServiceColumn() || strtolower((string)($data['category'] ?? '')) !== 'venue') {
+            return;
+        }
+
+        $serviceName = trim((string)($data['name'] ?? 'Venue'));
+        $venueName = trim((string)($data['venue'] ?? $data['venue_name'] ?? ''));
+        $location = trim((string)($data['venue_location'] ?? $data['location'] ?? ''));
+        $description = trim((string)($data['desc'] ?? $data['description'] ?? ''));
+        $capacity = max(1, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1));
+        $price = max(0, (float)($data['price_min'] ?? $data['price'] ?? 0));
+        $replaceRooms = !empty($data['rooms_replace']);
+        $rooms = $this->normalizeVenueRooms($data['rooms'] ?? [], $serviceName, $capacity, $price);
+
+        if ($venueName === '') {
+            $venueName = $serviceName;
+        }
+
+        $this->db->dbquery(
+            'SELECT id
+             FROM venues
+             WHERE service_id = :service_id
+               AND supplier_id = :supplier_id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':supplier_id', (int)$supplierId);
+        $venue = $this->db->getsingledata();
+
+        if ($venue) {
+            $venueId = (int)$venue['id'];
+            $this->db->dbquery(
+                'UPDATE venues
+                 SET name = :name,
+                     location = :location,
+                     description = :description
+                 WHERE id = :id
+                   AND supplier_id = :supplier_id'
+            );
+            $this->db->dbbind(':id', $venueId);
+        } else {
+            $this->db->dbquery(
+                'INSERT INTO venues(service_id, supplier_id, name, location, description)
+                 VALUES(:service_id, :supplier_id, :name, :location, :description)'
+            );
+            $this->db->dbbind(':service_id', (int)$serviceId);
+        }
+
+        $this->db->dbbind(':supplier_id', (int)$supplierId);
+        $this->db->dbbind(':name', $venueName);
+        $this->db->dbbind(':location', $location !== '' ? $location : null);
+        $this->db->dbbind(':description', $description !== '' ? $description : null);
+        $this->db->dbexecute();
+
+        if (empty($venueId)) {
+            $venueId = (int)$this->db->lastinsertid();
+        }
+
+        $submittedRoomIds = [];
+
+        foreach ($rooms as $room) {
+            if (!empty($room['id'])) {
+                $roomId = (int)$room['id'];
+                $this->db->dbquery(
+                    'UPDATE venue_rooms
+                     SET name = :name,
+                         capacity = :capacity,
+                         price = :price
+                     WHERE id = :id
+                       AND venue_id = :venue_id'
+                );
+                $this->db->dbbind(':id', $roomId);
+                $submittedRoomIds[] = $roomId;
+            } else {
+                $this->db->dbquery(
+                    'INSERT INTO venue_rooms(venue_id, name, capacity, price)
+                     VALUES(:venue_id, :name, :capacity, :price)'
+                );
+            }
+
+            $this->db->dbbind(':venue_id', $venueId);
+            $this->db->dbbind(':name', $room['name']);
+            $this->db->dbbind(':capacity', $room['capacity']);
+            $this->db->dbbind(':price', number_format($room['price'], 2, '.', ''), PDO::PARAM_STR);
+            $this->db->dbexecute();
+
+            if (empty($room['id'])) {
+                $roomId = (int)$this->db->lastinsertid();
+                $submittedRoomIds[] = $roomId;
+            }
+
+            $this->saveVenueRoomAvailability(
+                $roomId,
+                $room['start_time'] ?? '09:00',
+                $room['end_time'] ?? '17:00'
+            );
+        }
+
+        if ($replaceRooms) {
+            $this->deleteRemovedVenueRooms($venueId, $submittedRoomIds);
+        }
+    }
+
+    private function normalizeVenueRooms($rooms, $serviceName, $defaultCapacity, $defaultPrice)
+    {
+        $normalized = [];
+        $rows = is_array($rooms) ? $rooms : [];
+
+        foreach ($rows as $room) {
+            if (!is_array($room)) {
+                continue;
+            }
+
+            $name = trim((string)($room['name'] ?? ''));
+            $capacity = max(1, (int)($room['capacity'] ?? $defaultCapacity));
+            $price = max(0, (float)($room['price'] ?? $defaultPrice));
+
+            if ($name === '' && $capacity <= 1 && $price <= 0) {
+                continue;
+            }
+
+            $normalized[] = [
+                'id' => !empty($room['id']) ? (int)$room['id'] : null,
+                'name' => $name !== '' ? $name : $serviceName,
+                'capacity' => $capacity,
+                'price' => $price,
+                'start_time' => $this->normalizeTime($room['start_time'] ?? '09:00'),
+                'end_time' => $this->normalizeTime($room['end_time'] ?? '17:00'),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private function saveVenueRoomAvailability($roomId, $startTime = '09:00', $endTime = '17:00')
+    {
+        $startTime = $this->normalizeTime($startTime ?: '09:00');
+        $endTime = $this->normalizeTime($endTime ?: '17:00');
+
+        if ($startTime >= $endTime) {
+            $startTime = '09:00:00';
+            $endTime = '17:00:00';
+        }
+
+        $this->db->dbquery('DELETE FROM venue_room_availability WHERE room_id = :room_id');
+        $this->db->dbbind(':room_id', (int)$roomId);
+        $this->db->dbexecute();
+
+        $this->db->dbquery(
+            'INSERT INTO venue_room_availability(room_id, date, start_time, end_time, is_available)
+             VALUES(:room_id, NULL, :start_time, :end_time, 1)'
+        );
+        $this->db->dbbind(':room_id', (int)$roomId);
+        $this->db->dbbind(':start_time', $startTime);
+        $this->db->dbbind(':end_time', $endTime);
+        $this->db->dbexecute();
+    }
+
+    private function deleteRemovedVenueRooms($venueId, $keepIds)
+    {
+        $this->db->dbquery('SELECT id FROM venue_rooms WHERE venue_id = :venue_id');
+        $this->db->dbbind(':venue_id', (int)$venueId);
+        $existing = $this->db->getmultidata();
+        $keepIds = array_map('intval', $keepIds);
+
+        foreach ($existing as $room) {
+            $roomId = (int)$room['id'];
+            if (in_array($roomId, $keepIds, true)) {
+                continue;
+            }
+
+            $this->db->dbquery('SELECT COUNT(*) AS total FROM booking_items WHERE venue_room_id = :room_id');
+            $this->db->dbbind(':room_id', $roomId);
+            $usage = $this->db->getsingledata();
+
+            if ((int)($usage['total'] ?? 0) > 0) {
+                continue;
+            }
+
+            $this->db->dbquery('DELETE FROM venue_room_availability WHERE room_id = :room_id');
+            $this->db->dbbind(':room_id', $roomId);
+            $this->db->dbexecute();
+
+            $this->db->dbquery('DELETE FROM venue_rooms WHERE id = :room_id AND venue_id = :venue_id');
+            $this->db->dbbind(':room_id', $roomId);
+            $this->db->dbbind(':venue_id', (int)$venueId);
+            $this->db->dbexecute();
+        }
+    }
+
+    private function getVenueRooms($venueId)
+    {
+        $this->db->dbquery(
+            'SELECT venue_rooms.id,
+                    venue_rooms.name,
+                    venue_rooms.capacity,
+                    venue_rooms.price,
+                    MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.date END) AS available_from,
+                    MAX(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.date END) AS available_to,
+                    MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.start_time END) AS start_time,
+                    MAX(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.end_time END) AS end_time
+             FROM venue_rooms
+             LEFT JOIN venue_room_availability ON venue_room_availability.room_id = venue_rooms.id
+             WHERE venue_id = :venue_id
+             GROUP BY venue_rooms.id, venue_rooms.name, venue_rooms.capacity, venue_rooms.price
+             ORDER BY venue_rooms.id ASC'
+        );
+        $this->db->dbbind(':venue_id', (int)$venueId);
+
+        return array_map(function ($room) {
+            return [
+                'id' => (int)$room['id'],
+                'name' => $room['name'] ?? '',
+                'capacity' => (int)($room['capacity'] ?? 1),
+                'price' => (float)($room['price'] ?? 0),
+                'available_from' => $room['available_from'] ?? '',
+                'available_to' => $room['available_to'] ?? '',
+                'start_time' => $room['start_time'] ?? '09:00:00',
+                'end_time' => $room['end_time'] ?? '17:00:00',
+            ];
+        }, $this->db->getmultidata());
+    }
+
+    private function servicePriceRangeSelectFields()
+    {
+        return $this->hasServicePriceRangeColumns()
+            ? 'services.price_min, services.price_max,'
+            : 'services.price AS price_min, services.price AS price_max,';
+    }
+
+    private function hasServicePriceRangeColumns()
+    {
+        if ($this->hasServicePriceRangeColumns !== null) {
+            return $this->hasServicePriceRangeColumns;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "services"
+               AND COLUMN_NAME IN ("price_min", "price_max")'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasServicePriceRangeColumns = (int)($row['total'] ?? 0) >= 2;
+
+        return $this->hasServicePriceRangeColumns;
+    }
+
+    private function venueSelectFields()
+    {
+        if (!$this->hasVenueServiceColumn()) {
+            return 'NULL AS venue_id, NULL AS venue_name, NULL AS venue_location,';
+        }
+
+        return 'venues.id AS venue_id,
+                venues.name AS venue_name,
+                venues.location AS venue_location,';
+    }
+
+    private function venueJoinClause()
+    {
+        if (!$this->hasVenueServiceColumn()) {
+            return '';
+        }
+
+        return 'LEFT JOIN venues ON venues.service_id = services.id';
+    }
+
+    private function hasVenueServiceColumn()
+    {
+        if ($this->hasVenueServiceColumn !== null) {
+            return $this->hasVenueServiceColumn;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "venues"
+               AND COLUMN_NAME = "service_id"'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasVenueServiceColumn = (int)($row['total'] ?? 0) > 0;
+
+        return $this->hasVenueServiceColumn;
     }
 
     private function normalizeDate($date)
@@ -807,6 +1270,45 @@ class SupplierServiceManager
         $timestamp = strtotime((string)$date);
 
         return $timestamp ? date('Y-m-d', $timestamp) : null;
+    }
+
+    private function hasOpenWeeklySchedule(array $weekly)
+    {
+        foreach ($weekly as $row) {
+            if (empty($row['is_available'])) {
+                continue;
+            }
+
+            $open = strtotime($this->normalizeTime($row['open_time'] ?? ''));
+            $close = strtotime($this->normalizeTime($row['close_time'] ?? ''));
+
+            if ($open && $close && $open < $close) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasValidVenueRooms(array $venueRooms)
+    {
+        foreach ($venueRooms as $room) {
+            $start = (string)($room['start_time'] ?? '');
+            $end = (string)($room['end_time'] ?? '');
+
+            if (
+                trim((string)($room['name'] ?? '')) !== '' &&
+                (int)($room['capacity'] ?? 0) > 0 &&
+                (float)($room['price'] ?? 0) > 0 &&
+                $start !== '' &&
+                $end !== '' &&
+                $start < $end
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function normalizeTime($time)

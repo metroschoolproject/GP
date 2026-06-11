@@ -246,6 +246,16 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
     }
 
+    public function servicePublishRequest($serviceId = null)
+    {
+        return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
+    }
+
+    public function servicePublishStatus($serviceId = null)
+    {
+        return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
+    }
+
     public function packageCreate()
     {
         return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());

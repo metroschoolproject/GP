@@ -264,6 +264,17 @@
     pointer-events: none; 
   }
 
+  .btn.is-loading,
+  .btn:disabled {
+    cursor: wait;
+    opacity: 0.82;
+    transform: none;
+  }
+
+  .btn.is-loading .btn-shimmer {
+    animation: authButtonShimmer 1.1s linear infinite;
+  }
+
   .btn-shimmer {
     position:absolute;
     inset:0;
@@ -273,6 +284,60 @@
   }
 
   .btn:hover .btn-shimmer { transform:translateX(100%); }
+
+  .auth-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 24px;
+    background: rgba(250, 242, 237, 0.72);
+    backdrop-filter: blur(10px);
+  }
+
+  .auth-loading-overlay.show {
+    display: flex;
+  }
+
+  .auth-loading-panel {
+    display: flex;
+    width: min(78%, 280px);
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid rgba(109, 76, 91, 0.18);
+    border-radius: 14px;
+    background: rgba(255, 252, 249, 0.9);
+    padding: 18px;
+    box-shadow: 0 18px 46px rgba(80, 40, 80, 0.16);
+  }
+
+  .auth-loading-line {
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(109, 76, 91, 0.12), rgba(109, 76, 91, 0.32), rgba(109, 76, 91, 0.12));
+    background-size: 220% 100%;
+    animation: authSkeleton 1.05s ease-in-out infinite;
+  }
+
+  .auth-loading-line.short {
+    width: 64%;
+  }
+
+  .auth-loading-line.medium {
+    width: 82%;
+  }
+
+  @keyframes authSkeleton {
+    0% { background-position: 120% 0; }
+    100% { background-position: -120% 0; }
+  }
+
+  @keyframes authButtonShimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
 
   /* divider */
   .divider {
@@ -510,6 +575,13 @@
   <!-- card -->
   <div class="relative w-full max-w-[420px] rounded-[24px] border border-white/14 bg-[var(--paper)] backdrop-blur-[24px] shadow-[0_8px_48px_rgba(80,40,180,0.18),inset_0_1px_0_rgba(255,255,255,0.12)]" style="min-height: 580px; height: auto;">
     <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
+    <div class="auth-loading-overlay" id="authLoadingOverlay" aria-hidden="true">
+      <div class="auth-loading-panel" role="status" aria-live="polite">
+        <div class="auth-loading-line medium"></div>
+        <div class="auth-loading-line"></div>
+        <div class="auth-loading-line short"></div>
+      </div>
+    </div>
 
     <!-- Screen 1 (Sign up/in) -->
      
@@ -739,6 +811,10 @@
 
                 const accountnotfound_warning_bar  = document.querySelector('.accountnotfound-warning-bar');
                 loginregister_btn.addEventListener("click", () => {
+                    if (authLoading) {
+                        return;
+                    }
+
                     clearAuthErrors();
                     const btnText = document.getElementById("btnText").textContent.trim();
 
@@ -758,9 +834,10 @@
                     const data = {
                         email: safeInput("email"),
                     };
-                
 
-                        fetch("<?= URLROOT ?>/users/login", {
+                    setAuthLoading(true, 'Checking account...');
+
+                    fetch("<?= URLROOT ?>/users/login", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(data),
@@ -769,6 +846,7 @@
                         .then(res => {
                             // If no lock 
                             if (res.challenge == false) {
+                                setAuthLoading(false);
                                 emailvalid.style.display = 'block';
                             } 
                             else if (res.status == 'success') {
@@ -779,6 +857,7 @@
 
                             // If account locked 
                             if(res.status == 'lock'){
+                                setAuthLoading(false);
                                 console.log(res);
                                 const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
                                 showScrollMessage(accountLockMessage(lockedUntil));
@@ -790,6 +869,7 @@
 
                             // account not found 
                             if(res.status == 'accountnotfound'){
+                                setAuthLoading(false);
                                 console.log(res);
                                 accountnotfound_warning_bar.classList.replace('hidden','show'); 
                                 accountnotfound_warning_bar.style.display = 'block';
@@ -798,11 +878,19 @@
 
                             if(res.status == 'email_unverified'){
                                 window.location.href = "<?= URLROOT ?>/users/verificationSent?e=" + encodeURIComponent(res.email || data.email);
+                                return;
+                            }
+
+                            if (res.status !== 'success') {
+                                setAuthLoading(false);
                             }
                         }
 
                         )
-                        .catch(err => console.error("Fetch error:", err));
+                        .catch(err => {
+                            setAuthLoading(false);
+                            console.error("Fetch error:", err);
+                        });
 
                 });
 
@@ -827,6 +915,8 @@
                     remember_me: document.getElementById("rememberMe")?.checked === true
                 };
 
+                setAuthLoading(true, 'Verifying password...');
+
                 fetch("<?= URLROOT ?>/users/verifyChallenge", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -835,6 +925,7 @@
                 .then(res => res.json())
                 .then(res => {
                     if(res.loginfailnotyet == true || res.pwd === false || res.status === false){
+                        setAuthLoading(false);
                         const attemptText = res.attempt_count && res.max_attempts
                             ? ` Attempt ${res.attempt_count} of ${res.max_attempts}.`
                             : '';
@@ -847,6 +938,7 @@
                         return;
                     }
                     if(res.loginfailover == true){
+                        setAuthLoading(false);
                         const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
                         showScrollMessage(accountLockMessage(lockedUntil));
                         login_warning_bar.classList.replace('hidden','show');
@@ -858,6 +950,7 @@
                         return;
                     }
                     if(res.status == 'lock'){
+                        setAuthLoading(false);
                         const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
                         showScrollMessage(accountLockMessage(lockedUntil));
                         login_warning_bar.classList.replace('hidden','show');
@@ -870,16 +963,25 @@
                     if(res.status == true){
                         window.location.href = "<?= URLROOT ?>/otps/otp";
                         console.log(window.location.href)
+                        return;
 
                     }
                 
+                    setAuthLoading(false);
                     console.log(res);
                 })
-                .catch(err => console.error("Fetch error:", err));
+                .catch(err => {
+                    setAuthLoading(false);
+                    console.error("Fetch error:", err);
+                });
 
             }
             // Handle Register 
             async function handleRegister() {
+                if (authLoading) {
+                    return;
+                }
+
                 const name = safeInput("name");
                 const email = safeInput("email");
                 const password = safeInput("password");
@@ -932,6 +1034,8 @@
                     role: accountIntent
                 };
 
+                setAuthLoading(true, 'Creating account...');
+
                 fetch("<?= URLROOT ?>/users/register", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -949,17 +1053,24 @@
                 })
                 .then(res => {
                     if (res.email == true) {
+                        setAuthLoading(false);
                         emailvalid.style.display = "block";
                     } else if (res.status == "success") {
                         window.location.href = "<?= URLROOT ?>/" + res.redirect;
                     } else if (res.message) {
+                        setAuthLoading(false);
                         const warningBar = document.querySelector('.warning-bar');
                         warningBar.classList.remove('hidden');
                         warningBar.style.display = 'block';
                         warningBar.textContent = res.message;
+                    } else {
+                        setAuthLoading(false);
                     }
                 })
-                .catch(err => console.error("Register Fetch error:", err));
+                .catch(err => {
+                    setAuthLoading(false);
+                    console.error("Register Fetch error:", err);
+                });
             }
 
 
@@ -1077,6 +1188,38 @@
                     : ' Please wait before trying again.';
 
                 return `Your account is locked because there were too many wrong password attempts.${untilText} You can also use Forgot Password if this was not you.`;
+            }
+
+            let authLoading = false;
+
+            function setAuthLoading(isLoading, message = 'Please wait...') {
+                authLoading = isLoading;
+
+                const overlay = document.getElementById('authLoadingOverlay');
+                const button = document.getElementById('mainBtn');
+                const buttonText = document.getElementById('btnText');
+
+                if (overlay) {
+                    overlay.classList.toggle('show', isLoading);
+                    overlay.setAttribute('aria-hidden', isLoading ? 'false' : 'true');
+                }
+
+                if (button) {
+                    button.disabled = isLoading;
+                    button.classList.toggle('is-loading', isLoading);
+                }
+
+                if (buttonText) {
+                    if (!buttonText.dataset.idleText) {
+                        buttonText.dataset.idleText = buttonText.textContent;
+                    }
+
+                    buttonText.textContent = isLoading ? message : buttonText.dataset.idleText;
+
+                    if (!isLoading) {
+                        delete buttonText.dataset.idleText;
+                    }
+                }
             }
 
             function clearAuthErrors() {

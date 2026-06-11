@@ -12,12 +12,18 @@ let editingSvcId = null, editingPkgId = null;
 
 function normalizeServiceItem(item) {
   if (!item || typeof item !== 'object') return null;
+  const rawPriceMin = Number(item.price_min ?? item.priceMin ?? item.price ?? 0);
+  const priceMin = Number.isFinite(rawPriceMin) ? rawPriceMin : 0;
+  const rawPriceMax = Number(item.price_max ?? item.priceMax ?? priceMin);
+  const priceMax = Number.isFinite(rawPriceMax) ? Math.max(priceMin, rawPriceMax) : priceMin;
 
   return {
     ...item,
     id: Number(item.id),
     name: item.name || 'Untitled Service',
-    price: Number(item.price || 0),
+    price: Number(item.price ?? priceMin ?? 0),
+    price_min: priceMin,
+    price_max: priceMax,
     category: item.category || 'Others',
     status: item.status === 'inactive' ? 'inactive' : 'active',
     desc: item.desc || item.description || '',
@@ -133,24 +139,220 @@ function upsertItem(list, item) {
   else list.unshift(item);
 }
 
+function clearFieldValues(ids) {
+  ids.forEach(id => {
+    const field = document.getElementById(id);
+    if (field) field.value = '';
+  });
+}
+
+function normalizeNumberInput(input, forceMin = false) {
+  if (!input || input.type !== 'number' || input.value === '') return;
+
+  const min = input.min === '' ? 0 : Number(input.min);
+  const fallbackMin = Number.isFinite(min) ? min : 0;
+  let value = input.value.replace(/[^\d.]/g, '');
+  const firstDot = value.indexOf('.');
+
+  if (firstDot >= 0) {
+    value = value.slice(0, firstDot + 1) + value.slice(firstDot + 1).replace(/\./g, '');
+  }
+
+  if (forceMin && value !== '' && Number(value) < fallbackMin) {
+    value = String(fallbackMin);
+  }
+
+  input.value = value;
+}
+
+function installNonNegativeNumberGuards() {
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    if (input.min === '') input.min = '0';
+    input.inputMode = input.step && input.step.includes('.') ? 'decimal' : 'numeric';
+  });
+
+  document.addEventListener('keydown', event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== 'number') return;
+    if (['-', '+', 'e', 'E'].includes(event.key)) event.preventDefault();
+  });
+
+  document.addEventListener('input', event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== 'number') return;
+    normalizeNumberInput(input);
+  });
+
+  document.addEventListener('blur', event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== 'number') return;
+    normalizeNumberInput(input, true);
+  }, true);
+}
+
+function priceRangePayload(prefix) {
+  const minInput = document.getElementById(prefix + 'PriceMin');
+  const maxInput = document.getElementById(prefix + 'PriceMax');
+  const fallbackInput = document.getElementById(prefix + 'Price');
+  const min = parseFloat(minInput?.value || fallbackInput?.value || '0');
+  const maxValue = maxInput?.value;
+  const max = maxValue === undefined || maxValue === '' ? min : parseFloat(maxValue);
+  const priceMin = Number.isFinite(min) ? Math.max(0, min) : 0;
+  const priceMax = Number.isFinite(max) ? Math.max(priceMin, max) : priceMin;
+
+  return {
+    price: priceMin,
+    price_min: priceMin,
+    price_max: priceMax
+  };
+}
+
+function isPriceRangeValid(prefix) {
+  const minInput = document.getElementById(prefix + 'PriceMin');
+  const maxInput = document.getElementById(prefix + 'PriceMax');
+  const min = parseFloat(minInput?.value || '0');
+  const max = parseFloat(maxInput?.value || minInput?.value || '0');
+
+  return Number.isFinite(min) && Number.isFinite(max) && max >= min;
+}
+
+function roomListId(prefix) {
+  return prefix + 'RoomsList';
+}
+
+function venueRoomRowHtml(prefix, room = {}) {
+  const id = Number(room.id || 0);
+  const name = escapeHtml(room.name || '');
+  const capacity = room.capacity ?? '';
+  const price = room.price ?? '';
+  const startTime = escapeHtml(String(room.start_time || room.available_start_time || '09:00').slice(0, 5));
+  const endTime = escapeHtml(String(room.end_time || room.available_end_time || '17:00').slice(0, 5));
+
+  return `
+    <div class="${prefix}-venue-room rounded-xl border border-gray-200 bg-gray-50 p-3" data-room-id="${id}">
+      <input type="hidden" class="room-id" value="${id || ''}">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_0.7fr_0.8fr_0.85fr_0.85fr_auto] gap-2 items-end">
+        <div>
+          <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Room Name</label>
+          <input type="text" value="${name}" placeholder="e.g. Grand Hall" class="room-name w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Capacity</label>
+          <input type="number" min="1" value="${capacity}" placeholder="300" class="room-capacity w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Price (RM)</label>
+          <input type="number" min="0" step="0.01" value="${price}" placeholder="3500" class="room-price w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Start Time</label>
+          <input type="time" value="${startTime}" class="room-start-time w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">End Time</label>
+          <input type="time" value="${endTime}" class="room-end-time w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
+        </div>
+        <button type="button" onclick="removeVenueRoom(this, '${prefix}')" class="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition">Remove</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderVenueRooms(prefix, rooms = []) {
+  const list = document.getElementById(roomListId(prefix));
+  if (!list) return;
+
+  const rows = Array.isArray(rooms) && rooms.length ? rooms : [{}];
+  list.innerHTML = rows.map(room => venueRoomRowHtml(prefix, room)).join('');
+}
+
+function addVenueRoom(prefix) {
+  const list = document.getElementById(roomListId(prefix));
+  if (!list) return;
+
+  list.insertAdjacentHTML('beforeend', venueRoomRowHtml(prefix));
+}
+
+function removeVenueRoom(button, prefix) {
+  const list = document.getElementById(roomListId(prefix));
+  const row = button.closest('.' + prefix + '-venue-room');
+  if (!list || !row) return;
+
+  if (list.querySelectorAll('.' + prefix + '-venue-room').length <= 1) {
+    row.querySelectorAll('input').forEach(input => input.value = '');
+    return;
+  }
+
+  row.remove();
+}
+
+function collectVenueRooms(prefix) {
+  const rows = Array.from(document.querySelectorAll('.' + prefix + '-venue-room'));
+
+  return rows.map(row => {
+    const name = row.querySelector('.room-name')?.value.trim() || '';
+    const capacity = parseInt(row.querySelector('.room-capacity')?.value || '0', 10);
+    const price = parseFloat(row.querySelector('.room-price')?.value || '0');
+    const startTime = row.querySelector('.room-start-time')?.value || '09:00';
+    const endTime = row.querySelector('.room-end-time')?.value || '17:00';
+
+    return {
+      id: row.querySelector('.room-id')?.value || null,
+      name,
+      capacity: Number.isFinite(capacity) && capacity > 0 ? capacity : 1,
+      price: Number.isFinite(price) && price > 0 ? price : 0,
+      start_time: startTime,
+      end_time: endTime
+    };
+  }).filter(room => room.name || room.capacity > 1 || room.price > 0 || room.start_time || room.end_time);
+}
+
+function validateVenueRoomTimes(prefix) {
+  const invalidRow = Array.from(document.querySelectorAll('.' + prefix + '-venue-room')).find(row => {
+    const start = row.querySelector('.room-start-time')?.value || '';
+    const end = row.querySelector('.room-end-time')?.value || '';
+    return start && end && end <= start;
+  });
+
+  if (invalidRow) {
+    alert('Room end time must be later than the start time.');
+    return false;
+  }
+
+  return true;
+}
+
 function serviceFormPayload(prefix, category) {
   return {
     name: document.getElementById(prefix + 'Name').value.trim(),
     desc: document.getElementById(prefix + 'Desc').value.trim(),
-    price: document.getElementById(prefix + 'Price').value,
+    ...priceRangePayload(prefix),
     category,
     status: 'active',
     img: document.getElementById(prefix + 'ImgData').value,
     capacity: parseInt(document.getElementById(prefix + 'Capacity')?.value || '1') || 1,
     type: document.getElementById(prefix + 'Type')?.value || '',
     timeslot: document.getElementById(prefix + 'TimeSlot')?.value.trim() || '',
-    venue: document.getElementById(prefix + 'Venue')?.value.trim() || ''
+    venue: document.getElementById(prefix + 'Venue')?.value.trim() || '',
+    venue_location: document.getElementById(prefix + 'Location')?.value.trim() || '',
+    rooms: category === 'Venue' ? collectVenueRooms(prefix) : []
   };
 }
 
 function formatPrice(value) {
   const amount = Number(value);
   return Number.isFinite(amount) ? amount.toLocaleString() : '0';
+}
+
+function formatPriceRange(item) {
+  const min = Number(item.price_min ?? item.priceMin ?? item.price ?? 0);
+  const max = Number(item.price_max ?? item.priceMax ?? min);
+
+  if (!Number.isFinite(max) || max <= min) {
+    return formatPrice(min);
+  }
+
+  return `${formatPrice(min)} - ${formatPrice(max)}`;
 }
 
 function serviceDetailUrl(id) {
@@ -260,7 +462,7 @@ function svcCard(item) {
           <span class="text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE[item.category]||''}">${item.category}</span>
         </div>
         <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
-        <p class="text-custom-primary font-bold text-sm mt-0.5">RM ${formatPrice(item.price)}</p>
+        <p class="text-custom-primary font-bold text-sm mt-0.5">RM ${formatPriceRange(item)}</p>
         ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
       </div>
       <div class="pt-2.5 border-t border-gray-100">
@@ -358,15 +560,17 @@ function closeAll() {
 
 // ── ADD VENUE ─────────────────────────────────────────────────
 function openAddVenue() {
-  ['vName','vDesc','vPrice','vCapacity','vTimeSlot','vVenue','vImgData'].forEach(id => document.getElementById(id).value='');
+  clearFieldValues(['vName','vDesc','vPriceMin','vPriceMax','vCapacity','vVenue','vLocation','vImgData']);
   document.getElementById('vType').value='';
-  document.querySelectorAll('input[name="vBooking"]')[0].checked=true;
+  renderVenueRooms('v');
   resetImgBox('venueImgBox', true);
   document.getElementById('venueModal').classList.remove('hidden');
 }
 async function saveVenue() {
-  const name=document.getElementById('vName').value.trim(), price=parseFloat(document.getElementById('vPrice').value);
-  if (!name||isNaN(price)) { alert('Please fill in service name and price.'); return; }
+  const name=document.getElementById('vName').value.trim(), priceMin=parseFloat(document.getElementById('vPriceMin').value), priceMax=parseFloat(document.getElementById('vPriceMax').value || document.getElementById('vPriceMin').value);
+  if (!name||isNaN(priceMin)||isNaN(priceMax)) { alert('Please fill in service name and price range.'); return; }
+  if (priceMax < priceMin) { alert('Maximum price must be greater than or equal to starting price.'); return; }
+  if (!validateVenueRoomTimes('v')) return;
   try {
     const result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('v', 'Venue'));
     upsertItem(services, result.item);
@@ -376,15 +580,14 @@ async function saveVenue() {
 
 // ── ADD OTHERS ────────────────────────────────────────────────
 function openAddOthers() {
-  ['oName','oDesc','oPrice','oCapacity','oTimeSlot','oImgData'].forEach(id => document.getElementById(id).value='');
-  document.querySelectorAll('input[name="oBooking"]')[0].checked=true;
-  document.getElementById('oTimeSlotWrap').classList.add('hidden');
+  clearFieldValues(['oName','oDesc','oPriceMin','oPriceMax','oCapacity','oImgData']);
   resetImgBox('othersImgBox', true);
   document.getElementById('othersModal').classList.remove('hidden');
 }
 async function saveOthers() {
-  const name=document.getElementById('oName').value.trim(), price=parseFloat(document.getElementById('oPrice').value);
-  if (!name||isNaN(price)) { alert('Please fill in service name and price.'); return; }
+  const name=document.getElementById('oName').value.trim(), priceMin=parseFloat(document.getElementById('oPriceMin').value), priceMax=parseFloat(document.getElementById('oPriceMax').value || document.getElementById('oPriceMin').value);
+  if (!name||isNaN(priceMin)||isNaN(priceMax)) { alert('Please fill in service name and price range.'); return; }
+  if (priceMax < priceMin) { alert('Maximum price must be greater than or equal to starting price.'); return; }
   try {
     const result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('o', document.getElementById('oCategory').value));
     upsertItem(services, result.item);
@@ -398,7 +601,8 @@ function openEditService(id) {
   editingSvcId=id;
   document.getElementById('esName').value=item.name;
   document.getElementById('esDesc').value=item.desc||'';
-  document.getElementById('esPrice').value=item.price;
+  document.getElementById('esPriceMin').value=item.price_min ?? item.price;
+  document.getElementById('esPriceMax').value=item.price_max ?? item.price_min ?? item.price;
   document.getElementById('esImgData').value=item.img||'';
   if (item.img) renderConfirmedImage(item.img, item.img, 'esImgInput', 'esImgBox', 'esImgData', 16/9);
   else resetImgBox('esImgBox', true);
@@ -407,23 +611,27 @@ function openEditService(id) {
     extras.classList.remove('hidden');
     document.getElementById('esCapacity').value=item.capacity||'';
     document.getElementById('esType').value=item.type||'';
-    document.getElementById('esTimeSlot').value=item.timeslot||'';
     document.getElementById('esVenue').value=item.venue||'';
+    document.getElementById('esLocation').value=item.venue_location||'';
   } else extras.classList.add('hidden');
   document.getElementById('editServiceModal').classList.remove('hidden');
 }
 async function updateService() {
   const item=services.find(s=>s.id===editingSvcId); if (!item) return;
+  if (!isPriceRangeValid('es')) { alert('Maximum price must be greater than or equal to starting price.'); return; }
+  if (item.category === 'Venue' && !validateVenueRoomTimes('es')) return;
+  const priceRange = priceRangePayload('es');
   const payload = {
     ...item,
     name: document.getElementById('esName').value.trim()||item.name,
     desc: document.getElementById('esDesc').value.trim(),
-    price: parseFloat(document.getElementById('esPrice').value)||item.price,
+    ...priceRange,
     img: document.getElementById('esImgData').value,
     capacity: parseInt(document.getElementById('esCapacity')?.value || item.capacity || '1') || 1,
     type: document.getElementById('esType')?.value || item.type || '',
-    timeslot: document.getElementById('esTimeSlot')?.value.trim() || item.timeslot || '',
-    venue: document.getElementById('esVenue')?.value.trim() || item.venue || ''
+    venue: document.getElementById('esVenue')?.value.trim() || item.venue || '',
+    venue_location: document.getElementById('esLocation')?.value.trim() || item.venue_location || '',
+    rooms: []
   };
   try {
     const result = await apiRequest(serviceManagementUrls.serviceUpdate + editingSvcId, payload);
@@ -530,6 +738,14 @@ async function toggleStatus(id, type) {
   if (!item) return;
   const nextStatus = item.status==='active'?'inactive':'active';
   try {
+    if (type === 'service' && nextStatus === 'active') {
+      const result = await apiRequest((serviceManagementUrls.servicePublishRequest || serviceManagementUrls.serviceStatus) + id, {});
+      alert(result.message || 'Publish request sent to admin.');
+      upsertItem(list, { ...item, status: 'inactive' });
+      render();
+      return;
+    }
+
     const url = type === 'service' ? serviceManagementUrls.serviceStatus : serviceManagementUrls.packageStatus;
     const result = await apiRequest(url + id, { status: nextStatus });
     upsertItem(list, result.item);
@@ -709,22 +925,11 @@ function resetImgBox(boxId, wide) {
   }
 }
 
-function toggleVenueTimeSlot(val) {
-  const wrap = document.getElementById('vTimeSlotWrap');
-  if (val === 'timeslot') wrap.classList.remove('hidden');
-  else { wrap.classList.add('hidden'); document.getElementById('vTimeSlot').value = ''; }
-}
-
-function toggleOthersTimeSlot(val) {
-  const wrap = document.getElementById('oTimeSlotWrap');
-  if (val === 'timeslot') wrap.classList.remove('hidden');
-  else { wrap.classList.add('hidden'); document.getElementById('oTimeSlot').value = ''; }
-}
-
 // Close when overlay is clicked
 ['venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal'].forEach(id=>{
   document.getElementById(id).addEventListener('click', function(e){ if(e.target===this) closeAll(); });
 });
 
+installNonNegativeNumberGuards();
 renderCategoryControls();
 render();

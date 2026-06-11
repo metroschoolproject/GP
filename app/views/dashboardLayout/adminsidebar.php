@@ -7,11 +7,12 @@ $paymentStatusFilter = $_GET['status'] ?? 'pending';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, suppliers...';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'admin',
-    'reviewUrl' => URLROOT . '/admin/suppliers',
+    'reviewUrl' => URLROOT . '/admin/notifications',
     'defaultUrl' => URLROOT . '/admin/dashboard',
     'referenceUrls' => [
         'supplier' => URLROOT . '/admin/supplier/',
         'payment' => URLROOT . '/admin/payments?payment=',
+        'service' => URLROOT . '/admin/service/',
     ],
 ];
 
@@ -198,7 +199,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
                 <p class="mb-1 mt-8 px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-app-header-muted">System</p>
                 <div class="space-y-1">
 
-                    <a href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+                    <a href="<?= URLROOT ?>/admin/notifications" class="<?= dashboard_admin_nav_class('admin/notifications', $currentPath, true) ?>">
                         <i data-lucide="bell" class="h-4 w-4 text-app-header-muted"></i>
                         <span class="flex-1">Notifications</span>
                     </a>

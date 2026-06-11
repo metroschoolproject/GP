@@ -1,3 +1,23 @@
+<?php
+$serviceCategories = $serviceCategories ?? [];
+
+if (empty($serviceCategories)) {
+    $serviceCategories = [
+        ['name' => 'Planning', 'slug' => 'planning'],
+        ['name' => 'Florals', 'slug' => 'florals'],
+        ['name' => 'Photography', 'slug' => 'photography'],
+        ['name' => 'Catering', 'slug' => 'catering'],
+    ];
+}
+
+$serviceCategories = array_values(array_slice(array_filter($serviceCategories, function ($category) {
+    return trim((string)($category['name'] ?? '')) !== '';
+}), 0, 6));
+
+$isLoggedIn = !empty($_SESSION['session_uid']);
+$authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
+$authNavLabel = $isLoggedIn ? 'Logout' : 'Log In';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1424,21 +1444,15 @@
             id="dockDropdownMenu"
             aria-hidden="true">
 
-            <a class="dock-link text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#our-services">
-              Planning
-            </a>
-
-            <a class="dock-link text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#our-services">
-              Florals
-            </a>
-
-            <a class="dock-link text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#our-services">
-              Photography
-            </a>
-
-            <a class="dock-link text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#our-services">
-              Catering
-            </a>
+            <?php foreach ($serviceCategories as $category): ?>
+              <?php
+                $categoryName = (string)($category['name'] ?? '');
+                $categoryValue = (string)($category['slug'] ?? $categoryName);
+              ?>
+              <a class="dock-link text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service?category=<?= urlencode($categoryValue) ?>">
+                <?= htmlspecialchars($categoryName, ENT_QUOTES, 'UTF-8') ?>
+              </a>
+            <?php endforeach; ?>
 
           </div>
         </div>
@@ -1460,8 +1474,8 @@
 
       <a
         class="rounded-full border border-transparent bg-white/10 px-2.5 py-1.5 text-sm font-bold text-[#FFF4E6] transition duration-300 hover:bg-white/15 hover:text-[#F3D9A4]"
-        href="<?= URLROOT ?>/login">
-        Log In
+        href="<?= $authNavUrl ?>">
+        <?= $authNavLabel ?>
       </a>
     </div>
 
@@ -1487,7 +1501,7 @@
       Home
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#our-services">
+    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service">
       Our Service
     </a>
 
@@ -1507,8 +1521,8 @@
       Be a Partner
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/login">
-      Log In
+    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= $authNavUrl ?>">
+      <?= $authNavLabel ?>
     </a>
 
   </div>
@@ -2164,14 +2178,13 @@
       setRevealMaskSize(0, 0);
     });
 
-    const floatingServiceItems = [
-      { label: "Planning", angle: 190 },
-      { label: "Florals", angle: 222 },
-      { label: "Photography", angle: 250 },
-      { label: "Catering", angle: 290 },
-      { label: "Music", angle: 318 },
-      { label: "Jewelry", angle: 350 }
-    ];
+    const floatingServiceLabels = <?= json_encode(array_values(array_map(function ($category) {
+      return (string)($category['name'] ?? '');
+    }, $serviceCategories)), JSON_UNESCAPED_UNICODE) ?>;
+    const floatingServiceItems = floatingServiceLabels.map((label, index) => ({
+      label,
+      angle: 190 + (160 / Math.max(floatingServiceLabels.length - 1, 1)) * index
+    }));
 
     floatingServiceItems.forEach((service, index) => {
       const floatButton = document.createElement("div");
@@ -2340,4 +2353,3 @@
   </script>
 </body>
 </html>
-

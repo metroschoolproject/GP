@@ -4,6 +4,8 @@ require_once APPROOT . '/controllers/SupplierControllerSupport.php';
 
 class SupplierServices extends SupplierControllerSupport
 {
+    private const SERVICE_PUBLISH_REQUEST_COOLDOWN_SECONDS = 7200;
+
     public function services()
     {
         $access = $this->authorizationService->dashboardAccess();
@@ -84,6 +86,7 @@ class SupplierServices extends SupplierControllerSupport
     {
         $supplier = $this->authorizedSupplierForServiceManagement();
         $data = $this->servicePayload((int)$supplier['supplier_id'], 'service');
+        $data['status'] = 'inactive';
 
         if ($data['name'] === '' || (float)$data['price'] < 0) {
             $this->jsonResponse(['status' => 'error', 'message' => 'Service name and price are required.'], 422);
@@ -112,6 +115,12 @@ class SupplierServices extends SupplierControllerSupport
         }
 
         $data = $this->servicePayload((int)$supplier['supplier_id'], 'service');
+        $existingService = $this->serviceManagementModel->getServiceDetail((int)$supplier['supplier_id'], $serviceId);
+
+        if (($existingService['status'] ?? 'inactive') === 'inactive' && ($data['status'] ?? 'inactive') === 'active') {
+            $data['status'] = 'inactive';
+        }
+
         try {
             $service = $this->serviceManagementModel->updateService((int)$supplier['supplier_id'], $serviceId, $data);
         } catch (Throwable $e) {
@@ -120,6 +129,10 @@ class SupplierServices extends SupplierControllerSupport
 
         if (!$service) {
             $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
+        }
+
+        if ($this->serviceManagementModel->unpublishServiceIfIncomplete((int)$supplier['supplier_id'], $serviceId)) {
+            $service['status'] = 'inactive';
         }
 
         $this->jsonResponse(['status' => 'success', 'item' => $service]);
@@ -147,17 +160,163 @@ class SupplierServices extends SupplierControllerSupport
     {
         $supplier = $this->authorizedSupplierForServiceManagement();
         $payload = $this->jsonPayload();
+        $makeActive = ($payload['status'] ?? 'active') === 'active';
+        $serviceId = (int)$serviceId;
+        $supplierId = (int)$supplier['supplier_id'];
+        $existingService = $this->serviceManagementModel->getServiceDetail($supplierId, $serviceId);
+
+        if (!$existingService) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
+        }
+
+        if ($makeActive) {
+            $readiness = $this->serviceManagementModel->servicePublishReadiness($supplierId, $serviceId);
+
+            if (empty($readiness['ready'])) {
+                $this->jsonResponse([
+                    'status' => 'error',
+                    'message' => 'Complete the service setup before publishing.',
+                    'missing' => $readiness['missing'],
+                ], 422);
+            }
+
+            $cooldownMessage = $this->servicePublishCooldownMessage($serviceId);
+
+            if ($cooldownMessage !== '') {
+                $this->jsonResponse(['status' => 'error', 'message' => $cooldownMessage], 429);
+            }
+        }
+
         $service = $this->serviceManagementModel->setServiceStatus(
-            (int)$supplier['supplier_id'],
-            (int)$serviceId,
-            ($payload['status'] ?? 'active') === 'active'
+            $supplierId,
+            $serviceId,
+            false
         );
 
         if (!$service) {
             $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
         }
 
-        $this->jsonResponse(['status' => 'success', 'item' => $service]);
+        if ($makeActive) {
+            $supplierName = trim((string)($supplier['business_name'] ?? $supplier['shop_name'] ?? $supplier['name'] ?? 'A supplier'));
+            $serviceName = trim((string)($service['name'] ?? 'a service'));
+
+            $this->notificationModel->notifyAdmins(
+                'Service publish request',
+                $supplierName . ' requested publishing for "' . $serviceName . '".',
+                'approval',
+                'service',
+                $serviceId
+            );
+        }
+
+        $this->jsonResponse([
+            'status' => 'success',
+            'item' => $service,
+            'message' => $makeActive
+                ? 'Publish request sent to admin. Your service will stay hidden until it is approved.'
+                : 'Service unpublished.',
+        ]);
+    }
+
+    public function servicePublishRequest($serviceId = null)
+    {
+        $supplier = $this->authorizedSupplierForServiceManagement();
+        $serviceId = (int)$serviceId;
+
+        if ($serviceId <= 0) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
+        }
+
+        $readiness = $this->serviceManagementModel->servicePublishReadiness((int)$supplier['supplier_id'], $serviceId);
+
+        if (!$readiness) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
+        }
+
+        if (empty($readiness['ready'])) {
+            $this->jsonResponse([
+                'status' => 'error',
+                'message' => 'Complete the service setup before requesting publish: ' . implode(' ', $readiness['missing']),
+                'missing' => $readiness['missing'],
+            ], 422);
+        }
+
+        $service = $readiness['service'];
+        $cooldownMessage = $this->servicePublishCooldownMessage($serviceId);
+
+        if ($cooldownMessage !== '') {
+            $this->jsonResponse(['status' => 'error', 'message' => $cooldownMessage], 429);
+        }
+
+        $this->serviceManagementModel->setServiceStatus((int)$supplier['supplier_id'], $serviceId, false);
+        $supplierName = trim((string)($supplier['business_name'] ?? $supplier['shop_name'] ?? $supplier['name'] ?? 'A supplier'));
+        $serviceName = trim((string)($service['name'] ?? 'a service'));
+
+        $this->notificationModel->notifyAdmins(
+            'Service publish request',
+            $supplierName . ' requested publishing for "' . $serviceName . '".',
+            'approval',
+            'service',
+            $serviceId
+        );
+
+        $this->jsonResponse([
+            'status' => 'success',
+            'message' => 'Publish request sent to admin. Your service will stay hidden until it is approved.',
+        ]);
+    }
+
+    public function servicePublishStatus($serviceId = null)
+    {
+        $supplier = $this->authorizedSupplierForServiceManagement();
+        $serviceId = (int)$serviceId;
+
+        if ($serviceId <= 0) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
+        }
+
+        $service = $this->serviceManagementModel->getServiceDetail((int)$supplier['supplier_id'], $serviceId);
+
+        if (!$service) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
+        }
+
+        $this->jsonResponse([
+            'status' => 'success',
+            'service_status' => $service['status'] ?? 'inactive',
+            'is_live' => ($service['status'] ?? 'inactive') === 'active',
+        ]);
+    }
+
+    private function servicePublishCooldownMessage($serviceId)
+    {
+        $latest = $this->notificationModel->getLatestForReference('approval', 'service', (int)$serviceId);
+
+        if (empty($latest['created_at'])) {
+            return '';
+        }
+
+        $createdAt = strtotime((string)$latest['created_at']);
+
+        if (!$createdAt) {
+            return '';
+        }
+
+        $remainingSeconds = self::SERVICE_PUBLISH_REQUEST_COOLDOWN_SECONDS - (time() - $createdAt);
+
+        if ($remainingSeconds <= 0) {
+            return '';
+        }
+
+        $remainingMinutes = (int)ceil($remainingSeconds / 60);
+        $hours = intdiv($remainingMinutes, 60);
+        $minutes = $remainingMinutes % 60;
+        $wait = $hours > 0
+            ? $hours . ' hour' . ($hours === 1 ? '' : 's') . ($minutes > 0 ? ' ' . $minutes . ' minute' . ($minutes === 1 ? '' : 's') : '')
+            : $minutes . ' minute' . ($minutes === 1 ? '' : 's');
+
+        return 'You already sent a publish request for this service. Please wait ' . $wait . ' before requesting again.';
     }
 
     public function packageCreate()

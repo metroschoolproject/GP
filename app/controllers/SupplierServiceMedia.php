@@ -40,7 +40,10 @@ class SupplierServiceMedia extends SupplierControllerSupport
         }
 
         $deleted = $this->serviceManagementModel->deleteServiceMedia((int)$supplier['supplier_id'], $serviceId, $mediaId);
+        $unpublished = $deleted
+            ? $this->serviceManagementModel->unpublishServiceIfIncomplete((int)$supplier['supplier_id'], $serviceId)
+            : false;
 
-        $this->jsonResponse(['status' => $deleted ? 'success' : 'error']);
+        $this->jsonResponse(['status' => $deleted ? 'success' : 'error', 'unpublished' => $unpublished]);
     }
 }

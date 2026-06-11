@@ -60,11 +60,41 @@ CALL gp_add_column_if_missing(
     'categories_json',
     'ALTER TABLE supplier_packages ADD COLUMN categories_json TEXT DEFAULT NULL AFTER is_active'
 );
+CALL gp_add_column_if_missing(
+    'services',
+    'price_min',
+    'ALTER TABLE services ADD COLUMN price_min DECIMAL(10,2) DEFAULT NULL AFTER price'
+);
+CALL gp_add_column_if_missing(
+    'services',
+    'price_max',
+    'ALTER TABLE services ADD COLUMN price_max DECIMAL(10,2) DEFAULT NULL AFTER price_min'
+);
+CALL gp_add_column_if_missing(
+    'venues',
+    'service_id',
+    'ALTER TABLE venues ADD COLUMN service_id BIGINT(20) DEFAULT NULL AFTER supplier_id'
+);
+
+UPDATE services
+SET price_min = COALESCE(price_min, price),
+    price_max = COALESCE(price_max, price);
+
+ALTER TABLE services
+    MODIFY max_concurrent SMALLINT UNSIGNED NOT NULL DEFAULT 1;
+
+ALTER TABLE service_time_slots
+    MODIFY max_concurrent SMALLINT UNSIGNED NOT NULL DEFAULT 1;
 
 CALL gp_add_index_if_missing(
     'services',
     'idx_services_supplier_created',
     'CREATE INDEX idx_services_supplier_created ON services(supplier_id, created_at, id)'
+);
+CALL gp_add_index_if_missing(
+    'venues',
+    'idx_venues_service_id',
+    'CREATE INDEX idx_venues_service_id ON venues(service_id)'
 );
 CALL gp_add_index_if_missing(
     'supplier_packages',

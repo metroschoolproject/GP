@@ -5,12 +5,14 @@ class Admin extends Controller
     private $notificationModel;
     private $supplierProfileModel;
     private $paymentModel;
+    private $serviceManagementModel;
 
     public function __construct()
     {
         $this->notificationModel = $this->model('Notification');
         $this->supplierProfileModel = $this->model('SupplierProfile');
         $this->paymentModel = $this->model('Payment');
+        $this->serviceManagementModel = $this->model('SupplierServiceManager');
     }   
 
     public function dashboard()
@@ -44,6 +46,95 @@ class Admin extends Controller
 
         $this->notificationModel->markRead((int)$notificationId, $this->currentUserId());
         $this->jsonResponse(['status' => 'success']);
+    }
+
+    public function notifications()
+    {
+        $this->view('admin/notifications', [
+            'notifications' => $this->notificationModel->getAll($this->currentUserId(), 80),
+            'unreadCount' => $this->notificationModel->getUnreadCount($this->currentUserId()),
+            'message' => $_SESSION['admin_flash'] ?? '',
+        ]);
+        unset($_SESSION['admin_flash']);
+    }
+
+    public function notification($notificationId = null)
+    {
+        if (!$notificationId) {
+            redirect('admin/notifications');
+        }
+
+        $notification = $this->notificationModel->getById((int)$notificationId, $this->currentUserId());
+
+        if (!$notification) {
+            redirect('admin/notifications');
+        }
+
+        $this->notificationModel->markRead((int)$notificationId, $this->currentUserId());
+        $referenceType = (string)($notification['reference_type'] ?? '');
+        $referenceId = (int)($notification['reference_id'] ?? 0);
+
+        if ($referenceType === 'supplier' && $referenceId > 0) {
+            redirect('admin/supplier/' . $referenceId);
+        }
+
+        if ($referenceType === 'payment' && $referenceId > 0) {
+            redirect('admin/payments?payment=' . $referenceId);
+        }
+
+        if ($referenceType === 'service' && $referenceId > 0) {
+            redirect('admin/service/' . $referenceId);
+        }
+
+        redirect('admin/dashboard');
+    }
+
+    public function service($serviceId = null)
+    {
+        if (!$serviceId) {
+            redirect('admin/notifications');
+        }
+
+        $service = $this->serviceManagementModel->getAdminServiceDetail((int)$serviceId);
+
+        if (!$service) {
+            $_SESSION['admin_flash'] = 'Service record was not found.';
+            redirect('admin/notifications');
+        }
+
+        $this->view('admin/service_review', [
+            'service' => $service,
+            'message' => $_SESSION['admin_flash'] ?? '',
+        ]);
+        unset($_SESSION['admin_flash']);
+    }
+
+    public function approveService($serviceId = null)
+    {
+        if (!$serviceId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/notifications');
+        }
+
+        $service = $this->serviceManagementModel->getAdminServiceDetail((int)$serviceId);
+
+        if (!$service) {
+            $_SESSION['admin_flash'] = 'Service record was not found.';
+            redirect('admin/notifications');
+        }
+
+        if (($service['status'] ?? 'inactive') === 'active') {
+            $_SESSION['admin_flash'] = 'This service is already approved and live for customers.';
+            redirect('admin/service/' . (int)$serviceId);
+        }
+
+        if (empty($service['readiness']['ready'])) {
+            $_SESSION['admin_flash'] = 'Service cannot be approved yet: ' . implode(' ', $service['readiness']['missing'] ?? []);
+            redirect('admin/service/' . (int)$serviceId);
+        }
+
+        $this->serviceManagementModel->setServiceStatus((int)$service['supplier_id'], (int)$serviceId, true);
+        $_SESSION['admin_flash'] = 'Service approved and published to customers.';
+        redirect('admin/service/' . (int)$serviceId);
     }
 
     public function suppliers()

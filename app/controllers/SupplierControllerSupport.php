@@ -76,7 +76,11 @@ abstract class SupplierControllerSupport extends Controller
         $payload = $this->jsonPayload();
         $payload['name'] = htmlspecialchars(trim((string)($payload['name'] ?? '')), ENT_QUOTES, 'UTF-8');
         $payload['desc'] = htmlspecialchars(trim((string)($payload['desc'] ?? $payload['description'] ?? '')), ENT_QUOTES, 'UTF-8');
-        $payload['price'] = max(0, (float)($payload['price'] ?? 0));
+        $priceMin = max(0, (float)($payload['price_min'] ?? $payload['priceMin'] ?? $payload['price'] ?? 0));
+        $priceMax = max($priceMin, (float)($payload['price_max'] ?? $payload['priceMax'] ?? $priceMin));
+        $payload['price'] = $priceMin;
+        $payload['price_min'] = $priceMin;
+        $payload['price_max'] = $priceMax;
         $payload['status'] = ($payload['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active';
         $payload['img'] = $this->uploadService->storeServiceImageFromPayload($payload['img'] ?? '', $supplierId, $type);
 

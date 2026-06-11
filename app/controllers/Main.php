@@ -8,7 +8,18 @@ class Main extends Controller
 
     public function home()
     {
-        $this->view('main/index');
+        $catalogModel = $this->model('CustomerServiceCatalog');
+
+        $this->view('main/index', [
+            'serviceCategories' => $catalogModel->getCategories(),
+        ]);
+    }
+
+    public function service()
+    {
+        require_once APPROOT . '/controllers/CustomerServices.php';
+        $controller = new CustomerServices();
+        $controller->service();
     }
 
 }   

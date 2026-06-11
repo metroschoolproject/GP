@@ -462,13 +462,15 @@ CREATE TABLE `services` (
   `name` varchar(150) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
+  `price_min` decimal(10,2) DEFAULT NULL,
+  `price_max` decimal(10,2) DEFAULT NULL,
   `thumbnail_url` varchar(255) DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `booking_type` enum('fullday','slot','flexible') NOT NULL DEFAULT 'fullday',
   `duration_minutes` smallint(5) UNSIGNED DEFAULT NULL,
   `pricing_unit` enum('per_session','per_hour') DEFAULT 'per_session',
   `buffer_minutes` smallint(5) UNSIGNED NOT NULL DEFAULT 0,
-  `max_concurrent` tinyint(3) UNSIGNED NOT NULL DEFAULT 1,
+  `max_concurrent` smallint(5) UNSIGNED NOT NULL DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -531,7 +533,7 @@ CREATE TABLE `service_time_slots` (
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
   `confirmed_count` tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
-  `max_concurrent` tinyint(3) UNSIGNED NOT NULL DEFAULT 1,
+  `max_concurrent` smallint(5) UNSIGNED NOT NULL DEFAULT 1,
   `status` enum('available','full','blocked') NOT NULL DEFAULT 'available',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -840,6 +842,7 @@ INSERT INTO `user_roles` (`id`, `user_id`, `role_id`, `created_at`) VALUES
 CREATE TABLE `venues` (
   `id` bigint(20) NOT NULL,
   `supplier_id` bigint(20) DEFAULT NULL,
+  `service_id` bigint(20) DEFAULT NULL,
   `name` varchar(150) DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
   `description` text DEFAULT NULL,
@@ -1263,7 +1266,8 @@ ALTER TABLE `user_roles`
 --
 ALTER TABLE `venues`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `supplier_id` (`supplier_id`);
+  ADD KEY `supplier_id` (`supplier_id`),
+  ADD KEY `idx_venues_service_id` (`service_id`);
 
 --
 -- Indexes for table `venue_rooms`
@@ -1837,7 +1841,8 @@ ALTER TABLE `user_roles`
 -- Constraints for table `venues`
 --
 ALTER TABLE `venues`
-  ADD CONSTRAINT `venues_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`supplier_id`);
+  ADD CONSTRAINT `venues_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`supplier_id`),
+  ADD CONSTRAINT `venues_service_fk` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `venue_rooms`

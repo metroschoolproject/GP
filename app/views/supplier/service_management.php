@@ -24,6 +24,7 @@ $dashboardContent = function () use ($serviceManagementData) {
             'serviceUpdate' => URLROOT . '/supplierServices/serviceUpdate/',
             'serviceDelete' => URLROOT . '/supplierServices/serviceDelete/',
             'serviceStatus' => URLROOT . '/supplierServices/serviceStatus/',
+            'servicePublishRequest' => URLROOT . '/supplier/servicePublishRequest/',
             'serviceDetail' => URLROOT . '/supplier/serviceDetail/',
             'packageCreate' => URLROOT . '/supplierServices/packageCreate',
             'packageUpdate' => URLROOT . '/supplierServices/packageUpdate/',

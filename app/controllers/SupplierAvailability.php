@@ -23,7 +23,9 @@ class SupplierAvailability extends SupplierControllerSupport
             $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
         }
 
-        $this->jsonResponse(['status' => 'success', 'availability' => $availability]);
+        $unpublished = $this->serviceManagementModel->unpublishServiceIfIncomplete((int)$supplier['supplier_id'], $serviceId);
+
+        $this->jsonResponse(['status' => 'success', 'availability' => $availability, 'unpublished' => $unpublished]);
     }
 
     public function serviceAvailabilityOverrideSave($serviceId = null)
