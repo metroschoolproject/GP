@@ -20,8 +20,8 @@ $serviceDescription = htmlspecialchars($service['desc'] ?? '', ENT_QUOTES, 'UTF-
 $servicePriceAmount = (float)($service['price'] ?? 0);
 $servicePrice = number_format($servicePriceAmount);
 $serviceImage = htmlspecialchars($service['img'] ?? '', ENT_QUOTES, 'UTF-8');
-$mediaCreateUrl = URLROOT . '/supplier/serviceMediaCreate/' . $serviceId;
-$mediaDeleteUrl = URLROOT . '/supplier/serviceMediaDelete/' . $serviceId . '/';
+$mediaCreateUrl = URLROOT . '/supplierServiceMedia/serviceMediaCreate/' . $serviceId;
+$mediaDeleteUrl = URLROOT . '/supplierServiceMedia/serviceMediaDelete/' . $serviceId . '/';
 $availability = $service['availability'] ?? [];
 $weeklyRows = $availability['weekly'] ?? [];
 $overrideRows = $availability['overrides'] ?? [];
@@ -29,10 +29,10 @@ $weeklyByDay = [];
 foreach ($weeklyRows as $row) {
     $weeklyByDay[(int)($row['day_of_week'] ?? 0)] = $row;
 }
-$availabilitySaveUrl = URLROOT . '/supplier/serviceAvailabilitySave/' . $serviceId;
-$overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $serviceId;
-$overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
-$previewUrl = URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId;
+$availabilitySaveUrl = URLROOT . '/supplierAvailability/serviceAvailabilitySave/' . $serviceId;
+$overrideSaveUrl = URLROOT . '/supplierAvailability/serviceAvailabilityOverrideSave/' . $serviceId;
+$overrideDeleteUrl = URLROOT . '/supplierAvailability/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
+$previewUrl = URLROOT . '/supplierAvailability/serviceAvailabilityPreview/' . $serviceId;
 $days = [
     1 => 'Monday',
     2 => 'Tuesday',
