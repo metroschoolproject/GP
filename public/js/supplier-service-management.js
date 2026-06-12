@@ -246,11 +246,11 @@ function venueRoomRowHtml(prefix, room = {}) {
         </div>
         <div>
           <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Start Time</label>
-          <input type="time" value="${startTime}" class="room-start-time w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
+          <input type="time" lang="en-GB" value="${startTime}" class="room-start-time w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
         </div>
         <div>
           <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">End Time</label>
-          <input type="time" value="${endTime}" class="room-end-time w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
+          <input type="time" lang="en-GB" value="${endTime}" class="room-end-time w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
         </div>
         <button type="button" onclick="removeVenueRoom(this, '${prefix}')" class="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition">Remove</button>
       </div>
@@ -558,6 +558,52 @@ function closeAll() {
     .forEach(id => document.getElementById(id).classList.add('hidden'));
 }
 
+function confirmDeleteModal({ title = 'Delete item?', message = 'This action cannot be undone.' } = {}) {
+  const modal = document.getElementById('deleteConfirmModal');
+  const titleEl = document.getElementById('deleteConfirmTitle');
+  const messageEl = document.getElementById('deleteConfirmMessage');
+  const cancelBtn = document.getElementById('deleteConfirmCancel');
+  const actionBtn = document.getElementById('deleteConfirmAction');
+
+  if (!modal || !cancelBtn || !actionBtn) {
+    return Promise.resolve(false);
+  }
+
+  if (titleEl) titleEl.textContent = title;
+  if (messageEl) messageEl.textContent = message;
+  modal.classList.remove('hidden');
+
+  return new Promise(resolve => {
+    let resolved = false;
+
+    function finish(value) {
+      if (resolved) return;
+      resolved = true;
+      modal.classList.add('hidden');
+      cancelBtn.removeEventListener('click', onCancel);
+      actionBtn.removeEventListener('click', onConfirm);
+      modal.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(value);
+    }
+
+    function onCancel() { finish(false); }
+    function onConfirm() { finish(true); }
+    function onBackdrop(event) {
+      if (event.target === modal) finish(false);
+    }
+    function onKeydown(event) {
+      if (event.key === 'Escape') finish(false);
+    }
+
+    cancelBtn.addEventListener('click', onCancel);
+    actionBtn.addEventListener('click', onConfirm);
+    modal.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKeydown);
+    actionBtn.focus();
+  });
+}
+
 // ── ADD VENUE ─────────────────────────────────────────────────
 function openAddVenue() {
   clearFieldValues(['vName','vDesc','vPriceMin','vPriceMax','vCapacity','vVenue','vLocation','vImgData']);
@@ -642,7 +688,11 @@ async function updateService() {
 
 async function deleteService(id) {
   const item=services.find(s=>s.id===id); if (!item) return;
-  if (!confirm(`Delete "${item.name}"?`)) return;
+  const confirmed = await confirmDeleteModal({
+    title: 'Delete service?',
+    message: `Delete "${item.name}"? This removes the service from your supplier list.`
+  });
+  if (!confirmed) return;
   try {
     await apiRequest(serviceManagementUrls.serviceDelete + id);
     services=services.filter(s=>Number(s.id)!==Number(id));
@@ -689,7 +739,11 @@ async function updatePackage() {
 
 async function deletePackage(id) {
   const item=packages.find(p=>p.id===id); if (!item) return;
-  if (!confirm(`Delete "${item.name}"?`)) return;
+  const confirmed = await confirmDeleteModal({
+    title: 'Delete package?',
+    message: `Delete "${item.name}"? This removes the package from your supplier list.`
+  });
+  if (!confirmed) return;
   try {
     await apiRequest(serviceManagementUrls.packageDelete + id);
     packages=packages.filter(p=>Number(p.id)!==Number(id));

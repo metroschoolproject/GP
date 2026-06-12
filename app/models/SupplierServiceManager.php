@@ -629,11 +629,15 @@ class SupplierServiceManager
 
         $date = $this->normalizeDate($data['date'] ?? '');
         $type = in_array($data['type'] ?? '', ['available', 'unavailable', 'custom_hours'], true) ? $data['type'] : 'unavailable';
-        $openTime = $type === 'custom_hours' ? $this->normalizeTime($data['open_time'] ?? '09:00') : null;
-        $closeTime = $type === 'custom_hours' ? $this->normalizeTime($data['close_time'] ?? '17:00') : null;
+        $openTime = in_array($type, ['available', 'custom_hours'], true) ? $this->normalizeTime($data['open_time'] ?? '09:00') : null;
+        $closeTime = in_array($type, ['available', 'custom_hours'], true) ? $this->normalizeTime($data['close_time'] ?? '17:00') : null;
         $reason = trim((string)($data['reason'] ?? ''));
 
         if (!$date) {
+            return null;
+        }
+
+        if ($openTime !== null && $closeTime !== null && $openTime >= $closeTime) {
             return null;
         }
 
@@ -670,6 +674,92 @@ class SupplierServiceManager
         return $this->db->dbexecute();
     }
 
+    public function getServiceCalendarMonth($supplierId, $serviceId, $month)
+    {
+        $service = $this->getServiceById($serviceId, $supplierId);
+
+        if (!$service) {
+            return null;
+        }
+
+        $monthStart = DateTimeImmutable::createFromFormat('!Y-m-d', preg_match('/^\d{4}-\d{2}$/', (string)$month) ? $month . '-01' : date('Y-m-01'));
+
+        if (!$monthStart) {
+            $monthStart = new DateTimeImmutable('first day of this month');
+        }
+
+        $monthEnd = $monthStart->modify('last day of this month');
+        $gridStart = $monthStart->modify('-' . ((int)$monthStart->format('N') - 1) . ' days');
+        $gridEnd = $monthEnd->modify('+' . (7 - (int)$monthEnd->format('N')) . ' days');
+        $weekly = $this->calendarWeeklySchedule((int)$serviceId);
+        $overrides = $this->calendarDateOverrides((int)$serviceId, $gridStart->format('Y-m-d'), $gridEnd->format('Y-m-d'));
+        $bookings = $this->calendarBookings((int)$serviceId, (int)$supplierId, $gridStart->format('Y-m-d'), $gridEnd->format('Y-m-d'));
+        $days = [];
+
+        for ($day = $gridStart; $day <= $gridEnd; $day = $day->modify('+1 day')) {
+            $date = $day->format('Y-m-d');
+            $dayOfWeek = (int)$day->format('N');
+            $schedule = $weekly[$dayOfWeek] ?? null;
+            $override = $overrides[$date] ?? null;
+            $dayBookings = $bookings[$date] ?? [];
+            $isOpen = $schedule && !empty($schedule['is_available']) && $schedule['open_time'] < $schedule['close_time'];
+            $status = $isOpen ? 'open' : 'closed';
+            $source = 'weekly';
+            $openTime = $isOpen ? $schedule['open_time'] : null;
+            $closeTime = $isOpen ? $schedule['close_time'] : null;
+
+            if ($override) {
+                $source = 'override';
+
+                if ($override['type'] === 'unavailable') {
+                    $status = 'unavailable';
+                    $openTime = null;
+                    $closeTime = null;
+                } elseif ($override['type'] === 'custom_hours') {
+                    $status = 'custom_hours';
+                    $openTime = $override['open_time'];
+                    $closeTime = $override['close_time'];
+                } elseif ($override['type'] === 'available') {
+                    $status = 'open';
+                    $openTime = $override['open_time'] ?: ($openTime ?: '09:00:00');
+                    $closeTime = $override['close_time'] ?: ($closeTime ?: '17:00:00');
+                }
+            }
+
+            if (!empty($dayBookings)) {
+                $status = $status === 'unavailable' ? 'unavailable' : 'booked';
+            }
+
+            $days[] = [
+                'date' => $date,
+                'day' => (int)$day->format('j'),
+                'weekday' => $day->format('D'),
+                'in_month' => $day->format('Y-m') === $monthStart->format('Y-m'),
+                'is_today' => $date === date('Y-m-d'),
+                'status' => $status,
+                'source' => $source,
+                'open_time' => $openTime,
+                'close_time' => $closeTime,
+                'override' => $override,
+                'bookings' => $dayBookings,
+                'booking_count' => count($dayBookings),
+            ];
+        }
+
+        return [
+            'service' => [
+                'id' => (int)$service['id'],
+                'name' => $service['name'] ?? '',
+                'category' => $service['category'] ?? '',
+            ],
+            'month' => $monthStart->format('Y-m'),
+            'month_label' => $monthStart->format('F Y'),
+            'prev_month' => $monthStart->modify('-1 month')->format('Y-m'),
+            'next_month' => $monthStart->modify('+1 month')->format('Y-m'),
+            'days' => $days,
+        ];
+    }
+
     public function previewSlots($supplierId, $serviceId, $date)
     {
         $service = $this->getServiceById($serviceId, $supplierId);
@@ -694,7 +784,7 @@ class SupplierServiceManager
             return ['date' => $date, 'status' => 'closed', 'reason' => $override['reason'] ?? '', 'slots' => []];
         }
 
-        if ($override && $override['type'] === 'custom_hours') {
+        if ($override && in_array($override['type'], ['available', 'custom_hours'], true)) {
             $openTime = $override['open_time'];
             $closeTime = $override['close_time'];
         } else {
@@ -1116,7 +1206,7 @@ class SupplierServiceManager
         $startTime = $this->normalizeTime($startTime ?: '09:00');
         $endTime = $this->normalizeTime($endTime ?: '17:00');
 
-        if ($startTime >= $endTime) {
+        if ($startTime === $endTime) {
             $startTime = '09:00:00';
             $endTime = '17:00:00';
         }
@@ -1272,6 +1362,104 @@ class SupplierServiceManager
         return $timestamp ? date('Y-m-d', $timestamp) : null;
     }
 
+    private function calendarWeeklySchedule($serviceId)
+    {
+        $this->db->dbquery(
+            'SELECT day_of_week, open_time, close_time, is_available
+             FROM service_schedules
+             WHERE service_id = :service_id'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+
+        $weekly = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $weekly[(int)$row['day_of_week']] = [
+                'day_of_week' => (int)$row['day_of_week'],
+                'open_time' => $row['open_time'],
+                'close_time' => $row['close_time'],
+                'is_available' => (int)$row['is_available'],
+            ];
+        }
+
+        return $weekly;
+    }
+
+    private function calendarDateOverrides($serviceId, $startDate, $endDate)
+    {
+        $this->db->dbquery(
+            'SELECT id, date, type, open_time, close_time, reason
+             FROM service_availability
+             WHERE service_id = :service_id
+               AND date BETWEEN :start_date AND :end_date'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':start_date', $startDate);
+        $this->db->dbbind(':end_date', $endDate);
+
+        $overrides = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $overrides[$row['date']] = [
+                'id' => (int)$row['id'],
+                'date' => $row['date'],
+                'type' => $row['type'],
+                'open_time' => $row['open_time'],
+                'close_time' => $row['close_time'],
+                'reason' => $row['reason'] ?? '',
+            ];
+        }
+
+        return $overrides;
+    }
+
+    private function calendarBookings($serviceId, $supplierId, $startDate, $endDate)
+    {
+        $this->db->dbquery(
+            "SELECT booking_items.id,
+                    booking_items.booking_id,
+                    DATE(booking_items.booking_date) AS booking_day,
+                    booking_items.start_time,
+                    booking_items.end_time,
+                    booking_items.status,
+                    booking_suppliers.status AS supplier_status,
+                    users.name AS customer_name
+             FROM booking_items
+             LEFT JOIN bookings ON bookings.id = booking_items.booking_id
+             LEFT JOIN users ON users.user_id = bookings.user_id
+             LEFT JOIN booking_suppliers
+                    ON booking_suppliers.booking_id = booking_items.booking_id
+                   AND booking_suppliers.supplier_id = :supplier_id
+             WHERE booking_items.item_type = 'service'
+               AND booking_items.item_id = :service_id
+               AND DATE(booking_items.booking_date) BETWEEN :start_date AND :end_date
+               AND COALESCE(booking_items.status, '') <> 'cancelled'"
+        );
+        $this->db->dbbind(':supplier_id', (int)$supplierId);
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':start_date', $startDate);
+        $this->db->dbbind(':end_date', $endDate);
+
+        $bookings = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $date = $row['booking_day'] ?? '';
+
+            if ($date === '') {
+                continue;
+            }
+
+            $bookings[$date][] = [
+                'id' => (int)$row['id'],
+                'booking_id' => (int)$row['booking_id'],
+                'customer_name' => $row['customer_name'] ?? 'Customer',
+                'start_time' => $row['start_time'],
+                'end_time' => $row['end_time'],
+                'status' => $row['status'] ?? 'pending',
+                'supplier_status' => $row['supplier_status'] ?? 'pending',
+            ];
+        }
+
+        return $bookings;
+    }
+
     private function hasOpenWeeklySchedule(array $weekly)
     {
         foreach ($weekly as $row) {
@@ -1302,7 +1490,7 @@ class SupplierServiceManager
                 (float)($room['price'] ?? 0) > 0 &&
                 $start !== '' &&
                 $end !== '' &&
-                $start < $end
+                $start !== $end
             ) {
                 return true;
             }

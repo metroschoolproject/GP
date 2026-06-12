@@ -426,11 +426,11 @@ class CustomerServiceCatalog
                 return ['is_available' => false, 'reason' => $override['reason'] ?? 'Unavailable', 'source' => 'override'];
             }
 
-            if ($override['type'] === 'custom_hours') {
+            if (in_array($override['type'], ['available', 'custom_hours'], true)) {
                 return [
                     'is_available' => true,
-                    'open_time' => $override['open_time'],
-                    'close_time' => $override['close_time'],
+                    'open_time' => $override['open_time'] ?: '09:00:00',
+                    'close_time' => $override['close_time'] ?: '17:00:00',
                     'reason' => $override['reason'] ?? '',
                     'source' => 'override',
                 ];

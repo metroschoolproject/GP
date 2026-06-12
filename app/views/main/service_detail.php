@@ -65,14 +65,18 @@ $timeRange = function ($from, $to) {
 
     $format = function ($value) {
         $timestamp = strtotime($value);
-        return $timestamp ? date('g:i A', $timestamp) : $value;
+        return $timestamp ? date('H:i', $timestamp) : $value;
     };
 
     if ($from === '' || $from === $to) {
         return $format($to ?: $from);
     }
 
-    return $format($from) . ' - ' . $format($to);
+    $fromClock = substr($from, 0, 5);
+    $toClock = substr($to, 0, 5);
+    $overnight = $fromClock !== '' && $toClock !== '' && $toClock < $fromClock;
+
+    return $format($from) . ' - ' . $format($to) . ($overnight ? ' (next day)' : '');
 };
 
 $durationText = function ($service) {

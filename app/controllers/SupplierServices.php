@@ -36,6 +36,33 @@ class SupplierServices extends SupplierControllerSupport
         ]);
     }
 
+    public function calendar()
+    {
+        $access = $this->authorizationService->dashboardAccess();
+
+        if (!empty($access['redirect'])) {
+            redirect($access['redirect']);
+        }
+
+        if (empty($access['allowed'])) {
+            $this->view('supplier/dashboard_locked', [
+                'supplier' => $access['supplier'],
+                'payment' => $access['payment'] ?? null,
+                'lockState' => $access['lockState'] ?? 'profile_not_approved',
+            ]);
+            return;
+        }
+
+        $supplier = $access['supplier'];
+
+        $this->view('supplier/calendar', [
+            'supplier' => $supplier,
+            'payment' => $access['payment'],
+            'dashboardData' => $this->supplierProfileModel->getDashboardData((int)$supplier['supplier_id']),
+            'services' => $this->serviceManagementModel->getServices((int)$supplier['supplier_id']),
+        ]);
+    }
+
     public function serviceManagementData()
     {
         $supplier = $this->authorizedSupplierForServiceManagement();
@@ -80,6 +107,51 @@ class SupplierServices extends SupplierControllerSupport
             'service' => $service,
             'dashboardData' => $this->supplierProfileModel->getDashboardData((int)$supplier['supplier_id']),
         ]);
+    }
+
+    public function serviceCalendar($serviceId = null)
+    {
+        $supplier = $this->authorizedSupplierForServicePage();
+        $serviceId = (int)$serviceId;
+
+        if ($serviceId <= 0) {
+            redirect('supplier/services');
+        }
+
+        $service = $this->serviceManagementModel->getServiceDetail((int)$supplier['supplier_id'], $serviceId);
+
+        if (!$service) {
+            redirect('supplier/services');
+        }
+
+        $this->view('supplier/service_calendar', [
+            'supplier' => $supplier,
+            'service' => $service,
+            'dashboardData' => $this->supplierProfileModel->getDashboardData((int)$supplier['supplier_id']),
+        ]);
+    }
+
+    public function serviceCalendarData($serviceId = null)
+    {
+        $supplier = $this->authorizedSupplierForServiceManagement();
+        $serviceId = (int)$serviceId;
+        $month = trim((string)($_GET['month'] ?? date('Y-m')));
+
+        if ($serviceId <= 0) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
+        }
+
+        $calendar = $this->serviceManagementModel->getServiceCalendarMonth(
+            (int)$supplier['supplier_id'],
+            $serviceId,
+            $month
+        );
+
+        if (!$calendar) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
+        }
+
+        $this->jsonResponse(['status' => 'success', 'calendar' => $calendar]);
     }
 
     public function serviceCreate()

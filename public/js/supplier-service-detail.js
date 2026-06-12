@@ -241,8 +241,8 @@ function hallCardHtml(room = {}) {
         <div class="hall-input-group full"><label>Hall name</label><input class="hall-input hall-name" value="${room.name || ''}"></div>
         <div class="hall-input-group"><label>Capacity</label><input type="number" min="1" class="hall-input hall-capacity" value="${room.capacity || 1}"></div>
         <div class="hall-input-group"><label>Price</label><input type="number" min="0" step="0.01" class="hall-input hall-price" value="${room.price || 0}"></div>
-        <div class="hall-input-group"><label>Start time</label><input type="time" class="hall-input hall-start" value="${room.start_time || '09:00'}"></div>
-        <div class="hall-input-group"><label>End time</label><input type="time" class="hall-input hall-end" value="${room.end_time || '17:00'}"></div>
+        <div class="hall-input-group"><label>Start time</label><input type="time" lang="en-GB" class="hall-input hall-start" value="${room.start_time || '09:00'}"></div>
+        <div class="hall-input-group"><label>End time</label><input type="time" lang="en-GB" class="hall-input hall-end" value="${room.end_time || '17:00'}"></div>
       </div>
       <div class="hall-time-display">9:00 AM - 5:00 PM</div>
     </div>

@@ -216,12 +216,27 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
     }
 
+    public function calendar()
+    {
+        return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
+    }
+
     public function serviceManagementData()
     {
         return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
     }
 
     public function serviceDetail($serviceId = null)
+    {
+        return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
+    }
+
+    public function serviceCalendar($serviceId = null)
+    {
+        return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
+    }
+
+    public function serviceCalendarData($serviceId = null)
     {
         return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
     }
