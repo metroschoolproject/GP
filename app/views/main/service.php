@@ -5,107 +5,9 @@ $services = $catalog['services'] ?? [];
 $categories = $catalog['categories'] ?? [];
 $featured = $catalog['featured'] ?? [];
 
-$fallbackImages = [
-    IMG_ROOT . '/uploads/suppliers/20/service-management/service/20260610150543-6e1176d1.jpg',
-    IMG_ROOT . '/uploads/suppliers/20/service-management/service/20260610153442-b5ac0238.jpg',
-    IMG_ROOT . '/uploads/suppliers/20/service-management/service/20260610150756-6f95f64f.jpg',
-    IMG_ROOT . '/uploads/suppliers/20/service-management/service/20260610153414-ac7d9b83.jpg',
-    IMG_ROOT . '/uploads/suppliers/4-governor-s-residence/services/4/cover/cover-20260603060536-5114a99a.png',
-];
-
-$sampleServices = [
-    [
-        'id' => 0,
-        'name' => 'Garden Ceremony Styling',
-        'description' => 'Layered florals, aisle styling, seating accents, and ceremony table details for an outdoor vow setting.',
-        'price' => 850,
-        'image' => $fallbackImages[0],
-        'category' => 'Decoration',
-        'supplier_name' => 'Golden Promise Studio',
-        'rating' => 4.9,
-        'review_count' => 32,
-        'booking_type' => 'fullday',
-        'duration_minutes' => 0,
-        'pricing_unit' => 'per_session',
-    ],
-    [
-        'id' => 0,
-        'name' => 'Reception Photography',
-        'description' => 'Documentary-style coverage for arrival, reception, portraits, speeches, and family moments.',
-        'price' => 620,
-        'image' => $fallbackImages[1],
-        'category' => 'Photography',
-        'supplier_name' => 'Blossom & Co',
-        'rating' => 4.8,
-        'review_count' => 18,
-        'booking_type' => 'slot',
-        'duration_minutes' => 180,
-        'pricing_unit' => 'per_session',
-    ],
-    [
-        'id' => 0,
-        'name' => 'Bridal Beauty Session',
-        'description' => 'Makeup, hair styling, trial guidance, and touch-up care for a calm wedding morning.',
-        'price' => 390,
-        'image' => $fallbackImages[2],
-        'category' => 'Beauty',
-        'supplier_name' => 'JV Bridal',
-        'rating' => 4.7,
-        'review_count' => 21,
-        'booking_type' => 'slot',
-        'duration_minutes' => 120,
-        'pricing_unit' => 'per_session',
-    ],
-    [
-        'id' => 0,
-        'name' => 'Floral Table Design',
-        'description' => 'Centrepieces, bud vases, head-table garlands, and welcome arrangements in your palette.',
-        'price' => 460,
-        'image' => $fallbackImages[3],
-        'category' => 'Florals',
-        'supplier_name' => 'Veil & Vine Florals',
-        'rating' => 4.6,
-        'review_count' => 14,
-        'booking_type' => 'fullday',
-        'duration_minutes' => 0,
-        'pricing_unit' => 'per_session',
-    ],
-    [
-        'id' => 0,
-        'name' => 'Venue Coordination',
-        'description' => 'On-the-day coordination, vendor liaison, timeline management, and setup oversight.',
-        'price' => 980,
-        'image' => $fallbackImages[4],
-        'category' => 'Planning',
-        'supplier_name' => 'The Ceremony Co.',
-        'rating' => 5.0,
-        'review_count' => 9,
-        'booking_type' => 'fullday',
-        'duration_minutes' => 0,
-        'pricing_unit' => 'per_session',
-    ],
-    [
-        'id' => 0,
-        'name' => 'Portrait Film Package',
-        'description' => 'Cinematic same-day edit, 3-hour coverage, drone footage, and delivered within 48 hours.',
-        'price' => 1200,
-        'image' => $fallbackImages[0],
-        'category' => 'Videography',
-        'supplier_name' => 'Lumiere Films',
-        'rating' => 4.9,
-        'review_count' => 27,
-        'booking_type' => 'slot',
-        'duration_minutes' => 180,
-        'pricing_unit' => 'per_session',
-    ],
-];
-
 $hasActiveFilters = trim((string)($filters['search'] ?? '')) !== ''
-    || !in_array(($filters['category'] ?? 'all'), ['', 'all'], true);
-
-if (empty($services) && !$hasActiveFilters) {
-    $services = $sampleServices;
-}
+    || !in_array(($filters['category'] ?? 'all'), ['', 'all'], true)
+    || trim((string)($filters['date'] ?? '')) !== '';
 
 if (empty($featured)) {
     $featured = array_slice($services, 0, 3);
@@ -116,12 +18,7 @@ $money = fn($v) => 'RM ' . number_format((float)$v, 0);
 $moneyRange = function ($service) use ($money) {
     $min = (float)($service['price_min'] ?? $service['price'] ?? 0);
     $max = (float)($service['price_max'] ?? $min);
-
     return $max > $min ? $money($min) . ' - ' . $money($max) : $money($min);
-};
-$serviceImage = function ($service, $index) use ($fallbackImages) {
-    $image = trim((string)($service['image'] ?? ''));
-    return $image !== '' ? $image : $fallbackImages[$index % count($fallbackImages)];
 };
 $durationText = function ($service) {
     $type = $service['booking_type'] ?? 'fullday';
@@ -132,22 +29,25 @@ $durationText = function ($service) {
     }
     return $type === 'flexible' ? 'Flexible' : 'Full day';
 };
+$pricingUnit = function ($service) {
+    $unit = $service['pricing_unit'] ?? 'per_session';
+    return $unit === 'per_hour' ? '/hr' : '/session';
+};
 
 $activeCategory = $filters['category'] ?? 'all';
 $activeSort     = $filters['sort'] ?? 'featured';
 $activeDate     = $filters['date'] ?? '';
 $activePriceMin = $filters['price_min'] ?? '';
 $activePriceMax = $filters['price_max'] ?? '';
+$detailDateQuery = $activeDate !== '' ? '?date=' . rawurlencode($activeDate) : '';
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$builtinCategories = ['Photography','Videography','Decoration','Florals','Beauty','Planning','Catering'];
-if (empty($categories)) {
-    foreach ($builtinCategories as $cat) {
-        $categories[] = ['name' => $cat, 'slug' => strtolower($cat), 'service_count' => 0];
-    }
-}
+$heroService = $featured[0] ?? $services[0] ?? null;
+
+$totalServices = count($services);
+$totalCategories = count($categories);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -159,6 +59,7 @@ if (empty($categories)) {
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $v ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
 /* ─── RESET & TOKENS ─────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -175,7 +76,6 @@ if (empty($categories)) {
   --c-muted:    #6F625A;
   --c-pale:     rgba(74,52,47,0.55);
   --c-gold:     #D8B46A;
-  --c-gold-lt:  #FFF4E6;
 
   --r-sm:  6px;
   --r-md:  12px;
@@ -298,12 +198,12 @@ button, select, input { font-family: var(--font-body); }
 }
 .gp-hero-stat span { font-size: 12px; color: var(--c-pale); font-weight: 500; }
 
-/* ── hero image ── */
 .gp-hero-img-wrap {
   position: relative; overflow: hidden;
   border-radius: var(--r-xl) var(--r-xl) 0 0;
   min-height: 480px;
   box-shadow: var(--sh-hero);
+  background: linear-gradient(135deg, var(--c-cream), var(--c-surface));
 }
 
 .gp-hero-img-wrap img {
@@ -314,10 +214,17 @@ button, select, input { font-family: var(--font-body); }
 }
 .gp-hero-img-wrap:hover img { transform: scale(1.0); }
 
+.gp-hero-img-placeholder {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  color: var(--c-pale);
+}
+
 .gp-hero-img-overlay {
   position: absolute; inset: 0;
   background: rgba(33,29,26,0.24);
   z-index: 1;
+  pointer-events: none;
 }
 
 .gp-hero-img-tag {
@@ -373,7 +280,6 @@ button, select, input { font-family: var(--font-body); }
 }
 .gp-search-field input::placeholder { color: var(--c-pale); font-weight: 400; }
 .gp-search-field select { color: var(--c-ink); }
-.gp-search-field select option[value="all"] { color: var(--c-pale); }
 
 .gp-search-submit {
   display: flex; align-items: center; justify-content: center;
@@ -430,7 +336,7 @@ button, select, input { font-family: var(--font-body); }
 .gp-feat-card {
   position: relative; overflow: hidden;
   border-radius: var(--r-lg);
-  background: var(--c-cream);
+  background: linear-gradient(135deg, var(--c-cream), var(--c-surface));
 }
 .gp-feat-card:first-child { grid-row: span 1; }
 
@@ -445,6 +351,12 @@ button, select, input { font-family: var(--font-body); }
   content: '';
   position: absolute; inset: 0;
   background: rgba(33,29,26,0.42);
+}
+
+.gp-feat-card .gp-feat-img-placeholder {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  color: var(--c-pale);
 }
 
 .gp-feat-info {
@@ -493,10 +405,18 @@ button, select, input { font-family: var(--font-body); }
 .gp-svc-img {
   display: block; position: relative;
   aspect-ratio: 16/10; overflow: hidden;
-  background: var(--c-cream); flex-shrink: 0;
+  background: linear-gradient(135deg, var(--c-cream), var(--c-surface));
+  flex-shrink: 0;
 }
 .gp-svc-img img { transition: transform 0.5s ease; }
 .gp-svc-card:hover .gp-svc-img img { transform: scale(1.05); }
+
+.gp-svc-img-placeholder {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  color: var(--c-pale);
+  font-size: 28px;
+}
 
 .gp-svc-badge {
   position: absolute; top: 12px; left: 12px;
@@ -558,18 +478,12 @@ button, select, input { font-family: var(--font-body); }
   font-size: 11px; color: var(--c-pale); font-weight: 500;
 }
 
-.gp-svc-meta {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; color: var(--c-muted);
-}
-.gp-svc-meta-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--c-rule); }
-
 .gp-svc-btn {
   height: 38px; padding: 0 18px; border-radius: 99px; border: 1px solid var(--c-rule);
   background: transparent; color: var(--c-wine);
   font-size: 12px; font-weight: 700; cursor: pointer;
   transition: all 0.15s; white-space: nowrap;
-  text-decoration: none; display: inline-flex; align-items: center;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
 }
 .gp-svc-btn:hover { background: var(--c-wine); color: #fff; border-color: var(--c-wine); }
 
@@ -581,11 +495,29 @@ button, select, input { font-family: var(--font-body); }
   text-align: center;
   background: rgba(255,248,239,0.72);
 }
-.gp-empty h3 {
-  font-family: var(--font-display); font-size: 36px; font-weight: 400; color: var(--c-ink);
-  margin-bottom: 10px;
+.gp-empty-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--c-wine-lt);
+  color: var(--c-wine);
+  margin-bottom: 20px;
 }
-.gp-empty p { color: var(--c-muted); font-size: 14px; line-height: 1.7; max-width: 420px; margin: 0 auto; }
+.gp-empty h3 {
+  font-family: var(--font-display); font-size: 32px; font-weight: 500; color: var(--c-ink);
+  margin-bottom: 8px;
+}
+.gp-empty p { color: var(--c-muted); font-size: 14px; line-height: 1.7; max-width: 480px; margin: 0 auto; }
+.gp-empty-actions { margin-top: 24px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.gp-empty-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 40px; padding: 0 20px; border-radius: 99px;
+  font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+  transition: background 0.15s;
+}
+.gp-empty-btn.primary { background: var(--c-wine); color: #fff; }
+.gp-empty-btn.primary:hover { background: var(--c-wine-mid); }
+.gp-empty-btn.secondary { background: var(--c-cream); color: var(--c-muted); border: 1px solid var(--c-rule); }
+.gp-empty-btn.secondary:hover { border-color: var(--c-wine); color: var(--c-wine); }
 
 /* ─── FOOTER ─────────────────────────────────────────── */
 .gp-footer {
@@ -638,41 +570,13 @@ button, select, input { font-family: var(--font-body); }
   <a class="gp-nav-cta" href="<?= $authNavUrl ?>"><?= $authNavLabel ?></a>
 </header>
 
+b
 <main>
 
-  <!-- HERO -->
-  <section class="gp-hero" aria-label="Page hero">
-    <div class="gp-hero-left">
-      <p class="gp-overline">Wedding Services</p>
-      <h1 class="gp-hero-h1">Every detail,<br><em>perfectly placed.</em></h1>
-      <p class="gp-hero-sub">Browse photography, styling, florals, beauty, and planning from approved Golden Promise suppliers.</p>
-      <div class="gp-hero-stat-row">
-        <div class="gp-hero-stat">
-          <strong><?= count($services) ?>+</strong>
-          <span>Services</span>
-        </div>
-        <div class="gp-hero-stat">
-          <strong><?= count($categories) ?></strong>
-          <span>Categories</span>
-        </div>
-        <div class="gp-hero-stat">
-          <strong>100%</strong>
-          <span>Verified suppliers</span>
-        </div>
-      </div>
-    </div>
-    <div class="gp-hero-img-wrap">
-      <img src="<?= $h($serviceImage($featured[0] ?? $services[0] ?? $sampleServices[0], 0)) ?>" alt="Wedding service">
-      <div class="gp-hero-img-overlay"></div>
-      <div class="gp-hero-img-tag">
-        <strong><?= $h(($featured[0] ?? $services[0] ?? $sampleServices[0])['name'] ?? '') ?></strong>
-        <span><?= $h(($featured[0] ?? $services[0] ?? $sampleServices[0])['category'] ?? '') ?> · <?= $moneyRange($featured[0] ?? $services[0] ?? $sampleServices[0]) ?></span>
-      </div>
-    </div>
-  </section>
+
 
   <!-- SEARCH BAR -->
-  <section class="gp-search-wrap" aria-label="Search and filter">
+  <section class="gp-search-wrap mt-10" aria-label="Search and filter">
     <form class="gp-search-bar" method="GET" action="<?= URLROOT ?>/customerServices/service">
       <div class="gp-search-field">
         <label for="q">What are you looking for?</label>
@@ -681,7 +585,9 @@ button, select, input { font-family: var(--font-body); }
       <div class="gp-search-divider" aria-hidden="true"></div>
       <div class="gp-search-field">
         <label for="f-date">Wedding date</label>
-        <input id="f-date" type="date" name="date" value="<?= $h($activeDate) ?>">
+        <?php $todayDate = date('Y-m-d'); $maxDate = date('Y-m-d', strtotime('+365 days')); ?>
+        <input id="f-date" type="date" name="date" value="<?= $h($activeDate) ?>"
+               min="<?= $todayDate ?>" max="<?= $maxDate ?>">
       </div>
       <div class="gp-search-divider" aria-hidden="true"></div>
       <div class="gp-search-field">
@@ -711,45 +617,27 @@ button, select, input { font-family: var(--font-body); }
   </section>
 
   <!-- CATEGORY PILLS -->
+  <?php if (!empty($categories)): ?>
   <div class="gp-cats" role="list" aria-label="Filter by category">
+    <?php $dateQuery = $activeDate !== '' ? '&date=' . $h($activeDate) : ''; ?>
     <a class="gp-cat-pill <?= $activeCategory === 'all' ? 'active' : '' ?>"
-       href="<?= URLROOT ?>/customerServices/service?category=all"
+       href="<?= URLROOT ?>/customerServices/service?category=all<?= $dateQuery ?>"
        role="listitem">All</a>
     <?php foreach ($categories as $cat):
       $slug = $cat['slug'] ?? strtolower($cat['name']);
       $isActive = $activeCategory === $slug || $activeCategory === ($cat['name'] ?? '');
     ?>
       <a class="gp-cat-pill <?= $isActive ? 'active' : '' ?>"
-         href="<?= URLROOT ?>/customerServices/service?category=<?= $h($slug) ?>"
+         href="<?= URLROOT ?>/customerServices/service?category=<?= $h($slug) ?><?= $dateQuery ?>"
          role="listitem">
         <?= $h($cat['name'] ?? '') ?>
         <?php if (!empty($cat['service_count'])): ?><span style="opacity:0.65;margin-left:4px;">(<?= (int)$cat['service_count'] ?>)</span><?php endif; ?>
       </a>
     <?php endforeach; ?>
   </div>
-
-  <!-- FEATURED -->
-  <?php if (!empty($featured)): ?>
-  <section class="gp-section" aria-label="Featured services">
-    <div class="gp-section-head">
-      <h2 class="gp-section-title">Featured</h2>
-      <span class="gp-section-count">Handpicked this season</span>
-    </div>
-    <div class="gp-featured-grid">
-      <?php foreach (array_slice($featured, 0, 3) as $i => $svc): ?>
-      <?php $detailUrl = !empty($svc['id']) ? URLROOT . '/customerServices/detail/' . (int)$svc['id'] : URLROOT . '/users/auth'; ?>
-      <a class="gp-feat-card" href="<?= $h($detailUrl) ?>">
-        <img src="<?= $h($serviceImage($svc, $i)) ?>" alt="<?= $h($svc['name'] ?? '') ?>">
-        <div class="gp-feat-info">
-          <p class="gp-feat-cat"><?= $h($svc['category'] ?? 'Service') ?></p>
-          <h3 class="gp-feat-name"><?= $h($svc['name'] ?? '') ?></h3>
-          <span class="gp-feat-price">from <?= $moneyRange($svc) ?></span>
-        </div>
-      </a>
-      <?php endforeach; ?>
-    </div>
-  </section>
   <?php endif; ?>
+
+
 
   <!-- ALL SERVICES -->
   <section class="gp-section" aria-label="All services">
@@ -758,33 +646,45 @@ button, select, input { font-family: var(--font-body); }
       <span class="gp-section-count">
         <?= count($services) ?> result<?= count($services) === 1 ? '' : 's' ?>
         <?php if (($filters['search'] ?? '') !== ''): ?> for "<?= $h($filters['search']) ?>"<?php endif; ?>
+        <?php if ($activeDate !== ''): ?> on <?= $h(date('M j, Y', strtotime($activeDate))) ?><?php endif; ?>
       </span>
     </div>
 
     <?php if (empty($services)): ?>
       <div class="gp-empty">
+        <div class="gp-empty-icon"><i data-lucide="search-x" size="28"></i></div>
         <h3>No services found</h3>
-        <p>Try a different category, keyword, or adjust your budget range.</p>
+        <p>We couldn't find any services matching your criteria. Try adjusting your search, date, or budget.</p>
+        <div class="gp-empty-actions">
+          <a class="gp-empty-btn primary" href="<?= URLROOT ?>/customerServices/service">Clear all filters</a>
+          <a class="gp-empty-btn secondary" href="<?= URLROOT ?>/customerServices/service?category=all">Browse all services</a>
+        </div>
       </div>
     <?php else: ?>
       <div class="gp-services-grid">
         <?php foreach ($services as $i => $svc): ?>
-        <?php $detailUrl = !empty($svc['id']) ? URLROOT . '/customerServices/detail/' . (int)$svc['id'] : URLROOT . '/users/auth'; ?>
+        <?php $detailUrl = URLROOT . '/customerServices/detail/' . (int)$svc['id'] . $detailDateQuery; ?>
         <article class="gp-svc-card">
           <a class="gp-svc-img" href="<?= $h($detailUrl) ?>">
-            <img src="<?= $h($serviceImage($svc, $i)) ?>" alt="<?= $h($svc['name'] ?? '') ?>">
+            <?php if (trim((string)($svc['image'] ?? '')) !== ''): ?>
+              <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
+            <?php else: ?>
+              <div class="gp-svc-img-placeholder">
+                <i data-lucide="image" size="28"></i>
+              </div>
+            <?php endif; ?>
             <span class="gp-svc-badge"><?= $h($svc['category'] ?? 'Service') ?></span>
           </a>
           <div class="gp-svc-body">
             <div class="gp-svc-topline">
-              <span class="gp-svc-supplier"><?= $h($svc['supplier_name'] ?? 'Supplier') ?></span>
+              <span class="gp-svc-supplier" title="<?= $h($svc['supplier_name'] ?? '') ?>">
+                <i data-lucide="store" size="11" style="margin-right:3px;opacity:0.6;"></i>
+                <?= $h($svc['supplier_name'] ?? 'Supplier') ?>
+              </span>
               <?php if ((float)($svc['rating'] ?? 0) > 0): ?>
-              <div class="gp-svc-rating">
+              <div class="gp-svc-rating" title="<?= (int)($svc['review_count'] ?? 0) ?> review<?= (int)($svc['review_count'] ?? 0) === 1 ? '' : 's' ?>">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 <?= number_format((float)$svc['rating'], 1) ?>
-                <?php if ((int)($svc['review_count'] ?? 0) > 0): ?>
-                  <span style="font-weight:500;color:var(--c-pale);">(<?= (int)$svc['review_count'] ?>)</span>
-                <?php endif; ?>
               </div>
               <?php endif; ?>
             </div>
@@ -795,14 +695,12 @@ button, select, input { font-family: var(--font-body); }
             <div class="gp-svc-foot">
               <div class="gp-svc-price">
                 <strong><?= $moneyRange($svc) ?></strong>
-                <span><?= $h($durationText($svc)) ?></span>
+                <span><?= $h($durationText($svc)) ?> <?= $pricingUnit($svc) ?></span>
               </div>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <div class="gp-svc-meta">
-                  <?= $h($durationText($svc)) ?>
-                </div>
-                <a class="gp-svc-btn" href="<?= $h($detailUrl) ?>">View details</a>
-              </div>
+              <a class="gp-svc-btn" href="<?= $h($detailUrl) ?>">
+                View details
+                <i data-lucide="arrow-right" size="14"></i>
+              </a>
             </div>
           </div>
         </article>
@@ -814,9 +712,14 @@ button, select, input { font-family: var(--font-body); }
 </main>
 
 <footer class="gp-footer">
-  <span>© <?= date('Y') ?> Golden Promise</span>
+  <span>&copy; <?= date('Y') ?> Golden Promise</span>
   <span>Services are listed after supplier approval and payment verification.</span>
 </footer>
 
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+});
+</script>
 </body>
 </html>

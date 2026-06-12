@@ -120,8 +120,9 @@
 #supplier-service-detail select.form-input{appearance:none;-webkit-appearance:none}
 
 .override-list{display:flex;flex-direction:column;gap:6px}
-.override-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--white);transition:background .1s}
+.override-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--white);transition:background .1s,border-color .1s,box-shadow .1s;cursor:pointer}
 .override-item:hover{background:var(--cream-soft)}
+.override-item.is-editing{border-color:var(--gold);background:rgba(216,180,106,.12);box-shadow:0 0 0 3px rgba(216,180,106,.14)}
 .override-date{font-size:12px;font-weight:700;color:var(--text)}
 .override-type{display:inline-flex;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:capitalize;letter-spacing:.04em}
 .type-unavailable{background:var(--danger-bg);color:var(--danger)}

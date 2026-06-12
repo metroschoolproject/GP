@@ -263,6 +263,85 @@ function updateHallCount() {
   const count = document.querySelectorAll('.hall-card').length;
   const badge = document.getElementById('hallCount');
   if (badge) badge.textContent = count + ' ' + (count === 1 ? 'hall' : 'halls');
+  const infoHalls = document.getElementById('serviceInfoHalls');
+  if (infoHalls) infoHalls.textContent = String(count);
+}
+
+function formatMoney(value) {
+  const amount = Number(value || 0);
+  return 'RM ' + amount.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+function normalizeTimeValue(value) {
+  return String(value || '').slice(0, 5) || '09:00';
+}
+
+function formatTimeLabel(value) {
+  const time = normalizeTimeValue(value);
+  const parts = time.split(':').map(Number);
+  if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return time;
+  const date = new Date();
+  date.setHours(parts[0], parts[1], 0, 0);
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function syncSavedHalls(savedRooms = []) {
+  const cards = Array.from(document.querySelectorAll('.hall-card'));
+  cards.forEach((card, index) => {
+    const room = savedRooms[index];
+    if (!room) return;
+    const roomId = room.id || 0;
+    card.dataset.roomId = String(roomId);
+    const idInput = card.querySelector('.hall-id');
+    if (idInput) idInput.value = roomId ? String(roomId) : '';
+    const start = normalizeTimeValue(room.start_time || card.querySelector('.hall-start')?.value || '09:00');
+    const end = normalizeTimeValue(room.end_time || card.querySelector('.hall-end')?.value || '17:00');
+    const startInput = card.querySelector('.hall-start');
+    const endInput = card.querySelector('.hall-end');
+    const timeDisplay = card.querySelector('.hall-time-display');
+    if (startInput) startInput.value = start;
+    if (endInput) endInput.value = end;
+    if (timeDisplay) timeDisplay.textContent = formatTimeLabel(start) + ' - ' + formatTimeLabel(end);
+  });
+}
+
+function syncOverrideRoomOptions(savedRooms = []) {
+  const select = document.getElementById('overrideRoom');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = '<option value="">Choose hall</option>' + savedRooms.map(room => {
+    const id = room.id || '';
+    const name = String(room.name || 'Hall').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
+    return `<option value="${id}">${name}</option>`;
+  }).join('');
+  if (current && savedRooms.some(room => String(room.id || '') === current)) {
+    select.value = current;
+  }
+}
+
+function updateServiceInfoFromService(service = {}) {
+  const rooms = Array.isArray(service.venue_rooms) ? service.venue_rooms : [];
+  const infoHalls = document.getElementById('serviceInfoHalls');
+  const infoVenue = document.getElementById('serviceInfoVenue');
+  const infoConcurrent = document.getElementById('serviceInfoConcurrent');
+
+  if (infoHalls) infoHalls.textContent = String(rooms.length || document.querySelectorAll('.hall-card').length);
+  if (infoVenue && (service.venue_name || service.venue)) infoVenue.textContent = service.venue_name || service.venue;
+  if (infoConcurrent) {
+    const maxCapacity = rooms.reduce((max, room) => Math.max(max, Number(room.capacity || 0)), 0);
+    infoConcurrent.textContent = String(maxCapacity || service.capacity || service.max_concurrent || infoConcurrent.textContent);
+  }
+
+  const priceValue = document.getElementById('serviceInfoPrice');
+  if (priceValue && (service.price_min || service.price)) {
+    priceValue.textContent = formatMoney(service.price_min || service.price);
+  }
 }
 
 function collectHalls() {
@@ -286,11 +365,15 @@ function collectHalls() {
 document.getElementById('saveHallsBtn')?.addEventListener('click', async () => {
   showMessage('hallMessage', '');
   try {
-    await jsonPost(urls.serviceUpdate, {
+    const result = await jsonPost(urls.serviceUpdate, {
       ...serviceDetailConfig.servicePayloadBase,
       rooms: collectHalls(),
       rooms_replace: true
     });
+    const savedService = result.item || {};
+    syncSavedHalls(savedService.venue_rooms || []);
+    syncOverrideRoomOptions(savedService.venue_rooms || []);
+    updateServiceInfoFromService(savedService);
     updateHallCount();
     showMessage('hallMessage', 'Halls saved.', true);
   } catch (error) {
@@ -298,15 +381,84 @@ document.getElementById('saveHallsBtn')?.addEventListener('click', async () => {
   }
 });
 
+function setOverrideButtonMode(isEditing) {
+  const button = document.getElementById('saveOverrideBtn');
+  if (!button) return;
+  button.innerHTML = isEditing
+    ? '<i class="ti ti-calendar-check" style="font-size:12px"></i> Update override'
+    : '<i class="ti ti-calendar-plus" style="font-size:12px"></i> Add override';
+}
+
+function updateOverrideScopeState() {
+  const scope = document.getElementById('overrideScope')?.value || 'service';
+  const room = document.getElementById('overrideRoom');
+  if (room) room.disabled = scope !== 'room';
+}
+
+function updateOverrideCount() {
+  const count = document.querySelectorAll('[data-override-id]').length;
+  const badge = document.getElementById('overrideCount');
+  const empty = document.getElementById('overrideEmpty');
+  if (badge) badge.textContent = count + ' saved';
+  if (empty) empty.style.display = count ? 'none' : '';
+}
+
+function editOverride(row) {
+  if (!row) return;
+  const date = row.dataset.overrideDate || '';
+  const type = row.dataset.overrideType || 'unavailable';
+  const open = row.dataset.overrideOpen || '09:00';
+  const close = row.dataset.overrideClose || '17:00';
+  const reason = row.dataset.overrideReason || '';
+  const scope = row.dataset.overrideScope || 'service';
+  const roomId = row.dataset.overrideRoomId || '';
+
+  const dateInput = document.getElementById('overrideDate');
+  const typeInput = document.getElementById('overrideType');
+  const openInput = document.getElementById('overrideOpen');
+  const closeInput = document.getElementById('overrideClose');
+  const reasonInput = document.getElementById('overrideReason');
+  const scopeInput = document.getElementById('overrideScope');
+  const roomInput = document.getElementById('overrideRoom');
+
+  if (dateInput) dateInput.value = date;
+  if (typeInput) typeInput.value = type;
+  if (openInput) openInput.value = open;
+  if (closeInput) closeInput.value = close;
+  if (reasonInput) reasonInput.value = reason;
+  if (scopeInput) scopeInput.value = scope;
+  if (roomInput) roomInput.value = roomId;
+  updateOverrideScopeState();
+
+  document.querySelectorAll('.override-item.is-editing').forEach(item => item.classList.remove('is-editing'));
+  row.classList.add('is-editing');
+  setOverrideButtonMode(true);
+  showMessage('overrideMessage', 'Editing special date. Save to update it.', true);
+  dateInput?.focus({ preventScroll: true });
+}
+
+window.editOverride = editOverride;
+
+document.getElementById('overrideScope')?.addEventListener('change', updateOverrideScopeState);
+updateOverrideScopeState();
+updateOverrideCount();
+
 document.getElementById('saveOverrideBtn')?.addEventListener('click', async () => {
   showMessage('overrideMessage', '');
+  const scope = document.getElementById('overrideScope')?.value || 'service';
+  const roomId = document.getElementById('overrideRoom')?.value || '';
   try {
-    await jsonPost(urls.overrideSave, {
+    if (scope === 'room' && !roomId) {
+      throw new Error('Please choose a hall.');
+    }
+
+    await jsonPost(scope === 'room' ? urls.roomOverrideSave : urls.overrideSave, {
       date: document.getElementById('overrideDate').value,
       type: document.getElementById('overrideType').value,
       open_time: document.getElementById('overrideOpen').value,
       close_time: document.getElementById('overrideClose').value,
-      reason: document.getElementById('overrideReason').value
+      reason: document.getElementById('overrideReason').value,
+      room_id: roomId
     });
     window.location.reload();
   } catch (error) {
@@ -319,16 +471,29 @@ async function deleteOverride(overrideId) {
   showMessage('overrideMessage', '');
   try {
     await jsonPost(urls.overrideDelete + encodeURIComponent(overrideId));
-    document.querySelector(`[data-override-id="${overrideId}"]`)?.remove();
-    const count = document.querySelectorAll('[data-override-id]').length;
-    const badge = document.getElementById('overrideCount');
-    if (badge) badge.textContent = count + ' saved';
-    document.getElementById('overrideEmpty').style.display = count ? 'none' : '';
+    document.querySelector(`[data-override-scope="service"][data-override-id="${overrideId}"]`)?.remove();
+    updateOverrideCount();
     showMessage('overrideMessage', 'Special date deleted.', true);
   } catch (error) {
     showMessage('overrideMessage', error.message);
   }
 }
+
+async function deleteRoomOverride(overrideId) {
+  if (!overrideId || !confirm('Delete this hall override?')) return;
+  showMessage('overrideMessage', '');
+  try {
+    await jsonPost(urls.roomOverrideDelete + encodeURIComponent(overrideId));
+    document.querySelector(`[data-override-scope="room"][data-override-id="${overrideId}"]`)?.remove();
+    updateOverrideCount();
+    showMessage('overrideMessage', 'Hall special date deleted.', true);
+  } catch (error) {
+    showMessage('overrideMessage', error.message);
+  }
+}
+
+window.deleteOverride = deleteOverride;
+window.deleteRoomOverride = deleteRoomOverride;
 
 document.getElementById('previewSlotsBtn')?.addEventListener('click', async () => {
   const resultBox = document.getElementById('previewSlotsResult');

@@ -134,9 +134,11 @@ $publishStatusUrl = URLROOT . '/supplier/servicePublishStatus/' . $serviceId;
 $availabilitySaveUrl = URLROOT . '/supplier/serviceAvailabilitySave/' . $serviceId;
 $overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $serviceId;
 $overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
+$roomOverrideSaveUrl = URLROOT . '/supplier/venueRoomAvailabilityOverrideSave/' . $serviceId;
+$roomOverrideDeleteUrl = URLROOT . '/supplier/venueRoomAvailabilityOverrideDelete/' . $serviceId . '/';
 $previewUrl = URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId;
 
-$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $overrideCount, $attentionItems, $isReady, $isVenue, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
+$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $overrideCount, $attentionItems, $isReady, $isVenue, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $roomOverrideSaveUrl, $roomOverrideDeleteUrl, $previewUrl) {
 ?>
 <?php
 $serviceDetailCssVersion = file_exists(APPROOT . '/../public/css/supplier-service-detail.css') ? filemtime(APPROOT . '/../public/css/supplier-service-detail.css') : time();
@@ -151,6 +153,8 @@ $serviceDetailConfig = [
         'availabilitySave' => $availabilitySaveUrl,
         'overrideSave' => $overrideSaveUrl,
         'overrideDelete' => $overrideDeleteUrl,
+        'roomOverrideSave' => $roomOverrideSaveUrl,
+        'roomOverrideDelete' => $roomOverrideDeleteUrl,
         'preview' => $previewUrl,
     ],
     'servicePayloadBase' => [

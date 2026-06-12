@@ -316,6 +316,16 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
     }
 
+    public function venueRoomAvailabilityOverrideSave($serviceId = null)
+    {
+        return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
+    }
+
+    public function venueRoomAvailabilityOverrideDelete($serviceId = null, $overrideId = null)
+    {
+        return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
+    }
+
     public function serviceAvailabilityPreview($serviceId = null)
     {
         return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());

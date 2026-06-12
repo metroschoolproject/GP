@@ -1211,7 +1211,7 @@ class SupplierServiceManager
             $endTime = '17:00:00';
         }
 
-        $this->db->dbquery('DELETE FROM venue_room_availability WHERE room_id = :room_id');
+        $this->db->dbquery('DELETE FROM venue_room_availability WHERE room_id = :room_id AND date IS NULL');
         $this->db->dbbind(':room_id', (int)$roomId);
         $this->db->dbexecute();
 
@@ -1276,7 +1276,7 @@ class SupplierServiceManager
         );
         $this->db->dbbind(':venue_id', (int)$venueId);
 
-        return array_map(function ($room) {
+        $rooms = array_map(function ($room) {
             return [
                 'id' => (int)$room['id'],
                 'name' => $room['name'] ?? '',
@@ -1286,8 +1286,133 @@ class SupplierServiceManager
                 'available_to' => $room['available_to'] ?? '',
                 'start_time' => $room['start_time'] ?? '09:00:00',
                 'end_time' => $room['end_time'] ?? '17:00:00',
+                'overrides' => [],
             ];
         }, $this->db->getmultidata());
+
+        $overrides = $this->getVenueRoomOverrides($venueId);
+        foreach ($rooms as &$room) {
+            $room['overrides'] = $overrides[$room['id']] ?? [];
+        }
+        unset($room);
+
+        return $rooms;
+    }
+
+    private function getVenueRoomOverrides($venueId)
+    {
+        $this->db->dbquery(
+            'SELECT venue_room_availability.id,
+                    venue_room_availability.room_id,
+                    venue_room_availability.date,
+                    venue_room_availability.start_time,
+                    venue_room_availability.end_time,
+                    venue_room_availability.is_available
+             FROM venue_room_availability
+             INNER JOIN venue_rooms ON venue_rooms.id = venue_room_availability.room_id
+             WHERE venue_rooms.venue_id = :venue_id
+               AND venue_room_availability.date IS NOT NULL
+               AND venue_room_availability.date >= CURDATE()
+             ORDER BY venue_room_availability.date ASC, venue_room_availability.id ASC'
+        );
+        $this->db->dbbind(':venue_id', (int)$venueId);
+
+        $rows = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $roomId = (int)($row['room_id'] ?? 0);
+            if ($roomId <= 0) {
+                continue;
+            }
+            $rows[$roomId][] = [
+                'id' => (int)$row['id'],
+                'room_id' => $roomId,
+                'date' => $row['date'] ?? '',
+                'type' => !empty($row['is_available']) ? 'custom_hours' : 'unavailable',
+                'open_time' => $row['start_time'] ?? '09:00:00',
+                'close_time' => $row['end_time'] ?? '17:00:00',
+                'is_available' => (int)($row['is_available'] ?? 0),
+            ];
+        }
+
+        return $rows;
+    }
+
+    public function saveVenueRoomDateOverride($supplierId, $serviceId, $data)
+    {
+        $roomId = (int)($data['room_id'] ?? 0);
+        $date = $this->normalizeDate($data['date'] ?? '');
+        $type = in_array($data['type'] ?? '', ['available', 'unavailable', 'custom_hours'], true) ? $data['type'] : 'unavailable';
+        $isAvailable = $type === 'unavailable' ? 0 : 1;
+        $openTime = $isAvailable ? $this->normalizeTime($data['open_time'] ?? '09:00') : null;
+        $closeTime = $isAvailable ? $this->normalizeTime($data['close_time'] ?? '17:00') : null;
+
+        if ($roomId <= 0 || !$date || !$this->supplierOwnsVenueRoom($supplierId, $serviceId, $roomId)) {
+            return null;
+        }
+
+        if ($openTime !== null && $closeTime !== null && $openTime >= $closeTime) {
+            return null;
+        }
+
+        $this->db->dbquery('DELETE FROM venue_room_availability WHERE room_id = :room_id AND date = :date');
+        $this->db->dbbind(':room_id', $roomId);
+        $this->db->dbbind(':date', $date);
+        $this->db->dbexecute();
+
+        $this->db->dbquery(
+            'INSERT INTO venue_room_availability(room_id, date, start_time, end_time, is_available)
+             VALUES(:room_id, :date, :start_time, :end_time, :is_available)'
+        );
+        $this->db->dbbind(':room_id', $roomId);
+        $this->db->dbbind(':date', $date);
+        $this->db->dbbind(':start_time', $openTime);
+        $this->db->dbbind(':end_time', $closeTime);
+        $this->db->dbbind(':is_available', $isAvailable);
+        $this->db->dbexecute();
+
+        return $this->getServiceDetail($supplierId, $serviceId);
+    }
+
+    public function deleteVenueRoomDateOverride($supplierId, $serviceId, $overrideId)
+    {
+        $overrideId = (int)$overrideId;
+        if ($overrideId <= 0) {
+            return false;
+        }
+
+        $this->db->dbquery(
+            'DELETE venue_room_availability
+             FROM venue_room_availability
+             INNER JOIN venue_rooms ON venue_rooms.id = venue_room_availability.room_id
+             INNER JOIN venues ON venues.id = venue_rooms.venue_id
+             WHERE venue_room_availability.id = :id
+               AND venues.service_id = :service_id
+               AND venues.supplier_id = :supplier_id
+               AND venue_room_availability.date IS NOT NULL'
+        );
+        $this->db->dbbind(':id', $overrideId);
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':supplier_id', (int)$supplierId);
+
+        return $this->db->dbexecute();
+    }
+
+    private function supplierOwnsVenueRoom($supplierId, $serviceId, $roomId)
+    {
+        $this->db->dbquery(
+            'SELECT venue_rooms.id
+             FROM venue_rooms
+             INNER JOIN venues ON venues.id = venue_rooms.venue_id
+             WHERE venue_rooms.id = :room_id
+               AND venues.service_id = :service_id
+               AND venues.supplier_id = :supplier_id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':room_id', (int)$roomId);
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':supplier_id', (int)$supplierId);
+
+        return (bool)$this->db->getsingledata();
     }
 
     private function servicePriceRangeSelectFields()

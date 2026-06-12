@@ -6,8 +6,9 @@ const ICON  = { Venue:'🏛️', Accessories:'✨', Dress:'👗', Food:'🍽️'
 const serviceManagementConfig = window.serviceManagementConfig || {};
 const serviceManagementUrls = serviceManagementConfig.urls || {};
 const PAGE_SIZE = Number(serviceManagementConfig.pageSize || 24);
+const INITIAL_TAB = serviceManagementConfig.initialTab === 'packages' ? 'packages' : 'services';
 
-let currentTab = 'services', currentFilter = 'All', statusFilter = 'all', nextId = 200;
+let currentTab = INITIAL_TAB, currentFilter = 'All', statusFilter = 'all', nextId = 200;
 let editingSvcId = null, editingPkgId = null;
 
 function normalizeServiceItem(item) {
@@ -986,4 +987,4 @@ function resetImgBox(boxId, wide) {
 
 installNonNegativeNumberGuards();
 renderCategoryControls();
-render();
+switchTab(currentTab);

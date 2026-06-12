@@ -13,6 +13,15 @@ const state = {
   selectedDay: null
 };
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function calendarMessage(text, success = false) {
   const element = document.getElementById('calendarMessage');
   if (!element) return;
@@ -72,7 +81,15 @@ function renderCalendar() {
   state.calendar.days.forEach(day => {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `calendar-day ${day.in_month ? '' : 'outside'} ${day.is_today ? 'today' : ''}`;
+    const selected = state.selectedDay?.date === day.date;
+    button.className = [
+      'calendar-day',
+      day.in_month ? '' : 'outside',
+      day.is_today ? 'today' : '',
+      day.booking_count > 0 ? 'has-bookings' : '',
+      day.source === 'override' ? 'has-override' : '',
+      selected ? 'is-selected' : ''
+    ].filter(Boolean).join(' ');
     button.dataset.date = day.date;
     button.innerHTML = `
       <div class="day-head">
@@ -83,9 +100,16 @@ function renderCalendar() {
       <div class="day-source">${day.source === 'override' ? 'Date override' : 'Weekly schedule'}</div>
       ${day.booking_count > 0 ? `<span class="booking-chip">${day.booking_count} booking${day.booking_count === 1 ? '' : 's'}</span>` : ''}
     `;
-    button.addEventListener('click', () => openDayModal(day));
+    button.addEventListener('click', () => {
+      setFocusDay(day);
+      openDayModal(day);
+    });
     grid.appendChild(button);
   });
+
+  const selectedInMonth = state.calendar.days.find(day => day.date === state.selectedDay?.date);
+  setFocusDay(selectedInMonth || state.calendar.days.find(day => day.is_today) || state.calendar.days.find(day => day.in_month) || state.calendar.days[0], false);
+  renderAgenda();
 }
 
 function formatDateLabel(dateValue) {
@@ -94,7 +118,7 @@ function formatDateLabel(dateValue) {
 }
 
 function openDayModal(day) {
-  state.selectedDay = day;
+  setFocusDay(day, false);
   const modal = document.getElementById('calendarModal');
   const override = day.override || {};
   const type = override.type || (day.status === 'closed' ? 'available' : 'unavailable');
@@ -128,8 +152,67 @@ function renderModalBookings(bookings) {
     const time = booking.start_time && booking.end_time
       ? `${booking.start_time.slice(0, 5)} - ${booking.end_time.slice(0, 5)}`
       : 'Full day';
-    return `<p>#${booking.booking_id} · ${booking.customer_name || 'Customer'} · ${time} · ${booking.supplier_status || booking.status}</p>`;
+    return `<p>#${escapeHtml(booking.booking_id)} · ${escapeHtml(booking.customer_name || 'Customer')} · ${escapeHtml(time)} · ${escapeHtml(booking.supplier_status || booking.status)}</p>`;
   }).join('')}`;
+}
+
+function setFocusDay(day, rerender = true) {
+  if (!day) return;
+  state.selectedDay = day;
+
+  const dateEl = document.getElementById('calendarFocusDate');
+  const statusEl = document.getElementById('calendarFocusStatus');
+  const metaEl = document.getElementById('calendarFocusMeta');
+
+  if (dateEl) dateEl.textContent = formatDateLabel(day.date);
+  if (statusEl) {
+    const source = day.source === 'override' ? 'Custom date rule' : 'Weekly schedule';
+    statusEl.textContent = `${statusLabel(day.status)} · ${source}`;
+  }
+  if (metaEl) {
+    metaEl.innerHTML = `
+      <span>Hours <strong>${escapeHtml(timeText(day))}</strong></span>
+      <span>Bookings <strong>${Number(day.booking_count || 0)}</strong></span>
+      <span>Rule <strong>${day.source === 'override' ? 'Date override' : 'Default week'}</strong></span>
+    `;
+  }
+
+  if (rerender) renderCalendar();
+}
+
+function renderAgenda() {
+  const agenda = document.getElementById('calendarAgenda');
+  const count = document.getElementById('calendarAgendaCount');
+  if (!agenda || !state.calendar) return;
+
+  const items = state.calendar.days
+    .filter(day => day.in_month && (day.booking_count > 0 || day.source === 'override' || ['booked', 'custom_hours', 'unavailable'].includes(day.status)))
+    .slice(0, 8);
+
+  if (count) count.textContent = String(items.length);
+
+  if (!items.length) {
+    agenda.innerHTML = '<p class="agenda-empty">No bookings or special date rules this month yet.</p>';
+    return;
+  }
+
+  agenda.innerHTML = items.map(day => `
+    <button type="button" class="agenda-item" data-agenda-date="${escapeHtml(day.date)}">
+      <span>${escapeHtml(formatDateLabel(day.date))}</span>
+      <strong>${day.booking_count > 0 ? `${day.booking_count} booking${day.booking_count === 1 ? '' : 's'}` : escapeHtml(statusLabel(day.status))}</strong>
+      <span class="agenda-status ${escapeHtml(day.status)}">${escapeHtml(statusLabel(day.status))}</span>
+    </button>
+  `).join('');
+
+  agenda.querySelectorAll('[data-agenda-date]').forEach(button => {
+    button.addEventListener('click', () => {
+      const day = state.calendar.days.find(item => item.date === button.dataset.agendaDate);
+      if (day) {
+        setFocusDay(day);
+        openDayModal(day);
+      }
+    });
+  });
 }
 
 function closeModal() {

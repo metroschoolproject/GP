@@ -12,29 +12,62 @@ class CustomerServiceCatalog
 
     public function getServicePageData($filters = [])
     {
+        $services = $this->getServices($filters);
+        $hasFilters = trim((string)($filters['search'] ?? '')) !== ''
+            || !in_array(($filters['category'] ?? 'all'), ['', 'all'], true)
+            || trim((string)($filters['date'] ?? '')) !== '';
+
         return [
-            'services' => $this->getServices($filters),
-            'categories' => $this->getCategories(),
-            'featured' => $this->getFeaturedServices(),
+            'services' => $services,
+            'categories' => $this->getCategories($filters),
+            'featured' => $hasFilters ? array_slice($services, 0, 3) : $this->getFeaturedServices(),
         ];
     }
 
-    public function getCategories()
+    public function getCategories($filters = [])
     {
-        $this->db->dbquery(
-            'SELECT categories.id, categories.name, categories.slug, COUNT(services.id) AS service_count
-             FROM categories
-             INNER JOIN services ON services.category_id = categories.id
-             INNER JOIN suppliers ON suppliers.supplier_id = services.supplier_id
-             WHERE services.is_active = 1
-               AND suppliers.deleted_at IS NULL
-               AND suppliers.is_available = 1
-               AND suppliers.status IN ("approved", "verified")
-               AND suppliers.payment_status = "paid"
-               AND ' . $this->publishedServiceReadyCondition() . '
-             GROUP BY categories.id, categories.name, categories.slug
-             ORDER BY categories.name ASC'
-        );
+        $conditions = [
+            'services.is_active = 1',
+            'suppliers.deleted_at IS NULL',
+            'suppliers.is_available = 1',
+            'suppliers.status IN ("approved", "verified")',
+            'suppliers.payment_status = "paid"',
+            $this->publishedServiceReadyCondition(),
+        ];
+        $bindings = [];
+
+        $date = trim((string)($filters['date'] ?? ''));
+        if ($date !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $dayOfWeek = (int)date('N', strtotime($date));
+            if ($dayOfWeek >= 1 && $dayOfWeek <= 7) {
+                $conditions[] = '(
+                    LOWER(COALESCE(categories.name, "")) = "venue"
+                    OR EXISTS (
+                        SELECT 1
+                        FROM service_schedules
+                        WHERE service_schedules.service_id = services.id
+                          AND service_schedules.day_of_week = :cat_wedding_day_of_week
+                          AND service_schedules.is_available = 1
+                          AND service_schedules.open_time < service_schedules.close_time
+                        LIMIT 1
+                    )
+                )';
+                $bindings[':cat_wedding_day_of_week'] = $dayOfWeek;
+            }
+        }
+
+        $sql = 'SELECT categories.id, categories.name, categories.slug, COUNT(services.id) AS service_count
+                FROM categories
+                INNER JOIN services ON services.category_id = categories.id
+                INNER JOIN suppliers ON suppliers.supplier_id = services.supplier_id
+                WHERE ' . implode(' AND ', $conditions) . '
+                GROUP BY categories.id, categories.name, categories.slug
+                ORDER BY categories.name ASC';
+
+        $this->db->dbquery($sql);
+        foreach ($bindings as $param => $value) {
+            $this->db->dbbind($param, $value);
+        }
 
         return $this->db->getmultidata();
     }
@@ -111,6 +144,26 @@ class CustomerServiceCatalog
             $bindings[':exclude_id'] = $excludeId;
         }
 
+        $date = trim((string)($filters['date'] ?? ''));
+        if ($date !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $dayOfWeek = (int)date('N', strtotime($date));
+            if ($dayOfWeek >= 1 && $dayOfWeek <= 7) {
+                $conditions[] = '(
+                    LOWER(COALESCE(categories.name, "")) = "venue"
+                    OR EXISTS (
+                        SELECT 1
+                        FROM service_schedules
+                        WHERE service_schedules.service_id = services.id
+                          AND service_schedules.day_of_week = :wedding_day_of_week
+                          AND service_schedules.is_available = 1
+                          AND service_schedules.open_time < service_schedules.close_time
+                        LIMIT 1
+                    )
+                )';
+                $bindings[':wedding_day_of_week'] = $dayOfWeek;
+            }
+        }
+
         $sort = $filters['sort'] ?? 'featured';
         $orderBy = 'review_stats.avg_rating DESC, services.created_at DESC, services.id DESC';
         if ($sort === 'price_low') {
@@ -119,6 +172,8 @@ class CustomerServiceCatalog
             $orderBy = 'services.price DESC, services.created_at DESC';
         } elseif ($sort === 'newest') {
             $orderBy = 'services.created_at DESC, services.id DESC';
+        } elseif ($sort === 'rating') {
+            $orderBy = 'review_stats.avg_rating DESC, review_stats.review_count DESC, services.created_at DESC';
         }
 
         $limit = max(1, min(60, (int)($filters['limit'] ?? 60)));
@@ -161,7 +216,7 @@ class CustomerServiceCatalog
         return array_map([$this, 'formatService'], $this->db->getmultidata());
     }
 
-    public function getServiceDetail($serviceId)
+    public function getServiceDetail($serviceId, $selectedDate = '')
     {
         $priceRangeFields = $this->servicePriceRangeSelectFields();
         $this->db->dbquery(
@@ -214,8 +269,10 @@ class CustomerServiceCatalog
         $formatted['max_concurrent'] = (int)($service['max_concurrent'] ?? 1);
         $formatted['supplier_url'] = $service['supplier_url'] ?? '';
         $formatted['media'] = $this->getServiceMedia($serviceId, $formatted['image']);
-        $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId) : [];
-        $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted);
+        $selectedDate = $this->normalizeDate($selectedDate);
+        $formatted['selected_date'] = $selectedDate ?: '';
+        $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate) : [];
+        $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted, $selectedDate);
         $formatted['reviews'] = $this->getServiceReviews($serviceId);
         $formatted['related'] = $this->getRelatedServices($serviceId, $formatted['category_slug']);
 
@@ -285,27 +342,93 @@ class CustomerServiceCatalog
             )';
     }
 
-    private function getVenueRooms($serviceId)
+    private function getVenueRooms($serviceId, $selectedDate = '')
     {
+        $selectedDate = $this->normalizeDate($selectedDate);
+        $serviceClosed = false;
+        if ($selectedDate) {
+            $this->db->dbquery(
+                'SELECT type
+                 FROM service_availability
+                 WHERE service_id = :service_id
+                   AND date = :selected_date
+                 LIMIT 1'
+            );
+            $this->db->dbbind(':service_id', (int)$serviceId);
+            $this->db->dbbind(':selected_date', $selectedDate);
+            $serviceOverride = $this->db->getsingledata();
+            $serviceClosed = ($serviceOverride['type'] ?? '') === 'unavailable';
+        }
+
+        $bookingCountSelect = $selectedDate
+            ? ', (
+                    SELECT COUNT(*)
+                      FROM booking_items
+                      WHERE booking_items.venue_room_id = venue_rooms.id
+                      AND DATE(booking_items.booking_date) = :selected_date_booking
+                      AND COALESCE(booking_items.status, "") <> "cancelled"
+                ) AS booking_count'
+            : ', 0 AS booking_count';
+        $roomDateJoin = $selectedDate
+            ? 'LEFT JOIN venue_room_availability AS selected_room_availability
+                    ON selected_room_availability.room_id = venue_rooms.id
+                   AND selected_room_availability.date = :selected_date_room'
+            : 'LEFT JOIN venue_room_availability AS selected_room_availability
+                    ON selected_room_availability.room_id = venue_rooms.id
+                   AND selected_room_availability.date IS NULL
+                   AND 1 = 0';
+
         $this->db->dbquery(
             'SELECT venue_rooms.id,
                     venue_rooms.name,
                     venue_rooms.capacity,
                     venue_rooms.price,
-                    MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.start_time END) AS start_time,
-                    MAX(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.end_time END) AS end_time,
+                    COALESCE(selected_room_availability.start_time, default_room_availability.start_time) AS start_time,
+                    COALESCE(selected_room_availability.end_time, default_room_availability.end_time) AS end_time,
+                    selected_room_availability.id AS selected_availability_id,
+                    selected_room_availability.is_available AS selected_is_available,
+                    default_room_availability.is_available AS default_is_available,
                     venues.name AS venue_name,
                     venues.location AS venue_location
+                    ' . $bookingCountSelect . '
              FROM venues
              INNER JOIN venue_rooms ON venue_rooms.venue_id = venues.id
-             LEFT JOIN venue_room_availability ON venue_room_availability.room_id = venue_rooms.id
+             LEFT JOIN venue_room_availability AS default_room_availability
+                    ON default_room_availability.room_id = venue_rooms.id
+                   AND default_room_availability.date IS NULL
+             ' . $roomDateJoin . '
              WHERE venues.service_id = :service_id
-             GROUP BY venue_rooms.id, venue_rooms.name, venue_rooms.capacity, venue_rooms.price, venues.name, venues.location
+             GROUP BY venue_rooms.id,
+                      venue_rooms.name,
+                      venue_rooms.capacity,
+                      venue_rooms.price,
+                      selected_room_availability.start_time,
+                      selected_room_availability.end_time,
+                      selected_room_availability.id,
+                      selected_room_availability.is_available,
+                      default_room_availability.start_time,
+                      default_room_availability.end_time,
+                      default_room_availability.is_available,
+                      venues.name,
+                      venues.location
              ORDER BY venue_rooms.id ASC'
         );
         $this->db->dbbind(':service_id', (int)$serviceId);
+        if ($selectedDate) {
+            $this->db->dbbind(':selected_date_booking', $selectedDate);
+            $this->db->dbbind(':selected_date_room', $selectedDate);
+        }
 
-        return array_map(function ($room) {
+        return array_map(function ($room) use ($selectedDate, $serviceClosed) {
+            $bookingCount = (int)($room['booking_count'] ?? 0);
+            $hasSelectedRoomRule = $selectedDate && !empty($room['selected_availability_id']);
+            $roomOpen = $hasSelectedRoomRule
+                ? !empty($room['selected_is_available'])
+                : !empty($room['default_is_available']);
+            $availableOnDate = $selectedDate
+                ? (!$serviceClosed && $roomOpen && $bookingCount === 0)
+                : false;
+
             return [
                 'id' => (int)$room['id'],
                 'name' => $room['name'] ?? '',
@@ -315,19 +438,26 @@ class CustomerServiceCatalog
                 'end_time' => $room['end_time'] ?? '17:00:00',
                 'venue_name' => $room['venue_name'] ?? '',
                 'venue_location' => $room['venue_location'] ?? '',
+                'booking_count' => $bookingCount,
+                'is_available_on_date' => $availableOnDate,
+                'room_closed_on_date' => $selectedDate && !$roomOpen,
+                'service_closed_on_date' => $serviceClosed,
             ];
         }, $this->db->getmultidata());
     }
 
-    private function getServiceAvailability($serviceId, $service)
+    private function getServiceAvailability($serviceId, $service, $selectedDate = '')
     {
         $weekly = $this->getWeeklySchedule($serviceId);
         $overrides = $this->getDateOverrides($serviceId);
-        $upcoming = $this->getUpcomingAvailability($serviceId, $service, $weekly, $overrides);
+        $selectedDate = $this->normalizeDate($selectedDate);
+        $selected = $selectedDate ? $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $selectedDate) : null;
+        $upcoming = $this->getUpcomingAvailability($serviceId, $service, $weekly, $overrides, $selectedDate);
 
         return [
             'weekly' => array_values($weekly),
             'overrides' => array_values($overrides),
+            'selected' => $selected,
             'upcoming' => $upcoming,
         ];
     }
@@ -375,23 +505,100 @@ class CustomerServiceCatalog
         return $overrides;
     }
 
-    private function getUpcomingAvailability($serviceId, $service, $weekly, $overrides)
+    private function getUpcomingAvailability($serviceId, $service, $weekly, $overrides, $selectedDate = '')
     {
         $days = [];
-        $date = new DateTimeImmutable('today');
-        $duration = max(15, (int)($service['duration_minutes'] ?? 60));
-        $buffer = max(0, (int)($service['buffer_minutes'] ?? 0));
-        $bookingType = (($service['booking_type'] ?? 'fullday') === 'slot' || $buffer > 0) ? 'slot' : 'fullday';
+        $seen = [];
+        $today = new DateTimeImmutable('today');
+        $selectedDate = $this->normalizeDate($selectedDate);
+
+        if ($selectedDate) {
+            $selected = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $selectedDate);
+            if ($selected) {
+                $days[] = $selected;
+                $seen[$selectedDate] = true;
+            }
+
+            $anchor = DateTimeImmutable::createFromFormat('!Y-m-d', $selectedDate);
+            if ($anchor) {
+                $windowStart = $anchor->modify('-3 days');
+                if ($windowStart < $today) {
+                    $windowStart = $today;
+                }
+
+                for ($i = 0; $i <= 10 && count($days) < 8; $i++) {
+                    $day = $windowStart->modify('+' . $i . ' days');
+                    $dateValue = $day->format('Y-m-d');
+                    if (isset($seen[$dateValue])) {
+                        continue;
+                    }
+
+                    $availability = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue);
+                    if (!$availability || empty($availability['slots'])) {
+                        continue;
+                    }
+
+                    $days[] = $availability;
+                    $seen[$dateValue] = true;
+                }
+            }
+
+            $fallbackStart = DateTimeImmutable::createFromFormat('!Y-m-d', $selectedDate);
+            $fallbackStart = $fallbackStart ? $fallbackStart->modify('+11 days') : $today;
+            if ($fallbackStart < $today) {
+                $fallbackStart = $today;
+            }
+
+            for ($i = 0; $i < 45 && count($days) < 8; $i++) {
+                $day = $fallbackStart->modify('+' . $i . ' days');
+                $dateValue = $day->format('Y-m-d');
+                if (isset($seen[$dateValue])) {
+                    continue;
+                }
+
+                $availability = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue);
+                if (!$availability || empty($availability['slots'])) {
+                    continue;
+                }
+
+                $days[] = $availability;
+                $seen[$dateValue] = true;
+            }
+
+            return $days;
+        }
 
         for ($i = 0; $i < 28 && count($days) < 8; $i++) {
-            $day = $date->modify('+' . $i . ' days');
+            $day = $today->modify('+' . $i . ' days');
             $dateValue = $day->format('Y-m-d');
-            $hours = $this->hoursForDate($dateValue, $weekly, $overrides);
 
-            if (!$hours['is_available']) {
+            $availability = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue);
+            if (!$availability || empty($availability['slots'])) {
                 continue;
             }
 
+            $days[] = $availability;
+            $seen[$dateValue] = true;
+        }
+
+        return $days;
+    }
+
+    private function availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue)
+    {
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $dateValue);
+        if (!$date) {
+            return null;
+        }
+
+        $hours = $this->hoursForDate($dateValue, $weekly, $overrides);
+        $slots = [];
+        $status = 'Unavailable';
+
+        if (!empty($hours['is_available'])) {
+            $duration = max(15, (int)($service['duration_minutes'] ?? 60));
+            $buffer = max(0, (int)($service['buffer_minutes'] ?? 0));
+            $bookingType = (($service['booking_type'] ?? 'fullday') === 'slot' || $buffer > 0) ? 'slot' : 'fullday';
             $slots = $bookingType === 'slot'
                 ? $this->availableSlotsForDate($serviceId, $dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer, (int)($service['max_concurrent'] ?? 1))
                 : [[
@@ -400,21 +607,21 @@ class CustomerServiceCatalog
                     'label' => $this->formatTimeRange($hours['open_time'], $hours['close_time']),
                     'remaining' => max(1, (int)($service['max_concurrent'] ?? 1)),
                 ]];
-
-            if (empty($slots)) {
-                continue;
-            }
-
-            $days[] = [
-                'date' => $dateValue,
-                'day_label' => $day->format('D, M j'),
-                'status' => $hours['source'] === 'override' ? 'Custom hours' : 'Available',
-                'reason' => $hours['reason'] ?? '',
-                'slots' => array_slice($slots, 0, 6),
-            ];
+            $status = $hours['source'] === 'override' ? 'Custom hours' : 'Available';
         }
 
-        return $days;
+        if (empty($slots) && !empty($hours['is_available'])) {
+            $status = 'Booked';
+        }
+
+        return [
+            'date' => $dateValue,
+            'day_label' => $date->format('D, M j'),
+            'status' => $status,
+            'reason' => $hours['reason'] ?? '',
+            'is_selected_date' => ($service['selected_date'] ?? '') === $dateValue,
+            'slots' => array_slice($slots, 0, 6),
+        ];
     }
 
     private function hoursForDate($date, $weekly, $overrides)
@@ -550,6 +757,17 @@ class CustomerServiceCatalog
     private function formatTimeRange($startTime, $endTime)
     {
         return date('g:i A', strtotime($startTime)) . ' - ' . date('g:i A', strtotime($endTime));
+    }
+
+    private function normalizeDate($date)
+    {
+        $date = trim((string)$date);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return '';
+        }
+
+        $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        return $parsed && $parsed->format('Y-m-d') === $date ? $date : '';
     }
 
     private function formatService($service)

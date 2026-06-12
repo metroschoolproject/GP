@@ -253,6 +253,24 @@
         <div class="card-body" style="padding-bottom:0">
           <div id="overrideMessage" class="message-bar error" style="display:none"></div>
           <div class="override-form">
+            <?php if ($isVenue): ?>
+            <div class="form-group">
+              <div class="form-label">Apply to</div>
+              <select id="overrideScope" class="form-input">
+                <option value="service">Entire venue</option>
+                <option value="room">Specific hall</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Hall</div>
+              <select id="overrideRoom" class="form-input" disabled>
+                <option value="">Choose hall</option>
+                <?php foreach ($venueRooms as $room): ?>
+                  <option value="<?= (int)($room['id'] ?? 0) ?>"><?= $h($room['name'] ?? 'Hall') ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <?php endif; ?>
             <div class="form-group">
               <div class="form-label">Date</div>
               <input id="overrideDate" type="date" class="form-input">
@@ -289,14 +307,48 @@
               $type = (string)($override['type'] ?? 'unavailable');
               $typeClass = $type === 'custom_hours' ? 'type-custom' : ($type === 'available' ? 'type-available' : 'type-unavailable');
               ?>
-              <div class="override-item" data-override-id="<?= (int)($override['id'] ?? 0) ?>">
+              <div class="override-item"
+                   data-override-id="<?= (int)($override['id'] ?? 0) ?>"
+                   data-override-date="<?= $h($override['date'] ?? '') ?>"
+                   data-override-type="<?= $h($type) ?>"
+                   data-override-open="<?= $h(substr((string)($override['open_time'] ?? '09:00'), 0, 5)) ?>"
+                   data-override-close="<?= $h(substr((string)($override['close_time'] ?? '17:00'), 0, 5)) ?>"
+                   data-override-reason="<?= $h($override['reason'] ?? '') ?>"
+                   data-override-scope="service"
+                   onclick="editOverride(this)">
                 <div>
                   <div class="override-date"><?= $h($formatDate($override['date'] ?? '')) ?></div>
-                  <div style="margin-top:3px"><span class="override-type <?= $h($typeClass) ?>"><?= $h(str_replace('_', ' ', $type)) ?></span></div>
+                  <div style="margin-top:3px"><span class="override-type <?= $h($typeClass) ?>">Entire venue · <?= $h(str_replace('_', ' ', $type)) ?></span></div>
                 </div>
-                <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" onclick="deleteOverride(<?= (int)($override['id'] ?? 0) ?>)"><i class="ti ti-trash" style="font-size:13px"></i></button>
+                <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" onclick="event.stopPropagation(); deleteOverride(<?= (int)($override['id'] ?? 0) ?>)"><i class="ti ti-trash" style="font-size:13px"></i></button>
               </div>
             <?php endforeach; ?>
+            <?php if ($isVenue): ?>
+              <?php foreach ($venueRooms as $room): ?>
+                <?php foreach (($room['overrides'] ?? []) as $override): ?>
+                  <?php
+                  $type = (string)($override['type'] ?? 'unavailable');
+                  $typeClass = $type === 'custom_hours' ? 'type-custom' : ($type === 'available' ? 'type-available' : 'type-unavailable');
+                  ?>
+                  <div class="override-item"
+                       data-override-id="<?= (int)($override['id'] ?? 0) ?>"
+                       data-override-date="<?= $h($override['date'] ?? '') ?>"
+                       data-override-type="<?= $h($type) ?>"
+                       data-override-open="<?= $h(substr((string)($override['open_time'] ?? '09:00'), 0, 5)) ?>"
+                       data-override-close="<?= $h(substr((string)($override['close_time'] ?? '17:00'), 0, 5)) ?>"
+                       data-override-reason=""
+                       data-override-scope="room"
+                       data-override-room-id="<?= (int)($room['id'] ?? 0) ?>"
+                       onclick="editOverride(this)">
+                    <div>
+                      <div class="override-date"><?= $h($formatDate($override['date'] ?? '')) ?></div>
+                      <div style="margin-top:3px"><span class="override-type <?= $h($typeClass) ?>"><?= $h($room['name'] ?? 'Hall') ?> · <?= $h(str_replace('_', ' ', $type)) ?></span></div>
+                    </div>
+                    <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" onclick="event.stopPropagation(); deleteRoomOverride(<?= (int)($override['id'] ?? 0) ?>)"><i class="ti ti-trash" style="font-size:13px"></i></button>
+                  </div>
+                <?php endforeach; ?>
+              <?php endforeach; ?>
+            <?php endif; ?>
             <div id="overrideEmpty" class="empty-state" style="<?= empty($overrideRows) ? '' : 'display:none' ?>">
               <i class="ti ti-calendar"></i>
               <p>No special dates yet</p>
@@ -342,7 +394,7 @@
           </div>
           <div class="info-row">
             <span class="info-key">Starting price</span>
-            <span class="info-val"><?= $money($servicePriceAmount) ?></span>
+            <span class="info-val" id="serviceInfoPrice"><?= $money($servicePriceAmount) ?></span>
           </div>
           <div class="info-row">
             <span class="info-key">Status</span>
@@ -355,16 +407,16 @@
           <?php if ($isVenue): ?>
             <div class="info-row">
               <span class="info-key">Venue</span>
-              <span class="info-val"><?= $h($service['venue_name'] ?? $service['venue'] ?? '-') ?></span>
+              <span class="info-val" id="serviceInfoVenue"><?= $h($service['venue_name'] ?? $service['venue'] ?? '-') ?></span>
             </div>
             <div class="info-row">
               <span class="info-key">Halls</span>
-              <span class="info-val"><?= count($venueRooms) ?></span>
+              <span class="info-val" id="serviceInfoHalls"><?= count($venueRooms) ?></span>
             </div>
           <?php endif; ?>
           <div class="info-row">
             <span class="info-key">Concurrent bookings</span>
-            <span class="info-val"><?= (int)$maxConcurrent ?></span>
+            <span class="info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>
           </div>
         </div>
       </div>

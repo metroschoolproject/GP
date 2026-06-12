@@ -62,6 +62,40 @@ class SupplierAvailability extends SupplierControllerSupport
         $this->jsonResponse(['status' => $deleted ? 'success' : 'error']);
     }
 
+    public function venueRoomAvailabilityOverrideSave($serviceId = null)
+    {
+        $supplier = $this->authorizedSupplierForServiceManagement();
+        $serviceId = (int)$serviceId;
+
+        if ($serviceId <= 0) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
+        }
+
+        $service = $this->serviceManagementModel->saveVenueRoomDateOverride(
+            (int)$supplier['supplier_id'],
+            $serviceId,
+            $this->jsonPayload()
+        );
+
+        if (!$service) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Please choose a valid hall and date.'], 422);
+        }
+
+        $this->jsonResponse(['status' => 'success', 'item' => $service]);
+    }
+
+    public function venueRoomAvailabilityOverrideDelete($serviceId = null, $overrideId = null)
+    {
+        $supplier = $this->authorizedSupplierForServiceManagement();
+        $deleted = $this->serviceManagementModel->deleteVenueRoomDateOverride(
+            (int)$supplier['supplier_id'],
+            (int)$serviceId,
+            (int)$overrideId
+        );
+
+        $this->jsonResponse(['status' => $deleted ? 'success' : 'error']);
+    }
+
     public function serviceAvailabilityPreview($serviceId = null)
     {
         $supplier = $this->authorizedSupplierForServiceManagement();

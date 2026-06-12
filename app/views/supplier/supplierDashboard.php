@@ -8,6 +8,26 @@ $dashboardFilterTabClass = 'filter-tab rounded-full px-4 py-1.5 text-xs font-sem
 $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-wider text-app-muted font-semibold whitespace-nowrap';
 ?>
 
+<style>
+  .scroll-hint { position: relative; }
+  .scroll-hint.can-scroll::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 32px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.9)); pointer-events: none; z-index: 2; }
+  @media (max-width: 640px) {
+    .supplier-dashboard-overview { padding-left: 0.75rem !important; padding-right: 0.75rem !important; padding-top: 1rem !important; }
+    .supplier-dashboard-overview .rounded-card { padding: 0.75rem !important; }
+    .supplier-dashboard-overview .filter-tab { padding-left: 0.5rem; padding-right: 0.5rem; font-size: 9px; }
+    .supplier-dashboard-overview .overflow-x-auto { margin-left: -0.75rem; margin-right: -0.75rem; }
+    .supplier-dashboard-overview .overflow-x-auto table th,
+    .supplier-dashboard-overview .overflow-x-auto table td { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+    .supplier-dashboard-overview .text-2xl { font-size: 1.25rem !important; }
+    .supplier-dashboard-overview h3.text-sm { font-size: 0.8125rem !important; }
+    .supplier-dashboard-overview .space-y-2 > div { padding: 0.5rem !important; }
+    .supplier-dashboard-overview .gap-3 { gap: 0.75rem !important; }
+    .supplier-dashboard-overview .gap-4 { gap: 0.75rem !important; }
+    .supplier-dashboard-overview .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+    .supplier-dashboard-overview .py-5 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+  }
+</style>
+
 <div class="supplier-dashboard-overview mx-auto max-w-[1600px] px-4 py-5 font-ui text-[13px] text-app-text antialiased">
 
        
@@ -205,7 +225,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
         <!-- PAYMENT STATUS -->
         <section class="mb-4">
             <div class="<?= $dashboardCardClass ?>">
-                <div class="mb-3 flex items-center justify-between">
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <h3 class="text-sm font-bold text-app-text">Payment status</h3>
                     <div class="relative">
                         <button id="paymentFilterBtn" type="button" aria-expanded="false"
@@ -214,7 +234,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                             <span id="paymentFilterLabel">This week</span>
                             <svg class="h-3 w-3 text-app-muted transition-transform" id="paymentFilterChevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                         </button>
-                        <div id="paymentFilterMenu" class="invisible absolute right-0 top-[calc(100%+6px)] z-30 w-36 origin-top scale-y-95 rounded-xl border border-app-border bg-app-input p-1.5 opacity-0 shadow-lg transition-all duration-150">
+                        <div id="paymentFilterMenu" class="invisible absolute right-0 sm:right-0 left-auto sm:left-auto top-[calc(100%+6px)] z-30 w-36 origin-top scale-y-95 rounded-xl border border-app-border bg-app-input p-1.5 opacity-0 shadow-lg transition-all duration-150">
                             <button type="button" data-payment-filter="today" class="<?= $dashboardMenuItemClass ?>">Today</button>
                             <button type="button" data-payment-filter="week" class="<?= $dashboardMenuItemActiveClass ?>">This week</button>
                             <button type="button" data-payment-filter="month" class="<?= $dashboardMenuItemClass ?>">This month</button>
@@ -259,7 +279,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
         <!-- WITHDRAW HISTORY -->
         <section class="mb-4">
             <div class="<?= $dashboardCardClass ?>">
-                <div class="mb-3 flex items-center justify-between">
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <h3 class="text-sm font-bold text-app-text">Withdraw History</h3>
                     <div class="flex items-center gap-2">
                         <div class="relative">
@@ -631,6 +651,15 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+
+    /* ── scroll hint for overflowing tables ── */
+    document.querySelectorAll(".overflow-x-auto").forEach(el => {
+      el.classList.add("scroll-hint");
+      const check = () => el.classList.toggle("can-scroll", el.scrollWidth > el.clientWidth);
+      check();
+      el.addEventListener("scroll", () => { el.classList.remove("can-scroll"); });
+      window.addEventListener("resize", check);
+    });
 
     /* ── Payment Status filter dropdown ── */
     const payBtn  = document.getElementById("paymentFilterBtn");

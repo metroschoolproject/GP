@@ -59,20 +59,44 @@ $dashboardContent = function () use ($h, $serviceId, $serviceNameRaw, $serviceCa
 
   <div id="calendarMessage" class="calendar-message" style="display:none"></div>
 
-  <div class="calendar-shell">
-    <div class="calendar-toolbar">
-      <button type="button" class="icon-btn" id="prevMonthBtn" aria-label="Previous month"><i class="ti ti-chevron-left"></i></button>
-      <div>
-        <div id="calendarMonthLabel" class="month-label">Loading...</div>
-        <div class="month-sub">Click a date to override weekly availability</div>
+  <div class="calendar-workspace">
+    <div class="calendar-shell">
+      <div class="calendar-toolbar">
+        <button type="button" class="icon-btn" id="prevMonthBtn" aria-label="Previous month"><i class="ti ti-chevron-left"></i></button>
+        <div>
+          <div id="calendarMonthLabel" class="month-label">Loading...</div>
+          <div class="month-sub">Click any date to manage availability</div>
+        </div>
+        <button type="button" class="icon-btn" id="nextMonthBtn" aria-label="Next month"><i class="ti ti-chevron-right"></i></button>
       </div>
-      <button type="button" class="icon-btn" id="nextMonthBtn" aria-label="Next month"><i class="ti ti-chevron-right"></i></button>
+
+      <div class="weekday-row">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+      <div id="calendarGrid" class="calendar-grid" aria-live="polite"></div>
     </div>
 
-    <div class="weekday-row">
-      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-    </div>
-    <div id="calendarGrid" class="calendar-grid" aria-live="polite"></div>
+    <aside class="calendar-side">
+      <section class="calendar-side-card calendar-focus-card">
+        <div class="calendar-kicker">Selected date</div>
+        <h2 id="calendarFocusDate">Choose a date</h2>
+        <p id="calendarFocusStatus">Review availability, bookings, and overrides.</p>
+        <div id="calendarFocusMeta" class="focus-meta"></div>
+      </section>
+
+      <section class="calendar-side-card">
+        <div class="side-card-head">
+          <div>
+            <div class="calendar-kicker">Month rhythm</div>
+            <h2>Bookings &amp; overrides</h2>
+          </div>
+          <span id="calendarAgendaCount" class="agenda-count">0</span>
+        </div>
+        <div id="calendarAgenda" class="calendar-agenda">
+          <p class="agenda-empty">Loading calendar notes...</p>
+        </div>
+      </section>
+    </aside>
   </div>
 
   <div class="calendar-legend" aria-label="Calendar legend">

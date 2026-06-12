@@ -12,7 +12,8 @@ $dashboardBreadcrumbs = [
 ];
 $dashboardSearchPlaceholder = 'Search services, packages...';
 $dashboardContentClass = 'bg-[#f7f3ed] px-0 py-0';
-$dashboardContent = function () use ($serviceManagementData) {
+$initialServiceTab = ($_GET['tab'] ?? '') === 'packages' ? 'packages' : 'services';
+$dashboardContent = function () use ($serviceManagementData, $initialServiceTab) {
     $serviceManagementPath = APPROOT . '/views/supplier/service_management.html';
     $serviceManagementHtml = file_exists($serviceManagementPath) ? file_get_contents($serviceManagementPath) : '';
     $serviceManagementScript = '<script src="' . URLROOT . '/public/js/supplier-service-management.js?v=' . rawurlencode((string)@filemtime(dirname(APPROOT) . '/public/js/supplier-service-management.js')) . '"></script>';
@@ -33,6 +34,7 @@ $dashboardContent = function () use ($serviceManagementData) {
         ],
         'initialData' => $serviceManagementData ?? ['services' => [], 'packages' => [], 'categories' => []],
         'pageSize' => 24,
+        'initialTab' => $initialServiceTab,
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ';</script><base target="_top">';
 
     $serviceManagementHtml = str_replace('<!-- SERVICE_MANAGEMENT_SCRIPT -->', $serviceManagementScript, $serviceManagementHtml);

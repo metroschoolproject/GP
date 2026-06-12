@@ -14,6 +14,10 @@ $initialsSource = trim($supplierNameRaw) !== '' ? $supplierNameRaw : 'Supplier';
 $supplierInitials = strtoupper(substr($initialsSource, 0, 1));
 $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
 $calendarPathActive = strpos($currentPath, 'supplier/calendar') !== false || strpos($currentPath, 'supplier/serviceCalendar') !== false;
+$servicesPathActive = strpos($currentPath, 'supplier/services') !== false
+    || strpos($currentPath, 'supplier/serviceDetail') !== false
+    || strpos($currentPath, 'supplier/serviceCalendar') !== false;
+$servicesPackageTabActive = strpos($currentPath, 'supplier/services') !== false && ($_GET['tab'] ?? '') === 'packages';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, services...';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'supplier',
@@ -128,9 +132,8 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         }
 
         .supplier-dashboard-topbar {
-            gap: 0.75rem;
-            padding-left: 1rem;
-            padding-right: 1rem;
+            gap: 0.5rem;
+            padding: 0.75rem 0.75rem;
         }
 
         .supplier-topbar-title {
@@ -142,11 +145,85 @@ if (!function_exists('dashboard_supplier_path_matches')) {
 
         .supplier-topbar-actions {
             width: 100%;
+            gap: 0.5rem;
         }
 
-        .supplier-topbar-actions .relative,
+        .supplier-topbar-actions .relative {
+            flex: 1;
+            min-width: 0;
+        }
+
         .supplier-topbar-actions input[type="search"] {
             width: 100%;
+        }
+
+        .supplier-topbar-actions .relative .rounded-md {
+            display: none;
+        }
+
+        .supplier-main .px-6 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+
+    .supplier-sidebar-group-trigger {
+        width: 100%;
+        border: 0;
+        cursor: pointer;
+    }
+
+    .supplier-sidebar-subnav {
+        display: none;
+        margin: 0.25rem 0 0.5rem 2.15rem;
+        padding-left: 0.75rem;
+        border-left: 1px solid var(--color-app-border, #e5e7eb);
+    }
+
+    .supplier-sidebar-group[data-open="true"] .supplier-sidebar-subnav {
+        display: grid;
+        gap: 0.25rem;
+    }
+
+    .supplier-sidebar-subnav a {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 34px;
+        border-radius: 0.75rem;
+        padding: 0 0.75rem;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--color-app-muted, #6b7280);
+        transition: background 160ms ease, color 160ms ease;
+    }
+
+    .supplier-sidebar-subnav a:hover,
+    .supplier-sidebar-subnav a.is-active {
+        background: var(--color-app-input, #fff);
+        color: var(--color-app-text, #1f2937);
+    }
+
+    .supplier-sidebar-group[data-open="true"] .supplier-sidebar-group-chevron {
+        transform: rotate(180deg);
+    }
+
+    @media (max-width: 480px) {
+        .supplier-dashboard-topbar {
+            padding: 0.5rem 0.5rem;
+            gap: 0.375rem;
+        }
+
+        .supplier-topbar-actions {
+            flex-wrap: nowrap;
+        }
+
+        .supplier-topbar-actions .relative {
+            min-width: 0;
+        }
+
+        .supplier-topbar-title .min-w-0 nav {
+            font-size: 9px;
         }
     }
 
@@ -175,6 +252,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         body.supplier-sidebar-collapsed .supplier-sidebar-section,
         body.supplier-sidebar-collapsed .supplier-sidebar-email,
         body.supplier-sidebar-collapsed .supplier-sidebar-chevron,
+        body.supplier-sidebar-collapsed .supplier-sidebar-subnav,
         body.supplier-sidebar-collapsed .supplier-sidebar-badge {
             display: none;
         }
@@ -194,6 +272,12 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         }
 
         body.supplier-sidebar-collapsed .supplier-sidebar a {
+            justify-content: center;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        body.supplier-sidebar-collapsed .supplier-sidebar-group-trigger {
             justify-content: center;
             padding-left: 0.75rem;
             padding-right: 0.75rem;
@@ -253,14 +337,34 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                     <span class="supplier-sidebar-badge rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-warning"><?= $pendingBookings ?></span>
                 <?php endif; ?>
             </a>
-            <a href="<?= URLROOT ?>/supplier/services" title="Services" class="<?= dashboard_supplier_nav_class('supplier/services', $currentPath, true) ?>">
-                <i data-lucide="briefcase-business" class="h-4 w-4"></i>
-                <span class="supplier-sidebar-label flex-1">Services</span>
-            </a>
-            <a href="<?= URLROOT ?>/supplier/calendar" title="Calendar" class="<?= $calendarPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition text-app-text hover:bg-app-input hover:shadow-sm' ?>">
-                <i data-lucide="calendar-days" class="h-4 w-4"></i>
-                <span class="supplier-sidebar-label flex-1">Calendar</span>
-            </a>
+            <div class="supplier-sidebar-group" data-open="<?= $servicesPathActive ? 'true' : 'false' ?>">
+                <button type="button"
+                        class="supplier-sidebar-group-trigger <?= $servicesPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition text-app-text hover:bg-app-input hover:shadow-sm' ?>"
+                        aria-expanded="<?= $servicesPathActive ? 'true' : 'false' ?>"
+                        aria-controls="supplierServicesSubnav"
+                        title="Services">
+                    <i data-lucide="briefcase-business" class="h-4 w-4"></i>
+                    <span class="supplier-sidebar-label flex-1 text-left">Services</span>
+                    <i data-lucide="chevron-down" class="supplier-sidebar-chevron supplier-sidebar-group-chevron h-4 w-4 transition-transform"></i>
+                </button>
+                <div id="supplierServicesSubnav" class="supplier-sidebar-subnav supplier-sidebar-label">
+                    <a href="<?= URLROOT ?>/supplier/services"
+                       class="<?= dashboard_supplier_path_matches('supplier/services', $currentPath, true) && !$servicesPackageTabActive ? 'is-active' : '' ?>">
+                        <i data-lucide="list" class="h-3.5 w-3.5"></i>
+                        Manage services
+                    </a>
+                    <a href="<?= URLROOT ?>/supplier/calendar"
+                       class="<?= strpos($currentPath, 'supplier/calendar') !== false ? 'is-active' : '' ?>">
+                        <i data-lucide="calendar-days" class="h-3.5 w-3.5"></i>
+                        Service calendar
+                    </a>
+                    <a href="<?= URLROOT ?>/supplier/services?tab=packages"
+                       class="<?= $servicesPackageTabActive ? 'is-active' : '' ?>">
+                        <i data-lucide="package" class="h-3.5 w-3.5"></i>
+                        Packages
+                    </a>
+                </div>
+            </div>
             <a href="#" title="Portfolio" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
                 <i data-lucide="image" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">Portfolio</span>
@@ -363,6 +467,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         const supplierSidebarToggle = document.getElementById('supplierSidebarToggle');
         const supplierSidebarBackdrop = document.getElementById('supplierSidebarBackdrop');
         const supplierSidebarCollapse = document.getElementById('supplierSidebarCollapse');
+        const supplierSidebarServiceTrigger = document.querySelector('.supplier-sidebar-group-trigger');
 
         function setSupplierSidebarCollapsed(isCollapsed) {
             document.body.classList.toggle('supplier-sidebar-collapsed', isCollapsed);
@@ -393,6 +498,16 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         supplierSidebarCollapse?.addEventListener('click', () => {
             if (window.matchMedia('(min-width: 1025px)').matches) {
                 setSupplierSidebarCollapsed(!document.body.classList.contains('supplier-sidebar-collapsed'));
+            }
+        });
+
+        supplierSidebarServiceTrigger?.addEventListener('click', () => {
+            const group = supplierSidebarServiceTrigger.closest('.supplier-sidebar-group');
+            const nextOpen = group?.dataset.open !== 'true';
+            if (group) group.dataset.open = nextOpen ? 'true' : 'false';
+            supplierSidebarServiceTrigger.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+            if (document.body.classList.contains('supplier-sidebar-collapsed')) {
+                setSupplierSidebarCollapsed(false);
             }
         });
 
