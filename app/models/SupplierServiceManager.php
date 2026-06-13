@@ -499,7 +499,7 @@ class SupplierServiceManager
         }
 
         if ($price <= 0) {
-            $missing[] = 'Add a valid starting price.';
+            $missing[] = 'Add a valid package price.';
         }
 
         if (empty($media)) {
@@ -1007,8 +1007,8 @@ class SupplierServiceManager
 
     private function bindServiceFields($supplierId, $categoryId, $data)
     {
-        $priceMin = max(0, (float)($data['price_min'] ?? $data['priceMin'] ?? $data['price'] ?? 0));
-        $priceMax = max($priceMin, (float)($data['price_max'] ?? $data['priceMax'] ?? $priceMin));
+        $priceMin = max(0, (float)($data['package_price'] ?? $data['price_min'] ?? $data['priceMin'] ?? $data['price'] ?? 0));
+        $priceMax = max($priceMin, (float)($data['customize_price'] ?? $data['price_max'] ?? $data['priceMax'] ?? $priceMin));
 
         $this->db->dbbind(':supplier_id', (int)$supplierId);
         $this->db->dbbind(':category_id', $categoryId ? (int)$categoryId : null);
@@ -1050,6 +1050,8 @@ class SupplierServiceManager
             'price' => (float)($service['price'] ?? $priceMin),
             'price_min' => $priceMin,
             'price_max' => $priceMax,
+            'package_price' => $priceMin,
+            'customize_price' => $priceMax,
             'category' => $service['category'] ?: 'Others',
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
             'desc' => $service['description'] ?? '',

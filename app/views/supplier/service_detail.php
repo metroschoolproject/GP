@@ -28,9 +28,7 @@ $money = function ($value) {
 $durationLabel = function ($minutes) {
     $minutes = max(0, (int)$minutes);
 
-    if ($minutes >= 720) {
-        return 'Full day';
-    }
+ 
 
     if ($minutes >= 60) {
         $hours = $minutes / 60;

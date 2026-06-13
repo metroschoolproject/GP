@@ -304,9 +304,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                     <p class="supplier-sidebar-email truncate text-xs text-app-muted"><?= $ownerEmail ?></p>
                 </div>
             </div>
-            <button type="button" id="supplierSidebarCollapse" class="supplier-collapse-btn absolute -right-3 top-1/2 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-app-border bg-app-panel text-app-header-muted shadow-sm transition hover:text-app-text lg:inline-flex" aria-label="Collapse supplier navigation" aria-expanded="true">
-                <i data-lucide="chevron-left" class="h-4 w-4"></i>
-            </button>
+        
         </div>
 
         <div class="supplier-sidebar-section px-5 pt-5">

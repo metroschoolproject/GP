@@ -15,7 +15,9 @@ class CustomerServiceCatalog
         $services = $this->getServices($filters);
         $hasFilters = trim((string)($filters['search'] ?? '')) !== ''
             || !in_array(($filters['category'] ?? 'all'), ['', 'all'], true)
-            || trim((string)($filters['date'] ?? '')) !== '';
+            || trim((string)($filters['date'] ?? '')) !== ''
+            || trim((string)($filters['price_min'] ?? '')) !== ''
+            || trim((string)($filters['price_max'] ?? '')) !== '';
 
         return [
             'services' => $services,
@@ -164,12 +166,29 @@ class CustomerServiceCatalog
             }
         }
 
+        $priceMin = $this->normalizePriceFilter($filters['price_min'] ?? '');
+        $priceMax = $this->normalizePriceFilter($filters['price_max'] ?? '');
+        if ($priceMin !== null || $priceMax !== null) {
+            $servicePriceMin = $this->servicePriceMinExpression();
+            $servicePriceMax = $this->servicePriceMaxExpression();
+
+            if ($priceMin !== null) {
+                $conditions[] = $servicePriceMax . ' >= :price_min';
+                $bindings[':price_min'] = number_format($priceMin, 2, '.', '');
+            }
+
+            if ($priceMax !== null) {
+                $conditions[] = $servicePriceMin . ' <= :price_max';
+                $bindings[':price_max'] = number_format($priceMax, 2, '.', '');
+            }
+        }
+
         $sort = $filters['sort'] ?? 'featured';
         $orderBy = 'review_stats.avg_rating DESC, services.created_at DESC, services.id DESC';
         if ($sort === 'price_low') {
-            $orderBy = 'services.price ASC, services.created_at DESC';
+            $orderBy = $this->servicePriceMinExpression() . ' ASC, services.created_at DESC';
         } elseif ($sort === 'price_high') {
-            $orderBy = 'services.price DESC, services.created_at DESC';
+            $orderBy = $this->servicePriceMaxExpression() . ' DESC, services.created_at DESC';
         } elseif ($sort === 'newest') {
             $orderBy = 'services.created_at DESC, services.id DESC';
         } elseif ($sort === 'rating') {
@@ -513,21 +532,14 @@ class CustomerServiceCatalog
         $selectedDate = $this->normalizeDate($selectedDate);
 
         if ($selectedDate) {
-            $selected = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $selectedDate);
-            if ($selected) {
-                $days[] = $selected;
-                $seen[$selectedDate] = true;
-            }
-
             $anchor = DateTimeImmutable::createFromFormat('!Y-m-d', $selectedDate);
             if ($anchor) {
-                $windowStart = $anchor->modify('-3 days');
-                if ($windowStart < $today) {
-                    $windowStart = $today;
-                }
+                for ($i = 0; $i < 7; $i++) {
+                    $day = $anchor->modify('+' . $i . ' days');
+                    if ($day < $today) {
+                        continue;
+                    }
 
-                for ($i = 0; $i <= 10 && count($days) < 8; $i++) {
-                    $day = $windowStart->modify('+' . $i . ' days');
                     $dateValue = $day->format('Y-m-d');
                     if (isset($seen[$dateValue])) {
                         continue;
@@ -541,28 +553,6 @@ class CustomerServiceCatalog
                     $days[] = $availability;
                     $seen[$dateValue] = true;
                 }
-            }
-
-            $fallbackStart = DateTimeImmutable::createFromFormat('!Y-m-d', $selectedDate);
-            $fallbackStart = $fallbackStart ? $fallbackStart->modify('+11 days') : $today;
-            if ($fallbackStart < $today) {
-                $fallbackStart = $today;
-            }
-
-            for ($i = 0; $i < 45 && count($days) < 8; $i++) {
-                $day = $fallbackStart->modify('+' . $i . ' days');
-                $dateValue = $day->format('Y-m-d');
-                if (isset($seen[$dateValue])) {
-                    continue;
-                }
-
-                $availability = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue);
-                if (!$availability || empty($availability['slots'])) {
-                    continue;
-                }
-
-                $days[] = $availability;
-                $seen[$dateValue] = true;
             }
 
             return $days;
@@ -598,7 +588,7 @@ class CustomerServiceCatalog
         if (!empty($hours['is_available'])) {
             $duration = max(15, (int)($service['duration_minutes'] ?? 60));
             $buffer = max(0, (int)($service['buffer_minutes'] ?? 0));
-            $bookingType = (($service['booking_type'] ?? 'fullday') === 'slot' || $buffer > 0) ? 'slot' : 'fullday';
+            $bookingType = ($service['booking_type'] ?? 'fullday') === 'slot' ? 'slot' : 'fullday';
             $slots = $bookingType === 'slot'
                 ? $this->availableSlotsForDate($serviceId, $dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer, (int)($service['max_concurrent'] ?? 1))
                 : [[
@@ -620,6 +610,7 @@ class CustomerServiceCatalog
             'status' => $status,
             'reason' => $hours['reason'] ?? '',
             'is_selected_date' => ($service['selected_date'] ?? '') === $dateValue,
+            'booking_type' => $bookingType ?? ($service['booking_type'] ?? 'fullday'),
             'slots' => array_slice($slots, 0, 6),
         ];
     }
@@ -801,6 +792,30 @@ class CustomerServiceCatalog
         return $this->hasServicePriceRangeColumns()
             ? 'services.price_min, services.price_max,'
             : 'services.price AS price_min, services.price AS price_max,';
+    }
+
+    private function servicePriceMinExpression()
+    {
+        return $this->hasServicePriceRangeColumns()
+            ? 'COALESCE(services.price_min, services.price)'
+            : 'services.price';
+    }
+
+    private function servicePriceMaxExpression()
+    {
+        return $this->hasServicePriceRangeColumns()
+            ? 'COALESCE(services.price_max, services.price_min, services.price)'
+            : 'services.price';
+    }
+
+    private function normalizePriceFilter($price)
+    {
+        $price = trim((string)$price);
+        if ($price === '' || !is_numeric($price)) {
+            return null;
+        }
+
+        return max(0, (float)$price);
     }
 
     private function hasServicePriceRangeColumns()

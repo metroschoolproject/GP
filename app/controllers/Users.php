@@ -548,6 +548,13 @@ public function register()
 
     private function getPostLoginRedirect($userId)
     {
+        // If the user was trying to add to cart before login, go to cart
+        if (!empty($_SESSION['cart_redirect_after_login'])) {
+            $redirect = $_SESSION['cart_redirect_after_login'];
+            unset($_SESSION['cart_redirect_after_login']);
+            return $redirect;
+        }
+
         $roles = $this->usermodel->getUserRoles($userId);
 
         if (in_array('admin', $roles, true)) {

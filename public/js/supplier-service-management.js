@@ -204,7 +204,9 @@ function priceRangePayload(prefix) {
   return {
     price: priceMin,
     price_min: priceMin,
-    price_max: priceMax
+    price_max: priceMax,
+    package_price: priceMin,
+    customize_price: priceMax
   };
 }
 
@@ -242,7 +244,7 @@ function venueRoomRowHtml(prefix, room = {}) {
           <input type="number" min="1" value="${capacity}" placeholder="300" class="room-capacity w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
         </div>
         <div>
-          <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Price (RM)</label>
+          <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Price (MMK)</label>
           <input type="number" min="0" step="0.01" value="${price}" placeholder="3500" class="room-price w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white"/>
         </div>
         <div>
@@ -463,7 +465,7 @@ function svcCard(item) {
           <span class="text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE[item.category]||''}">${item.category}</span>
         </div>
         <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
-        <p class="text-custom-primary font-bold text-sm mt-0.5">RM ${formatPriceRange(item)}</p>
+        <p class="text-custom-primary font-bold text-sm mt-0.5">MMK ${formatPriceRange(item)}</p>
         ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
       </div>
       <div class="pt-2.5 border-t border-gray-100">
@@ -511,7 +513,7 @@ function pkgCard(item) {
           <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-stone-100 text-stone-700">Package</span>
         </div>
         <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
-        <p class="text-custom-primary font-bold text-sm mt-0.5">RM ${formatPrice(item.price)}</p>
+        <p class="text-custom-primary font-bold text-sm mt-0.5">MMK ${formatPrice(item.price)}</p>
         ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
         <div class="flex flex-wrap gap-1 mt-2">${badges}</div>
       </div>
@@ -615,8 +617,8 @@ function openAddVenue() {
 }
 async function saveVenue() {
   const name=document.getElementById('vName').value.trim(), priceMin=parseFloat(document.getElementById('vPriceMin').value), priceMax=parseFloat(document.getElementById('vPriceMax').value || document.getElementById('vPriceMin').value);
-  if (!name||isNaN(priceMin)||isNaN(priceMax)) { alert('Please fill in service name and price range.'); return; }
-  if (priceMax < priceMin) { alert('Maximum price must be greater than or equal to starting price.'); return; }
+  if (!name||isNaN(priceMin)||isNaN(priceMax)) { alert('Please fill in service name, package price, and customize price.'); return; }
+  if (priceMax < priceMin) { alert('Customize price must be greater than or equal to package price.'); return; }
   if (!validateVenueRoomTimes('v')) return;
   try {
     const result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('v', 'Venue'));
@@ -633,8 +635,8 @@ function openAddOthers() {
 }
 async function saveOthers() {
   const name=document.getElementById('oName').value.trim(), priceMin=parseFloat(document.getElementById('oPriceMin').value), priceMax=parseFloat(document.getElementById('oPriceMax').value || document.getElementById('oPriceMin').value);
-  if (!name||isNaN(priceMin)||isNaN(priceMax)) { alert('Please fill in service name and price range.'); return; }
-  if (priceMax < priceMin) { alert('Maximum price must be greater than or equal to starting price.'); return; }
+  if (!name||isNaN(priceMin)||isNaN(priceMax)) { alert('Please fill in service name, package price, and customize price.'); return; }
+  if (priceMax < priceMin) { alert('Customize price must be greater than or equal to package price.'); return; }
   try {
     const result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('o', document.getElementById('oCategory').value));
     upsertItem(services, result.item);
@@ -665,7 +667,7 @@ function openEditService(id) {
 }
 async function updateService() {
   const item=services.find(s=>s.id===editingSvcId); if (!item) return;
-  if (!isPriceRangeValid('es')) { alert('Maximum price must be greater than or equal to starting price.'); return; }
+  if (!isPriceRangeValid('es')) { alert('Customize price must be greater than or equal to package price.'); return; }
   if (item.category === 'Venue' && !validateVenueRoomTimes('es')) return;
   const priceRange = priceRangePayload('es');
   const payload = {

@@ -13,6 +13,8 @@ $datePickerAction = URLROOT . '/customerServices/detail/' . (int)($service['id']
 $venueRooms = $service['venue_rooms'] ?? [];
 $category = strtolower(trim((string)($service['category'] ?? '')));
 $isVenue = ($detailPageType ?? '') === 'venue' || $category === 'venue';
+$bookingType = $service['booking_type'] ?? 'fullday';
+$isSlotBooking = $bookingType === 'slot';
 $reviews = $service['reviews'] ?? [];
 $related = $service['related'] ?? [];
 $rating = (float)($service['rating'] ?? 0);
@@ -36,7 +38,7 @@ $availableVenueRooms = array_values(array_filter($venueRooms, function ($room) u
 $firstVenueRoom = $availableVenueRooms[0] ?? null;
 $hasInitialBookOption = $isVenue ? $firstVenueRoom !== null : $firstSlot !== null;
 $initialBookingHref = $hasInitialBookOption ? URLROOT . '/users/auth' : '#detail-date';
-$initialBookingLabel = $hasInitialBookOption ? 'Add to cart' : ($isVenue && $selectedDate === '' ? 'Choose date' : 'Choose slot');
+$initialBookingLabel = $hasInitialBookOption ? 'Add to cart' : (($isVenue || !$isSlotBooking) ? 'Choose date' : 'Choose slot');
 $venueCapacity = !empty($venueRooms) ? max(array_map(function ($room) {
     return (int)($room['capacity'] ?? 1);
 }, $venueRooms)) : (int)($service['max_concurrent'] ?? 1);
@@ -50,8 +52,21 @@ $supplierDesc = trim((string)($service['supplier_description'] ?? ''));
 $supplierUrl = $service['supplier_url'] ?? '';
 $detailDateQuery = $selectedDate !== '' ? '?date=' . rawurlencode($selectedDate) : '';
 
-$h = function ($value) {
-    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+$plain = function ($value) {
+    $text = (string)$value;
+    for ($i = 0; $i < 10; $i++) {
+        $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if ($decoded === $text) {
+            break;
+        }
+        $text = $decoded;
+    }
+
+    return $text;
+};
+
+$h = function ($value) use ($plain) {
+    return htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 };
 
 $money = function ($value) {
@@ -900,6 +915,22 @@ button, input, select, textarea { font-family: var(--font-sans); }
   color: #fffaf7; transform: scale(1.03);
 }
 
+.availability-radio-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.availability-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 /* ─── STICKY SUMMARY ────────────────────────────────── */
 .sticky-summary {
   position: sticky; top: 90px;
@@ -1390,6 +1421,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
   <a class="top-bar-brand" href="<?= URLROOT ?>/main/home">Golden Promise</a>
   <nav class="top-bar-actions">
     <a class="top-pill" href="<?= URLROOT ?>/customerServices/service">Explore</a>
+    <a class="top-pill" href="<?= URLROOT ?>/cart" aria-label="Cart" style="display:inline-flex;align-items:center;gap:4px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Cart
+    </a>
     <a class="top-pill" href="<?= $authNavUrl ?>"><?= $authNavLabel ?></a>
   </nav>
 </header>
@@ -1559,11 +1594,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
   <!-- SECTION: AVAILABILITY / BOOKING -->
   <section class="booking-section" data-aos="fade-up" data-aos-duration="800">
     <span class="section-label"><?= $isVenue ? 'Choose a hall' : 'Pick a date' ?></span>
-    <h2 class="section-title"><?= $isVenue ? 'Available Halls' : 'Available Dates &amp; Times' ?></h2>
+    <h2 class="section-title"><?= $isVenue ? 'Available Halls' : ($isSlotBooking ? 'Available Dates &amp; Times' : 'Available Dates') ?></h2>
     <p class="section-sub">
       <?= $selectedDateLabel !== ''
-        ? $h(($isVenue ? 'Reserve a hall for ' : 'Available times for ') . $selectedDateLabel)
-        : ($isVenue ? 'Choose your wedding date first so hall availability is accurate' : 'Choose your preferred date and time') ?>
+        ? $h(($isVenue ? 'Reserve a hall for ' : ($isSlotBooking ? 'Available times for ' : 'Available range for ')) . $selectedDateLabel)
+        : ($isVenue ? 'Choose your wedding date first so hall availability is accurate' : ($isSlotBooking ? 'Choose your preferred date and time' : 'Choose an available date')) ?>
     </p>
 
     <form class="date-picker-card" method="GET" action="<?= $h($datePickerAction) ?>">
@@ -1574,7 +1609,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
             ? $h('Showing availability for ' . $selectedDateLabel . '. You can change the date anytime.')
             : ($isVenue
               ? 'Halls are checked against the wedding date before you choose one.'
-              : 'If you came from the service list, that date is prefilled here.') ?>
+              : ($isSlotBooking ? 'If you came from the service list, that date is prefilled here.' : 'Full-day services show one available time range for each open date.')) ?>
         </span>
       </div>
       <div class="date-picker-control">
@@ -1633,6 +1668,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
                           data-hall-label="<?= $h($room['name'] ?: 'Selected hall') ?>"
                           data-time-label="<?= (int)($room['capacity'] ?? 1) ?> guests"
                           data-price-label="<?= $money($room['price'] ?? 0) ?>"
+                          data-start-time="<?= $h($room['start_time'] ?? '') ?>"
+                          data-end-time="<?= $h($room['end_time'] ?? '') ?>"
                           <?= $checked ? 'checked' : '' ?>>
                         <?= (int)($room['capacity'] ?? 1) ?> guests
                       </label>
@@ -1643,22 +1680,25 @@ button, input, select, textarea { font-family: var(--font-sans); }
             <?php endforeach; ?>
           <?php endif; ?>
         <?php elseif (empty($upcoming)): ?>
-          <div class="empty-state"><i data-lucide="calendar-x" size="22"></i>No available public slots yet. Please check again later.</div>
+          <div class="empty-state"><i data-lucide="calendar-x" size="22"></i>No available dates yet. Please check again later.</div>
         <?php else: ?>
           <?php $hasSelectedSlot = false; ?>
-          <?php foreach (array_slice($upcoming, 0, 4) as $dayIdx => $day): ?>
+          <?php foreach ($upcoming as $dayIdx => $day): ?>
             <?php
               $dayLabel = !empty($day['date'])
                 ? date('l, M j, Y', strtotime($day['date']))
                 : ($day['day_label'] ?? '');
               $slots = $day['slots'] ?? [];
               $firstDaySlot = $slots[0] ?? null;
-              $slotSummary = count($slots) > 1
-                ? count($slots) . ' time slots'
-                : ($firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'No available time on your selected date' : ($day['date'] ?? ''))));
+              $slotSummary = $isSlotBooking
+                ? (count($slots) > 1
+                  ? count($slots) . ' time slots'
+                  : ($firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'No available time on your selected date' : ($day['date'] ?? '')))))
+                : ($firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'Not available on your selected date' : ($day['date'] ?? ''))));
               $rowSelected = !$hasSelectedSlot && !empty($slots);
               $isRequestedDate = !empty($day['is_selected_date']);
             ?>
+            <?php if ($isSlotBooking): ?>
             <div class="availability-row <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?> <?= empty($slots) ? 'is-unavailable' : '' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
               <span class="radio-dot"></span>
               <div>
@@ -1679,6 +1719,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
                           data-date="<?= $h($day['date'] ?? '') ?>"
                           data-date-label="<?= $h($day['day_label'] ?? $day['date']) ?>"
                           data-time-label="<?= $h($slot['label'] ?? '') ?>"
+                          data-start-time="<?= $h($slot['start_time'] ?? '') ?>"
+                          data-end-time="<?= $h($slot['end_time'] ?? '') ?>"
                           <?= $checked ? 'checked' : '' ?>>
                         <?= $h($slot['label'] ?? '') ?>
                       </label>
@@ -1687,6 +1729,34 @@ button, input, select, textarea { font-family: var(--font-sans); }
                 <?php endif; ?>
               </div>
             </div>
+            <?php else: ?>
+            <label class="availability-row <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?> <?= empty($slots) ? 'is-unavailable' : '' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
+              <?php if (!empty($firstDaySlot)): ?>
+                <?php $checked = !$hasSelectedSlot; if ($checked) { $hasSelectedSlot = true; } ?>
+                <input class="availability-radio-input" type="radio" name="service_slot"
+                  value="<?= $h(($day['date'] ?? '') . '|' . ($firstDaySlot['start_time'] ?? '') . '|' . ($firstDaySlot['end_time'] ?? '')) ?>"
+                  data-date="<?= $h($day['date'] ?? '') ?>"
+                  data-date-label="<?= $h($day['day_label'] ?? $day['date']) ?>"
+                  data-time-label="<?= $h($firstDaySlot['label'] ?? '') ?>"
+                  data-start-time="<?= $h($firstDaySlot['start_time'] ?? '') ?>"
+                  data-end-time="<?= $h($firstDaySlot['end_time'] ?? '') ?>"
+                  <?= $checked ? 'checked' : '' ?>>
+              <?php endif; ?>
+              <span class="radio-dot"></span>
+              <div>
+                <div class="availability-head">
+                  <span class="availability-name">
+                    <?= $h($dayLabel) ?>
+                    <span><?= empty($slots) ? $h($slotSummary) : 'Full-day availability' ?></span>
+                  </span>
+                  <span class="availability-status"><?= $h($day['status'] ?? (empty($slots) ? 'Booked' : 'Available')) ?></span>
+                </div>
+                <?php if (!empty($firstDaySlot)): ?>
+                  <span class="availability-range"><i data-lucide="clock" size="14"></i><?= $h($firstDaySlot['label'] ?? '') ?></span>
+                <?php endif; ?>
+              </div>
+            </label>
+            <?php endif; ?>
           <?php endforeach; ?>
         <?php endif; ?>
       </div>
@@ -1719,13 +1789,13 @@ button, input, select, textarea { font-family: var(--font-sans); }
             </div>
           <?php elseif ($firstSlot): ?>
             <div class="summary-line">
-              Time
+              <?= $isSlotBooking ? 'Time' : 'Available range' ?>
               <span id="selectedTime"><?= $h($firstSlot['label'] ?? '') ?></span>
             </div>
           <?php else: ?>
             <div class="summary-line">
-              Time
-              <span id="selectedTime">Choose a time slot</span>
+              <?= $isSlotBooking ? 'Time' : 'Available range' ?>
+              <span id="selectedTime"><?= $isSlotBooking ? 'Choose a time slot' : 'Choose an available date' ?></span>
             </div>
           <?php endif; ?>
         </div>
@@ -1734,11 +1804,24 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <strong><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></strong>
         </div>
         <div class="summary-actions">
-          <a class="btn-cart <?= $hasInitialBookOption ? '' : 'is-guidance' ?>" id="addCartLink" href="<?= $h($initialBookingHref) ?>">
-            <i data-lucide="<?= $hasInitialBookOption ? 'shopping-cart' : 'calendar-days' ?>" size="16"></i>
+          <?php if ($hasInitialBookOption): ?>
+          <form method="POST" action="<?= URLROOT ?>/cart/add" style="display:contents;">
+            <input type="hidden" name="service_id" value="<?= (int)($service['id'] ?? 0) ?>">
+            <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
+            <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($firstSlot['start_time'] ?? '') ?>">
+            <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($firstSlot['end_time'] ?? '') ?>">
+            <input type="hidden" name="price" id="cartPrice" value="<?= $isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : ($service['price_min'] ?? $service['price'] ?? 0) ?>">
+            <button class="btn-cart" id="addCartLink" type="submit">
+              <i data-lucide="shopping-cart" size="16"></i>
+              Add to cart
+            </button>
+          </form>
+          <?php else: ?>
+          <a class="btn-cart is-guidance" id="addCartLink" href="#detail-date">
+            <i data-lucide="calendar-days" size="16"></i>
             <?= $h($initialBookingLabel) ?>
           </a>
-          <a class="btn-heart" href="<?= URLROOT ?>/users/auth" aria-label="Save service"><i data-lucide="heart" size="20"></i></a>
+          <?php endif; ?>
         </div>
       </aside>
     </div>
@@ -1849,7 +1932,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 </main>
 
 <!-- Floating cart -->
-<a class="floating-cart" href="<?= URLROOT ?>/users/auth" aria-label="Open cart">
+<a class="floating-cart" href="<?= URLROOT ?>/cart" aria-label="Open cart">
   <i data-lucide="shopping-bag" size="20"></i>
 </a>
 
@@ -1860,9 +1943,9 @@ button, input, select, textarea { font-family: var(--font-sans); }
       <div class="mobile-book-price"><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></div>
       <div class="mobile-book-label"><?= $pricingUnitLabel($service) ?></div>
     </div>
-    <a class="mobile-book-btn <?= $hasInitialBookOption ? '' : 'is-guidance' ?>" id="mobileBookBtn" href="<?= $h($initialBookingHref) ?>">
-      <i data-lucide="<?= $hasInitialBookOption ? 'calendar-check' : 'calendar-days' ?>" size="16"></i>
-      <?= $h($hasInitialBookOption ? 'Book now' : $initialBookingLabel) ?>
+    <a class="mobile-book-btn <?= $hasInitialBookOption ? '' : 'is-guidance' ?>" id="mobileBookBtn" href="<?= URLROOT ?>/cart">
+      <i data-lucide="shopping-cart" size="16"></i>
+      Add to cart
     </a>
   </div>
 </div>
@@ -1926,9 +2009,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedHall = document.getElementById('selectedHall');
   const selectedTime = document.getElementById('selectedTime');
   const addCartLink = document.getElementById('addCartLink');
-  const mobileBookBtn = document.getElementById('mobileBookBtn');
+  const cartDate = document.getElementById('cartDate');
+  const cartStartTime = document.getElementById('cartStartTime');
+  const cartEndTime = document.getElementById('cartEndTime');
+  const cartPrice = document.getElementById('cartPrice');
   const estimatedTotal = document.querySelector('.estimated-row strong');
-  const authBaseUrl = <?= json_encode(URLROOT . '/users/auth') ?>;
   const serviceId = <?= (int)($service['id'] ?? 0) ?>;
 
   function updateSelectedSlot(input) {
@@ -1940,15 +2025,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedTime) selectedTime.textContent = input.dataset.timeLabel || 'Selected time';
     if (selectedHall && input.dataset.hallLabel) selectedHall.textContent = input.dataset.hallLabel;
     if (estimatedTotal && input.dataset.priceLabel) estimatedTotal.textContent = input.dataset.priceLabel;
-    const params = new URLSearchParams({
-      service_id: String(serviceId),
-      date: input.dataset.date || '',
-      time: input.dataset.timeLabel || ''
-    });
-    if (input.dataset.roomId) params.set('venue_room_id', input.dataset.roomId);
-    const href = authBaseUrl + '?' + params.toString();
-    if (addCartLink) addCartLink.href = href;
-    if (mobileBookBtn) mobileBookBtn.href = href;
+
+    // Update hidden form fields for cart
+    if (cartDate && input.dataset.date) cartDate.value = input.dataset.date;
+    if (cartStartTime && input.dataset.startTime) cartStartTime.value = input.dataset.startTime;
+    if (cartEndTime && input.dataset.endTime) cartEndTime.value = input.dataset.endTime;
+    if (cartPrice && input.dataset.priceLabel) {
+      const numeric = input.dataset.priceLabel.replace(/[^0-9.]/g, '');
+      if (numeric) cartPrice.value = numeric;
+    }
   }
 
   document.querySelectorAll("input[name='service_slot']").forEach(input => {

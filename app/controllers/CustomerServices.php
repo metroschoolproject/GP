@@ -7,9 +7,18 @@ class CustomerServices extends Controller
         $catalogModel = $this->model('CustomerServiceCatalog');
         $filters = $this->filtersFromRequest();
 
+        // Cart count for header badge
+        $cartCount = 0;
+        $userId = $_SESSION['session_uid'] ?? null;
+        if ($userId) {
+            $cartModel = $this->model('CartModel');
+            $cartCount = $cartModel->getCartCount($userId);
+        }
+
         $this->view('main/service', [
             'catalog' => $catalogModel->getServicePageData($filters),
             'filters' => $filters,
+            'cartCount' => $cartCount,
         ]);
     }
 
@@ -39,13 +48,95 @@ class CustomerServices extends Controller
         ]);
     }
 
+    /**
+     * ── Customer: Package type listing ──
+     */
+    public function packages()
+    {
+        $packageModel = $this->model('PlatformPackage');
+        $packageTypes = $packageModel->getPackageTypes();
+
+        // Cart count for header badge
+        $cartCount = 0;
+        $userId = $_SESSION['session_uid'] ?? null;
+        if ($userId) {
+            $cartModel = $this->model('CartModel');
+            $cartCount = $cartModel->getCartCount($userId);
+        }
+
+        $this->view('main/packages', [
+            'packages' => $packageTypes,
+            'cartCount' => $cartCount,
+        ]);
+    }
+
+    /**
+     * ── Customer: Single package type detail ──
+     */
+    public function packageDetail($slug = null)
+    {
+        if (!$slug) {
+            redirect('customerServices/packages');
+        }
+
+        $packageModel = $this->model('PlatformPackage');
+        $package = $packageModel->getPackageBySlug($slug);
+
+        if (!$package) {
+            redirect('customerServices/packages');
+        }
+
+        // Group fixed included services by category for display.
+        $categoryServices = [];
+        foreach (($package['services'] ?? []) as $service) {
+            $catId = (int)($service['category_id'] ?? 0);
+            $key = $catId > 0 ? $catId : 'other';
+            if (!isset($categoryServices[$key])) {
+                $categoryServices[$key] = [
+                    'category_id' => $catId,
+                    'category_name' => $service['category_name'] ?? 'Other',
+                    'category_slug' => $service['category_slug'] ?? '',
+                    'services' => [],
+                    'service_count' => 0,
+                ];
+            }
+
+            $categoryServices[$key]['services'][] = $service;
+            $categoryServices[$key]['service_count']++;
+        }
+
+        $package['category_services'] = array_values($categoryServices);
+
+        // Cart count
+        $cartCount = 0;
+        $userId = $_SESSION['session_uid'] ?? null;
+        if ($userId) {
+            $cartModel = $this->model('CartModel');
+            $cartCount = $cartModel->getCartCount($userId);
+        }
+
+        $this->view('main/package_detail', [
+            'package' => $package,
+            'cartCount' => $cartCount,
+        ]);
+    }
+
     private function filtersFromRequest()
     {
+        $priceMin = $this->validPrice($_GET['price_min'] ?? '');
+        $priceMax = $this->validPrice($_GET['price_max'] ?? '');
+
+        if ($priceMin !== '' && $priceMax !== '' && (float)$priceMin > (float)$priceMax) {
+            [$priceMin, $priceMax] = [$priceMax, $priceMin];
+        }
+
         return [
             'search' => trim($_GET['q'] ?? ''),
             'category' => trim($_GET['category'] ?? 'all'),
             'sort' => trim($_GET['sort'] ?? 'featured'),
             'date' => $this->validDate($_GET['date'] ?? '') ?: '',
+            'price_min' => $priceMin,
+            'price_max' => $priceMax,
         ];
     }
 
@@ -58,5 +149,15 @@ class CustomerServices extends Controller
 
         $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
         return $parsed && $parsed->format('Y-m-d') === $date ? $date : null;
+    }
+
+    private function validPrice($price)
+    {
+        $price = trim((string)$price);
+        if ($price === '' || !is_numeric($price)) {
+            return '';
+        }
+
+        return (string)max(0, (float)$price);
     }
 }

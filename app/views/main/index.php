@@ -17,6 +17,20 @@ $serviceCategories = array_values(array_slice(array_filter($serviceCategories, f
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Log In';
+
+$plain = function ($value) {
+    $text = (string)$value;
+    for ($i = 0; $i < 10; $i++) {
+        $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if ($decoded === $text) {
+            break;
+        }
+        $text = $decoded;
+    }
+
+    return $text;
+};
+$h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1418,7 +1432,7 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Log In';
           Home
         </a>
 
-        <a class="transition duration-300 hover:text-[#F3D9A4]" href="#services">
+        <a class="transition duration-300 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/packages">
           Packages
         </a>
 
@@ -1450,7 +1464,7 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Log In';
                 $categoryValue = (string)($category['slug'] ?? $categoryName);
               ?>
               <a class="dock-link text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service?category=<?= urlencode($categoryValue) ?>">
-                <?= htmlspecialchars($categoryName, ENT_QUOTES, 'UTF-8') ?>
+                <?= $h($categoryName) ?>
               </a>
             <?php endforeach; ?>
 
@@ -1505,7 +1519,7 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Log In';
       Our Service
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#services">
+    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/packages">
       Packages
     </a>
 
@@ -1618,53 +1632,74 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Log In';
         </div>
       </section>
 
-      <section id="services" class="relative z-10 min-h-[620px] w-full bg-[#F5E8D9] px-4 py-14" aria-label="Most Popular Packages">
-        <div class="mx-auto mb-5 max-w-[1240px]">
-          <h2 class="font-serif text-center text-[clamp(34px,4.1vw,62px)] font-semibold leading-[1] text-[#211d1a]">Most Popular Packages</h2>
+<section id="services" class="relative z-10 min-h-[620px] w-full bg-[#F5E8D9] px-4 py-14" aria-label="Most Popular Packages">
+  <div class="mx-auto mb-5 max-w-[1240px]">
+    <h2 class="font-serif text-center text-[clamp(34px,4.1vw,62px)] font-semibold leading-[1] text-[#211d1a]">Most Popular Packages</h2>
+  </div>
+  <div class="mx-auto mb-8 flex max-w-[1400px] justify-end">
+    <a href="<?= URLROOT ?>/customerServices/packages" class="inline-flex items-center justify-center rounded-full border border-[#765A46]/30 bg-[#765A46] px-7 py-3 text-[12px] font-extrabold uppercase tracking-[0.18em] text-white shadow-[0_14px_30px_rgba(92,67,48,0.2)] transition hover:-translate-y-0.5 hover:bg-[#5f4636]">
+      View All
+    </a>
+  </div>
+  <div class="mx-auto flex h-[72vh] min-h-[520px] w-full max-w-[1400px] flex-col overflow-hidden md:flex-row">
+    <?php $featuredPackages = $featuredPackages ?? []; ?>
+    <?php if (!empty($featuredPackages)): ?>
+      <?php foreach ($featuredPackages as $fpkgIndex => $fpkg):
+        $isFirst = $fpkgIndex === 0;
+        $borderClass = !$isFirst ? ' md:border-l' : '';
+        $images = ['images/serviceImg1.png', 'images/serviceImg2.png', 'images/serviceImg3.png'];
+        $image = $images[$fpkgIndex] ?? 'images/serviceImg1.png';
+      ?>
+      <a href="<?= URLROOT ?>/customerServices/packageDetail/<?= htmlspecialchars($fpkg['slug'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full<?= $borderClass ?> md:hover:flex-[4]">
+        <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= $image ?>');"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+        <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+          <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
+          <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl"><?= htmlspecialchars($fpkg['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
+          <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80"><?= htmlspecialchars($fpkg['tagline'] ?? $fpkg['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
+          <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
         </div>
-        <div class="mx-auto mb-8 flex max-w-[1400px] justify-end">
-          <a href="#" class="inline-flex items-center justify-center rounded-full border border-[#765A46]/30 bg-[#765A46] px-7 py-3 text-[12px] font-extrabold uppercase tracking-[0.18em] text-white shadow-[0_14px_30px_rgba(92,67,48,0.2)] transition hover:-translate-y-0.5 hover:bg-[#5f4636]">
-            View All
-          </a>
+        <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8"><?= htmlspecialchars($fpkg['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></h3>
+      </a>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <!-- Fallback hardcoded packages -->
+      <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:hover:flex-[4]">
+        <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg1.png');"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+        <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+          <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
+          <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Golden Vow</h2>
+          <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A refined ceremony package with venue styling, florals, and graceful coordination.</p>
+          <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
         </div>
-        <div class="mx-auto flex h-[72vh] min-h-[520px] w-full max-w-[1400px] flex-col overflow-hidden md:flex-row">
-          <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:hover:flex-[4]">
-            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg1.png');"></div>
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-            <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Golden Vow</h2>
-              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A refined ceremony package with venue styling, florals, and graceful coordination.</p>
-              <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
-            </div>
-            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Golden Vow</h3>
-          </a>
-
-          <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:border-l md:hover:flex-[4]">
-            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg2.png');"></div>
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-            <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Classic Bloom</h2>
-              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A romantic floral-focused package for couples who want soft, timeless detail.</p>
-              <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
-            </div>
-            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Classic Bloom</h3>
-          </a>
-
-          <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:border-l md:hover:flex-[4]">
-            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg3.png');"></div>
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-            <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Forever Suite</h2>
-              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A complete planning package covering styling, vendors, timeline, and final details.</p>
-              <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
-            </div>
-            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Forever Suite</h3>
-          </a>
+        <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Golden Vow</h3>
+      </a>
+      <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:border-l md:hover:flex-[4]">
+        <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg2.png');"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+        <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+          <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
+          <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Classic Bloom</h2>
+          <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A romantic floral-focused package for couples who want soft, timeless detail.</p>
+          <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
         </div>
-      </section>
+        <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Classic Bloom</h3>
+      </a>
+      <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:border-l md:hover:flex-[4]">
+        <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg3.png');"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+        <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+          <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
+          <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Forever Suite</h2>
+          <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A complete planning package covering styling, vendors, timeline, and final details.</p>
+          <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
+        </div>
+        <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Forever Suite</h3>
+      </a>
+    <?php endif; ?>
+  </div>
+</section>
 
       <section id="how-it-works" aria-label="How It Works">
         <div class="hiw-sticky">
@@ -2178,8 +2213,8 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Log In';
       setRevealMaskSize(0, 0);
     });
 
-    const floatingServiceLabels = <?= json_encode(array_values(array_map(function ($category) {
-      return (string)($category['name'] ?? '');
+    const floatingServiceLabels = <?= json_encode(array_values(array_map(function ($category) use ($plain) {
+      return $plain($category['name'] ?? '');
     }, $serviceCategories)), JSON_UNESCAPED_UNICODE) ?>;
     const floatingServiceItems = floatingServiceLabels.map((label, index) => ({
       label,

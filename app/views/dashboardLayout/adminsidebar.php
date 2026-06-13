@@ -104,6 +104,11 @@ if (!function_exists('dashboard_admin_nav_class')) {
                 </div>
             </div>
 
+            <a href="<?= URLROOT ?>/admin/packages" class="<?= dashboard_admin_nav_class('admin/packages', $currentPath) ?>">
+                <i data-lucide="package" class="h-4 w-4"></i>
+                <span class="flex-1">Packages</span>
+            </a>
+
             <div class="space-y-1">
                 <button type="button" data-subnav-toggle="suppliers" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
                     <i data-lucide="store" class="h-4 w-4 text-app-header-muted"></i>
