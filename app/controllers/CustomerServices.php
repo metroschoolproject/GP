@@ -38,6 +38,22 @@ class CustomerServices extends Controller
             redirect('customerServices/service');
         }
 
+        $packageId = (int)($_GET['package_id'] ?? 0);
+        $packageItemId = (int)($_GET['package_item_id'] ?? 0);
+        if ($packageId > 0 && $packageItemId > 0) {
+            $packageModel = $this->model('PlatformPackage');
+            $packageContext = $packageModel->getServicePackageContext($packageId, $packageItemId, $serviceId);
+            if ($packageContext) {
+                $packagePrice = (float)($packageContext['package_price'] ?? 0);
+                $service['package_context'] = $packageContext;
+                $service['price_context'] = 'package';
+                $service['display_price'] = $packagePrice;
+                $service['price'] = $packagePrice;
+                $service['price_min'] = $packagePrice;
+                $service['price_max'] = $packagePrice;
+            }
+        }
+
         $view = strtolower((string)($service['category'] ?? '')) === 'venue'
             ? 'main/venue_detail'
             : 'main/other_service_detail';

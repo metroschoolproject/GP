@@ -74,10 +74,10 @@ $money = function ($value) {
 };
 
 $moneyRange = function ($service) use ($money) {
-    $min = (float)($service['price_min'] ?? $service['price'] ?? 0);
-    $max = (float)($service['price_max'] ?? $min);
-    return $max > $min ? $money($min) . ' - ' . $money($max) : $money($min);
+    return $money($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
 };
+$activeServicePrice = (float)($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
+$isPackageContext = ($service['price_context'] ?? '') === 'package' && !empty($service['package_context']);
 
 $timeRange = function ($from, $to) {
     $from = trim((string)$from);
@@ -1800,7 +1800,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <?php endif; ?>
         </div>
         <div class="estimated-row">
-          <span>Estimated total</span>
+          <span><?= $isPackageContext ? 'Package service price' : 'Estimated total' ?></span>
           <strong><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></strong>
         </div>
         <div class="summary-actions">
@@ -1810,7 +1810,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
             <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
             <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($firstSlot['start_time'] ?? '') ?>">
             <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($firstSlot['end_time'] ?? '') ?>">
-            <input type="hidden" name="price" id="cartPrice" value="<?= $isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : ($service['price_min'] ?? $service['price'] ?? 0) ?>">
+            <input type="hidden" name="price" id="cartPrice" value="<?= $isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : $activeServicePrice ?>">
+            <input type="hidden" name="source" value="<?= $isPackageContext ? 'package' : 'custom' ?>">
             <button class="btn-cart" id="addCartLink" type="submit">
               <i data-lucide="shopping-cart" size="16"></i>
               Add to cart

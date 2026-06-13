@@ -30,9 +30,7 @@ $plain = function ($v) {
 $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
 $money = fn($v) => 'RM ' . number_format((float)$v, 0);
 $moneyRange = function ($service) use ($money) {
-    $min = (float)($service['price_min'] ?? $service['price'] ?? 0);
-    $max = (float)($service['price_max'] ?? $min);
-    return $max > $min ? $money($min) . ' — ' . $money($max) : $money($min);
+    return $money($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
 };
 $durationText = function ($service) {
     $type = $service['booking_type'] ?? 'fullday';

@@ -366,6 +366,8 @@ function serviceDetailUrl(id) {
 function render() {
   const grid  = document.getElementById('cardsGrid');
   const empty = document.getElementById('emptyState');
+  const emptyMessage = document.getElementById('emptyStateMessage');
+  const emptyActionLabel = document.getElementById('emptyStateActionLabel');
   let items = currentTab === 'services' ? services : packages;
 
   items = items.filter(Boolean).filter(i => {
@@ -376,8 +378,18 @@ function render() {
     return catOk && statusOk;
   });
 
+  if (!grid || !empty) return;
+
   grid.innerHTML = '';
   if (!items.length) {
+    if (emptyMessage) {
+      emptyMessage.textContent = currentTab === 'packages'
+        ? 'How about creating a package right now?'
+        : 'How about creating a service right now?';
+    }
+    if (emptyActionLabel) {
+      emptyActionLabel.textContent = currentTab === 'packages' ? 'Create Package' : 'Add Service';
+    }
     empty.classList.remove('hidden');
     updateLoadMoreControl();
     return;
@@ -386,6 +398,15 @@ function render() {
   items.forEach(item => grid.insertAdjacentHTML('beforeend', currentTab === 'services' ? svcCard(item) : pkgCard(item)));
   updateLoadMoreControl();
 }
+
+document.getElementById('emptyStateAction')?.addEventListener('click', () => {
+  if (currentTab === 'packages') {
+    openPackageModal();
+    return;
+  }
+
+  openAddOthers();
+});
 
 function updateLoadMoreControl() {
   const wrap = document.getElementById('loadMoreWrap');
@@ -535,8 +556,10 @@ function switchTab(tab) {
     b.classList.add('text-gray-400','border-transparent');
   });
   const el = document.getElementById('tab-'+tab);
-  el.classList.add('active','text-gray-800','border-gray-800');
-  el.classList.remove('text-gray-400','border-transparent');
+  if (el) {
+    el.classList.add('active','text-gray-800','border-gray-800');
+    el.classList.remove('text-gray-400','border-transparent');
+  }
   currentFilter = 'All';
   render();
 }
@@ -549,8 +572,10 @@ function setStatusFilter(f) {
     b.classList.add('bg-white','border','border-gray-200','text-gray-500');
   });
   const el = document.getElementById('sf-'+f);
-  el.classList.add('bg-custom-primary','text-white');
-  el.classList.remove('bg-white','border','border-gray-200','text-gray-500');
+  if (el) {
+    el.classList.add('bg-custom-primary','text-white');
+    el.classList.remove('bg-white','border','border-gray-200','text-gray-500');
+  }
   render();
 }
 

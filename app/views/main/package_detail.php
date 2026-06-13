@@ -16,9 +16,15 @@ $moneyRange = function ($svc) use ($money) {
         $total = (float)($svc['package_price'] ?? ($unit * $quantity));
         return $money($total) . ' · ' . $quantity . ' guests at ' . $money($unit);
     }
-    $min = (float)($svc['price_min'] ?? $svc['price'] ?? 0);
-    $max = (float)($svc['price_max'] ?? $min);
-    return $max > $min ? $money($min) . ' — ' . $money($max) : $money($min);
+    return $money($svc['package_price'] ?? $svc['unit_price'] ?? $svc['price_min'] ?? $svc['price'] ?? 0);
+};
+$serviceDetailUrl = function ($svc) use ($package) {
+    $url = URLROOT . '/customerServices/detail/' . (int)($svc['id'] ?? 0);
+    $params = [
+        'package_id' => (int)($package['package_id'] ?? 0),
+        'package_item_id' => (int)($svc['package_item_id'] ?? 0),
+    ];
+    return $url . '?' . http_build_query($params);
 };
 ?>
 <!DOCTYPE html>
@@ -468,7 +474,8 @@ img { display: block; max-width: 100%; }
         <div class="gp-svc-grid">
           <?php foreach ($cs['services'] as $si => $svc): ?>
           <article class="gp-svc-card gp-reveal gp-reveal-d<?= min($si % 4, 3) ?>">
-            <a class="gp-svc-img" href="<?= URLROOT ?>/customerServices/detail/<?= (int)$svc['id'] ?>" tabindex="-1" aria-hidden="true">
+            <?php $detailUrl = $serviceDetailUrl($svc); ?>
+            <a class="gp-svc-img" href="<?= $h($detailUrl) ?>" tabindex="-1" aria-hidden="true">
               <?php if (!empty($svc['image'])): ?>
                 <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
               <?php else: ?>
@@ -490,7 +497,7 @@ img { display: block; max-width: 100%; }
               <?php endif; ?>
               <div class="gp-svc-foot">
                 <span class="gp-svc-price"><?= $moneyRange($svc) ?></span>
-                <a class="gp-svc-add-btn" href="<?= URLROOT ?>/customerServices/detail/<?= (int)$svc['id'] ?>">
+                <a class="gp-svc-add-btn" href="<?= $h($detailUrl) ?>">
                   View
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </a>

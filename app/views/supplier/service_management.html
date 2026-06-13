@@ -169,6 +169,116 @@
     .modal-body::-webkit-scrollbar-thumb { background:#e5e0da; border-radius:4px; }
     .modal-body::-webkit-scrollbar-thumb:hover { background:#ccc5bd; }
     .img-upload-container:hover .edit-icon-btn { opacity: 1; }
+
+    .supplier-empty-state {
+      min-height: calc(100vh - 190px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 16px 76px;
+      text-align: center;
+      color: #a1a1aa;
+      transform: translateY(-18px);
+    }
+
+    .supplier-empty-state.hidden {
+      display: none;
+    }
+
+    .supplier-empty-art {
+      position: relative;
+      width: min(430px, 82vw);
+      height: 172px;
+      margin-bottom: 4px;
+      opacity: 0.58;
+    }
+
+    .supplier-empty-card {
+    position: absolute;
+      border: 1px solid rgba(218, 218, 218, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.74);
+      box-shadow: 0 14px 42px rgba(40, 40, 40, 0.035);
+    }
+
+    .supplier-empty-card.back {
+      left: 74px;
+      top: 4px;
+      width: 238px;
+      height: 92px;
+      transform: rotate(3deg);
+      opacity: 0.55;
+    }
+
+    .supplier-empty-card.mid {
+      right: 22px;
+      top: 62px;
+      width: 240px;
+      height: 98px;
+      transform: rotate(7deg);
+      opacity: 0.62;
+    }
+
+    .supplier-empty-card.front {
+      left: 16px;
+      top: 64px;
+      width: 294px;
+      height: 94px;
+      transform: rotate(-4deg);
+      opacity: 0.88;
+    }
+
+    .supplier-empty-thumb,
+    .supplier-empty-line,
+    .supplier-empty-chip {
+      position: absolute;
+      border-radius: 4px;
+      background: #eeeeee;
+    }
+
+    .supplier-empty-thumb { left: 16px; top: 18px; width: 70px; height: 58px; }
+    .supplier-empty-line.long { left: 104px; top: 18px; width: 132px; height: 22px; }
+    .supplier-empty-line.med { left: 104px; top: 50px; width: 138px; height: 22px; }
+    .supplier-empty-line.short { left: 104px; top: 80px; width: 120px; height: 8px; }
+    .supplier-empty-chip { right: 18px; top: 16px; width: 48px; height: 20px; }
+
+    .supplier-empty-message {
+      margin: 0 0 24px;
+      font-size: 18px;
+      line-height: 1.45;
+      font-weight: 400;
+      color: #a2a2a2;
+    }
+
+    .supplier-empty-action {
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border-radius: 8px;
+      background: #242424;
+      padding: 0 20px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 14px 24px rgba(24,24,24,0.14);
+      transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .supplier-empty-action:hover {
+      background: #111;
+      transform: translateY(-1px);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 18px 30px rgba(24,24,24,0.18);
+    }
+
+    @media (max-width: 640px) {
+      .supplier-empty-state { min-height: calc(100vh - 150px); padding: 40px 12px 64px; transform: none; }
+      .supplier-empty-art { height: 150px; transform: scale(0.82); transform-origin: center bottom; }
+      .supplier-empty-message { font-size: 16px; }
+      .supplier-empty-action { min-height: 46px; font-size: 15px; }
+    }
   </style>
 </head>
 <body class="min-h-screen  service-management-outlet">
@@ -178,56 +288,42 @@
 <!-- ══════════════════ MAIN ══════════════════ -->
 <main class="max-w-7xl mx-auto px-8 py-8">
   
-  <!-- Row 2 combined: Tabs, Filters, and "Add/Create" buttons grouped together -->
-  <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 mb-7 gap-4 pb-2">
-    
-    <div class="flex flex-wrap items-center gap-6">
-      <!-- Tabs Structure -->
-      <div class="flex items-center">
-        <button id="tab-services" onclick="switchTab('services')" class="tab-btn active px-4 py-3 text-sm font-semibold text-gray-800 border-b-2 -mb-[10px]">Services</button>
-        <button id="tab-packages" onclick="switchTab('packages')" class="tab-btn px-4 py-3 text-sm font-semibold text-gray-400 hover:text-gray-600 border-b-2 border-transparent -mb-[10px]">Packages</button>
-      </div>
 
-      <div class="hidden md:block w-px h-5 bg-gray-200"></div>
-
-      <!-- Status Filters -->
-      <div class="flex items-center gap-1">
-        <button id="sf-all"      onclick="setStatusFilter('all')"      class="sf-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-custom-primary text-white">All</button>
-        <button id="sf-active"   onclick="setStatusFilter('active')"   class="sf-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 text-gray-500 hover:border-gray-300">Active</button>
-        <button id="sf-inactive" onclick="setStatusFilter('inactive')" class="sf-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-gray-200 text-gray-500 hover:border-gray-300">Inactive</button>
-      </div>
-    </div>
-
-    <!-- Action Group Items Moved into the Second Row -->
-    <div class="flex items-center gap-2.5 self-end md:self-auto">
-      <div class="add-svc-wrap relative">
-        <button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-custom-primary text-white text-sm font-semibold transition" style="box-shadow:0 1px 3px rgba(110,78,88,0.2)">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-          Add New Service
-          <svg class="w-3 h-3 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-        </button>
-        <div class="add-svc-menu absolute right-0 top-full pt-1.5 z-50">
-          <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-44 overflow-hidden">
-            <button onclick="openAddVenue()" class="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-amber-50/50 flex items-center gap-2.5">
-              Venue
-            </button>
-            <button onclick="openAddOthers()" class="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-amber-50/50 flex items-center gap-2.5">
-              Others
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <button onclick="openPackageModal()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-semibold transition">
-        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0v10l-8 4m0-14L4 17m8-14v14"/></svg>
-        Create Package
-      </button>
-    </div>
-
-  </div>
 
   <div id="cardsGrid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
-  <p id="emptyState" class="hidden text-center text-gray-400 text-sm py-20">No items found.</p>
+  <div id="emptyState" class="supplier-empty-state hidden" aria-live="polite">
+    <div class="supplier-empty-art" aria-hidden="true">
+      <div class="supplier-empty-card back">
+        <span class="supplier-empty-thumb" style="width:38px;height:44px"></span>
+        <span class="supplier-empty-line long"></span>
+        <span class="supplier-empty-line med" style="width:170px;height:18px;top:58px"></span>
+        <span class="supplier-empty-chip"></span>
+      </div>
+      <div class="supplier-empty-card mid">
+        <span class="supplier-empty-chip"></span>
+        <span class="supplier-empty-line med" style="left:34px;top:56px;width:220px"></span>
+        <span class="supplier-empty-line long" style="left:34px;top:88px;width:226px"></span>
+        <span class="supplier-empty-line short" style="left:34px;top:108px;width:230px;height:12px"></span>
+      </div>
+      <div class="supplier-empty-card front">
+        <span class="supplier-empty-thumb"></span>
+        <span class="supplier-empty-line long"></span>
+        <span class="supplier-empty-line med"></span>
+        <span class="supplier-empty-line short"></span>
+        <span class="supplier-empty-chip"></span>
+      </div>
+    </div>
+    <p id="emptyStateMessage" class="supplier-empty-message">How about creating a service right now?</p>
+    <button id="emptyStateAction" type="button" class="supplier-empty-action">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 19L19 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M14 5H19V10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M7.5 6.5L8.5 4.5L9.5 6.5L11.5 7.5L9.5 8.5L8.5 10.5L7.5 8.5L5.5 7.5L7.5 6.5Z" fill="currentColor"/>
+        <path d="M15.5 15.5L16.25 14L17 15.5L18.5 16.25L17 17L16.25 18.5L15.5 17L14 16.25L15.5 15.5Z" fill="currentColor"/>
+      </svg>
+      <span id="emptyStateActionLabel">Add Service</span>
+    </button>
+  </div>
   <div id="loadMoreWrap" class="mt-8 hidden text-center">
     <button id="loadMoreBtn" type="button" onclick="loadMoreCurrentTab()" class="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50">
       Load more

@@ -548,6 +548,47 @@ class PlatformPackage
         return $package;
     }
 
+    public function getServicePackageContext($packageId, $packageItemId, $serviceId)
+    {
+        $this->db->dbquery(
+            'SELECT p.package_id,
+                    p.name AS package_name,
+                    p.slug AS package_slug,
+                    pi.id AS package_item_id,
+                    pi.service_id,
+                    ' . $this->packageUnitPriceSql() . ' AS unit_price,
+                    ' . $this->packageLineTotalSql() . ' AS package_price,
+                    ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
+                    ' . $this->packageQuantitySql() . ' AS quantity
+             FROM package_items pi
+             INNER JOIN packages p ON p.package_id = pi.package_id
+             LEFT JOIN services svc ON svc.id = pi.service_id
+             WHERE pi.package_id = :package_id
+               AND pi.id = :package_item_id
+               AND pi.service_id = :service_id
+               AND p.is_active = 1
+               AND p.deleted_at IS NULL
+             LIMIT 1'
+        );
+        $this->db->dbbind(':package_id', (int)$packageId);
+        $this->db->dbbind(':package_item_id', (int)$packageItemId);
+        $this->db->dbbind(':service_id', (int)$serviceId);
+
+        $context = $this->db->getsingledata();
+        if (!$context) {
+            return null;
+        }
+
+        $context['package_id'] = (int)$context['package_id'];
+        $context['package_item_id'] = (int)$context['package_item_id'];
+        $context['service_id'] = (int)$context['service_id'];
+        $context['unit_price'] = (float)($context['unit_price'] ?? 0);
+        $context['package_price'] = (float)($context['package_price'] ?? 0);
+        $context['quantity'] = (int)($context['quantity'] ?? 1);
+
+        return $context;
+    }
+
     /**
      * ── Customer: Get available services for a category within a package ──
      */
@@ -722,7 +763,7 @@ class PlatformPackage
 
     private function packageUnitPriceSql($svcAlias = 'svc', $piAlias = 'pi')
     {
-        return "COALESCE(NULLIF({$svcAlias}.price_min, 0), NULLIF({$svcAlias}.price, 0), NULLIF({$piAlias}.default_price, 0), NULLIF({$svcAlias}.price_max, 0), 0)";
+        return "COALESCE(NULLIF({$piAlias}.default_price, 0), NULLIF({$svcAlias}.price_min, 0), NULLIF({$svcAlias}.price, 0), NULLIF({$svcAlias}.price_max, 0), 0)";
     }
 
     private function packageQuantitySql($piAlias = 'pi')
