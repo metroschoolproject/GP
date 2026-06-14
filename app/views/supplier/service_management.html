@@ -287,8 +287,18 @@
 <!-- Search bar and Categories removed as requested. Kept clean branding layout structure -->
 <!-- ══════════════════ MAIN ══════════════════ -->
 <main class="max-w-7xl mx-auto px-8 py-8">
-  
 
+  <!-- Header with Create Button -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-bold" style="color:#6e4e58">My Services</h1>
+      <p class="text-gray-500 mt-1">Manage and showcase your wedding services</p>
+    </div>
+    <button id="headerCreateBtn" onclick="handleHeaderCreateClick()" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-200" style="background:#6e4e58">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      <span id="headerCreateBtnLabel">Add Service</span>
+    </button>
+  </div>
 
   <div id="cardsGrid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
   <div id="emptyState" class="supplier-empty-state hidden" aria-live="polite">
@@ -330,6 +340,47 @@
     </button>
   </div>
 </main>
+
+
+<!-- ══════════════════ MODAL: SELECT SERVICE TYPE ══════════════════ -->
+<div id="serviceTypeModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col">
+    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100">
+      <div>
+        <h2 class="text-2xl font-bold" style="color:#6e4e58">What would you like to add?</h2>
+        <p class="text-sm text-gray-500 mt-1">Choose a service type to get started</p>
+      </div>
+      <button onclick="closeServiceTypeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body px-7 py-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <!-- Venue Card -->
+        <button onclick="openVenueTypeModal()" class="group text-left p-6 rounded-2xl border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200" style="background:#fafafa">
+          <div class="flex items-center justify-center w-14 h-14 rounded-xl mb-4 group-hover:scale-110 transition-transform" style="background:#ebdcd0">
+            <svg class="w-7 h-7" style="color:#593e46" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-4h2v18h-2z"/></svg>
+          </div>
+          <h3 class="font-bold text-lg mb-1" style="color:#6e4e58">Venue</h3>
+          <p class="text-sm text-gray-600">Ballrooms, gardens, halls & outdoor spaces</p>
+          <div class="mt-4 flex items-center text-sm font-medium" style="color:#6e4e58">
+            Add venue <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </button>
+
+        <!-- Other Services Card -->
+        <button onclick="openOtherTypeModal()" class="group text-left p-6 rounded-2xl border-2 border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200" style="background:#fafafa">
+          <div class="flex items-center justify-center w-14 h-14 rounded-xl mb-4 group-hover:scale-110 transition-transform" style="background:#dbe8f5">
+            <svg class="w-7 h-7" style="color:#324a6e" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+          </div>
+          <h3 class="font-bold text-lg mb-1" style="color:#6e4e58">Other Services</h3>
+          <p class="text-sm text-gray-600">Catering, photography, music, décor & more</p>
+          <div class="mt-4 flex items-center text-sm font-medium" style="color:#6e4e58">
+            Add service <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 
 <!-- ══════════════════ MODAL: ADD VENUE ══════════════════ -->
