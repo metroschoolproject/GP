@@ -12,12 +12,9 @@ $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
         $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        if ($decoded === $text) {
-            break;
-        }
+        if ($decoded === $text) break;
         $text = $decoded;
     }
-
     return $text;
 };
 $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
@@ -34,380 +31,520 @@ $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+/* ─── Tokens ─────────────────────────────────────────── */
 :root {
-  --c-bg:        #f5e8d9;
-  --c-surface:   #faf5ef;
-  --c-white:     #ffffff;
-  --c-card:      #faf5ef;
-  --c-rule:      #ead8c7;
-  --c-strong:    #6d4c5b;
-  --c-accent:    #7b5c69;
-  --c-muted:     #b79c8b;
-  --c-text:      #111827;
-  --c-danger:    #b94b4b;
+  --bg:          #f2e4d4;
+  --bg2:         #ede0cf;
+  --surface:     #faf6f1;
+  --card:        #ffffff;
+  --rule:        rgba(178,143,110,0.22);
+  --rule-strong: rgba(178,143,110,0.45);
+  --plum:        #6b4459;
+  --plum-dk:     #4e3141;
+  --plum-lt:     #9b7289;
+  --rose:        #c27a8e;
+  --gold:        #b8924a;
+  --gold-lt:     #e8c882;
+  --muted:       #a08878;
+  --text:        #1a1118;
+  --text2:       #5c4a54;
+  --danger:      #b94b4b;
 
-  --r-card:  0.75rem;
-  --sh-card:   0 20px 40px rgba(15, 23, 42, 0.08);
-  --sh-panel:  0 18px 45px rgba(15, 23, 42, 0.06);
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
 
-  --font-display: 'Playfair Display', Georgia, serif;
-  --font-body:    'Poppins', system-ui, -apple-system, sans-serif;
-
+  --font-d: 'Playfair Display', Georgia, serif;
+  --font-b: 'Poppins', system-ui, sans-serif;
   --pad-x: clamp(20px, 5vw, 72px);
-  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+
+  --ease-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--c-bg);
-  color: var(--c-text);
-  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-b);
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   display: flex; flex-direction: column;
+  overflow-x: hidden;
 }
 
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
-button { font-family: var(--font-body); outline: none; }
+button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
-/* Texture */
-.gp-texture {
-  position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background-image:
-    radial-gradient(ellipse at 20% 8%, rgba(109,76,91,0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 92%, rgba(183,156,139,0.07) 0%, transparent 55%);
+/* ─── Ambient background orbs ───────────────────────── */
+.gp-orbs {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.gp-orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+.gp-orb-1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(107,68,89,0.12) 0%, transparent 70%);
+  top: -200px; right: -100px;
+  animation-delay: 0s; animation-duration: 18s;
+}
+.gp-orb-2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(184,146,74,0.08) 0%, transparent 70%);
+  bottom: -150px; left: -100px;
+  animation-delay: -9s; animation-duration: 22s;
+}
+.gp-orb-3 {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(194,122,142,0.10) 0%, transparent 70%);
+  top: 40%; left: 40%;
+  animation-delay: -5s; animation-duration: 15s;
+}
+@keyframes orbFloat {
+  0%   { opacity: 0; transform: translate(0,0) scale(1); }
+  15%  { opacity: 1; }
+  50%  { transform: translate(40px,-30px) scale(1.08); }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(0,0) scale(1); }
 }
 
-/* Header */
+/* ─── Header ─────────────────────────────────────────── */
 .gp-header {
-  position: sticky; top: 0; z-index: 50;
+  position: sticky; top: 0; z-index: 100;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 24px;
-  padding: 16px var(--pad-x);
-  border-bottom: 1px solid rgba(184, 154, 109, 0.25);
-  background: rgba(248, 245, 239, 0.90);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  padding: 0 var(--pad-x);
+  height: 68px;
+  border-bottom: 1px solid var(--rule);
+  background: rgba(242,228,212,0.82);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  transition: background 0.3s;
 }
 
 .gp-brand {
   display: flex; align-items: center; gap: 12px;
-  color: #211b17;
-  font-size: 18px;
-  font-weight: 800;
-  white-space: nowrap;
+  font-size: 17px; font-weight: 800;
+  color: var(--text); white-space: nowrap;
 }
 
 .gp-brand-mark {
+  position: relative;
   display: grid; place-items: center;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--c-strong);
-  color: #fffaf3;
-  font-size: 14px;
-  letter-spacing: 1px;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--plum); color: #fffaf3;
+  font-size: 13px; font-weight: 700; letter-spacing: 1px;
+  overflow: hidden;
+}
+.gp-brand-mark::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
 }
 
 .gp-header-nav {
-  display: flex; align-items: center; justify-content: center; gap: 4px;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
 }
-
 .gp-header-nav a {
-  padding: 8px 18px; border-radius: 999px;
-  font-size: 13px; font-weight: 700; color: #51483f;
-  transition: all 0.2s;
+  padding: 7px 16px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; color: var(--text2);
+  transition: all 0.22s;
+  position: relative;
 }
-.gp-header-nav a:hover { color: var(--c-strong); background: rgba(109,76,91,0.08); }
-.gp-header-nav a.active { color: var(--c-strong); background: rgba(109,76,91,0.08); }
+.gp-header-nav a:hover { color: var(--plum); background: rgba(107,68,89,0.08); }
 
-.gp-header-actions {
-  display: flex; align-items: center; gap: 12px; justify-content: flex-end;
-}
+.gp-header-actions { display: flex; align-items: center; gap: 10px; }
 
-.gp-header-cta {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 40px; padding: 0 20px; border-radius: 999px; border: none;
-  background: var(--c-strong); color: #fffaf3;
-  font-size: 13px; font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 14px 30px rgba(109,76,91,0.18);
-  transition: all 0.2s;
-}
-.gp-header-cta:hover { background: #5a3d4a; transform: translateY(-1px); }
-
-/* Cart header badge */
 .gp-cart-badge {
   display: inline-flex; align-items: center; gap: 6px;
-  position: relative;
-  padding: 8px 14px 8px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--c-rule);
-  background: var(--c-white);
-  color: var(--c-strong);
-  font-size: 13px; font-weight: 700;
-  transition: all 0.2s;
+  padding: 7px 13px 7px 9px; border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  background: rgba(255,255,255,0.7);
+  color: var(--plum); font-size: 13px; font-weight: 700;
+  backdrop-filter: blur(8px);
+  transition: all 0.22s;
 }
-.gp-cart-badge:hover { border-color: var(--c-strong); background: rgba(109,76,91,0.06); }
-.gp-cart-badge-count {
+.gp-cart-badge:hover { border-color: var(--plum); background: rgba(107,68,89,0.07); }
+.gp-cart-count {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 20px; height: 20px; padding: 0 6px;
-  border-radius: 999px;
-  background: var(--c-strong);
-  color: #fff;
+  min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  background: var(--plum); color: #fff;
   font-size: 10px; font-weight: 700;
-  line-height: 1;
 }
 
-/* Page layout */
+.gp-cta-header {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 38px; padding: 0 18px; border-radius: 999px; border: none;
+  background: var(--plum); color: #fffaf3;
+  font-size: 13px; font-weight: 700;
+  box-shadow: 0 8px 24px rgba(107,68,89,0.22);
+  transition: all 0.22s var(--ease-expo);
+}
+.gp-cta-header:hover { background: var(--plum-dk); transform: translateY(-1px); box-shadow: 0 12px 32px rgba(107,68,89,0.28); }
+
+/* ─── Page shell ─────────────────────────────────────── */
 .gp-page {
+  position: relative; z-index: 1;
   flex: 1;
-  padding: 48px var(--pad-x) 64px;
-  max-width: 1120px;
+  padding: 52px var(--pad-x) 80px;
+  max-width: 1180px;
   margin: 0 auto;
   width: 100%;
 }
 
+/* ─── Page header ────────────────────────────────────── */
 .gp-page-head {
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
-  margin-bottom: 36px;
+  margin-bottom: 44px;
+  opacity: 0;
+  animation: fadeUp 0.7s var(--ease-expo) 0.1s forwards;
+}
+
+.gp-page-eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 10px;
+}
+.gp-page-eyebrow::before {
+  content: ''; display: block; width: 24px; height: 1px; background: var(--gold);
 }
 
 .gp-page-title {
-  font-family: var(--font-display);
-  font-size: clamp(32px, 4vw, 48px); font-weight: 600;
-  color: var(--c-text); line-height: 0.95;
+  font-family: var(--font-d);
+  font-size: clamp(38px, 5vw, 58px); font-weight: 600;
+  color: var(--text); line-height: 0.92;
+  letter-spacing: -0.02em;
 }
-.gp-page-count {
-  font-size: 14px; font-weight: 500; color: var(--c-muted);
-  padding-bottom: 4px;
-}
-
-/* Empty state */
-.gp-empty {
-  text-align: center;
-  padding: 80px 24px;
-  border: 1px dashed rgba(109,76,91,0.18);
-  border-radius: var(--r-card);
-  background: var(--c-card);
+.gp-page-title em {
+  font-style: italic; color: var(--plum-lt);
 }
 
-.gp-empty-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 80px; height: 80px; border-radius: 50%;
-  background: rgba(109,76,91,0.08);
-  color: var(--c-strong);
-  margin-bottom: 24px;
-}
-
-.gp-empty h2 {
-  font-family: var(--font-display); font-size: 32px; font-weight: 600;
-  color: var(--c-text); margin-bottom: 10px;
-}
-
-.gp-empty p {
-  color: var(--c-accent); font-size: 14px; line-height: 1.7;
-  max-width: 420px; margin: 0 auto 28px;
-}
-
-.gp-empty-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 46px; padding: 0 28px; border-radius: 999px; border: none;
-  background: var(--c-strong); color: #fff;
-  font-size: 14px; font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(109,76,91,0.18);
-  transition: all 0.2s var(--ease-out-expo);
-}
-.gp-empty-btn:hover { background: #5a3d4a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(109,76,91,0.20); }
-
-/* Cart items */
-.gp-cart-items {
-  display: grid; gap: 16px;
-}
-
-.gp-cart-item {
+/* ─── Two-column layout ──────────────────────────────── */
+.gp-layout {
   display: grid;
-  grid-template-columns: 140px 1fr auto;
-  gap: 20px;
+  grid-template-columns: 1fr 360px;
+  gap: 28px;
   align-items: start;
-  background: var(--c-card);
-  border: 1px solid var(--c-rule);
-  border-radius: var(--r-card);
-  padding: 16px;
-  box-shadow: var(--sh-card);
-  transition: all 0.3s var(--ease-out-expo);
 }
-.gp-cart-item:hover { box-shadow: var(--sh-panel); }
 
-.gp-cart-item-img {
-  width: 140px; height: 100px;
-  border-radius: calc(var(--r-card) - 2px);
+/* ─── Cart items ─────────────────────────────────────── */
+.gp-items { display: flex; flex-direction: column; gap: 14px; }
+
+.gp-item {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 0;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
   overflow: hidden;
-  background: linear-gradient(160deg, #ede0d0, #ddcebb);
+  opacity: 0;
+  transform: translateY(24px);
+  transition: box-shadow 0.35s var(--ease-expo), border-color 0.25s, transform 0.35s var(--ease-expo);
+}
+.gp-item.visible {
+  opacity: 1; transform: translateY(0);
+}
+.gp-item:hover {
+  box-shadow: 0 24px 56px rgba(26,17,24,0.10);
+  border-color: var(--rule-strong);
+  transform: translateY(-2px);
+}
+
+/* Image column */
+.gp-item-thumb {
+  position: relative; overflow: hidden;
+  width: 110px;
+  background: linear-gradient(160deg, #e8d9c8, #d9c8b5);
   flex-shrink: 0;
 }
-.gp-cart-item-img img {
+.gp-item-thumb img {
   width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.55s var(--ease-expo);
+}
+.gp-item:hover .gp-item-thumb img { transform: scale(1.06); }
+
+.gp-item-thumb-placeholder {
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  color: var(--muted);
+  min-height: 120px;
 }
 
-.gp-cart-item-body {
-  display: flex; flex-direction: column; gap: 4px;
+/* category ribbon on image */
+.gp-item-cat-ribbon {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 8px 6px;
+  background: linear-gradient(to top, rgba(26,17,24,0.55) 0%, transparent 100%);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(255,255,255,0.85);
+}
+
+/* Body */
+.gp-item-body {
+  padding: 16px 14px 16px 18px;
+  display: flex; flex-direction: column; gap: 3px;
   min-width: 0;
 }
 
-.gp-cart-item-cat {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
-  color: var(--c-muted);
+.gp-item-name {
+  font-family: var(--font-d);
+  font-size: 19px; font-weight: 600;
+  color: var(--text); line-height: 1.1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gp-item-name a { transition: color 0.2s; }
+.gp-item-name a:hover { color: var(--plum); }
+
+.gp-item-supplier {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500; color: var(--plum-lt);
+  margin-top: 2px;
 }
 
-.gp-cart-item-name {
-  font-family: var(--font-display);
-  font-size: 20px; font-weight: 600;
-  color: var(--c-text);
-  line-height: 1.1;
+.gp-item-meta {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 10px;
 }
-
-.gp-cart-item-supplier {
-  font-size: 12px; font-weight: 500; color: var(--c-accent);
-  display: flex; align-items: center; gap: 4px;
-}
-
-.gp-cart-item-details {
-  display: flex; flex-wrap: wrap; gap: 12px;
-  margin-top: 6px;
-  font-size: 12px; color: var(--c-muted);
-}
-.gp-cart-item-details span {
+.gp-item-pill {
   display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(107,68,89,0.07);
+  font-size: 11px; font-weight: 600; color: var(--plum);
+  border: 1px solid rgba(107,68,89,0.12);
 }
 
-.gp-cart-item-right {
-  display: flex; flex-direction: column; align-items: flex-end;
-  justify-content: space-between; gap: 12px;
-  flex-shrink: 0;
+/* Right column */
+.gp-item-right {
+  display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: space-between;
+  padding: 16px 16px 16px 8px;
+  gap: 12px; flex-shrink: 0;
 }
 
-.gp-cart-item-price {
-  font-family: var(--font-display);
-  font-size: 24px; font-weight: 600;
-  color: var(--c-strong);
-  line-height: 1;
+.gp-item-price {
+  font-family: var(--font-d);
+  font-size: 22px; font-weight: 600;
+  color: var(--plum);
   white-space: nowrap;
+  line-height: 1;
+}
+.gp-item-price-label {
+  font-size: 10px; font-weight: 500; color: var(--muted);
+  text-align: right; margin-top: 2px;
+  font-family: var(--font-b);
 }
 
-.gp-cart-remove {
+.gp-remove-btn {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--c-rule);
-  background: var(--c-white);
-  color: var(--c-danger);
+  padding: 5px 11px; border-radius: 999px;
+  border: 1px solid rgba(185,75,75,0.2);
+  background: rgba(185,75,75,0.04);
+  color: var(--danger);
   font-size: 11px; font-weight: 600;
-  cursor: pointer;
   transition: all 0.2s;
 }
-.gp-cart-remove:hover { background: var(--c-danger); color: #fff; border-color: var(--c-danger); }
+.gp-remove-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
 
-/* Cart footer / total */
-.gp-cart-footer {
-  display: flex; align-items: center; justify-content: space-between; gap: 20px;
-  margin-top: 28px;
-  padding: 20px 24px;
-  background: var(--c-card);
-  border: 1px solid var(--c-rule);
-  border-radius: var(--r-card);
-  box-shadow: var(--sh-card);
+/* ─── Sticky sidebar ─────────────────────────────────── */
+.gp-sidebar {
+  position: sticky; top: 84px;
+  opacity: 0;
+  animation: fadeUp 0.7s var(--ease-expo) 0.35s forwards;
 }
 
-.gp-cart-total-label {
-  font-size: 14px; color: var(--c-accent); font-weight: 500;
+.gp-summary-card {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(26,17,24,0.08);
 }
 
-.gp-cart-total-amount {
-  font-family: var(--font-display);
-  font-size: 32px; font-weight: 600;
-  color: var(--c-strong);
+/* Summary header with decorative band */
+.gp-summary-head {
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid var(--rule);
+  position: relative; overflow: hidden;
+}
+.gp-summary-head::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--plum) 0%, var(--rose) 50%, var(--gold) 100%);
+}
+
+.gp-summary-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 4px;
+}
+.gp-summary-title {
+  font-family: var(--font-d);
+  font-size: 22px; font-weight: 600; color: var(--text);
+}
+.gp-summary-subtitle {
+  font-size: 12px; color: var(--muted); margin-top: 2px;
+}
+
+/* Line items */
+.gp-summary-body { padding: 20px 24px; }
+
+.gp-line-items { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+
+.gp-line {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+}
+.gp-line-name { font-size: 13px; color: var(--text2); font-weight: 400; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gp-line-dots { flex: 1; border-bottom: 1px dashed var(--rule-strong); margin: 0 6px 3px; }
+.gp-line-val { font-size: 13px; color: var(--text); font-weight: 500; white-space: nowrap; }
+
+.gp-line-divider { height: 1px; background: var(--rule); margin: 4px 0; }
+
+.gp-total-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--rule-strong);
+}
+.gp-total-label { font-size: 13px; font-weight: 600; color: var(--text2); }
+.gp-total-amount {
+  font-family: var(--font-d);
+  font-size: 30px; font-weight: 600; color: var(--plum);
   line-height: 1;
 }
 
-.gp-cart-actions {
-  display: flex; gap: 10px;
+/* CTAs */
+.gp-summary-footer { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 10px; }
+
+.gp-btn-book {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 52px; border-radius: var(--r-md); border: none;
+  background: var(--plum); color: #fffaf3;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 28px rgba(107,68,89,0.28);
+  transition: all 0.3s var(--ease-expo);
+  position: relative; overflow: hidden;
+}
+.gp-btn-book::before {
+  content: '';
+  position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  transition: left 0.5s var(--ease-expo);
+}
+.gp-btn-book:hover { background: var(--plum-dk); transform: translateY(-2px); box-shadow: 0 18px 40px rgba(107,68,89,0.32); }
+.gp-btn-book:hover::before { left: 100%; }
+.gp-btn-book:active { transform: translateY(0); }
+
+.gp-btn-more {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 42px; border-radius: var(--r-md);
+  border: 1px solid var(--rule-strong);
+  background: transparent; color: var(--text2);
+  font-size: 13px; font-weight: 600;
+  transition: all 0.22s;
+}
+.gp-btn-more:hover { border-color: var(--plum); color: var(--plum); background: rgba(107,68,89,0.05); }
+
+/* Trust badges */
+.gp-trust {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--rule);
+}
+.gp-trust-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--muted);
+}
+.gp-trust-icon {
+  width: 16px; height: 16px; flex-shrink: 0;
+  color: var(--gold);
 }
 
-.gp-btn-outline {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 44px; padding: 0 22px; border-radius: 999px;
-  border: 1px solid var(--c-rule);
-  background: var(--c-white);
-  color: var(--c-strong);
-  font-size: 13px; font-weight: 700;
-  cursor: pointer; text-decoration: none;
-  transition: all 0.2s var(--ease-out-expo);
+/* ─── Empty state ────────────────────────────────────── */
+.gp-empty {
+  text-align: center; padding: 96px 24px;
+  border: 1px dashed rgba(107,68,89,0.18);
+  border-radius: var(--r-xl); background: var(--card);
+  opacity: 0;
+  animation: fadeUp 0.8s var(--ease-expo) 0.2s forwards;
 }
-.gp-btn-outline:hover { border-color: var(--c-strong); background: rgba(109,76,91,0.06); }
-
-.gp-btn-primary {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 44px; padding: 0 24px; border-radius: 999px; border: none;
-  background: var(--c-strong); color: #fff;
-  font-size: 13px; font-weight: 700;
-  cursor: pointer; text-decoration: none;
-  box-shadow: 0 2px 8px rgba(109,76,91,0.18);
-  transition: all 0.2s var(--ease-out-expo);
+.gp-empty-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 88px; height: 88px; border-radius: 50%;
+  background: rgba(107,68,89,0.07); color: var(--plum);
+  margin-bottom: 28px;
 }
-.gp-btn-primary:hover { background: #5a3d4a; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(109,76,91,0.20); }
+.gp-empty h2 { font-family: var(--font-d); font-size: 36px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+.gp-empty p { color: var(--muted); font-size: 14px; max-width: 420px; margin: 0 auto 32px; }
 
-/* Footer */
+.gp-btn-browse {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 50px; padding: 0 32px; border-radius: 999px; border: none;
+  background: var(--plum); color: #fff;
+  font-size: 14px; font-weight: 700;
+  box-shadow: 0 8px 24px rgba(107,68,89,0.22);
+  transition: all 0.25s var(--ease-expo);
+}
+.gp-btn-browse:hover { background: var(--plum-dk); transform: translateY(-2px); box-shadow: 0 16px 36px rgba(107,68,89,0.28); }
+
+/* ─── Keyframes ──────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Footer ─────────────────────────────────────────── */
 .gp-footer {
+  position: relative; z-index: 1;
   padding: 24px var(--pad-x);
-  border-top: 1px solid var(--c-rule);
+  border-top: 1px solid var(--rule);
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  font-size: 12px; color: var(--c-muted);
+  font-size: 12px; color: var(--muted);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .gp-cart-item {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .gp-cart-item-img {
-    width: 100%; height: 180px;
-  }
-  .gp-cart-item-right {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-  }
-  .gp-cart-footer {
-    flex-direction: column;
-    text-align: center;
-  }
-  .gp-header-nav a { display: none; }
+/* ─── Responsive ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  .gp-layout { grid-template-columns: 1fr; }
+  .gp-sidebar { position: static; }
 }
-
-@media (max-width: 480px) {
+@media (max-width: 640px) {
+  .gp-item { grid-template-columns: 88px 1fr; }
+  .gp-item-right { display: none; }
+  .gp-item-body { padding: 12px; }
+  .gp-header-nav { display: none; }
   :root { --pad-x: 16px; }
-  .gp-page { padding: 32px 16px 48px; }
-  .gp-brand { font-size: 15px; }
-  .gp-brand-mark { width: 34px; height: 34px; font-size: 12px; }
+}
+
+/* ─── Reduced motion ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .gp-item, .gp-page-head, .gp-sidebar, .gp-empty { animation: none; opacity: 1; transform: none; }
+  .gp-orb { animation: none; }
 }
 </style>
 </head>
 <body>
 
-<div class="gp-texture" aria-hidden="true"></div>
+<!-- Ambient orbs -->
+<div class="gp-orbs" aria-hidden="true">
+  <div class="gp-orb gp-orb-1"></div>
+  <div class="gp-orb gp-orb-2"></div>
+  <div class="gp-orb gp-orb-3"></div>
+</div>
 
-<!-- Header -->
+<!-- ─── Header ─────────────────────────────────────────── -->
 <header class="gp-header">
   <a class="gp-brand" href="<?= URLROOT ?>/main/index">
     <span class="gp-brand-mark">G</span>
@@ -419,119 +556,197 @@ button { font-family: var(--font-body); outline: none; }
     <a href="<?= URLROOT ?>/main/package">Packages</a>
   </nav>
   <div class="gp-header-actions">
-    <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      <?php if ($cartCount > 0): ?>
-      <span class="gp-cart-badge-count"><?= $cartCount ?></span>
-      <?php endif; ?>
+    <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart (<?= $cartCount ?> items)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <?php if ($cartCount > 0): ?><span class="gp-cart-count"><?= $cartCount ?></span><?php endif; ?>
     </a>
-    <a class="gp-header-cta" href="<?= $authNavUrl ?>"><?= $authNavLabel ?></a>
+    <a class="gp-cta-header" href="<?= $authNavUrl ?>"><?= $authNavLabel ?></a>
   </div>
 </header>
 
-<!-- Main -->
+<!-- ─── Main ──────────────────────────────────────────── -->
 <main class="gp-page">
+
+  <!-- Page heading -->
   <div class="gp-page-head">
-    <h1 class="gp-page-title">My Cart</h1>
-    <span class="gp-page-count"><?= $cartCount ?> item<?= $cartCount === 1 ? '' : 's' ?></span>
+    <div class="gp-page-eyebrow">Your Selection</div>
+    <h1 class="gp-page-title">My <em>Cart</em></h1>
   </div>
 
   <?php if (empty($items)): ?>
-    <!-- Empty state -->
-    <div class="gp-empty">
-      <div class="gp-empty-icon">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      </div>
-      <h2>Your cart is empty</h2>
-      <p>Browse our curated collection of wedding services and add the ones you love.</p>
-      <a class="gp-empty-btn" href="<?= URLROOT ?>/customerServices/service">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        Browse services
-      </a>
+  <!-- ── Empty state ───────────────────────────────────── -->
+  <div class="gp-empty">
+    <div class="gp-empty-icon">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
     </div>
+    <h2>Your cart is empty</h2>
+    <p>Browse our curated collection of wedding services and add the ones that make your day perfect.</p>
+    <a class="gp-btn-browse" href="<?= URLROOT ?>/customerServices/service">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      Explore services
+    </a>
+  </div>
+
   <?php else: ?>
-    <!-- Cart items -->
-    <div class="gp-cart-items">
-      <?php foreach ($items as $item):
-        $itemId = (int)($item['cart_item_id'] ?? 0);
-        $name = $item['service_name'] ?? 'Service';
-        $supplier = $item['supplier_name'] ?? 'Supplier';
-        $category = $item['category_name'] ?? 'Service';
-        $img = trim($item['thumbnail_url'] ?? '');
-        $displayPrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
+  <!-- ── Two-column layout ─────────────────────────────── -->
+  <div class="gp-layout">
+
+    <!-- LEFT: items list -->
+    <div class="gp-items" id="gp-items">
+      <?php foreach ($items as $i => $item):
+        $itemId      = (int)($item['cart_item_id'] ?? 0);
+        $name        = $item['service_name'] ?? 'Service';
+        $supplier    = $item['supplier_name'] ?? 'Supplier';
+        $category    = $item['category_name'] ?? 'Service';
+        $img         = trim($item['thumbnail_url'] ?? '');
+        $price       = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
         $selectedDate = $item['selected_date'] ?? '';
-        $startTime = $item['start_time'] ?? '';
-        $itemType = $item['item_type'] ?? 'service';
-        if ($itemType === 'package' && !empty($item['package_slug'])) {
-          $detailUrl = URLROOT . '/customerServices/packageDetail/' . $h($item['package_slug']);
-        } else {
-          $detailUrl = URLROOT . '/customerServices/detail/' . (int)($item['item_id'] ?? 0) . ($selectedDate ? '?date=' . $h($selectedDate) : '');
-        }
+        $startTime   = $item['start_time'] ?? '';
+        $itemType    = $item['item_type'] ?? 'service';
+        $detailUrl   = ($itemType === 'package' && !empty($item['package_slug']))
+          ? URLROOT . '/customerServices/packageDetail/' . $h($item['package_slug'])
+          : URLROOT . '/customerServices/detail/' . (int)($item['item_id'] ?? 0) . ($selectedDate ? '?date=' . $h($selectedDate) : '');
       ?>
-      <div class="gp-cart-item">
-        <a class="gp-cart-item-img" href="<?= $h($detailUrl) ?>">
+      <article class="gp-item" data-index="<?= $i ?>" aria-label="<?= $h($name) ?>">
+
+        <!-- Thumbnail -->
+        <a class="gp-item-thumb" href="<?= $h($detailUrl) ?>" tabindex="-1" aria-hidden="true">
           <?php if ($img): ?>
             <img src="<?= $h($img) ?>" alt="<?= $h($name) ?>" loading="lazy">
           <?php else: ?>
-            <div style="width:100%;height:100%;display:grid;place-items:center;color:var(--c-muted);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <div class="gp-item-thumb-placeholder">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             </div>
           <?php endif; ?>
+          <div class="gp-item-cat-ribbon"><?= $h($category) ?></div>
         </a>
-        <div class="gp-cart-item-body">
-          <span class="gp-cart-item-cat"><?= $h($category) ?></span>
-          <h3 class="gp-cart-item-name">
+
+        <!-- Body -->
+        <div class="gp-item-body">
+          <h2 class="gp-item-name">
             <a href="<?= $h($detailUrl) ?>"><?= $h($name) ?></a>
-          </h3>
-          <span class="gp-cart-item-supplier">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </h2>
+          <div class="gp-item-supplier">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <?= $h($supplier) ?>
-          </span>
+          </div>
           <?php if ($selectedDate || $startTime): ?>
-          <div class="gp-cart-item-details">
+          <div class="gp-item-meta">
             <?php if ($selectedDate): ?>
-            <span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <?= $h(date('M j, Y', strtotime($selectedDate))) ?>
+            <span class="gp-item-pill">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <?= $h(date('d M Y', strtotime($selectedDate))) ?>
             </span>
             <?php endif; ?>
             <?php if ($startTime): ?>
-            <span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="gp-item-pill">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <?= $h(date('g:i A', strtotime($startTime))) ?>
             </span>
             <?php endif; ?>
           </div>
           <?php endif; ?>
         </div>
-        <div class="gp-cart-item-right">
-          <span class="gp-cart-item-price"><?= $money($displayPrice) ?></span>
-          <form method="POST" action="<?= URLROOT ?>/cart/remove" onsubmit="return confirm('Remove this item from your cart?');">
+
+        <!-- Right: price + remove -->
+        <div class="gp-item-right">
+          <div>
+            <div class="gp-item-price"><?= $money($price) ?></div>
+            <div class="gp-item-price-label">est. price</div>
+          </div>
+          <form method="POST" action="<?= URLROOT ?>/cart/remove" onsubmit="return confirm('Remove this item?');">
             <input type="hidden" name="cart_item_id" value="<?= $itemId ?>">
-            <button class="gp-cart-remove" type="submit">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <button class="gp-remove-btn" type="submit" aria-label="Remove <?= $h($name) ?> from cart">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               Remove
             </button>
           </form>
         </div>
-      </div>
-      <?php endforeach; ?>
-    </div>
 
-    <!-- Cart footer -->
-    <div class="gp-cart-footer">
-      <div>
-        <div class="gp-cart-total-label">Estimated total</div>
-        <div class="gp-cart-total-amount"><?= $money($total) ?></div>
-      </div>
-      <div class="gp-cart-actions">
-        <a class="gp-btn-outline" href="<?= URLROOT ?>/customerServices/service">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          Add more
-        </a>
-      </div>
-    </div>
+      </article>
+      <?php endforeach; ?>
+    </div><!-- /gp-items -->
+
+    <!-- RIGHT: sticky order summary -->
+    <aside class="gp-sidebar" aria-label="Order summary">
+      <div class="gp-summary-card">
+
+        <!-- Summary head -->
+        <div class="gp-summary-head">
+          <div class="gp-summary-label">Order summary</div>
+          <div class="gp-summary-title">Your selection</div>
+          <div class="gp-summary-subtitle"><?= $cartCount ?> service<?= $cartCount === 1 ? '' : 's' ?> selected</div>
+        </div>
+
+        <!-- Line items -->
+        <div class="gp-summary-body">
+          <div class="gp-line-items">
+            <?php foreach ($items as $item):
+              $linePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
+              $lineName  = $item['service_name'] ?? 'Service';
+            ?>
+            <div class="gp-line">
+              <span class="gp-line-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></span>
+              <span class="gp-line-dots" aria-hidden="true"></span>
+              <span class="gp-line-val"><?= $money($linePrice) ?></span>
+            </div>
+            <?php endforeach; ?>
+
+            <div class="gp-line-divider"></div>
+
+            <div class="gp-line">
+              <span class="gp-line-name">Subtotal</span>
+              <span class="gp-line-dots" aria-hidden="true"></span>
+              <span class="gp-line-val"><?= $money($total) ?></span>
+            </div>
+            <div class="gp-line">
+              <span class="gp-line-name">Deposit (10%)</span>
+              <span class="gp-line-dots" aria-hidden="true"></span>
+              <span class="gp-line-val"><?= $money($total * 0.10) ?></span>
+            </div>
+          </div>
+
+          <!-- Total -->
+          <div class="gp-total-row">
+            <span class="gp-total-label">Estimated total</span>
+            <span class="gp-total-amount"><?= $money($total) ?></span>
+          </div>
+        </div>
+
+        <!-- CTAs -->
+        <div class="gp-summary-footer">
+          <a class="gp-btn-book" href="<?= URLROOT ?>/booking/create">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Proceed to Booking
+          </a>
+          <a class="gp-btn-more" href="<?= URLROOT ?>/customerServices/service">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add more services
+          </a>
+        </div>
+
+        <!-- Trust badges -->
+        <div class="gp-trust" aria-label="Assurances">
+          <div class="gp-trust-item">
+            <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Secure booking — your data is protected
+          </div>
+          <div class="gp-trust-item">
+            <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Verified suppliers, reviewed by couples
+          </div>
+          <div class="gp-trust-item">
+            <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Free cancellation within 48 hours
+          </div>
+        </div>
+
+      </div><!-- /gp-summary-card -->
+    </aside>
+
+  </div><!-- /gp-layout -->
   <?php endif; ?>
+
 </main>
 
 <footer class="gp-footer">
@@ -540,9 +755,37 @@ button { font-family: var(--font-body); outline: none; }
 </footer>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof lucide !== 'undefined') lucide.createIcons();
-});
+(function () {
+  /* Staggered item reveal on load */
+  const items = document.querySelectorAll('.gp-item');
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const delay = parseInt(el.dataset.index || 0) * 90;
+          setTimeout(() => el.classList.add('visible'), delay);
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.08 });
+    items.forEach(el => observer.observe(el));
+  } else {
+    items.forEach(el => el.classList.add('visible'));
+  }
+
+  /* Shimmer effect on Book button hover — already handled by CSS ::before */
+
+  /* Header scroll tint */
+  const header = document.querySelector('.gp-header');
+  if (header) {
+    window.addEventListener('scroll', () => {
+      header.style.background = window.scrollY > 10
+        ? 'rgba(235,220,204,0.94)'
+        : 'rgba(242,228,212,0.82)';
+    }, { passive: true });
+  }
+})();
 </script>
 </body>
 </html>
