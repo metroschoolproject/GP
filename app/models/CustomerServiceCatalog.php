@@ -4,6 +4,7 @@ class CustomerServiceCatalog
 {
     private $db;
     private $hasServicePriceRangeColumns = null;
+    private $hasVenueRoomPriceRangeColumns = null;
 
     public function __construct()
     {
@@ -397,11 +398,20 @@ class CustomerServiceCatalog
                    AND selected_room_availability.date IS NULL
                    AND 1 = 0';
 
+        $roomPriceRangeSelect = $this->hasVenueRoomPriceRangeColumns()
+            ? 'venue_rooms.price_min, venue_rooms.price_max,'
+            : 'venue_rooms.price AS price_min, venue_rooms.price AS price_max,';
+        $roomPriceRangeGroupBy = $this->hasVenueRoomPriceRangeColumns()
+            ? 'venue_rooms.price_min,
+                      venue_rooms.price_max,'
+            : '';
+
         $this->db->dbquery(
             'SELECT venue_rooms.id,
                     venue_rooms.name,
                     venue_rooms.capacity,
                     venue_rooms.price,
+                    ' . $roomPriceRangeSelect . '
                     COALESCE(selected_room_availability.start_time, default_room_availability.start_time) AS start_time,
                     COALESCE(selected_room_availability.end_time, default_room_availability.end_time) AS end_time,
                     selected_room_availability.id AS selected_availability_id,
@@ -421,6 +431,7 @@ class CustomerServiceCatalog
                       venue_rooms.name,
                       venue_rooms.capacity,
                       venue_rooms.price,
+                      ' . $roomPriceRangeGroupBy . '
                       selected_room_availability.start_time,
                       selected_room_availability.end_time,
                       selected_room_availability.id,
@@ -453,6 +464,10 @@ class CustomerServiceCatalog
                 'name' => $room['name'] ?? '',
                 'capacity' => (int)($room['capacity'] ?? 1),
                 'price' => (float)($room['price'] ?? 0),
+                'price_min' => (float)($room['price_min'] ?? $room['price'] ?? 0),
+                'price_max' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
+                'package_price' => (float)($room['price_min'] ?? $room['price'] ?? 0),
+                'customize_price' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
                 'start_time' => $room['start_time'] ?? '09:00:00',
                 'end_time' => $room['end_time'] ?? '17:00:00',
                 'venue_name' => $room['venue_name'] ?? '',
@@ -838,5 +853,24 @@ class CustomerServiceCatalog
         $this->hasServicePriceRangeColumns = (int)($row['total'] ?? 0) >= 2;
 
         return $this->hasServicePriceRangeColumns;
+    }
+
+    private function hasVenueRoomPriceRangeColumns()
+    {
+        if ($this->hasVenueRoomPriceRangeColumns !== null) {
+            return $this->hasVenueRoomPriceRangeColumns;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "venue_rooms"
+               AND COLUMN_NAME IN ("price_min", "price_max")'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasVenueRoomPriceRangeColumns = (int)($row['total'] ?? 0) >= 2;
+
+        return $this->hasVenueRoomPriceRangeColumns;
     }
 }

@@ -1,108 +1,135 @@
-<div id="supplier-service-detail" class="page">
+<div id="supplier-service-detail">
 
-  <div class="topbar" data-service-status="<?= $h($serviceStatus) ?>">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span class="count-badge">ID #<?= (int)$serviceId ?></span>
-      <div id="publishStatusPill" class="status-pill"><span id="publishStatusDot" class="dot <?= $serviceStatus === 'active' || $isReady ? 'ready' : '' ?>"></span> <span id="publishStatusText"><?= $serviceStatus === 'active' ? 'Live' : ($isReady ? 'Ready' : 'Needs attention') ?></span></div>
+  <!-- ═══════════════ HERO ═══════════════ -->
+  <div class="sd-hero sd-anim-hero">
+
+    <!-- Floating topnav -->
+    <div class="sd-topnav" data-service-status="<?= $h($serviceStatus) ?>">
+      <div class="sd-topnav-left">
+        <a href="<?= URLROOT ?>/supplier/services" class="sd-back-link"><i class="ti ti-arrow-left" style="font-size:13px"></i> Back</a>
+        <span class="sd-badge">ID #<?= (int)$serviceId ?></span>
+        <span class="sd-status-pill">
+          <span class="sd-status-dot <?= $serviceStatus === 'active' || $isReady ? 'is-live' : '' ?>" id="publishStatusDot"></span>
+          <span id="publishStatusText"><?= $serviceStatus === 'active' ? 'Live' : ($isReady ? 'Ready' : 'Needs attention') ?></span>
+        </span>
+      </div>
+      <button type="button" id="publishServiceBtn" class="btn btn-primary btn-sm" <?= $serviceStatus === 'active' ? 'disabled' : '' ?>>
+        <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check' : 'ti-send' ?>" style="font-size:13px"></i>
+        <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Published' : 'Request publish' ?></span>
+      </button>
     </div>
-    <button type="button" id="publishServiceBtn" class="btn btn-primary btn-sm" <?= $serviceStatus === 'active' ? 'disabled' : '' ?>>
-      <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check' : 'ti-send' ?>" style="font-size:13px"></i> <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Published' : 'Request publish' ?></span>
-    </button>
-  </div>
-  <div id="publishMessage" class="message-bar error" style="display:none"></div>
 
-  <div class="hero">
-    <div class="hero-img">
+    <!-- Hero image -->
+    <div class="sd-hero-img">
       <?php if ($serviceImage !== ''): ?>
         <img src="<?= $h($serviceImage) ?>" alt="<?= $h($serviceNameRaw) ?>">
       <?php else: ?>
-        <div class="hero-img-placeholder">
+        <div class="sd-hero-img-placeholder">
           <div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-3)">
             <div style="width:60px;height:60px;border-radius:14px;border:1.5px dashed var(--border-strong);display:flex;align-items:center;justify-content:center">
               <i class="ti ti-photo" style="font-size:26px"></i>
             </div>
-            <span style="font-size:11px;font-weight:600">No cover photo</span>
+            <span style="font-size:12px;font-weight:600">No cover photo</span>
           </div>
         </div>
       <?php endif; ?>
-      <div class="category-badge"><i class="ti ti-sparkles" style="font-size:11px"></i> <?= $h($serviceCategoryRaw) ?></div>
+      <div class="sd-hero-scrim"></div>
     </div>
 
-    <div class="hero-body">
-      <div>
-        <div class="hero-tags">
-          <span class="tag tag-accent">Service detail</span>
-          <span class="tag tag-muted"><?= $h($serviceCategoryRaw) ?></span>
-        </div>
-        <h1 class="hero-title" style="margin-top:10px"><?= $h($serviceNameRaw) ?></h1>
-        <p class="hero-desc"><?= $serviceDescriptionRaw !== '' ? $h($serviceDescriptionRaw) : 'No description has been added yet.' ?></p>
-      </div>
+    <!-- Hero body overlaid -->
+    <div class="sd-hero-body">
+      <div class="sd-hero-category"><i class="ti ti-sparkles" style="font-size:11px"></i> <?= $h($serviceCategoryRaw) ?></div>
+      <h1 class="sd-hero-title"><?= $h($serviceNameRaw) ?></h1>
+      <p class="sd-hero-desc"><?= $serviceDescriptionRaw !== '' ? $h($serviceDescriptionRaw) : 'No description has been added yet.' ?></p>
+    </div>
 
-      <div class="hero-meta">
-        <div class="price-callout">
-          <div class="stat-label">Starting price</div>
-          <div class="stat-value" style="font-size:26px"><?= $money($servicePriceAmount) ?></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Days open</div>
-          <div id="heroOpenDaysValue" class="stat-value"><?= (int)$openDaysCount ?><span style="font-size:14px;color:var(--text-3)">/7</span></div>
-          <div id="heroOpenDaysSub" class="stat-sub"><?= $openDaysCount > 0 ? 'Schedule active' : 'No days open' ?></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Portfolio</div>
-          <div class="stat-value"><?= (int)$mediaCount ?></div>
-          <div class="stat-sub"><?= $mediaCount === 1 ? 'photo uploaded' : 'photos uploaded' ?></div>
+    <!-- Stats bar -->
+    <div class="sd-stats">
+      <div class="sd-stat sd-stat-price">
+        <div class="sd-stat-icon"><i class="ti ti-tag"></i></div>
+        <div class="sd-stat-body">
+          <div class="sd-stat-label">Starting price</div>
+          <div class="sd-stat-value"><?= $money($servicePriceAmount) ?></div>
         </div>
       </div>
-
-      <div class="attention-bar <?= $isReady ? 'ready' : '' ?>">
-        <div class="attention-icon <?= $isReady ? 'ready' : '' ?>"><i class="ti <?= $isReady ? 'ti-circle-check' : 'ti-alert-triangle' ?>" style="font-size:16px"></i></div>
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-            <div class="attention-title"><?= $isReady ? 'This service is ready for customers' : count($attentionItems) . ' ' . (count($attentionItems) === 1 ? 'thing' : 'things') . ' to complete before customers can book' ?></div>
-            <span style="padding:2px 8px;border-radius:999px;background:var(--white);border:1px solid var(--border);font-size:10px;font-weight:700;color:<?= $isReady ? 'var(--success)' : 'var(--warning)' ?>"><?= $isReady ? 'Ready' : count($attentionItems) . ' items' ?></span>
-          </div>
-          <?php if (!$isReady): ?>
-            <div class="attention-items">
-              <?php foreach ($attentionItems as $item): ?>
-                <div class="attention-item">
-                  <i class="<?= $h($item['icon']) ?>"></i>
-                  <div><div class="attention-item-label"><?= $h($item['label']) ?></div><div class="attention-item-detail"><?= $h($item['detail']) ?></div></div>
-                </div>
-              <?php endforeach; ?>
-            </div>
-          <?php else: ?>
-            <div class="attention-sub">Pricing, media, and weekly availability are set.</div>
-          <?php endif; ?>
+      <div class="sd-stat">
+        <div class="sd-stat-icon gold"><i class="ti ti-calendar"></i></div>
+        <div class="sd-stat-body">
+          <div class="sd-stat-label">Days open</div>
+          <div id="heroOpenDaysValue" class="sd-stat-value"><?= (int)$openDaysCount ?><span style="font-size:14px;color:var(--text-3)">/7</span></div>
+          <div class="sd-stat-sub" id="heroOpenDaysSub"><?= $openDaysCount > 0 ? 'Schedule active' : 'No days open' ?></div>
+        </div>
+      </div>
+      <div class="sd-stat">
+        <div class="sd-stat-icon green"><i class="ti ti-photo"></i></div>
+        <div class="sd-stat-body">
+          <div class="sd-stat-label">Portfolio</div>
+          <div class="sd-stat-value"><?= (int)$mediaCount ?></div>
+          <div class="sd-stat-sub"><?= $mediaCount === 1 ? 'photo uploaded' : 'photos uploaded' ?></div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="workspace">
-    <div class="main-col">
+  <!-- ═══════════════ PUBLISH MESSAGE ═══════════════ -->
+  <div id="publishMessage" class="sd-message error" style="display:none"></div>
 
-      <div class="card">
-        <div class="card-header">
+  <!-- ═══════════════ ATTENTION BANNER ═══════════════ -->
+  <div class="sd-attention <?= $isReady ? 'is-ready' : '' ?> sd-anim-card-1">
+    <div class="sd-attention-icon"><i class="ti <?= $isReady ? 'ti-circle-check' : 'ti-alert-triangle' ?>"></i></div>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div class="sd-attention-title">
+          <?= $isReady ? 'This service is ready for customers' : count($attentionItems) . ' ' . (count($attentionItems) === 1 ? 'thing' : 'things') . ' to complete before customers can book' ?>
+        </div>
+        <span class="sd-badge" style="background:#fff;color:<?= $isReady ? 'var(--success)' : 'var(--warning)' ?>"><?= $isReady ? 'Ready' : count($attentionItems) . ' items' ?></span>
+      </div>
+      <?php if (!$isReady): ?>
+        <div class="sd-attention-items">
+          <?php foreach ($attentionItems as $item): ?>
+            <div class="sd-attention-item">
+              <i class="<?= $h($item['icon']) ?>"></i>
+              <div>
+                <div class="sd-attention-item-label"><?= $h($item['label']) ?></div>
+                <div class="sd-attention-item-detail"><?= $h($item['detail']) ?></div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php else: ?>
+        <div class="sd-attention-sub">Pricing, media, and weekly availability are set.</div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <!-- ═══════════════ WORKSPACE ═══════════════ -->
+  <div class="sd-workspace">
+
+    <!-- ═══ MAIN COLUMN ═══ -->
+    <div class="sd-main">
+
+      <!-- === PORTFOLIO === -->
+      <div class="sd-card sd-anim-card-2">
+        <div class="sd-card-head">
           <div>
-            <div class="card-title">Portfolio photos</div>
-            <div class="card-sub">Shown to customers browsing your listing</div>
+            <div class="sd-card-title">Portfolio photos</div>
+            <div class="sd-card-sub">Shown to customers browsing your listing</div>
           </div>
           <label class="btn btn-primary btn-sm" style="cursor:pointer">
             <i class="ti ti-photo-plus" style="font-size:13px"></i> Add photo
             <input id="serviceMediaInput" type="file" accept="image/*" style="display:none">
           </label>
         </div>
-        <div class="card-body">
-          <div id="mediaMessage" class="message-bar error" style="display:none"></div>
-          <div id="mediaGrid" class="photo-grid">
+        <div class="sd-card-body">
+          <div id="mediaMessage" class="sd-message error" style="display:none"></div>
+          <div id="mediaGrid" class="sd-gallery">
             <?php foreach ($media as $item): ?>
-              <div class="photo-card" data-media-id="<?= (int)($item['id'] ?? 0) ?>">
+              <div class="sd-gallery-item" data-media-id="<?= (int)($item['id'] ?? 0) ?>">
                 <img src="<?= $h($item['file_url'] ?? '') ?>" alt="Service photo">
-                <button type="button" class="del-btn" onclick="deleteServiceMedia(<?= (int)($item['id'] ?? 0) ?>)"><i class="ti ti-trash" style="font-size:13px"></i></button>
+                <button type="button" class="sd-gallery-del" onclick="deleteServiceMedia(<?= (int)($item['id'] ?? 0) ?>)"><i class="ti ti-trash" style="font-size:13px"></i></button>
               </div>
             <?php endforeach; ?>
-            <label class="photo-add">
+            <label class="sd-gallery-add">
               <i class="ti ti-plus"></i>
               <span>Upload photo</span>
               <input type="file" accept="image/*" data-media-picker style="display:none">
@@ -111,56 +138,63 @@
         </div>
       </div>
 
+      <!-- === ROOMS / HALLS (Venue only) === -->
       <?php if ($isVenue): ?>
-        <div class="card">
-          <div class="card-header">
+        <div class="sd-card sd-anim-card-3">
+          <div class="sd-card-head">
             <div>
-              <div class="card-title">Rooms / Halls</div>
-              <div class="card-sub">Room capacity, price, and bookable hours</div>
+              <div class="sd-card-title">Rooms &amp; Halls</div>
+              <div class="sd-card-sub">Capacity, pricing, and bookable hours</div>
             </div>
-            <span id="hallCount" class="count-badge"><?= count($venueRooms) ?> <?= count($venueRooms) === 1 ? 'hall' : 'halls' ?></span>
+            <span id="hallCount" class="sd-badge"><?= count($venueRooms) ?> <?= count($venueRooms) === 1 ? 'hall' : 'halls' ?></span>
           </div>
-          <div class="card-body">
-            <div id="hallMessage" class="message-bar error" style="display:none"></div>
-            <div id="hallGrid" class="hall-grid">
+          <div class="sd-card-body">
+            <div id="hallMessage" class="sd-message error" style="display:none"></div>
+            <div id="hallGrid" class="sd-halls">
               <?php foreach ($venueRooms as $room): ?>
-                <div class="hall-card" data-room-id="<?= (int)($room['id'] ?? 0) ?>">
+                <div class="sd-hall-card" data-room-id="<?= (int)($room['id'] ?? 0) ?>">
                   <input type="hidden" class="hall-id" value="<?= (int)($room['id'] ?? 0) ?>">
-                  <div class="hall-card-head">
-                    <div class="hall-card-icon"><i class="ti ti-door"></i></div>
+                  <div class="sd-hall-head">
+                    <div class="sd-hall-head-left">
+                      <div class="sd-hall-icon"><i class="ti ti-door"></i></div>
+                    </div>
                     <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" onclick="removeHall(this)"><i class="ti ti-trash" style="font-size:13px"></i></button>
                   </div>
-                  <div class="hall-inputs">
-                    <div class="hall-input-group full"><label>Hall name</label><input class="hall-input hall-name" value="<?= $h($room['name'] ?? '') ?>"></div>
-                    <div class="hall-input-group"><label>Capacity</label><input type="number" min="1" class="hall-input hall-capacity" value="<?= (int)($room['capacity'] ?? 1) ?>"></div>
-                    <div class="hall-input-group"><label>Price</label><input type="number" min="0" step="0.01" class="hall-input hall-price" value="<?= $h($room['price'] ?? 0) ?>"></div>
-                    <div class="hall-input-group"><label>Start time</label><input type="time" lang="en-GB" class="hall-input hall-start" value="<?= $h(substr((string)($room['start_time'] ?? '09:00'), 0, 5)) ?>"></div>
-                    <div class="hall-input-group"><label>End time</label><input type="time" lang="en-GB" class="hall-input hall-end" value="<?= $h(substr((string)($room['end_time'] ?? '17:00'), 0, 5)) ?>"></div>
+                  <div class="sd-hall-fields">
+                    <div class="sd-hall-fg full"><label>Hall name</label><input class="sd-hall-input hall-name" value="<?= $h($room['name'] ?? '') ?>"></div>
+                    <div class="sd-hall-fg"><label>Capacity</label><input type="number" min="1" class="sd-hall-input hall-capacity" value="<?= (int)($room['capacity'] ?? 1) ?>"></div>
+                    <div class="sd-hall-fg"><label>Package price</label><input type="number" min="0" step="0.01" class="sd-hall-input hall-price hall-price-min" value="<?= $h($room['price_min'] ?? $room['price'] ?? 0) ?>"></div>
+                    <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input hall-price-max" value="<?= $h($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0) ?>"></div>
+                    <div class="sd-hall-fg"><label>Start time</label><input type="time" lang="en-GB" class="sd-hall-input hall-start" value="<?= $h(substr((string)($room['start_time'] ?? '09:00'), 0, 5)) ?>"></div>
+                    <div class="sd-hall-fg"><label>End time</label><input type="time" lang="en-GB" class="sd-hall-input hall-end" value="<?= $h(substr((string)($room['end_time'] ?? '17:00'), 0, 5)) ?>"></div>
                   </div>
-                  <div class="hall-time-display"><?= $h($formatTime($room['start_time'] ?? '09:00') . ' - ' . $formatTime($room['end_time'] ?? '17:00')) ?></div>
+                  <div class="sd-hall-time"><?= $h($formatTime($room['start_time'] ?? '09:00') . ' - ' . $formatTime($room['end_time'] ?? '17:00')) ?></div>
                 </div>
               <?php endforeach; ?>
             </div>
-            <button type="button" class="add-hall-btn" onclick="addHall()"><i class="ti ti-plus"></i> Add hall</button>
+            <button type="button" class="sd-add-hall" onclick="addHall()"><i class="ti ti-plus"></i> Add hall</button>
           </div>
-          <div class="card-footer">
+          <div class="sd-card-foot">
             <button type="button" class="btn btn-primary btn-sm" id="saveHallsBtn"><i class="ti ti-check" style="font-size:12px"></i> Save halls</button>
           </div>
         </div>
       <?php endif; ?>
 
-      <div class="card">
-        <div class="card-header">
+      <!-- === WEEKLY AVAILABILITY === -->
+      <div class="sd-card sd-anim-card-4">
+        <div class="sd-card-head">
           <div>
-            <div class="card-title">Weekly availability</div>
-            <div class="card-sub">Hours and slot settings for each day</div>
+            <div class="sd-card-title">Weekly availability</div>
+            <div class="sd-card-sub">Hours and slot settings for each day</div>
           </div>
-          <span id="openDaysBadge" class="count-badge"><?= (int)$openDaysCount ?> days open</span>
+          <span id="openDaysBadge" class="sd-badge"><?= (int)$openDaysCount ?> days open</span>
         </div>
-        <div class="card-body">
-          <div id="availabilityMessage" class="message-bar error" style="display:none"></div>
-          <div class="avail-controls">
-            <div class="avail-control">
+        <div class="sd-card-body">
+          <div id="availabilityMessage" class="sd-message error" style="display:none"></div>
+
+          <!-- Controls row -->
+          <div class="sd-avail-controls">
+            <div class="sd-avail-field">
               <label>Slot duration</label>
               <select id="availabilityDuration">
                 <?php
@@ -175,7 +209,7 @@
                 <?php endforeach; ?>
               </select>
             </div>
-            <div class="avail-control">
+            <div class="sd-avail-field">
               <label>Buffer between slots</label>
               <select id="availabilityBuffer">
                 <?php
@@ -191,50 +225,46 @@
               </select>
             </div>
             <?php if (!$isVenue): ?>
-            <div class="avail-control">
+            <div class="sd-avail-field">
               <label>Max concurrent</label>
               <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
             </div>
             <?php endif; ?>
           </div>
 
-          <table class="avail-table">
-            <thead>
-              <tr>
-                <th style="width:120px">Day</th>
-                <th style="width:120px">Status</th>
-                <th>Open</th>
-                <th>Close</th>
-              </tr>
-            </thead>
-            <tbody id="avail-body">
-              <?php foreach ($days as $dayNumber => $dayName): ?>
-                <?php
-                $row = $weeklyByDay[$dayNumber] ?? [];
-                $open = $isDayAvailable($dayNumber, $row);
-                $start = substr((string)($row['open_time'] ?? '09:00'), 0, 5);
-                $end = substr((string)($row['close_time'] ?? '17:00'), 0, 5);
-                ?>
-                <tr class="availability-day-row" data-day="<?= (int)$dayNumber ?>">
-                  <td><div class="day-name"><?= $h($dayName) ?></div><div class="day-num">Day <?= (int)$dayNumber ?></div></td>
-                  <td>
-                    <label class="toggle-wrap">
-                      <label class="toggle">
-                        <input type="checkbox" class="availability-open" <?= $open ? 'checked' : '' ?> onchange="toggleDay(this)">
-                        <div class="toggle-track"></div>
-                        <div class="toggle-thumb"></div>
-                      </label>
-                      <span class="toggle-label"><?= $open ? 'Open' : 'Closed' ?></span>
-                    </label>
-                  </td>
-                  <td class="start-cell"><?= $open ? '<input class="time-input availability-start" type="time" value="' . $h($start) . '">' : '<span class="closed-indicator">-</span>' ?></td>
-                  <td class="end-cell"><?= $open ? '<input class="time-input availability-end" type="time" value="' . $h($end) . '">' : '<span class="closed-indicator">-</span>' ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+          <!-- Day cards -->
+          <div class="sd-days">
+            <?php
+            $dayAbbr = [1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat', 7 => 'Sun'];
+            foreach ($days as $dayNumber => $dayName):
+              $row = $weeklyByDay[$dayNumber] ?? [];
+              $open = $isDayAvailable($dayNumber, $row);
+              $start = substr((string)($row['open_time'] ?? '09:00'), 0, 5);
+              $end = substr((string)($row['close_time'] ?? '17:00'), 0, 5);
+            ?>
+              <div class="sd-day-card <?= $open ? '' : 'is-closed' ?> availability-day-row" data-day="<?= (int)$dayNumber ?>">
+                <div class="sd-day-name"><?= $h($dayAbbr[$dayNumber] ?? $dayName) ?></div>
+                <div class="sd-day-toggle">
+                  <label class="sd-toggle">
+                    <input type="checkbox" class="availability-open" <?= $open ? 'checked' : '' ?> onchange="toggleDay(this)">
+                    <div class="sd-toggle-track"></div>
+                    <div class="sd-toggle-thumb"></div>
+                  </label>
+                </div>
+                <div class="sd-day-time">
+                  <?php if ($open): ?>
+                    <input class="time-input availability-start" type="time" value="<?= $h($start) ?>">
+                    <span style="display:block;font-size:9px;color:var(--text-3);line-height:1">to</span>
+                    <input class="time-input availability-end" type="time" value="<?= $h($end) ?>">
+                  <?php else: ?>
+                    <span class="sd-day-closed">Closed</span>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
         </div>
-        <div class="card-footer">
+        <div class="sd-card-foot">
           <button type="button" class="btn btn-outline btn-sm" onclick="window.location.reload()">Discard</button>
           <button type="button" id="saveAvailabilityBtn" class="btn btn-primary btn-sm"><i class="ti ti-check" style="font-size:12px"></i> Save schedule</button>
         </div>
@@ -242,30 +272,32 @@
 
     </div>
 
-    <div class="side-col">
+    <!-- ═══ SIDE COLUMN ═══ -->
+    <div class="sd-side">
 
-      <div class="card">
-        <div class="card-header">
+      <!-- === SPECIAL DATES === -->
+      <div class="sd-card sd-anim-card-3">
+        <div class="sd-card-head">
           <div>
-            <div class="card-title">Special dates</div>
-            <div class="card-sub">Closures, holidays, custom hours</div>
+            <div class="sd-card-title">Special dates</div>
+            <div class="sd-card-sub">Closures, holidays, custom hours</div>
           </div>
-          <span id="overrideCount" class="count-badge"><?= (int)$overrideCount ?> saved</span>
+          <span id="overrideCount" class="sd-badge"><?= (int)$overrideCount ?> saved</span>
         </div>
-        <div class="card-body" style="padding-bottom:0">
-          <div id="overrideMessage" class="message-bar error" style="display:none"></div>
-          <div class="override-form">
+        <div class="sd-card-body" style="padding-bottom:0">
+          <div id="overrideMessage" class="sd-message error" style="display:none"></div>
+          <div class="sd-override-form">
             <?php if ($isVenue): ?>
-            <div class="form-group">
-              <div class="form-label">Apply to</div>
-              <select id="overrideScope" class="form-input">
+            <div class="sd-fg">
+              <label>Apply to</label>
+              <select id="overrideScope" class="sd-input">
                 <option value="service">Entire venue</option>
                 <option value="room">Specific hall</option>
               </select>
             </div>
-            <div class="form-group">
-              <div class="form-label">Hall</div>
-              <select id="overrideRoom" class="form-input" disabled>
+            <div class="sd-fg">
+              <label>Hall</label>
+              <select id="overrideRoom" class="sd-input" disabled>
                 <option value="">Choose hall</option>
                 <?php foreach ($venueRooms as $room): ?>
                   <option value="<?= (int)($room['id'] ?? 0) ?>"><?= $h($room['name'] ?? 'Hall') ?></option>
@@ -273,43 +305,42 @@
               </select>
             </div>
             <?php endif; ?>
-            <div class="form-group">
-              <div class="form-label">Date</div>
-              <input id="overrideDate" type="date" class="form-input">
+            <div class="sd-fg">
+              <label>Date</label>
+              <input id="overrideDate" type="date" class="sd-input">
             </div>
-            <div class="form-group">
-              <div class="form-label">Type</div>
-              <select id="overrideType" class="form-input">
+            <div class="sd-fg">
+              <label>Type</label>
+              <select id="overrideType" class="sd-input">
                 <option value="unavailable">Unavailable</option>
                 <option value="custom_hours">Custom hours</option>
                 <option value="available">Available</option>
               </select>
             </div>
-            <div class="form-group">
-              <div class="form-label">Opens</div>
-              <input id="overrideOpen" type="time" class="form-input" value="09:00">
+            <div class="sd-fg">
+              <label>Opens</label>
+              <input id="overrideOpen" type="time" class="sd-input" value="09:00">
             </div>
-            <div class="form-group">
-              <div class="form-label">Closes</div>
-              <input id="overrideClose" type="time" class="form-input" value="17:00">
+            <div class="sd-fg">
+              <label>Closes</label>
+              <input id="overrideClose" type="time" class="sd-input" value="17:00">
             </div>
-            <div class="form-group full">
-              <div class="form-label">Reason (optional)</div>
-              <input id="overrideReason" type="text" class="form-input" placeholder="e.g. Hari Raya holiday">
+            <div class="sd-fg full">
+              <label>Reason (optional)</label>
+              <input id="overrideReason" type="text" class="sd-input" placeholder="e.g. Hari Raya holiday">
             </div>
-            <div class="form-group full" style="margin:0 -14px -14px;background:var(--white);padding:10px 14px;border-top:1px solid var(--border)">
+            <div class="sd-fg full" style="margin:0 -16px -16px;background:var(--surface);padding:10px 16px;border-top:1px solid var(--border)">
               <button type="button" id="saveOverrideBtn" class="btn btn-outline btn-sm" style="width:100%"><i class="ti ti-calendar-plus" style="font-size:12px"></i> Add override</button>
             </div>
           </div>
         </div>
-        <div class="card-body" style="padding-top:14px">
-          <div id="overrideList" class="override-list">
+        <div class="sd-card-body" style="padding-top:14px">
+          <div id="overrideList" class="sd-override-list">
             <?php foreach ($overrideRows as $override): ?>
               <?php
               $type = (string)($override['type'] ?? 'unavailable');
-              $typeClass = $type === 'custom_hours' ? 'type-custom' : ($type === 'available' ? 'type-available' : 'type-unavailable');
               ?>
-              <div class="override-item"
+              <div class="sd-override-item"
                    data-override-id="<?= (int)($override['id'] ?? 0) ?>"
                    data-override-date="<?= $h($override['date'] ?? '') ?>"
                    data-override-type="<?= $h($type) ?>"
@@ -319,8 +350,8 @@
                    data-override-scope="service"
                    onclick="editOverride(this)">
                 <div>
-                  <div class="override-date"><?= $h($formatDate($override['date'] ?? '')) ?></div>
-                  <div style="margin-top:3px"><span class="override-type <?= $h($typeClass) ?>">Entire venue · <?= $h(str_replace('_', ' ', $type)) ?></span></div>
+                  <div class="sd-override-date"><?= $h($formatDate($override['date'] ?? '')) ?></div>
+                  <div style="margin-top:4px"><span class="sd-override-type <?= $h($type) ?>">Entire venue · <?= $h(str_replace('_', ' ', $type)) ?></span></div>
                 </div>
                 <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" onclick="event.stopPropagation(); deleteOverride(<?= (int)($override['id'] ?? 0) ?>)"><i class="ti ti-trash" style="font-size:13px"></i></button>
               </div>
@@ -330,9 +361,8 @@
                 <?php foreach (($room['overrides'] ?? []) as $override): ?>
                   <?php
                   $type = (string)($override['type'] ?? 'unavailable');
-                  $typeClass = $type === 'custom_hours' ? 'type-custom' : ($type === 'available' ? 'type-available' : 'type-unavailable');
                   ?>
-                  <div class="override-item"
+                  <div class="sd-override-item"
                        data-override-id="<?= (int)($override['id'] ?? 0) ?>"
                        data-override-date="<?= $h($override['date'] ?? '') ?>"
                        data-override-type="<?= $h($type) ?>"
@@ -343,15 +373,15 @@
                        data-override-room-id="<?= (int)($room['id'] ?? 0) ?>"
                        onclick="editOverride(this)">
                     <div>
-                      <div class="override-date"><?= $h($formatDate($override['date'] ?? '')) ?></div>
-                      <div style="margin-top:3px"><span class="override-type <?= $h($typeClass) ?>"><?= $h($room['name'] ?? 'Hall') ?> · <?= $h(str_replace('_', ' ', $type)) ?></span></div>
+                      <div class="sd-override-date"><?= $h($formatDate($override['date'] ?? '')) ?></div>
+                      <div style="margin-top:4px"><span class="sd-override-type <?= $h($type) ?>"><?= $h($room['name'] ?? 'Hall') ?> · <?= $h(str_replace('_', ' ', $type)) ?></span></div>
                     </div>
                     <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" onclick="event.stopPropagation(); deleteRoomOverride(<?= (int)($override['id'] ?? 0) ?>)"><i class="ti ti-trash" style="font-size:13px"></i></button>
                   </div>
                 <?php endforeach; ?>
               <?php endforeach; ?>
             <?php endif; ?>
-            <div id="overrideEmpty" class="empty-state" style="<?= empty($overrideRows) ? '' : 'display:none' ?>">
+            <div id="overrideEmpty" class="sd-empty" style="<?= empty($overrideRows) ? '' : 'display:none' ?>">
               <i class="ti ti-calendar"></i>
               <p>No special dates yet</p>
               <small>Saved overrides will appear here.</small>
@@ -360,65 +390,71 @@
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
+      <!-- === BOOKING PREVIEW === -->
+      <div class="sd-card sd-anim-card-4">
+        <div class="sd-card-head">
           <div>
-            <div class="card-title">Booking preview</div>
-            <div class="card-sub">See what customers can book</div>
+            <div class="sd-card-title">Booking preview</div>
+            <div class="sd-card-sub">See available slots for any date</div>
           </div>
         </div>
-        <div class="card-body">
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <input id="previewDate" type="date" class="form-input" style="flex:1">
+        <div class="sd-card-body">
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <input id="previewDate" type="date" class="sd-input" style="flex:1">
             <button type="button" id="previewSlotsBtn" class="btn btn-primary btn-sm"><i class="ti ti-eye" style="font-size:12px"></i> Show</button>
           </div>
-          <div id="previewSlotsResult" class="preview-box">
-            <div class="preview-empty">Pick a date to see available slots</div>
+          <div id="previewSlotsResult" class="sd-preview-box">
+            <div class="sd-preview-empty">Pick a date to see available slots</div>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
+      <!-- === SERVICE INFO === -->
+      <div class="sd-card sd-anim-card-5">
+        <div class="sd-card-head">
           <div>
-            <div class="card-title">Service info</div>
-            <div class="card-sub">Quick reference</div>
+            <div class="sd-card-title">Service info</div>
+            <div class="sd-card-sub">Quick reference</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a href="<?= URLROOT ?>/supplier/serviceCalendar/<?= (int)$serviceId ?>" class="btn btn-outline btn-sm"><i class="ti ti-calendar" style="font-size:13px"></i> Calendar</a>
             <a href="<?= URLROOT ?>/supplier/services" class="btn btn-ghost btn-sm"><i class="ti ti-edit" style="font-size:13px"></i> Edit</a>
           </div>
         </div>
-        <div class="card-body">
-          <div class="info-row">
-            <span class="info-key">Category</span>
-            <span class="info-val"><?= $h($serviceCategoryRaw) ?></span>
+        <div class="sd-card-body">
+          <div class="sd-info-row">
+            <span class="sd-info-key">Category</span>
+            <span class="sd-info-val"><?= $h($serviceCategoryRaw) ?></span>
           </div>
-          <div class="info-row">
-            <span class="info-key">Starting price</span>
-            <span class="info-val" id="serviceInfoPrice"><?= $money($servicePriceAmount) ?></span>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Starting price</span>
+            <span class="sd-info-val" id="serviceInfoPrice"><?= $money($servicePriceAmount) ?></span>
           </div>
-          <div class="info-row">
-            <span class="info-key">Status</span>
-            <span class="info-val"><span style="display:inline-flex;align-items:center;gap:4px;color:<?= $serviceStatus === 'active' ? 'var(--success)' : 'var(--text-3)' ?>;font-size:12px"><i class="ti ti-circle-check-filled" style="font-size:13px"></i> <?= $h(ucfirst($serviceStatus)) ?></span></span>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Status</span>
+            <span class="sd-info-val">
+              <span style="display:inline-flex;align-items:center;gap:4px;color:<?= $serviceStatus === 'active' ? 'var(--success)' : 'var(--text-3)' ?>;font-size:12px">
+                <i class="ti ti-circle-check-filled" style="font-size:13px"></i> <?= $h(ucfirst($serviceStatus)) ?>
+              </span>
+            </span>
           </div>
-          <div class="info-row">
-            <span class="info-key">Slot duration</span>
-            <span class="info-val"><?= $h($durationLabel($slotDuration)) ?></span>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Slot duration</span>
+            <span class="sd-info-val"><?= $h($durationLabel($slotDuration)) ?></span>
           </div>
           <?php if ($isVenue): ?>
-            <div class="info-row">
-              <span class="info-key">Venue</span>
-              <span class="info-val" id="serviceInfoVenue"><?= $h($service['venue_name'] ?? $service['venue'] ?? '-') ?></span>
+            <div class="sd-info-row">
+              <span class="sd-info-key">Venue</span>
+              <span class="sd-info-val" id="serviceInfoVenue"><?= $h($service['venue_name'] ?? $service['venue'] ?? '-') ?></span>
             </div>
-            <div class="info-row">
-              <span class="info-key">Halls</span>
-              <span class="info-val" id="serviceInfoHalls"><?= count($venueRooms) ?></span>
+            <div class="sd-info-row">
+              <span class="sd-info-key">Halls</span>
+              <span class="sd-info-val" id="serviceInfoHalls"><?= count($venueRooms) ?></span>
             </div>
           <?php else: ?>
-            <div class="info-row">
-              <span class="info-key">Concurrent bookings</span>
-              <span class="info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>
+            <div class="sd-info-row">
+              <span class="sd-info-key">Concurrent bookings</span>
+              <span class="sd-info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>
             </div>
           <?php endif; ?>
         </div>
@@ -426,4 +462,5 @@
 
     </div>
   </div>
+
 </div>

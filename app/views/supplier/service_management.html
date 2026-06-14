@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+   <link rel="stylesheet" href="/GP/public/css/supplier-service-management.css">
    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <style>
     /* .service-management-outlet, .service-management-outlet * { font-family: 'DM Sans', sans-serif; } */
@@ -169,6 +170,9 @@
     .modal-body::-webkit-scrollbar-thumb { background:#e5e0da; border-radius:4px; }
     .modal-body::-webkit-scrollbar-thumb:hover { background:#ccc5bd; }
     .img-upload-container:hover .edit-icon-btn { opacity: 1; }
+
+    /* ═══════════════════════════════════════════════
+
 
     .supplier-empty-state {
       min-height: calc(100vh - 190px);
@@ -411,75 +415,80 @@
 </div>
 
 
+<!-- ══════════════════ MODAL: CHOOSE SERVICE TYPE ══════════════════ -->
+<div id="serviceTypeModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-md relative flex flex-col" style="max-height:88vh">
+    <div class="modal-h">
+      <h2 class="modal-h-title">Choose service type</h2>
+      <button onclick="closeTypeModal()" class="modal-h-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-b modal-b-space">
+      <p style="font-size:13px;color:#9a8b82;margin-bottom:4px">What type of service would you like to create?</p>
+      <div id="serviceTypeOptions" class="grid grid-cols-2 gap-2.5"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════ MODAL: ADD VENUE ══════════════════ -->
 <div id="venueModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
-    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
-      <h2 class="text-xl font-bold text-gray-800">Add service (for venue)</h2>
-      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    <div class="modal-h">
+      <h2 class="modal-h-title">New venue service</h2>
+      <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
     </div>
-    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:70vh">
-      <label id="venueImgBox" for="venueImgInput" onclick="triggerBrowse(event,'venueImgInput')" class="img-upload rounded-xl h-40 flex flex-col items-center justify-center gap-2 bg-gray-50 transition">
-        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        <span class="text-sm text-gray-500 font-medium">Upload image</span>
-        <span class="text-xs text-gray-400">Click to browse</span>
+    <div class="modal-b modal-b-space">
+      <!-- Image upload — clean dashed zone -->
+      <label id="venueImgBox" for="venueImgInput" onclick="triggerBrowse(event,'venueImgInput')" class="img-zone" style="min-height:130px">
+        <div class="img-zone-icon">+</div>
+        <span class="img-zone-label">Add a photo</span>
       </label>
       <input id="venueImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('venueImgInput','venueImgBox','vImgData', 16/9)"/>
       <input type="hidden" id="vImgData"/>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+      <div class="modal-grid-2">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Service Name</label>
-          <input id="vName" type="text" placeholder="e.g. Grand Ballroom" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition"/>
+          <label class="fm-label" for="vName">Service name</label>
+          <input id="vName" type="text" placeholder="e.g. Grand Ballroom" class="fm-input"/>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Category</label>
-          <input type="text" value="Venue" readonly class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"/>
+          <label class="fm-label">Category</label>
+          <input type="text" value="Venue" readonly class="fm-input" style="color:#b5a79e;cursor:not-allowed"/>
         </div>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
-        <textarea id="vDesc" rows="3" placeholder="Describe the venue…" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition resize-none"></textarea>
+        <label class="fm-label" for="vDesc">Description</label>
+        <textarea id="vDesc" rows="2" placeholder="Describe the venue…" class="fm-textarea"></textarea>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="modal-grid-2">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Package Price (MMK)</label>
-          <input id="vPriceMin" type="number" min="0" step="0.01" placeholder="e.g. 3500" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition"/>
+          <label class="fm-label" for="vVenue">Venue name</label>
+          <input id="vVenue" type="text" placeholder="e.g. KL Convention Centre" class="fm-input"/>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Customize Price (MMK)</label>
-          <input id="vPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 6000" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition"/>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Max Concurrent</label>
-          <input id="vCapacity" type="number" min="1" step="1" placeholder="e.g. 300" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 transition"/>
+          <label class="fm-label" for="vLocation">Location</label>
+          <input id="vLocation" type="text" placeholder="e.g. Yangon, Myanmar" class="fm-input"/>
         </div>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Venue Name</label>
-          <input id="vVenue" type="text" placeholder="e.g. KL Convention Centre" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Location</label>
-          <input id="vLocation" type="text" placeholder="e.g. Yangon, Myanmar" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
-        </div>
+      <div>
+        <label class="fm-label" for="vType">Venue type</label>
+        <select id="vType" class="fm-select" style="max-width:240px">
+          <option value="">Select type…</option>
+          <option value="Indoor">Indoor</option>
+          <option value="Outdoor">Outdoor</option>
+          <option value="Indoor+Outdoor">Indoor + Outdoor</option>
+        </select>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Venue Type</label>
-          <select id="vType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition bg-white">
-            <option value="">Select type…</option>
-            <option value="Indoor">Indoor</option>
-            <option value="Outdoor">Outdoor</option>
-            <option value="Indoor+Outdoor">Indoor + Outdoor</option>
-          </select>
+      <div>
+        <div class="flex items-center justify-between" style="margin-bottom:10px">
+          <span class="fm-label" style="margin-bottom:0">Rooms / halls</span>
+          <button type="button" onclick="addVenueRoom('v')" class="room-add" type="button">+ Add room</button>
         </div>
+        <div id="vRoomsList" class="space-y-3"></div>
       </div>
-
     </div>
-    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
-      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
-      <button onclick="saveVenue()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Save</button>
+    <div class="modal-f">
+      <button onclick="closeAll()" class="btn-dull">Cancel</button>
+      <button onclick="saveVenue()" class="btn-save">Save</button>
     </div>
   </div>
 </div>
@@ -488,52 +497,50 @@
 <!-- ══════════════════ MODAL: ADD OTHERS ══════════════════ -->
 <div id="othersModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
-    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
-      <h2 class="text-xl font-bold text-gray-800">Add service (others)</h2>
-      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    <div class="modal-h">
+      <h2 class="modal-h-title">New service</h2>
+      <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
     </div>
-    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:70vh">
-      <label id="othersImgBox" for="othersImgInput" onclick="triggerBrowse(event,'othersImgInput')"
-        class="img-upload rounded-xl h-40 flex flex-col items-center justify-center gap-2 bg-gray-50 transition w-full overflow-hidden">
-        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        <span class="text-sm text-gray-500 font-medium">Upload image</span>
-        <span class="text-xs text-gray-400">Click to browse</span>
+    <div class="modal-b modal-b-space">
+      <label id="othersImgBox" for="othersImgInput" onclick="triggerBrowse(event,'othersImgInput')" class="img-zone" style="min-height:130px">
+        <div class="img-zone-icon">+</div>
+        <span class="img-zone-label">Add a photo</span>
       </label>
       <input id="othersImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('othersImgInput','othersImgBox','oImgData', 16/9)"/>
       <input type="hidden" id="oImgData"/>
-      <div class="grid grid-cols-2 gap-4">
+
+      <div class="modal-grid-2">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Service Name</label>
-          <input id="oName" type="text" placeholder="e.g. Live Band" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          <label class="fm-label" for="oName">Service name</label>
+          <input id="oName" type="text" placeholder="e.g. Live Band" class="fm-input"/>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Category</label>
-          <select id="oCategory" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition bg-white"></select>
+          <label class="fm-label" for="oCategory">Category</label>
+          <select id="oCategory" class="fm-select"></select>
         </div>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
-        <textarea id="oDesc" rows="4" placeholder="Describe the service…" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition resize-none"></textarea>
+        <label class="fm-label" for="oDesc">Description</label>
+        <textarea id="oDesc" rows="3" placeholder="Describe the service…" class="fm-textarea"></textarea>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="modal-grid-2" style="grid-template-columns:1fr 1fr 1fr">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Package Price (MMK)</label>
-          <input id="oPriceMin" type="number" min="0" step="0.01" placeholder="e.g. 800" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          <label class="fm-label" for="oPriceMin">Package price (MMK)</label>
+          <input id="oPriceMin" type="number" min="0" step="0.01" placeholder="e.g. 800" class="fm-input"/>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Customize Price (MMK)</label>
-          <input id="oPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 1500" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          <label class="fm-label" for="oPriceMax">Customize price (MMK)</label>
+          <input id="oPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 1500" class="fm-input"/>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Max Concurrent</label>
-          <input id="oCapacity" type="number" min="1" step="1" placeholder="e.g. 50" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          <label class="fm-label" for="oCapacity">Max concurrent</label>
+          <input id="oCapacity" type="number" min="1" step="1" placeholder="e.g. 50" class="fm-input"/>
         </div>
       </div>
- 
     </div>
-    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
-      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
-      <button onclick="saveOthers()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Save</button>
+    <div class="modal-f">
+      <button onclick="closeAll()" class="btn-dull">Cancel</button>
+      <button onclick="saveOthers()" class="btn-save">Save</button>
     </div>
   </div>
 </div>
@@ -542,45 +549,40 @@
 <!-- ══════════════════ MODAL: EDIT SERVICE ══════════════════ -->
 <div id="editServiceModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
-    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
-      <h2 class="text-xl font-bold text-gray-800">Edit Service</h2>
-      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    <div class="modal-h">
+      <h2 class="modal-h-title">Edit service</h2>
+      <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
     </div>
-    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:72vh">
-      <label id="esImgBox" for="esImgInput" onclick="triggerBrowse(event,'esImgInput')" class="img-upload rounded-xl h-40 flex flex-col items-center justify-center gap-2 bg-gray-50 transition w-full overflow-hidden">
-        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        <span class="text-sm text-gray-500 font-medium">Upload image</span>
-        <span class="text-xs text-gray-400">Click to browse</span>
+    <div class="modal-b modal-b-space">
+      <label id="esImgBox" for="esImgInput" onclick="triggerBrowse(event,'esImgInput')" class="img-zone" style="min-height:130px">
+        <div class="img-zone-icon">+</div>
+        <span class="img-zone-label">Add a photo</span>
       </label>
       <input id="esImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('esImgInput','esImgBox','esImgData', 16/9)"/>
       <input type="hidden" id="esImgData"/>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Name</label>
-        <input id="esName" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        <label class="fm-label" for="esName">Name</label>
+        <input id="esName" type="text" class="fm-input"/>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
-        <textarea id="esDesc" rows="3" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition resize-none"></textarea>
+        <label class="fm-label" for="esDesc">Description</label>
+        <textarea id="esDesc" rows="3" class="fm-textarea"></textarea>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div id="esServicePriceFields" class="modal-grid-2">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Package Price (MMK)</label>
-          <input id="esPriceMin" type="number" min="0" step="0.01" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          <label class="fm-label" for="esPriceMin">Package price (MMK)</label>
+          <input id="esPriceMin" type="number" min="0" step="0.01" class="fm-input"/>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Customize Price (MMK)</label>
-          <input id="esPriceMax" type="number" min="0" step="0.01" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          <label class="fm-label" for="esPriceMax">Customize price (MMK)</label>
+          <input id="esPriceMax" type="number" min="0" step="0.01" class="fm-input"/>
         </div>
       </div>
       <div id="esVenueExtras" class="hidden space-y-4">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="modal-grid-2">
           <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Max Concurrent</label>
-            <input id="esCapacity" type="number" min="1" step="1" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Type</label>
-            <select id="esType" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition bg-white">
+            <label class="fm-label" for="esType">Venue type</label>
+            <select id="esType" class="fm-select">
               <option value="Indoor">Indoor</option>
               <option value="Outdoor">Outdoor</option>
               <option value="Indoor+Outdoor">Indoor + Outdoor</option>
@@ -588,60 +590,65 @@
           </div>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Venue Name</label>
-          <input id="esVenue" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          <label class="fm-label" for="esVenue">Venue name</label>
+          <input id="esVenue" type="text" class="fm-input"/>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Location</label>
-          <input id="esLocation" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+          <label class="fm-label" for="esLocation">Location</label>
+          <input id="esLocation" type="text" class="fm-input"/>
+        </div>
+        <div>
+          <div class="flex items-center justify-between" style="margin-bottom:10px">
+            <span class="fm-label" style="margin-bottom:0">Rooms / halls</span>
+            <button type="button" onclick="addVenueRoom('es')" class="room-add">+ Add room</button>
+          </div>
+          <div id="esRoomsList" class="space-y-3"></div>
         </div>
       </div>
     </div>
-    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
-      <button onclick="deleteCurrentService()" class="mr-auto px-6 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-600 hover:bg-rose-100 transition">Delete</button>
-      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
-      <button onclick="updateService()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Update</button>
+    <div class="modal-f">
+      <button onclick="deleteCurrentService()" class="btn-del">Delete</button>
+      <button onclick="closeAll()" class="btn-dull">Cancel</button>
+      <button onclick="updateService()" class="btn-save">Update</button>
     </div>
   </div>
 </div>
 
-
 <!-- ══════════════════ MODAL: EDIT PACKAGE ══════════════════ -->
 <div id="editPackageModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
-    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
-      <h2 class="text-xl font-bold text-gray-800">Edit Package</h2>
-      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    <div class="modal-h">
+      <h2 class="modal-h-title">Edit package</h2>
+      <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
     </div>
-    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:72vh">
-      <label id="epImgBox" for="epImgInput" onclick="triggerBrowse(event,'epImgInput')" class="img-upload rounded-xl h-40 flex flex-col items-center justify-center gap-2 bg-gray-50 transition w-full overflow-hidden">
-        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        <span class="text-sm text-gray-500 font-medium">Upload image</span>
-        <span class="text-xs text-gray-400">Click to browse</span>
+    <div class="modal-b modal-b-space">
+      <label id="epImgBox" for="epImgInput" onclick="triggerBrowse(event,'epImgInput')" class="img-zone" style="min-height:120px">
+        <div class="img-zone-icon">+</div>
+        <span class="img-zone-label">Add a photo</span>
       </label>
       <input id="epImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('epImgInput','epImgBox','epImgData', 16/9)"/>
       <input type="hidden" id="epImgData"/>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Package Name</label>
-        <input id="epName" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        <label class="fm-label" for="epName">Package name</label>
+        <input id="epName" type="text" class="fm-input"/>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
-        <textarea id="epDesc" rows="3" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition resize-none"></textarea>
+        <label class="fm-label" for="epDesc">Description</label>
+        <textarea id="epDesc" rows="3" class="fm-textarea"></textarea>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Price (MMK)</label>
-        <input id="epPrice" type="number" min="0" step="0.01" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        <label class="fm-label" for="epPrice">Price (MMK)</label>
+        <input id="epPrice" type="number" min="0" step="0.01" class="fm-input"/>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Included Services</label>
-        <div id="epCategoryList" class="flex flex-wrap gap-3"></div>
+        <label class="fm-label" style="margin-bottom:8px">Included services</label>
+        <div id="epCategoryList" class="flex flex-wrap gap-2.5"></div>
       </div>
     </div>
-    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
-      <button onclick="deleteCurrentPackage()" class="mr-auto px-6 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-sm font-semibold text-rose-600 hover:bg-rose-100 transition">Delete</button>
-      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
-      <button onclick="updatePackage()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Update</button>
+    <div class="modal-f">
+      <button onclick="deleteCurrentPackage()" class="btn-del">Delete</button>
+      <button onclick="closeAll()" class="btn-dull">Cancel</button>
+      <button onclick="updatePackage()" class="btn-save">Update</button>
     </div>
   </div>
 </div>
@@ -670,40 +677,40 @@
 <!-- ══════════════════ MODAL: CREATE PACKAGE ══════════════════ -->
 <div id="createPackageModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
   <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
-    <div class="flex items-center justify-between px-7 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
-      <h2 class="text-xl font-bold text-gray-800">Create Package</h2>
-      <button onclick="closeAll()" class="text-gray-400 hover:text-gray-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    <div class="modal-h">
+      <h2 class="modal-h-title">Create package</h2>
+      <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
     </div>
-    <div class="modal-body px-7 py-5 space-y-5 flex-1" style="max-height:72vh">
-      <label id="cpImgBox" for="cpImgInput" onclick="triggerBrowse(event,'cpImgInput')" class="img-upload rounded-xl h-36 flex flex-col items-center justify-center gap-2 bg-gray-50 transition">
-        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        <span class="text-sm text-gray-500 font-medium">Upload image</span>
+    <div class="modal-b modal-b-space">
+      <label id="cpImgBox" for="cpImgInput" onclick="triggerBrowse(event,'cpImgInput')" class="img-zone" style="min-height:120px">
+        <div class="img-zone-icon">+</div>
+        <span class="img-zone-label">Add a photo</span>
       </label>
       <input id="cpImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('cpImgInput','cpImgBox','cpImgData', 16/9)"/>
       <input type="hidden" id="cpImgData"/>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Package Name</label>
-        <input id="cpName" type="text" placeholder="e.g. Dream Wedding" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        <label class="fm-label" for="cpName">Package name</label>
+        <input id="cpName" type="text" placeholder="e.g. Dream Wedding" class="fm-input"/>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
-        <textarea id="cpDesc" rows="3" placeholder="Describe this package…" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition resize-none"></textarea>
+        <label class="fm-label" for="cpDesc">Description</label>
+        <textarea id="cpDesc" rows="3" placeholder="Describe this package…" class="fm-textarea"></textarea>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Price (MMK)</label>
-        <input id="cpPrice" type="number" min="0" step="0.01" placeholder="e.g. 9800" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition"/>
+        <label class="fm-label" for="cpPrice">Price (MMK)</label>
+        <input id="cpPrice" type="number" min="0" step="0.01" placeholder="e.g. 9800" class="fm-input"/>
       </div>
       <div>
-        <div class="flex items-center gap-2 mb-2">
-          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Included Services</label>
-          <span id="cpCount" class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">0 selected</span>
+        <div class="flex items-center gap-2" style="margin-bottom:8px">
+          <span class="fm-label" style="margin-bottom:0">Included services</span>
+          <span id="cpCount" class="fm-label-sm" style="font-weight:700">0 selected</span>
         </div>
-        <div id="cpCategoryList" class="flex flex-wrap gap-3"></div>
+        <div id="cpCategoryList" class="flex flex-wrap gap-2.5"></div>
       </div>
     </div>
-    <div class="flex justify-end gap-3 px-7 py-4 border-t border-gray-100 flex-shrink-0">
-      <button onclick="closeAll()" class="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
-      <button onclick="savePackage()" class="px-6 py-2.5 rounded-xl bg-custom-primary text-white text-sm font-semibold transition shadow-sm">Save</button>
+    <div class="modal-f">
+      <button onclick="closeAll()" class="btn-dull">Cancel</button>
+      <button onclick="savePackage()" class="btn-save">Save</button>
     </div>
   </div>
 </div>

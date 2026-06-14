@@ -4,6 +4,7 @@ class SupplierServiceManager
 {
     private $db;
     private $hasServicePriceRangeColumns = null;
+    private $hasVenueRoomPriceRangeColumns = null;
     private $hasVenueServiceColumn = null;
 
     public function __construct()
@@ -118,6 +119,7 @@ class SupplierServiceManager
 
     public function createService($supplierId, $data)
     {
+        $data = $this->applyVenueRoomPriceRange($data);
         $categoryId = $this->findOrCreateCategory($data['category'] ?? 'Others');
         $priceRangeColumns = $this->hasServicePriceRangeColumns() ? ', price_min, price_max' : '';
         $priceRangeValues = $this->hasServicePriceRangeColumns() ? ', :price_min, :price_max' : '';
@@ -156,6 +158,7 @@ class SupplierServiceManager
             $data['duration_minutes'] = (int)$service['duration_minutes'];
         }
 
+        $data = $this->applyVenueRoomPriceRange($data);
         $categoryId = $this->findOrCreateCategory($data['category'] ?? $service['category'] ?? 'Others');
         $priceRangeUpdate = $this->hasServicePriceRangeColumns()
             ? ',
@@ -1027,6 +1030,49 @@ class SupplierServiceManager
         $this->db->dbbind(':max_concurrent', max(1, min(65535, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1))));
     }
 
+    private function applyVenueRoomPriceRange($data)
+    {
+        if (strtolower((string)($data['category'] ?? '')) !== 'venue' || empty($data['rooms']) || !is_array($data['rooms'])) {
+            return $data;
+        }
+
+        $packagePrices = [];
+        $customizePrices = [];
+        $maxCapacity = 1;
+
+        foreach ($data['rooms'] as $room) {
+            if (!is_array($room)) {
+                continue;
+            }
+
+            $packagePrice = max(0, (float)($room['package_price'] ?? $room['price_min'] ?? $room['price'] ?? 0));
+            $customizePrice = max($packagePrice, (float)($room['customize_price'] ?? $room['price_max'] ?? $packagePrice));
+            if ($packagePrice > 0) {
+                $packagePrices[] = $packagePrice;
+            }
+            if ($customizePrice > 0) {
+                $customizePrices[] = $customizePrice;
+            }
+            $maxCapacity = max($maxCapacity, (int)($room['capacity'] ?? 1));
+        }
+
+        if ($packagePrices) {
+            $data['price'] = min($packagePrices);
+            $data['price_min'] = min($packagePrices);
+            $data['package_price'] = min($packagePrices);
+        }
+
+        if ($customizePrices) {
+            $maxPrice = max($customizePrices);
+            $data['price_max'] = max((float)($data['price_min'] ?? 0), $maxPrice);
+            $data['customize_price'] = $data['price_max'];
+        }
+
+        $data['capacity'] = $maxCapacity;
+
+        return $data;
+    }
+
     private function bindPackageFields($supplierId, $data, $categories)
     {
         $this->db->dbbind(':supplier_id', (int)$supplierId);
@@ -1082,6 +1128,7 @@ class SupplierServiceManager
         $price = max(0, (float)($data['price_min'] ?? $data['price'] ?? 0));
         $replaceRooms = !empty($data['rooms_replace']);
         $rooms = $this->normalizeVenueRooms($data['rooms'] ?? [], $serviceName, $capacity, $price);
+        $hasRoomPriceRange = $this->hasVenueRoomPriceRangeColumns();
 
         if ($venueName === '') {
             $venueName = $serviceName;
@@ -1132,20 +1179,27 @@ class SupplierServiceManager
         foreach ($rooms as $room) {
             if (!empty($room['id'])) {
                 $roomId = (int)$room['id'];
+                $roomPriceRangeUpdate = $hasRoomPriceRange
+                    ? ',
+                         price_min = :price_min,
+                         price_max = :price_max'
+                    : '';
                 $this->db->dbquery(
                     'UPDATE venue_rooms
                      SET name = :name,
                          capacity = :capacity,
-                         price = :price
+                         price = :price' . $roomPriceRangeUpdate . '
                      WHERE id = :id
                        AND venue_id = :venue_id'
                 );
                 $this->db->dbbind(':id', $roomId);
                 $submittedRoomIds[] = $roomId;
             } else {
+                $roomPriceRangeColumns = $hasRoomPriceRange ? ', price_min, price_max' : '';
+                $roomPriceRangeValues = $hasRoomPriceRange ? ', :price_min, :price_max' : '';
                 $this->db->dbquery(
-                    'INSERT INTO venue_rooms(venue_id, name, capacity, price)
-                     VALUES(:venue_id, :name, :capacity, :price)'
+                    'INSERT INTO venue_rooms(venue_id, name, capacity, price' . $roomPriceRangeColumns . ')
+                     VALUES(:venue_id, :name, :capacity, :price' . $roomPriceRangeValues . ')'
                 );
             }
 
@@ -1153,6 +1207,10 @@ class SupplierServiceManager
             $this->db->dbbind(':name', $room['name']);
             $this->db->dbbind(':capacity', $room['capacity']);
             $this->db->dbbind(':price', number_format($room['price'], 2, '.', ''), PDO::PARAM_STR);
+            if ($hasRoomPriceRange) {
+                $this->db->dbbind(':price_min', number_format($room['price_min'], 2, '.', ''), PDO::PARAM_STR);
+                $this->db->dbbind(':price_max', number_format($room['price_max'], 2, '.', ''), PDO::PARAM_STR);
+            }
             $this->db->dbexecute();
 
             if (empty($room['id'])) {
@@ -1184,9 +1242,10 @@ class SupplierServiceManager
 
             $name = trim((string)($room['name'] ?? ''));
             $capacity = max(1, (int)($room['capacity'] ?? $defaultCapacity));
-            $price = max(0, (float)($room['price'] ?? $defaultPrice));
+            $priceMin = max(0, (float)($room['package_price'] ?? $room['price_min'] ?? $room['price'] ?? $defaultPrice));
+            $priceMax = max($priceMin, (float)($room['customize_price'] ?? $room['price_max'] ?? $priceMin));
 
-            if ($name === '' && $capacity <= 1 && $price <= 0) {
+            if ($name === '' && $capacity <= 1 && $priceMin <= 0 && $priceMax <= 0) {
                 continue;
             }
 
@@ -1194,7 +1253,9 @@ class SupplierServiceManager
                 'id' => !empty($room['id']) ? (int)$room['id'] : null,
                 'name' => $name !== '' ? $name : $serviceName,
                 'capacity' => $capacity,
-                'price' => $price,
+                'price' => $priceMin,
+                'price_min' => $priceMin,
+                'price_max' => $priceMax,
                 'start_time' => $this->normalizeTime($room['start_time'] ?? '09:00'),
                 'end_time' => $this->normalizeTime($room['end_time'] ?? '17:00'),
             ];
@@ -1261,11 +1322,18 @@ class SupplierServiceManager
 
     private function getVenueRooms($venueId)
     {
+        $roomPriceRangeSelect = $this->hasVenueRoomPriceRangeColumns()
+            ? 'venue_rooms.price_min, venue_rooms.price_max,'
+            : 'venue_rooms.price AS price_min, venue_rooms.price AS price_max,';
+        $roomPriceRangeGroupBy = $this->hasVenueRoomPriceRangeColumns()
+            ? ', venue_rooms.price_min, venue_rooms.price_max'
+            : '';
         $this->db->dbquery(
             'SELECT venue_rooms.id,
                     venue_rooms.name,
                     venue_rooms.capacity,
                     venue_rooms.price,
+                    ' . $roomPriceRangeSelect . '
                     MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.date END) AS available_from,
                     MAX(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.date END) AS available_to,
                     MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.start_time END) AS start_time,
@@ -1273,7 +1341,7 @@ class SupplierServiceManager
              FROM venue_rooms
              LEFT JOIN venue_room_availability ON venue_room_availability.room_id = venue_rooms.id
              WHERE venue_id = :venue_id
-             GROUP BY venue_rooms.id, venue_rooms.name, venue_rooms.capacity, venue_rooms.price
+             GROUP BY venue_rooms.id, venue_rooms.name, venue_rooms.capacity, venue_rooms.price' . $roomPriceRangeGroupBy . '
              ORDER BY venue_rooms.id ASC'
         );
         $this->db->dbbind(':venue_id', (int)$venueId);
@@ -1284,6 +1352,8 @@ class SupplierServiceManager
                 'name' => $room['name'] ?? '',
                 'capacity' => (int)($room['capacity'] ?? 1),
                 'price' => (float)($room['price'] ?? 0),
+                'price_min' => (float)($room['price_min'] ?? $room['price'] ?? 0),
+                'price_max' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
                 'available_from' => $room['available_from'] ?? '',
                 'available_to' => $room['available_to'] ?? '',
                 'start_time' => $room['start_time'] ?? '09:00:00',
@@ -1441,6 +1511,25 @@ class SupplierServiceManager
         $this->hasServicePriceRangeColumns = (int)($row['total'] ?? 0) >= 2;
 
         return $this->hasServicePriceRangeColumns;
+    }
+
+    private function hasVenueRoomPriceRangeColumns()
+    {
+        if ($this->hasVenueRoomPriceRangeColumns !== null) {
+            return $this->hasVenueRoomPriceRangeColumns;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "venue_rooms"
+               AND COLUMN_NAME IN ("price_min", "price_max")'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasVenueRoomPriceRangeColumns = (int)($row['total'] ?? 0) >= 2;
+
+        return $this->hasVenueRoomPriceRangeColumns;
     }
 
     private function venueSelectFields()
