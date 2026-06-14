@@ -283,10 +283,46 @@
 </head>
 <body class="min-h-screen  service-management-outlet">
 
-<!-- ══════════════════ HEADER ══════════════════ -->
-<!-- Search bar and Categories removed as requested. Kept clean branding layout structure -->
 <!-- ══════════════════ MAIN ══════════════════ -->
-<main class="max-w-7xl mx-auto px-8 py-8">
+<main class="max-w-7xl mx-auto px-8 pt-0 pb-8">
+
+  <!-- ══════════════════ TOOLBAR ══════════════════ -->
+  <div class="flex items-center justify-between mb-6" style="border-bottom:1px solid #e0d8d0; min-height: 48px;">
+    <div class="flex items-center gap-6">
+      <button id="tab-services" class="tab-btn pb-3 pt-3 text-sm font-semibold border-b-2 transition" onclick="switchTab('services')">Services</button>
+    </div>
+    <div class="flex items-center gap-2">
+      <!-- Status filter: subtle seg控 -->
+      <div class="flex items-center gap-0.5 rounded-lg p-0.5 mr-1" style="background:#ede7e0">
+        <button id="sf-all" class="sf-btn rounded-md px-2.5 py-1 text-xs font-semibold bg-custom-primary text-white" onclick="setStatusFilter('all')">All</button>
+        <button id="sf-active" class="sf-btn rounded-md px-2.5 py-1 text-xs font-semibold bg-white text-gray-500" onclick="setStatusFilter('active')">Active</button>
+        <button id="sf-inactive" class="sf-btn rounded-md px-2.5 py-1 text-xs font-semibold bg-white text-gray-500" onclick="setStatusFilter('inactive')">Inactive</button>
+      </div>
+      <!-- Add New dropdown -->
+      <div class="add-svc-wrap relative">
+        <button class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-white shadow-sm bg-custom-primary hover:bg-custom-primary transition">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="add-svc-menu absolute right-0 top-full mt-1 w-52 rounded-xl shadow-xl z-40 overflow-hidden bg-white border" style="border-color:#e8e0d8">
+          <div onclick="openAddVenue()" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition">
+            <span class="text-lg leading-none">🏛️</span>
+            <div><div class="font-semibold" style="color:#4a3b32">Venue</div><div class="text-xs" style="color:#9a8a7a">Indoor &amp; outdoor spaces</div></div>
+          </div>
+          <div onclick="openAddOthers()" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition">
+            <span class="text-lg leading-none">✨</span>
+            <div><div class="font-semibold" style="color:#4a3b32">Other Service</div><div class="text-xs" style="color:#9a8a7a">Makeup, photo, catering…</div></div>
+          </div>
+          <div class="border-t" style="border-color:#f0e8e0"></div>
+          <div onclick="openPackageModal()" class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition">
+            <span class="text-lg leading-none">🎀</span>
+            <div><div class="font-semibold" style="color:#4a3b32">Package</div><div class="text-xs" style="color:#9a8a7a">Bundle services together</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
 
   <!-- Header with Create Button -->
   <div class="flex items-center justify-between mb-8">
@@ -324,15 +360,7 @@
       </div>
     </div>
     <p id="emptyStateMessage" class="supplier-empty-message">How about creating a service right now?</p>
-    <button id="emptyStateAction" type="button" class="supplier-empty-action">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M5 19L19 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-        <path d="M14 5H19V10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M7.5 6.5L8.5 4.5L9.5 6.5L11.5 7.5L9.5 8.5L8.5 10.5L7.5 8.5L5.5 7.5L7.5 6.5Z" fill="currentColor"/>
-        <path d="M15.5 15.5L16.25 14L17 15.5L18.5 16.25L17 17L16.25 18.5L15.5 17L14 16.25L15.5 15.5Z" fill="currentColor"/>
-      </svg>
-      <span id="emptyStateActionLabel">Add Service</span>
-    </button>
+
   </div>
   <div id="loadMoreWrap" class="mt-8 hidden text-center">
     <button id="loadMoreBtn" type="button" onclick="loadMoreCurrentTab()" class="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50">

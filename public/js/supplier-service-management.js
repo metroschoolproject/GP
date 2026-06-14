@@ -581,12 +581,12 @@ function setStatusFilter(f) {
   statusFilter = f;
   document.querySelectorAll('.sf-btn').forEach(b => {
     b.classList.remove('bg-custom-primary','text-white');
-    b.classList.add('bg-white','border','border-gray-200','text-gray-500');
+    b.classList.add('bg-white','text-gray-500');
   });
   const el = document.getElementById('sf-'+f);
   if (el) {
     el.classList.add('bg-custom-primary','text-white');
-    el.classList.remove('bg-white','border','border-gray-200','text-gray-500');
+    el.classList.remove('bg-white','text-gray-500');
   }
   render();
 }
