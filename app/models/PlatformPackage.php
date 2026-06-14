@@ -158,6 +158,7 @@ class PlatformPackage
         if ($slug === '') {
             $slug = $this->slugify($name);
         }
+        $slug = $this->uniqueSlug($slug);
 
         $this->db->dbquery(
             'INSERT INTO packages (name, slug, description, tagline, base_price, image_url, is_active, sort_order)
@@ -172,8 +173,12 @@ class PlatformPackage
         $this->db->dbbind(':is_active', !empty($data['is_active']) ? 1 : 0);
         $this->db->dbbind(':sort_order', (int)($data['sort_order'] ?? 0));
 
-        if ($this->db->dbexecute()) {
-            return (int)$this->db->lastinsertid();
+        try {
+            if ($this->db->dbexecute()) {
+                return (int)$this->db->lastinsertid();
+            }
+        } catch (PDOException $e) {
+            return false;
         }
 
         return false;
@@ -187,8 +192,11 @@ class PlatformPackage
         $fields = [];
         $bindings = [':package_id' => (int)$packageId];
 
-        if (array_key_exists('slug', $data) && trim((string)$data['slug']) === '' && !empty($data['name'])) {
-            $data['slug'] = $this->slugify((string)$data['name']);
+        if (array_key_exists('slug', $data)) {
+            if (trim((string)$data['slug']) === '' && !empty($data['name'])) {
+                $data['slug'] = $this->slugify((string)$data['name']);
+            }
+            $data['slug'] = $this->uniqueSlug((string)$data['slug'], (int)$packageId);
         }
 
         foreach (['name', 'slug', 'description', 'tagline', 'image_url'] as $field) {
@@ -223,7 +231,11 @@ class PlatformPackage
             $this->db->dbbind($param, $value);
         }
 
-        return $this->db->dbexecute();
+        try {
+            return $this->db->dbexecute();
+        } catch (PDOException $e) {
+            return false;
+        }
     }
 
     /**
@@ -231,13 +243,18 @@ class PlatformPackage
      */
     public function deletePackageType($packageId)
     {
-        $this->db->dbquery('DELETE FROM package_items WHERE package_id = :package_id');
-        $this->db->dbbind(':package_id', (int)$packageId);
-        $this->db->dbexecute();
+        try {
+            $this->db->dbquery('DELETE FROM package_items WHERE package_id = :package_id');
+            $this->db->dbbind(':package_id', (int)$packageId);
+            $this->db->dbexecute();
 
-        $this->db->dbquery('UPDATE packages SET deleted_at = NOW() WHERE package_id = :package_id');
-        $this->db->dbbind(':package_id', (int)$packageId);
-        return $this->db->dbexecute();
+            $this->db->dbquery('DELETE FROM packages WHERE package_id = :package_id LIMIT 1');
+            $this->db->dbbind(':package_id', (int)$packageId);
+
+            return $this->db->dbexecute();
+        } catch (PDOException $e) {
+            return false;
+        }
     }
 
     /**
@@ -820,6 +837,43 @@ class PlatformPackage
         $text = preg_replace('/[\s_]+/', '-', $text);
         $text = preg_replace('/-+/', '-', $text);
         $text = trim($text, '-');
-        return strtolower($text);
+        $text = strtolower($text);
+
+        return $text !== '' ? $text : 'package';
+    }
+
+    private function uniqueSlug($slug, $ignorePackageId = 0)
+    {
+        $baseSlug = $this->slugify($slug);
+        $candidate = $baseSlug;
+        $suffix = 2;
+
+        while ($this->packageSlugExists($candidate, $ignorePackageId)) {
+            $candidate = $baseSlug . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    private function packageSlugExists($slug, $ignorePackageId = 0)
+    {
+        $sql = 'SELECT package_id
+                FROM packages
+                WHERE slug = :slug';
+
+        if ((int)$ignorePackageId > 0) {
+            $sql .= ' AND package_id <> :package_id';
+        }
+
+        $sql .= ' LIMIT 1';
+
+        $this->db->dbquery($sql);
+        $this->db->dbbind(':slug', $slug);
+        if ((int)$ignorePackageId > 0) {
+            $this->db->dbbind(':package_id', (int)$ignorePackageId);
+        }
+
+        return (bool)$this->db->getsingledata();
     }
 }

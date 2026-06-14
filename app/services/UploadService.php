@@ -74,7 +74,7 @@ class UploadService
         $relativeDir = 'uploads/suppliers/' . (int)$supplierId . '/service-management/' . $this->slugify($type);
         $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
 
-        if (!$this->ensureDirectory($absoluteDir)) {
+        if (!$this->ensureDirectory($absoluteDir) || !is_writable($absoluteDir)) {
             return '';
         }
 
@@ -82,11 +82,44 @@ class UploadService
         $filename = $basename . '.' . $extension;
         $absolutePath = $absoluteDir . '/' . $filename;
 
-        if (file_put_contents($absolutePath, $binary) === false) {
+        if (@file_put_contents($absolutePath, $binary) === false) {
             return '';
         }
 
         $mimeType = 'image/' . ($extension === 'jpg' ? 'jpeg' : $extension);
+        $optimizedFilename = $this->createOptimizedImageVariant($absolutePath, $absoluteDir, $basename, $mimeType, 960, 540);
+
+        return IMG_ROOT . '/' . $relativeDir . '/' . ($optimizedFilename ?: $filename);
+    }
+
+    public function storePackageImage($file)
+    {
+        if (!$this->isValidFile($file, ['image/jpeg', 'image/png', 'image/webp'], 6 * 1024 * 1024)) {
+            return '';
+        }
+
+        $mimeType = $this->mimeType($file);
+        $extension = $this->extensionForMime($mimeType);
+
+        if (!$extension) {
+            return '';
+        }
+
+        $relativeDir = 'uploads/admin/packages';
+        $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
+
+        if (!$this->ensureDirectory($absoluteDir) || !is_writable($absoluteDir)) {
+            return '';
+        }
+
+        $basename = date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename = $basename . '.' . $extension;
+        $absolutePath = $absoluteDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
+            return '';
+        }
+
         $optimizedFilename = $this->createOptimizedImageVariant($absolutePath, $absoluteDir, $basename, $mimeType, 960, 540);
 
         return IMG_ROOT . '/' . $relativeDir . '/' . ($optimizedFilename ?: $filename);

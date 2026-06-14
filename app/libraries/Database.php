@@ -58,6 +58,9 @@ class Database
     {
         if (is_null($type)) {
             switch (true) {
+                case is_float($value):
+                    $type = PDO::PARAM_STR;
+                    break;
                 case is_string($value):
                     $type = PDO::PARAM_STR;
                     break;
@@ -69,12 +72,14 @@ class Database
                     break;
                 case is_null($value):
                     $type = PDO::PARAM_NULL;
-
+                    break;
+                default:
+                    $type = PDO::PARAM_STR;
+                    break;
             }
         }
 
         $this->stmt->bindValue($param, $value, $type);
-
     }
 
     // excute after prepare

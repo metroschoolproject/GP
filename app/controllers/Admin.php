@@ -1,11 +1,14 @@
 <?php
 
+require_once APPROOT . '/services/UploadService.php';
+
 class Admin extends Controller
 {
     private $notificationModel;
     private $supplierProfileModel;
     private $paymentModel;
     private $serviceManagementModel;
+    private $uploadService;
 
     public function __construct()
     {
@@ -13,6 +16,7 @@ class Admin extends Controller
         $this->supplierProfileModel = $this->model('SupplierProfile');
         $this->paymentModel = $this->model('Payment');
         $this->serviceManagementModel = $this->model('SupplierServiceManager');
+        $this->uploadService = new UploadService();
     }   
 
     public function dashboard()
@@ -350,13 +354,22 @@ class Admin extends Controller
             redirect('admin/packageCreate');
         }
 
+        $imageUrl = '';
+        if ($this->uploadService->hasUploaded('package_image')) {
+            $imageUrl = $this->uploadService->storePackageImage($_FILES['package_image']);
+            if ($imageUrl === '') {
+                $_SESSION['admin_flash'] = 'Package image must be JPG, PNG, or WebP and no larger than 6MB.';
+                redirect('admin/packageCreate');
+            }
+        }
+
         $data = [
             'name' => $name,
             'slug' => $slug,
             'description' => trim($_POST['description'] ?? ''),
             'tagline' => trim($_POST['tagline'] ?? ''),
             'base_price' => (float)($_POST['base_price'] ?? 0),
-            'image_url' => trim($_POST['image_url'] ?? ''),
+            'image_url' => $imageUrl,
             'is_active' => !empty($_POST['is_active']),
             'sort_order' => (int)($_POST['sort_order'] ?? 0),
         ];
@@ -373,6 +386,13 @@ class Admin extends Controller
             foreach ($serviceIds as $serviceId) {
                 $packageModel->addPackageService($packageId, (int)$serviceId, (int)($_POST['guest_count'] ?? 100));
             }
+        }
+
+        $createdPackage = $packageModel->getPackageById($packageId);
+        if ($createdPackage) {
+            $packageModel->updatePackageType($packageId, [
+                'base_price' => (float)($createdPackage['included_total'] ?? 0),
+            ]);
         }
 
         $_SESSION['admin_flash'] = 'Package type created successfully.';
@@ -407,11 +427,14 @@ class Admin extends Controller
         if (isset($_POST['tagline'])) {
             $data['tagline'] = trim($_POST['tagline']);
         }
-        if (isset($_POST['base_price'])) {
-            $data['base_price'] = (float)$_POST['base_price'];
-        }
-        if (isset($_POST['image_url'])) {
-            $data['image_url'] = trim($_POST['image_url']);
+        $data['base_price'] = $this->moneyInput($_POST['base_price'] ?? ($package['included_total'] ?? $package['base_price'] ?? 0));
+        if ($this->uploadService->hasUploaded('package_image')) {
+            $imageUrl = $this->uploadService->storePackageImage($_FILES['package_image']);
+            if ($imageUrl === '') {
+                $_SESSION['admin_flash'] = 'Package image must be JPG, PNG, or WebP and no larger than 6MB.';
+                redirect('admin/packageDetail/' . (int)$packageId);
+            }
+            $data['image_url'] = $imageUrl;
         }
         if (isset($_POST['is_active'])) {
             $data['is_active'] = !empty($_POST['is_active']);
@@ -420,9 +443,11 @@ class Admin extends Controller
             $data['sort_order'] = (int)$_POST['sort_order'];
         }
 
-        $packageModel->updatePackageType((int)$packageId, $data);
+        $updated = $packageModel->updatePackageType((int)$packageId, $data);
 
-        $_SESSION['admin_flash'] = 'Package type updated successfully.';
+        $_SESSION['admin_flash'] = $updated
+            ? 'Package type updated successfully.'
+            : 'Package type could not be updated. Check duplicate slug or invalid values.';
         redirect('admin/packageDetail/' . (int)$packageId);
     }
 
@@ -433,9 +458,11 @@ class Admin extends Controller
         }
 
         $packageModel = $this->model('PlatformPackage');
-        $packageModel->deletePackageType((int)$packageId);
+        $deleted = $packageModel->deletePackageType((int)$packageId);
 
-        $_SESSION['admin_flash'] = 'Package type deleted.';
+        $_SESSION['admin_flash'] = $deleted
+            ? 'Package type deleted from database.'
+            : 'Package type could not be deleted. It may be linked to existing records.';
         redirect('admin/packages');
     }
 
@@ -454,15 +481,14 @@ class Admin extends Controller
         }
 
         $serviceTotal = (float)($package['included_total'] ?? 0);
-        $suggestedPrice = $serviceTotal + ($serviceTotal * 0.05);
-        if ($suggestedPrice <= 0) {
+        if ($serviceTotal <= 0) {
             $_SESSION['admin_flash'] = 'Add services before applying a suggested price.';
             redirect('admin/packageDetail/' . (int)$packageId);
         }
 
-        $packageModel->updatePackageType((int)$packageId, ['base_price' => $suggestedPrice]);
+        $packageModel->updatePackageType((int)$packageId, ['base_price' => $serviceTotal]);
 
-        $_SESSION['admin_flash'] = 'Package price updated from included services plus 5% agent fee.';
+        $_SESSION['admin_flash'] = 'Package base price updated from included services. Admin/customer price adds 5% agent fee.';
         redirect('admin/packageDetail/' . (int)$packageId);
     }
 
@@ -486,8 +512,11 @@ class Admin extends Controller
 
         $guestCount = max(1, (int)($_POST['guest_count'] ?? 100));
         $added = $packageModel->addPackageService((int)$packageId, $serviceId, $guestCount);
+        if ($added) {
+            $this->refreshPackageBasePrice($packageModel, (int)$packageId);
+        }
 
-        $_SESSION['admin_flash'] = $added ? 'Service added to package.' : 'That service is already included or cannot be added.';
+        $_SESSION['admin_flash'] = $added ? 'Service added to package and base price updated.' : 'That service is already included or cannot be added.';
         redirect('admin/packageDetail/' . (int)$packageId);
     }
 
@@ -501,9 +530,12 @@ class Admin extends Controller
         $packageId = $packageModel->getPackageIdForItem((int)$itemId);
         $quantity = max(1, (int)($_POST['quantity'] ?? 1));
         $updated = $packageModel->updatePackageItemQuantity((int)$itemId, $quantity);
+        if ($updated && $packageId > 0) {
+            $this->refreshPackageBasePrice($packageModel, $packageId);
+        }
 
         $_SESSION['admin_flash'] = $updated
-            ? 'Package food guest count updated.'
+            ? 'Package food guest count and base price updated.'
             : 'Only food or catering services can use guest count.';
         redirect($packageId > 0 ? 'admin/packageDetail/' . $packageId : 'admin/packages');
     }
@@ -516,10 +548,25 @@ class Admin extends Controller
 
         $packageModel = $this->model('PlatformPackage');
         $packageId = $packageModel->getPackageIdForItem((int)$itemId);
-        $packageModel->removePackageItem((int)$itemId);
+        $removed = $packageModel->removePackageItem((int)$itemId);
+        if ($removed && $packageId > 0) {
+            $this->refreshPackageBasePrice($packageModel, $packageId);
+        }
 
-        $_SESSION['admin_flash'] = 'Service removed from package.';
+        $_SESSION['admin_flash'] = $removed ? 'Service removed and base price updated.' : 'Service could not be removed.';
         redirect($packageId > 0 ? 'admin/packageDetail/' . $packageId : 'admin/packages');
+    }
+
+    private function refreshPackageBasePrice($packageModel, $packageId)
+    {
+        $package = $packageModel->getPackageById((int)$packageId);
+        if (!$package) {
+            return false;
+        }
+
+        return $packageModel->updatePackageType((int)$packageId, [
+            'base_price' => (float)($package['included_total'] ?? 0),
+        ]);
     }
 
     private function currentUserId()
@@ -533,6 +580,11 @@ class Admin extends Controller
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode($payload);
         exit;
+    }
+
+    private function moneyInput($value)
+    {
+        return max(0, (float)str_replace(',', '', (string)$value));
     }
 
 }   

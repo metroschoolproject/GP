@@ -532,7 +532,7 @@ document.getElementById('emptyStateAction')?.addEventListener('click', () => {
     return;
   }
 
-  openAddOthers();
+  openTypeSelector();
 });
 
 function updateLoadMoreControl() {
@@ -721,7 +721,7 @@ function setStatusFilter(f) {
 // ── CLOSE ALL MODALS ──────────────────────────────────────────
 function closeAll() {
   if(currentCropperInstance) { currentCropperInstance.destroy(); currentCropperInstance = null; }
-  ['venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal']
+  ['venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal','serviceTypeModal']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
 }
 
@@ -1010,9 +1010,11 @@ let currentCropperInstance = null;
 function triggerBrowse(e, inputId) {
   if (e.target.closest('.adjust-overlay-bar') || e.target.closest('.edit-icon-btn')) return;
   if (e.currentTarget && e.currentTarget.dataset.mode === 'adjusting') return;
+  e.preventDefault();
+  e.stopPropagation();
   const input = document.getElementById(inputId);
+  if (!input) return;
   input.value = '';
-  if (e.currentTarget && e.currentTarget.getAttribute('for') === inputId) return;
   input.click();
 }
 

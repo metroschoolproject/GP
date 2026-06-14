@@ -5,6 +5,11 @@ $message = $message ?? '';
 
 $dashboardTitle = 'Packages';
 $dashboardCrumb = 'New Package';
+$dashboardBreadcrumbs = [
+  ['label' => 'Dashboard', 'url' => URLROOT . '/admin/dashboard'],
+  ['label' => 'Packages', 'url' => URLROOT . '/admin/packages'],
+  ['label' => 'New Package', 'url' => null],
+];
 $dashboardContentClass = 'admin-pkg-create';
 
 $dashboardContent = function () use ($categories, $serviceOptions, $message) {
@@ -68,7 +73,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
     <div class="flash"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
   <?php endif; ?>
 
-  <form method="POST" action="<?= URLROOT ?>/admin/packageCreate">
+  <form method="POST" action="<?= URLROOT ?>/admin/packageCreate" enctype="multipart/form-data">
     <div class="card">
       <div class="card-title">Package Details</div>
 
@@ -93,20 +98,12 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
         <textarea name="description" placeholder="Describe the complete wedding services included in this package..."></textarea>
       </div>
 
-      <div class="two-col">
-        <div class="field">
-          <label>Base Price (MMK)</label>
-          <input type="number" name="base_price" min="0" step="100" value="0">
-        </div>
-        <div class="field">
-          <label>Sort Order</label>
-          <input type="number" name="sort_order" min="0" value="0">
-        </div>
-      </div>
+ 
 
       <div class="field">
-        <label>Image URL</label>
-        <input type="text" name="image_url" placeholder="https://example.com/image.jpg">
+        <label>Package Image</label>
+        <input type="file" name="package_image" accept="image/jpeg,image/png,image/webp">
+        <p class="hint" style="margin-top:6px">Upload JPG, PNG, or WebP. Max size 6MB.</p>
       </div>
 
       <div class="field">

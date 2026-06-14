@@ -8,9 +8,14 @@ $message = $message ?? '';
 
 $dashboardTitle = 'Packages';
 $dashboardCrumb = 'All Packages';
+$dashboardBreadcrumbs = [
+  ['label' => 'Dashboard', 'url' => URLROOT . '/admin/dashboard'],
+  ['label' => 'Packages', 'url' => null],
+];
 $dashboardContentClass = 'admin-pkg-outlet';
 
 $dashboardContent = function () use ($packages, $total, $page, $totalPages, $filters, $message) {
+  $agentFeeRate = 0.05;
 ?>
 <style>
   .admin-pkg-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
@@ -104,7 +109,7 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
           <th style="width:30px">#</th>
           <th>Name</th>
           <th>Slug</th>
-          <th>Base Price</th>
+          <th>Package Price</th>
           <th>Services</th>
           <th>Status</th>
           <th>Order</th>
@@ -117,7 +122,7 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
             <td style="color:var(--muted);font-weight:600"><?= (int)$pkg['package_id'] ?></td>
             <td><a class="pkg-name" href="<?= URLROOT ?>/admin/packageDetail/<?= (int)$pkg['package_id'] ?>"><?= htmlspecialchars($pkg['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></a></td>
             <td style="color:var(--muted);font-size:12px"><?= htmlspecialchars($pkg['slug'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-            <td><strong>MMK <?= number_format((float)($pkg['base_price'] ?? 0), 0) ?></strong></td>
+            <td><strong>MMK <?= number_format((float)($pkg['base_price'] ?? 0) * (1 + $agentFeeRate), 0) ?></strong></td>
             <td><span class="badge badge-neutral"><?= (int)($pkg['item_count'] ?? 0) ?> svc.</span></td>
             <td>
               <?php if (!empty($pkg['is_active'])): ?>

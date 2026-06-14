@@ -6,6 +6,11 @@ $serviceOptions = $serviceOptions ?? [];
 
 $dashboardTitle = 'Packages';
 $dashboardCrumb = htmlspecialchars($package['name'] ?? 'Package Detail', ENT_QUOTES, 'UTF-8');
+$dashboardBreadcrumbs = [
+  ['label' => 'Dashboard', 'url' => URLROOT . '/admin/dashboard'],
+  ['label' => 'Packages', 'url' => URLROOT . '/admin/packages'],
+  ['label' => $package['name'] ?? 'Package Detail', 'url' => null],
+];
 $dashboardContentClass = 'admin-pkg-detail';
 
 $dashboardContent = function () use ($package, $message, $categories, $serviceOptions) {
@@ -22,7 +27,10 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   $agentFeeRate = 0.05;
   $agentFee = $includedTotal * $agentFeeRate;
   $suggestedPrice = $includedTotal + $agentFee;
-  $packagePrice = (float)($package['base_price'] ?? 0);
+  $storedBasePrice = (float)($package['base_price'] ?? 0);
+  $packageBasePrice = $storedBasePrice > 0 ? $storedBasePrice : $includedTotal;
+  $packageAgentFee = $packageBasePrice * $agentFeeRate;
+  $packagePrice = $packageBasePrice + $packageAgentFee;
   $saving = max(0, $suggestedPrice - $packagePrice);
   $servicesByCategory = [];
   foreach ($serviceOptions as $service) {
@@ -52,6 +60,8 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
   .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-primary:hover{background:var(--primary-hover)}
+  .btn-primary:disabled{opacity:.45;cursor:not-allowed;background:var(--muted)}
+  .btn-primary:disabled:hover{background:var(--muted)}
   .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--primary);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-ghost:hover{background:var(--primary-soft)}
   .btn-sm{height:30px;padding:0 12px;font-size:11px}
@@ -114,25 +124,17 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   <div class="summary-row">
     <div class="stat">
       <div class="stat-label">Package Price</div>
-      <div class="stat-value"><?= $money($packagePrice) ?></div>
-      <div class="stat-sub">Manual customer price</div>
+      <div class="stat-value" id="packagePriceCardValue"><?= $money($packagePrice) ?></div>
+      <div class="stat-sub" id="packagePriceCardSub">Base <?= $money($packageBasePrice) ?> + 5% agent fee <?= $money($packageAgentFee) ?></div>
     </div>
-    <div class="stat">
-      <div class="stat-label">Suggested Price</div>
-      <div class="stat-value"><?= $money($suggestedPrice) ?></div>
-      <div class="stat-sub">Services <?= $money($includedTotal) ?> + 5% agent fee <?= $money($agentFee) ?></div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Package Saving</div>
-      <div class="stat-value"><?= $money($saving) ?></div>
-      <div class="stat-sub">Shown when service value is higher</div>
-    </div>
+
+
   </div>
 
   <!-- Basic Info -->
   <div class="card">
     <div class="card-title">Package Information</div>
-    <form class="edit-form" method="POST" action="<?= URLROOT ?>/admin/packageUpdate/<?= (int)$package['package_id'] ?>">
+    <form class="edit-form" id="packageDetailForm" method="POST" action="<?= URLROOT ?>/admin/packageUpdate/<?= (int)$package['package_id'] ?>" enctype="multipart/form-data">
       <div class="two-col">
         <div class="field">
           <label>Name</label>
@@ -148,28 +150,33 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         <input type="text" name="tagline" value="<?= htmlspecialchars($package['tagline'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
       </div>
       <div class="field">
+        <label>Base Price</label>
+        <input type="number" name="base_price" id="packagePriceInput" min="0" step="100" value="<?= (float)$packageBasePrice ?>" placeholder="<?= (float)$includedTotal ?>">
+        <div class="stat-sub">Admin card/customer price adds 5% agent fee automatically.</div>
+
+      </div>
+      <div class="field">
         <label>Description</label>
         <textarea name="description"><?= htmlspecialchars($package['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
       </div>
-      <div class="two-col">
-        <div class="price-actions">
-          <div class="field">
-            <label>Base Price (MMK)</label>
-            <input type="number" name="base_price" min="0" step="100" value="<?= (float)($package['base_price'] ?? 0) ?>">
-          </div>
-          <button class="btn-ghost btn-sm" type="submit" formaction="<?= URLROOT ?>/admin/packageApplySuggestedPrice/<?= (int)$package['package_id'] ?>" <?= $suggestedPrice <= 0 ? 'disabled style="opacity:.45;cursor:not-allowed"' : '' ?>>
-            Use suggested price
-          </button>
-        </div>
-        <div class="field">
-          <label>Sort Order</label>
-          <input type="number" name="sort_order" min="0" value="<?= (int)($package['sort_order'] ?? 0) ?>">
-        </div>
-      </div>
+
+   
+
       <div class="field">
-        <label>Image URL</label>
-        <input type="text" name="image_url" value="<?= htmlspecialchars($package['image_url'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Leave empty for default">
+        <label>Package Image</label>
+        <?php if (!empty($package['image_url'])): ?>
+          <div style="margin-bottom:10px">
+            <img src="<?= htmlspecialchars($package['image_url'], ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($package['name'] ?? 'Package', ENT_QUOTES, 'UTF-8') ?>" style="width:160px;height:90px;object-fit:cover;border-radius:.75rem;border:1px solid var(--border)">
+          </div>
+        <?php endif; ?>
+        <input type="file" name="package_image" accept="image/jpeg,image/png,image/webp">
+        <div class="service-meta" style="margin-top:6px">Upload JPG, PNG, or WebP. Leave empty to keep the current image.</div>
+
+        
       </div>
+
+
+
       <div class="field">
         <div class="toggle-wrap" style="justify-content:space-between">
           <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Active</label>
@@ -178,7 +185,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         </div>
       </div>
       <div style="margin-top:16px">
-        <button class="btn-primary" type="submit">Save Changes</button>
+        <button class="btn-primary" id="packageSaveButton" type="submit" disabled>Save Changes</button>
       </div>
     </form>
   </div>
@@ -264,6 +271,72 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     <?php endif; ?>
   </div>
 </div>
+<script>
+  const packagePriceInput = document.getElementById('packagePriceInput');
+  const packagePriceCardValue = document.getElementById('packagePriceCardValue');
+  const packagePriceCardSub = document.getElementById('packagePriceCardSub');
+  const packageDetailForm = document.getElementById('packageDetailForm');
+  const packageSaveButton = document.getElementById('packageSaveButton');
+  const agentFeeRate = 0.05;
+
+  function formatPackageMoney(value) {
+    const amount = Number.parseFloat(value);
+    const safeAmount = Number.isFinite(amount) ? Math.max(0, amount) : 0;
+
+    return 'MMK ' + safeAmount.toLocaleString('en-US', {
+      maximumFractionDigits: 0
+    });
+  }
+
+  function updatePackagePriceCard() {
+    const basePrice = Number.parseFloat(packagePriceInput.value);
+    const safeBasePrice = Number.isFinite(basePrice) ? Math.max(0, basePrice) : 0;
+    const agentFee = safeBasePrice * agentFeeRate;
+    const finalPrice = safeBasePrice + agentFee;
+    packagePriceCardValue.textContent = formatPackageMoney(finalPrice);
+    packagePriceCardSub.textContent = `Base ${formatPackageMoney(safeBasePrice)} + 5% agent fee ${formatPackageMoney(agentFee)}`;
+  }
+
+  if (packagePriceInput && packagePriceCardValue && packagePriceCardSub) {
+    updatePackagePriceCard();
+    packagePriceInput.addEventListener('input', updatePackagePriceCard);
+  }
+
+  if (packageDetailForm && packageSaveButton) {
+    const editableFields = Array.from(packageDetailForm.elements).filter((field) => {
+      return field.name && field.type !== 'submit' && field.type !== 'button';
+    });
+    const originalValues = new Map(editableFields.map((field) => [field.name, field.value]));
+
+    function packageDetailHasChanges() {
+      return editableFields.some((field) => {
+        if (field.type === 'file') {
+          return field.files && field.files.length > 0;
+        }
+
+        return field.value !== originalValues.get(field.name);
+      });
+    }
+
+    window.updatePackageDetailSaveState = function () {
+      packageSaveButton.disabled = !packageDetailHasChanges();
+    };
+
+    editableFields.forEach((field) => {
+      field.addEventListener('input', window.updatePackageDetailSaveState);
+      field.addEventListener('change', window.updatePackageDetailSaveState);
+    });
+    packageDetailForm.querySelectorAll('.toggle').forEach((toggle) => {
+      toggle.addEventListener('click', () => {
+        window.setTimeout(window.updatePackageDetailSaveState, 0);
+      });
+    });
+    packageDetailForm.addEventListener('submit', () => {
+      packageSaveButton.disabled = false;
+    });
+    window.updatePackageDetailSaveState();
+  }
+</script>
 <?php
 };
 ?>
