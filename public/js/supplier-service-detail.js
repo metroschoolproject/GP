@@ -210,10 +210,11 @@ document.getElementById('saveAvailabilityBtn')?.addEventListener('click', async 
   });
 
   try {
+    const concurrentElement = document.getElementById('availabilityConcurrent');
     await jsonPost(urls.availabilitySave, {
       duration_minutes: document.getElementById('availabilityDuration').value,
       buffer_minutes: document.getElementById('availabilityBuffer').value,
-      max_concurrent: document.getElementById('availabilityConcurrent').value,
+      max_concurrent: concurrentElement ? concurrentElement.value : 1,
       weekly
     });
     const openCount = weekly.filter(day => day.is_available).length;
