@@ -405,7 +405,7 @@ document.getElementById('emptyStateAction')?.addEventListener('click', () => {
     return;
   }
 
-  openAddOthers();
+  openServiceTypeModal();
 });
 
 function updateLoadMoreControl() {
@@ -560,8 +560,20 @@ function switchTab(tab) {
     el.classList.add('active','text-gray-800','border-gray-800');
     el.classList.remove('text-gray-400','border-transparent');
   }
+  const btnLabel = document.getElementById('headerCreateBtnLabel');
+  if (btnLabel) {
+    btnLabel.textContent = tab === 'packages' ? 'Create Package' : 'Add Service';
+  }
   currentFilter = 'All';
   render();
+}
+
+function handleHeaderCreateClick() {
+  if (currentTab === 'packages') {
+    openPackageModal();
+    return;
+  }
+  openServiceTypeModal();
 }
 
 // ── STATUS FILTER ─────────────────────────────────────────────
@@ -582,8 +594,28 @@ function setStatusFilter(f) {
 // ── CLOSE ALL MODALS ──────────────────────────────────────────
 function closeAll() {
   if(currentCropperInstance) { currentCropperInstance.destroy(); currentCropperInstance = null; }
-  ['venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal']
+  ['serviceTypeModal','venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+
+function closeServiceTypeModal() {
+  document.getElementById('serviceTypeModal').classList.add('hidden');
+}
+
+function openServiceTypeModal() {
+  document.getElementById('serviceTypeModal').classList.remove('hidden');
+}
+
+function openVenueTypeModal() {
+  document.getElementById('serviceTypeModal').classList.add('hidden');
+  clearFieldValues(['vName','vDesc','vPriceMin','vPriceMax','vCapacity','vVenue','vLocation','vType','vImgData']);
+  resetImgBox('venueImgBox', true);
+  document.getElementById('venueModal').classList.remove('hidden');
+}
+
+function openOtherTypeModal() {
+  document.getElementById('serviceTypeModal').classList.add('hidden');
+  openAddOthers();
 }
 
 function confirmDeleteModal({ title = 'Delete item?', message = 'This action cannot be undone.' } = {}) {
