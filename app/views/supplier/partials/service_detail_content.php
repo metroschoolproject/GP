@@ -190,10 +190,12 @@
                 <?php endforeach; ?>
               </select>
             </div>
+            <?php if (!$isVenue): ?>
             <div class="avail-control">
               <label>Max concurrent</label>
               <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
             </div>
+            <?php endif; ?>
           </div>
 
           <table class="avail-table">
@@ -413,11 +415,12 @@
               <span class="info-key">Halls</span>
               <span class="info-val" id="serviceInfoHalls"><?= count($venueRooms) ?></span>
             </div>
+          <?php else: ?>
+            <div class="info-row">
+              <span class="info-key">Concurrent bookings</span>
+              <span class="info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>
+            </div>
           <?php endif; ?>
-          <div class="info-row">
-            <span class="info-key">Concurrent bookings</span>
-            <span class="info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>
-          </div>
         </div>
       </div>
 
