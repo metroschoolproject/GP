@@ -184,9 +184,15 @@ a { color: inherit; text-decoration: none; }
           <?php foreach ($items as $item):
             $linePrice = (float)($item['price'] ?? 0);
             $lineName  = $item['service_name'] ?? 'Service';
+            $lineHall = trim((string)($item['venue_room_name'] ?? ''));
           ?>
           <div class="gp-summary-row">
-            <span><?= $h($lineName) ?></span>
+            <span>
+              <?= $h($lineName) ?>
+              <?php if ($lineHall !== ''): ?>
+                <br><small style="color:var(--muted);font-size:11px;">Hall: <?= $h($lineHall) ?></small>
+              <?php endif; ?>
+            </span>
             <span><?= $money($linePrice) ?></span>
           </div>
           <?php endforeach; ?>

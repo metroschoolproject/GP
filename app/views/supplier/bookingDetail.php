@@ -35,9 +35,16 @@ $dashboardContent = function () use ($booking, $items, $eventDetails, $logs, $bo
       <div class="rounded-xl border border-app-panel-border bg-app-panel">
         <div class="border-b border-app-panel-border px-5 py-4"><h2 class="font-bold text-app-text">Booked services</h2></div>
         <div class="divide-y divide-app-panel-border">
-          <?php foreach ($items as $item): ?>
+          <?php foreach ($items as $item):
+            $hallName = trim((string)($item['venue_room_name'] ?? ''));
+            $venueName = trim((string)($item['venue_name'] ?? ''));
+          ?>
             <div class="flex items-center justify-between gap-4 px-5 py-4">
-              <div><p class="font-semibold text-app-text"><?= $h($item['service_name'] ?? 'Service') ?></p><p class="text-sm text-app-muted"><?= $h($item['supplier_name'] ?? 'Supplier') ?></p></div>
+              <div>
+                <p class="font-semibold text-app-text"><?= $h($item['service_name'] ?? 'Service') ?></p>
+                <?php if ($hallName !== ''): ?><p class="text-sm text-app-muted">Hall: <?= $h($hallName . ($venueName !== '' ? ' · ' . $venueName : '')) ?></p><?php endif; ?>
+                <p class="text-sm text-app-muted"><?= $h($item['supplier_name'] ?? 'Supplier') ?></p>
+              </div>
               <div class="text-right"><p class="font-semibold text-app-text"><?= $money($item['price'] ?? 0) ?></p><p class="text-xs text-app-muted"><?= $h(ucfirst($item['status'] ?? 'pending')) ?></p></div>
             </div>
           <?php endforeach; ?>

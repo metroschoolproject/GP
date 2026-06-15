@@ -1015,7 +1015,7 @@ ALTER TABLE `email_verifications`
 --
 ALTER TABLE `event_details`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `booking_id` (`booking_id`);
+  ADD KEY `idx_event_details_booking_id` (`booking_id`);
 
 --
 -- Indexes for table `favorites`

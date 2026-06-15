@@ -135,10 +135,14 @@ a { color: inherit; text-decoration: none; }
     <div class="gp-section-title">Services booked</div>
     <?php foreach ($items as $item):
       $status = ($item['status'] ?? 'pending') === 'pending' ? 'Pending' : ucfirst($item['status'] ?? 'pending');
+      $hallName = trim((string)($item['venue_room_name'] ?? ''));
     ?>
     <div class="gp-item-row">
       <div>
         <div style="font-weight:500;"><?= $h($item['service_name'] ?? 'Service') ?></div>
+        <?php if ($hallName !== ''): ?>
+        <div style="font-size:11px;color:var(--muted);">Hall: <?= $h($hallName) ?></div>
+        <?php endif; ?>
         <div style="font-size:11px;color:var(--muted);"><?= $h($item['supplier_name'] ?? '') ?></div>
       </div>
       <span class="gp-item-status"><?= $status ?></span>

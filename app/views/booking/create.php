@@ -7,7 +7,6 @@ $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
 $user = $user ?? ['name' => '', 'email' => '', 'phone' => ''];
 $depositPercent = (int)($depositPercent ?? 10);
-$showSharedDefaults = count($items) > 1;
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
@@ -700,6 +699,15 @@ textarea { font-family: var(--sans); }
   color: #3a5c40;
   border: 1px solid rgba(122,156,130,0.25);
 }
+.gp-input-note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--mist);
+}
+.gp-input-note strong {
+  color: var(--mauve);
+  font-weight: 600;
+}
 
 /* ─── Item details ───────────────────────── */
 .gp-item-details {
@@ -900,7 +908,8 @@ textarea { font-family: var(--sans); }
 }
 
 /* venue-filled input style */
-input[data-venue-filled="true"] {
+input[data-venue-filled="true"],
+input[data-suggested-filled="true"] {
   border-color: rgba(122,156,130,0.35);
   background-color: rgba(122,156,130,0.04);
 }
@@ -1299,61 +1308,6 @@ input[data-venue-filled="true"] {
           </div>
         </section>
 
-        <?php if ($showSharedDefaults): ?>
-        <!-- Default contact card -->
-        <div class="gp-section-label" style="margin-top:8px;">Default for every service</div>
-        <section class="gp-card gp-defaults-card" data-index="0">
-          <div class="gp-card-band">
-            <div class="gp-card-band-left">
-              <div class="gp-card-icon">D</div>
-              <div>
-                <div class="gp-card-eyebrow">Default contact info</div>
-                <h2 class="gp-card-title">Used for every service</h2>
-              </div>
-            </div>
-            <p class="gp-card-note">Change only the service cards that need different details.</p>
-          </div>
-
-          <div class="gp-defaults-grid">
-            <div class="gp-default-field">
-              <label class="gp-default-label" for="shared-phone">Phone</label>
-              <input class="gp-detail-input" type="tel" id="shared-phone"
-                     name="shared_phone"
-                     value="<?= $h($user['phone'] ?? '') ?>"
-                     placeholder="+60 12 345 6789">
-            </div>
-            <div class="gp-default-field">
-              <label class="gp-default-label" for="shared-contact-name">Contact name</label>
-              <input class="gp-detail-input" type="text" id="shared-contact-name"
-                     name="shared_contact_name"
-                     value="<?= $h($user['name'] ?? '') ?>"
-                     placeholder="e.g. John Doe">
-            </div>
-            <div class="gp-default-field">
-              <label class="gp-default-label" for="shared-location">
-                Location
-                <?php if ($venueService): ?>
-                  <span class="gp-tag gp-tag-auto" style="margin-left:6px;">Auto-filled</span>
-                <?php endif; ?>
-              </label>
-              <input class="gp-detail-input" type="text" id="shared-location"
-                     name="shared_location"
-                     value="<?= $h($venueLocation) ?>"
-                     placeholder="e.g. The Grand Ballroom">
-            </div>
-            <div class="gp-default-field">
-              <label class="gp-default-label" for="shared-guests">Guest count</label>
-              <div class="gp-detail-stepper">
-                <button type="button" class="gp-stepper-btn" data-stepper="minus" data-target="shared-guests">−</button>
-                <input class="gp-stepper-input" type="number" id="shared-guests"
-                       name="shared_guests" min="0" max="9999" value="0">
-                <button type="button" class="gp-stepper-btn" data-stepper="plus" data-target="shared-guests">+</button>
-              </div>
-            </div>
-          </div>
-        </section>
-        <?php endif; ?>
-
         <!-- Per-service cards -->
         <?php if (!empty($items)): ?>
         <div class="gp-section-label" style="margin-top:8px;">Your services</div>
@@ -1368,10 +1322,18 @@ input[data-venue-filled="true"] {
           $formatSlotTime = ($slotStart && $slotEnd)
             ? date('g:i A', strtotime($slotStart)) . ' – ' . date('g:i A', strtotime($slotEnd))
             : '';
-          $isVenue = $venueService && (int)($venueService['service_id'] ?? 0) === (int)($item['service_id'] ?? 0);
+          $venueRoomName = trim((string)($item['venue_room_name'] ?? ''));
+          $venueName = trim((string)($item['venue_name'] ?? ''));
+          $venueRoomCapacity = (int)($item['venue_room_capacity'] ?? 0);
+          $serviceDisplayName = $venueRoomName !== ''
+            ? ($item['service_name'] ?? 'Service') . ' · ' . $venueRoomName
+            : ($item['service_name'] ?? 'Service');
           $linePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
           $categoryText = strtolower((string)($item['category_name'] ?? ''));
           $serviceNameText = strtolower((string)($item['service_name'] ?? ''));
+          $isVenue = str_contains($categoryText, 'venue')
+            || str_contains($serviceNameText, 'venue')
+            || $venueRoomName !== '';
           $isGuestPriced = str_contains($categoryText, 'makeup')
             || str_contains($categoryText, 'make up')
             || str_contains($serviceNameText, 'makeup')
@@ -1383,6 +1345,7 @@ input[data-venue-filled="true"] {
                  data-price-index="<?= $i ?>"
                  data-unit-price="<?= $h($linePrice) ?>"
                  data-guest-priced="<?= $isGuestPriced ? 'yes' : 'no' ?>"
+                 data-hall-capacity="<?= $venueRoomCapacity ?>"
                  <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
 
           <div class="gp-item-header">
@@ -1399,13 +1362,17 @@ input[data-venue-filled="true"] {
 
             <div class="gp-item-info">
               <h2 class="gp-item-name">
-                <?= $h($item['service_name'] ?? 'Service') ?>
+                <?= $h($serviceDisplayName) ?>
                 <?php if ($isVenue): ?><span class="gp-tag gp-tag-venue" style="margin-left:8px;vertical-align:2px;">Venue</span><?php endif; ?>
               </h2>
               <div class="gp-item-meta">
                 <span><?= $h($item['category_name'] ?? 'Service') ?></span>
                 <span class="gp-item-meta-sep">·</span>
                 <span><?= $h($item['supplier_name'] ?? 'Golden Promise') ?></span>
+                <?php if ($venueRoomName !== ''): ?>
+                  <span class="gp-item-meta-sep">·</span>
+                  <span><?= $h($venueRoomName . ($venueName !== '' ? ' · ' . $venueName : '')) ?></span>
+                <?php endif; ?>
               </div>
             </div>
 
@@ -1478,10 +1445,10 @@ input[data-venue-filled="true"] {
             </fieldset>
 
             <!-- Customise drawer -->
-            <details class="gp-service-drawer" <?= !$showSharedDefaults ? 'open' : '' ?>>
+            <details class="gp-service-drawer" open>
               <summary>
-                <span><?= $showSharedDefaults ? 'Customise this service' : 'Service details' ?></span>
-                <span class="gp-drawer-hint"><?= $showSharedDefaults ? 'Different contact, guests, room or notes' : 'Required contact, guests, room and notes' ?></span>
+                <span>Service details</span>
+                <span class="gp-drawer-hint">Required contact, guests, room and notes</span>
               </summary>
 
               <fieldset class="gp-overrides-fieldset">
@@ -1490,14 +1457,20 @@ input[data-venue-filled="true"] {
                     <label class="gp-detail-label" for="guests-<?= $i ?>">Guests for this service</label>
                     <input class="gp-detail-input" type="number" id="guests-<?= $i ?>"
                            name="item_guests[<?= $i ?>]" min="0"
-                           placeholder="<?= $showSharedDefaults ? 'Leave empty for default' : 'Required' ?>">
+                           value="<?= $isVenue && $venueRoomCapacity > 0 ? (int)$venueRoomCapacity : '' ?>"
+                           <?php if ($isVenue && $venueRoomCapacity > 0): ?>data-venue-filled="true"<?php endif; ?>
+                           placeholder="Required">
+                    <?php if ($isVenue && $venueRoomCapacity > 0): ?>
+                      <div class="gp-input-note">Suggested from selected hall max: <strong><?= (int)$venueRoomCapacity ?></strong> guests</div>
+                    <?php endif; ?>
                   </div>
                   <div class="gp-detail-field">
                     <label class="gp-detail-label" for="location-<?= $i ?>">Location / Venue room</label>
                     <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
                            name="item_location[<?= $i ?>]"
-                           value="<?= !$showSharedDefaults ? $h($venueLocation) : '' ?>"
-                           placeholder="<?= $showSharedDefaults ? 'e.g. Ballroom A (optional)' : 'e.g. Ballroom A' ?>">
+                           value="<?= $h($venueLocation) ?>"
+                           <?php if ($venueLocation !== ''): ?>data-venue-filled="true"<?php endif; ?>
+                           placeholder="e.g. Ballroom A">
                   </div>
                 </div>
                 <div class="gp-detail-row" style="margin-top:12px;">
@@ -1505,15 +1478,15 @@ input[data-venue-filled="true"] {
                     <label class="gp-detail-label" for="contact-name-<?= $i ?>">Contact person</label>
                     <input class="gp-detail-input" type="text" id="contact-name-<?= $i ?>"
                            name="item_contact_name[<?= $i ?>]"
-                           value="<?= !$showSharedDefaults ? $h($user['name'] ?? '') : '' ?>"
-                           placeholder="<?= $showSharedDefaults ? 'Leave empty for default' : 'Contact name' ?>">
+                           value="<?= $h($user['name'] ?? '') ?>"
+                           placeholder="Contact name">
                   </div>
                   <div class="gp-detail-field">
                     <label class="gp-detail-label" for="contact-phone-<?= $i ?>">Contact phone</label>
                     <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>"
                            name="item_contact_phone[<?= $i ?>]"
-                           value="<?= !$showSharedDefaults ? $h($user['phone'] ?? '') : '' ?>"
-                           placeholder="<?= $showSharedDefaults ? 'Leave empty for default' : '+60 12 345 6789' ?>">
+                           value="<?= $h($user['phone'] ?? '') ?>"
+                           placeholder="+60 12 345 6789">
                   </div>
                 </div>
                 <div class="gp-detail-row" style="margin-top:12px;">
@@ -1549,6 +1522,8 @@ input[data-venue-filled="true"] {
               <?php foreach ($items as $item):
                 $linePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
                 $lineName  = $item['service_name'] ?? 'Service';
+                $lineHall = trim((string)($item['venue_room_name'] ?? ''));
+                if ($lineHall !== '') $lineName .= ' · ' . $lineHall;
               ?>
               <div class="gp-line">
                 <span class="gp-line-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></span>
@@ -1632,17 +1607,77 @@ input[data-venue-filled="true"] {
   /* ─── Venue auto-fill ─────────────────────── */
   (function() {
     const venueLocation = '<?= addslashes($venueLocation) ?>';
-    if (!venueLocation) return;
+    if (venueLocation) {
+      document.querySelectorAll('[name^="item_location"]').forEach(field => {
+        if (!field.value || field.value.trim() === '') {
+          field.value = venueLocation;
+        }
+        if (field.value.trim() === venueLocation) {
+          field.setAttribute('data-venue-filled', 'true');
+          field.style.borderColor = 'rgba(122,156,130,0.35)';
+          field.style.backgroundColor = 'rgba(122,156,130,0.04)';
+        }
+      });
+      const sharedLoc = document.getElementById('shared-location');
+      if (sharedLoc && !sharedLoc.value) sharedLoc.value = venueLocation;
+    }
+
+    const syncFields = (source, selector) => {
+      const value = source.value.trim();
+      if (!value) return;
+
+      document.querySelectorAll(selector).forEach(field => {
+        if (field === source) return;
+        const canSuggest = !field.value.trim()
+          || field.dataset.venueFilled === 'true'
+          || field.dataset.suggestedFilled === 'true';
+        if (!canSuggest) return;
+
+        field.value = value;
+        field.dataset.suggestedFilled = 'true';
+      });
+    };
+
     document.querySelectorAll('[name^="item_location"]').forEach(field => {
-      if (!field.value || field.value.trim() === '') {
-        field.value = venueLocation;
-        field.setAttribute('data-venue-filled', 'true');
-        field.style.borderColor = 'rgba(122,156,130,0.35)';
-        field.style.backgroundColor = 'rgba(122,156,130,0.04)';
+      field.addEventListener('input', function () {
+        this.dataset.venueFilled = 'false';
+        this.dataset.suggestedFilled = 'false';
+      });
+      field.addEventListener('change', function () {
+        syncFields(this, '[name^="item_location"]');
+      });
+      field.addEventListener('blur', function () {
+        syncFields(this, '[name^="item_location"]');
+      });
+    });
+
+    document.querySelectorAll('[name^="item_guests"]').forEach(field => {
+      if (field.value.trim() && field.closest('[data-is-venue="true"]')) {
+        field.dataset.venueFilled = 'true';
+      }
+      field.addEventListener('input', function () {
+        this.dataset.venueFilled = 'false';
+        this.dataset.suggestedFilled = 'false';
+      });
+      field.addEventListener('change', function () {
+        syncFields(this, '[name^="item_guests"]');
+        updateBookingPricing();
+      });
+      field.addEventListener('blur', function () {
+        syncFields(this, '[name^="item_guests"]');
+        updateBookingPricing();
+      });
+    });
+
+    document.querySelectorAll('.gp-item-card[data-is-venue="true"]').forEach(card => {
+      const capacity = parseInt(card.dataset.hallCapacity || '0', 10) || 0;
+      const index = card.dataset.priceIndex;
+      const guestInput = document.querySelector(`[name="item_guests[${index}]"]`);
+      if (capacity > 0 && guestInput && !guestInput.value.trim()) {
+        guestInput.value = capacity;
+        guestInput.dataset.venueFilled = 'true';
       }
     });
-    const sharedLoc = document.getElementById('shared-location');
-    if (sharedLoc && !sharedLoc.value) sharedLoc.value = venueLocation;
   })();
 
   /* ─── Staggered card reveal ───────────────── */
@@ -1688,7 +1723,6 @@ input[data-venue-filled="true"] {
   }
 
   function updateBookingPricing() {
-    const sharedGuests = inputNumber('[name="shared_guests"]');
     let total = 0;
 
     document.querySelectorAll('.gp-item-card[data-price-index]').forEach((card) => {
@@ -1696,8 +1730,7 @@ input[data-venue-filled="true"] {
       const unitPrice = Number(card.dataset.unitPrice || 0);
       const isGuestPriced = card.dataset.guestPriced === 'yes';
       const itemGuests = inputNumber(`[name="item_guests[${index}]"]`);
-      const effectiveGuests = itemGuests || sharedGuests;
-      const linePrice = isGuestPriced ? unitPrice * Math.max(0, effectiveGuests) : unitPrice;
+      const linePrice = isGuestPriced ? unitPrice * Math.max(0, itemGuests) : unitPrice;
 
       total += linePrice;
       document.querySelector(`[data-item-price="${index}"]`)?.replaceChildren(document.createTextNode(money(linePrice)));
@@ -1709,7 +1742,7 @@ input[data-venue-filled="true"] {
     document.querySelector('[data-balance-amount]')?.replaceChildren(document.createTextNode(money(total - (total * depositPercent / 100))));
   }
 
-  document.querySelectorAll('[name="shared_guests"], [name^="item_guests"]').forEach(input => {
+  document.querySelectorAll('[name^="item_guests"]').forEach(input => {
     input.addEventListener('input', updateBookingPricing);
     input.addEventListener('change', updateBookingPricing);
   });
@@ -1771,10 +1804,6 @@ input[data-venue-filled="true"] {
     }
 
     const formData = new FormData(form);
-    const sharedPhone = fieldValue(formData, 'shared_phone');
-    const sharedContactName = fieldValue(formData, 'shared_contact_name');
-    const sharedLocation = fieldValue(formData, 'shared_location');
-    const sharedGuests = numberValue(formData, 'shared_guests');
     const cards = Array.from(document.querySelectorAll('.gp-item-card'));
     const missingMessages = [];
     let firstMissingField = null;
@@ -1784,10 +1813,10 @@ input[data-venue-filled="true"] {
       const itemDate = fieldValue(formData, `item_date[${index}]`);
       const itemStart = fieldValue(formData, `item_start_time[${index}]`);
       const itemEnd = fieldValue(formData, `item_end_time[${index}]`);
-      const itemPhone = fieldValue(formData, `item_contact_phone[${index}]`) || sharedPhone;
-      const itemContactName = fieldValue(formData, `item_contact_name[${index}]`) || sharedContactName;
-      const itemLocation = fieldValue(formData, `item_location[${index}]`) || sharedLocation;
-      const itemGuests = numberValue(formData, `item_guests[${index}]`) || sharedGuests;
+      const itemPhone = fieldValue(formData, `item_contact_phone[${index}]`);
+      const itemContactName = fieldValue(formData, `item_contact_name[${index}]`);
+      const itemLocation = fieldValue(formData, `item_location[${index}]`);
+      const itemGuests = numberValue(formData, `item_guests[${index}]`);
       const missing = [];
 
       const drawer = card.querySelector('.gp-service-drawer');
@@ -1810,22 +1839,18 @@ input[data-venue-filled="true"] {
       }
       if (!itemContactName) {
         missing.push('contact name');
-        rememberMissing(document.querySelector('[name="shared_contact_name"]'));
         rememberMissing(card.querySelector(`[name="item_contact_name[${index}]"]`));
       }
       if (!itemPhone) {
         missing.push('contact phone');
-        rememberMissing(document.querySelector('[name="shared_phone"]'));
         rememberMissing(card.querySelector(`[name="item_contact_phone[${index}]"]`));
       }
       if (!itemLocation) {
         missing.push('location');
-        rememberMissing(document.querySelector('[name="shared_location"]'));
         rememberMissing(card.querySelector(`[name="item_location[${index}]"]`));
       }
       if (itemGuests <= 0) {
         missing.push('guest count');
-        rememberMissing(document.querySelector('[name="shared_guests"]'));
         rememberMissing(card.querySelector(`[name="item_guests[${index}]"]`));
       }
 

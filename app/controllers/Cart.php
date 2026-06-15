@@ -82,6 +82,7 @@ class Cart extends Controller
             'price' => !empty($_POST['price']) ? (float)$_POST['price'] : null,
             'source' => ($_POST['source'] ?? '') === 'package' ? 'package' : 'custom',
             'slot_id' => !empty($_POST['slot_id']) ? (int)$_POST['slot_id'] : null,
+            'venue_room_id' => !empty($_POST['venue_room_id']) ? (int)$_POST['venue_room_id'] : null,
             'start_time' => trim($_POST['start_time'] ?? '') ?: null,
             'end_time' => trim($_POST['end_time'] ?? '') ?: null,
         ];

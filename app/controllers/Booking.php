@@ -100,6 +100,8 @@ class Booking extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
+
+        try {
         
         $items = $this->cartModel->getCartItems($this->userId);
         $total = $this->cartModel->getCartTotal($this->userId);
@@ -107,12 +109,6 @@ class Booking extends Controller
         if (empty($items)) {
             $this->jsonResponse(['error' => 'Cart is empty'], 400);
         }
-        
-        // GET SHARED DEFAULTS (fallback only)
-        $sharedPhone = trim($_POST['shared_phone'] ?? '');
-        $sharedLocation = trim($_POST['shared_location'] ?? '');
-        $sharedGuests = max(0, min(9999, (int)($_POST['shared_guests'] ?? 0)));
-        $sharedContactName = trim($_POST['shared_contact_name'] ?? '');
         
         // PARSE PER-ITEM DATA
         $itemsData = [];
@@ -124,10 +120,10 @@ class Booking extends Controller
             $itemDate = trim($_POST['item_date'][$i] ?? '') ?: trim((string)($item['selected_date'] ?? ''));
             $itemStartTime = trim($_POST['item_start_time'][$i] ?? '') ?: trim((string)($item['start_time'] ?? ''));
             $itemEndTime = trim($_POST['item_end_time'][$i] ?? '') ?: trim((string)($item['end_time'] ?? ''));
-            $itemGuests = (int)($_POST['item_guests'][$i] ?? 0) ?: $sharedGuests;
-            $itemLocation = trim($_POST['item_location'][$i] ?? '') ?: $sharedLocation;
-            $itemPhone = trim($_POST['item_contact_phone'][$i] ?? '') ?: $sharedPhone;
-            $itemContactName = trim($_POST['item_contact_name'][$i] ?? '') ?: $sharedContactName;
+            $itemGuests = (int)($_POST['item_guests'][$i] ?? 0);
+            $itemLocation = trim($_POST['item_location'][$i] ?? '');
+            $itemPhone = trim($_POST['item_contact_phone'][$i] ?? '');
+            $itemContactName = trim($_POST['item_contact_name'][$i] ?? '');
             $itemName = $item['service_name'] ?? 'Service';
             $currentItemErrors = [];
             
@@ -216,6 +212,11 @@ class Booking extends Controller
             'booking_id' => $bookingId,
             'redirect' => URLROOT . '/booking/pay/' . $bookingId,
         ]);
+        } catch (Throwable $e) {
+            $this->jsonResponse([
+                'error' => 'Booking could not be created: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /* ─── Step 2: Payment (Stripe) ────────────────────────────── */

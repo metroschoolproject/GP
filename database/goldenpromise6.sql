@@ -202,6 +202,7 @@ CREATE TABLE `cart_items` (
   `selected_date` date DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
   `source` enum('package','custom') DEFAULT NULL,
+  `venue_room_id` bigint(20) DEFAULT NULL,
   `slot_id` bigint(20) DEFAULT NULL,
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL
@@ -211,11 +212,11 @@ CREATE TABLE `cart_items` (
 -- Dumping data for table `cart_items`
 --
 
-INSERT INTO `cart_items` (`id`, `cart_id`, `user_id`, `item_type`, `item_id`, `selected_date`, `price`, `source`, `slot_id`, `start_time`, `end_time`) VALUES
-(11, 2, 27, 'service', 32, '2026-06-16', 30000.00, 'package', NULL, '09:00:00', '17:00:00'),
-(12, 2, 27, 'service', 34, '2026-06-17', 75000.00, 'custom', NULL, '09:00:00', '11:00:00'),
-(15, 2, 27, 'service', 32, '2026-06-17', 2000000.00, 'custom', NULL, '09:00:00', '12:00:00'),
-(16, 2, 27, 'service', 33, '2026-06-15', 850000.00, 'custom', NULL, '09:00:00', '10:00:00');
+INSERT INTO `cart_items` (`id`, `cart_id`, `user_id`, `item_type`, `item_id`, `selected_date`, `price`, `source`, `venue_room_id`, `slot_id`, `start_time`, `end_time`) VALUES
+(11, 2, 27, 'service', 32, '2026-06-16', 30000.00, 'package', NULL, NULL, '09:00:00', '17:00:00'),
+(12, 2, 27, 'service', 34, '2026-06-17', 75000.00, 'custom', NULL, NULL, '09:00:00', '11:00:00'),
+(15, 2, 27, 'service', 32, '2026-06-17', 2000000.00, 'custom', NULL, NULL, '09:00:00', '12:00:00'),
+(16, 2, 27, 'service', 33, '2026-06-15', 850000.00, 'custom', NULL, NULL, '09:00:00', '10:00:00');
 
 -- --------------------------------------------------------
 
@@ -1329,6 +1330,7 @@ ALTER TABLE `cart_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `cart_id` (`cart_id`),
   ADD KEY `user_id` (`user_id`),
+  ADD KEY `cart_items_venue_room_id` (`venue_room_id`),
   ADD KEY `ci_ibfk_slot` (`slot_id`);
 
 --
@@ -1349,7 +1351,7 @@ ALTER TABLE `email_verifications`
 --
 ALTER TABLE `event_details`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `booking_id` (`booking_id`),
+  ADD KEY `idx_event_details_booking_id` (`booking_id`),
   ADD UNIQUE KEY `unique_booking_item` (`booking_item_id`);
 
 --
@@ -2008,6 +2010,7 @@ ALTER TABLE `carts`
 ALTER TABLE `cart_items`
   ADD CONSTRAINT `cart_items_ibfk_1` FOREIGN KEY (`cart_id`) REFERENCES `carts` (`id`),
   ADD CONSTRAINT `cart_items_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
+  ADD CONSTRAINT `cart_items_venue_room_fk` FOREIGN KEY (`venue_room_id`) REFERENCES `venue_rooms` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `ci_ibfk_slot` FOREIGN KEY (`slot_id`) REFERENCES `service_time_slots` (`id`);
 
 --

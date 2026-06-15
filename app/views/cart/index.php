@@ -869,6 +869,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         <input type="hidden" name="date" value="<?= $h($warningItem['selected_date'] ?? '') ?>">
         <input type="hidden" name="price" value="<?= $h($warningItem['price'] ?? '') ?>">
         <input type="hidden" name="source" value="<?= $h($warningItem['source'] ?? 'custom') ?>">
+        <input type="hidden" name="venue_room_id" value="<?= $h($warningItem['venue_room_id'] ?? '') ?>">
         <input type="hidden" name="slot_id" value="<?= $h($warningItem['slot_id'] ?? '') ?>">
         <input type="hidden" name="start_time" value="<?= $h($warningItem['start_time'] ?? '') ?>">
         <input type="hidden" name="end_time" value="<?= $h($warningItem['end_time'] ?? '') ?>">
@@ -914,11 +915,14 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         $endTime     = $item['end_time'] ?? '';
         $timeRange   = $formatTimeRange($startTime, $endTime);
         $itemType    = $item['item_type'] ?? 'service';
+        $venueRoomName = trim((string)($item['venue_room_name'] ?? ''));
+        $venueName = trim((string)($item['venue_name'] ?? ''));
+        $displayName = $venueRoomName !== '' ? $name . ' · ' . $venueRoomName : $name;
         $detailUrl   = ($itemType === 'package' && !empty($item['package_slug']))
           ? URLROOT . '/customerServices/packageDetail/' . $h($item['package_slug'])
           : URLROOT . '/customerServices/detail/' . (int)($item['item_id'] ?? 0) . ($selectedDate ? '?date=' . $h($selectedDate) : '');
       ?>
-      <article class="gp-item" data-index="<?= $i ?>" aria-label="<?= $h($name) ?>">
+      <article class="gp-item" data-index="<?= $i ?>" aria-label="<?= $h($displayName) ?>">
 
         <!-- Thumbnail -->
         <a class="gp-item-thumb" href="<?= $h($detailUrl) ?>" tabindex="-1" aria-hidden="true">
@@ -935,12 +939,20 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         <!-- Body -->
         <div class="gp-item-body">
           <h2 class="gp-item-name">
-            <a href="<?= $h($detailUrl) ?>"><?= $h($name) ?></a>
+            <a href="<?= $h($detailUrl) ?>"><?= $h($displayName) ?></a>
           </h2>
           <div class="gp-item-supplier">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <?= $h($supplier) ?>
           </div>
+          <?php if ($venueRoomName !== ''): ?>
+          <div class="gp-item-meta">
+            <span class="gp-item-pill">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
+              <?= $h($venueRoomName . ($venueName !== '' ? ' · ' . $venueName : '')) ?>
+            </span>
+          </div>
+          <?php endif; ?>
           <?php if ($selectedDate || $timeRange): ?>
           <div class="gp-item-meta">
             <?php if ($selectedDate): ?>
@@ -1030,7 +1042,10 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               $lineName  = $item['service_name'] ?? 'Service';
               $lineDate  = trim((string)($item['selected_date'] ?? ''));
               $lineTime  = $formatTimeRange($item['start_time'] ?? '', $item['end_time'] ?? '');
+              $lineHall = trim((string)($item['venue_room_name'] ?? ''));
               $lineMetaParts = [];
+              if ($lineHall !== '') $lineMetaParts[] = $lineHall;
+              if ($lineHall !== '') $lineName .= ' · ' . $lineHall;
               if ($lineDate !== '') $lineMetaParts[] = $formatDate($lineDate);
               if ($lineTime !== '') $lineMetaParts[] = $lineTime;
             ?>

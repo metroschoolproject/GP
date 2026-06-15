@@ -3,6 +3,7 @@
 class CartModel
 {
     private $db;
+    private ?bool $cartVenueRoomColumn = null;
 
     public function __construct()
     {
@@ -40,8 +41,10 @@ class CartModel
         $price     = $data['price'] ?? null;
         $source    = $data['source'] ?? null;
         $slotId    = !empty($data['slot_id']) ? (int)$data['slot_id'] : null;
+        $venueRoomId = !empty($data['venue_room_id']) ? (int)$data['venue_room_id'] : null;
         $startTime = $data['start_time'] ?? null;
         $endTime   = $data['end_time'] ?? null;
+        $hasVenueRoomColumn = $this->hasCartVenueRoomColumn();
 
         if ($itemId <= 0) {
             return false;
@@ -52,7 +55,9 @@ class CartModel
             "SELECT id FROM cart_items
              WHERE user_id = :uid AND item_type = :itype AND item_id = :iid
                AND (selected_date = :sdate OR (selected_date IS NULL AND :sdate IS NULL))
-               AND (slot_id = :sid OR (slot_id IS NULL AND :sid IS NULL))
+               AND (slot_id = :sid OR (slot_id IS NULL AND :sid IS NULL))"
+               . ($hasVenueRoomColumn ? "
+               AND (venue_room_id = :vrid OR (venue_room_id IS NULL AND :vrid IS NULL))" : "") . "
              LIMIT 1"
         );
         $this->db->dbbind(':uid', $userId);
@@ -60,6 +65,9 @@ class CartModel
         $this->db->dbbind(':iid', $itemId, PDO::PARAM_INT);
         $this->db->dbbind(':sdate', $date);
         $this->db->dbbind(':sid', $slotId, PDO::PARAM_INT);
+        if ($hasVenueRoomColumn) {
+            $this->db->dbbind(':vrid', $venueRoomId, $venueRoomId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
         $existing = $this->db->getsingledata();
 
         if ($existing && !empty($existing['id'])) {
@@ -68,9 +76,11 @@ class CartModel
 
         $cartId = $this->getOrCreateCart($userId);
 
+        $venueRoomColumnSql = $hasVenueRoomColumn ? ', venue_room_id' : '';
+        $venueRoomValueSql = $hasVenueRoomColumn ? ', :vrid' : '';
         $this->db->dbquery(
-            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time)
-             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime)"
+            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql})
+             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql})"
         );
         $this->db->dbbind(':cid', $cartId, PDO::PARAM_INT);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
@@ -82,6 +92,9 @@ class CartModel
         $this->db->dbbind(':sid', $slotId, PDO::PARAM_INT);
         $this->db->dbbind(':stime', $startTime);
         $this->db->dbbind(':etime', $endTime);
+        if ($hasVenueRoomColumn) {
+            $this->db->dbbind(':vrid', $venueRoomId, $venueRoomId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
 
         if ($this->db->dbexecute()) {
             return (int)$this->db->lastinsertid();
@@ -352,6 +365,18 @@ class CartModel
         return date('g:i A', strtotime($startTime)) . ' - ' . date('g:i A', strtotime($endTime));
     }
 
+    private function hasCartVenueRoomColumn(): bool
+    {
+        if ($this->cartVenueRoomColumn !== null) {
+            return $this->cartVenueRoomColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'venue_room_id'");
+        $this->cartVenueRoomColumn = (bool)$this->db->getsingledata();
+
+        return $this->cartVenueRoomColumn;
+    }
+
     /**
      * Get all cart items for a user, joined with service details.
      */
@@ -361,6 +386,21 @@ class CartModel
      */
     public function getCartItems(int $userId): array
     {
+        $hasVenueRoomColumn = $this->hasCartVenueRoomColumn();
+        $venueRoomSelect = $hasVenueRoomColumn
+            ? 'COALESCE(cart_vr.id, selected_vr.id) AS venue_room_id,
+                    COALESCE(cart_vr.name, selected_vr.name) AS venue_room_name,
+                    COALESCE(cart_vr.capacity, selected_vr.capacity) AS venue_room_capacity,
+                    COALESCE(cart_venue.name, selected_venue.name) AS venue_name,'
+            : 'selected_vr.id AS venue_room_id,
+                    selected_vr.name AS venue_room_name,
+                    selected_vr.capacity AS venue_room_capacity,
+                    selected_venue.name AS venue_name,';
+        $venueRoomJoin = $hasVenueRoomColumn
+            ? 'LEFT JOIN venue_rooms cart_vr ON cart_vr.id = ci.venue_room_id
+            LEFT JOIN venues cart_venue ON cart_venue.id = cart_vr.venue_id'
+            : '';
+
         $this->db->dbquery(
             "SELECT ci.id AS cart_item_id, 
                     ci.item_type, 
@@ -370,6 +410,7 @@ class CartModel
                     ci.slot_id, 
                     ci.start_time, 
                     ci.end_time,
+                    {$venueRoomSelect}
                     
                     COALESCE(s.name, p.name, sp.name) AS service_name,
                     COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
@@ -392,6 +433,10 @@ class CartModel
             FROM cart_items ci
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN venues v ON v.service_id = s.id
+            {$venueRoomJoin}
+            LEFT JOIN venue_room_availability selected_vra ON selected_vra.id = ci.slot_id
+            LEFT JOIN venue_rooms selected_vr ON selected_vr.id = selected_vra.room_id
+            LEFT JOIN venues selected_venue ON selected_venue.id = selected_vr.venue_id
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id

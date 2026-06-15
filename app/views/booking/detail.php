@@ -216,10 +216,17 @@ a{color:inherit;text-decoration:none}
         <table class="gp-items-table">
           <thead><tr><th>Service</th><th>Status</th><th>Amount</th></tr></thead>
           <tbody>
-            <?php foreach ($items as $item): $p=(float)($item['price']??0); ?>
+            <?php foreach ($items as $item):
+              $p=(float)($item['price']??0);
+              $hallName = trim((string)($item['venue_room_name'] ?? ''));
+              $venueName = trim((string)($item['venue_name'] ?? ''));
+            ?>
             <tr>
               <td>
                 <div class="gp-item-name"><?=$h($item['service_name']??'Service')?></div>
+                <?php if ($hallName !== ''): ?>
+                <div class="gp-item-detail">Hall: <?=$h($hallName . ($venueName !== '' ? ' · ' . $venueName : ''))?></div>
+                <?php endif; ?>
                 <div class="gp-item-detail">
                   <?php if ($item['start_time']??''): ?>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>

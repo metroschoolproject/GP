@@ -180,6 +180,7 @@ button { font-family: var(--font-b); cursor: pointer; }
     <?php foreach ($bookings as $b):
       $items = $b['items'] ?? [];
       $firstItem = $items[0] ?? null;
+      $firstHall = $firstItem ? trim((string)($firstItem['venue_room_name'] ?? '')) : '';
       $itemCount = count($items);
       $deposit = (float)$b['total_amount'] * 0.10;
     ?>
@@ -188,7 +189,7 @@ button { font-family: var(--font-b); cursor: pointer; }
         <div>
           <?php if ($firstItem): ?>
             <div class="gp-card-service"><?= $h($firstItem['service_name'] ?? 'Wedding Service') ?></div>
-            <div class="gp-card-supplier"><?= $h($firstItem['supplier_name'] ?? '') ?></div>
+            <div class="gp-card-supplier"><?= $h($firstHall !== '' ? 'Hall: ' . $firstHall : ($firstItem['supplier_name'] ?? '')) ?></div>
           <?php else: ?>
             <div class="gp-card-service">Wedding Booking</div>
           <?php endif; ?>

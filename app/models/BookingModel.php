@@ -3,6 +3,8 @@
 class BookingModel
 {
     private $db;
+    private ?bool $cartVenueRoomColumn = null;
+    private ?bool $bookingVenueRoomColumn = null;
 
     public function __construct()
     {
@@ -37,18 +39,25 @@ class BookingModel
      */
     public function insertBookingItems(int $bookingId, int $userId, array $itemPrices = []): array|false
     {
+        $hasCartVenueRoomColumn = $this->hasCartVenueRoomColumn();
+        $hasBookingVenueRoomColumn = $this->hasBookingVenueRoomColumn();
+        $cartVenueRoomValue = $hasCartVenueRoomColumn ? 'ci.venue_room_id' : 'NULL';
+        $venueRoomInsertColumn = $hasBookingVenueRoomColumn ? ', venue_room_id' : '';
+        $venueRoomSelectColumn = $hasBookingVenueRoomColumn ? ", COALESCE({$cartVenueRoomValue}, selected_vra.room_id)" : '';
+
         $this->db->dbquery(
-            "INSERT INTO booking_items (booking_id, item_type, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type)
+            "INSERT INTO booking_items (booking_id, item_type, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn})
             SELECT :bid, ci.item_type, ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     COALESCE(ci.price, s.price_min, s.price, p.base_price, sp.total_price, 0),
                     'pending',
                     ci.slot_id, ci.start_time, ci.end_time,
-                    COALESCE(s.booking_type, 'fullday')
+                    COALESCE(s.booking_type, 'fullday'){$venueRoomSelectColumn}
             FROM cart_items ci
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
+            LEFT JOIN venue_room_availability selected_vra ON selected_vra.id = ci.slot_id
             WHERE ci.user_id = :uid
             ORDER BY ci.id DESC"
         );
@@ -85,6 +94,30 @@ class BookingModel
         }
 
         return $ids;
+    }
+
+    private function hasCartVenueRoomColumn(): bool
+    {
+        if ($this->cartVenueRoomColumn !== null) {
+            return $this->cartVenueRoomColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'venue_room_id'");
+        $this->cartVenueRoomColumn = (bool)$this->db->getsingledata();
+
+        return $this->cartVenueRoomColumn;
+    }
+
+    private function hasBookingVenueRoomColumn(): bool
+    {
+        if ($this->bookingVenueRoomColumn !== null) {
+            return $this->bookingVenueRoomColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM booking_items LIKE 'venue_room_id'");
+        $this->bookingVenueRoomColumn = (bool)$this->db->getsingledata();
+
+        return $this->bookingVenueRoomColumn;
     }
 
     /**
@@ -292,13 +325,27 @@ class BookingModel
      */
     public function getBookingItems(int $bookingId): array
     {
+        $hasBookingVenueRoomColumn = $this->hasBookingVenueRoomColumn();
+        $bookingVenueSelect = $hasBookingVenueRoomColumn
+            ? 'COALESCE(bi_vr.id, slot_vr.id) AS venue_room_id,
+                    COALESCE(bi_vr.name, slot_vr.name) AS venue_room_name,
+                    COALESCE(bi_venue.name, slot_venue.name) AS venue_name'
+            : 'slot_vr.id AS venue_room_id,
+                    slot_vr.name AS venue_room_name,
+                    slot_venue.name AS venue_name';
+        $bookingVenueJoin = $hasBookingVenueRoomColumn
+            ? 'LEFT JOIN venue_rooms bi_vr ON bi_vr.id = bi.venue_room_id
+             LEFT JOIN venues bi_venue ON bi_venue.id = bi_vr.venue_id'
+            : '';
+
         $this->db->dbquery(
             "SELECT bi.*,
                     COALESCE(s.name, p.name, sp.name) AS service_name,
                     COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
                     COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
                     sup.supplier_id,
-                    cat.name AS category_name
+                    cat.name AS category_name,
+                    {$bookingVenueSelect}
              FROM booking_items bi
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
              LEFT JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
@@ -306,6 +353,10 @@ class BookingModel
              LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
              LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
              LEFT JOIN categories cat ON s.category_id = cat.id
+             {$bookingVenueJoin}
+             LEFT JOIN venue_room_availability slot_vra ON slot_vra.id = bi.slot_id
+             LEFT JOIN venue_rooms slot_vr ON slot_vr.id = slot_vra.room_id
+             LEFT JOIN venues slot_venue ON slot_venue.id = slot_vr.venue_id
              WHERE bi.booking_id = :bid
              ORDER BY bi.id ASC"
         );

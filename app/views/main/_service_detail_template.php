@@ -2143,13 +2143,14 @@ button, input, select, textarea { font-family: var(--font-sans); }
                         <input type="radio" name="service_slot"
                           value="room|<?= (int)$room['id'] ?>"
                           data-room-id="<?= (int)$room['id'] ?>"
+                          data-venue-room-id="<?= (int)$room['id'] ?>"
                           data-date="<?= $h($selectedDate) ?>"
                           data-date-label="<?= $h($selectedDateLabel ?: 'Choose a wedding date') ?>"
                           data-hall-label="<?= $h($room['name'] ?: 'Selected hall') ?>"
                           data-time-label="<?= (int)($room['capacity'] ?? 1) ?> guests"
                           data-price-label="<?= $money($roomDisplayPrice) ?>"
                           data-price-value="<?= $h($roomDisplayPrice) ?>"
-                          data-slot-id="<?= $h($room['selected_availability_id'] ?? '') ?>"
+                          data-slot-id=""
                           data-start-time="<?= $h($room['start_time'] ?? '') ?>"
                           data-end-time="<?= $h($room['end_time'] ?? '') ?>"
                           <?= $checked ? 'checked' : '' ?>
@@ -2313,7 +2314,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <form method="POST" action="<?= URLROOT ?>/cart/add" id="serviceCartForm" style="display:contents;">
             <input type="hidden" name="service_id" value="<?= (int)($service['id'] ?? 0) ?>">
             <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
-            <input type="hidden" name="slot_id" id="cartSlotId" value="<?= $h($isVenue ? ($firstVenueRoom['selected_availability_id'] ?? '') : ($firstSlot['slot_id'] ?? '')) ?>">
+            <input type="hidden" name="slot_id" id="cartSlotId" value="<?= $h($isVenue ? '' : ($firstSlot['slot_id'] ?? '')) ?>">
+            <input type="hidden" name="venue_room_id" id="cartVenueRoomId" value="<?= $h($isVenue ? ($firstVenueRoom['id'] ?? '') : '') ?>">
             <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($isVenue ? ($firstVenueRoom['start_time'] ?? '') : ($firstSlot['start_time'] ?? '')) ?>">
             <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($isVenue ? ($firstVenueRoom['end_time'] ?? '') : ($firstSlot['end_time'] ?? '')) ?>">
             <input type="hidden" name="price" id="cartPrice" value="<?= $h($isPackageContext ? $packageServicePrice : ($isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : $activeServicePrice)) ?>">
@@ -2532,6 +2534,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cartFeedback = document.getElementById('cartFeedback');
   const cartDate = document.getElementById('cartDate');
   const cartSlotId = document.getElementById('cartSlotId');
+  const cartVenueRoomId = document.getElementById('cartVenueRoomId');
   const cartStartTime = document.getElementById('cartStartTime');
   const cartEndTime = document.getElementById('cartEndTime');
   const cartPrice = document.getElementById('cartPrice');
@@ -2553,6 +2556,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update hidden form fields for cart
     if (cartDate) cartDate.value = input.dataset.date || '';
     if (cartSlotId) cartSlotId.value = input.dataset.slotId || '';
+    if (cartVenueRoomId) cartVenueRoomId.value = input.dataset.venueRoomId || input.dataset.roomId || '';
     if (cartStartTime) cartStartTime.value = input.dataset.startTime || '';
     if (cartEndTime) cartEndTime.value = input.dataset.endTime || '';
     if (cartPrice) {
