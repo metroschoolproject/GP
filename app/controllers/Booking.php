@@ -1,0 +1,819 @@
+<?php
+
+require_once APPROOT . '/traits/JsonResponseTrait.php';
+
+class Booking extends Controller
+{
+    use JsonResponseTrait;
+
+    private BookingModel $bookingModel;
+    private CartModel $cartModel;
+    private SupplierProfile $supplierProfileModel;
+    private ?int $userId;
+    private const DEPOSIT_PERCENT = 10;
+
+    public function __construct()
+    {
+        $this->bookingModel = $this->model('BookingModel');
+        $this->cartModel = $this->model('CartModel');
+        $this->supplierProfileModel = $this->model('SupplierProfile');
+        $this->userId = $_SESSION['session_uid'] ?? null;
+    }
+
+    /* ─── Helper ──────────────────────────────────────────────── */
+
+    private function ensureAuthenticated(): void
+    {
+        if (!$this->userId) {
+            redirect('users/auth');
+            exit;
+        }
+    }
+
+    private function money($v): string
+    {
+        return 'RM ' . number_format((float)$v, 0);
+    }
+
+    private function plain($v): string
+    {
+        $text = (string)$v;
+        for ($i = 0; $i < 10; $i++) {
+            $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($decoded === $text) break;
+            $text = $decoded;
+        }
+        return $text;
+    }
+
+    private function h($v): string
+    {
+        return htmlspecialchars($this->plain($v), ENT_QUOTES, 'UTF-8');
+    }
+
+    /* ─── Step 1: Confirm Booking (GET + POST) ──────────────────── */
+
+    public function create(): void
+    {
+        $this->ensureAuthenticated();
+
+        $items = $this->cartModel->getCartItems($this->userId);
+        $total = $this->cartModel->getCartTotal($this->userId);
+
+        if (empty($items)) {
+            redirect('cart');
+            return;
+        }
+
+        $user = $this->getUserData();
+
+        $this->view('booking/create', [
+            'items' => $items,
+            'total' => (float)$total,
+            'cartCount' => count($items),
+            'user' => $user,
+            'depositPercent' => self::DEPOSIT_PERCENT,
+        ]);
+    }
+
+    public function createPost(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $items = $this->cartModel->getCartItems($this->userId);
+        $total = $this->cartModel->getCartTotal($this->userId);
+
+        if (empty($items)) {
+            $this->jsonResponse(['error' => 'Cart is empty'], 400);
+        }
+
+        $cartId = $this->cartModel->getOrCreateCart($this->userId);
+
+        // Create draft booking
+        $bookingId = $this->bookingModel->createDraftFromCart($this->userId, $cartId, $total);
+        if (!$bookingId) {
+            $this->jsonResponse(['error' => 'Could not create booking. Please try again.'], 500);
+        }
+
+        // Transfer cart items to booking_items
+        if (!$this->bookingModel->insertBookingItems($bookingId, $this->userId)) {
+            $this->jsonResponse(['error' => 'Could not save booking items. Please try again.'], 500);
+        }
+
+        // Parse item-specific data from POST
+        $itemsData = json_decode($_POST['items_data'] ?? '[]', true) ?: [];
+        if (empty($itemsData)) {
+            // Fallback: build from POST fields
+            $names = $_POST['item_name'] ?? [];
+            $dates = $_POST['item_date'] ?? [];
+            $startTimes = $_POST['item_start_time'] ?? [];
+            $endTimes = $_POST['item_end_time'] ?? [];
+            $guests = $_POST['item_guests'] ?? [];
+            $notes = $_POST['item_notes'] ?? [];
+            $locations = $_POST['item_location'] ?? [];
+            $phones = $_POST['item_phone'] ?? [];
+            $contactNames = $_POST['item_contact_name'] ?? [];
+
+            foreach ($items as $i => $item) {
+                $itemsData[] = [
+                    'event_date' => $dates[$i] ?? ($item['selected_date'] ?? ''),
+                    'start_time' => $startTimes[$i] ?? ($item['start_time'] ?? ''),
+                    'end_time' => $endTimes[$i] ?? ($item['end_time'] ?? ''),
+                    'guest_count' => (int)($guests[$i] ?? 0),
+                    'notes' => $notes[$i] ?? '',
+                    'location' => $locations[$i] ?? '',
+                    'phone' => $phones[$i] ?? '',
+                    'contact_name' => $contactNames[$i] ?? '',
+                ];
+            }
+        }
+
+        // Save event details
+        if (!$this->bookingModel->insertEventDetails($bookingId, $itemsData)) {
+            $this->jsonResponse(['error' => 'Could not save event details. Please try again.'], 500);
+        }
+
+        // Link suppliers
+        if (!$this->bookingModel->insertBookingSuppliers($bookingId)) {
+            $this->jsonResponse(['error' => 'Could not assign suppliers for this booking. Please try again.'], 500);
+        }
+
+        // Clear cart
+        $this->bookingModel->clearCart($this->userId);
+
+        // Log status change
+        $this->bookingModel->logStatusChange($bookingId, null, 'draft', $this->userId);
+
+        $this->jsonResponse([
+            'success' => true,
+            'booking_id' => $bookingId,
+            'redirect' => URLROOT . '/booking/pay/' . $bookingId,
+        ]);
+    }
+
+    /* ─── Step 2: Payment (Stripe) ────────────────────────────── */
+
+    public function pay(int $bookingId): void
+    {
+        $this->ensureAuthenticated();
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        if ($booking['status'] !== 'draft' && $booking['status'] !== 'pending_payment') {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        $items = $this->bookingModel->getBookingItems($bookingId);
+        $total = (float)$booking['total_amount'];
+        $deposit = $total * (self::DEPOSIT_PERCENT / 100);
+
+        // Update booking to pending_payment
+        if ($booking['status'] === 'draft') {
+            $this->bookingModel->updateStatus($bookingId, 'pending_payment');
+            $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
+        }
+
+        $this->view('booking/pay', [
+            'booking' => $booking,
+            'items' => $items,
+            'total' => $total,
+            'deposit' => $deposit,
+            'depositPercent' => self::DEPOSIT_PERCENT,
+            'balance' => $total - $deposit,
+            'bookingRef' => $this->bookingModel->generateBookingRef($bookingId),
+            'stripePublishableKey' => $this->getStripePublishableKey(),
+        ]);
+    }
+
+    /**
+     * Process Stripe payment (AJAX POST).
+     */
+    public function processPayment(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $paymentMethodId = trim($_POST['payment_method_id'] ?? '');
+
+        if ($bookingId <= 0 || $paymentMethodId === '') {
+            $this->jsonResponse(['error' => 'Invalid payment data'], 400);
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        if (!in_array($booking['status'] ?? '', ['draft', 'pending_payment'], true)) {
+            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
+        }
+
+        $total = (float)$booking['total_amount'];
+        $deposit = $total * (self::DEPOSIT_PERCENT / 100);
+
+        try {
+            $stripe = $this->getStripeClient();
+
+            // Create a PaymentIntent for the deposit amount (in cents)
+            $intent = \Stripe\PaymentIntent::create([
+                'amount' => (int)round($deposit * 100), // cents
+                'currency' => 'myr',
+                'payment_method' => $paymentMethodId,
+                'confirmation_method' => 'manual',
+                'confirm' => true,
+                'description' => 'Booking #' . $this->bookingModel->generateBookingRef($bookingId),
+                'metadata' => [
+                    'booking_id' => (string)$bookingId,
+                    'user_id' => (string)$this->userId,
+                ],
+                'return_url' => URLROOT . '/booking/success/' . $bookingId,
+            ]);
+
+            if ($intent->status === 'succeeded') {
+                // Payment succeeded immediately
+                $this->handleSuccessfulPayment($bookingId, $deposit, $intent->id);
+                return;
+            } elseif ($intent->status === 'requires_action') {
+                // 3D Secure required
+                $this->jsonResponse([
+                    'requires_action' => true,
+                    'payment_intent_client_secret' => $intent->client_secret,
+                ]);
+                return;
+            }
+
+            $this->jsonResponse(['error' => 'Unexpected payment status: ' . $intent->status], 400);
+        } catch (\Stripe\Exception\CardException $e) {
+            $this->jsonResponse([
+                'error' => $e->getMessage() ?: 'Your card was declined. Please try a different card.',
+                'decline_code' => $e->getDeclineCode(),
+            ], 402);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'error' => 'Payment processing error. Your card has not been charged. Please try again.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Confirm payment after 3D Secure authentication.
+     */
+    public function confirmPayment(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $paymentIntentId = trim($_POST['payment_intent_id'] ?? '');
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+
+        if ($paymentIntentId === '' || $bookingId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid data'], 400);
+        }
+
+        try {
+            $stripe = $this->getStripeClient();
+            $intent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
+
+            if ($intent->status === 'succeeded') {
+                // Get proper booking amount from metadata or booking record
+                $booking = $this->bookingModel->getBookingById($bookingId);
+                if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+                    $this->jsonResponse(['error' => 'Booking not found'], 404);
+                }
+                $total = (float)$booking['total_amount'];
+                $deposit = $total * (self::DEPOSIT_PERCENT / 100);
+
+                $this->handleSuccessfulPayment($bookingId, $deposit, $intent->id);
+                return;
+            } elseif ($intent->status === 'requires_confirmation') {
+                $intent->confirm();
+                if ($intent->status === 'succeeded') {
+                    $booking = $this->bookingModel->getBookingById($bookingId);
+                    if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+                        $this->jsonResponse(['error' => 'Booking not found'], 404);
+                    }
+                    $total = (float)$booking['total_amount'];
+                    $deposit = $total * (self::DEPOSIT_PERCENT / 100);
+                    $this->handleSuccessfulPayment($bookingId, $deposit, $intent->id);
+                    return;
+                }
+                $this->jsonResponse(['requires_action' => true, 'payment_intent_client_secret' => $intent->client_secret]);
+                return;
+            }
+
+            $this->jsonResponse(['error' => 'Payment not completed. Status: ' . $intent->status], 400);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['error' => 'Could not confirm payment: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function handleSuccessfulPayment(int $bookingId, float $amount, string $transactionRef): void
+    {
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        if (($booking['payment_status'] ?? '') === 'paid' || (float)($booking['paid_amount'] ?? 0) >= $amount) {
+            $this->jsonResponse([
+                'success' => true,
+                'redirect' => URLROOT . '/booking/success/' . $bookingId,
+            ]);
+        }
+
+        // Create payment record
+        $paymentId = $this->bookingModel->createPayment($bookingId, $amount, 'deposit', 'stripe');
+        if ($paymentId) {
+            $this->bookingModel->confirmPayment($paymentId, $transactionRef);
+        }
+
+        // Update booking status
+        $this->bookingModel->updatePaidAmount($bookingId, $amount);
+        $this->bookingModel->updateStatus($bookingId, 'paid', 'partial');
+        $this->bookingModel->logStatusChange($bookingId, $booking['status'] ?? 'pending_payment', 'paid', $this->userId);
+
+        // Generate vouchers
+        $this->bookingModel->generateVouchers($bookingId);
+
+        $this->jsonResponse([
+            'success' => true,
+            'redirect' => URLROOT . '/booking/success/' . $bookingId,
+        ]);
+    }
+
+    /* ─── Booking Status Poll (for success page) ──────────────── */
+
+    public function status(int $bookingId): void
+    {
+        $this->ensureAuthenticated();
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Not found'], 404);
+        }
+
+        $this->jsonResponse([
+            'status' => $booking['status'],
+            'payment_status' => $booking['payment_status'],
+        ]);
+    }
+
+    /* ─── Success Page ────────────────────────────────────────── */
+
+    public function success(int $bookingId): void
+    {
+        $this->ensureAuthenticated();
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        $items = $this->bookingModel->getBookingItems($bookingId);
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+
+        $this->view('booking/success', [
+            'booking' => $booking,
+            'items' => $items,
+            'bookingRef' => $bookingRef,
+        ]);
+    }
+
+    /* ─── My Bookings (Customer) ──────────────────────────────── */
+
+    public function myBookings(): void
+    {
+        $this->ensureAuthenticated();
+
+        $filter = trim($_GET['status'] ?? 'all');
+        $bookings = $this->bookingModel->getCustomerBookings($this->userId, $filter);
+
+        // Enrich each booking with items count and booking ref
+        $enriched = [];
+        foreach ($bookings as $b) {
+            $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
+            $b['items'] = $this->bookingModel->getBookingItems((int)$b['id']);
+            $b['total_amount'] = (float)$b['total_amount'];
+            $b['paid_amount'] = (float)$b['paid_amount'];
+            $enriched[] = $b;
+        }
+
+        $this->view('booking/myBookings', [
+            'bookings' => $enriched,
+            'activeFilter' => $filter,
+        ]);
+    }
+
+    /* ─── Booking Detail (Customer) ─────────────────────────────── */
+
+    public function detail(int $bookingId): void
+    {
+        $this->ensureAuthenticated();
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        $items = $this->bookingModel->getBookingItems($bookingId);
+        $eventDetails = $this->bookingModel->getEventDetails($bookingId);
+        $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+        $logs = $this->bookingModel->getStatusLogs($bookingId);
+        $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+
+        $this->view('booking/detail', [
+            'booking' => $booking,
+            'items' => $items,
+            'eventDetails' => $eventDetails,
+            'suppliers' => $suppliers,
+            'logs' => $logs,
+            'vouchers' => $vouchers,
+            'bookingRef' => $bookingRef,
+            'depositPercent' => self::DEPOSIT_PERCENT,
+        ]);
+    }
+
+    /* ─── Vouchers (Customer) ─────────────────────────────────── */
+
+    public function vouchers(): void
+    {
+        $this->ensureAuthenticated();
+
+        $filter = trim($_GET['status'] ?? 'all');
+        $vouchers = $this->bookingModel->getCustomerVouchers($this->userId, $filter);
+
+        $this->view('booking/vouchers', [
+            'vouchers' => $vouchers,
+            'activeFilter' => $filter,
+        ]);
+    }
+
+    /* ─── Cancellation Request (Customer) ─────────────────────── */
+
+    public function cancel(int $bookingId): void
+    {
+        $this->ensureAuthenticated();
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        if (in_array($booking['status'], ['cancelled', 'completed'], true)) {
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
+
+        $items = $this->bookingModel->getBookingItems($bookingId);
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+
+        $this->view('booking/cancel', [
+            'booking' => $booking,
+            'items' => $items,
+            'bookingRef' => $bookingRef,
+            'depositPercent' => self::DEPOSIT_PERCENT,
+        ]);
+    }
+
+    public function submitCancellation(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $reason = trim($_POST['reason'] ?? '');
+
+        if ($bookingId <= 0 || $reason === '') {
+            $this->jsonResponse(['error' => 'Please provide a reason for cancellation'], 400);
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        if (in_array($booking['status'] ?? '', ['cancelled', 'completed'], true)) {
+            $this->jsonResponse(['error' => 'This booking can no longer be cancelled.'], 400);
+        }
+
+        if (!$this->bookingModel->requestCancellation($bookingId, $reason)) {
+            $this->jsonResponse(['error' => 'Could not submit cancellation request. Please try again.'], 500);
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Your cancellation request has been submitted.',
+        ]);
+    }
+
+    /* ─── Stripe Helpers ─────────────────────────────────────── */
+
+    private function getStripePublishableKey(): string
+    {
+        // In production, load from config
+        $key = getenv('STRIPE_PUBLISHABLE_KEY') ?: 'pk_test_51R8J48A8prqB0d4XosOJQOAU01iXIJhXT5XoE7tIQBc8QELkQtqFRVhNqnqI6ELB7TAUQyP5WFK5yMfx7Z6ctQQW003ImAlGHD';
+        return $key ?: '';
+    }
+
+    private function getStripeClient(): \Stripe\StripeClient
+    {
+        $secretKey = getenv('STRIPE_SECRET_KEY') ?: 'sk_test_51R8J48A8prqB0d4XNMGtyys8dyQ8sC0Nd30N3tIp6M9wxqCaQ23LqIYYRrLb1Nsy3NqTTdpFVVV2qVwaxGV3wUJ2001ZNCpLtd';
+        return new \Stripe\StripeClient($secretKey);
+    }
+
+    /* ─── User Helper ────────────────────────────────────────── */
+
+    private function getUserData(): array
+    {
+        $db = new Database();
+        $db->dbquery("SELECT name, email, phone FROM users WHERE user_id = :uid LIMIT 1");
+        $db->dbbind(':uid', $this->userId, PDO::PARAM_INT);
+        $user = $db->getsingledata();
+
+        return [
+            'name' => $user['name'] ?? '',
+            'email' => $user['email'] ?? '',
+            'phone' => $user['phone'] ?? '',
+        ];
+    }
+
+    private function currentSupplierId(): int
+    {
+        $supplierId = (int)($_SESSION['supplier_id'] ?? 0);
+        if ($supplierId > 0) {
+            return $supplierId;
+        }
+
+        $userId = (int)($_SESSION['session_uid'] ?? 0);
+        if ($userId <= 0) {
+            return 0;
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        $supplierId = (int)($supplier['supplier_id'] ?? 0);
+        if ($supplierId > 0) {
+            $_SESSION['supplier_id'] = $supplierId;
+        }
+
+        return $supplierId;
+    }
+
+    /* ─── Supplier Booking Views ──────────────────────────────── */
+
+    /**
+     * Supplier booking dashboard.
+     */
+    public function supplierBookings(): void
+    {
+        // This is mounted under the supplier namespace via Supplier controller
+        // We use the supplier session ID from $_SESSION
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            redirect('supplier/dashboard');
+            return;
+        }
+
+        $filter = trim($_GET['status'] ?? 'all');
+        $bookings = $this->bookingModel->getSupplierBookings($supplierId, $filter);
+        $stats = $this->bookingModel->getSupplierStats($supplierId);
+
+        // Enrich bookings with items and ref
+        $enriched = [];
+        foreach ($bookings as $b) {
+            $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
+            $b['items'] = $this->bookingModel->getBookingItems((int)$b['id']);
+            $b['total_amount'] = (float)$b['total_amount'];
+            $enriched[] = $b;
+        }
+
+        require_once APPROOT . '/controllers/SupplierControllerSupport.php';
+        // Render using a view that expects the supplier layout
+        $this->view('supplier/bookings', [
+            'bookings' => $enriched,
+            'stats' => $stats,
+            'activeFilter' => $filter,
+            'supplierId' => $supplierId,
+        ]);
+    }
+
+    /**
+     * Supplier booking detail.
+     */
+    public function supplierBookingDetail(int $bookingId): void
+    {
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            redirect('supplier/dashboard');
+            return;
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking) {
+            redirect('supplier/bookings');
+            return;
+        }
+
+        // Verify this supplier is associated
+        $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+        $isAssociated = false;
+        foreach ($suppliers as $s) {
+            if ((int)$s['supplier_id'] === $supplierId) {
+                $isAssociated = true;
+                $currentSupplierStatus = $s['status'];
+                $currentSupplierRowId = (int)$s['id'];
+                break;
+            }
+        }
+
+        if (!$isAssociated) {
+            redirect('supplier/bookings');
+            return;
+        }
+
+        $items = $this->bookingModel->getBookingItems($bookingId);
+        $eventDetails = $this->bookingModel->getEventDetails($bookingId);
+        $logs = $this->bookingModel->getStatusLogs($bookingId);
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+
+        $this->view('supplier/bookingDetail', [
+            'booking' => $booking,
+            'items' => $items,
+            'eventDetails' => $eventDetails,
+            'logs' => $logs,
+            'bookingRef' => $bookingRef,
+            'supplierStatus' => $currentSupplierStatus ?? 'pending',
+            'supplierRowId' => $currentSupplierRowId ?? 0,
+            'supplierId' => $supplierId,
+            'depositPercent' => self::DEPOSIT_PERCENT,
+        ]);
+    }
+
+    /**
+     * Supplier accept/decline booking (AJAX POST).
+     */
+    public function supplierRespond(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $action = trim($_POST['action'] ?? ''); // 'accept' or 'decline'
+
+        if ($bookingId <= 0 || !in_array($action, ['accept', 'decline'], true)) {
+            $this->jsonResponse(['error' => 'Invalid request'], 400);
+        }
+
+        $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+        $rowId = 0;
+        foreach ($suppliers as $s) {
+            if ((int)$s['supplier_id'] === $supplierId) {
+                $rowId = (int)$s['id'];
+                break;
+            }
+        }
+
+        if ($rowId <= 0) {
+            $this->jsonResponse(['error' => 'Not associated with this booking'], 403);
+        }
+
+        $newStatus = $action === 'accept' ? 'confirmed' : 'rejected';
+        $itemStatus = $action === 'accept' ? 'accepted' : 'cancelled';
+
+        if (!$this->bookingModel->updateSupplierStatus($rowId, $newStatus)) {
+            $this->jsonResponse(['error' => 'Could not update status'], 500);
+        }
+
+        // Update the booking items for this supplier
+        $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus);
+
+        // Log
+        $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, 'Supplier ' . $action . 'ed booking');
+
+        $this->jsonResponse([
+            'success' => true,
+            'new_status' => $newStatus,
+            'message' => $action === 'accept' ? 'Booking accepted!' : 'Booking declined.',
+        ]);
+    }
+
+    /* ─── Admin Booking Views ─────────────────────────────────── */
+
+    /**
+     * Admin booking management page.
+     */
+    public function adminBookings(): void
+    {
+        $filter = trim($_GET['status'] ?? 'all');
+        $search = trim($_GET['search'] ?? '');
+        $bookings = $this->bookingModel->getAllBookings($filter, $search);
+        $stats = $this->bookingModel->getAdminStats();
+
+        $enriched = [];
+        foreach ($bookings as $b) {
+            $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
+            $b['total_amount'] = (float)$b['total_amount'];
+            $b['paid_amount'] = (float)$b['paid_amount'];
+            $enriched[] = $b;
+        }
+
+        $this->view('admin/bookings', [
+            'bookings' => $enriched,
+            'stats' => $stats,
+            'activeFilter' => $filter,
+            'search' => $search,
+        ]);
+    }
+
+    /**
+     * Admin booking detail.
+     */
+    public function adminBookingDetail(int $bookingId): void
+    {
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking) {
+            redirect('admin/bookings');
+            return;
+        }
+
+        $items = $this->bookingModel->getBookingItems($bookingId);
+        $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+        $eventDetails = $this->bookingModel->getEventDetails($bookingId);
+        $logs = $this->bookingModel->getStatusLogs($bookingId);
+        $payments = $this->bookingModel->getBookingPayments($bookingId);
+        $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+
+        $this->view('admin/bookingDetail', [
+            'booking' => $booking,
+            'items' => $items,
+            'suppliers' => $suppliers,
+            'eventDetails' => $eventDetails,
+            'logs' => $logs,
+            'payments' => $payments,
+            'vouchers' => $vouchers,
+            'bookingRef' => $bookingRef,
+            'depositPercent' => self::DEPOSIT_PERCENT,
+        ]);
+    }
+
+    /**
+     * Admin cancel booking (AJAX POST).
+     */
+    public function adminCancelBooking(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $adminId = (int)($_SESSION['session_uid'] ?? 0);
+        if ($adminId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $reason = trim($_POST['reason'] ?? '');
+        $refundDeposit = !empty($_POST['refund_deposit']);
+
+        if ($bookingId <= 0 || $reason === '') {
+            $this->jsonResponse(['error' => 'Please provide a reason.'], 400);
+        }
+
+        if (!$this->bookingModel->adminCancelBooking($bookingId, $reason, $adminId, $refundDeposit)) {
+            $this->jsonResponse(['error' => 'Could not cancel booking.'], 500);
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Booking cancelled successfully.',
+        ]);
+    }
+}

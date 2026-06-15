@@ -5,6 +5,7 @@ require_once APPROOT . '/controllers/SupplierServices.php';
 require_once APPROOT . '/controllers/SupplierServiceMedia.php';
 require_once APPROOT . '/controllers/SupplierAvailability.php';
 require_once APPROOT . '/controllers/SupplierNotifications.php';
+require_once APPROOT . '/controllers/Booking.php';
 
 class Supplier extends SupplierControllerSupport
 {
@@ -349,6 +350,21 @@ class Supplier extends SupplierControllerSupport
     public function markNotificationRead($notificationId = null)
     {
         return $this->forwardTo(SupplierNotifications::class, __FUNCTION__, func_get_args());
+    }
+
+    public function bookings()
+    {
+        return $this->forwardTo(Booking::class, 'supplierBookings', func_get_args());
+    }
+
+    public function bookingDetail($bookingId = null)
+    {
+        return $this->forwardTo(Booking::class, 'supplierBookingDetail', [(int)$bookingId]);
+    }
+
+    public function bookingRespond()
+    {
+        return $this->forwardTo(Booking::class, 'supplierRespond', func_get_args());
     }
 
     private function saveSupplierDocumentOrRespond($saved, array &$data, $field, $documentType, $label, $isAjax)

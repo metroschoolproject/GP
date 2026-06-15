@@ -14,6 +14,8 @@ $initialsSource = trim($supplierNameRaw) !== '' ? $supplierNameRaw : 'Supplier';
 $supplierInitials = strtoupper(substr($initialsSource, 0, 1));
 $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
 $calendarPathActive = strpos($currentPath, 'supplier/calendar') !== false || strpos($currentPath, 'supplier/serviceCalendar') !== false;
+$bookingsPathActive = strpos($currentPath, 'supplier/bookings') !== false
+    || strpos($currentPath, 'supplier/bookingDetail') !== false;
 $servicesPathActive = strpos($currentPath, 'supplier/services') !== false
     || strpos($currentPath, 'supplier/serviceDetail') !== false
     || strpos($currentPath, 'supplier/serviceCalendar') !== false;
@@ -328,8 +330,8 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                 <i data-lucide="layout-dashboard" class="h-4 w-4"></i>
                 <span class="supplier-sidebar-label flex-1">Dashboard</span>
             </a>
-            <a href="#" title="Bookings" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
-                <i data-lucide="calendar-check" class="h-4 w-4 text-app-header-muted"></i>
+            <a href="<?= URLROOT ?>/supplier/bookings" title="Bookings" class="<?= $bookingsPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm' ?>">
+                <i data-lucide="calendar-check" class="h-4 w-4 <?= $bookingsPathActive ? '' : 'text-app-header-muted' ?>"></i>
                 <span class="supplier-sidebar-label flex-1">Bookings</span>
                 <?php if ($pendingBookings > 0): ?>
                     <span class="supplier-sidebar-badge rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-warning"><?= $pendingBookings ?></span>

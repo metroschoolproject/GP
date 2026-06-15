@@ -148,7 +148,7 @@ class User
 
     public function login($data)
     {
-        $this->db->dbquery("SELECT user_id,password FROM users WHERE email = :email");
+        $this->db->dbquery("SELECT user_id,password,name FROM users WHERE email = :email");
         $this->db->dbbind(":email", $data['email']);
         $row = $this->db->getsingledata();
         if (!$row) return false;
@@ -164,6 +164,7 @@ class User
                 session_regenerate_id(true);
                 $_SESSION['session_uid'] = $row['user_id'];
                 $_SESSION['session_email'] = $data['email'];
+                $_SESSION['session_name'] = $row['name'] ?? '';
                 return true;
             } else {
                 return false;
@@ -222,7 +223,7 @@ class User
     public function getRememberedUser($userId, $tokenHash)
     {
         $this->db->dbquery(
-            "SELECT user_id, email
+            "SELECT user_id, email, name
              FROM users
              WHERE user_id = :user_id
                AND remember_token = :token

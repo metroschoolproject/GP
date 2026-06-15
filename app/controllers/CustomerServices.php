@@ -44,13 +44,21 @@ class CustomerServices extends Controller
             $packageModel = $this->model('PlatformPackage');
             $packageContext = $packageModel->getServicePackageContext($packageId, $packageItemId, $serviceId);
             if ($packageContext) {
+                $standalonePrice = (float)($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
                 $packagePrice = (float)($packageContext['package_price'] ?? 0);
                 $service['package_context'] = $packageContext;
+                $service['standalone_price'] = $standalonePrice;
                 $service['price_context'] = 'package';
                 $service['display_price'] = $packagePrice;
                 $service['price'] = $packagePrice;
                 $service['price_min'] = $packagePrice;
                 $service['price_max'] = $packagePrice;
+                if (!empty($packageContext['venue_room_id']) && !empty($service['venue_rooms'])) {
+                    $selectedRoomId = (int)$packageContext['venue_room_id'];
+                    $service['venue_rooms'] = array_values(array_filter($service['venue_rooms'], function ($room) use ($selectedRoomId) {
+                        return (int)($room['id'] ?? 0) === $selectedRoomId;
+                    }));
+                }
             }
         }
 
@@ -70,7 +78,22 @@ class CustomerServices extends Controller
     public function packages()
     {
         $packageModel = $this->model('PlatformPackage');
-        $packageTypes = $packageModel->getPackageTypes();
+
+        // Build filters from request
+        $search = trim($_GET['q'] ?? '');
+        $sort = trim($_GET['sort'] ?? 'featured');
+        $category = trim($_GET['category'] ?? 'all');
+        $filters = [
+            'search' => $search,
+            'sort' => $sort,
+            'category' => $category,
+        ];
+
+        $packageTypes = $packageModel->getPackageTypes($filters);
+        $categories = $packageModel->getPackageCategories($filters);
+
+        // Check active filters
+        $hasActiveFilters = $search !== '' || $category !== 'all';
 
         // Cart count for header badge
         $cartCount = 0;
@@ -83,6 +106,10 @@ class CustomerServices extends Controller
         $this->view('main/packages', [
             'packages' => $packageTypes,
             'cartCount' => $cartCount,
+            'filters' => $filters,
+            'categories' => $categories,
+            'hasActiveFilters' => $hasActiveFilters,
+            'totalServices' => count($packageTypes),
         ]);
     }
 

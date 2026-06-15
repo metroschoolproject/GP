@@ -1,6 +1,7 @@
 <?php
 
 require_once APPROOT . '/services/UploadService.php';
+require_once APPROOT . '/controllers/Booking.php';
 
 class Admin extends Controller
 {
@@ -60,6 +61,24 @@ class Admin extends Controller
             'message' => $_SESSION['admin_flash'] ?? '',
         ]);
         unset($_SESSION['admin_flash']);
+    }
+
+    public function bookings()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminBookings'], func_get_args());
+    }
+
+    public function bookingDetail($bookingId = null)
+    {
+        $bookingController = new Booking();
+        return $bookingController->adminBookingDetail((int)$bookingId);
+    }
+
+    public function bookingCancel()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminCancelBooking'], func_get_args());
     }
 
     public function notification($notificationId = null)
@@ -322,11 +341,20 @@ class Admin extends Controller
         }
 
         $categories = $packageModel->getAllCategories();
+        $serviceOptions = $packageModel->getAdminServiceOptions();
+        $hallOptionsByService = [];
+        foreach ($serviceOptions as $serviceOption) {
+            $label = strtolower((string)($serviceOption['category_slug'] ?? '') . ' ' . (string)($serviceOption['category_name'] ?? ''));
+            if (strpos($label, 'venue') !== false || strpos($label, 'hall') !== false) {
+                $hallOptionsByService[(int)$serviceOption['id']] = $packageModel->getVenueRoomsForService((int)$serviceOption['id']);
+            }
+        }
 
         $this->view('admin/packages/detail', [
             'package' => $package,
             'categories' => $categories,
-            'serviceOptions' => $packageModel->getAdminServiceOptions(),
+            'serviceOptions' => $serviceOptions,
+            'hallOptionsByService' => $hallOptionsByService,
             'message' => $_SESSION['admin_flash'] ?? '',
         ]);
         unset($_SESSION['admin_flash']);
@@ -372,6 +400,7 @@ class Admin extends Controller
             'image_url' => $imageUrl,
             'is_active' => !empty($_POST['is_active']),
             'sort_order' => (int)($_POST['sort_order'] ?? 0),
+            'category_id' => (int)($_POST['category_id'] ?? 0),
         ];
 
         $packageId = $packageModel->createPackageType($data);
@@ -442,6 +471,9 @@ class Admin extends Controller
         if (isset($_POST['sort_order'])) {
             $data['sort_order'] = (int)$_POST['sort_order'];
         }
+        if (isset($_POST['category_id'])) {
+            $data['category_id'] = (int)$_POST['category_id'];
+        }
 
         $updated = $packageModel->updatePackageType((int)$packageId, $data);
 
@@ -511,12 +543,15 @@ class Admin extends Controller
         }
 
         $guestCount = max(1, (int)($_POST['guest_count'] ?? 100));
-        $added = $packageModel->addPackageService((int)$packageId, $serviceId, $guestCount);
+        $hallId = (int)($_POST['hall_id'] ?? 0);
+        $added = $packageModel->addPackageService((int)$packageId, $serviceId, $guestCount, $hallId > 0 ? $hallId : null);
         if ($added) {
             $this->refreshPackageBasePrice($packageModel, (int)$packageId);
         }
 
-        $_SESSION['admin_flash'] = $added ? 'Service added to package and base price updated.' : 'That service is already included or cannot be added.';
+        $_SESSION['admin_flash'] = $added
+            ? 'Service added to package and base price updated.'
+            : 'That service is already included, its category is already represented, or it cannot be added.';
         redirect('admin/packageDetail/' . (int)$packageId);
     }
 
@@ -529,14 +564,26 @@ class Admin extends Controller
         $packageModel = $this->model('PlatformPackage');
         $packageId = $packageModel->getPackageIdForItem((int)$itemId);
         $quantity = max(1, (int)($_POST['quantity'] ?? 1));
-        $updated = $packageModel->updatePackageItemQuantity((int)$itemId, $quantity);
+        $isHallUpdate = array_key_exists('hall_id', $_POST);
+        $updated = false;
+        if ($isHallUpdate) {
+            $updated = $packageModel->updatePackageItemHall((int)$itemId, (int)$_POST['hall_id']);
+        } else {
+            $updated = $packageModel->updatePackageItemQuantity((int)$itemId, $quantity);
+        }
         if ($updated && $packageId > 0) {
             $this->refreshPackageBasePrice($packageModel, $packageId);
         }
 
-        $_SESSION['admin_flash'] = $updated
-            ? 'Package food guest count and base price updated.'
-            : 'Only food or catering services can use guest count.';
+        if ($isHallUpdate) {
+            $_SESSION['admin_flash'] = $updated
+                ? 'Hall assignment updated successfully and base price recalculated.'
+                : 'Could not update hall assignment. The room may not belong to this service.';
+        } else {
+            $_SESSION['admin_flash'] = $updated
+                ? 'Package food guest count and base price updated.'
+                : 'Only food or catering services can use guest count.';
+        }
         redirect($packageId > 0 ? 'admin/packageDetail/' . $packageId : 'admin/packages');
     }
 

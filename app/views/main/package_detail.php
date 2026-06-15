@@ -138,6 +138,74 @@ img { display: block; max-width: 100%; }
 }
 .gp-header-cta:hover { background: #5a3d4a; transform: translateY(-1px); }
 
+/* ─── PROFILE DROPDOWN ──────────────────────────────── */
+.gp-profile-dropdown { position: relative; }
+
+.gp-profile-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--c-rule);
+  background: var(--c-white);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--c-strong);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+}
+.gp-profile-btn:hover { border-color: var(--c-strong); background: rgba(109,76,91,0.06); }
+
+.gp-profile-avatar {
+  display: grid; place-items: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--c-strong);
+  color: #fffaf3;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.gp-profile-name { white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+
+.gp-profile-chevron { opacity: 0.6; transition: transform 0.2s; }
+.gp-profile-btn[aria-expanded="true"] .gp-profile-chevron { transform: rotate(180deg); }
+
+.gp-profile-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--c-rule);
+  background: var(--c-white);
+  box-shadow: 0 12px 35px rgba(15,23,42,0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all 0.15s var(--ease-out-expo);
+}
+.gp-profile-btn[aria-expanded="true"] + .gp-profile-menu,
+.gp-profile-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.gp-profile-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+  transition: all 0.15s;
+}
+.gp-profile-menu-item:hover { background: rgba(109,76,91,0.06); }
+
+.gp-profile-menu-item--danger { color: var(--c-danger); }
+.gp-profile-menu-item--danger:hover { background: rgba(185,75,75,0.08); }
+
 /* ─── PAGE ───────────────────────────────── */
 .gp-detail-page { padding: 0 var(--pad-x) 72px; }
 
@@ -287,6 +355,25 @@ img { display: block; max-width: 100%; }
   font-size: 11px; font-weight: 600; color: var(--c-muted);
   margin-bottom: 4px;
 }
+.gp-svc-hall {
+  display: inline-flex; align-items: center; gap: 5px;
+  max-width: 100%;
+  width: fit-content;
+  margin: 0 0 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(109,76,91,0.08);
+  color: var(--c-strong);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gp-svc-hall svg {
+  flex-shrink: 0;
+}
 .gp-svc-name {
   font-family: var(--font-display);
   font-size: 18px; font-weight: 600; line-height: 1.1;
@@ -390,32 +477,35 @@ img { display: block; max-width: 100%; }
       <span class="gp-cart-badge-count"><?= $cartCount ?></span>
       <?php endif; ?>
     </a>
-    <a class="gp-header-cta" href="<?= $authNavUrl ?>"><?= $authNavLabel ?></a>
+    <?php if ($isLoggedIn): ?>
+    <div class="gp-profile-dropdown">
+      <button class="gp-profile-btn" type="button" aria-expanded="false">
+        <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
+        <span class="gp-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
+        <svg class="gp-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="gp-profile-menu" aria-hidden="true">
+        <a class="gp-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          My Bookings
+        </a>
+        <a class="gp-profile-menu-item gp-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </a>
+      </div>
+    </div>
+    <?php else: ?>
+    <a class="gp-header-cta" href="<?= URLROOT ?>/users/auth">Sign in</a>
+    <?php endif; ?>
   </div>
 </header>
 
 <main class="gp-detail-page">
-  <!-- BREADCRUMB -->
-  <nav class="gp-breadcrumb" aria-label="Breadcrumb">
-    <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
-    <span class="gp-breadcrumb-sep">/</span>
-    <span style="color:var(--c-strong)"><?= $h($package['name'] ?? '') ?></span>
-  </nav>
 
-  <!-- HERO -->
-  <section class="gp-detail-hero" aria-label="Package overview">
-    <div class="gp-detail-hero-overline">Curated Wedding Package</div>
-    <h1><?= $h($package['name'] ?? '') ?></h1>
-    <?php if (!empty($package['tagline'])): ?>
-      <p class="tagline"><?= $h($package['tagline']) ?></p>
-    <?php endif; ?>
-    <?php if (!empty($package['description'])): ?>
-      <p class="desc"><?= $h($package['description']) ?></p>
-    <?php endif; ?>
-    <div class="price-hero">
-      <?= $money($package['base_price'] ?? 0) ?>
-      <span class="price-hero-label">package price</span>
-    </div>
+  
+
+
     <form class="gp-package-cart-form" method="POST" action="<?= URLROOT ?>/cart/addPackage">
       <input type="hidden" name="package_id" value="<?= (int)($package['package_id'] ?? 0) ?>">
       <input type="hidden" name="price" value="<?= (float)($package['base_price'] ?? 0) ?>">
@@ -424,32 +514,6 @@ img { display: block; max-width: 100%; }
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </button>
     </form>
-  </section>
-
-  <!-- HOW IT WORKS -->
-  <section class="gp-how-it-works" aria-label="How this package works">
-    <div class="gp-how-step">
-      <div class="gp-how-step-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      </div>
-      <h3>1. Review Included Services</h3>
-      <p>See the supplier services already selected by Golden Promise for this package.</p>
-    </div>
-    <div class="gp-how-step">
-      <div class="gp-how-step-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      </div>
-      <h3>2. Compare the Value</h3>
-      <p>Each package level includes different services based on the package price.</p>
-    </div>
-    <div class="gp-how-step">
-      <div class="gp-how-step-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      </div>
-      <h3>3. Book with Confidence</h3>
-      <p>Add the package to your cart, check out, and your selected vendors will confirm.</p>
-    </div>
-  </section>
 
   <!-- CATEGORIES WITH SERVICES -->
   <?php if (empty($categoryServices)): ?>
@@ -486,6 +550,15 @@ img { display: block; max-width: 100%; }
             </a>
             <div class="gp-svc-body">
               <span class="gp-svc-supplier"><?= $h($svc['supplier_name'] ?? '') ?></span>
+              <?php if (!empty($svc['venue_room_name'])): ?>
+              <div class="gp-svc-hall" title="<?= $h($svc['venue_room_name']) ?>">
+                <i data-lucide="door-open" style="width:11px;height:11px"></i>
+                <?= $h($svc['venue_room_name']) ?>
+                <?php if (!empty($svc['venue_room_capacity'])): ?>
+                  · <?= (int)$svc['venue_room_capacity'] ?> guests
+                <?php endif; ?>
+              </div>
+              <?php endif; ?>
               <h3 class="gp-svc-name"><?= $h($svc['name'] ?? '') ?></h3>
               <p class="gp-svc-desc"><?= $h($svc['description'] ?? '') ?></p>
               <?php if ((float)($svc['rating'] ?? 0) > 0): ?>
@@ -534,7 +607,24 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     revealBoxes.forEach(el => el.classList.add('visible'));
   }
+
+  // Profile dropdown toggle
+  const profileBtns = document.querySelectorAll('.gp-profile-btn');
+  profileBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      document.querySelectorAll('.gp-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+      btn.setAttribute('aria-expanded', String(!expanded));
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.gp-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  });
 });
 </script>
 </body>
 </html>
+
+
+

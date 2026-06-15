@@ -4,6 +4,8 @@ class PlatformPackage
 {
     private $db;
     private $packageQuantityColumns = null;
+    private $packageCategoryColumn = null;
+    private $packageVenueRoomColumn = null;
 
     public function __construct()
     {
@@ -86,13 +88,24 @@ class PlatformPackage
      */
     public function getPackageById($packageId)
     {
+        $categorySelect = $this->hasPackageCategoryColumn()
+            ? 'p.category_id,
+               pc.name AS category_name,
+               pc.slug AS category_slug'
+            : '(SELECT pi_cat.category_id FROM package_items pi_cat WHERE pi_cat.package_id = p.package_id AND pi_cat.category_id IS NOT NULL ORDER BY pi_cat.id ASC LIMIT 1) AS category_id,
+               (SELECT c_cat.name FROM package_items pi_cat LEFT JOIN categories c_cat ON c_cat.id = pi_cat.category_id WHERE pi_cat.package_id = p.package_id AND pi_cat.category_id IS NOT NULL ORDER BY pi_cat.id ASC LIMIT 1) AS category_name,
+               (SELECT c_cat.slug FROM package_items pi_cat LEFT JOIN categories c_cat ON c_cat.id = pi_cat.category_id WHERE pi_cat.package_id = p.package_id AND pi_cat.category_id IS NOT NULL ORDER BY pi_cat.id ASC LIMIT 1) AS category_slug';
+        $categoryJoin = $this->hasPackageCategoryColumn() ? 'LEFT JOIN categories pc ON pc.id = p.category_id' : '';
+
         $this->db->dbquery(
             'SELECT p.*,
+                    ' . $categorySelect . ',
                     COUNT(pi.service_id) AS item_count,
                     COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total
              FROM packages p
              LEFT JOIN package_items pi ON pi.package_id = p.package_id
              LEFT JOIN services svc ON svc.id = pi.service_id
+             ' . $categoryJoin . '
              WHERE p.package_id = :package_id
              GROUP BY p.package_id
              LIMIT 1'
@@ -113,6 +126,21 @@ class PlatformPackage
      */
     public function getPackageItems($packageId)
     {
+        $hallSelect = $this->hasPackageVenueRoomColumn()
+            ? 'pi.venue_room_id,
+               vr.name AS venue_room_name,
+               vr.name AS hall_name,
+               vr.capacity AS venue_room_capacity,
+               vr.capacity AS hall_capacity,
+               vr.price AS venue_room_price'
+            : 'NULL AS venue_room_id,
+               NULL AS venue_room_name,
+               NULL AS hall_name,
+               NULL AS venue_room_capacity,
+               NULL AS hall_capacity,
+               NULL AS venue_room_price';
+        $hallJoin = $this->hasPackageVenueRoomColumn() ? 'LEFT JOIN venue_rooms vr ON vr.id = pi.venue_room_id' : '';
+
         $this->db->dbquery(
             'SELECT pi.id,
                     pi.category_id,
@@ -120,6 +148,7 @@ class PlatformPackage
                     c.slug AS category_slug,
                     pi.service_id,
                     pi.default_supplier_id,
+                    ' . $hallSelect . ',
                     ' . $this->packageUnitPriceSql() . ' AS unit_price,
                     ' . $this->packageLineTotalSql() . ' AS default_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
@@ -135,6 +164,7 @@ class PlatformPackage
              LEFT JOIN categories c ON c.id = pi.category_id
              LEFT JOIN services svc ON svc.id = pi.service_id
              LEFT JOIN suppliers sup ON sup.supplier_id = pi.default_supplier_id
+             ' . $hallJoin . '
              WHERE pi.package_id = :package_id
                AND pi.service_id IS NOT NULL
              ORDER BY c.name ASC, svc.name ASC'
@@ -160,9 +190,13 @@ class PlatformPackage
         }
         $slug = $this->uniqueSlug($slug);
 
+        $categoryColumn = $this->hasPackageCategoryColumn();
+        $categoryFieldSql = $categoryColumn ? ', category_id' : '';
+        $categoryValueSql = $categoryColumn ? ', :category_id' : '';
+
         $this->db->dbquery(
-            'INSERT INTO packages (name, slug, description, tagline, base_price, image_url, is_active, sort_order)
-             VALUES (:name, :slug, :description, :tagline, :base_price, :image_url, :is_active, :sort_order)'
+            'INSERT INTO packages (name, slug, description, tagline, base_price, image_url, is_active, sort_order' . $categoryFieldSql . ')
+             VALUES (:name, :slug, :description, :tagline, :base_price, :image_url, :is_active, :sort_order' . $categoryValueSql . ')'
         );
         $this->db->dbbind(':name', $name);
         $this->db->dbbind(':slug', $slug);
@@ -172,6 +206,10 @@ class PlatformPackage
         $this->db->dbbind(':image_url', trim((string)($data['image_url'] ?? '')));
         $this->db->dbbind(':is_active', !empty($data['is_active']) ? 1 : 0);
         $this->db->dbbind(':sort_order', (int)($data['sort_order'] ?? 0));
+        if ($categoryColumn) {
+            $categoryId = (int)($data['category_id'] ?? 0);
+            $this->db->dbbind(':category_id', $categoryId > 0 ? $categoryId : null, $categoryId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
 
         try {
             if ($this->db->dbexecute()) {
@@ -219,6 +257,11 @@ class PlatformPackage
         if (array_key_exists('sort_order', $data)) {
             $fields[] = 'sort_order = :sort_order';
             $bindings[':sort_order'] = (int)$data['sort_order'];
+        }
+        if ($this->hasPackageCategoryColumn() && array_key_exists('category_id', $data)) {
+            $fields[] = 'category_id = :category_id';
+            $categoryId = (int)$data['category_id'];
+            $bindings[':category_id'] = $categoryId > 0 ? $categoryId : null;
         }
 
         if (empty($fields)) {
@@ -283,11 +326,23 @@ class PlatformPackage
         return $this->db->dbexecute();
     }
 
-    public function addPackageService($packageId, $serviceId, $quantity = null)
+    public function addPackageService($packageId, $serviceId, $quantity = null, $hallId = null)
     {
         $service = $this->getServiceForPackageItem($serviceId);
         if (!$service) {
             return false;
+        }
+
+        $serviceCategoryId = (int)($service['category_id'] ?? 0);
+        if ($serviceCategoryId > 0 && $this->packageHasCategory((int)$packageId, $serviceCategoryId)) {
+            return false;
+        }
+
+        if ($this->hasPackageCategoryColumn() && $serviceCategoryId > 0) {
+            $this->db->dbquery('UPDATE packages SET category_id = :category_id WHERE package_id = :package_id AND category_id IS NULL');
+            $this->db->dbbind(':category_id', $serviceCategoryId);
+            $this->db->dbbind(':package_id', (int)$packageId);
+            $this->db->dbexecute();
         }
 
         $this->db->dbquery(
@@ -301,18 +356,30 @@ class PlatformPackage
             return false;
         }
 
-        $price = $this->servicePackagePrice($service);
+        $room = null;
+        $hallId = (int)($hallId ?? 0);
+        if ($hallId > 0) {
+            $room = $this->getVenueRoomForService((int)$serviceId, $hallId);
+            if (!$room) {
+                return false;
+            }
+        }
+
+        $price = $room ? (float)($room['price'] ?? 0) : $this->servicePackagePrice($service);
         $isGuestPriced = $this->isGuestPricedCategory($service['category_slug'] ?? '', $service['category_name'] ?? '');
         $itemQuantity = $isGuestPriced ? max(1, (int)($quantity ?: 100)) : 1;
         $quantityType = $isGuestPriced ? 'guests' : 'fixed';
         $quantityColumns = $this->hasPackageQuantityColumns();
+        $hallColumn = $this->hasPackageVenueRoomColumn();
 
         $quantityColumnsSql = $quantityColumns ? ', quantity_type, quantity' : '';
         $quantityValuesSql = $quantityColumns ? ', :quantity_type, :quantity' : '';
+        $hallColumnSql = $hallColumn ? ', venue_room_id' : '';
+        $hallValueSql = $hallColumn ? ', :venue_room_id' : '';
 
         $this->db->dbquery(
-            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price' . $quantityColumnsSql . ')
-             VALUES (:package_id, :category_id, :service_id, :supplier_id, :default_price' . $quantityValuesSql . ')'
+            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price' . $quantityColumnsSql . $hallColumnSql . ')
+             VALUES (:package_id, :category_id, :service_id, :supplier_id, :default_price' . $quantityValuesSql . $hallValueSql . ')'
         );
         $this->db->dbbind(':package_id', (int)$packageId);
         $this->db->dbbind(':category_id', (int)($service['category_id'] ?? 0));
@@ -322,6 +389,9 @@ class PlatformPackage
         if ($quantityColumns) {
             $this->db->dbbind(':quantity_type', $quantityType);
             $this->db->dbbind(':quantity', $itemQuantity);
+        }
+        if ($hallColumn) {
+            $this->db->dbbind(':venue_room_id', $room ? (int)$room['id'] : null, $room ? PDO::PARAM_INT : PDO::PARAM_NULL);
         }
 
         return $this->db->dbexecute();
@@ -369,6 +439,73 @@ class PlatformPackage
         return $this->db->dbexecute();
     }
 
+    public function updatePackageItemHall($itemId, $hallId)
+    {
+        if (!$this->hasPackageVenueRoomColumn()) {
+            return false;
+        }
+
+        $this->db->dbquery(
+            'SELECT pi.service_id
+             FROM package_items pi
+             WHERE pi.id = :id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':id', (int)$itemId);
+        $item = $this->db->getsingledata();
+        if (!$item) {
+            return false;
+        }
+
+        $hallId = (int)$hallId;
+        $price = null;
+
+        if ($hallId > 0) {
+            $room = $this->getVenueRoomForService((int)$item['service_id'], $hallId);
+            if (!$room) {
+                return false;
+            }
+            $price = (float)($room['price'] ?? 0);
+        } else {
+            // No specific hall — fall back to the service's default package price.
+            $service = $this->getServiceForPackageItem((int)$item['service_id']);
+            $price = $service ? $this->servicePackagePrice($service) : 0;
+        }
+
+        $this->db->dbquery(
+            'UPDATE package_items
+             SET venue_room_id = :hall_id,
+                 default_price = :default_price
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':hall_id', $hallId > 0 ? $hallId : null, $hallId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $this->db->dbbind(':default_price', $price);
+        $this->db->dbbind(':id', (int)$itemId);
+
+        return $this->db->dbexecute();
+    }
+
+    public function getVenueRoomsForService($serviceId)
+    {
+        $this->db->dbquery(
+            'SELECT vr.id,
+                    vr.name,
+                    vr.capacity,
+                    vr.price,
+                    v.name AS venue_name,
+                    v.location AS venue_location,
+                    v.description AS venue_description
+             FROM venues v
+             INNER JOIN venue_rooms vr ON vr.venue_id = v.id
+             WHERE v.service_id = :service_id
+             ORDER BY vr.name ASC'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+
+        return $this->db->getmultidata();
+    }
+
     public function getAdminServiceOptions()
     {
         $this->db->dbquery(
@@ -403,27 +540,74 @@ class PlatformPackage
     /**
      * ── Customer: Get all active package types ──
      */
-    public function getPackageTypes()
+    public function getPackageTypes($filters = [])
     {
-        $this->db->dbquery(
-            'SELECT p.package_id,
-                    p.name,
-                    p.slug,
-                    p.description,
-                    p.tagline,
-                    p.base_price,
-                    p.image_url,
-                    p.sort_order,
-                    COUNT(pi.service_id) AS item_count,
-                    COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total
-             FROM packages p
-             LEFT JOIN package_items pi ON pi.package_id = p.package_id
-             LEFT JOIN services svc ON svc.id = pi.service_id
-             WHERE p.is_active = 1
-               AND p.deleted_at IS NULL
-             GROUP BY p.package_id
-             ORDER BY p.sort_order ASC'
-        );
+        $hasPackageCategory = $this->hasPackageCategoryColumn();
+        $conditions = ['p.is_active = 1', 'p.deleted_at IS NULL'];
+        $bindings = [];
+        $orderClause = 'p.sort_order ASC';
+
+        // Search
+        $search = trim((string)($filters['search'] ?? ''));
+        if ($search !== '') {
+            $conditions[] = '(p.name LIKE :search OR p.tagline LIKE :search OR p.description LIKE :search)';
+            $bindings[':search'] = '%' . $search . '%';
+        }
+
+        // Category filter
+        $category = trim((string)($filters['category'] ?? ''));
+        if ($category !== '' && $category !== 'all') {
+            if ($hasPackageCategory) {
+                $conditions[] = '(pc.slug = :cat_slug OR pc.name = :cat_name)';
+            } else {
+                $conditions[] = 'EXISTS (
+                    SELECT 1 FROM package_items pi2
+                    LEFT JOIN categories c2 ON c2.id = pi2.category_id
+                    WHERE pi2.package_id = p.package_id
+                      AND (c2.slug = :cat_slug OR c2.name = :cat_name)
+                )';
+            }
+            $bindings[':cat_slug'] = $category;
+            $bindings[':cat_name'] = $category;
+        }
+
+        // Sort
+        $sort = $filters['sort'] ?? 'featured';
+        if ($sort === 'price_low') {
+            $orderClause = 'p.base_price ASC, p.sort_order ASC';
+        } elseif ($sort === 'price_high') {
+            $orderClause = 'p.base_price DESC, p.sort_order ASC';
+        } elseif ($sort === 'name_az') {
+            $orderClause = 'p.name ASC';
+        } elseif ($sort === 'name_za') {
+            $orderClause = 'p.name DESC';
+        }
+
+        $where = implode(' AND ', $conditions);
+        $categoryJoin = $hasPackageCategory ? 'LEFT JOIN categories pc ON pc.id = p.category_id' : '';
+
+        $sql = 'SELECT p.package_id,
+                       p.name,
+                       p.slug,
+                       p.description,
+                       p.tagline,
+                       p.base_price,
+                       p.image_url,
+                       p.sort_order,
+                       COUNT(pi.service_id) AS item_count,
+                       COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total
+                FROM packages p
+                LEFT JOIN package_items pi ON pi.package_id = p.package_id
+                LEFT JOIN services svc ON svc.id = pi.service_id
+                ' . $categoryJoin . '
+                WHERE ' . $where . '
+                GROUP BY p.package_id
+                ORDER BY ' . $orderClause;
+
+        $this->db->dbquery($sql);
+        foreach ($bindings as $param => $value) {
+            $this->db->dbbind($param, $value);
+        }
 
         $packages = $this->db->getmultidata();
         if (empty($packages)) {
@@ -469,10 +653,66 @@ class PlatformPackage
     }
 
     /**
+     * ── Customer: Get distinct categories across all packages ──
+     */
+    public function getPackageCategories($filters = [])
+    {
+        $hasPackageCategory = $this->hasPackageCategoryColumn();
+        $conditions = ['p.is_active = 1', 'p.deleted_at IS NULL'];
+        $bindings = [];
+
+        $search = trim((string)($filters['search'] ?? ''));
+        if ($search !== '') {
+            $conditions[] = '(p.name LIKE :search OR p.tagline LIKE :search OR p.description LIKE :search)';
+            $bindings[':search'] = '%' . $search . '%';
+        }
+
+        $where = implode(' AND ', $conditions);
+
+        if ($hasPackageCategory) {
+            $sql = 'SELECT c.name, c.slug, COUNT(DISTINCT p.package_id) AS service_count
+                    FROM packages p
+                    LEFT JOIN categories c ON c.id = p.category_id
+                    WHERE ' . $where . '
+                      AND c.id IS NOT NULL
+                    GROUP BY c.id, c.name, c.slug
+                    ORDER BY c.name ASC';
+        } else {
+            $sql = 'SELECT c.name, c.slug, COUNT(DISTINCT p.package_id) AS service_count
+                    FROM packages p
+                    JOIN package_items pi ON pi.package_id = p.package_id
+                    LEFT JOIN categories c ON c.id = pi.category_id
+                    WHERE ' . $where . '
+                      AND pi.service_id IS NOT NULL
+                      AND c.id IS NOT NULL
+                    GROUP BY c.id, c.name, c.slug
+                    ORDER BY c.name ASC';
+        }
+
+        $this->db->dbquery($sql);
+        foreach ($bindings as $param => $value) {
+            $this->db->dbbind($param, $value);
+        }
+
+        return $this->db->getmultidata();
+    }
+
+    /**
      * ── Customer: Get package type by slug ──
      */
     public function getPackageBySlug($slug)
     {
+        $hallSelect = $this->hasPackageVenueRoomColumn()
+            ? 'pi.venue_room_id,
+               vr.name AS venue_room_name,
+               vr.capacity AS venue_room_capacity,
+               vr.price AS venue_room_price'
+            : 'NULL AS venue_room_id,
+               NULL AS venue_room_name,
+               NULL AS venue_room_capacity,
+               NULL AS venue_room_price';
+        $hallJoin = $this->hasPackageVenueRoomColumn() ? 'LEFT JOIN venue_rooms vr ON vr.id = pi.venue_room_id' : '';
+
         $this->db->dbquery(
             'SELECT p.*
              FROM packages p
@@ -496,6 +736,7 @@ class PlatformPackage
                     c.slug AS category_slug,
                     pi.service_id,
                     pi.default_supplier_id,
+                    ' . $hallSelect . ',
                     ' . $this->packageUnitPriceSql() . ' AS unit_price,
                     ' . $this->packageLineTotalSql() . ' AS default_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
@@ -516,6 +757,7 @@ class PlatformPackage
              LEFT JOIN categories c ON c.id = pi.category_id
              LEFT JOIN services svc ON svc.id = pi.service_id
              LEFT JOIN suppliers sup ON sup.supplier_id = pi.default_supplier_id
+             ' . $hallJoin . '
              LEFT JOIN (
                 SELECT service_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
                 FROM reviews
@@ -558,6 +800,10 @@ class PlatformPackage
                 'unit_price' => (float)($item['unit_price'] ?? $item['default_price'] ?? 0),
                 'quantity_type' => $item['quantity_type'] ?? 'fixed',
                 'quantity' => (int)($item['quantity'] ?? 1),
+                'venue_room_id' => (int)($item['venue_room_id'] ?? 0),
+                'venue_room_name' => $item['venue_room_name'] ?? '',
+                'venue_room_capacity' => (int)($item['venue_room_capacity'] ?? 0),
+                'venue_room_price' => (float)($item['venue_room_price'] ?? 0),
             ];
         }, $items)));
         $package['categories'] = $items;
@@ -567,12 +813,24 @@ class PlatformPackage
 
     public function getServicePackageContext($packageId, $packageItemId, $serviceId)
     {
+        $hallSelect = $this->hasPackageVenueRoomColumn()
+            ? 'pi.venue_room_id,
+               vr.name AS venue_room_name,
+               vr.capacity AS venue_room_capacity,
+               vr.price AS venue_room_price,'
+            : 'NULL AS venue_room_id,
+               NULL AS venue_room_name,
+               NULL AS venue_room_capacity,
+               NULL AS venue_room_price,';
+        $hallJoin = $this->hasPackageVenueRoomColumn() ? 'LEFT JOIN venue_rooms vr ON vr.id = pi.venue_room_id' : '';
+
         $this->db->dbquery(
             'SELECT p.package_id,
                     p.name AS package_name,
                     p.slug AS package_slug,
                     pi.id AS package_item_id,
                     pi.service_id,
+                    ' . $hallSelect . '
                     ' . $this->packageUnitPriceSql() . ' AS unit_price,
                     ' . $this->packageLineTotalSql() . ' AS package_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
@@ -580,6 +838,7 @@ class PlatformPackage
              FROM package_items pi
              INNER JOIN packages p ON p.package_id = pi.package_id
              LEFT JOIN services svc ON svc.id = pi.service_id
+             ' . $hallJoin . '
              WHERE pi.package_id = :package_id
                AND pi.id = :package_item_id
                AND pi.service_id = :service_id
@@ -599,6 +858,9 @@ class PlatformPackage
         $context['package_id'] = (int)$context['package_id'];
         $context['package_item_id'] = (int)$context['package_item_id'];
         $context['service_id'] = (int)$context['service_id'];
+        $context['venue_room_id'] = (int)($context['venue_room_id'] ?? 0);
+        $context['venue_room_capacity'] = (int)($context['venue_room_capacity'] ?? 0);
+        $context['venue_room_price'] = (float)($context['venue_room_price'] ?? 0);
         $context['unit_price'] = (float)($context['unit_price'] ?? 0);
         $context['package_price'] = (float)($context['package_price'] ?? 0);
         $context['quantity'] = (int)($context['quantity'] ?? 1);
@@ -823,6 +1085,76 @@ class PlatformPackage
         $this->packageQuantityColumns = (int)($row['total'] ?? 0) === 2;
 
         return $this->packageQuantityColumns;
+    }
+
+    private function hasPackageCategoryColumn()
+    {
+        if ($this->packageCategoryColumn !== null) {
+            return $this->packageCategoryColumn;
+        }
+
+        $this->packageCategoryColumn = $this->tableHasColumn('packages', 'category_id');
+        return $this->packageCategoryColumn;
+    }
+
+    private function hasPackageVenueRoomColumn()
+    {
+        if ($this->packageVenueRoomColumn !== null) {
+            return $this->packageVenueRoomColumn;
+        }
+
+        $this->packageVenueRoomColumn = $this->tableHasColumn('package_items', 'venue_room_id');
+        return $this->packageVenueRoomColumn;
+    }
+
+    private function tableHasColumn($tableName, $columnName)
+    {
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = :table_name
+               AND COLUMN_NAME = :column_name'
+        );
+        $this->db->dbbind(':table_name', (string)$tableName);
+        $this->db->dbbind(':column_name', (string)$columnName);
+        $row = $this->db->getsingledata();
+
+        return (int)($row['total'] ?? 0) > 0;
+    }
+
+    private function packageHasCategory($packageId, $categoryId)
+    {
+        $this->db->dbquery(
+            'SELECT id
+             FROM package_items
+             WHERE package_id = :package_id
+               AND category_id = :category_id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':package_id', (int)$packageId);
+        $this->db->dbbind(':category_id', (int)$categoryId);
+
+        return (bool)$this->db->getsingledata();
+    }
+
+    private function getVenueRoomForService($serviceId, $roomId)
+    {
+        $this->db->dbquery(
+            'SELECT vr.id,
+                    vr.name,
+                    vr.capacity,
+                    vr.price
+             FROM venues v
+             INNER JOIN venue_rooms vr ON vr.venue_id = v.id
+             WHERE v.service_id = :service_id
+               AND vr.id = :room_id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':room_id', (int)$roomId);
+
+        return $this->db->getsingledata();
     }
 
     private function isGuestPricedCategory($slug, $name)

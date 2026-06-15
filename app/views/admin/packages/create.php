@@ -17,8 +17,12 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   $money = fn($value) => 'MMK ' . number_format((float)$value, 0);
   $servicesByCategory = [];
   foreach ($serviceOptions as $service) {
+    $categoryId = (int)($service['category_id'] ?? 0);
     $categoryName = trim((string)($service['category_name'] ?? 'Other'));
-    $servicesByCategory[$categoryName][] = $service;
+    $key = $categoryId . '|' . $categoryName;
+    $servicesByCategory[$key]['id'] = $categoryId;
+    $servicesByCategory[$key]['name'] = $categoryName;
+    $servicesByCategory[$key]['services'][] = $service;
   }
 ?>
 <style>
@@ -98,7 +102,21 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
         <textarea name="description" placeholder="Describe the complete wedding services included in this package..."></textarea>
       </div>
 
- 
+      <div class="field">
+        <label>Package Category *</label>
+        <?php if (!empty($categories)): ?>
+          <select name="category_id" id="packageCategorySelect" required>
+            <option value="">Choose one category</option>
+            <?php foreach ($categories as $cat): ?>
+              <option value="<?= (int)$cat['id'] ?>"><?= $h($cat['name'] ?? '') ?></option>
+            <?php endforeach; ?>
+          </select>
+          <p class="hint" style="margin-top:6px">A package can contain services from one category only.</p>
+        <?php else: ?>
+          <input type="text" value="No categories available" readonly>
+          <input type="hidden" name="category_id" value="0">
+        <?php endif; ?>
+      </div>
 
       <div class="field">
         <label>Package Image</label>
@@ -126,10 +144,10 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
           <input type="number" name="guest_count" min="1" step="1" value="100">
           <p class="hint" style="margin-top:6px">Used only for selected Food/Catering services. Other services stay fixed.</p>
         </div>
-        <select class="service-select" name="service_ids[]" multiple>
-          <?php foreach ($servicesByCategory as $categoryName => $services): ?>
-            <optgroup label="<?= $h($categoryName) ?>">
-              <?php foreach ($services as $service):
+        <select class="service-select" name="service_ids[]" id="packageServiceSelect" multiple>
+          <?php foreach ($servicesByCategory as $categoryGroup): ?>
+            <optgroup label="<?= $h($categoryGroup['name'] ?? 'Other') ?>" data-category-id="<?= (int)($categoryGroup['id'] ?? 0) ?>">
+              <?php foreach (($categoryGroup['services'] ?? []) as $service):
                 $isFoodService = strpos(strtolower((string)(($service['category_slug'] ?? '') . ' ' . ($service['category_name'] ?? ''))), 'food') !== false
                   || strpos(strtolower((string)(($service['category_slug'] ?? '') . ' ' . ($service['category_name'] ?? ''))), 'cater') !== false;
                 $label = ($service['name'] ?? 'Service')
@@ -137,7 +155,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
                   . ' - ' . $money($service['display_price'] ?? 0)
                   . ($isFoodService ? ' per guest' : '');
               ?>
-                <option value="<?= (int)($service['id'] ?? 0) ?>"><?= $h($label) ?></option>
+                <option value="<?= (int)($service['id'] ?? 0) ?>" data-category-id="<?= (int)($service['category_id'] ?? 0) ?>"><?= $h($label) ?></option>
               <?php endforeach; ?>
             </optgroup>
           <?php endforeach; ?>
@@ -151,6 +169,29 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
     </div>
   </form>
 </div>
+<script>
+  (function () {
+    const categorySelect = document.getElementById('packageCategorySelect');
+    const serviceSelect = document.getElementById('packageServiceSelect');
+    if (!categorySelect || !serviceSelect) return;
+
+    function syncServiceOptions() {
+      const categoryId = categorySelect.value;
+      Array.from(serviceSelect.options).forEach(option => {
+        const allowed = categoryId !== '' && option.dataset.categoryId === categoryId;
+        option.disabled = !allowed;
+        option.hidden = !allowed;
+        if (!allowed) option.selected = false;
+      });
+      Array.from(serviceSelect.querySelectorAll('optgroup')).forEach(group => {
+        group.hidden = categoryId === '' || group.dataset.categoryId !== categoryId;
+      });
+    }
+
+    categorySelect.addEventListener('change', syncServiceOptions);
+    syncServiceOptions();
+  })();
+</script>
 <?php
 };
 ?>

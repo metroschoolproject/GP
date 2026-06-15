@@ -90,6 +90,31 @@ class CartModel
     }
 
     /**
+     * Find a package already in the user's cart that includes this service.
+     */
+    public function findCartPackageIncludingService(int $userId, int $serviceId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT ci.id AS cart_item_id,
+                    p.package_id,
+                    p.name AS package_name,
+                    s.name AS service_name
+             FROM cart_items ci
+             INNER JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
+             INNER JOIN package_items pi ON pi.package_id = p.package_id
+             INNER JOIN services s ON pi.service_id = s.id
+             WHERE ci.user_id = :uid
+               AND pi.service_id = :sid
+             ORDER BY ci.id DESC
+             LIMIT 1"
+        );
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+
+        return $this->db->getsingledata();
+    }
+
+    /**
      * Remove a single item from the cart.
      */
     public function removeItem(int $userId, int $cartItemId): bool

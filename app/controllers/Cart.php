@@ -25,7 +25,18 @@ class Cart extends Controller
         if ($this->userId && !empty($_SESSION['cart_pending'])) {
             $pending = $_SESSION['cart_pending'];
             unset($_SESSION['cart_pending']);
-            $this->cartModel->addItem($this->userId, $pending);
+            if (
+                ($pending['item_type'] ?? '') === 'service'
+                && empty($pending['confirm_included_service'])
+                && ($conflict = $this->cartModel->findCartPackageIncludingService($this->userId, (int)($pending['item_id'] ?? 0)))
+            ) {
+                $_SESSION['cart_included_service_warning'] = [
+                    'item' => $pending,
+                    'conflict' => $conflict,
+                ];
+            } else {
+                $this->cartModel->addItem($this->userId, $pending);
+            }
             // Don't redirect — let the user see the cart with the item
         }
 
@@ -41,6 +52,7 @@ class Cart extends Controller
             'items' => $items,
             'total' => $total,
             'cartCount' => count($items),
+            'includedServiceWarning' => $_SESSION['cart_included_service_warning'] ?? null,
         ]);
     }
 
@@ -82,7 +94,31 @@ class Cart extends Controller
             return;
         }
 
+        if (empty($_POST['confirm_included_service'])) {
+            $conflict = $this->cartModel->findCartPackageIncludingService($this->userId, $serviceId);
+            if ($conflict) {
+                $_SESSION['cart_included_service_warning'] = [
+                    'item' => $itemData,
+                    'conflict' => $conflict,
+                ];
+                redirect('cart');
+                return;
+            }
+        }
+
+        unset($_SESSION['cart_included_service_warning']);
         $this->cartModel->addItem($this->userId, $itemData);
+        redirect('cart');
+    }
+
+    public function dismissIncludedReminder()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('cart');
+            return;
+        }
+
+        unset($_SESSION['cart_included_service_warning']);
         redirect('cart');
     }
 

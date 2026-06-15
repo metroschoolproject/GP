@@ -295,6 +295,7 @@ public function register()
 
         $_SESSION['session_uid'] = $user['user_id'];
         $_SESSION['session_email'] = $user['email'];
+        $_SESSION['session_name'] = $user['name'] ?? '';
 
         $redirect = $this->getPostLoginRedirect($user['user_id']);
 
@@ -598,6 +599,7 @@ public function register()
 
         $_SESSION['session_uid'] = $user['user_id'];
         $_SESSION['session_email'] = $user['email'];
+        $_SESSION['session_name'] = $user['name'] ?? '';
 
         if ($role === 'supplier') {
             $_SESSION['pending_register_user_id'] = $user['user_id'];

@@ -324,6 +324,72 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       display: grid;
     }
 
+    /* ─── HOME PROFILE DROPDOWN ─────────────────────── */
+    .home-profile-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 12px 4px 4px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #FFF4E6;
+      font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .home-profile-btn:hover { background: rgba(255,255,255,0.15); }
+
+    .home-profile-avatar {
+      display: grid; place-items: center;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: #D8B46A;
+      color: #3F2F24;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .home-profile-name { white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+
+    .home-profile-chevron { opacity: 0.7; transition: transform 0.2s; }
+    .home-profile-btn[aria-expanded="true"] .home-profile-chevron { transform: rotate(180deg); }
+
+    .home-profile-menu {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 1100;
+      min-width: 180px;
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #765A46;
+      box-shadow: 0 12px 35px rgba(92,67,48,0.25);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition: all 0.15s ease;
+    }
+    .home-profile-btn[aria-expanded="true"] + .home-profile-menu,
+    .home-profile-menu.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .home-profile-menu-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #FFF4E6;
+      transition: all 0.15s;
+    }
+    .home-profile-menu-item:hover { background: rgba(216,180,106,0.16); color: #F3D9A4; }
+
+    .home-profile-menu-item--danger { color: #f5a0a0; }
+    .home-profile-menu-item--danger:hover { background: rgba(185,75,75,0.2); color: #ffcccc; }
+
     .floating-services {
       position: fixed;
       inset: 0;
@@ -1486,11 +1552,31 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         Be a Partner
       </a>
 
+      <?php if ($isLoggedIn): ?>
+      <div class="home-profile-dropdown relative">
+        <button class="home-profile-btn" type="button" aria-expanded="false">
+          <span class="home-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
+          <span class="home-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
+          <svg class="home-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="home-profile-menu" aria-hidden="true">
+          <a class="home-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            My Bookings
+          </a>
+          <a class="home-profile-menu-item home-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Logout
+          </a>
+        </div>
+      </div>
+      <?php else: ?>
       <a
         class="rounded-full border border-transparent bg-white/10 px-2.5 py-1.5 text-sm font-bold text-[#FFF4E6] transition duration-300 hover:bg-white/15 hover:text-[#F3D9A4]"
-        href="<?= $authNavUrl ?>">
-        <?= $authNavLabel ?>
+        href="<?= URLROOT ?>/users/auth">
+        Log In
       </a>
+      <?php endif; ?>
     </div>
 
     <!-- MOBILE BUTTON -->
@@ -1535,9 +1621,18 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       Be a Partner
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= $authNavUrl ?>">
-      <?= $authNavLabel ?>
+    <?php if ($isLoggedIn): ?>
+    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/booking/myBookings">
+      My Bookings
     </a>
+    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/users/logout">
+      Logout
+    </a>
+    <?php else: ?>
+    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/users/auth">
+      Log In
+    </a>
+    <?php endif; ?>
 
   </div>
 </header> 
@@ -2384,6 +2479,18 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       requestAnimationFrame(() => {
         scrollToHash(window.location.hash, "auto");
       });
+    });
+
+    // Profile dropdown toggle
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.home-profile-btn');
+      if (btn) {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.home-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        btn.setAttribute('aria-expanded', String(!expanded));
+        return;
+      }
+      document.querySelectorAll('.home-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
     });
   </script>
 </body>

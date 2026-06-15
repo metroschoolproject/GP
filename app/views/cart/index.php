@@ -2,6 +2,7 @@
 $items = $items ?? [];
 $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
+$includedServiceWarning = $includedServiceWarning ?? null;
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
@@ -195,6 +196,74 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   transition: all 0.22s var(--ease-expo);
 }
 .gp-cta-header:hover { background: var(--plum-dk); transform: translateY(-1px); box-shadow: 0 12px 32px rgba(107,68,89,0.28); }
+
+/* ─── PROFILE DROPDOWN ──────────────────────────────── */
+.gp-profile-dropdown { position: relative; }
+
+.gp-profile-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--cream-dk);
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--plum);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+}
+.gp-profile-btn:hover { border-color: var(--plum); background: rgba(107,68,89,0.06); }
+
+.gp-profile-avatar {
+  display: grid; place-items: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--plum);
+  color: #fffaf3;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.gp-profile-name { white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+
+.gp-profile-chevron { opacity: 0.6; transition: transform 0.2s; }
+.gp-profile-btn[aria-expanded="true"] .gp-profile-chevron { transform: rotate(180deg); }
+
+.gp-profile-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--cream-dk);
+  background: var(--white);
+  box-shadow: 0 12px 35px rgba(15,23,42,0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all 0.15s var(--ease-expo);
+}
+.gp-profile-btn[aria-expanded="true"] + .gp-profile-menu,
+.gp-profile-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.gp-profile-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  transition: all 0.15s;
+}
+.gp-profile-menu-item:hover { background: rgba(107,68,89,0.06); }
+
+.gp-profile-menu-item--danger { color: var(--danger); }
+.gp-profile-menu-item--danger:hover { background: rgba(185,75,75,0.08); }
 
 /* ─── Page shell ─────────────────────────────────────── */
 .gp-page {
@@ -500,6 +569,71 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 .gp-btn-browse:hover { background: var(--plum-dk); transform: translateY(-2px); box-shadow: 0 16px 36px rgba(107,68,89,0.28); }
 
+/* ─── Included service reminder ───────────────────────── */
+.gp-included-reminder {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 24px;
+  padding: 18px;
+  border: 1px solid rgba(184,146,74,0.42);
+  border-radius: var(--r-lg);
+  background: #fffaf1;
+  box-shadow: 0 18px 44px rgba(184,146,74,0.12);
+}
+.gp-included-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(184,146,74,0.14);
+  color: var(--gold);
+}
+.gp-included-title {
+  font-family: var(--font-d);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.15;
+}
+.gp-included-copy {
+  margin-top: 5px;
+  color: var(--text2);
+  font-size: 13px;
+}
+.gp-included-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.gp-included-actions form { display: contents; }
+.gp-included-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule-strong);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.gp-included-btn.primary {
+  border-color: var(--plum);
+  background: var(--plum);
+  color: #fffaf3;
+}
+.gp-included-btn.secondary {
+  background: transparent;
+  color: var(--text2);
+}
+.gp-included-btn.secondary:hover { color: var(--plum); border-color: var(--plum); }
+
 /* ─── Keyframes ──────────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
@@ -519,12 +653,17 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 @media (max-width: 900px) {
   .gp-layout { grid-template-columns: 1fr; }
   .gp-sidebar { position: static; }
+  .gp-included-reminder { grid-template-columns: 40px 1fr; }
+  .gp-included-actions { grid-column: 1 / -1; justify-content: flex-start; }
 }
 @media (max-width: 640px) {
   .gp-item { grid-template-columns: 88px 1fr; }
   .gp-item-right { display: none; }
   .gp-item-body { padding: 12px; }
   .gp-header-nav { display: none; }
+  .gp-included-reminder { grid-template-columns: 1fr; }
+  .gp-included-actions { flex-direction: column; }
+  .gp-included-btn { width: 100%; }
   :root { --pad-x: 16px; }
 }
 
@@ -553,14 +692,34 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   <nav class="gp-header-nav" aria-label="Main navigation">
     <a href="<?= URLROOT ?>/main/index">Home</a>
     <a href="<?= URLROOT ?>/customerServices/service">Services</a>
-    <a href="<?= URLROOT ?>/main/package">Packages</a>
+    <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
   </nav>
   <div class="gp-header-actions">
     <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart (<?= $cartCount ?> items)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       <?php if ($cartCount > 0): ?><span class="gp-cart-count"><?= $cartCount ?></span><?php endif; ?>
     </a>
-    <a class="gp-cta-header" href="<?= $authNavUrl ?>"><?= $authNavLabel ?></a>
+    <?php if ($isLoggedIn): ?>
+    <div class="gp-profile-dropdown">
+      <button class="gp-profile-btn" type="button" aria-expanded="false">
+        <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
+        <span class="gp-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
+        <svg class="gp-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="gp-profile-menu" aria-hidden="true">
+        <a class="gp-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          My Bookings
+        </a>
+        <a class="gp-profile-menu-item gp-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </a>
+      </div>
+    </div>
+    <?php else: ?>
+    <a class="gp-cta-header" href="<?= URLROOT ?>/users/auth">Sign in</a>
+    <?php endif; ?>
   </div>
 </header>
 
@@ -572,6 +731,40 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
     <div class="gp-page-eyebrow">Your Selection</div>
     <h1 class="gp-page-title">My <em>Cart</em></h1>
   </div>
+
+  <?php if (!empty($includedServiceWarning['item']) && !empty($includedServiceWarning['conflict'])):
+    $warningItem = $includedServiceWarning['item'];
+    $warningConflict = $includedServiceWarning['conflict'];
+  ?>
+  <section class="gp-included-reminder" aria-live="polite">
+    <div class="gp-included-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 17h.01"/></svg>
+    </div>
+    <div>
+      <div class="gp-included-title">This service is already included</div>
+      <p class="gp-included-copy">
+        <?= $h($warningConflict['service_name'] ?? 'This service') ?> is already part of
+        <?= $h($warningConflict['package_name'] ?? 'a package') ?> in your cart. Add it again only if you want an extra separate booking.
+      </p>
+    </div>
+    <div class="gp-included-actions">
+      <form method="POST" action="<?= URLROOT ?>/cart/add">
+        <input type="hidden" name="service_id" value="<?= (int)($warningItem['item_id'] ?? 0) ?>">
+        <input type="hidden" name="date" value="<?= $h($warningItem['selected_date'] ?? '') ?>">
+        <input type="hidden" name="price" value="<?= $h($warningItem['price'] ?? '') ?>">
+        <input type="hidden" name="source" value="<?= $h($warningItem['source'] ?? 'custom') ?>">
+        <input type="hidden" name="slot_id" value="<?= $h($warningItem['slot_id'] ?? '') ?>">
+        <input type="hidden" name="start_time" value="<?= $h($warningItem['start_time'] ?? '') ?>">
+        <input type="hidden" name="end_time" value="<?= $h($warningItem['end_time'] ?? '') ?>">
+        <input type="hidden" name="confirm_included_service" value="1">
+        <button class="gp-included-btn primary" type="submit">Add anyway</button>
+      </form>
+      <form method="POST" action="<?= URLROOT ?>/cart/dismissIncludedReminder">
+        <button class="gp-included-btn secondary" type="submit">Keep package only</button>
+      </form>
+    </div>
+  </section>
+  <?php endif; ?>
 
   <?php if (empty($items)): ?>
   <!-- ── Empty state ───────────────────────────────────── -->
@@ -785,6 +978,18 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         : 'rgba(242,228,212,0.82)';
     }, { passive: true });
   }
+
+  /* Profile dropdown toggle */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.gp-profile-btn');
+    if (btn) {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      document.querySelectorAll('.gp-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+      btn.setAttribute('aria-expanded', String(!expanded));
+      return;
+    }
+    document.querySelectorAll('.gp-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  });
 })();
 </script>
 </body>

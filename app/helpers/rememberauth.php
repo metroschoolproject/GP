@@ -72,6 +72,7 @@ function restoreRememberedUserSession()
         session_regenerate_id(true);
         $_SESSION['session_uid'] = $user['user_id'];
         $_SESSION['session_email'] = $user['email'];
+        $_SESSION['session_name'] = $user['name'] ?? '';
 
         issueRememberMeCookie($userModel, $user['user_id']);
     } catch (Throwable $e) {

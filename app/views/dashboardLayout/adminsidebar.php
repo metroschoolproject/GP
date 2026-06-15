@@ -90,15 +90,15 @@ if (!function_exists('dashboard_admin_nav_class')) {
                     <span class="flex-1 text-left">Bookings</span>
                     <i data-chevron="bookings" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div data-subnav-panel="bookings" class="hidden pl-6">
+                <div data-subnav-panel="bookings" class="<?= strpos($currentPath, 'admin/booking') !== false ? '' : 'hidden' ?> pl-6">
                     <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                        <a href="#" class="<?= dashboard_admin_subnav_class('admin/bookings', $currentPath) ?>">
+                        <a href="<?= URLROOT ?>/admin/bookings" class="<?= dashboard_admin_subnav_class('admin/bookings', $currentPath) ?>">
                             <i data-lucide="list-filter" class="h-3.5 w-3.5 text-app-header-muted"></i>
                             <span>All bookings</span>
                         </a>
-                        <a href="#" class="<?= dashboard_admin_subnav_class('admin/bookings/pending', $currentPath) ?>">
+                        <a href="<?= URLROOT ?>/admin/bookings?status=pending_payment" class="<?= dashboard_admin_subnav_class('admin/bookings/pending', $currentPath) ?>">
                             <i data-lucide="clock" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Pending approval</span>
+                            <span>Pending payment</span>
                         </a>
                     </div>
                 </div>

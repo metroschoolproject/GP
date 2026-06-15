@@ -78,6 +78,24 @@ $moneyRange = function ($service) use ($money) {
 };
 $activeServicePrice = (float)($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
 $isPackageContext = ($service['price_context'] ?? '') === 'package' && !empty($service['package_context']);
+$packageContext = $isPackageContext ? ($service['package_context'] ?? []) : [];
+$packageName = trim((string)($packageContext['package_name'] ?? 'Wedding package'));
+$packageSlug = trim((string)($packageContext['package_slug'] ?? ''));
+$packageDetailUrl = $packageSlug !== ''
+    ? URLROOT . '/customerServices/packageDetail/' . rawurlencode($packageSlug)
+    : URLROOT . '/customerServices/packages';
+$packageServicePrice = (float)($packageContext['package_price'] ?? $activeServicePrice);
+$standalonePrice = (float)($service['standalone_price'] ?? 0);
+if ($isPackageContext && $isVenue && (float)($packageContext['venue_room_price'] ?? 0) > 0) {
+    $standalonePrice = (float)$packageContext['venue_room_price'];
+}
+$packageSavings = max(0, $standalonePrice - $packageServicePrice);
+$packageQueryFields = $isPackageContext
+    ? [
+        'package_id' => (int)($packageContext['package_id'] ?? 0),
+        'package_item_id' => (int)($packageContext['package_item_id'] ?? 0),
+    ]
+    : [];
 
 $timeRange = function ($from, $to) {
     $from = trim((string)$from);
@@ -244,6 +262,163 @@ button, input, select, textarea { font-family: var(--font-sans); }
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* ─── PACKAGE CONTEXT UI ─────────────────────────────── */
+.pkg-breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 0 clamp(20px, 4vw, 48px);
+  font-size: 12px; font-weight: 600; color: var(--muted-light);
+}
+.pkg-breadcrumb a {
+  color: var(--muted);
+  transition: color 0.15s;
+}
+.pkg-breadcrumb a:hover { color: var(--wine); }
+.pkg-breadcrumb-sep { color: var(--line); font-size: 10px; }
+.pkg-breadcrumb-current {
+  color: var(--wine-dark);
+  font-weight: 700;
+}
+
+.pkg-banner {
+  margin: 12px clamp(20px, 4vw, 48px) 0;
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(185, 74, 72, 0.07), rgba(185, 74, 72, 0.03));
+  border: 1px solid rgba(185, 74, 72, 0.14);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  animation: scaleIn 0.4s var(--ease-out-expo);
+}
+.pkg-banner-icon {
+  flex: 0 0 36px; width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: rgba(185, 74, 72, 0.12);
+  color: var(--wine);
+}
+.pkg-banner-text {
+  flex: 1; min-width: 200px;
+}
+.pkg-banner-text strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px; font-weight: 800;
+}
+.pkg-banner-text span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px; font-weight: 500;
+  margin-top: 1px;
+}
+.pkg-banner-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 16px;
+  border-radius: 999px;
+  background: var(--wine);
+  color: #fff;
+  font-size: 11px; font-weight: 800;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.2s var(--ease-spring);
+}
+.pkg-banner-link:hover {
+  background: var(--wine-dark);
+  transform: translateY(-1px);
+}
+
+.pkg-room-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px 4px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(185, 74, 72, 0.10), rgba(185, 74, 72, 0.05));
+  border: 1px solid rgba(185, 74, 72, 0.18);
+  color: var(--wine);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  width: fit-content;
+}
+.pkg-room-badge i { flex-shrink: 0; }
+
+.pkg-room-lock {
+  pointer-events: none;
+  cursor: default;
+}
+.pkg-room-lock .radio-dot {
+  border-color: var(--wine) !important;
+  background: rgba(185, 74, 72, 0.08) !important;
+  position: relative;
+}
+.pkg-room-lock .radio-dot::after {
+  content: '';
+  position: absolute; inset: 3px;
+  border-radius: 50%;
+  background: var(--wine);
+  opacity: 0.5;
+}
+.pkg-room-lock:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+.pkg-room-lock .slot-chip {
+  cursor: default;
+  background: rgba(185, 74, 72, 0.08);
+  border-color: rgba(185, 74, 72, 0.25);
+  color: var(--wine);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.pkg-savings {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: center;
+}
+.pkg-savings-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+.pkg-savings-amount {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+}
+.pkg-savings-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+.pkg-price-compare {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 11px;
+  margin-top: 2px;
+}
+.pkg-price-strikethrough {
+  color: var(--muted-light);
+  text-decoration: line-through;
+  font-weight: 500;
+}
+.pkg-price-package {
+  color: var(--green);
+  font-weight: 800;
+}
+
 /* ─── UTILITY ───────────────────────────────────────── */
 .glass {
   background: var(--glass-bg);
@@ -345,6 +520,159 @@ button, input, select, textarea { font-family: var(--font-sans); }
   background: var(--panel);
   color: var(--wine);
   border-color: rgba(185,74,72,0.24);
+}
+
+/* ─── TOP-BAR PROFILE DROPDOWN ────────────────────── */
+.tb-profile-dropdown { position: relative; }
+
+.tb-profile-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 10px 2px 2px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.18);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #fff;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.tb-profile-btn:hover { background: rgba(255,255,255,0.22); }
+
+.top-bar.scrolled .tb-profile-btn {
+  background: var(--cream);
+  border-color: var(--line);
+  color: var(--muted);
+  text-shadow: none;
+}
+.top-bar.scrolled .tb-profile-btn:hover {
+  background: var(--panel);
+  color: var(--wine);
+  border-color: rgba(185,74,72,0.24);
+}
+
+.tb-profile-avatar {
+  display: grid; place-items: center;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: #D8B46A;
+  color: #3F2F24;
+  font-size: 11px;
+  font-weight: 800;
+}
+.top-bar.scrolled .tb-profile-avatar { background: var(--wine); color: #fff; }
+
+.tb-profile-name { white-space: nowrap; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+
+.tb-profile-chevron { opacity: 0.7; transition: transform 0.2s; }
+.tb-profile-btn[aria-expanded="true"] .tb-profile-chevron { transform: rotate(180deg); }
+
+.tb-profile-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 100;
+  min-width: 170px;
+  padding: 6px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 35px rgba(15,23,42,0.12);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all 0.15s ease;
+  color: var(--text);
+  text-shadow: none;
+}
+.tb-profile-btn[aria-expanded="true"] + .tb-profile-menu,
+.tb-profile-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.tb-profile-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  transition: all 0.15s;
+}
+.tb-profile-menu-item:hover { background: rgba(109,76,91,0.06); color: var(--wine); }
+
+.tb-profile-menu-item--danger { color: var(--danger); }
+.tb-profile-menu-item--danger:hover { background: rgba(185,75,75,0.08); }
+
+.package-context-strip {
+  position: relative;
+  z-index: 4;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 92px clamp(18px, 4vw, 56px) 18px;
+}
+.package-context-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+.package-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.package-breadcrumb a {
+  color: var(--wine);
+}
+.package-breadcrumb-sep {
+  color: var(--muted-light);
+}
+.package-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(185,74,72,0.18);
+  border-left: 4px solid var(--wine);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(185,74,72,0.08), rgba(216,180,106,0.10));
+  padding: 14px 16px;
+}
+.package-banner-copy {
+  display: grid;
+  gap: 3px;
+}
+.package-banner-copy strong {
+  color: var(--wine-dark);
+  font-size: 13px;
+  font-weight: 900;
+}
+.package-banner-copy span {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.package-banner-link {
+  flex-shrink: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  background: var(--wine);
+  color: #fffaf7;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.package-banner-link:hover {
+  background: var(--wine-dark);
 }
 
 /* ─── CINEMATIC HERO ────────────────────────────────── */
@@ -845,6 +1173,13 @@ button, input, select, textarea { font-family: var(--font-sans); }
   transform: none;
 }
 
+.availability-row.is-package-selected {
+  border-color: rgba(185,74,72,0.38);
+  background:
+    linear-gradient(135deg, rgba(185,74,72,0.10), rgba(216,180,106,0.11)),
+    var(--panel-strong);
+}
+
 .radio-dot {
   width: 20px; height: 20px;
   border: 2px solid rgba(185,74,72,0.22);
@@ -891,6 +1226,20 @@ button, input, select, textarea { font-family: var(--font-sans); }
   flex-shrink: 0;
 }
 
+.package-hall-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: rgba(185,74,72,0.12);
+  color: var(--wine-dark);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .slot-options {
   display: flex; flex-wrap: wrap; gap: 8px;
   margin-top: 12px;
@@ -913,6 +1262,12 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .slot-chip:has(input:checked) {
   background: var(--wine); border-color: var(--wine);
   color: #fffaf7; transform: scale(1.03);
+}
+.slot-chip.is-locked {
+  cursor: help;
+  background: var(--wine);
+  border-color: var(--wine);
+  color: #fffaf7;
 }
 
 .availability-radio-input {
@@ -975,6 +1330,39 @@ button, input, select, textarea { font-family: var(--font-sans); }
   color: var(--wine-dark);
   font-family: var(--font-serif);
   font-size: 26px; font-weight: 700;
+}
+
+.package-price-panel {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  padding: 14px 0;
+  margin: 14px 0 6px;
+}
+.package-price-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.package-price-line strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+.package-price-line.is-package strong {
+  color: var(--wine-dark);
+  font-family: var(--font-serif);
+  font-size: 22px;
+}
+.package-price-line.is-saving {
+  color: var(--sage);
+}
+.package-price-line.is-saving strong {
+  color: var(--sage);
 }
 
 .summary-actions {
@@ -1349,6 +1737,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 /* Tablet: 768-1024px */
 @media (max-width: 1024px) {
   .hero-cover { height: 70vh; min-height: 480px; }
+  .package-context-strip { padding-top: 82px; }
   .hero-title { font-size: clamp(36px, 5vw, 56px); }
   .quick-stats { grid-template-columns: repeat(2, 1fr); }
   .split-section { grid-template-columns: 1fr; }
@@ -1367,6 +1756,9 @@ button, input, select, textarea { font-family: var(--font-sans); }
 /* Mobile: below 768px */
 @media (max-width: 768px) {
   .hero-cover { height: 60vh; min-height: 420px; }
+  .package-context-strip { padding: 76px 16px 14px; }
+  .package-banner { align-items: stretch; flex-direction: column; }
+  .package-banner-link { justify-content: center; }
   .hero-title { font-size: clamp(30px, 8vw, 42px); }
   .hero-sub { font-size: 12px; gap: 14px; }
   .top-bar { padding: 10px 16px; }
@@ -1420,14 +1812,60 @@ button, input, select, textarea { font-family: var(--font-sans); }
 <header class="top-bar" id="topBar">
   <a class="top-bar-brand" href="<?= URLROOT ?>/main/home">Golden Promise</a>
   <nav class="top-bar-actions">
-    <a class="top-pill" href="<?= URLROOT ?>/customerServices/service">Explore</a>
+    <a class="top-pill" href="<?= $h($isPackageContext ? $packageDetailUrl : URLROOT . '/customerServices/service') ?>">
+      <?= $isPackageContext ? 'Back to package' : 'Explore' ?>
+    </a>
     <a class="top-pill" href="<?= URLROOT ?>/cart" aria-label="Cart" style="display:inline-flex;align-items:center;gap:4px;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       Cart
     </a>
-    <a class="top-pill" href="<?= $authNavUrl ?>"><?= $authNavLabel ?></a>
+    <?php if ($isLoggedIn): ?>
+    <div class="tb-profile-dropdown">
+      <button class="tb-profile-btn" type="button" aria-expanded="false">
+        <span class="tb-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
+        <span class="tb-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
+        <svg class="tb-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="tb-profile-menu" aria-hidden="true">
+        <a class="tb-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          My Bookings
+        </a>
+        <a class="tb-profile-menu-item tb-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </a>
+      </div>
+    </div>
+    <?php else: ?>
+    <a class="top-pill" href="<?= URLROOT ?>/users/auth">Sign in</a>
+    <?php endif; ?>
   </nav>
 </header>
+
+<?php if ($isPackageContext): ?>
+<section class="package-context-strip" aria-label="Package context">
+  <div class="package-context-inner">
+    <nav class="package-breadcrumb" aria-label="Breadcrumb">
+      <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
+      <span class="package-breadcrumb-sep">/</span>
+      <a href="<?= $h($packageDetailUrl) ?>"><?= $h($packageName) ?></a>
+      <span class="package-breadcrumb-sep">/</span>
+      <span><?= $h($service['name'] ?? 'Service detail') ?></span>
+    </nav>
+    <div class="package-banner">
+      <div class="package-banner-copy">
+        <strong>Part of <?= $h($packageName) ?></strong>
+        <span>This service is being reviewed inside your wedding package. Package pricing and assigned selections are shown here.</span>
+      </div>
+      <a class="package-banner-link" href="<?= $h($packageDetailUrl) ?>">
+        View package details
+        <i data-lucide="arrow-right" size="14"></i>
+      </a>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
 
 <!-- ─── CINEMATIC HERO ───────────────────────────── -->
 <section class="hero-cover" id="heroCover">
@@ -1602,6 +2040,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
     </p>
 
     <form class="date-picker-card" method="GET" action="<?= $h($datePickerAction) ?>">
+      <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
+        <?php if ($fieldValue > 0): ?>
+          <input type="hidden" name="<?= $h($fieldName) ?>" value="<?= (int)$fieldValue ?>">
+        <?php endif; ?>
+      <?php endforeach; ?>
       <div class="date-picker-copy">
         <strong><?= $selectedDateLabel !== '' ? 'Wedding date selected' : 'Start with your wedding date' ?></strong>
         <span>
@@ -1633,16 +2076,18 @@ button, input, select, textarea { font-family: var(--font-sans); }
             <?php $hasSelectedRoom = false; ?>
             <?php foreach ($venueRooms as $index => $room): ?>
               <?php
+                $isPackageHallRow = $isPackageContext && (int)($packageContext['venue_room_id'] ?? 0) > 0 && (int)($room['id'] ?? 0) === (int)($packageContext['venue_room_id'] ?? 0);
+                $roomDisplayPrice = $isPackageContext ? $packageServicePrice : (float)($room['price'] ?? 0);
                 $roomAvailable = $selectedDate !== '' && (!array_key_exists('is_available_on_date', $room) || !empty($room['is_available_on_date']));
                 $roomStatus = $roomAvailable
-                  ? $money($room['price'] ?? 0)
+                  ? $money($roomDisplayPrice)
                   : ($selectedDate === ''
                     ? 'Choose date'
                     : (!empty($room['service_closed_on_date']) || !empty($room['room_closed_on_date']) ? 'Closed' : 'Booked'));
                 $checked = !$hasSelectedRoom && $roomAvailable;
                 if ($checked) { $hasSelectedRoom = true; }
               ?>
-              <div class="availability-row <?= $checked ? 'is-selected' : '' ?> <?= $roomAvailable ? '' : 'is-unavailable' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($index * 80, 300) ?>">
+              <div class="availability-row <?= $checked ? 'is-selected' : '' ?> <?= $isPackageHallRow ? 'is-package-selected' : '' ?> <?= $roomAvailable ? '' : 'is-unavailable' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($index * 80, 300) ?>">
                 <span class="radio-dot"></span>
                 <div>
                   <div class="availability-head">
@@ -1657,9 +2102,12 @@ button, input, select, textarea { font-family: var(--font-sans); }
                     </span>
                     <span class="availability-status"><?= $h($roomStatus) ?></span>
                   </div>
+                  <?php if ($isPackageHallRow): ?>
+                    <span class="package-hall-badge"><i data-lucide="badge-check" size="13"></i>Selected for your package</span>
+                  <?php endif; ?>
                   <?php if ($roomAvailable): ?>
                     <div class="slot-options">
-                      <label class="slot-chip">
+                      <label class="slot-chip <?= $isPackageHallRow ? 'is-locked' : '' ?>" <?= $isPackageHallRow ? 'title="Included in your package"' : '' ?>>
                         <input type="radio" name="service_slot"
                           value="room|<?= (int)$room['id'] ?>"
                           data-room-id="<?= (int)$room['id'] ?>"
@@ -1667,11 +2115,12 @@ button, input, select, textarea { font-family: var(--font-sans); }
                           data-date-label="<?= $h($selectedDateLabel ?: 'Choose a wedding date') ?>"
                           data-hall-label="<?= $h($room['name'] ?: 'Selected hall') ?>"
                           data-time-label="<?= (int)($room['capacity'] ?? 1) ?> guests"
-                          data-price-label="<?= $money($room['price'] ?? 0) ?>"
+                          data-price-label="<?= $money($roomDisplayPrice) ?>"
                           data-start-time="<?= $h($room['start_time'] ?? '') ?>"
                           data-end-time="<?= $h($room['end_time'] ?? '') ?>"
-                          <?= $checked ? 'checked' : '' ?>>
-                        <?= (int)($room['capacity'] ?? 1) ?> guests
+                          <?= $checked ? 'checked' : '' ?>
+                          <?= $isPackageHallRow ? 'disabled' : '' ?>>
+                        <?= $isPackageHallRow ? 'Included in your package' : (int)($room['capacity'] ?? 1) . ' guests' ?>
                       </label>
                     </div>
                   <?php endif; ?>
@@ -1801,8 +2250,26 @@ button, input, select, textarea { font-family: var(--font-sans); }
         </div>
         <div class="estimated-row">
           <span><?= $isPackageContext ? 'Package service price' : 'Estimated total' ?></span>
-          <strong><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></strong>
+          <strong><?= $isPackageContext ? $money($packageServicePrice) : ($isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service)) ?></strong>
         </div>
+        <?php if ($isPackageContext): ?>
+          <div class="package-price-panel" aria-label="Package pricing comparison">
+            <div class="package-price-line is-package">
+              <span>Package price</span>
+              <strong><?= $money($packageServicePrice) ?></strong>
+            </div>
+            <?php if ($standalonePrice > 0): ?>
+              <div class="package-price-line">
+                <span>Standalone price</span>
+                <strong><?= $money($standalonePrice) ?></strong>
+              </div>
+              <div class="package-price-line is-saving">
+                <span>You save</span>
+                <strong><?= $packageSavings > 0 ? $money($packageSavings) : 'Included value' ?></strong>
+              </div>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
         <div class="summary-actions">
           <?php if ($hasInitialBookOption): ?>
           <form method="POST" action="<?= URLROOT ?>/cart/add" style="display:contents;">
@@ -1810,11 +2277,16 @@ button, input, select, textarea { font-family: var(--font-sans); }
             <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
             <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($firstSlot['start_time'] ?? '') ?>">
             <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($firstSlot['end_time'] ?? '') ?>">
-            <input type="hidden" name="price" id="cartPrice" value="<?= $isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : $activeServicePrice ?>">
+            <input type="hidden" name="price" id="cartPrice" value="<?= $isPackageContext ? $packageServicePrice : ($isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : $activeServicePrice) ?>">
             <input type="hidden" name="source" value="<?= $isPackageContext ? 'package' : 'custom' ?>">
+            <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
+              <?php if ($fieldValue > 0): ?>
+                <input type="hidden" name="<?= $h($fieldName) ?>" value="<?= (int)$fieldValue ?>">
+              <?php endif; ?>
+            <?php endforeach; ?>
             <button class="btn-cart" id="addCartLink" type="submit">
               <i data-lucide="shopping-cart" size="16"></i>
-              Add to cart
+              <?= $isPackageContext ? 'Add to package booking' : 'Add to cart' ?>
             </button>
           </form>
           <?php else: ?>
@@ -1941,12 +2413,12 @@ button, input, select, textarea { font-family: var(--font-sans); }
 <div class="mobile-book-bar" id="mobileBookBar">
   <div class="mobile-book-row">
     <div>
-      <div class="mobile-book-price"><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></div>
-      <div class="mobile-book-label"><?= $pricingUnitLabel($service) ?></div>
+      <div class="mobile-book-price"><?= $isPackageContext ? $money($packageServicePrice) : ($isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service)) ?></div>
+      <div class="mobile-book-label"><?= $isPackageContext ? 'Package service price' : $pricingUnitLabel($service) ?></div>
     </div>
     <a class="mobile-book-btn <?= $hasInitialBookOption ? '' : 'is-guidance' ?>" id="mobileBookBtn" href="<?= URLROOT ?>/cart">
       <i data-lucide="shopping-cart" size="16"></i>
-      Add to cart
+      <?= $isPackageContext ? 'Add to package' : 'Add to cart' ?>
     </a>
   </div>
 </div>
@@ -1978,10 +2450,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const topBar = document.getElementById('topBar');
   const heroCover = document.getElementById('heroCover');
   if (topBar && heroCover) {
+    const hasPackageContext = <?= $isPackageContext ? 'true' : 'false' ?>;
     const onScroll = () => {
       const heroHeight = heroCover.offsetHeight;
       const progress = Math.min(1, window.scrollY / heroHeight);
-      topBar.classList.toggle('scrolled', progress > 0.15);
+      topBar.classList.toggle('scrolled', hasPackageContext || progress > 0.15);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -2010,6 +2483,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedHall = document.getElementById('selectedHall');
   const selectedTime = document.getElementById('selectedTime');
   const addCartLink = document.getElementById('addCartLink');
+  const mobileBookBtn = document.getElementById('mobileBookBtn');
   const cartDate = document.getElementById('cartDate');
   const cartStartTime = document.getElementById('cartStartTime');
   const cartEndTime = document.getElementById('cartEndTime');
@@ -2041,6 +2515,13 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('change', () => updateSelectedSlot(input));
   });
   updateSelectedSlot(document.querySelector("input[name='service_slot']:checked"));
+
+  if (mobileBookBtn && addCartLink) {
+    mobileBookBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      addCartLink.click();
+    });
+  }
 
   // ── Hero gallery ──
   const heroMain = document.getElementById('heroMain');
@@ -2178,6 +2659,18 @@ document.addEventListener('DOMContentLoaded', () => {
       cursor.style.transform = 'translate(' + (e.clientX - 5) + 'px, ' + (e.clientY - 5) + 'px)';
     });
   }
+
+  // Profile dropdown toggle
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tb-profile-btn');
+    if (btn) {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      document.querySelectorAll('.tb-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+      btn.setAttribute('aria-expanded', String(!expanded));
+      return;
+    }
+    document.querySelectorAll('.tb-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  });
 });
 </script>
 </body>
