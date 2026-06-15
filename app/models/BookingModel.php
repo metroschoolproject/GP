@@ -35,29 +35,35 @@ class BookingModel
     /**
      * Transfer cart items to booking_items.
      */
-    public function insertBookingItems(int $bookingId, int $userId): bool
+    public function insertBookingItems(int $bookingId, int $userId): array|false
     {
         $this->db->dbquery(
             "INSERT INTO booking_items (booking_id, item_type, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type)
-             SELECT :bid, ci.item_type, ci.item_id,
-                    CASE
-                        WHEN ci.selected_date IS NULL THEN NOW()
-                        ELSE CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00'))
-                    END AS booking_date,
-                    COALESCE(ci.price, s.price_min, s.price, p.base_price, sp.total_price, 0) AS price,
+            SELECT :bid, ci.item_type, ci.item_id,
+                    CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
+                    COALESCE(ci.price, s.price_min, s.price, p.base_price, sp.total_price, 0),
                     'pending',
                     ci.slot_id, ci.start_time, ci.end_time,
-                    COALESCE(s.booking_type, 'fullday') AS booking_type
-             FROM cart_items ci
-             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
-             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
-             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
-             WHERE ci.user_id = :uid"
+                    COALESCE(s.booking_type, 'fullday')
+            FROM cart_items ci
+            LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
+            LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
+            LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
+            WHERE ci.user_id = :uid"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
-
-        return $this->db->dbexecute();
+        
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+        
+        // Fetch and return the inserted item IDs
+        $this->db->dbquery("SELECT id FROM booking_items WHERE booking_id = :bid ORDER BY id ASC");
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $rows = $this->db->getmultidata();
+        
+        return array_column($rows, 'id');
     }
 
     /**
@@ -100,15 +106,19 @@ class BookingModel
     /**
      * Insert event_details for a booking (per-item notes & guest counts stored in event_details).
      */
-    public function insertEventDetails(int $bookingId, array $itemsData): bool
+    public function insertEventDetails(int $bookingId, array $itemsData, array $bookingItemIds): bool
     {
-        foreach ($itemsData as $item) {
+        foreach ($itemsData as $index => $item) {
+            $bookingItemId = $bookingItemIds[$index] ?? null;
+            
             $this->db->dbquery(
                 "INSERT INTO event_details
-                    (booking_id, event_date, start_time, end_time, guest_count, location, contact_phone, special_requests, contact_name)
-                 VALUES (:bid, :edate, :stime, :etime, :guests, :location, :phone, :notes, :cname)"
+                    (booking_id, booking_item_id, event_date, start_time, end_time, 
+                    guest_count, location, contact_phone, special_requests, contact_name)
+                VALUES (:bid, :biid, :edate, :stime, :etime, :guests, :location, :phone, :notes, :cname)"
             );
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbbind(':biid', $bookingItemId, PDO::PARAM_INT);
             $this->db->dbbind(':edate', $item['event_date'] ?? null);
             $this->db->dbbind(':stime', $item['start_time'] ?? null);
             $this->db->dbbind(':etime', $item['end_time'] ?? null);
@@ -117,12 +127,12 @@ class BookingModel
             $this->db->dbbind(':phone', $item['phone'] ?? null);
             $this->db->dbbind(':notes', $item['notes'] ?? null);
             $this->db->dbbind(':cname', $item['contact_name'] ?? null);
-
+            
             if (!$this->db->dbexecute()) {
                 return false;
             }
         }
-
+        
         return true;
     }
 

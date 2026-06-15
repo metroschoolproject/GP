@@ -400,6 +400,9 @@ textarea { font-family: var(--font-b); }
   .gp-item-card, .gp-event-card, .gp-page-head, .gp-sidebar { animation: none; opacity: 1; transform: none; }
   .gp-orb { animation: none; }
 }
+
+
+
 </style>
 </head>
 <body>
@@ -457,138 +460,376 @@ textarea { font-family: var(--font-b); }
     <p class="gp-page-subtitle">Review your selections and add any details your suppliers need.</p>
   </div>
 
-  <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
-    <div class="gp-layout">
-
-      <!-- LEFT: Items -->
-      <div class="gp-items" id="gp-items">
-        <section class="gp-event-card" data-index="0" aria-labelledby="event-details-title">
-          <div class="gp-event-head">
-            <div>
-              <div class="gp-event-kicker">Event details</div>
-              <h2 class="gp-event-title" id="event-details-title">Tell suppliers once</h2>
-            </div>
-            <p class="gp-event-copy">These details fill services without a fixed date or slot. Chosen slots stay unchanged.</p>
+<form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
+  <div class="gp-layout">
+    
+    <!-- LEFT: Services with slots -->
+    <div class="gp-items">
+      
+      <!-- SHARED DEFAULTS SECTION -->
+      <section class="gp-event-card" id="shared-defaults">
+        <div class="gp-event-head">
+          <div>
+            <div class="gp-event-kicker">Default Contact Info</div>
+            <h2 class="gp-event-title">For services without slots</h2>
           </div>
-
-          <div class="gp-item-details">
-            <div class="gp-detail-row">
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="event-date">Event date</label>
-                <input class="gp-detail-input" type="date" id="event-date" name="event_date"
-                       value="<?= $h($defaultDate) ?>">
-              </div>
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="contact-phone">Contact phone</label>
-                <input class="gp-detail-input" type="tel" id="contact-phone" name="contact_phone"
-                       placeholder="+60 12-345 6789" value="<?= $h($user['phone']) ?>">
-              </div>
+          <p class="gp-event-copy">These apply only if a service didn't have a chosen slot. Each service can override.</p>
+        </div>
+        
+        <div class="gp-item-details">
+          <div class="gp-detail-row">
+            <div class="gp-detail-field">
+              <label class="gp-detail-label" for="shared-phone">Phone</label>
+              <input class="gp-detail-input" type="tel" id="shared-phone" 
+                     name="shared_phone" value="<?= $h($user['phone']) ?>">
             </div>
-
-            <div class="gp-detail-row">
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="event-start-time">Start time</label>
-                <input class="gp-detail-input" type="time" id="event-start-time" name="event_start_time"
-                       value="<?= $h($defaultStartTime) ?>">
-              </div>
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="event-end-time">End time</label>
-                <input class="gp-detail-input" type="time" id="event-end-time" name="event_end_time"
-                       value="<?= $h($defaultEndTime) ?>">
-              </div>
+            <div class="gp-detail-field">
+              <label class="gp-detail-label" for="shared-contact-name">Contact Name</label>
+              <input class="gp-detail-input" type="text" id="shared-contact-name" 
+                     name="shared_contact_name" value="<?= $h($user['name']) ?>">
             </div>
+          </div>
+          
+          <div class="gp-detail-row">
+            <div class="gp-detail-field">
+              <label class="gp-detail-label" for="shared-location">Location / Venue</label>
+              <input class="gp-detail-input" type="text" id="shared-location" 
+                     name="shared_location" placeholder="e.g., The Grand Ballroom">
+            </div>
+            <div class="gp-detail-field">
+              <label class="gp-detail-label" for="shared-guests">Guest Count</label>
+              <input class="gp-detail-input" type="number" id="shared-guests" 
+                     name="shared_guests" min="0" value="0">
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- EACH SERVICE CARD -->
+      <?php foreach ($items as $i => $item):
+        $hasSlot = !empty($item['selected_date']);
+        $slotDate = $item['selected_date'] ?? '';
+        $slotStart = $item['start_time'] ?? '';
+        $slotEnd = $item['end_time'] ?? '';
+        $formatSlotDate = $slotDate ? date('l, M j, Y', strtotime($slotDate)) : '';
+        $formatSlotTime = ($slotStart && $slotEnd) 
+          ? date('g:i A', strtotime($slotStart)) . ' - ' . date('g:i A', strtotime($slotEnd))
+          : '';
+      ?>
+      
+      <article class="gp-item-card" data-index="<?= $i + 1 ?>" 
+               data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>">
+        
+        <!-- HEADER -->
+        <div class="gp-item-header">
+          <a class="gp-item-thumb" href="<?= URLROOT ?>/customerServices/detail/<?= $item['item_id'] ?>" 
+             tabindex="-1" aria-hidden="true">
+            <?php if ($item['thumbnail_url']): ?>
+              <img src="<?= $h($item['thumbnail_url']) ?>" alt="<?= $h($item['service_name']) ?>" loading="lazy">
+            <?php else: ?>
+              <div class="gp-item-thumb-placeholder">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" 
+                     stroke="currentColor" stroke-width="1.4">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+            <?php endif; ?>
+          </a>
+          
+          <div class="gp-item-info">
+            <h2 class="gp-item-name"><?= $h($item['service_name']) ?></h2>
+            <div class="gp-item-supplier">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <?= $h($item['supplier_name'] ?? 'Supplier') ?>
+            </div>
+            
+            <!-- SLOT STATUS BADGE -->
+             <style>
+              /* Slot status badges */
+                .gp-slot-status {
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  padding: 6px 10px;
+                  border-radius: 6px;
+                  margin-top: 8px;
+                  width: fit-content;
+                }
 
-            <div class="gp-detail-row">
-              <div class="gp-detail-field">
-                <label class="gp-detail-label">Number of guests</label>
-                <div class="gp-detail-stepper">
-                  <button type="button" class="gp-stepper-btn" data-stepper="minus" data-target="guest-count" aria-label="Decrease guests">-</button>
-                  <input class="gp-stepper-input" type="number" id="guest-count" name="guest_count"
-                         value="0" min="0" max="9999" readonly>
-                  <button type="button" class="gp-stepper-btn" data-stepper="plus" data-target="guest-count" aria-label="Increase guests">+</button>
+                .gp-slot-status.complete {
+                  background: rgba(42, 122, 75, 0.08);
+                  color: #24613d;
+                  border: 1px solid rgba(42, 122, 75, 0.24);
+                }
+
+                .gp-slot-status.incomplete {
+                  background: rgba(185, 75, 75, 0.08);
+                  color: var(--danger);
+                  border: 1px solid rgba(185, 75, 75, 0.24);
+                }
+
+                /* Slot display (already chosen) */
+                .gp-slot-display {
+                  display: flex;
+                  align-items: flex-start;
+                  justify-content: space-between;
+                  gap: 16px;
+                  padding: 16px;
+                  background: rgba(42, 122, 75, 0.04);
+                  border: 1px solid rgba(42, 122, 75, 0.15);
+                  border-radius: var(--r-md);
+                  margin-bottom: 12px;
+                }
+
+                .gp-slot-box {
+                  flex: 1;
+                }
+
+                .slot-date,
+                .slot-time {
+                  font-size: 14px;
+                  font-weight: 600;
+                  color: var(--text);
+                  line-height: 1.6;
+                }
+
+                .slot-date {
+                  color: var(--gold);
+                }
+
+                .gp-btn-change-slot,
+                .gp-btn-cancel-change {
+                  padding: 8px 12px;
+                  border: 1px solid var(--rule-strong);
+                  border-radius: var(--r-sm);
+                  background: var(--card);
+                  color: var(--text2);
+                  font-size: 12px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.2s;
+                  white-space: nowrap;
+                }
+
+                .gp-btn-change-slot:hover {
+                  border-color: var(--plum);
+                  color: var(--plum);
+                  background: rgba(107, 68, 89, 0.05);
+                }
+
+                .gp-btn-cancel-change {
+                  margin-top: 12px;
+                  width: 100%;
+                }
+
+                .gp-btn-cancel-change:hover {
+                  border-color: var(--danger);
+                  color: var(--danger);
+                  background: rgba(185, 75, 75, 0.05);
+                }
+
+                /* Slot selector (hidden by default) */
+                .gp-slot-selector {
+                  padding: 16px;
+                  background: var(--surface);
+                  border: 1px dashed var(--rule-strong);
+                  border-radius: var(--r-md);
+                  margin-bottom: 12px;
+                }
+
+                .gp-slot-selector.hidden {
+                  display: none;
+                }
+
+                /* Slots container */
+                .gp-slots-container {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 10px;
+                  margin-bottom: 12px;
+                }
+
+                .gp-slot-option {
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  padding: 12px;
+                  border: 1px solid var(--rule);
+                  border-radius: var(--r-sm);
+                  background: var(--card);
+                  cursor: pointer;
+                  transition: all 0.2s;
+                }
+
+                .gp-slot-option:hover {
+                  border-color: var(--plum);
+                  background: rgba(107, 68, 89, 0.03);
+                }
+
+                .gp-slot-option input[type="radio"] {
+                  cursor: pointer;
+                }
+
+                .gp-slot-option input[type="radio"]:checked + span {
+                  color: var(--plum);
+                  font-weight: 700;
+                }
+
+                .gp-slot-option span {
+                  flex: 1;
+                  font-size: 13px;
+                  color: var(--text2);
+                }
+
+                /* Fieldset styling */
+                .gp-fieldset-legend {
+                  font-size: 11px;
+                  font-weight: 700;
+                  letter-spacing: 0.1em;
+                  text-transform: uppercase;
+                  color: var(--muted);
+                  margin-bottom: 12px;
+                }
+
+                .gp-slot-fieldset,
+                .gp-overrides-fieldset {
+                  margin-bottom: 16px;
+                  padding-bottom: 16px;
+                  border-bottom: 1px solid var(--rule);
+                }
+
+                .gp-slot-fieldset:last-child,
+                .gp-overrides-fieldset:last-child {
+                  border-bottom: none;
+                }
+
+                .gp-slot-fieldset:last-of-type {
+                  margin-bottom: 0;
+                  padding-bottom: 0;
+                }
+             </style>
+            <?php if ($hasSlot): ?>
+              <div class="gp-slot-status complete">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <?= $formatSlotDate ?> @ <?= $formatSlotTime ?>
+              </div>
+            <?php else: ?>
+              <div class="gp-slot-status incomplete">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Pick a slot below
+              </div>
+            <?php endif; ?>
+          </div>
+          
+          <div class="gp-item-price-box">
+            <div class="gp-item-price-val"><?= $money($item['cart_price'] ?? $item['price_min'] ?? 0) ?></div>
+          </div>
+        </div>
+        
+        <!-- DETAILS SECTION -->
+        <div class="gp-item-details">
+          
+          <!-- SLOT SECTION -->
+          <fieldset class="gp-slot-fieldset">
+            <legend class="gp-fieldset-legend">Date & Time</legend>
+            
+            <?php if ($hasSlot): ?>
+              <!-- ALREADY HAS SLOT - Show read-only + change button -->
+              <div class="gp-slot-display">
+                <div class="gp-slot-box">
+                  <div class="slot-date">📅 <?= $formatSlotDate ?></div>
+                  <div class="slot-time">⏰ <?= $formatSlotTime ?></div>
                 </div>
+                <button type="button" class="gp-btn-change-slot" 
+                        data-index="<?= $i ?>" aria-label="Change slot for <?= $item['service_name'] ?>">
+                  ↻ Change Slot
+                </button>
+              </div>
+              
+              <!-- HIDDEN SLOT SELECTOR (appears when "Change" clicked) -->
+              <div class="gp-slot-selector hidden" id="slot-selector-<?= $i ?>">
+                <label class="gp-detail-label" for="slot-date-<?= $i ?>">New Date</label>
+                <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>" 
+                       name="item_date[<?= $i ?>]" value="<?= $slotDate ?>" 
+                       data-service-id="<?= $item['item_id'] ?>" data-index="<?= $i ?>">
+                
+                <label class="gp-detail-label">Available Slots</label>
+                <div class="gp-slots-container" id="slots-<?= $i ?>">
+                  <p class="loading">Loading slots...</p>
+                </div>
+                
+                <button type="button" class="gp-btn-cancel-change" data-index="<?= $i ?>">
+                  ✕ Keep Original Slot
+                </button>
+              </div>
+            <?php else: ?>
+              <!-- NO SLOT YET - Show selector -->
+              <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select Date</label>
+              <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>" 
+                     name="item_date[<?= $i ?>]" data-service-id="<?= $item['item_id'] ?>" 
+                     data-index="<?= $i ?>" required>
+              
+              <label class="gp-detail-label">Available Time Slots</label>
+              <div class="gp-slots-container" id="slots-<?= $i ?>">
+                <p class="loading">Select a date to see available slots</p>
+              </div>
+            <?php endif; ?>
+          </fieldset>
+          
+          <!-- OVERRIDE FIELDS -->
+          <fieldset class="gp-overrides-fieldset">
+            <legend class="gp-fieldset-legend">Override Event Details (optional)</legend>
+            
+            <div class="gp-detail-row">
+              <div class="gp-detail-field">
+                <label class="gp-detail-label" for="guests-<?= $i ?>">Guests for this service</label>
+                <input class="gp-detail-input" type="number" id="guests-<?= $i ?>" 
+                       name="item_guests[<?= $i ?>]" min="0" 
+                       placeholder="Leave empty for default">
               </div>
               <div class="gp-detail-field">
-                <label class="gp-detail-label" for="event-location">Event venue / location</label>
-                <input class="gp-detail-input" type="text" id="event-location" name="event_location"
-                       placeholder="e.g. The Grand Ballroom" value="">
+                <label class="gp-detail-label" for="location-<?= $i ?>">Location / Venue Room</label>
+                <input class="gp-detail-input" type="text" id="location-<?= $i ?>" 
+                       name="item_location[<?= $i ?>]" 
+                       placeholder="e.g., Ballroom A (optional)">
               </div>
             </div>
-          </div>
-        </section>
-
-        <?php foreach ($items as $i => $item):
-          $itemId      = (int)($item['cart_item_id'] ?? 0);
-          $name        = $item['service_name'] ?? 'Service';
-          $supplier    = $item['supplier_name'] ?? 'Supplier';
-          $category    = $item['category_name'] ?? 'Service';
-          $img         = trim($item['thumbnail_url'] ?? '');
-          $price       = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
-          $bookingType = $item['booking_type'] ?? 'fullday';
-          $selectedDate = trim((string)($item['selected_date'] ?? ''));
-          $startTime = trim((string)($item['start_time'] ?? ''));
-          $endTime = trim((string)($item['end_time'] ?? ''));
-          $hasFixedSchedule = $selectedDate !== '' || $startTime !== '' || $endTime !== '';
-          $scheduleDateLabel = $selectedDate !== '' ? $formatDate($selectedDate) : '';
-          $scheduleTimeLabel = $formatTimeRange($startTime, $endTime);
-          $scheduleTypeLabel = $bookingType === 'slot'
-            ? 'Fixed slot'
-            : ($bookingType === 'flexible' ? 'Flexible schedule' : 'Full-day date');
-          $detailUrl   = URLROOT . '/customerServices/detail/' . (int)($item['item_id'] ?? 0);
-        ?>
-        <article class="gp-item-card" data-index="<?= $i + 1 ?>">
-
-          <div class="gp-item-header">
-            <a class="gp-item-thumb" href="<?= $h($detailUrl) ?>" tabindex="-1" aria-hidden="true">
-              <?php if ($img): ?>
-                <img src="<?= $h($img) ?>" alt="<?= $h($name) ?>" loading="lazy">
-              <?php else: ?>
-                <div class="gp-item-thumb-placeholder">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                </div>
-              <?php endif; ?>
-            </a>
-            <div class="gp-item-info">
-              <h2 class="gp-item-name"><?= $h($name) ?></h2>
-              <div class="gp-item-supplier">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <?= $h($supplier) ?>
+            
+            <div class="gp-detail-row">
+              <div class="gp-detail-field">
+                <label class="gp-detail-label" for="contact-name-<?= $i ?>">Contact Person</label>
+                <input class="gp-detail-input" type="text" id="contact-name-<?= $i ?>" 
+                       name="item_contact_name[<?= $i ?>]" 
+                       placeholder="Leave empty for default">
               </div>
-              <div class="gp-schedule-note">
-                <?php if ($hasFixedSchedule): ?>
-                  <span class="gp-schedule-pill fixed">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                    <?= $h($scheduleTypeLabel) ?>
-                  </span>
-                  <?php if ($scheduleDateLabel !== ''): ?><span><?= $h($scheduleDateLabel) ?></span><?php endif; ?>
-                  <?php if ($scheduleTimeLabel !== ''): ?><span><?= $h($scheduleTimeLabel) ?></span><?php endif; ?>
-                <?php else: ?>
-                  <span class="gp-schedule-pill shared">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                    Uses shared event details
-                  </span>
-                <?php endif; ?>
+              <div class="gp-detail-field">
+                <label class="gp-detail-label" for="contact-phone-<?= $i ?>">Contact Phone</label>
+                <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>" 
+                       name="item_contact_phone[<?= $i ?>]" 
+                       placeholder="Leave empty for default">
               </div>
             </div>
-            <div class="gp-item-price-box">
-              <div class="gp-item-price-val"><?= $money($price) ?></div>
+            
+            <div class="gp-detail-row">
+              <div class="gp-detail-field full">
+                <label class="gp-detail-label" for="notes-<?= $i ?>">Special Requests / Notes</label>
+                <textarea class="gp-detail-textarea" id="notes-<?= $i ?>" 
+                          name="item_notes[<?= $i ?>]" 
+                          placeholder="Any specific requirements for this service…" 
+                          data-autogrow></textarea>
+              </div>
             </div>
-          </div>
-
-          <div class="gp-item-details">
-            <div class="gp-detail-field full">
-              <label class="gp-detail-label" for="notes-<?= $i ?>">Special requests / notes</label>
-              <textarea class="gp-detail-textarea" id="notes-<?= $i ?>" name="item_notes[<?= $i ?>]"
-                        placeholder="Optional details for this service only…" data-autogrow></textarea>
-            </div>
-
-            <input type="hidden" name="item_name[<?= $i ?>]" value="<?= $h($name) ?>">
-          </div>
-
-        </article>
-        <?php endforeach; ?>
-      </div>
-
+          </fieldset>
+        </div>
+      </article>
+      
+      <?php endforeach; ?>
+    </div>
+    
       <!-- RIGHT: Summary sidebar -->
       <aside class="gp-sidebar" aria-label="Order summary">
         <div class="gp-summary-card">
@@ -666,9 +907,9 @@ textarea { font-family: var(--font-b); }
 
         </div>
       </aside>
-
-    </div>
-  </form>
+    
+  </div>
+</form>
 
 </main>
 
@@ -785,6 +1026,108 @@ textarea { font-family: var(--font-b); }
     document.querySelectorAll('.gp-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
   });
 })();
+
+// ===== SLOT CHANGING LOGIC =====
+
+// Toggle between slot display and slot selector
+document.querySelectorAll('.gp-btn-change-slot').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    const index = this.dataset.index;
+    const selector = document.getElementById(`slot-selector-${index}`);
+    selector.classList.remove('hidden');
+    document.getElementById(`slot-date-${index}`).focus();
+  });
+});
+
+// Cancel slot change
+document.querySelectorAll('.gp-btn-cancel-change').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    const index = this.dataset.index;
+    const selector = document.getElementById(`slot-selector-${index}`);
+    selector.classList.add('hidden');
+  });
+});
+
+// ===== FETCH AVAILABLE SLOTS =====
+
+async function loadSlots(serviceId, date, index) {
+  const slotsContainer = document.getElementById(`slots-${index}`);
+  
+  if (!date) {
+    slotsContainer.innerHTML = '<p class="loading">Select a date first</p>';
+    return;
+  }
+  
+  slotsContainer.innerHTML = '<p class="loading">Loading available slots for ' + date + '...</p>';
+  
+  try {
+    const response = await fetch('<?= URLROOT ?>/booking/getAvailableSlots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: serviceId,
+        date: date
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      slotsContainer.innerHTML = '<p class="error">' + (data.error || 'Could not load slots') + '</p>';
+      return;
+    }
+    
+    if (data.slots && data.slots.length > 0) {
+      slotsContainer.innerHTML = data.slots.map((slot, idx) => `
+        <label class="gp-slot-option">
+          <input type="radio" name="item_start_time[${index}]" 
+                 value="${slot.start_time}" 
+                 data-end-time="${slot.end_time}"
+                 ${idx === 0 ? 'checked' : ''}>
+          <input type="hidden" name="item_end_time[${index}]" class="end-time-hidden-${index}"
+                 value="${slot.end_time}">
+          <span>${slot.display}${slot.available > 0 ? ' (' + slot.available + ' available)' : ''}</span>
+        </label>
+      `).join('');
+      
+      // When radio selected, update hidden end_time
+      document.querySelectorAll(`input[name="item_start_time[${index}]"]`).forEach(radio => {
+        radio.addEventListener('change', function() {
+          if (this.checked) {
+            document.querySelector(`.end-time-hidden-${index}`).value = this.dataset.endTime;
+          }
+        });
+      });
+    } else {
+      slotsContainer.innerHTML = '<p class="error">No available slots for this date</p>';
+    }
+  } catch (error) {
+    console.error('Error loading slots:', error);
+    slotsContainer.innerHTML = '<p class="error">Error loading slots. Please try again.</p>';
+  }
+}
+
+// Load slots when date changes
+document.querySelectorAll('[data-service-id]').forEach(dateInput => {
+  dateInput.addEventListener('change', function() {
+    const serviceId = this.dataset.serviceId;
+    const index = this.dataset.index;
+    const date = this.value;
+    loadSlots(serviceId, date, index);
+  });
+});
+
+// Load slots on initial page load if date is pre-filled
+document.querySelectorAll('[data-service-id]').forEach(dateInput => {
+  if (dateInput.value) {
+    const serviceId = dateInput.dataset.serviceId;
+    const index = dateInput.dataset.index;
+    const date = dateInput.value;
+    loadSlots(serviceId, date, index);
+  }
+});
 </script>
 </body>
 </html>

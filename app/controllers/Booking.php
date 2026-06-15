@@ -79,108 +79,89 @@ class Booking extends Controller
     public function createPost(): void
     {
         $this->ensureAuthenticated();
-
+        
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
-
+        
         $items = $this->cartModel->getCartItems($this->userId);
         $total = $this->cartModel->getCartTotal($this->userId);
-
+        
         if (empty($items)) {
             $this->jsonResponse(['error' => 'Cart is empty'], 400);
         }
-
+        
+        // GET SHARED DEFAULTS (fallback only)
+        $sharedPhone = trim($_POST['shared_phone'] ?? '');
+        $sharedLocation = trim($_POST['shared_location'] ?? '');
+        $sharedGuests = max(0, min(9999, (int)($_POST['shared_guests'] ?? 0)));
+        $sharedContactName = trim($_POST['shared_contact_name'] ?? '');
+        
+        // PARSE PER-ITEM DATA
+        $itemsData = [];
+        $itemErrors = [];
+        
+        foreach ($items as $i => $item) {
+            $itemDate = trim($_POST['item_date'][$i] ?? '');
+            $itemStartTime = trim($_POST['item_start_time'][$i] ?? '');
+            $itemEndTime = trim($_POST['item_end_time'][$i] ?? '');
+            
+            // VALIDATE: date and time required
+            if (empty($itemDate)) {
+                $itemErrors[] = $item['service_name'] . ': Date is required';
+            }
+            if (empty($itemStartTime)) {
+                $itemErrors[] = $item['service_name'] . ': Time slot is required';
+            }
+            
+            if (!empty($itemErrors)) continue;
+            
+            // Collect per-item details (with fallback to shared defaults)
+            $itemsData[] = [
+                'event_date' => $itemDate,
+                'start_time' => $itemStartTime,
+                'end_time' => $itemEndTime,
+                'guest_count' => (int)($_POST['item_guests'][$i] ?? 0) ?: $sharedGuests,
+                'location' => trim($_POST['item_location'][$i] ?? '') ?: $sharedLocation,
+                'phone' => trim($_POST['item_contact_phone'][$i] ?? '') ?: $sharedPhone,
+                'contact_name' => trim($_POST['item_contact_name'][$i] ?? '') ?: $sharedContactName,
+                'notes' => trim($_POST['item_notes'][$i] ?? ''),
+            ];
+        }
+        
+        // Return validation errors if any
+        if (!empty($itemErrors)) {
+            $this->jsonResponse(['error' => implode('; ', $itemErrors)], 400);
+        }
+        
+        // CREATE BOOKING
         $cartId = $this->cartModel->getOrCreateCart($this->userId);
-
-        // Create draft booking
         $bookingId = $this->bookingModel->createDraftFromCart($this->userId, $cartId, $total);
+        
         if (!$bookingId) {
-            $this->jsonResponse(['error' => 'Could not create booking. Please try again.'], 500);
+            $this->jsonResponse(['error' => 'Could not create booking'], 500);
         }
-
-        // Transfer cart items to booking_items
-        if (!$this->bookingModel->insertBookingItems($bookingId, $this->userId)) {
-            $this->jsonResponse(['error' => 'Could not save booking items. Please try again.'], 500);
+        
+        // INSERT BOOKING ITEMS (and get back IDs)
+        $bookingItemIds = $this->bookingModel->insertBookingItems($bookingId, $this->userId);
+        if (!$bookingItemIds) {
+            $this->jsonResponse(['error' => 'Could not save booking items'], 500);
         }
-
-        // Parse shared event data plus optional per-service notes.
-        $sharedDate = trim((string)($_POST['event_date'] ?? ''));
-        $sharedStartTime = trim((string)($_POST['event_start_time'] ?? ''));
-        $sharedEndTime = trim((string)($_POST['event_end_time'] ?? ''));
-        $sharedGuestCount = max(0, min(9999, (int)($_POST['guest_count'] ?? 0)));
-        $sharedLocation = trim((string)($_POST['event_location'] ?? ''));
-        $sharedPhone = trim((string)($_POST['contact_phone'] ?? ''));
-        $sharedContactName = trim((string)($_POST['contact_name'] ?? ''));
-
-        $itemsData = json_decode($_POST['items_data'] ?? '[]', true) ?: [];
-        if (empty($itemsData)) {
-            $notes = $_POST['item_notes'] ?? [];
-
-            // Backward-compatible fallback for any older form still posting item-specific fields.
-            $dates = $_POST['item_date'] ?? [];
-            $startTimes = $_POST['item_start_time'] ?? [];
-            $endTimes = $_POST['item_end_time'] ?? [];
-            $guests = $_POST['item_guests'] ?? [];
-            $locations = $_POST['item_location'] ?? [];
-            $phones = $_POST['item_phone'] ?? [];
-            $contactNames = $_POST['item_contact_name'] ?? [];
-
-            foreach ($items as $i => $item) {
-                $cartDate = trim((string)($item['selected_date'] ?? ''));
-                $cartStartTime = trim((string)($item['start_time'] ?? ''));
-                $cartEndTime = trim((string)($item['end_time'] ?? ''));
-
-                $postedDate = trim((string)($dates[$i] ?? ''));
-                $postedStartTime = trim((string)($startTimes[$i] ?? ''));
-                $postedEndTime = trim((string)($endTimes[$i] ?? ''));
-
-                $eventDate = $cartDate !== '' ? $cartDate : ($postedDate !== '' ? $postedDate : $sharedDate);
-                $startTime = $cartStartTime !== '' ? $cartStartTime : ($postedStartTime !== '' ? $postedStartTime : $sharedStartTime);
-                $endTime = $cartEndTime !== '' ? $cartEndTime : ($postedEndTime !== '' ? $postedEndTime : $sharedEndTime);
-
-                $itemsData[] = [
-                    'event_date' => $eventDate,
-                    'start_time' => $startTime,
-                    'end_time' => $endTime,
-                    'guest_count' => $sharedGuestCount > 0 ? $sharedGuestCount : (int)($guests[$i] ?? 0),
-                    'notes' => trim((string)($notes[$i] ?? '')),
-                    'location' => $sharedLocation !== '' ? $sharedLocation : ($locations[$i] ?? ''),
-                    'phone' => $sharedPhone !== '' ? $sharedPhone : ($phones[$i] ?? ''),
-                    'contact_name' => $sharedContactName !== '' ? $sharedContactName : ($contactNames[$i] ?? ''),
-                ];
-            }
+        
+        // INSERT EVENT DETAILS (with booking_item_id)
+        if (!$this->bookingModel->insertEventDetails($bookingId, $itemsData, $bookingItemIds)) {
+            $this->jsonResponse(['error' => 'Could not save event details'], 500);
         }
-
-        if ($sharedDate !== '' || $sharedStartTime !== '' || $sharedEndTime !== '') {
-            $scheduleUpdated = $this->bookingModel->updateUnscheduledBookingItemsSchedule(
-                $bookingId,
-                $sharedDate,
-                $sharedStartTime,
-                $sharedEndTime
-            );
-
-            if (!$scheduleUpdated) {
-                $this->jsonResponse(['error' => 'Could not save booking schedule. Please try again.'], 500);
-            }
-        }
-
-        // Save event details
-        if (!$this->bookingModel->insertEventDetails($bookingId, $itemsData)) {
-            $this->jsonResponse(['error' => 'Could not save event details. Please try again.'], 500);
-        }
-
-        // Link suppliers
+        
+        // LINK SUPPLIERS
         if (!$this->bookingModel->insertBookingSuppliers($bookingId)) {
-            $this->jsonResponse(['error' => 'Could not assign suppliers for this booking. Please try again.'], 500);
+            $this->jsonResponse(['error' => 'Could not assign suppliers'], 500);
         }
-
-        // Clear cart
+        
+        // CLEAR CART & LOG
         $this->bookingModel->clearCart($this->userId);
-
-        // Log status change
         $this->bookingModel->logStatusChange($bookingId, null, 'draft', $this->userId);
-
+        
         $this->jsonResponse([
             'success' => true,
             'booking_id' => $bookingId,
@@ -387,6 +368,73 @@ class Booking extends Controller
         $this->jsonResponse([
             'success' => true,
             'redirect' => URLROOT . '/booking/success/' . $bookingId,
+        ]);
+    }
+
+    /* ─── Available Slots ──────────────── */
+
+    public function getAvailableSlots(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $serviceId = (int)($input['service_id'] ?? 0);
+        $date = trim($input['date'] ?? '');
+        
+        if ($serviceId <= 0 || empty($date)) {
+            $this->jsonResponse(['error' => 'Invalid input'], 400);
+        }
+        
+        // Get service details
+        $db = new Database();
+        $db->dbquery("SELECT booking_type FROM services WHERE id = :id LIMIT 1");
+        $db->dbbind(':id', $serviceId, PDO::PARAM_INT);
+        $service = $db->getsingledata();
+        
+        if (!$service) {
+            $this->jsonResponse(['error' => 'Service not found'], 404);
+        }
+        
+        // Fetch available slots for this service and date
+        $db->dbquery(
+            "SELECT start_time, end_time, available_slots 
+            FROM service_availability 
+            WHERE service_id = :sid 
+            AND availability_date = :adate 
+            AND available_slots > 0
+            ORDER BY start_time ASC"
+        );
+        $db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $db->dbbind(':adate', $date);
+        $slots = $db->getmultidata();
+        
+        if (empty($slots)) {
+            $this->jsonResponse([
+                'success' => true,
+                'slots' => [],
+                'message' => 'No slots available for this date'
+            ]);
+            return;
+        }
+        
+        // Format slots for display
+        $formatted = [];
+        foreach ($slots as $slot) {
+            $start = strtotime($slot['start_time']);
+            $end = strtotime($slot['end_time']);
+            $formatted[] = [
+                'start_time' => $slot['start_time'],
+                'end_time' => $slot['end_time'],
+                'display' => date('g:i A', $start) . ' - ' . date('g:i A', $end),
+                'available' => (int)$slot['available_slots']
+            ];
+        }
+        
+        $this->jsonResponse([
+            'success' => true,
+            'slots' => $formatted
         ]);
     }
 
