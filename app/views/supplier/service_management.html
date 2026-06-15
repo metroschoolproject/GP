@@ -451,6 +451,11 @@
           <input id="oCapacity" type="number" min="1" step="1" placeholder="e.g. 50" class="fm-input"/>
         </div>
       </div>
+      <div>
+        <label class="fm-label" for="oMinLeadDays">Minimum booking notice (days)</label>
+        <input id="oMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
+        <div style="font-size:12px;color:#666;margin-top:4px">How many days in advance must customers book this service?</div>
+      </div>
     </div>
     <div class="modal-f">
       <button onclick="closeAll()" class="btn-dull">Cancel</button>
@@ -491,6 +496,11 @@
           <label class="fm-label" for="esPriceMax">Customize price (MMK)</label>
           <input id="esPriceMax" type="number" min="0" step="0.01" class="fm-input"/>
         </div>
+      </div>
+      <div>
+        <label class="fm-label" for="esMinLeadDays">Minimum booking notice (days)</label>
+        <input id="esMinLeadDays" type="number" min="0" max="365" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
+        <div style="font-size:12px;color:#666;margin-top:4px">How many days in advance must customers book this service?</div>
       </div>
       <div id="esVenueExtras" class="hidden space-y-4">
         <div class="modal-grid-2">

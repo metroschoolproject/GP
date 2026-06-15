@@ -231,6 +231,7 @@ function venueRoomRowHtml(prefix, room = {}) {
   const priceMax = room.price_max ?? room.customize_price ?? priceMin;
   const startTime = escapeHtml(String(room.start_time || room.available_start_time || '09:00').slice(0, 5));
   const endTime = escapeHtml(String(room.end_time || room.available_end_time || '17:00').slice(0, 5));
+  const minLeadDays = room.min_lead_days ?? '';
 
   return `
     <div class="room-row ${prefix}-venue-room" data-room-id="${id}">
@@ -259,6 +260,10 @@ function venueRoomRowHtml(prefix, room = {}) {
         <div>
           <label class="fm-label">End time</label>
           <input type="time" lang="en-GB" value="${endTime}" class="room-end-time fm-input" style="font-size:13px;padding:6px 0 4px"/>
+        </div>
+        <div>
+          <label class="fm-label">Min. notice (days)</label>
+          <input type="number" min="0" max="365" value="${minLeadDays}" placeholder="Leave blank to use service default" class="room-min-lead-days fm-input" style="font-size:13px;padding:6px 0 4px"/>
         </div>
         <button type="button" onclick="removeVenueRoom(this, '${prefix}')" class="room-row-remove" title="Remove">&times;</button>
       </div>
@@ -305,6 +310,8 @@ function collectVenueRooms(prefix) {
     const priceMax = rawPriceMax === undefined || rawPriceMax === '' ? priceMin : parseFloat(rawPriceMax);
     const startTime = row.querySelector('.room-start-time')?.value || '09:00';
     const endTime = row.querySelector('.room-end-time')?.value || '17:00';
+    const minLeadDaysRaw = row.querySelector('.room-min-lead-days')?.value.trim();
+    const minLeadDays = minLeadDaysRaw === '' ? null : parseInt(minLeadDaysRaw || '0', 10);
     const packagePrice = Number.isFinite(priceMin) && priceMin > 0 ? priceMin : 0;
     const customizePrice = Number.isFinite(priceMax) && priceMax >= packagePrice ? priceMax : packagePrice;
 
@@ -318,7 +325,8 @@ function collectVenueRooms(prefix) {
       package_price: packagePrice,
       customize_price: customizePrice,
       start_time: startTime,
-      end_time: endTime
+      end_time: endTime,
+      min_lead_days: minLeadDays
     };
   }).filter(room => room.name || room.capacity > 1 || room.price_min > 0 || room.price_max > 0);
 }
@@ -386,6 +394,9 @@ function serviceFormPayload(prefix, category) {
   const isVenue = category === 'Venue';
   const rooms = isVenue ? collectVenueRooms(prefix) : [];
   const priceRange = isVenue ? venueRoomPriceRange(prefix) : priceRangePayload(prefix);
+  const minLeadDaysEl = document.getElementById(prefix + 'MinLeadDays');
+  const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
+  const minLeadDays = minLeadDaysValue === '' ? 0 : Math.max(0, Math.min(365, parseInt(minLeadDaysValue) || 0));
 
   return {
     name: document.getElementById(prefix + 'Name').value.trim(),
@@ -399,6 +410,7 @@ function serviceFormPayload(prefix, category) {
     timeslot: document.getElementById(prefix + 'TimeSlot')?.value.trim() || '',
     venue: document.getElementById(prefix + 'Venue')?.value.trim() || '',
     venue_location: document.getElementById(prefix + 'Location')?.value.trim() || '',
+    min_lead_days: minLeadDays,
     rooms
   };
 }
@@ -843,6 +855,7 @@ function openEditService(id) {
   document.getElementById('esDesc').value=item.desc||'';
   document.getElementById('esPriceMin').value=item.price_min ?? item.price;
   document.getElementById('esPriceMax').value=item.price_max ?? item.price_min ?? item.price;
+  document.getElementById('esMinLeadDays').value=item.min_lead_days ?? '';
   document.getElementById('esImgData').value=item.img||'';
   if (item.img) renderConfirmedImage(item.img, item.img, 'esImgInput', 'esImgBox', 'esImgData', 16/9);
   else resetImgBox('esImgBox', true);
@@ -863,6 +876,9 @@ async function updateService() {
   if (item.category !== 'Venue' && !isPriceRangeValid('es')) { alert('Customize price must be greater than or equal to package price.'); return; }
   if (item.category === 'Venue' && !validateVenueRooms('es')) return;
   const priceRange = item.category === 'Venue' ? venueRoomPriceRange('es') : priceRangePayload('es');
+  const minLeadDaysEl = document.getElementById('esMinLeadDays');
+  const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
+  const minLeadDays = minLeadDaysValue === '' ? 0 : Math.max(0, Math.min(365, parseInt(minLeadDaysValue) || 0));
   const payload = {
     ...item,
     name: document.getElementById('esName').value.trim()||item.name,
@@ -873,6 +889,7 @@ async function updateService() {
     type: document.getElementById('esType')?.value || item.type || '',
     venue: document.getElementById('esVenue')?.value.trim() || item.venue || '',
     venue_location: document.getElementById('esLocation')?.value.trim() || item.venue_location || '',
+    min_lead_days: minLeadDays,
     rooms: item.category === 'Venue' ? collectVenueRooms('es') : [],
     rooms_replace: item.category === 'Venue'
   };
