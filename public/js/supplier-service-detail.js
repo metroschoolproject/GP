@@ -235,6 +235,7 @@ document.getElementById('saveAvailabilityBtn')?.addEventListener('click', async 
 function hallCardHtml(room = {}) {
   const packagePrice = room.price_min ?? room.package_price ?? room.price ?? 0;
   const customizePrice = room.price_max ?? room.customize_price ?? packagePrice;
+  const minLeadDays = room.min_lead_days ?? '';
 
   return `
     <div class="sd-hall-card" data-room-id="${room.id || 0}">
@@ -252,6 +253,7 @@ function hallCardHtml(room = {}) {
         <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input hall-price-max" value="${customizePrice}"></div>
         <div class="sd-hall-fg"><label>Start time</label><input type="time" lang="en-GB" class="sd-hall-input hall-start" value="${room.start_time || '09:00'}"></div>
         <div class="sd-hall-fg"><label>End time</label><input type="time" lang="en-GB" class="sd-hall-input hall-end" value="${room.end_time || '17:00'}"></div>
+        <div class="sd-hall-fg"><label>Min. notice (days)</label><input type="number" min="0" max="365" class="sd-hall-input hall-min-lead-days" value="${minLeadDays}" placeholder="Use service default"></div>
       </div>
       <div class="sd-hall-time">9:00 AM - 5:00 PM</div>
     </div>
@@ -307,9 +309,11 @@ function syncSavedHalls(savedRooms = []) {
     const end = normalizeTimeValue(room.end_time || card.querySelector('.hall-end')?.value || '17:00');
     const startInput = card.querySelector('.hall-start');
     const endInput = card.querySelector('.hall-end');
+    const minLeadInput = card.querySelector('.hall-min-lead-days');
     const timeDisplay = card.querySelector('.sd-hall-time');
     if (startInput) startInput.value = start;
     if (endInput) endInput.value = end;
+    if (minLeadInput) minLeadInput.value = room.min_lead_days ?? '';
     if (timeDisplay) timeDisplay.textContent = formatTimeLabel(start) + ' - ' + formatTimeLabel(end);
   });
 }
@@ -368,6 +372,8 @@ function collectHalls() {
     if (priceMin <= 0 || priceMax <= 0) {
       throw new Error('Please fill in package price and customize price for every hall.');
     }
+    const minLeadDaysRaw = card.querySelector('.hall-min-lead-days')?.value.trim();
+    const minLeadDays = minLeadDaysRaw === '' ? null : Math.max(0, Math.min(365, parseInt(minLeadDaysRaw || '0', 10) || 0));
     return {
       id: card.querySelector('.hall-id')?.value || null,
       name: card.querySelector('.hall-name')?.value.trim() || '',
@@ -378,7 +384,8 @@ function collectHalls() {
       package_price: priceMin,
       customize_price: priceMax,
       start_time: start,
-      end_time: end
+      end_time: end,
+      min_lead_days: minLeadDays
     };
   }).filter(room => room.name || room.capacity > 1 || room.price_min > 0 || room.price_max > 0);
 }

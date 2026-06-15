@@ -125,11 +125,14 @@ class Booking extends Controller
             $itemPhone = trim($_POST['item_contact_phone'][$i] ?? '');
             $itemContactName = trim($_POST['item_contact_name'][$i] ?? '');
             $itemName = $item['service_name'] ?? 'Service';
+            $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
             $currentItemErrors = [];
             
             // Required details for suppliers before payment.
             if (empty($itemDate)) {
                 $currentItemErrors[] = 'Date is required';
+            } elseif (!$this->isDateAllowedByLeadTime($itemDate, $minLeadDays)) {
+                $currentItemErrors[] = $this->leadTimeMessage($minLeadDays);
             }
             if (empty($itemStartTime)) {
                 $currentItemErrors[] = 'Time slot is required';
@@ -447,6 +450,16 @@ class Booking extends Controller
             ]);
             return;
         }
+
+        $minLeadDays = $this->cartModel->getServiceMinLeadDays($serviceId);
+        if (!$this->isDateAllowedByLeadTime($date, $minLeadDays)) {
+            $this->jsonResponse([
+                'success' => true,
+                'slots' => [],
+                'message' => $this->leadTimeMessage($minLeadDays),
+            ]);
+            return;
+        }
         
         $slots = $this->cartModel->getAvailableSlotsForServiceDate($serviceId, $date);
         
@@ -485,6 +498,32 @@ class Booking extends Controller
             || str_contains($category, 'make up')
             || str_contains($name, 'makeup')
             || str_contains($name, 'make up');
+    }
+
+    private function isDateAllowedByLeadTime(string $date, int $minLeadDays): bool
+    {
+        $selectedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        if (!$selectedDate) {
+            return false;
+        }
+
+        return $selectedDate >= $this->earliestBookingDate($minLeadDays);
+    }
+
+    private function earliestBookingDate(int $minLeadDays): DateTimeImmutable
+    {
+        $minLeadDays = max(0, $minLeadDays);
+        return (new DateTimeImmutable('today'))->modify('+' . $minLeadDays . ' days');
+    }
+
+    private function leadTimeMessage(int $minLeadDays): string
+    {
+        $earliest = $this->earliestBookingDate($minLeadDays)->format('M j, Y');
+        if ($minLeadDays <= 0) {
+            return 'Please choose today or a future date.';
+        }
+
+        return 'This service must be booked at least ' . $minLeadDays . ' day' . ($minLeadDays === 1 ? '' : 's') . ' in advance. Earliest date: ' . $earliest;
     }
 
     /* ─── Booking Status Poll (for success page) ──────────────── */

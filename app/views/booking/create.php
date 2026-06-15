@@ -1325,6 +1325,9 @@ input[data-suggested-filled="true"] {
           $venueRoomName = trim((string)($item['venue_room_name'] ?? ''));
           $venueName = trim((string)($item['venue_name'] ?? ''));
           $venueRoomCapacity = (int)($item['venue_room_capacity'] ?? 0);
+          $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
+          $earliestBookingDate = date('Y-m-d', strtotime('+' . $minLeadDays . ' days'));
+          $earliestBookingLabel = date('M j, Y', strtotime($earliestBookingDate));
           $serviceDisplayName = $venueRoomName !== ''
             ? ($item['service_name'] ?? 'Service') . ' · ' . $venueRoomName
             : ($item['service_name'] ?? 'Service');
@@ -1346,6 +1349,8 @@ input[data-suggested-filled="true"] {
                  data-unit-price="<?= $h($linePrice) ?>"
                  data-guest-priced="<?= $isGuestPriced ? 'yes' : 'no' ?>"
                  data-hall-capacity="<?= $venueRoomCapacity ?>"
+                 data-min-lead-days="<?= $minLeadDays ?>"
+                 data-earliest-date="<?= $h($earliestBookingDate) ?>"
                  <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
 
           <div class="gp-item-header">
@@ -1417,7 +1422,11 @@ input[data-suggested-filled="true"] {
                   <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
                   <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
                          name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
+                         min="<?= $h($earliestBookingDate) ?>"
                          data-service-id="<?= (int)($item['item_id'] ?? 0) ?>" data-index="<?= $i ?>">
+                  <?php if ($minLeadDays > 0): ?>
+                    <div class="gp-input-note">Earliest available date: <strong><?= $h($earliestBookingLabel) ?></strong></div>
+                  <?php endif; ?>
 
                   <label class="gp-detail-label">Available slots</label>
                   <div class="gp-slots-container" id="slots-<?= $i ?>">
@@ -1434,8 +1443,12 @@ input[data-suggested-filled="true"] {
                 <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select date</label>
                 <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
                        name="item_date[<?= $i ?>]"
+                       min="<?= $h($earliestBookingDate) ?>"
                        data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
                        data-index="<?= $i ?>" required>
+                <?php if ($minLeadDays > 0): ?>
+                  <div class="gp-input-note">Earliest available date: <strong><?= $h($earliestBookingLabel) ?></strong></div>
+                <?php endif; ?>
 
                 <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
                 <div class="gp-slots-container" id="slots-<?= $i ?>">
@@ -1970,7 +1983,7 @@ async function loadSlots(serviceId, date, index) {
         });
       });
     } else {
-      container.innerHTML = '<p class="error">No available slots for this date</p>';
+      container.innerHTML = '<p class="error">' + (data.message || 'No available slots for this date') + '</p>';
     }
   } catch (err) {
     console.error('Slot load error:', err);
