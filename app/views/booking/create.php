@@ -1155,6 +1155,28 @@ input[data-suggested-filled="true"] {
   color: var(--mist);
 }
 
+/* Lead time helper text and warnings */
+.gp-input-note {
+  font-size: 12px;
+  margin-top: 6px;
+  color: var(--mist);
+  font-style: italic;
+}
+
+.gp-lead-time-warning {
+  padding: 8px 12px;
+  background-color: rgba(196, 151, 59, 0.1);
+  border-left: 3px solid var(--gold);
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink2);
+}
+
+input[type="date"]:invalid {
+  border-color: var(--danger);
+  background-color: rgba(168, 64, 64, 0.05);
+}
+
 /* Keyframes */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1419,13 +1441,22 @@ input[data-suggested-filled="true"] {
 
                 <!-- Hidden slot selector -->
                 <div class="gp-slot-selector hidden" id="slot-selector-<?= $i ?>">
+                  <?php
+                    $minLeadDays = (int)($item['min_lead_days'] ?? 0);
+                    $today = new DateTimeImmutable('today');
+                    $minDate = $today->add(new DateInterval('P' . $minLeadDays . 'D'));
+                    $minDateStr = $minDate->format('Y-m-d');
+                    $minDateDisplay = $minDate->format('M j, Y');
+                  ?>
                   <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
                   <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
                          name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
-                         min="<?= $h($earliestBookingDate) ?>"
-                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>" data-index="<?= $i ?>">
+                         min="<?= $minDateStr ?>"
+                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+                         data-min-lead-days="<?= $minLeadDays ?>"
+                         data-index="<?= $i ?>">
                   <?php if ($minLeadDays > 0): ?>
-                    <div class="gp-input-note">Earliest available date: <strong><?= $h($earliestBookingLabel) ?></strong></div>
+                    <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
                   <?php endif; ?>
 
                   <label class="gp-detail-label">Available slots</label>
@@ -1440,14 +1471,22 @@ input[data-suggested-filled="true"] {
 
               <?php else: ?>
                 <!-- No slot yet -->
+                <?php
+                  $minLeadDays = (int)($item['min_lead_days'] ?? 0);
+                  $today = new DateTimeImmutable('today');
+                  $minDate = $today->add(new DateInterval('P' . $minLeadDays . 'D'));
+                  $minDateStr = $minDate->format('Y-m-d');
+                  $minDateDisplay = $minDate->format('M j, Y');
+                ?>
                 <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select date</label>
                 <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
                        name="item_date[<?= $i ?>]"
-                       min="<?= $h($earliestBookingDate) ?>"
+                       min="<?= $minDateStr ?>"
                        data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+                       data-min-lead-days="<?= $minLeadDays ?>"
                        data-index="<?= $i ?>" required>
                 <?php if ($minLeadDays > 0): ?>
-                  <div class="gp-input-note">Earliest available date: <strong><?= $h($earliestBookingLabel) ?></strong></div>
+                  <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
                 <?php endif; ?>
 
                 <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
@@ -1819,6 +1858,7 @@ input[data-suggested-filled="true"] {
     const formData = new FormData(form);
     const cards = Array.from(document.querySelectorAll('.gp-item-card'));
     const missingMessages = [];
+    const leadTimeViolations = [];
     let firstMissingField = null;
 
     cards.forEach((card, index) => {
@@ -1837,6 +1877,22 @@ input[data-suggested-filled="true"] {
         if (!firstMissingField && field) firstMissingField = field;
         markMissing(field);
       };
+
+      // Validate lead time requirement
+      if (itemDate) {
+        const dateInput = card.querySelector(`[name="item_date[${index}]"]`);
+        const minLeadDays = parseInt(dateInput?.dataset?.minLeadDays || 0);
+        if (minLeadDays > 0) {
+          const selectedDate = new Date(itemDate + 'T00:00:00');
+          const minDate = getMinDateForService(minLeadDays);
+          if (selectedDate < minDate) {
+            const formattedMinDate = formatDateForDisplay(minDate);
+            const days = minLeadDays === 1 ? 'day' : 'days';
+            leadTimeViolations.push(serviceName + ': requires ' + minLeadDays + ' ' + days + ' advance notice (earliest: ' + formattedMinDate + ')');
+            rememberMissing(dateInput);
+          }
+        }
+      }
 
       if (!itemDate) {
         missing.push('date');
@@ -1874,8 +1930,19 @@ input[data-suggested-filled="true"] {
       }
     });
 
-    if (missingMessages.length) {
-      showToast('Please complete the required booking details before continuing.', 'error');
+    if (missingMessages.length || leadTimeViolations.length) {
+      const allErrors = [...missingMessages, ...leadTimeViolations];
+      let errorMsg = allErrors.length === 1
+        ? allErrors[0] + '.'
+        : allErrors.join('. ') + '.';
+
+      if (leadTimeViolations.length) {
+        errorMsg = 'Lead time requirement not met: ' + errorMsg;
+      } else {
+        errorMsg = 'Please complete the required booking details before continuing. ' + errorMsg;
+      }
+
+      showToast(errorMsg, 'error');
       firstMissingField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       firstMissingField?.focus?.();
       return false;
@@ -1947,10 +2014,46 @@ document.querySelectorAll('.gp-btn-cancel-change').forEach(btn => {
   });
 });
 
+/* ─── Lead time helper functions ──────────── */
+function getMinDateForService(minLeadDays) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const minDate = new Date(today);
+  minDate.setDate(minDate.getDate() + minLeadDays);
+  return minDate;
+}
+
+function formatDateForInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateForDisplay(date) {
+  const options = { month: 'short', day: 'numeric', year: 'numeric' };
+  return date.toLocaleDateString('en-US', options);
+}
+
 /* ─── Fetch available slots ───────────────── */
 async function loadSlots(serviceId, date, index) {
   const container = document.getElementById('slots-' + index);
   if (!date) { container.innerHTML = '<p class="loading">Select a date first</p>'; return; }
+
+  // Validate lead time requirement
+  const dateInput = document.querySelector(`input[type="date"][data-index="${index}"]`);
+  const minLeadDays = parseInt(dateInput?.dataset.minLeadDays || 0);
+  if (minLeadDays > 0) {
+    const selectedDate = new Date(date + 'T00:00:00');
+    const minDate = getMinDateForService(minLeadDays);
+    if (selectedDate < minDate) {
+      const formattedMinDate = formatDateForDisplay(minDate);
+      const days = minLeadDays === 1 ? 'day' : 'days';
+      container.innerHTML = `<p class="gp-lead-time-warning">This service requires ${minLeadDays} ${days} advance notice. Earliest available: ${formattedMinDate}</p>`;
+      return;
+    }
+  }
+
   container.innerHTML = '<p class="loading">Loading available slots…</p>';
   try {
     const res = await fetch('<?= URLROOT ?>/booking/getAvailableSlots', {
