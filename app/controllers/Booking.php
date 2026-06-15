@@ -116,34 +116,66 @@ class Booking extends Controller
         
         // PARSE PER-ITEM DATA
         $itemsData = [];
+        $itemPrices = [];
+        $adjustedTotal = 0.0;
         $itemErrors = [];
         
         foreach ($items as $i => $item) {
             $itemDate = trim($_POST['item_date'][$i] ?? '') ?: trim((string)($item['selected_date'] ?? ''));
             $itemStartTime = trim($_POST['item_start_time'][$i] ?? '') ?: trim((string)($item['start_time'] ?? ''));
             $itemEndTime = trim($_POST['item_end_time'][$i] ?? '') ?: trim((string)($item['end_time'] ?? ''));
+            $itemGuests = (int)($_POST['item_guests'][$i] ?? 0) ?: $sharedGuests;
+            $itemLocation = trim($_POST['item_location'][$i] ?? '') ?: $sharedLocation;
+            $itemPhone = trim($_POST['item_contact_phone'][$i] ?? '') ?: $sharedPhone;
+            $itemContactName = trim($_POST['item_contact_name'][$i] ?? '') ?: $sharedContactName;
+            $itemName = $item['service_name'] ?? 'Service';
+            $currentItemErrors = [];
             
-            // VALIDATE: date and time required
+            // Required details for suppliers before payment.
             if (empty($itemDate)) {
-                $itemErrors[] = $item['service_name'] . ': Date is required';
+                $currentItemErrors[] = 'Date is required';
             }
             if (empty($itemStartTime)) {
-                $itemErrors[] = $item['service_name'] . ': Time slot is required';
+                $currentItemErrors[] = 'Time slot is required';
+            }
+            if (empty($itemEndTime)) {
+                $currentItemErrors[] = 'Time slot end time is required';
+            }
+            if (empty($itemContactName)) {
+                $currentItemErrors[] = 'Contact name is required';
+            }
+            if (empty($itemPhone)) {
+                $currentItemErrors[] = 'Contact phone is required';
+            }
+            if (empty($itemLocation)) {
+                $currentItemErrors[] = 'Location is required';
+            }
+            if ($itemGuests <= 0) {
+                $currentItemErrors[] = 'Guest count is required';
             }
             
-            if (!empty($itemErrors)) continue;
+            if (!empty($currentItemErrors)) {
+                $itemErrors[] = $itemName . ': ' . implode(', ', $currentItemErrors);
+                continue;
+            }
+
+            $basePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
+            $isGuestPriced = $this->isGuestPricedService($item);
+            $itemPrice = $isGuestPriced ? $basePrice * $itemGuests : $basePrice;
             
             // Collect per-item details (with fallback to shared defaults)
             $itemsData[] = [
                 'event_date' => $itemDate,
                 'start_time' => $itemStartTime,
                 'end_time' => $itemEndTime,
-                'guest_count' => (int)($_POST['item_guests'][$i] ?? 0) ?: $sharedGuests,
-                'location' => trim($_POST['item_location'][$i] ?? '') ?: $sharedLocation,
-                'phone' => trim($_POST['item_contact_phone'][$i] ?? '') ?: $sharedPhone,
-                'contact_name' => trim($_POST['item_contact_name'][$i] ?? '') ?: $sharedContactName,
+                'guest_count' => $itemGuests,
+                'location' => $itemLocation,
+                'phone' => $itemPhone,
+                'contact_name' => $itemContactName,
                 'notes' => trim($_POST['item_notes'][$i] ?? ''),
             ];
+            $itemPrices[] = $itemPrice;
+            $adjustedTotal += $itemPrice;
         }
         
         // Return validation errors if any
@@ -153,14 +185,14 @@ class Booking extends Controller
         
         // CREATE BOOKING
         $cartId = $this->cartModel->getOrCreateCart($this->userId);
-        $bookingId = $this->bookingModel->createDraftFromCart($this->userId, $cartId, $total);
+        $bookingId = $this->bookingModel->createDraftFromCart($this->userId, $cartId, $adjustedTotal);
         
         if (!$bookingId) {
             $this->jsonResponse(['error' => 'Could not create booking'], 500);
         }
         
         // INSERT BOOKING ITEMS (and get back IDs)
-        $bookingItemIds = $this->bookingModel->insertBookingItems($bookingId, $this->userId);
+        $bookingItemIds = $this->bookingModel->insertBookingItems($bookingId, $this->userId, $itemPrices);
         if (!$bookingItemIds) {
             $this->jsonResponse(['error' => 'Could not save booking items'], 500);
         }
@@ -441,6 +473,17 @@ class Booking extends Controller
             'success' => true,
             'slots' => $formatted
         ]);
+    }
+
+    private function isGuestPricedService(array $item): bool
+    {
+        $category = strtolower((string)($item['category_name'] ?? ''));
+        $name = strtolower((string)($item['service_name'] ?? ''));
+
+        return str_contains($category, 'makeup')
+            || str_contains($category, 'make up')
+            || str_contains($name, 'makeup')
+            || str_contains($name, 'make up');
     }
 
     /* ─── Booking Status Poll (for success page) ──────────────── */

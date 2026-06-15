@@ -35,7 +35,7 @@ class BookingModel
     /**
      * Transfer cart items to booking_items.
      */
-    public function insertBookingItems(int $bookingId, int $userId): array|false
+    public function insertBookingItems(int $bookingId, int $userId, array $itemPrices = []): array|false
     {
         $this->db->dbquery(
             "INSERT INTO booking_items (booking_id, item_type, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type)
@@ -63,8 +63,28 @@ class BookingModel
         $this->db->dbquery("SELECT id FROM booking_items WHERE booking_id = :bid ORDER BY id ASC");
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $rows = $this->db->getmultidata();
-        
-        return array_column($rows, 'id');
+        $ids = array_column($rows, 'id');
+
+        foreach ($ids as $index => $bookingItemId) {
+            if (!array_key_exists($index, $itemPrices)) {
+                continue;
+            }
+
+            $this->db->dbquery(
+                'UPDATE booking_items
+                 SET price = :price
+                 WHERE id = :id AND booking_id = :bid
+                 LIMIT 1'
+            );
+            $this->db->dbbind(':price', number_format((float)$itemPrices[$index], 2, '.', ''));
+            $this->db->dbbind(':id', (int)$bookingItemId, PDO::PARAM_INT);
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            if (!$this->db->dbexecute()) {
+                return false;
+            }
+        }
+
+        return $ids;
     }
 
     /**

@@ -7,6 +7,7 @@ $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
 $user = $user ?? ['name' => '', 'email' => '', 'phone' => ''];
 $depositPercent = (int)($depositPercent ?? 10);
+$showSharedDefaults = count($items) > 1;
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
@@ -823,6 +824,18 @@ textarea { font-family: var(--sans); }
   box-shadow: 0 0 0 3px rgba(140,95,114,0.1);
 }
 .gp-detail-input.error, .gp-detail-textarea.error { border-color: var(--danger); }
+.gp-detail-input.is-missing,
+.gp-detail-textarea.is-missing,
+.gp-stepper-input.is-missing {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(185,75,75,0.08) !important;
+}
+.gp-required-hint {
+  margin-top: 8px;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
 .gp-detail-textarea { min-height: 70px; resize: vertical; }
 .gp-detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .gp-detail-field { display: flex; flex-direction: column; gap: 4px; }
@@ -1286,6 +1299,7 @@ input[data-venue-filled="true"] {
           </div>
         </section>
 
+        <?php if ($showSharedDefaults): ?>
         <!-- Default contact card -->
         <div class="gp-section-label" style="margin-top:8px;">Default for every service</div>
         <section class="gp-card gp-defaults-card" data-index="0">
@@ -1338,6 +1352,7 @@ input[data-venue-filled="true"] {
             </div>
           </div>
         </section>
+        <?php endif; ?>
 
         <!-- Per-service cards -->
         <?php if (!empty($items)): ?>
@@ -1355,10 +1370,19 @@ input[data-venue-filled="true"] {
             : '';
           $isVenue = $venueService && (int)($venueService['service_id'] ?? 0) === (int)($item['service_id'] ?? 0);
           $linePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
+          $categoryText = strtolower((string)($item['category_name'] ?? ''));
+          $serviceNameText = strtolower((string)($item['service_name'] ?? ''));
+          $isGuestPriced = str_contains($categoryText, 'makeup')
+            || str_contains($categoryText, 'make up')
+            || str_contains($serviceNameText, 'makeup')
+            || str_contains($serviceNameText, 'make up');
         ?>
 
         <article class="gp-card gp-item-card" data-index="<?= $i + 1 ?>"
                  data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>"
+                 data-price-index="<?= $i ?>"
+                 data-unit-price="<?= $h($linePrice) ?>"
+                 data-guest-priced="<?= $isGuestPriced ? 'yes' : 'no' ?>"
                  <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
 
           <div class="gp-item-header">
@@ -1386,7 +1410,7 @@ input[data-venue-filled="true"] {
             </div>
 
             <div class="gp-item-price-box">
-              <div class="gp-item-price-val"><?= $money($linePrice) ?></div>
+              <div class="gp-item-price-val" data-item-price="<?= $i ?>"><?= $money($linePrice) ?></div>
             </div>
           </div>
 
@@ -1454,10 +1478,10 @@ input[data-venue-filled="true"] {
             </fieldset>
 
             <!-- Customise drawer -->
-            <details class="gp-service-drawer">
+            <details class="gp-service-drawer" <?= !$showSharedDefaults ? 'open' : '' ?>>
               <summary>
-                <span>Customise this service</span>
-                <span class="gp-drawer-hint">Different contact, guests, room or notes</span>
+                <span><?= $showSharedDefaults ? 'Customise this service' : 'Service details' ?></span>
+                <span class="gp-drawer-hint"><?= $showSharedDefaults ? 'Different contact, guests, room or notes' : 'Required contact, guests, room and notes' ?></span>
               </summary>
 
               <fieldset class="gp-overrides-fieldset">
@@ -1466,13 +1490,14 @@ input[data-venue-filled="true"] {
                     <label class="gp-detail-label" for="guests-<?= $i ?>">Guests for this service</label>
                     <input class="gp-detail-input" type="number" id="guests-<?= $i ?>"
                            name="item_guests[<?= $i ?>]" min="0"
-                           placeholder="Leave empty for default">
+                           placeholder="<?= $showSharedDefaults ? 'Leave empty for default' : 'Required' ?>">
                   </div>
                   <div class="gp-detail-field">
                     <label class="gp-detail-label" for="location-<?= $i ?>">Location / Venue room</label>
                     <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
                            name="item_location[<?= $i ?>]"
-                           placeholder="e.g. Ballroom A (optional)">
+                           value="<?= !$showSharedDefaults ? $h($venueLocation) : '' ?>"
+                           placeholder="<?= $showSharedDefaults ? 'e.g. Ballroom A (optional)' : 'e.g. Ballroom A' ?>">
                   </div>
                 </div>
                 <div class="gp-detail-row" style="margin-top:12px;">
@@ -1480,13 +1505,15 @@ input[data-venue-filled="true"] {
                     <label class="gp-detail-label" for="contact-name-<?= $i ?>">Contact person</label>
                     <input class="gp-detail-input" type="text" id="contact-name-<?= $i ?>"
                            name="item_contact_name[<?= $i ?>]"
-                           placeholder="Leave empty for default">
+                           value="<?= !$showSharedDefaults ? $h($user['name'] ?? '') : '' ?>"
+                           placeholder="<?= $showSharedDefaults ? 'Leave empty for default' : 'Contact name' ?>">
                   </div>
                   <div class="gp-detail-field">
                     <label class="gp-detail-label" for="contact-phone-<?= $i ?>">Contact phone</label>
                     <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>"
                            name="item_contact_phone[<?= $i ?>]"
-                           placeholder="Leave empty for default">
+                           value="<?= !$showSharedDefaults ? $h($user['phone'] ?? '') : '' ?>"
+                           placeholder="<?= $showSharedDefaults ? 'Leave empty for default' : '+60 12 345 6789' ?>">
                   </div>
                 </div>
                 <div class="gp-detail-row" style="margin-top:12px;">
@@ -1526,7 +1553,7 @@ input[data-venue-filled="true"] {
               <div class="gp-line">
                 <span class="gp-line-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></span>
                 <span class="gp-line-dots" aria-hidden="true"></span>
-                <span class="gp-line-val"><?= $money($linePrice) ?></span>
+                <span class="gp-line-val" data-line-price="<?= $i ?>"><?= $money($linePrice) ?></span>
               </div>
               <?php endforeach; ?>
             </div>
@@ -1539,17 +1566,17 @@ input[data-venue-filled="true"] {
 
             <div class="gp-total-row">
               <span class="gp-total-label">Estimated total</span>
-              <span class="gp-total-amount"><?= $money($total) ?></span>
+              <span class="gp-total-amount" data-total-amount><?= $money($total) ?></span>
             </div>
 
             <div class="gp-deposit-breakdown">
               <div class="gp-deposit-line">
                 <span>Deposit (<?= $depositPercent ?>%)</span>
-                <strong><?= $money($total * $depositPercent / 100) ?></strong>
+                <strong data-deposit-amount><?= $money($total * $depositPercent / 100) ?></strong>
               </div>
               <div class="gp-deposit-line">
                 <span>Balance due later</span>
-                <strong><?= $money($total - ($total * $depositPercent / 100)) ?></strong>
+                <strong data-balance-amount><?= $money($total - ($total * $depositPercent / 100)) ?></strong>
               </div>
               <div class="gp-deposit-highlight">Pay just the deposit today to lock in your date.</div>
             </div>
@@ -1644,8 +1671,49 @@ input[data-venue-filled="true"] {
       let val = parseInt(target.value) || 0;
       val = this.dataset.stepper === 'plus' ? Math.min(9999, val + 1) : Math.max(0, val - 1);
       target.value = val;
+      target.dispatchEvent(new Event('input', { bubbles: true }));
     });
   });
+
+  /* ─── Guest-priced service totals ─────────── */
+  const depositPercent = <?= (int)$depositPercent ?>;
+
+  function money(value) {
+    return 'RM ' + Math.round(Number(value) || 0).toLocaleString('en-US');
+  }
+
+  function inputNumber(selector) {
+    const input = document.querySelector(selector);
+    return parseInt(input?.value || '0', 10) || 0;
+  }
+
+  function updateBookingPricing() {
+    const sharedGuests = inputNumber('[name="shared_guests"]');
+    let total = 0;
+
+    document.querySelectorAll('.gp-item-card[data-price-index]').forEach((card) => {
+      const index = card.dataset.priceIndex;
+      const unitPrice = Number(card.dataset.unitPrice || 0);
+      const isGuestPriced = card.dataset.guestPriced === 'yes';
+      const itemGuests = inputNumber(`[name="item_guests[${index}]"]`);
+      const effectiveGuests = itemGuests || sharedGuests;
+      const linePrice = isGuestPriced ? unitPrice * Math.max(0, effectiveGuests) : unitPrice;
+
+      total += linePrice;
+      document.querySelector(`[data-item-price="${index}"]`)?.replaceChildren(document.createTextNode(money(linePrice)));
+      document.querySelector(`[data-line-price="${index}"]`)?.replaceChildren(document.createTextNode(money(linePrice)));
+    });
+
+    document.querySelector('[data-total-amount]')?.replaceChildren(document.createTextNode(money(total)));
+    document.querySelector('[data-deposit-amount]')?.replaceChildren(document.createTextNode(money(total * depositPercent / 100)));
+    document.querySelector('[data-balance-amount]')?.replaceChildren(document.createTextNode(money(total - (total * depositPercent / 100))));
+  }
+
+  document.querySelectorAll('[name="shared_guests"], [name^="item_guests"]').forEach(input => {
+    input.addEventListener('input', updateBookingPricing);
+    input.addEventListener('change', updateBookingPricing);
+  });
+  updateBookingPricing();
 
   /* ─── Auto-grow textareas ─────────────────── */
   document.querySelectorAll('[data-autogrow]').forEach(ta => {
@@ -1666,8 +1734,122 @@ input[data-venue-filled="true"] {
   /* ─── Form submission ─────────────────────── */
   const form = document.getElementById('booking-form');
   const submitBtn = document.getElementById('submit-btn');
+  const originalSubmitHtml = submitBtn.innerHTML;
+
+  function clearRequiredHighlights() {
+    form.querySelectorAll('.is-missing').forEach(el => el.classList.remove('is-missing'));
+    form.querySelectorAll('.gp-required-hint').forEach(el => el.remove());
+  }
+
+  function markMissing(field) {
+    if (!field) return;
+    field.classList.add('is-missing');
+  }
+
+  function fieldValue(formData, name) {
+    return String(formData.get(name) || '').trim();
+  }
+
+  function numberValue(formData, name) {
+    return parseInt(formData.get(name) || '0', 10) || 0;
+  }
+
+  function addRequiredHint(target, message) {
+    const host = target?.closest('.gp-card') || target?.parentElement;
+    if (!host || host.querySelector('.gp-required-hint')) return;
+    const hint = document.createElement('div');
+    hint.className = 'gp-required-hint';
+    hint.textContent = message;
+    host.appendChild(hint);
+  }
+
+  function validateRequiredBookingInfo() {
+    clearRequiredHighlights();
+
+    if (!form.reportValidity()) {
+      return false;
+    }
+
+    const formData = new FormData(form);
+    const sharedPhone = fieldValue(formData, 'shared_phone');
+    const sharedContactName = fieldValue(formData, 'shared_contact_name');
+    const sharedLocation = fieldValue(formData, 'shared_location');
+    const sharedGuests = numberValue(formData, 'shared_guests');
+    const cards = Array.from(document.querySelectorAll('.gp-item-card'));
+    const missingMessages = [];
+    let firstMissingField = null;
+
+    cards.forEach((card, index) => {
+      const serviceName = card.querySelector('.gp-item-name')?.textContent.trim() || 'Service';
+      const itemDate = fieldValue(formData, `item_date[${index}]`);
+      const itemStart = fieldValue(formData, `item_start_time[${index}]`);
+      const itemEnd = fieldValue(formData, `item_end_time[${index}]`);
+      const itemPhone = fieldValue(formData, `item_contact_phone[${index}]`) || sharedPhone;
+      const itemContactName = fieldValue(formData, `item_contact_name[${index}]`) || sharedContactName;
+      const itemLocation = fieldValue(formData, `item_location[${index}]`) || sharedLocation;
+      const itemGuests = numberValue(formData, `item_guests[${index}]`) || sharedGuests;
+      const missing = [];
+
+      const drawer = card.querySelector('.gp-service-drawer');
+      const rememberMissing = (field) => {
+        if (!firstMissingField && field) firstMissingField = field;
+        markMissing(field);
+      };
+
+      if (!itemDate) {
+        missing.push('date');
+        rememberMissing(card.querySelector(`[name="item_date[${index}]"]`));
+      }
+      if (!itemStart) {
+        missing.push('time slot');
+        rememberMissing(card.querySelector(`[name="item_start_time[${index}]"]`));
+      }
+      if (itemStart && !itemEnd) {
+        missing.push('time slot end');
+        rememberMissing(card.querySelector(`[name="item_start_time[${index}]"]`));
+      }
+      if (!itemContactName) {
+        missing.push('contact name');
+        rememberMissing(document.querySelector('[name="shared_contact_name"]'));
+        rememberMissing(card.querySelector(`[name="item_contact_name[${index}]"]`));
+      }
+      if (!itemPhone) {
+        missing.push('contact phone');
+        rememberMissing(document.querySelector('[name="shared_phone"]'));
+        rememberMissing(card.querySelector(`[name="item_contact_phone[${index}]"]`));
+      }
+      if (!itemLocation) {
+        missing.push('location');
+        rememberMissing(document.querySelector('[name="shared_location"]'));
+        rememberMissing(card.querySelector(`[name="item_location[${index}]"]`));
+      }
+      if (itemGuests <= 0) {
+        missing.push('guest count');
+        rememberMissing(document.querySelector('[name="shared_guests"]'));
+        rememberMissing(card.querySelector(`[name="item_guests[${index}]"]`));
+      }
+
+      if (missing.length) {
+        if (drawer) drawer.open = true;
+        missingMessages.push(serviceName + ': ' + missing.join(', '));
+        addRequiredHint(card, 'Please complete: ' + missing.join(', ') + '.');
+      }
+    });
+
+    if (missingMessages.length) {
+      showToast('Please complete the required booking details before continuing.', 'error');
+      firstMissingField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstMissingField?.focus?.();
+      return false;
+    }
+
+    return true;
+  }
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    if (!validateRequiredBookingInfo()) return;
+
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="gp-spinner"></span> Creating booking…';
     fetch(form.action, { method: 'POST', body: new FormData(form) })
@@ -1678,13 +1860,13 @@ input[data-venue-filled="true"] {
         } else {
           showToast(data.error || 'Something went wrong. Please try again.', 'error');
           submitBtn.disabled = false;
-          submitBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Confirm &amp; Proceed<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+          submitBtn.innerHTML = originalSubmitHtml;
         }
       })
       .catch(() => {
         showToast('Something went wrong. Please try again.', 'error');
         submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Confirm &amp; Proceed →';
+        submitBtn.innerHTML = originalSubmitHtml;
       });
   });
 
