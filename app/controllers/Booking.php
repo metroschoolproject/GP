@@ -119,9 +119,9 @@ class Booking extends Controller
         $itemErrors = [];
         
         foreach ($items as $i => $item) {
-            $itemDate = trim($_POST['item_date'][$i] ?? '');
-            $itemStartTime = trim($_POST['item_start_time'][$i] ?? '');
-            $itemEndTime = trim($_POST['item_end_time'][$i] ?? '');
+            $itemDate = trim($_POST['item_date'][$i] ?? '') ?: trim((string)($item['selected_date'] ?? ''));
+            $itemStartTime = trim($_POST['item_start_time'][$i] ?? '') ?: trim((string)($item['start_time'] ?? ''));
+            $itemEndTime = trim($_POST['item_end_time'][$i] ?? '') ?: trim((string)($item['end_time'] ?? ''));
             
             // VALIDATE: date and time required
             if (empty($itemDate)) {

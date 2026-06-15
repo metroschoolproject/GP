@@ -1384,6 +1384,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
   box-shadow: var(--shadow-glow);
 }
 .btn-cart:active { transform: scale(0.97); }
+.btn-cart.is-submitting,
+.mobile-book-btn.is-submitting {
+  background: var(--sage);
+  pointer-events: none;
+}
 .btn-cart.is-guidance,
 .mobile-book-btn.is-guidance {
   background: var(--sage);
@@ -1405,6 +1410,33 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 .btn-heart:hover { background: rgba(185,74,72,0.18); transform: scale(1.06) translateY(-1px); }
 .btn-heart:active { transform: scale(0.94); }
+
+.cart-feedback {
+  position: fixed;
+  top: 86px;
+  right: 20px;
+  z-index: 120;
+  max-width: min(340px, calc(100vw - 40px));
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border: 1px solid rgba(118,90,70,0.18);
+  border-radius: 14px;
+  background: #fffaf7;
+  color: var(--wine-dark);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 16px 44px rgba(74,52,47,0.14);
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.cart-feedback.show {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* ─── REVIEWS ───────────────────────────────────────── */
 .reviews-grid {
@@ -2116,6 +2148,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
                           data-hall-label="<?= $h($room['name'] ?: 'Selected hall') ?>"
                           data-time-label="<?= (int)($room['capacity'] ?? 1) ?> guests"
                           data-price-label="<?= $money($roomDisplayPrice) ?>"
+                          data-price-value="<?= $h($roomDisplayPrice) ?>"
+                          data-slot-id="<?= $h($room['selected_availability_id'] ?? '') ?>"
                           data-start-time="<?= $h($room['start_time'] ?? '') ?>"
                           data-end-time="<?= $h($room['end_time'] ?? '') ?>"
                           <?= $checked ? 'checked' : '' ?>
@@ -2171,6 +2205,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                           data-slot-id="<?= $h($slot['slot_id'] ?? '') ?>"
                           data-start-time="<?= $h($slot['start_time'] ?? '') ?>"
                           data-end-time="<?= $h($slot['end_time'] ?? '') ?>"
+                          data-price-value="<?= $h($isPackageContext ? $packageServicePrice : $activeServicePrice) ?>"
                           <?= $checked ? 'checked' : '' ?>>
                         <?= $h($slot['label'] ?? '') ?>
                       </label>
@@ -2191,6 +2226,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                   data-slot-id="<?= $h($firstDaySlot['slot_id'] ?? '') ?>"
                   data-start-time="<?= $h($firstDaySlot['start_time'] ?? '') ?>"
                   data-end-time="<?= $h($firstDaySlot['end_time'] ?? '') ?>"
+                  data-price-value="<?= $h($isPackageContext ? $packageServicePrice : $activeServicePrice) ?>"
                   <?= $checked ? 'checked' : '' ?>>
               <?php endif; ?>
               <span class="radio-dot"></span>
@@ -2274,13 +2310,13 @@ button, input, select, textarea { font-family: var(--font-sans); }
         <?php endif; ?>
         <div class="summary-actions">
           <?php if ($hasInitialBookOption): ?>
-          <form method="POST" action="<?= URLROOT ?>/cart/add" style="display:contents;">
+          <form method="POST" action="<?= URLROOT ?>/cart/add" id="serviceCartForm" style="display:contents;">
             <input type="hidden" name="service_id" value="<?= (int)($service['id'] ?? 0) ?>">
             <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
-            <input type="hidden" name="slot_id" id="cartSlotId" value="<?= $h($firstSlot['slot_id'] ?? '') ?>">
-            <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($firstSlot['start_time'] ?? '') ?>">
-            <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($firstSlot['end_time'] ?? '') ?>">
-            <input type="hidden" name="price" id="cartPrice" value="<?= $isPackageContext ? $packageServicePrice : ($isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : $activeServicePrice) ?>">
+            <input type="hidden" name="slot_id" id="cartSlotId" value="<?= $h($isVenue ? ($firstVenueRoom['selected_availability_id'] ?? '') : ($firstSlot['slot_id'] ?? '')) ?>">
+            <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($isVenue ? ($firstVenueRoom['start_time'] ?? '') : ($firstSlot['start_time'] ?? '')) ?>">
+            <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($isVenue ? ($firstVenueRoom['end_time'] ?? '') : ($firstSlot['end_time'] ?? '')) ?>">
+            <input type="hidden" name="price" id="cartPrice" value="<?= $h($isPackageContext ? $packageServicePrice : ($isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : $activeServicePrice)) ?>">
             <input type="hidden" name="source" value="<?= $isPackageContext ? 'package' : 'custom' ?>">
             <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
               <?php if ($fieldValue > 0): ?>
@@ -2412,6 +2448,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
   <i data-lucide="shopping-bag" size="20"></i>
 </a>
 
+<div class="cart-feedback" id="cartFeedback" role="status" aria-live="polite">
+  <i data-lucide="check-circle" size="16"></i>
+  <span><?= $isPackageContext ? 'Adding to package booking...' : 'Adding to cart...' ?></span>
+</div>
+
 <!-- Mobile bottom booking bar -->
 <div class="mobile-book-bar" id="mobileBookBar">
   <div class="mobile-book-row">
@@ -2487,12 +2528,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedTime = document.getElementById('selectedTime');
   const addCartLink = document.getElementById('addCartLink');
   const mobileBookBtn = document.getElementById('mobileBookBtn');
+  const serviceCartForm = document.getElementById('serviceCartForm');
+  const cartFeedback = document.getElementById('cartFeedback');
   const cartDate = document.getElementById('cartDate');
   const cartSlotId = document.getElementById('cartSlotId');
   const cartStartTime = document.getElementById('cartStartTime');
   const cartEndTime = document.getElementById('cartEndTime');
   const cartPrice = document.getElementById('cartPrice');
   const estimatedTotal = document.querySelector('.estimated-row strong');
+  const mobileBookPrice = document.querySelector('.mobile-book-price');
   const serviceId = <?= (int)($service['id'] ?? 0) ?>;
 
   function updateSelectedSlot(input) {
@@ -2504,14 +2548,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedTime) selectedTime.textContent = input.dataset.timeLabel || 'Selected time';
     if (selectedHall && input.dataset.hallLabel) selectedHall.textContent = input.dataset.hallLabel;
     if (estimatedTotal && input.dataset.priceLabel) estimatedTotal.textContent = input.dataset.priceLabel;
+    if (mobileBookPrice && input.dataset.priceLabel) mobileBookPrice.textContent = input.dataset.priceLabel;
 
     // Update hidden form fields for cart
-    if (cartDate && input.dataset.date) cartDate.value = input.dataset.date;
+    if (cartDate) cartDate.value = input.dataset.date || '';
     if (cartSlotId) cartSlotId.value = input.dataset.slotId || '';
-    if (cartStartTime && input.dataset.startTime) cartStartTime.value = input.dataset.startTime;
-    if (cartEndTime && input.dataset.endTime) cartEndTime.value = input.dataset.endTime;
-    if (cartPrice && input.dataset.priceLabel) {
-      const numeric = input.dataset.priceLabel.replace(/[^0-9.]/g, '');
+    if (cartStartTime) cartStartTime.value = input.dataset.startTime || '';
+    if (cartEndTime) cartEndTime.value = input.dataset.endTime || '';
+    if (cartPrice) {
+      const numeric = input.dataset.priceValue || (input.dataset.priceLabel || '').replace(/[^0-9.]/g, '');
       if (numeric) cartPrice.value = numeric;
     }
   }
@@ -2525,6 +2570,19 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileBookBtn.addEventListener('click', (event) => {
       event.preventDefault();
       addCartLink.click();
+    });
+  }
+
+  if (serviceCartForm && addCartLink) {
+    serviceCartForm.addEventListener('submit', () => {
+      const currentSelection = document.querySelector("input[name='service_slot']:checked");
+      updateSelectedSlot(currentSelection);
+      addCartLink.classList.add('is-submitting');
+      addCartLink.disabled = true;
+      addCartLink.innerHTML = '<i data-lucide="check-circle" size="16"></i><?= $isPackageContext ? 'Adding...' : 'Adding...' ?>';
+      mobileBookBtn?.classList.add('is-submitting');
+      if (cartFeedback) cartFeedback.classList.add('show');
+      lucide.createIcons();
     });
   }
 

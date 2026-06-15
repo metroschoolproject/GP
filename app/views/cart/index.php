@@ -19,6 +19,21 @@ $plain = function ($v) {
     return $text;
 };
 $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
+$formatDate = function ($value) {
+    $timestamp = strtotime((string)$value);
+    return $timestamp ? date('d M Y', $timestamp) : (string)$value;
+};
+$formatTime = function ($value) {
+    $timestamp = strtotime((string)$value);
+    return $timestamp ? date('g:i A', $timestamp) : (string)$value;
+};
+$formatTimeRange = function ($start, $end) use ($formatTime) {
+    $start = trim((string)$start);
+    $end = trim((string)$end);
+    if ($start === '' && $end === '') return '';
+    if ($start === '' || $start === $end) return $formatTime($end ?: $start);
+    return $formatTime($start) . ' - ' . $formatTime($end);
+};
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -396,6 +411,69 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   border: 1px solid rgba(107,68,89,0.12);
 }
 
+.gp-edit-form {
+  margin-top: 10px;
+  border-top: 1px solid rgba(178,143,110,0.18);
+  padding-top: 10px;
+}
+.gp-edit-toggle {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--plum);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0;
+}
+.gp-edit-fields {
+  display: none;
+  grid-template-columns: repeat(4, minmax(96px, 1fr)) auto;
+  gap: 8px;
+  align-items: end;
+  margin-top: 10px;
+}
+.gp-edit-form.is-open .gp-edit-fields { display: grid; }
+.gp-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.gp-edit-field label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.gp-edit-field input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  background: #fffaf7;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 9px;
+}
+.gp-edit-field input[readonly] {
+  background: rgba(107,68,89,0.05);
+  color: var(--text2);
+}
+.gp-save-btn {
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--plum);
+  color: #fffaf3;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+.gp-save-btn:hover { background: var(--plum-dk); }
+
 /* Right column */
 .gp-item-right {
   display: flex; flex-direction: column;
@@ -479,6 +557,12 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-line-name { font-size: 13px; color: var(--text2); font-weight: 400; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gp-line-dots { flex: 1; border-bottom: 1px dashed var(--rule-strong); margin: 0 6px 3px; }
 .gp-line-val { font-size: 13px; color: var(--text); font-weight: 500; white-space: nowrap; }
+.gp-line-meta {
+  margin-top: -8px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.45;
+}
 
 .gp-line-divider { height: 1px; background: var(--rule); margin: 4px 0; }
 
@@ -655,11 +739,15 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   .gp-sidebar { position: static; }
   .gp-included-reminder { grid-template-columns: 40px 1fr; }
   .gp-included-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .gp-edit-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gp-save-btn { grid-column: 1 / -1; }
 }
 @media (max-width: 640px) {
   .gp-item { grid-template-columns: 88px 1fr; }
   .gp-item-right { display: none; }
   .gp-item-body { padding: 12px; }
+  .gp-item-name { white-space: normal; }
+  .gp-edit-fields { grid-template-columns: 1fr; }
   .gp-header-nav { display: none; }
   .gp-included-reminder { grid-template-columns: 1fr; }
   .gp-included-actions { flex-direction: column; }
@@ -795,6 +883,8 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         $price       = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
         $selectedDate = $item['selected_date'] ?? '';
         $startTime   = $item['start_time'] ?? '';
+        $endTime     = $item['end_time'] ?? '';
+        $timeRange   = $formatTimeRange($startTime, $endTime);
         $itemType    = $item['item_type'] ?? 'service';
         $detailUrl   = ($itemType === 'package' && !empty($item['package_slug']))
           ? URLROOT . '/customerServices/packageDetail/' . $h($item['package_slug'])
@@ -823,22 +913,49 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <?= $h($supplier) ?>
           </div>
-          <?php if ($selectedDate || $startTime): ?>
+          <?php if ($selectedDate || $timeRange): ?>
           <div class="gp-item-meta">
             <?php if ($selectedDate): ?>
             <span class="gp-item-pill">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <?= $h(date('d M Y', strtotime($selectedDate))) ?>
+              <?= $h($formatDate($selectedDate)) ?>
             </span>
             <?php endif; ?>
-            <?php if ($startTime): ?>
+            <?php if ($timeRange): ?>
             <span class="gp-item-pill">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <?= $h(date('g:i A', strtotime($startTime))) ?>
+              <?= $h($timeRange) ?>
             </span>
             <?php endif; ?>
           </div>
           <?php endif; ?>
+
+          <form class="gp-edit-form" method="POST" action="<?= URLROOT ?>/cart/update">
+            <input type="hidden" name="cart_item_id" value="<?= $itemId ?>">
+            <button class="gp-edit-toggle" type="button" aria-expanded="false">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              Edit details
+            </button>
+            <div class="gp-edit-fields">
+              <div class="gp-edit-field">
+                <label for="cart-date-<?= $itemId ?>">Date</label>
+                <input id="cart-date-<?= $itemId ?>" type="date" name="date" value="<?= $h($selectedDate) ?>">
+              </div>
+              <div class="gp-edit-field">
+                <label for="cart-start-<?= $itemId ?>">Start</label>
+                <input id="cart-start-<?= $itemId ?>" type="time" name="start_time" value="<?= $h(substr((string)$startTime, 0, 5)) ?>">
+              </div>
+              <div class="gp-edit-field">
+                <label for="cart-end-<?= $itemId ?>">End</label>
+                <input id="cart-end-<?= $itemId ?>" type="time" name="end_time" value="<?= $h(substr((string)$endTime, 0, 5)) ?>">
+              </div>
+              <div class="gp-edit-field">
+                <label for="cart-price-<?= $itemId ?>">Price</label>
+                <input id="cart-price-<?= $itemId ?>" type="number" name="price" min="0" step="0.01" value="<?= $h($price) ?>" readonly>
+              </div>
+              <button class="gp-save-btn" type="submit">Save</button>
+            </div>
+          </form>
         </div>
 
         <!-- Right: price + remove -->
@@ -877,12 +994,20 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             <?php foreach ($items as $item):
               $linePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
               $lineName  = $item['service_name'] ?? 'Service';
+              $lineDate  = trim((string)($item['selected_date'] ?? ''));
+              $lineTime  = $formatTimeRange($item['start_time'] ?? '', $item['end_time'] ?? '');
+              $lineMetaParts = [];
+              if ($lineDate !== '') $lineMetaParts[] = $formatDate($lineDate);
+              if ($lineTime !== '') $lineMetaParts[] = $lineTime;
             ?>
             <div class="gp-line">
               <span class="gp-line-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></span>
               <span class="gp-line-dots" aria-hidden="true"></span>
               <span class="gp-line-val"><?= $money($linePrice) ?></span>
             </div>
+            <?php if (!empty($lineMetaParts)): ?>
+            <div class="gp-line-meta"><?= $h(implode(' · ', $lineMetaParts)) ?></div>
+            <?php endif; ?>
             <?php endforeach; ?>
 
             <div class="gp-line-divider"></div>
@@ -966,6 +1091,16 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   } else {
     items.forEach(el => el.classList.add('visible'));
   }
+
+  /* Inline cart item editing */
+  document.querySelectorAll('.gp-edit-toggle').forEach((button) => {
+    button.addEventListener('click', () => {
+      const form = button.closest('.gp-edit-form');
+      if (!form) return;
+      const isOpen = form.classList.toggle('is-open');
+      button.setAttribute('aria-expanded', String(isOpen));
+    });
+  });
 
   /* Shimmer effect on Book button hover — already handled by CSS ::before */
 

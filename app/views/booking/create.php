@@ -1399,6 +1399,8 @@ input[data-venue-filled="true"] {
 
               <?php if ($hasSlot): ?>
                 <!-- Has existing slot -->
+                <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($slotStart) ?>">
+                <input type="hidden" name="item_end_time[<?= $i ?>]" class="end-time-hidden-<?= $i ?>" value="<?= $h($slotEnd) ?>">
                 <div class="gp-slot-display">
                   <div class="gp-slot-box">
                     <div class="slot-date">

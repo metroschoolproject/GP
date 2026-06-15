@@ -172,6 +172,28 @@ class Cart extends Controller
     }
 
     /**
+     * Update selected customization details for one cart item (POST only).
+     */
+    public function update()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$this->userId) {
+            redirect('cart');
+            return;
+        }
+
+        $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
+        if ($cartItemId > 0) {
+            $this->cartModel->updateItemCustomization($this->userId, $cartItemId, [
+                'selected_date' => trim($_POST['date'] ?? '') ?: null,
+                'start_time' => trim($_POST['start_time'] ?? '') ?: null,
+                'end_time' => trim($_POST['end_time'] ?? '') ?: null,
+            ]);
+        }
+
+        redirect('cart');
+    }
+
+    /**
      * JSON endpoint: return current cart count for the nav badge.
      */
     public function cartCount()

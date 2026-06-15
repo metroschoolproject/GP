@@ -49,7 +49,8 @@ class BookingModel
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
-            WHERE ci.user_id = :uid"
+            WHERE ci.user_id = :uid
+            ORDER BY ci.id DESC"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);

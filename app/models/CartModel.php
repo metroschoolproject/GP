@@ -128,6 +128,27 @@ class CartModel
     }
 
     /**
+     * Update customization details for one cart item owned by the user.
+     */
+    public function updateItemCustomization(int $userId, int $cartItemId, array $data): bool
+    {
+        $this->db->dbquery(
+            "UPDATE cart_items
+             SET selected_date = :sdate,
+                 start_time = :stime,
+                 end_time = :etime
+             WHERE id = :ciid AND user_id = :uid
+             LIMIT 1"
+        );
+        $this->db->dbbind(':sdate', $data['selected_date'] ?? null);
+        $this->db->dbbind(':stime', $data['start_time'] ?? null);
+        $this->db->dbbind(':etime', $data['end_time'] ?? null);
+        $this->db->dbbind(':ciid', $cartItemId, PDO::PARAM_INT);
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        return $this->db->dbexecute();
+    }
+
+    /**
      * Get all cart items for a user, joined with service details.
      */
     /**
