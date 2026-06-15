@@ -185,7 +185,7 @@ class CartModel
         }
 
         $this->db->dbquery(
-            "SELECT booking_type, duration_minutes, buffer_minutes, max_concurrent
+            "SELECT booking_type, duration_minutes, buffer_minutes, max_concurrent, min_lead_days
              FROM services
              WHERE id = :sid AND is_active = 1
              LIMIT 1"
@@ -193,6 +193,12 @@ class CartModel
         $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
         $service = $this->db->getsingledata();
         if (!$service) {
+            return [];
+        }
+
+        $minLeadDays = max(0, (int)($service['min_lead_days'] ?? 0));
+        $earliestDate = date('Y-m-d', strtotime('+' . $minLeadDays . ' days'));
+        if (strtotime($date) < strtotime($earliestDate)) {
             return [];
         }
 
@@ -261,6 +267,20 @@ class CartModel
         }
 
         return false;
+    }
+
+    public function getServiceMinLeadDays(int $serviceId): int
+    {
+        $this->db->dbquery(
+            "SELECT min_lead_days
+             FROM services
+             WHERE id = :sid AND is_active = 1
+             LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $service = $this->db->getsingledata();
+
+        return max(0, (int)($service['min_lead_days'] ?? 0));
     }
 
     private function hoursForServiceDate(int $serviceId, string $date): array|false
@@ -400,6 +420,9 @@ class CartModel
             ? 'LEFT JOIN venue_rooms cart_vr ON cart_vr.id = ci.venue_room_id
             LEFT JOIN venues cart_venue ON cart_venue.id = cart_vr.venue_id'
             : '';
+        $minLeadSelect = $hasVenueRoomColumn
+            ? 'COALESCE(cart_vr.min_lead_days, selected_vr.min_lead_days, s.min_lead_days, 0)'
+            : 'COALESCE(selected_vr.min_lead_days, s.min_lead_days, 0)';
 
         $this->db->dbquery(
             "SELECT ci.id AS cart_item_id, 

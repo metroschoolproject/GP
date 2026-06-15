@@ -1347,6 +1347,9 @@ input[type="date"]:invalid {
           $venueRoomName = trim((string)($item['venue_room_name'] ?? ''));
           $venueName = trim((string)($item['venue_name'] ?? ''));
           $venueRoomCapacity = (int)($item['venue_room_capacity'] ?? 0);
+          $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
+          $earliestBookingDate = date('Y-m-d', strtotime('+' . $minLeadDays . ' days'));
+          $earliestBookingLabel = date('M j, Y', strtotime($earliestBookingDate));
           $serviceDisplayName = $venueRoomName !== ''
             ? ($item['service_name'] ?? 'Service') . ' · ' . $venueRoomName
             : ($item['service_name'] ?? 'Service');
@@ -1368,6 +1371,8 @@ input[type="date"]:invalid {
                  data-unit-price="<?= $h($linePrice) ?>"
                  data-guest-priced="<?= $isGuestPriced ? 'yes' : 'no' ?>"
                  data-hall-capacity="<?= $venueRoomCapacity ?>"
+                 data-min-lead-days="<?= $minLeadDays ?>"
+                 data-earliest-date="<?= $h($earliestBookingDate) ?>"
                  <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
 
           <div class="gp-item-header">
@@ -2081,7 +2086,7 @@ async function loadSlots(serviceId, date, index) {
         });
       });
     } else {
-      container.innerHTML = '<p class="error">No available slots for this date</p>';
+      container.innerHTML = '<p class="error">' + (data.message || 'No available slots for this date') + '</p>';
     }
   } catch (err) {
     console.error('Slot load error:', err);

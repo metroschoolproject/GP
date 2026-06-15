@@ -29,7 +29,9 @@ function normalizeServiceItem(item) {
     status: item.status === 'inactive' ? 'inactive' : 'active',
     desc: item.desc || item.description || '',
     img: item.img || item.thumbnail_url || '',
-    capacity: Number(item.capacity || 1)
+    capacity: Number(item.capacity || 1),
+    min_lead_days: Math.max(0, Number(item.min_lead_days || 0)),
+    venue_rooms: Array.isArray(item.venue_rooms) ? item.venue_rooms : []
   };
 }
 
@@ -806,6 +808,8 @@ function confirmDeleteModal({ title = 'Delete item?', message = 'This action can
 // ── ADD VENUE ─────────────────────────────────────────────────
 function openAddVenue() {
   clearFieldValues(['vName','vDesc','vVenue','vLocation','vImgData']);
+  const minLeadField = document.getElementById('vMinLeadDays');
+  if (minLeadField) minLeadField.value = '0';
   document.getElementById('vType').value='';
   renderVenueRooms('v');
   resetImgBox('venueImgBox', true);

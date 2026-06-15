@@ -165,6 +165,7 @@ $serviceDetailConfig = [
         'status' => $serviceStatus,
         'img' => $serviceImage,
         'capacity' => (int)($service['capacity'] ?? $maxConcurrent),
+        'min_lead_days' => (int)($service['min_lead_days'] ?? 0),
         'venue' => $service['venue_name'] ?? $service['venue'] ?? '',
         'venue_location' => $service['venue_location'] ?? '',
     ],

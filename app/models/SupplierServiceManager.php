@@ -79,6 +79,7 @@ class SupplierServiceManager
                          services.buffer_minutes,
                          services.pricing_unit,
                          services.max_concurrent,
+                         services.min_lead_days,
                          ' . $venueSelectFields . '
                          categories.name AS category
                   FROM services
@@ -244,6 +245,7 @@ class SupplierServiceManager
                     services.buffer_minutes,
                     services.pricing_unit,
                     services.max_concurrent,
+                    services.min_lead_days,
                     ' . $venueSelectFields . '
                     categories.name AS category,
                     suppliers.shop_name AS supplier_name,
@@ -392,6 +394,7 @@ class SupplierServiceManager
                     services.buffer_minutes,
                     services.pricing_unit,
                     services.max_concurrent,
+                    services.min_lead_days,
                     ' . $venueSelectFields . '
                     categories.name AS category
              FROM services

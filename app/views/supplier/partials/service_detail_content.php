@@ -167,6 +167,7 @@
                     <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input hall-price-max" value="<?= $h($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0) ?>"></div>
                     <div class="sd-hall-fg"><label>Start time</label><input type="time" lang="en-GB" class="sd-hall-input hall-start" value="<?= $h(substr((string)($room['start_time'] ?? '09:00'), 0, 5)) ?>"></div>
                     <div class="sd-hall-fg"><label>End time</label><input type="time" lang="en-GB" class="sd-hall-input hall-end" value="<?= $h(substr((string)($room['end_time'] ?? '17:00'), 0, 5)) ?>"></div>
+                    <div class="sd-hall-fg"><label>Min. notice (days)</label><input type="number" min="0" max="365" class="sd-hall-input hall-min-lead-days" value="<?= array_key_exists('min_lead_days', $room) && $room['min_lead_days'] !== null ? (int)$room['min_lead_days'] : '' ?>" placeholder="Use service default"></div>
                   </div>
                   <div class="sd-hall-time"><?= $h($formatTime($room['start_time'] ?? '09:00') . ' - ' . $formatTime($room['end_time'] ?? '17:00')) ?></div>
                 </div>

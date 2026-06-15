@@ -601,6 +601,7 @@ CREATE TABLE `services` (
   `pricing_unit` enum('per_session','per_hour') DEFAULT 'per_session',
   `buffer_minutes` smallint(5) UNSIGNED NOT NULL DEFAULT 0,
   `max_concurrent` smallint(5) UNSIGNED NOT NULL DEFAULT 1,
+  `min_lead_days` int(11) DEFAULT 0 COMMENT 'Minimum days in advance customer must book (0 = same day allowed)',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -1154,6 +1155,7 @@ CREATE TABLE `venue_rooms` (
   `name` varchar(150) DEFAULT NULL,
   `capacity` int(11) DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
+  `min_lead_days` int(11) DEFAULT NULL COMMENT 'Room-specific override. NULL = inherit from parent service.',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -1460,7 +1462,8 @@ ALTER TABLE `role_permissions`
 ALTER TABLE `services`
   ADD PRIMARY KEY (`id`),
   ADD KEY `supplier_id` (`supplier_id`),
-  ADD KEY `category_id` (`category_id`);
+  ADD KEY `category_id` (`category_id`),
+  ADD KEY `idx_min_lead_days` (`min_lead_days`);
 
 --
 -- Indexes for table `service_availability`
@@ -1627,7 +1630,8 @@ ALTER TABLE `venues`
 --
 ALTER TABLE `venue_rooms`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `venue_id` (`venue_id`);
+  ADD KEY `venue_id` (`venue_id`),
+  ADD KEY `idx_room_min_lead_days` (`min_lead_days`);
 
 --
 -- Indexes for table `venue_room_availability`
