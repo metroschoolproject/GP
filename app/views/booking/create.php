@@ -2,7 +2,6 @@
 $venueService = $venueService ?? null;
 $venueLocation = $venueService['location'] ?? '';
 
-
 $items = $items ?? [];
 $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
@@ -69,408 +68,1133 @@ foreach ($items as $defaultItem) {
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ─── Design tokens ──────────────────────── */
 :root {
-  --bg:          #f2e4d4;
-  --bg2:         #ede0cf;
-  --surface:     #faf6f1;
-  --card:        #ffffff;
-  --rule:        rgba(178,143,110,0.22);
-  --rule-strong: rgba(178,143,110,0.45);
-  --plum:        #6b4459;
-  --plum-dk:     #4e3141;
-  --plum-lt:     #9b7289;
-  --rose:        #c27a8e;
-  --gold:        #b8924a;
-  --gold-lt:     #e8c882;
-  --muted:       #a08878;
-  --text:        #1a1118;
-  --text2:       #5c4a54;
-  --danger:      #b94b4b;
+  /* Palette: ivory parchment + dusty mauve + antique gold */
+  --ivory:       #faf7f2;
+  --parchment:   #f3ece0;
+  --parchment2:  #e8ddd0;
+  --linen:       #ede5d8;
 
+  --mauve:       #8c5f72;
+  --mauve-dk:    #6b4457;
+  --mauve-lt:    #b8899e;
+  --mauve-xs:    rgba(140,95,114,0.08);
+
+  --gold:        #c4973b;
+  --gold-lt:     #e4c07a;
+  --gold-xs:     rgba(196,151,59,0.12);
+
+  --sage:        #7a9c82;
+  --sage-xs:     rgba(122,156,130,0.10);
+
+  --ink:         #2c1f28;
+  --ink2:        #5a4350;
+  --mist:        #9c8893;
+  --rule:        rgba(140,95,114,0.14);
+  --rule-md:     rgba(140,95,114,0.26);
+  --danger:      #a84040;
+
+  /* Type */
+  --serif:       'Cormorant Garamond', 'Georgia', serif;
+  --sans:        'Jost', system-ui, sans-serif;
+
+  /* Geometry */
+  --r-xs: 4px;
   --r-sm: 8px;
   --r-md: 14px;
   --r-lg: 20px;
   --r-xl: 28px;
+  --r-pill: 999px;
 
-  --font-d: 'Playfair Display', Georgia, serif;
-  --font-b: 'Poppins', system-ui, sans-serif;
+  /* Layout */
   --pad-x: clamp(20px, 5vw, 72px);
-
-  --ease-expo: cubic-bezier(0.19, 1, 0.22, 1);
-  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-b);
+  background-color: var(--parchment);
+  color: var(--ink);
+  font-family: var(--sans);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  display: flex; flex-direction: column;
+  display: flex;
+  flex-direction: column;
   overflow-x: hidden;
 }
 
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
-button { font-family: var(--font-b); outline: none; cursor: pointer; }
-textarea { font-family: var(--font-b); }
+button { font-family: var(--sans); cursor: pointer; }
+textarea { font-family: var(--sans); }
 
-/* ─── Ambient orbs ───────────────────────── */
-.gp-orbs {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+/* ─── Botanical background motif ─────────── */
+/* Repeating SVG fern/leaf silhouette stamped into the parchment */
+.gp-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.038;
 }
-.gp-orb {
-  position: absolute; border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0;
-  animation: orbFloat 20s ease-in-out infinite;
+.gp-bg svg {
+  position: absolute;
+  width: 520px;
+  height: auto;
 }
-.gp-orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(107,68,89,0.12) 0%, transparent 70%); top: -200px; right: -100px; animation-delay: 0s; animation-duration: 18s; }
-.gp-orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(184,146,74,0.08) 0%, transparent 70%); bottom: -150px; left: -100px; animation-delay: -9s; animation-duration: 22s; }
-.gp-orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, rgba(194,122,142,0.10) 0%, transparent 70%); top: 40%; left: 40%; animation-delay: -5s; animation-duration: 15s; }
-@keyframes orbFloat {
-  0%   { opacity: 0; transform: translate(0,0) scale(1); }
-  15%  { opacity: 1; }
-  50%  { transform: translate(40px,-30px) scale(1.08); }
-  85%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(0,0) scale(1); }
+.gp-bg-tl { top: -60px; left: -80px; transform: rotate(-20deg); }
+.gp-bg-br { bottom: -80px; right: -60px; transform: rotate(160deg); }
+.gp-bg-mid { top: 38%; left: 55%; transform: rotate(30deg) scale(0.7); }
+
+/* ─── Thin decorative top bar ─────────────── */
+.gp-crown {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  height: 3px;
+  background: linear-gradient(90deg, var(--mauve-lt) 0%, var(--gold) 50%, var(--mauve-lt) 100%);
 }
 
 /* ─── Header ─────────────────────────────── */
 .gp-header {
-  position: sticky; top: 0; z-index: 100;
+  position: sticky;
+  top: 0;
+  z-index: 100;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 24px;
   padding: 0 var(--pad-x);
   height: 68px;
-  border-bottom: 1px solid var(--rule);
-  background: rgba(242,228,212,0.82);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-bottom: 1px solid var(--rule-md);
+  background: rgba(243,236,224,0.88);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
   transition: background 0.3s;
 }
-.gp-brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 800; color: var(--text); white-space: nowrap; }
-.gp-brand-mark { position: relative; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--plum); color: #fffaf3; font-size: 13px; font-weight: 700; letter-spacing: 1px; overflow: hidden; }
-.gp-brand-mark::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%); }
-.gp-header-nav { display: flex; align-items: center; justify-content: center; gap: 2px; }
-.gp-header-nav a { padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text2); transition: all 0.22s; }
-.gp-header-nav a:hover { color: var(--plum); background: rgba(107,68,89,0.08); }
+
+.gp-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.gp-brand-monogram {
+  display: grid;
+  place-items: center;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--mauve-lt);
+  background: var(--mauve);
+  color: #faf7f2;
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.gp-header-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.gp-header-nav a {
+  padding: 7px 16px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink2);
+  transition: all 0.2s;
+}
+.gp-header-nav a:hover {
+  color: var(--mauve);
+  background: var(--mauve-xs);
+}
+
 .gp-header-actions { display: flex; align-items: center; gap: 10px; }
-.gp-cart-badge { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px 7px 9px; border-radius: 999px; border: 1px solid var(--rule-strong); background: rgba(255,255,255,0.7); color: var(--plum); font-size: 13px; font-weight: 700; backdrop-filter: blur(8px); transition: all 0.22s; }
-.gp-cart-badge:hover { border-color: var(--plum); background: rgba(107,68,89,0.07); }
-.gp-cart-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--plum); color: #fff; font-size: 10px; font-weight: 700; }
-.gp-cta-header { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 18px; border-radius: 999px; border: none; background: var(--plum); color: #fffaf3; font-size: 13px; font-weight: 700; box-shadow: 0 8px 24px rgba(107,68,89,0.22); transition: all 0.22s var(--ease-expo); }
-.gp-cta-header:hover { background: var(--plum-dk); transform: translateY(-1px); box-shadow: 0 12px 32px rgba(107,68,89,0.28); }
 
-/* ─── PROFILE DROPDOWN ──────────────────────────────── */
+.gp-cart-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px 7px 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--rule-md);
+  background: rgba(250,247,242,0.7);
+  color: var(--mauve);
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+}
+.gp-cart-badge:hover { border-color: var(--mauve); background: var(--mauve-xs); }
+.gp-cart-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px; height: 20px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--mauve);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.gp-cta-header {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 20px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--mauve-lt);
+  background: var(--mauve);
+  color: #faf7f2;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  transition: all 0.2s var(--ease);
+}
+.gp-cta-header:hover { background: var(--mauve-dk); border-color: var(--mauve-dk); transform: translateY(-1px); }
+
+/* Profile dropdown */
 .gp-profile-dropdown { position: relative; }
-
 .gp-profile-btn {
   display: flex; align-items: center; gap: 8px;
   padding: 4px 12px 4px 4px;
-  border-radius: 999px;
-  border: 1px solid var(--cream-dk);
-  background: var(--white);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--rule-md);
+  background: rgba(250,247,242,0.7);
   cursor: pointer;
   transition: all 0.2s;
-  color: var(--plum);
-  font-family: var(--font-body);
+  color: var(--mauve);
+  font-family: var(--sans);
   font-size: 13px;
   font-weight: 600;
 }
-.gp-profile-btn:hover { border-color: var(--plum); background: rgba(107,68,89,0.06); }
-
+.gp-profile-btn:hover { border-color: var(--mauve); background: var(--mauve-xs); }
 .gp-profile-avatar {
   display: grid; place-items: center;
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: var(--plum);
-  color: #fffaf3;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  background: var(--mauve);
+  color: #faf7f2;
+  font-size: 13px;
+  font-weight: 600;
 }
-
 .gp-profile-name { white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
-
 .gp-profile-chevron { opacity: 0.6; transition: transform 0.2s; }
 .gp-profile-btn[aria-expanded="true"] .gp-profile-chevron { transform: rotate(180deg); }
-
 .gp-profile-menu {
   position: absolute; top: calc(100% + 8px); right: 0;
   min-width: 180px;
   padding: 6px;
-  border-radius: 12px;
-  border: 1px solid var(--cream-dk);
-  background: var(--white);
-  box-shadow: 0 12px 35px rgba(15,23,42,0.1);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-4px);
-  transition: all 0.15s var(--ease-expo);
+  border-radius: var(--r-md);
+  border: 1px solid var(--rule-md);
+  background: var(--ivory);
+  box-shadow: 0 8px 32px rgba(44,31,40,0.10);
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: all 0.15s var(--ease);
 }
 .gp-profile-btn[aria-expanded="true"] + .gp-profile-menu,
-.gp-profile-menu.show {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
+.gp-profile-menu.show { opacity: 1; visibility: visible; transform: translateY(0); }
 .gp-profile-menu-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
+  font-weight: 500;
+  color: var(--ink);
   transition: all 0.15s;
 }
-.gp-profile-menu-item:hover { background: rgba(107,68,89,0.06); }
-
+.gp-profile-menu-item:hover { background: var(--mauve-xs); }
 .gp-profile-menu-item--danger { color: var(--danger); }
-.gp-profile-menu-item--danger:hover { background: rgba(185,75,75,0.08); }
+.gp-profile-menu-item--danger:hover { background: rgba(168,64,64,0.07); }
 
 /* ─── Page shell ─────────────────────────── */
-.gp-page { position: relative; z-index: 1; flex: 1; padding: 52px var(--pad-x) 80px; max-width: 1180px; margin: 0 auto; width: 100%; }
-.gp-page-head { margin-bottom: 44px; opacity: 0; animation: fadeUp 0.7s var(--ease-expo) 0.1s forwards; }
-.gp-page-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
-.gp-page-eyebrow::before { content: ''; display: block; width: 24px; height: 1px; background: var(--gold); }
-.gp-page-title { font-family: var(--font-d); font-size: clamp(38px, 5vw, 58px); font-weight: 600; color: var(--text); line-height: 0.92; letter-spacing: -0.02em; }
-.gp-page-title em { font-style: italic; color: var(--plum-lt); }
-.gp-page-subtitle { font-size: 14px; color: var(--muted); margin-top: 14px; max-width: 480px; }
+.gp-page {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 56px var(--pad-x) 96px;
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ─── Page header ─────────────────────────── */
+.gp-page-head {
+  margin-bottom: 48px;
+  text-align: center;
+  opacity: 0;
+  animation: fadeUp 0.8s var(--ease) 0.05s forwards;
+}
+.gp-head-ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.gp-head-ornament-line {
+  flex: 1;
+  max-width: 140px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-lt), transparent);
+}
+.gp-head-ornament-diamond {
+  width: 8px; height: 8px;
+  background: var(--gold);
+  transform: rotate(45deg);
+}
+.gp-head-ornament-dot {
+  width: 4px; height: 4px;
+  background: var(--mauve-lt);
+  border-radius: 50%;
+}
+.gp-page-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.gp-page-title {
+  font-family: var(--serif);
+  font-size: clamp(42px, 6vw, 68px);
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 0.93;
+  letter-spacing: -0.01em;
+}
+.gp-page-title em {
+  font-style: italic;
+  color: var(--mauve);
+}
+.gp-page-subtitle {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--mist);
+  font-weight: 400;
+}
 
 /* ─── Two-column layout ──────────────────── */
-.gp-layout { display: grid; grid-template-columns: 1fr 360px; gap: 28px; align-items: start; }
+.gp-layout {
+  display: grid;
+  grid-template-columns: 1fr 348px;
+  gap: 28px;
+  align-items: start;
+}
 
-/* ─── Service item cards ─────────────────── */
-.gp-items { display: flex; flex-direction: column; gap: 16px; }
-.gp-item-card {
-  background: var(--card);
-  border: 1px solid var(--rule);
+/* ─── Section label ──────────────────────── */
+.gp-section-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+.gp-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* ─── Cards (shared) ─────────────────────── */
+.gp-card {
+  background: var(--ivory);
+  border: 1px solid var(--rule-md);
   border-radius: var(--r-lg);
   overflow: hidden;
   opacity: 0;
-  transform: translateY(24px);
-  transition: box-shadow 0.35s var(--ease-expo), border-color 0.25s;
+  transform: translateY(20px);
+  transition: box-shadow 0.35s var(--ease), border-color 0.25s, opacity 0.5s var(--ease), transform 0.5s var(--ease);
 }
-.gp-item-card.visible { opacity: 1; transform: translateY(0); }
+.gp-card.visible { opacity: 1; transform: translateY(0); }
+.gp-card:hover { box-shadow: 0 8px 32px rgba(44,31,40,0.07); border-color: var(--rule-md); }
+
+/* ─── Customer info card ─────────────────── */
+.gp-customer-card .gp-card-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--rule);
+  background: linear-gradient(135deg, rgba(140,95,114,0.06), rgba(196,151,59,0.04));
+}
+.gp-card-band-left { display: flex; align-items: center; gap: 14px; }
+.gp-card-icon {
+  display: grid;
+  place-items: center;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--rule-md);
+  background: var(--ivory);
+  color: var(--mauve);
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+  font-style: italic;
+  flex-shrink: 0;
+}
+.gp-card-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.gp-card-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.05;
+  margin-top: 1px;
+}
+.gp-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mauve);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(140,95,114,0.3);
+  transition: color 0.2s;
+}
+.gp-card-action:hover { color: var(--mauve-dk); border-color: var(--mauve-dk); }
+.gp-profile-facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+}
+.gp-fact {
+  padding: 16px 20px;
+  border-right: 1px solid var(--rule);
+}
+.gp-fact:last-child { border-right: none; }
+.gp-fact-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mist);
+  margin-bottom: 5px;
+}
+.gp-fact-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gp-fact-value:empty::after {
+  content: 'Not provided';
+  color: var(--mist);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ─── Default contact card ───────────────── */
+.gp-defaults-card .gp-card-band {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--rule);
+}
+.gp-card-note {
+  font-size: 12px;
+  color: var(--mist);
+  max-width: 220px;
+  text-align: right;
+  line-height: 1.5;
+}
+.gp-defaults-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.gp-default-field {
+  padding: 14px 20px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.gp-default-field:nth-child(2n) { border-right: none; }
+.gp-default-field:nth-last-child(-n+2) { border-bottom: none; }
+.gp-default-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mist);
+  margin-bottom: 6px;
+}
+.gp-default-field .gp-detail-input {
+  border: none;
+  border-bottom: 1px solid var(--rule-md);
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 0;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  transition: border-color 0.2s;
+}
+.gp-default-field .gp-detail-input:focus {
+  outline: none;
+  border-color: var(--mauve);
+  box-shadow: none;
+}
+.gp-default-field .gp-detail-stepper { display: flex; align-items: center; gap: 0; }
+.gp-stepper-btn {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border: 1px solid var(--rule-md);
+  background: var(--ivory);
+  color: var(--ink2);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.gp-stepper-btn:hover { background: var(--mauve); color: #fff; border-color: var(--mauve); }
+.gp-stepper-btn:first-child { border-radius: var(--r-xs) 0 0 var(--r-xs); }
+.gp-stepper-btn:last-child { border-radius: 0 var(--r-xs) var(--r-xs) 0; }
+.gp-stepper-input {
+  width: 52px; height: 32px;
+  text-align: center;
+  border: 1px solid var(--rule-md);
+  border-left: none; border-right: none;
+  font-size: 14px; font-weight: 600;
+  color: var(--ink);
+  background: var(--parchment);
+}
+.gp-stepper-input::-webkit-inner-spin-button,
+.gp-stepper-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.gp-stepper-input[type=number] { -moz-appearance: textfield; }
+
+/* ─── Service item cards ─────────────────── */
+.gp-items { display: flex; flex-direction: column; gap: 20px; }
+
+.gp-item-card { /* inherits .gp-card */ }
 
 .gp-item-header {
   display: grid;
-  grid-template-columns: 100px 1fr auto;
-  gap: 0;
+  grid-template-columns: 110px 1fr auto;
   border-bottom: 1px solid var(--rule);
 }
 .gp-item-thumb {
-  position: relative; overflow: hidden;
-  width: 100px; min-height: 100px;
-  background: linear-gradient(160deg, #e8d9c8, #d9c8b5);
-  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  min-height: 110px;
+  background: linear-gradient(160deg, var(--linen), var(--parchment2));
 }
 .gp-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.gp-item-thumb-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: var(--muted); min-height: 100px; }
-.gp-item-info { padding: 14px 14px 14px 18px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gp-item-name { font-family: var(--font-d); font-size: 18px; font-weight: 600; color: var(--text); line-height: 1.1; }
-.gp-item-supplier { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--plum-lt); }
-.gp-item-price-box { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; padding: 14px 16px 14px 8px; flex-shrink: 0; }
-.gp-item-price-val { font-family: var(--font-d); font-size: 20px; font-weight: 600; color: var(--plum); white-space: nowrap; }
-.gp-schedule-note { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--muted); }
-.gp-schedule-pill { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--rule); background: rgba(250,246,241,0.9); color: var(--text2); font-weight: 600; }
-.gp-schedule-pill.fixed { border-color: rgba(42,122,75,0.24); background: rgba(42,122,75,0.08); color: #24613d; }
-.gp-schedule-pill.shared { border-color: rgba(184,146,74,0.28); background: rgba(184,146,74,0.10); color: #7a5c22; }
-.gp-schedule-pill svg { width: 12px; height: 12px; flex-shrink: 0; }
+.gp-item-thumb-placeholder {
+  width: 100%; height: 100%;
+  min-height: 110px;
+  display: grid; place-items: center;
+  color: var(--mist);
+}
 
-/* Item details section */
-.gp-item-details { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
-.gp-event-card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 22px; opacity: 0; transform: translateY(24px); transition: box-shadow 0.35s var(--ease-expo), border-color 0.25s; }
-.gp-event-card.visible { opacity: 1; transform: translateY(0); }
-.gp-event-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px; }
-.gp-event-kicker { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
-.gp-event-title { margin-top: 2px; font-family: var(--font-d); font-size: 24px; font-weight: 600; line-height: 1.05; color: var(--text); }
-.gp-event-copy { max-width: 360px; font-size: 12px; color: var(--muted); }
+/* Delicate floral corner on thumbnail */
+.gp-item-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(140,95,114,0.12) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.gp-item-info {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.gp-item-name {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.gp-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--mist);
+  margin-top: 2px;
+}
+.gp-item-meta-sep { color: var(--rule-md); }
+
+.gp-item-price-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px 20px 16px 12px;
+  flex-shrink: 0;
+}
+.gp-item-price-val {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--mauve);
+  white-space: nowrap;
+}
+
+/* Tags */
+.gp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-xs);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.gp-tag-venue {
+  background: var(--gold-xs);
+  color: #7a5318;
+  border: 1px solid rgba(196,151,59,0.25);
+}
+.gp-tag-auto {
+  background: var(--sage-xs);
+  color: #3a5c40;
+  border: 1px solid rgba(122,156,130,0.25);
+}
+
+/* ─── Item details ───────────────────────── */
+.gp-item-details {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Slot fieldset */
+.gp-slot-fieldset {
+  border: none;
+  padding: 0;
+}
+.gp-fieldset-legend {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mist);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gp-fieldset-legend::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+.gp-slot-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule-md);
+  border-radius: var(--r-md);
+  background: var(--parchment);
+}
+.gp-slot-box { display: flex; flex-direction: column; gap: 2px; }
+.slot-date { font-size: 13px; font-weight: 600; color: var(--ink); }
+.slot-time { font-size: 12px; color: var(--mist); }
+
+.gp-btn-change-slot {
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--rule-md);
+  background: var(--ivory);
+  color: var(--mauve);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.gp-btn-change-slot:hover { border-color: var(--mauve); background: var(--mauve-xs); }
+
+.gp-slot-selector { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.gp-slot-selector.hidden { display: none; }
+.gp-btn-cancel-change {
+  align-self: flex-start;
+  padding: 5px 13px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--rule-md);
+  background: transparent;
+  color: var(--mist);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.gp-btn-cancel-change:hover { border-color: var(--danger); color: var(--danger); }
+
+.gp-slots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gp-slot-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule-md);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--ivory);
+  font-size: 13px;
+  color: var(--ink);
+}
+.gp-slot-option:hover { border-color: var(--mauve); background: var(--mauve-xs); }
+.gp-slot-option input[type="radio"] { accent-color: var(--mauve); }
+.loading { font-size: 13px; color: var(--mist); padding: 10px 0; font-style: italic; }
+.error { font-size: 13px; color: var(--danger); padding: 6px 0; }
+
+/* Form fields */
+.gp-detail-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mist);
+  margin-bottom: 5px;
+}
+.gp-detail-input, .gp-detail-textarea, .gp-detail-select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--rule-md);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--ivory);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.gp-detail-input:focus, .gp-detail-textarea:focus, .gp-detail-select:focus {
+  outline: none;
+  border-color: var(--mauve);
+  box-shadow: 0 0 0 3px rgba(140,95,114,0.1);
+}
+.gp-detail-input.error, .gp-detail-textarea.error { border-color: var(--danger); }
+.gp-detail-textarea { min-height: 70px; resize: vertical; }
 .gp-detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .gp-detail-field { display: flex; flex-direction: column; gap: 4px; }
 .gp-detail-field.full { grid-column: 1 / -1; }
-.gp-detail-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-.gp-detail-input, .gp-detail-textarea, .gp-detail-select {
-  padding: 9px 12px; border: 1px solid var(--rule-strong); border-radius: var(--r-sm);
-  font-size: 13px; color: var(--text); background: var(--surface);
-  transition: border-color 0.2s;
-  width: 100%;
+
+/* Service drawer */
+.gp-service-drawer {
+  border-top: 1px solid var(--rule);
+  padding-top: 14px;
 }
-.gp-detail-input:focus, .gp-detail-textarea:focus, .gp-detail-select:focus { outline: none; border-color: var(--plum); box-shadow: 0 0 0 3px rgba(107,68,89,0.1); }
-.gp-detail-input.error, .gp-detail-textarea.error { border-color: var(--danger); }
-.gp-detail-textarea { min-height: 70px; resize: vertical; }
-.gp-detail-stepper { display: flex; align-items: center; gap: 0; }
-.gp-stepper-btn { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--rule-strong); background: var(--card); color: var(--text); font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-.gp-stepper-btn:hover { background: var(--plum); color: #fff; border-color: var(--plum); }
-.gp-stepper-btn:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
-.gp-stepper-btn:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
-.gp-stepper-input { width: 56px; height: 36px; text-align: center; border: 1px solid var(--rule-strong); border-left: none; border-right: none; font-size: 14px; font-weight: 600; color: var(--text); background: var(--surface); }
-.gp-stepper-input::-webkit-inner-spin-button, .gp-stepper-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.gp-stepper-input[type=number] { -moz-appearance: textfield; }
+.gp-service-drawer summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 13px;
+  border: 1px solid var(--rule-md);
+  border-radius: var(--r-sm);
+  background: var(--parchment);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: all 0.18s;
+}
+.gp-service-drawer summary::-webkit-details-marker { display: none; }
+.gp-service-drawer summary::after {
+  content: '+';
+  display: grid;
+  place-items: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--ivory);
+  color: var(--mauve);
+  border: 1px solid var(--rule-md);
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.18s var(--ease);
+}
+.gp-service-drawer[open] summary {
+  border-color: rgba(140,95,114,0.28);
+  color: var(--mauve);
+  background: var(--mauve-xs);
+}
+.gp-service-drawer[open] summary::after {
+  content: '−';
+  transform: rotate(180deg);
+}
+.gp-drawer-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--mist);
+}
+.gp-overrides-fieldset {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.4);
+}
+
+/* venue-filled input style */
+input[data-venue-filled="true"] {
+  border-color: rgba(122,156,130,0.35);
+  background-color: rgba(122,156,130,0.04);
+}
+[data-is-venue="true"] .gp-item-header {
+  border-left: 3px solid rgba(196,151,59,0.45);
+}
 
 /* ─── Sidebar ────────────────────────────── */
-.gp-sidebar { position: sticky; top: 84px; opacity: 0; animation: fadeUp 0.7s var(--ease-expo) 0.35s forwards; }
-.gp-summary-card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-xl); overflow: hidden; box-shadow: 0 20px 60px rgba(26,17,24,0.08); }
-.gp-summary-head { padding: 24px 24px 20px; border-bottom: 1px solid var(--rule); position: relative; overflow: hidden; }
-.gp-summary-head::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--plum) 0%, var(--rose) 50%, var(--gold) 100%); }
-.gp-summary-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-.gp-summary-title { font-family: var(--font-d); font-size: 22px; font-weight: 600; color: var(--text); }
-.gp-summary-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.gp-summary-body { padding: 20px 24px; }
-.gp-line-items { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
-.gp-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.gp-line-name { font-size: 13px; color: var(--text2); font-weight: 400; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gp-line-dots { flex: 1; border-bottom: 1px dashed var(--rule-strong); margin: 0 6px 3px; }
-.gp-line-val { font-size: 13px; color: var(--text); font-weight: 500; white-space: nowrap; }
-.gp-line-divider { height: 1px; background: var(--rule); margin: 4px 0; }
-.gp-total-row { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0 0; border-top: 1px solid var(--rule-strong); }
-.gp-total-label { font-size: 13px; font-weight: 600; color: var(--text2); }
-.gp-total-amount { font-family: var(--font-d); font-size: 30px; font-weight: 600; color: var(--plum); line-height: 1; }
-
-.gp-deposit-breakdown { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 6px; }
-.gp-deposit-line { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--muted); }
-.gp-deposit-line strong { color: var(--text); font-size: 13px; }
-
-.gp-summary-footer { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 10px; }
-.gp-btn-primary {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  height: 52px; border-radius: var(--r-md); border: none;
-  background: var(--plum); color: #fffaf3;
-  font-size: 14px; font-weight: 700;
-  letter-spacing: 0.02em;
-  box-shadow: 0 10px 28px rgba(107,68,89,0.28);
-  transition: all 0.3s var(--ease-expo);
-  position: relative; overflow: hidden;
+.gp-sidebar {
+  position: sticky;
+  top: 84px;
+  opacity: 0;
+  animation: fadeUp 0.8s var(--ease) 0.3s forwards;
 }
-.gp-btn-primary::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent); transition: left 0.5s var(--ease-expo); }
-.gp-btn-primary:hover { background: var(--plum-dk); transform: translateY(-2px); box-shadow: 0 18px 40px rgba(107,68,89,0.32); }
+
+.gp-summary-card {
+  background: var(--ivory);
+  border: 1px solid var(--rule-md);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(44,31,40,0.09);
+}
+
+/* Petal accent bar */
+.gp-summary-card::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, var(--mauve) 0%, var(--gold) 50%, var(--mauve-lt) 100%);
+}
+
+.gp-summary-head {
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid var(--rule);
+  background: linear-gradient(160deg, rgba(140,95,114,0.04), transparent 70%);
+}
+.gp-summary-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.gp-summary-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.gp-summary-subtitle { font-size: 12px; color: var(--mist); margin-top: 2px; }
+
+/* Decorative vine divider inside summary */
+.gp-vine-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+  color: var(--rule-md);
+  font-size: 11px;
+}
+.gp-vine-line { flex: 1; height: 1px; background: var(--rule); }
+.gp-vine-diamond { width: 5px; height: 5px; background: var(--gold-lt); transform: rotate(45deg); }
+
+.gp-summary-body { padding: 20px 24px; }
+.gp-line-items { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.gp-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.gp-line-name { font-size: 13px; color: var(--ink2); font-weight: 400; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gp-line-dots { flex: 1; border-bottom: 1px dashed rgba(140,95,114,0.2); margin: 0 4px 3px; }
+.gp-line-val { font-size: 13px; color: var(--ink); font-weight: 500; white-space: nowrap; }
+
+.gp-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--rule-md);
+  margin-top: 4px;
+}
+.gp-total-label { font-size: 13px; font-weight: 500; color: var(--ink2); }
+.gp-total-amount {
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 500;
+  color: var(--mauve);
+  line-height: 1;
+}
+
+.gp-deposit-breakdown {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: var(--r-sm);
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gp-deposit-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--mist);
+}
+.gp-deposit-line strong { color: var(--ink); font-weight: 600; font-size: 13px; }
+.gp-deposit-highlight {
+  font-size: 11px;
+  color: var(--sage);
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* Buttons */
+.gp-summary-footer {
+  padding: 0 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gp-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  border-radius: var(--r-md);
+  border: none;
+  background: var(--mauve);
+  color: #faf7f2;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 10px 28px rgba(140,95,114,0.28);
+  transition: all 0.3s var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+.gp-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
+  transition: left 0.5s var(--ease);
+}
+.gp-btn-primary:hover { background: var(--mauve-dk); transform: translateY(-2px); box-shadow: 0 16px 38px rgba(140,95,114,0.32); }
 .gp-btn-primary:hover::before { left: 100%; }
 .gp-btn-primary:active { transform: translateY(0); }
 .gp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 .gp-btn-secondary {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  height: 42px; border-radius: var(--r-md);
-  border: 1px solid var(--rule-strong);
-  background: transparent; color: var(--text2);
-  font-size: 13px; font-weight: 600;
-  transition: all 0.22s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--rule-md);
+  background: transparent;
+  color: var(--ink2);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
 }
-.gp-btn-secondary:hover { border-color: var(--plum); color: var(--plum); background: rgba(107,68,89,0.05); }
+.gp-btn-secondary:hover { border-color: var(--mauve); color: var(--mauve); background: var(--mauve-xs); }
 
-.gp-trust { display: flex; flex-direction: column; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--rule); }
-.gp-trust-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
-.gp-trust-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--gold); }
+/* Trust section */
+.gp-trust {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--rule);
+}
+.gp-trust-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 11px;
+  color: var(--mist);
+  line-height: 1.5;
+}
+.gp-trust-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--gold); margin-top: 1px; }
 
-/* ─── Spinner ────────────────────────────── */
-.gp-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Spinner */
+.gp-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
 
-/* ─── Toast ──────────────────────────────── */
-.gp-toast { position: fixed; top: 20px; right: 20px; z-index: 999; padding: 14px 20px; border-radius: var(--r-md); box-shadow: 0 12px 40px rgba(0,0,0,0.12); font-size: 13px; font-weight: 500; max-width: 380px; opacity: 0; transform: translateY(-12px); transition: all 0.35s var(--ease-expo); pointer-events: none; }
+/* Toast */
+.gp-toast {
+  position: fixed;
+  top: 20px; right: 20px;
+  z-index: 999;
+  padding: 14px 20px;
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.10);
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 380px;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.35s var(--ease);
+  pointer-events: none;
+}
 .gp-toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
 .gp-toast.error { background: #fef2f2; border: 1px solid #fecaca; color: var(--danger); }
 .gp-toast.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
 
-/* ─── Keyframes ──────────────────────────── */
-@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+/* Footer */
+.gp-footer {
+  position: relative; z-index: 1;
+  padding: 24px var(--pad-x);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--mist);
+}
+.gp-footer-ornament {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--mist);
+}
 
-.gp-footer { position: relative; z-index: 1; padding: 24px var(--pad-x); border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 12px; color: var(--muted); }
+/* Keyframes */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 900px) {
+/* ─── Responsive ─────────────────────────── */
+@media (max-width: 940px) {
   .gp-layout { grid-template-columns: 1fr; }
   .gp-sidebar { position: static; }
   .gp-detail-row { grid-template-columns: 1fr; }
-  .gp-event-head { flex-direction: column; }
 }
 @media (max-width: 640px) {
   .gp-item-header { grid-template-columns: 80px 1fr; }
   .gp-item-price-box { display: none; }
   .gp-header-nav { display: none; }
+  .gp-profile-facts { grid-template-columns: 1fr; }
+  .gp-fact { border-right: none; border-bottom: 1px solid var(--rule); }
+  .gp-defaults-grid { grid-template-columns: 1fr; }
+  .gp-default-field { border-right: none; }
   :root { --pad-x: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gp-item-card, .gp-event-card, .gp-page-head, .gp-sidebar { animation: none; opacity: 1; transform: none; }
-  .gp-orb { animation: none; }
+  .gp-card, .gp-page-head, .gp-sidebar { animation: none; opacity: 1; transform: none; }
 }
-
-/* bage auto  */
-.badge-auto {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: rgba(42, 122, 75, 0.12);
-  color: #24613d;
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin-left: 6px;
-}
-
-/* Venue badge in item header */
-.venue-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  background: rgba(184, 146, 74, 0.15);
-  color: #7a5c22;
-  padding: 3px 8px;
-  border-radius: 4px;
-  margin-left: 6px;
-  white-space: nowrap;
-}
-
-/* Auto-filled badge in labels */
-.badge-auto {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: rgba(42, 122, 75, 0.12);
-  color: #24613d;
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin-left: 6px;
-}
-
-/* Venue-filled input visual indicator */
-input[data-venue-filled="true"],
-[data-venue-filled="true"] input {
-  border-color: rgba(42, 122, 75, 0.3);
-  background-color: rgba(42, 122, 75, 0.04);
-}
-
-/* Item card with venue data attribute */
-[data-is-venue="true"] .gp-item-header {
-  border-left: 4px solid rgba(184, 146, 74, 0.4);
-}
-
 </style>
 </head>
 <body>
 
-<div class="gp-orbs" aria-hidden="true">
-  <div class="gp-orb gp-orb-1"></div>
-  <div class="gp-orb gp-orb-2"></div>
-  <div class="gp-orb gp-orb-3"></div>
+<!-- Thin crown bar -->
+<div class="gp-crown" aria-hidden="true"></div>
+
+<!-- Botanical background -->
+<div class="gp-bg" aria-hidden="true">
+  <svg class="gp-bg-tl" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M200 480 C200 480 80 380 60 260 C40 140 120 60 200 20 C280 60 360 140 340 260 C320 380 200 480 200 480Z" stroke="#6b4457" stroke-width="1.5" fill="none"/>
+    <path d="M200 20 L200 480" stroke="#6b4457" stroke-width="1"/>
+    <path d="M200 120 C200 120 130 140 100 200" stroke="#6b4457" stroke-width="1"/>
+    <path d="M200 160 C200 160 270 185 295 250" stroke="#6b4457" stroke-width="1"/>
+    <path d="M200 230 C200 230 135 255 115 310" stroke="#6b4457" stroke-width="1"/>
+    <path d="M200 270 C200 270 265 295 280 355" stroke="#6b4457" stroke-width="1"/>
+    <path d="M200 340 C200 340 145 365 140 420" stroke="#6b4457" stroke-width="1"/>
+    <ellipse cx="100" cy="205" rx="40" ry="22" transform="rotate(-30 100 205)" stroke="#6b4457" stroke-width="1" fill="none"/>
+    <ellipse cx="295" cy="252" rx="40" ry="22" transform="rotate(25 295 252)" stroke="#6b4457" stroke-width="1" fill="none"/>
+    <ellipse cx="115" cy="315" rx="35" ry="20" transform="rotate(-25 115 315)" stroke="#6b4457" stroke-width="1" fill="none"/>
+    <ellipse cx="280" cy="358" rx="35" ry="20" transform="rotate(20 280 358)" stroke="#6b4457" stroke-width="1" fill="none"/>
+    <ellipse cx="140" cy="423" rx="30" ry="18" transform="rotate(-15 140 423)" stroke="#6b4457" stroke-width="1" fill="none"/>
+  </svg>
+  <svg class="gp-bg-br" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M200 480 C200 480 80 380 60 260 C40 140 120 60 200 20 C280 60 360 140 340 260 C320 380 200 480 200 480Z" stroke="#c4973b" stroke-width="1.5" fill="none"/>
+    <path d="M200 20 L200 480" stroke="#c4973b" stroke-width="1"/>
+    <path d="M200 120 C200 120 130 140 100 200" stroke="#c4973b" stroke-width="1"/>
+    <path d="M200 160 C200 160 270 185 295 250" stroke="#c4973b" stroke-width="1"/>
+    <path d="M200 230 C200 230 135 255 115 310" stroke="#c4973b" stroke-width="1"/>
+    <path d="M200 270 C200 270 265 295 280 355" stroke="#c4973b" stroke-width="1"/>
+    <ellipse cx="100" cy="205" rx="40" ry="22" transform="rotate(-30 100 205)" stroke="#c4973b" stroke-width="1" fill="none"/>
+    <ellipse cx="295" cy="252" rx="40" ry="22" transform="rotate(25 295 252)" stroke="#c4973b" stroke-width="1" fill="none"/>
+  </svg>
 </div>
 
+<!-- ─── Header ─────────────────────────── -->
 <header class="gp-header">
   <a class="gp-brand" href="<?= URLROOT ?>/main/index">
-    <span class="gp-brand-mark">G</span>
+    <span class="gp-brand-monogram">G</span>
     <span>Golden Promise</span>
   </a>
   <nav class="gp-header-nav" aria-label="Main navigation">
@@ -480,7 +1204,7 @@ input[data-venue-filled="true"],
   </nav>
   <div class="gp-header-actions">
     <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart (<?= $cartCount ?> items)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       <?php if ($cartCount > 0): ?><span class="gp-cart-count"><?= $cartCount ?></span><?php endif; ?>
     </a>
     <?php if ($isLoggedIn): ?>
@@ -507,230 +1231,281 @@ input[data-venue-filled="true"],
   </div>
 </header>
 
+<!-- ─── Main ──────────────────────────────── -->
 <main class="gp-page">
 
+  <!-- Page heading -->
   <div class="gp-page-head">
+    <div class="gp-head-ornament">
+      <div class="gp-head-ornament-line"></div>
+      <div class="gp-head-ornament-dot"></div>
+      <div class="gp-head-ornament-diamond"></div>
+      <div class="gp-head-ornament-dot"></div>
+      <div class="gp-head-ornament-line"></div>
+    </div>
     <div class="gp-page-eyebrow">Almost There</div>
     <h1 class="gp-page-title">Confirm Your <em>Booking</em></h1>
     <p class="gp-page-subtitle">Review your selections and add any details your suppliers need.</p>
   </div>
 
-<form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
-  <div class="gp-layout">
-    
-    <!-- LEFT: Services with slots -->
-    <div class="gp-items">
-      
-      <!-- SHARED DEFAULTS SECTION -->
-      <section class="gp-event-card" id="shared-defaults">
-        <div class="gp-event-head">
-          <div>
-            <div class="gp-event-kicker">Default Contact Info</div>
-            <h2 class="gp-event-title">For services without slots</h2>
+  <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
+    <div class="gp-layout">
+
+      <!-- LEFT: item cards -->
+      <div class="gp-items" id="gp-items">
+
+        <!-- Customer info card (read-only display) -->
+        <div class="gp-section-label">Your details</div>
+        <section class="gp-card gp-customer-card" data-index="-1">
+          <div class="gp-card-band">
+            <div class="gp-card-band-left">
+              <div class="gp-card-icon">♡</div>
+              <div>
+                <div class="gp-card-eyebrow">Booking under</div>
+                <h2 class="gp-card-title" id="customer-info-title"><?= $h($user['name'] ?? 'You') ?></h2>
+              </div>
+            </div>
+            <a class="gp-card-action" href="<?= URLROOT ?>/users/profile" target="_blank" rel="noopener">
+              Edit profile
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
           </div>
-          <p class="gp-event-copy">
-            <?php if ($venueService): ?>
-              <strong>Venue Selected: <?= $h($venueService['name']) ?></strong><br>
-              Location auto-filled below. Each service can override.
-            <?php else: ?>
-              These apply only if a service didn't have a chosen slot. Each service can override.
-            <?php endif; ?>
-          </p>
-        </div>
-        
-        <div class="gp-item-details">
-          <!-- ... phone, contact name ... -->
-          
-          <div class="gp-detail-row">
-            <div class="gp-detail-field">
-              <label class="gp-detail-label" for="shared-location">
-                Location / Venue
+          <div class="gp-profile-facts">
+            <div class="gp-fact">
+              <span class="gp-fact-label">Full name</span>
+              <div class="gp-fact-value"><?= $h($user['name'] ?? '') ?></div>
+            </div>
+            <div class="gp-fact">
+              <span class="gp-fact-label">Email</span>
+              <div class="gp-fact-value"><?= $h($user['email'] ?? '') ?></div>
+            </div>
+            <div class="gp-fact">
+              <span class="gp-fact-label">Phone</span>
+              <div class="gp-fact-value"><?= $h($user['phone'] ?? '') ?></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Default contact card -->
+        <div class="gp-section-label" style="margin-top:8px;">Default for every service</div>
+        <section class="gp-card gp-defaults-card" data-index="0">
+          <div class="gp-card-band">
+            <div class="gp-card-band-left">
+              <div class="gp-card-icon">D</div>
+              <div>
+                <div class="gp-card-eyebrow">Default contact info</div>
+                <h2 class="gp-card-title">Used for every service</h2>
+              </div>
+            </div>
+            <p class="gp-card-note">Change only the service cards that need different details.</p>
+          </div>
+
+          <div class="gp-defaults-grid">
+            <div class="gp-default-field">
+              <label class="gp-default-label" for="shared-phone">Phone</label>
+              <input class="gp-detail-input" type="tel" id="shared-phone"
+                     name="shared_phone"
+                     value="<?= $h($user['phone'] ?? '') ?>"
+                     placeholder="+60 12 345 6789">
+            </div>
+            <div class="gp-default-field">
+              <label class="gp-default-label" for="shared-contact-name">Contact name</label>
+              <input class="gp-detail-input" type="text" id="shared-contact-name"
+                     name="shared_contact_name"
+                     value="<?= $h($user['name'] ?? '') ?>"
+                     placeholder="e.g. John Doe">
+            </div>
+            <div class="gp-default-field">
+              <label class="gp-default-label" for="shared-location">
+                Location
                 <?php if ($venueService): ?>
-                  <span class="badge-auto">Auto-filled from venue</span>
+                  <span class="gp-tag gp-tag-auto" style="margin-left:6px;">Auto-filled</span>
                 <?php endif; ?>
               </label>
-              <input class="gp-detail-input" type="text" id="shared-location" 
-                    name="shared_location" 
-                    value="<?= $h($venueLocation) ?>"
-                    placeholder="e.g., The Grand Ballroom">
+              <input class="gp-detail-input" type="text" id="shared-location"
+                     name="shared_location"
+                     value="<?= $h($venueLocation) ?>"
+                     placeholder="e.g. The Grand Ballroom">
             </div>
-            <!-- ... guest count ... -->
+            <div class="gp-default-field">
+              <label class="gp-default-label" for="shared-guests">Guest count</label>
+              <div class="gp-detail-stepper">
+                <button type="button" class="gp-stepper-btn" data-stepper="minus" data-target="shared-guests">−</button>
+                <input class="gp-stepper-input" type="number" id="shared-guests"
+                       name="shared_guests" min="0" max="9999" value="0">
+                <button type="button" class="gp-stepper-btn" data-stepper="plus" data-target="shared-guests">+</button>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
-      
-      <!-- EACH SERVICE CARD -->
-      <?php foreach ($items as $i => $item):
-        $hasSlot = !empty($item['selected_date']);
-        $slotDate = $item['selected_date'] ?? '';
-        $slotStart = $item['start_time'] ?? '';
-        $slotEnd = $item['end_time'] ?? '';
-        $formatSlotDate = $slotDate ? date('l, M j, Y', strtotime($slotDate)) : '';
-        $formatSlotTime = ($slotStart && $slotEnd) 
-          ? date('g:i A', strtotime($slotStart)) . ' - ' . date('g:i A', strtotime($slotEnd))
-          : '';
-        
-        // NEW: Check if this is the venue service
-        $isVenue = $venueService && (int)($venueService['service_id'] ?? 0) === (int)($item['service_id'] ?? 0);
-      ?>
+        </section>
 
-      <article class="gp-item-card" data-index="<?= $i + 1 ?>" 
-              data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>"
-              <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
-        
-        <div class="gp-item-header">
-          <a class="gp-item-thumb" href="<?= URLROOT ?>/customerServices/detail/<?= $item['item_id'] ?>" 
-            tabindex="-1" aria-hidden="true">
-            <?php if ($item['thumbnail_url']): ?>
-              <img src="<?= $h($item['thumbnail_url']) ?>" alt="<?= $h($item['service_name']) ?>" loading="lazy">
-            <?php else: ?>
-              <div class="gp-item-thumb-placeholder">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" 
-                    stroke="currentColor" stroke-width="1.4">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                </svg>
-              </div>
-            <?php endif; ?>
-          </a>
-          
-          <div class="gp-item-info">
-            <h2 class="gp-item-name">
-              <?= $h($item['service_name']) ?>
-              <?php if ($isVenue): ?>
-                <span class="venue-badge">📍 Venue</span>
+        <!-- Per-service cards -->
+        <?php if (!empty($items)): ?>
+        <div class="gp-section-label" style="margin-top:8px;">Your services</div>
+        <?php endif; ?>
+
+        <?php foreach ($items as $i => $item):
+          $hasSlot = !empty($item['selected_date']);
+          $slotDate = $item['selected_date'] ?? '';
+          $slotStart = $item['start_time'] ?? '';
+          $slotEnd = $item['end_time'] ?? '';
+          $formatSlotDate = $slotDate ? date('l, M j, Y', strtotime($slotDate)) : '';
+          $formatSlotTime = ($slotStart && $slotEnd)
+            ? date('g:i A', strtotime($slotStart)) . ' – ' . date('g:i A', strtotime($slotEnd))
+            : '';
+          $isVenue = $venueService && (int)($venueService['service_id'] ?? 0) === (int)($item['service_id'] ?? 0);
+          $linePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
+        ?>
+
+        <article class="gp-card gp-item-card" data-index="<?= $i + 1 ?>"
+                 data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>"
+                 <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
+
+          <div class="gp-item-header">
+            <a class="gp-item-thumb" href="<?= URLROOT ?>/customerServices/detail/<?= (int)($item['item_id'] ?? 0) ?>"
+               tabindex="-1" aria-hidden="true">
+              <?php if (!empty($item['thumbnail_url'])): ?>
+                <img src="<?= $h($item['thumbnail_url']) ?>" alt="<?= $h($item['service_name'] ?? 'Service') ?>" loading="lazy">
+              <?php else: ?>
+                <div class="gp-item-thumb-placeholder">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
               <?php endif; ?>
-            </h2>
-            <div class="gp-item-supplier">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              <?= $h($item['supplier_name'] ?? 'Supplier') ?>
+            </a>
+
+            <div class="gp-item-info">
+              <h2 class="gp-item-name">
+                <?= $h($item['service_name'] ?? 'Service') ?>
+                <?php if ($isVenue): ?><span class="gp-tag gp-tag-venue" style="margin-left:8px;vertical-align:2px;">Venue</span><?php endif; ?>
+              </h2>
+              <div class="gp-item-meta">
+                <span><?= $h($item['category_name'] ?? 'Service') ?></span>
+                <span class="gp-item-meta-sep">·</span>
+                <span><?= $h($item['supplier_name'] ?? 'Golden Promise') ?></span>
+              </div>
             </div>
-            
-            <!-- SLOT STATUS BADGE -->
-            <?php if ($hasSlot): ?>
-              <div class="gp-slot-status complete">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                <?= $formatSlotDate ?> @ <?= $formatSlotTime ?>
-              </div>
-            <?php else: ?>
-              <div class="gp-slot-status incomplete">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                Pick a slot below
-              </div>
-            <?php endif; ?>
+
+            <div class="gp-item-price-box">
+              <div class="gp-item-price-val"><?= $money($linePrice) ?></div>
+            </div>
           </div>
-          
-          <div class="gp-item-price-box">
-            <div class="gp-item-price-val"><?= $money($item['cart_price'] ?? $item['price_min'] ?? 0) ?></div>
-          </div>
-        </div>
-              
-        <!-- DETAILS SECTION -->
-        <div class="gp-item-details">
-          
-          <!-- SLOT SECTION -->
-          <fieldset class="gp-slot-fieldset">
-            <legend class="gp-fieldset-legend">Date & Time</legend>
-            
-            <?php if ($hasSlot): ?>
-              <!-- ALREADY HAS SLOT - Show read-only + change button -->
-              <div class="gp-slot-display">
-                <div class="gp-slot-box">
-                  <div class="slot-date">📅 <?= $formatSlotDate ?></div>
-                  <div class="slot-time">⏰ <?= $formatSlotTime ?></div>
+
+          <!-- Details -->
+          <div class="gp-item-details">
+
+            <!-- Slot section -->
+            <fieldset class="gp-slot-fieldset">
+              <legend class="gp-fieldset-legend">Date &amp; time</legend>
+
+              <?php if ($hasSlot): ?>
+                <!-- Has existing slot -->
+                <div class="gp-slot-display">
+                  <div class="gp-slot-box">
+                    <div class="slot-date">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;opacity:.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><?= $formatSlotDate ?>
+                    </div>
+                    <div class="slot-time">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;opacity:.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><?= $formatSlotTime ?>
+                    </div>
+                  </div>
+                  <button type="button" class="gp-btn-change-slot"
+                          data-index="<?= $i ?>" aria-label="Change slot for <?= $h($item['service_name'] ?? 'service') ?>">
+                    ↻ Change
+                  </button>
                 </div>
-                <button type="button" class="gp-btn-change-slot" 
-                        data-index="<?= $i ?>" aria-label="Change slot for <?= $item['service_name'] ?>">
-                  ↻ Change Slot
-                </button>
-              </div>
-              
-              <!-- HIDDEN SLOT SELECTOR (appears when "Change" clicked) -->
-              <div class="gp-slot-selector hidden" id="slot-selector-<?= $i ?>">
-                <label class="gp-detail-label" for="slot-date-<?= $i ?>">New Date</label>
-                <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>" 
-                       name="item_date[<?= $i ?>]" value="<?= $slotDate ?>" 
-                       data-service-id="<?= $item['item_id'] ?>" data-index="<?= $i ?>">
-                
-                <label class="gp-detail-label">Available Slots</label>
+
+                <!-- Hidden slot selector -->
+                <div class="gp-slot-selector hidden" id="slot-selector-<?= $i ?>">
+                  <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
+                  <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+                         name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
+                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>" data-index="<?= $i ?>">
+
+                  <label class="gp-detail-label">Available slots</label>
+                  <div class="gp-slots-container" id="slots-<?= $i ?>">
+                    <p class="loading">Loading slots…</p>
+                  </div>
+
+                  <button type="button" class="gp-btn-cancel-change" data-index="<?= $i ?>">
+                    ✕ Keep original slot
+                  </button>
+                </div>
+
+              <?php else: ?>
+                <!-- No slot yet -->
+                <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select date</label>
+                <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+                       name="item_date[<?= $i ?>]"
+                       data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+                       data-index="<?= $i ?>" required>
+
+                <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
                 <div class="gp-slots-container" id="slots-<?= $i ?>">
-                  <p class="loading">Loading slots...</p>
+                  <p class="loading">Select a date to see available slots</p>
                 </div>
-                
-                <button type="button" class="gp-btn-cancel-change" data-index="<?= $i ?>">
-                  ✕ Keep Original Slot
-                </button>
-              </div>
-            <?php else: ?>
-              <!-- NO SLOT YET - Show selector -->
-              <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select Date</label>
-              <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>" 
-                     name="item_date[<?= $i ?>]" data-service-id="<?= $item['item_id'] ?>" 
-                     data-index="<?= $i ?>" required>
-              
-              <label class="gp-detail-label">Available Time Slots</label>
-              <div class="gp-slots-container" id="slots-<?= $i ?>">
-                <p class="loading">Select a date to see available slots</p>
-              </div>
-            <?php endif; ?>
-          </fieldset>
-          
-          <!-- OVERRIDE FIELDS -->
-          <fieldset class="gp-overrides-fieldset">
-            <legend class="gp-fieldset-legend">Override Event Details (optional)</legend>
-            
-            <div class="gp-detail-row">
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="guests-<?= $i ?>">Guests for this service</label>
-                <input class="gp-detail-input" type="number" id="guests-<?= $i ?>" 
-                       name="item_guests[<?= $i ?>]" min="0" 
-                       placeholder="Leave empty for default">
-              </div>
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="location-<?= $i ?>">Location / Venue Room</label>
-                <input class="gp-detail-input" type="text" id="location-<?= $i ?>" 
-                       name="item_location[<?= $i ?>]" 
-                       placeholder="e.g., Ballroom A (optional)">
-              </div>
-            </div>
-            
-            <div class="gp-detail-row">
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="contact-name-<?= $i ?>">Contact Person</label>
-                <input class="gp-detail-input" type="text" id="contact-name-<?= $i ?>" 
-                       name="item_contact_name[<?= $i ?>]" 
-                       placeholder="Leave empty for default">
-              </div>
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="contact-phone-<?= $i ?>">Contact Phone</label>
-                <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>" 
-                       name="item_contact_phone[<?= $i ?>]" 
-                       placeholder="Leave empty for default">
-              </div>
-            </div>
-            
-            <div class="gp-detail-row">
-              <div class="gp-detail-field full">
-                <label class="gp-detail-label" for="notes-<?= $i ?>">Special Requests / Notes</label>
-                <textarea class="gp-detail-textarea" id="notes-<?= $i ?>" 
-                          name="item_notes[<?= $i ?>]" 
-                          placeholder="Any specific requirements for this service…" 
-                          data-autogrow></textarea>
-              </div>
-            </div>
-          </fieldset>
-        </div>
-      </article>
-      
-      <?php endforeach; ?>
-    </div>
-    
-      <!-- RIGHT: Summary sidebar -->
+              <?php endif; ?>
+            </fieldset>
+
+            <!-- Customise drawer -->
+            <details class="gp-service-drawer">
+              <summary>
+                <span>Customise this service</span>
+                <span class="gp-drawer-hint">Different contact, guests, room or notes</span>
+              </summary>
+
+              <fieldset class="gp-overrides-fieldset">
+                <div class="gp-detail-row">
+                  <div class="gp-detail-field">
+                    <label class="gp-detail-label" for="guests-<?= $i ?>">Guests for this service</label>
+                    <input class="gp-detail-input" type="number" id="guests-<?= $i ?>"
+                           name="item_guests[<?= $i ?>]" min="0"
+                           placeholder="Leave empty for default">
+                  </div>
+                  <div class="gp-detail-field">
+                    <label class="gp-detail-label" for="location-<?= $i ?>">Location / Venue room</label>
+                    <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
+                           name="item_location[<?= $i ?>]"
+                           placeholder="e.g. Ballroom A (optional)">
+                  </div>
+                </div>
+                <div class="gp-detail-row" style="margin-top:12px;">
+                  <div class="gp-detail-field">
+                    <label class="gp-detail-label" for="contact-name-<?= $i ?>">Contact person</label>
+                    <input class="gp-detail-input" type="text" id="contact-name-<?= $i ?>"
+                           name="item_contact_name[<?= $i ?>]"
+                           placeholder="Leave empty for default">
+                  </div>
+                  <div class="gp-detail-field">
+                    <label class="gp-detail-label" for="contact-phone-<?= $i ?>">Contact phone</label>
+                    <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>"
+                           name="item_contact_phone[<?= $i ?>]"
+                           placeholder="Leave empty for default">
+                  </div>
+                </div>
+                <div class="gp-detail-row" style="margin-top:12px;">
+                  <div class="gp-detail-field full">
+                    <label class="gp-detail-label" for="notes-<?= $i ?>">Special requests / notes</label>
+                    <textarea class="gp-detail-textarea" id="notes-<?= $i ?>"
+                              name="item_notes[<?= $i ?>]"
+                              placeholder="Any specific requirements for this service…"
+                              data-autogrow></textarea>
+                  </div>
+                </div>
+              </fieldset>
+            </details>
+
+          </div>
+        </article>
+
+        <?php endforeach; ?>
+      </div><!-- /gp-items -->
+
+      <!-- RIGHT: summary sidebar -->
       <aside class="gp-sidebar" aria-label="Order summary">
         <div class="gp-summary-card">
+
           <div class="gp-summary-head">
-            <div class="gp-summary-label">Order summary</div>
+            <div class="gp-summary-eyebrow">Order summary</div>
             <div class="gp-summary-title">Your selection</div>
             <div class="gp-summary-subtitle"><?= $cartCount ?> service<?= $cartCount === 1 ? '' : 's' ?> selected</div>
           </div>
@@ -747,14 +1522,12 @@ input[data-venue-filled="true"],
                 <span class="gp-line-val"><?= $money($linePrice) ?></span>
               </div>
               <?php endforeach; ?>
+            </div>
 
-              <div class="gp-line-divider"></div>
-
-              <div class="gp-line">
-                <span class="gp-line-name">Subtotal</span>
-                <span class="gp-line-dots" aria-hidden="true"></span>
-                <span class="gp-line-val"><?= $money($total) ?></span>
-              </div>
+            <div class="gp-vine-divider">
+              <span class="gp-vine-line"></span>
+              <span class="gp-vine-diamond"></span>
+              <span class="gp-vine-line"></span>
             </div>
 
             <div class="gp-total-row">
@@ -768,20 +1541,21 @@ input[data-venue-filled="true"],
                 <strong><?= $money($total * $depositPercent / 100) ?></strong>
               </div>
               <div class="gp-deposit-line">
-                <span>Balance due</span>
+                <span>Balance due later</span>
                 <strong><?= $money($total - ($total * $depositPercent / 100)) ?></strong>
               </div>
+              <div class="gp-deposit-highlight">Pay just the deposit today to lock in your date.</div>
             </div>
           </div>
 
           <div class="gp-summary-footer">
             <button class="gp-btn-primary" type="submit" id="submit-btn">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               Confirm &amp; Proceed
-              <span class="gp-btn-arrow">→</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
             <a class="gp-btn-secondary" href="<?= URLROOT ?>/cart">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
               Back to Cart
             </a>
           </div>
@@ -793,7 +1567,7 @@ input[data-venue-filled="true"],
             </div>
             <div class="gp-trust-item">
               <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              10% deposit locks your date, balance due later
+              <?= $depositPercent ?>% deposit locks your date — balance due later
             </div>
             <div class="gp-trust-item">
               <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
@@ -803,160 +1577,121 @@ input[data-venue-filled="true"],
 
         </div>
       </aside>
-    
-  </div>
-</form>
 
+    </div>
+  </form>
 </main>
 
 <footer class="gp-footer">
   <span>&copy; <?= date('Y') ?> Golden Promise</span>
-  <span>Your curated wedding service collection</span>
+  <span class="gp-footer-ornament">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+    Your curated wedding collection
+  </span>
+  <span>Golden Promise Sdn. Bhd.</span>
 </footer>
 
 <div class="gp-toast" id="gp-toast" role="alert"></div>
 
 <script>
 (function () {
-
-  // ===== AUTO-FILL LOCATION FROM VENUE =====
+  /* ─── Venue auto-fill ─────────────────────── */
   (function() {
     const venueLocation = '<?= addslashes($venueLocation) ?>';
-    
-    if (venueLocation.length > 0) {
-      // Auto-fill all item location fields if they're empty
-      document.querySelectorAll('[name^="item_location"]').forEach((field, index) => {
-        if (!field.value || field.value.trim() === '') {
-          field.value = venueLocation;
-          field.setAttribute('data-venue-filled', 'true');
-          field.style.borderColor = 'rgba(42, 122, 75, 0.3)';
-          field.style.backgroundColor = 'rgba(42, 122, 75, 0.04)';
-        }
-      });
-      
-      // Auto-fill shared location if empty
-      const sharedLocationField = document.getElementById('shared-location');
-      if (sharedLocationField && !sharedLocationField.value) {
-        sharedLocationField.value = venueLocation;
+    if (!venueLocation) return;
+    document.querySelectorAll('[name^="item_location"]').forEach(field => {
+      if (!field.value || field.value.trim() === '') {
+        field.value = venueLocation;
+        field.setAttribute('data-venue-filled', 'true');
+        field.style.borderColor = 'rgba(122,156,130,0.35)';
+        field.style.backgroundColor = 'rgba(122,156,130,0.04)';
       }
-    }
+    });
+    const sharedLoc = document.getElementById('shared-location');
+    if (sharedLoc && !sharedLoc.value) sharedLoc.value = venueLocation;
   })();
 
-
-  /* Staggered card reveal */
-  const cards = document.querySelectorAll('.gp-event-card, .gp-item-card');
+  /* ─── Staggered card reveal ───────────────── */
+  const cards = document.querySelectorAll('.gp-card');
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const el = entry.target;
-          const delay = parseInt(el.dataset.index || 0) * 100;
+          const delay = Math.max(0, parseInt(el.dataset.index || 0)) * 80;
           setTimeout(() => el.classList.add('visible'), delay);
           observer.unobserve(el);
         }
       });
-    }, { threshold: 0.08 });
+    }, { threshold: 0.06 });
     cards.forEach(el => observer.observe(el));
   } else {
     cards.forEach(el => el.classList.add('visible'));
   }
 
-  /* Stepper buttons */
+  /* ─── Stepper buttons ─────────────────────── */
   document.querySelectorAll('[data-stepper]').forEach(btn => {
     btn.addEventListener('click', function () {
       const target = document.getElementById(this.dataset.target);
       if (!target) return;
       let val = parseInt(target.value) || 0;
-      if (this.dataset.stepper === 'plus') {
-        val = Math.min(9999, val + 1);
-      } else {
-        val = Math.max(0, val - 1);
-      }
+      val = this.dataset.stepper === 'plus' ? Math.min(9999, val + 1) : Math.max(0, val - 1);
       target.value = val;
     });
   });
 
-  /* Auto-grow textareas */
+  /* ─── Auto-grow textareas ─────────────────── */
   document.querySelectorAll('[data-autogrow]').forEach(ta => {
     ta.addEventListener('input', function () {
       this.style.height = 'auto';
-      this.style.height = (this.scrollHeight) + 'px';
+      this.style.height = this.scrollHeight + 'px';
     });
   });
 
-  /* Toast */
+  /* ─── Toast ───────────────────────────────── */
   const toast = document.getElementById('gp-toast');
   function showToast(msg, type) {
     toast.textContent = msg;
     toast.className = 'gp-toast ' + type + ' show';
     setTimeout(() => toast.classList.remove('show'), 5000);
   }
-  // ===== AUTO-FILL LOCATION FROM VENUE =====
-  (function() {
-    const venueLocation = '<?= addslashes($venueLocation) ?>';
-    
-    if (venueLocation) {
-      // Auto-fill all item location fields if empty
-      document.querySelectorAll('[name^="item_location"]').forEach(field => {
-        if (!field.value) {
-          field.value = venueLocation;
-          field.setAttribute('data-venue-filled', 'true');
-        }
-      });
-      
-      // Optional: Add visual indicator
-      document.querySelectorAll('[name^="item_location"]').forEach((field, index) => {
-        if (field.getAttribute('data-venue-filled') === 'true') {
-          field.style.borderColor = 'rgba(42, 122, 75, 0.3)';
-        }
-      });
-    }
-  })();
 
-  /* Form submission */
+  /* ─── Form submission ─────────────────────── */
   const form = document.getElementById('booking-form');
   const submitBtn = document.getElementById('submit-btn');
-
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="gp-spinner"></span> Creating booking…';
-
-    const formData = new FormData(form);
-
-    fetch(form.action, {
-      method: 'POST',
-      body: formData,
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success && data.redirect) {
-        window.location.href = data.redirect;
-      } else {
-        showToast(data.error || 'Something went wrong. Please try again.', 'error');
+    fetch(form.action, { method: 'POST', body: new FormData(form) })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.redirect) {
+          window.location.href = data.redirect;
+        } else {
+          showToast(data.error || 'Something went wrong. Please try again.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Confirm &amp; Proceed<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+        }
+      })
+      .catch(() => {
+        showToast('Something went wrong. Please try again.', 'error');
         submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Confirm &amp; Proceed <span class="gp-btn-arrow">→</span>';
-      }
-    })
-    .catch(() => {
-      showToast('Something went wrong. Please try again.', 'error');
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = 'Confirm &amp; Proceed <span class="gp-btn-arrow">→</span>';
-    });
+        submitBtn.innerHTML = 'Confirm &amp; Proceed →';
+      });
   });
 
-  /* Header scroll tint */
+  /* ─── Header scroll tint ──────────────────── */
   const header = document.querySelector('.gp-header');
   if (header) {
     window.addEventListener('scroll', () => {
       header.style.background = window.scrollY > 10
-        ? 'rgba(235,220,204,0.94)'
-        : 'rgba(242,228,212,0.82)';
+        ? 'rgba(235,224,208,0.95)'
+        : 'rgba(243,236,224,0.88)';
     }, { passive: true });
   }
 
-  /* Profile dropdown toggle */
+  /* ─── Profile dropdown ────────────────────── */
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.gp-profile-btn');
     if (btn) {
@@ -969,105 +1704,72 @@ input[data-venue-filled="true"],
   });
 })();
 
-// ===== SLOT CHANGING LOGIC =====
-
-// Toggle between slot display and slot selector
+/* ─── Slot changing ───────────────────────── */
 document.querySelectorAll('.gp-btn-change-slot').forEach(btn => {
   btn.addEventListener('click', function(e) {
     e.preventDefault();
-    const index = this.dataset.index;
-    const selector = document.getElementById(`slot-selector-${index}`);
-    selector.classList.remove('hidden');
-    document.getElementById(`slot-date-${index}`).focus();
+    const idx = this.dataset.index;
+    document.getElementById('slot-selector-' + idx).classList.remove('hidden');
+    document.getElementById('slot-date-' + idx).focus();
   });
 });
-
-// Cancel slot change
 document.querySelectorAll('.gp-btn-cancel-change').forEach(btn => {
   btn.addEventListener('click', function(e) {
     e.preventDefault();
-    const index = this.dataset.index;
-    const selector = document.getElementById(`slot-selector-${index}`);
-    selector.classList.add('hidden');
+    document.getElementById('slot-selector-' + this.dataset.index).classList.add('hidden');
   });
 });
 
-// ===== FETCH AVAILABLE SLOTS =====
-
+/* ─── Fetch available slots ───────────────── */
 async function loadSlots(serviceId, date, index) {
-  const slotsContainer = document.getElementById(`slots-${index}`);
-  
-  if (!date) {
-    slotsContainer.innerHTML = '<p class="loading">Select a date first</p>';
-    return;
-  }
-  
-  slotsContainer.innerHTML = '<p class="loading">Loading available slots for ' + date + '...</p>';
-  
+  const container = document.getElementById('slots-' + index);
+  if (!date) { container.innerHTML = '<p class="loading">Select a date first</p>'; return; }
+  container.innerHTML = '<p class="loading">Loading available slots…</p>';
   try {
-    const response = await fetch('<?= URLROOT ?>/booking/getAvailableSlots', {
+    const res = await fetch('<?= URLROOT ?>/booking/getAvailableSlots', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        service_id: serviceId,
-        date: date
-      })
+      body: JSON.stringify({ service_id: serviceId, date: date })
     });
-    
-    const data = await response.json();
-    
+    const data = await res.json();
     if (!data.success) {
-      slotsContainer.innerHTML = '<p class="error">' + (data.error || 'Could not load slots') + '</p>';
+      container.innerHTML = '<p class="error">' + (data.error || 'Could not load slots') + '</p>';
       return;
     }
-    
     if (data.slots && data.slots.length > 0) {
-      slotsContainer.innerHTML = data.slots.map((slot, idx) => `
+      container.innerHTML = data.slots.map((slot, idx) => `
         <label class="gp-slot-option">
-          <input type="radio" name="item_start_time[${index}]" 
-                 value="${slot.start_time}" 
+          <input type="radio" name="item_start_time[${index}]"
+                 value="${slot.start_time}"
                  data-end-time="${slot.end_time}"
                  ${idx === 0 ? 'checked' : ''}>
           <input type="hidden" name="item_end_time[${index}]" class="end-time-hidden-${index}"
                  value="${slot.end_time}">
-          <span>${slot.display}${slot.available > 0 ? ' (' + slot.available + ' available)' : ''}</span>
+          <span>${slot.display}${slot.available > 0 ? ' · ' + slot.available + ' available' : ''}</span>
         </label>
       `).join('');
-      
-      // When radio selected, update hidden end_time
       document.querySelectorAll(`input[name="item_start_time[${index}]"]`).forEach(radio => {
         radio.addEventListener('change', function() {
           if (this.checked) {
-            document.querySelector(`.end-time-hidden-${index}`).value = this.dataset.endTime;
+            document.querySelector('.end-time-hidden-' + index).value = this.dataset.endTime;
           }
         });
       });
     } else {
-      slotsContainer.innerHTML = '<p class="error">No available slots for this date</p>';
+      container.innerHTML = '<p class="error">No available slots for this date</p>';
     }
-  } catch (error) {
-    console.error('Error loading slots:', error);
-    slotsContainer.innerHTML = '<p class="error">Error loading slots. Please try again.</p>';
+  } catch (err) {
+    console.error('Slot load error:', err);
+    container.innerHTML = '<p class="error">Error loading slots. Please try again.</p>';
   }
 }
 
-// Load slots when date changes
-document.querySelectorAll('[data-service-id]').forEach(dateInput => {
-  dateInput.addEventListener('change', function() {
-    const serviceId = this.dataset.serviceId;
-    const index = this.dataset.index;
-    const date = this.value;
-    loadSlots(serviceId, date, index);
+document.querySelectorAll('[data-service-id]').forEach(input => {
+  input.addEventListener('change', function() {
+    loadSlots(this.dataset.serviceId, this.value, this.dataset.index);
   });
-});
-
-// Load slots on initial page load if date is pre-filled
-document.querySelectorAll('[data-service-id]').forEach(dateInput => {
-  if (dateInput.value) {
-    const serviceId = dateInput.dataset.serviceId;
-    const index = dateInput.dataset.index;
-    const date = dateInput.value;
-    loadSlots(serviceId, date, index);
+  if (input.value) {
+    loadSlots(input.dataset.serviceId, input.value, input.dataset.index);
   }
 });
 </script>
