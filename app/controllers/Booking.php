@@ -66,6 +66,22 @@ class Booking extends Controller
         }
 
         $user = $this->getUserData();
+        
+        // ===== NEW: Find venue service =====
+        $venueService = null;
+        foreach ($items as $item) {
+            // Check if this item is a venue category service
+            if (strtolower($item['category_name'] ?? '') === 'venue' || 
+                strtolower($item['category_name'] ?? '') === 'venue & catering') {
+                $venueService = [
+                    'service_id' => (int)($item['service_id'] ?? 0),
+                    'name' => $item['service_name'],
+                    'location' => $item['service_location'] ?? $item['service_name'], // Use service location if available
+                ];
+                break;
+            }
+        }
+        // ===== END =====
 
         $this->view('booking/create', [
             'items' => $items,
@@ -73,6 +89,7 @@ class Booking extends Controller
             'cartCount' => count($items),
             'user' => $user,
             'depositPercent' => self::DEPOSIT_PERCENT,
+            'venueService' => $venueService, // Pass to view
         ]);
     }
 

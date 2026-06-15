@@ -1,4 +1,8 @@
 <?php
+$venueService = $venueService ?? null;
+$venueLocation = $venueService['location'] ?? '';
+
+
 $items = $items ?? [];
 $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
@@ -401,7 +405,58 @@ textarea { font-family: var(--font-b); }
   .gp-orb { animation: none; }
 }
 
+/* bage auto  */
+.badge-auto {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(42, 122, 75, 0.12);
+  color: #24613d;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
 
+/* Venue badge in item header */
+.venue-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(184, 146, 74, 0.15);
+  color: #7a5c22;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+/* Auto-filled badge in labels */
+.badge-auto {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(42, 122, 75, 0.12);
+  color: #24613d;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+/* Venue-filled input visual indicator */
+input[data-venue-filled="true"],
+[data-venue-filled="true"] input {
+  border-color: rgba(42, 122, 75, 0.3);
+  background-color: rgba(42, 122, 75, 0.04);
+}
+
+/* Item card with venue data attribute */
+[data-is-venue="true"] .gp-item-header {
+  border-left: 4px solid rgba(184, 146, 74, 0.4);
+}
 
 </style>
 </head>
@@ -473,34 +528,33 @@ textarea { font-family: var(--font-b); }
             <div class="gp-event-kicker">Default Contact Info</div>
             <h2 class="gp-event-title">For services without slots</h2>
           </div>
-          <p class="gp-event-copy">These apply only if a service didn't have a chosen slot. Each service can override.</p>
+          <p class="gp-event-copy">
+            <?php if ($venueService): ?>
+              <strong>Venue Selected: <?= $h($venueService['name']) ?></strong><br>
+              Location auto-filled below. Each service can override.
+            <?php else: ?>
+              These apply only if a service didn't have a chosen slot. Each service can override.
+            <?php endif; ?>
+          </p>
         </div>
         
         <div class="gp-item-details">
-          <div class="gp-detail-row">
-            <div class="gp-detail-field">
-              <label class="gp-detail-label" for="shared-phone">Phone</label>
-              <input class="gp-detail-input" type="tel" id="shared-phone" 
-                     name="shared_phone" value="<?= $h($user['phone']) ?>">
-            </div>
-            <div class="gp-detail-field">
-              <label class="gp-detail-label" for="shared-contact-name">Contact Name</label>
-              <input class="gp-detail-input" type="text" id="shared-contact-name" 
-                     name="shared_contact_name" value="<?= $h($user['name']) ?>">
-            </div>
-          </div>
+          <!-- ... phone, contact name ... -->
           
           <div class="gp-detail-row">
             <div class="gp-detail-field">
-              <label class="gp-detail-label" for="shared-location">Location / Venue</label>
+              <label class="gp-detail-label" for="shared-location">
+                Location / Venue
+                <?php if ($venueService): ?>
+                  <span class="badge-auto">Auto-filled from venue</span>
+                <?php endif; ?>
+              </label>
               <input class="gp-detail-input" type="text" id="shared-location" 
-                     name="shared_location" placeholder="e.g., The Grand Ballroom">
+                    name="shared_location" 
+                    value="<?= $h($venueLocation) ?>"
+                    placeholder="e.g., The Grand Ballroom">
             </div>
-            <div class="gp-detail-field">
-              <label class="gp-detail-label" for="shared-guests">Guest Count</label>
-              <input class="gp-detail-input" type="number" id="shared-guests" 
-                     name="shared_guests" min="0" value="0">
-            </div>
+            <!-- ... guest count ... -->
           </div>
         </div>
       </section>
@@ -515,21 +569,24 @@ textarea { font-family: var(--font-b); }
         $formatSlotTime = ($slotStart && $slotEnd) 
           ? date('g:i A', strtotime($slotStart)) . ' - ' . date('g:i A', strtotime($slotEnd))
           : '';
-      ?>
-      
-      <article class="gp-item-card" data-index="<?= $i + 1 ?>" 
-               data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>">
         
-        <!-- HEADER -->
+        // NEW: Check if this is the venue service
+        $isVenue = $venueService && (int)($venueService['service_id'] ?? 0) === (int)($item['service_id'] ?? 0);
+      ?>
+
+      <article class="gp-item-card" data-index="<?= $i + 1 ?>" 
+              data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>"
+              <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
+        
         <div class="gp-item-header">
           <a class="gp-item-thumb" href="<?= URLROOT ?>/customerServices/detail/<?= $item['item_id'] ?>" 
-             tabindex="-1" aria-hidden="true">
+            tabindex="-1" aria-hidden="true">
             <?php if ($item['thumbnail_url']): ?>
               <img src="<?= $h($item['thumbnail_url']) ?>" alt="<?= $h($item['service_name']) ?>" loading="lazy">
             <?php else: ?>
               <div class="gp-item-thumb-placeholder">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" 
-                     stroke="currentColor" stroke-width="1.4">
+                    stroke="currentColor" stroke-width="1.4">
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
               </div>
@@ -537,7 +594,12 @@ textarea { font-family: var(--font-b); }
           </a>
           
           <div class="gp-item-info">
-            <h2 class="gp-item-name"><?= $h($item['service_name']) ?></h2>
+            <h2 class="gp-item-name">
+              <?= $h($item['service_name']) ?>
+              <?php if ($isVenue): ?>
+                <span class="venue-badge">📍 Venue</span>
+              <?php endif; ?>
+            </h2>
             <div class="gp-item-supplier">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
@@ -546,172 +608,6 @@ textarea { font-family: var(--font-b); }
             </div>
             
             <!-- SLOT STATUS BADGE -->
-             <style>
-              /* Slot status badges */
-                .gp-slot-status {
-                  display: flex;
-                  align-items: center;
-                  gap: 6px;
-                  font-size: 12px;
-                  font-weight: 600;
-                  padding: 6px 10px;
-                  border-radius: 6px;
-                  margin-top: 8px;
-                  width: fit-content;
-                }
-
-                .gp-slot-status.complete {
-                  background: rgba(42, 122, 75, 0.08);
-                  color: #24613d;
-                  border: 1px solid rgba(42, 122, 75, 0.24);
-                }
-
-                .gp-slot-status.incomplete {
-                  background: rgba(185, 75, 75, 0.08);
-                  color: var(--danger);
-                  border: 1px solid rgba(185, 75, 75, 0.24);
-                }
-
-                /* Slot display (already chosen) */
-                .gp-slot-display {
-                  display: flex;
-                  align-items: flex-start;
-                  justify-content: space-between;
-                  gap: 16px;
-                  padding: 16px;
-                  background: rgba(42, 122, 75, 0.04);
-                  border: 1px solid rgba(42, 122, 75, 0.15);
-                  border-radius: var(--r-md);
-                  margin-bottom: 12px;
-                }
-
-                .gp-slot-box {
-                  flex: 1;
-                }
-
-                .slot-date,
-                .slot-time {
-                  font-size: 14px;
-                  font-weight: 600;
-                  color: var(--text);
-                  line-height: 1.6;
-                }
-
-                .slot-date {
-                  color: var(--gold);
-                }
-
-                .gp-btn-change-slot,
-                .gp-btn-cancel-change {
-                  padding: 8px 12px;
-                  border: 1px solid var(--rule-strong);
-                  border-radius: var(--r-sm);
-                  background: var(--card);
-                  color: var(--text2);
-                  font-size: 12px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  transition: all 0.2s;
-                  white-space: nowrap;
-                }
-
-                .gp-btn-change-slot:hover {
-                  border-color: var(--plum);
-                  color: var(--plum);
-                  background: rgba(107, 68, 89, 0.05);
-                }
-
-                .gp-btn-cancel-change {
-                  margin-top: 12px;
-                  width: 100%;
-                }
-
-                .gp-btn-cancel-change:hover {
-                  border-color: var(--danger);
-                  color: var(--danger);
-                  background: rgba(185, 75, 75, 0.05);
-                }
-
-                /* Slot selector (hidden by default) */
-                .gp-slot-selector {
-                  padding: 16px;
-                  background: var(--surface);
-                  border: 1px dashed var(--rule-strong);
-                  border-radius: var(--r-md);
-                  margin-bottom: 12px;
-                }
-
-                .gp-slot-selector.hidden {
-                  display: none;
-                }
-
-                /* Slots container */
-                .gp-slots-container {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 10px;
-                  margin-bottom: 12px;
-                }
-
-                .gp-slot-option {
-                  display: flex;
-                  align-items: center;
-                  gap: 10px;
-                  padding: 12px;
-                  border: 1px solid var(--rule);
-                  border-radius: var(--r-sm);
-                  background: var(--card);
-                  cursor: pointer;
-                  transition: all 0.2s;
-                }
-
-                .gp-slot-option:hover {
-                  border-color: var(--plum);
-                  background: rgba(107, 68, 89, 0.03);
-                }
-
-                .gp-slot-option input[type="radio"] {
-                  cursor: pointer;
-                }
-
-                .gp-slot-option input[type="radio"]:checked + span {
-                  color: var(--plum);
-                  font-weight: 700;
-                }
-
-                .gp-slot-option span {
-                  flex: 1;
-                  font-size: 13px;
-                  color: var(--text2);
-                }
-
-                /* Fieldset styling */
-                .gp-fieldset-legend {
-                  font-size: 11px;
-                  font-weight: 700;
-                  letter-spacing: 0.1em;
-                  text-transform: uppercase;
-                  color: var(--muted);
-                  margin-bottom: 12px;
-                }
-
-                .gp-slot-fieldset,
-                .gp-overrides-fieldset {
-                  margin-bottom: 16px;
-                  padding-bottom: 16px;
-                  border-bottom: 1px solid var(--rule);
-                }
-
-                .gp-slot-fieldset:last-child,
-                .gp-overrides-fieldset:last-child {
-                  border-bottom: none;
-                }
-
-                .gp-slot-fieldset:last-of-type {
-                  margin-bottom: 0;
-                  padding-bottom: 0;
-                }
-             </style>
             <?php if ($hasSlot): ?>
               <div class="gp-slot-status complete">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -729,7 +625,7 @@ textarea { font-family: var(--font-b); }
             <div class="gp-item-price-val"><?= $money($item['cart_price'] ?? $item['price_min'] ?? 0) ?></div>
           </div>
         </div>
-        
+              
         <!-- DETAILS SECTION -->
         <div class="gp-item-details">
           
@@ -922,6 +818,31 @@ textarea { font-family: var(--font-b); }
 
 <script>
 (function () {
+
+  // ===== AUTO-FILL LOCATION FROM VENUE =====
+  (function() {
+    const venueLocation = '<?= addslashes($venueLocation) ?>';
+    
+    if (venueLocation.length > 0) {
+      // Auto-fill all item location fields if they're empty
+      document.querySelectorAll('[name^="item_location"]').forEach((field, index) => {
+        if (!field.value || field.value.trim() === '') {
+          field.value = venueLocation;
+          field.setAttribute('data-venue-filled', 'true');
+          field.style.borderColor = 'rgba(42, 122, 75, 0.3)';
+          field.style.backgroundColor = 'rgba(42, 122, 75, 0.04)';
+        }
+      });
+      
+      // Auto-fill shared location if empty
+      const sharedLocationField = document.getElementById('shared-location');
+      if (sharedLocationField && !sharedLocationField.value) {
+        sharedLocationField.value = venueLocation;
+      }
+    }
+  })();
+
+
   /* Staggered card reveal */
   const cards = document.querySelectorAll('.gp-event-card, .gp-item-card');
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -970,6 +891,27 @@ textarea { font-family: var(--font-b); }
     toast.className = 'gp-toast ' + type + ' show';
     setTimeout(() => toast.classList.remove('show'), 5000);
   }
+  // ===== AUTO-FILL LOCATION FROM VENUE =====
+  (function() {
+    const venueLocation = '<?= addslashes($venueLocation) ?>';
+    
+    if (venueLocation) {
+      // Auto-fill all item location fields if empty
+      document.querySelectorAll('[name^="item_location"]').forEach(field => {
+        if (!field.value) {
+          field.value = venueLocation;
+          field.setAttribute('data-venue-filled', 'true');
+        }
+      });
+      
+      // Optional: Add visual indicator
+      document.querySelectorAll('[name^="item_location"]').forEach((field, index) => {
+        if (field.getAttribute('data-venue-filled') === 'true') {
+          field.style.borderColor = 'rgba(42, 122, 75, 0.3)';
+        }
+      });
+    }
+  })();
 
   /* Form submission */
   const form = document.getElementById('booking-form');

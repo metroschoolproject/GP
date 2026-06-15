@@ -130,34 +130,55 @@ class CartModel
     /**
      * Get all cart items for a user, joined with service details.
      */
+    /**
+     * Get all cart items for a user, joined with service details.
+     * Includes venue location for auto-fill functionality.
+     */
     public function getCartItems(int $userId): array
     {
         $this->db->dbquery(
-            "SELECT ci.id AS cart_item_id, ci.item_type, ci.item_id, ci.selected_date,
-                    ci.price AS cart_price, ci.slot_id, ci.start_time, ci.end_time,
+            "SELECT ci.id AS cart_item_id, 
+                    ci.item_type, 
+                    ci.item_id, 
+                    ci.selected_date,
+                    ci.price AS cart_price, 
+                    ci.slot_id, 
+                    ci.start_time, 
+                    ci.end_time,
+                    
                     COALESCE(s.name, p.name, sp.name) AS service_name,
                     COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
                     COALESCE(s.price_min, p.base_price, sp.total_price) AS price_min,
                     COALESCE(s.price_max, p.base_price, sp.total_price) AS price_max,
                     COALESCE(s.booking_type, 'fullday') AS booking_type,
+                    
                     COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
+                    COALESCE(sup.supplier_id, sp_sup.supplier_id) AS supplier_id,
+                    
                     COALESCE(cat.name, package_cat.name) AS category_name,
-                    p.slug AS package_slug
-             FROM cart_items ci
-             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
-             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
-             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
-             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
-             LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
-             LEFT JOIN categories cat ON s.category_id = cat.id
-             LEFT JOIN categories package_cat ON package_cat.slug = 'package'
-             WHERE ci.user_id = :uid
-             ORDER BY ci.id DESC"
+                    COALESCE(cat.id, package_cat.id) AS category_id,
+                    
+                    p.slug AS package_slug,
+                    
+                    -- Venue location for booking auto-fill
+                    v.location AS service_location,
+                    s.id AS service_id
+                    
+            FROM cart_items ci
+            LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
+            LEFT JOIN venues v ON v.service_id = s.id
+            LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
+            LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
+            LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
+            LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
+            LEFT JOIN categories cat ON s.category_id = cat.id
+            LEFT JOIN categories package_cat ON package_cat.slug = 'package'
+            WHERE ci.user_id = :uid
+            ORDER BY ci.id DESC"
         );
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         return $this->db->getmultidata();
     }
-
     /**
      * Get the total number of items in the user's cart.
      */
