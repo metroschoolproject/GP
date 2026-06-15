@@ -917,6 +917,8 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         $itemType    = $item['item_type'] ?? 'service';
         $venueRoomName = trim((string)($item['venue_room_name'] ?? ''));
         $venueName = trim((string)($item['venue_name'] ?? ''));
+        $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
+        $earliestBookingDate = date('Y-m-d', strtotime('+' . $minLeadDays . ' days'));
         $displayName = $venueRoomName !== '' ? $name . ' · ' . $venueRoomName : $name;
         $detailUrl   = ($itemType === 'package' && !empty($item['package_slug']))
           ? URLROOT . '/customerServices/packageDetail/' . $h($item['package_slug'])
@@ -981,10 +983,13 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               <div class="gp-edit-field">
                 <label for="cart-date-<?= $itemId ?>">Date</label>
                 <input id="cart-date-<?= $itemId ?>" type="date" name="date" value="<?= $h($selectedDate) ?>"
-                       min="<?= date('Y-m-d') ?>"
+                       min="<?= $h($earliestBookingDate) ?>"
                        data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
                        data-current-start="<?= $h($startTime) ?>"
                        data-current-end="<?= $h($endTime) ?>">
+                <?php if ($minLeadDays > 0): ?>
+                  <span class="gp-edit-slot-note">Earliest: <?= $h(date('M j, Y', strtotime($earliestBookingDate))) ?></span>
+                <?php endif; ?>
               </div>
               <div class="gp-edit-field is-wide">
                 <label>Available time slots</label>
@@ -1185,7 +1190,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
       const slots = Array.isArray(data.slots) ? data.slots : [];
 
       if (!slots.length) {
-        container.innerHTML = '<span class="gp-edit-slot-note">No available slots for this date.</span>';
+        container.innerHTML = '<span class="gp-edit-slot-note">' + (data.message || 'No available slots for this date.') + '</span>';
         if (endTimeField) endTimeField.value = '';
         if (slotIdField) slotIdField.value = '';
         return;

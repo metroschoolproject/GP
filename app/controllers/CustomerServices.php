@@ -68,7 +68,7 @@ class CustomerServices extends Controller
 
         $this->view($view, [
             'service' => $service,
-            'selectedDate' => $selectedDate,
+            'selectedDate' => $service['selected_date'] ?? '',
         ]);
     }
 

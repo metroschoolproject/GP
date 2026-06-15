@@ -43,6 +43,9 @@ class CustomerServiceCatalog
         if ($date !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             $dayOfWeek = (int)date('N', strtotime($date));
             if ($dayOfWeek >= 1 && $dayOfWeek <= 7) {
+                $conditions[] = ':lead_time_filter_date >= DATE_ADD(CURDATE(), INTERVAL COALESCE(services.min_lead_days, 0) DAY)';
+                $bindings[':lead_time_filter_date'] = $date;
+
                 $conditions[] = '(
                     LOWER(COALESCE(categories.name, "")) = "venue"
                     OR EXISTS (
@@ -206,6 +209,7 @@ class CustomerServiceCatalog
                        services.thumbnail_url,
                        services.booking_type,
                        services.duration_minutes,
+                       services.min_lead_days,
                        services.pricing_unit,
                        categories.name AS category,
                        categories.slug AS category_slug,
@@ -250,6 +254,7 @@ class CustomerServiceCatalog
                     services.duration_minutes,
                     services.buffer_minutes,
                     services.max_concurrent,
+                    services.min_lead_days,
                     services.pricing_unit,
                     categories.name AS category,
                     categories.slug AS category_slug,
@@ -287,11 +292,16 @@ class CustomerServiceCatalog
         $formatted = $this->formatService($service);
         $formatted['buffer_minutes'] = (int)($service['buffer_minutes'] ?? 0);
         $formatted['max_concurrent'] = (int)($service['max_concurrent'] ?? 1);
+        $formatted['min_lead_days'] = max(0, (int)($service['min_lead_days'] ?? 0));
+        $formatted['earliest_booking_date'] = $this->earliestBookingDate($formatted['min_lead_days']);
         $formatted['supplier_url'] = $service['supplier_url'] ?? '';
         $formatted['media'] = $this->getServiceMedia($serviceId, $formatted['image']);
         $selectedDate = $this->normalizeDate($selectedDate);
+        if ($selectedDate && !$this->dateMeetsLeadTime($selectedDate, $formatted['min_lead_days'])) {
+            $selectedDate = '';
+        }
         $formatted['selected_date'] = $selectedDate ?: '';
-        $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate) : [];
+        $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate, $formatted['min_lead_days']) : [];
         $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted, $selectedDate);
         $formatted['reviews'] = $this->getServiceReviews($serviceId);
         $formatted['related'] = $this->getRelatedServices($serviceId, $formatted['category_slug']);
@@ -362,7 +372,7 @@ class CustomerServiceCatalog
             )';
     }
 
-    private function getVenueRooms($serviceId, $selectedDate = '')
+    private function getVenueRooms($serviceId, $selectedDate = '', int $serviceMinLeadDays = 0)
     {
         $selectedDate = $this->normalizeDate($selectedDate);
         $serviceClosed = false;
@@ -412,6 +422,7 @@ class CustomerServiceCatalog
                     venue_rooms.capacity,
                     venue_rooms.price,
                     ' . $roomPriceRangeSelect . '
+                    venue_rooms.min_lead_days,
                     COALESCE(selected_room_availability.start_time, default_room_availability.start_time) AS start_time,
                     COALESCE(selected_room_availability.end_time, default_room_availability.end_time) AS end_time,
                     selected_room_availability.id AS selected_availability_id,
@@ -432,6 +443,7 @@ class CustomerServiceCatalog
                       venue_rooms.capacity,
                       venue_rooms.price,
                       ' . $roomPriceRangeGroupBy . '
+                      venue_rooms.min_lead_days,
                       selected_room_availability.start_time,
                       selected_room_availability.end_time,
                       selected_room_availability.id,
@@ -449,14 +461,17 @@ class CustomerServiceCatalog
             $this->db->dbbind(':selected_date_room', $selectedDate);
         }
 
-        return array_map(function ($room) use ($selectedDate, $serviceClosed) {
+        return array_map(function ($room) use ($selectedDate, $serviceClosed, $serviceMinLeadDays) {
             $bookingCount = (int)($room['booking_count'] ?? 0);
+            $minLeadDays = $room['min_lead_days'] !== null ? max(0, (int)$room['min_lead_days']) : max(0, $serviceMinLeadDays);
+            $earliestDate = $this->earliestBookingDate($minLeadDays);
+            $leadTimeBlocked = $selectedDate && strtotime($selectedDate) < strtotime($earliestDate);
             $hasSelectedRoomRule = $selectedDate && !empty($room['selected_availability_id']);
             $roomOpen = $hasSelectedRoomRule
                 ? !empty($room['selected_is_available'])
                 : !empty($room['default_is_available']);
             $availableOnDate = $selectedDate
-                ? (!$serviceClosed && $roomOpen && $bookingCount === 0)
+                ? (!$serviceClosed && !$leadTimeBlocked && $roomOpen && $bookingCount === 0)
                 : false;
 
             return [
@@ -468,6 +483,9 @@ class CustomerServiceCatalog
                 'price_max' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
                 'package_price' => (float)($room['price_min'] ?? $room['price'] ?? 0),
                 'customize_price' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
+                'min_lead_days' => $room['min_lead_days'] !== null ? $minLeadDays : null,
+                'earliest_booking_date' => $earliestDate,
+                'lead_time_blocked' => $leadTimeBlocked,
                 'start_time' => $room['start_time'] ?? '09:00:00',
                 'end_time' => $room['end_time'] ?? '17:00:00',
                 'venue_name' => $room['venue_name'] ?? '',
@@ -485,6 +503,9 @@ class CustomerServiceCatalog
         $weekly = $this->getWeeklySchedule($serviceId);
         $overrides = $this->getDateOverrides($serviceId);
         $selectedDate = $this->normalizeDate($selectedDate);
+        if ($selectedDate && !$this->dateMeetsLeadTime($selectedDate, (int)($service['min_lead_days'] ?? 0))) {
+            $selectedDate = '';
+        }
         $selected = $selectedDate ? $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $selectedDate) : null;
         $upcoming = $this->getUpcomingAvailability($serviceId, $service, $weekly, $overrides, $selectedDate);
 
@@ -544,6 +565,10 @@ class CustomerServiceCatalog
         $days = [];
         $seen = [];
         $today = new DateTimeImmutable('today');
+        $earliest = DateTimeImmutable::createFromFormat('!Y-m-d', $this->earliestBookingDate((int)($service['min_lead_days'] ?? 0))) ?: $today;
+        if ($earliest > $today) {
+            $today = $earliest;
+        }
         $selectedDate = $this->normalizeDate($selectedDate);
 
         if ($selectedDate) {
@@ -594,6 +619,19 @@ class CustomerServiceCatalog
         $date = DateTimeImmutable::createFromFormat('!Y-m-d', $dateValue);
         if (!$date) {
             return null;
+        }
+
+        $minLeadDays = max(0, (int)($service['min_lead_days'] ?? 0));
+        if (!$this->dateMeetsLeadTime($dateValue, $minLeadDays)) {
+            return [
+                'date' => $dateValue,
+                'day_label' => $date->format('D, M j'),
+                'status' => 'Too soon',
+                'reason' => 'Minimum booking notice required',
+                'is_selected_date' => ($service['selected_date'] ?? '') === $dateValue,
+                'booking_type' => $service['booking_type'] ?? 'fullday',
+                'slots' => [],
+            ];
         }
 
         $hours = $this->hoursForDate($dateValue, $weekly, $overrides);
@@ -809,7 +847,20 @@ class CustomerServiceCatalog
             'booking_type' => $service['booking_type'] ?? 'fullday',
             'duration_minutes' => (int)($service['duration_minutes'] ?? 0),
             'pricing_unit' => $service['pricing_unit'] ?? 'per_session',
+            'min_lead_days' => max(0, (int)($service['min_lead_days'] ?? 0)),
+            'earliest_booking_date' => $this->earliestBookingDate((int)($service['min_lead_days'] ?? 0)),
         ];
+    }
+
+    private function earliestBookingDate(int $minLeadDays): string
+    {
+        return (new DateTimeImmutable('today'))->modify('+' . max(0, $minLeadDays) . ' days')->format('Y-m-d');
+    }
+
+    private function dateMeetsLeadTime(string $date, int $minLeadDays): bool
+    {
+        $date = $this->normalizeDate($date);
+        return $date !== '' && strtotime($date) >= strtotime($this->earliestBookingDate($minLeadDays));
     }
 
     private function servicePriceRangeSelectFields()

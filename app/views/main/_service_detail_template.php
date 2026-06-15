@@ -7,7 +7,7 @@ $heroImage = trim((string)($media[0]['file_url'] ?? $service['image'] ?? '')) ?:
 $upcoming = $availability['upcoming'] ?? [];
 $selectedDate = trim((string)($selectedDate ?? $service['selected_date'] ?? ''));
 $selectedDateLabel = $selectedDate !== '' ? date('l, M j, Y', strtotime($selectedDate)) : '';
-$datePickerMin = date('Y-m-d');
+$datePickerMin = $service['earliest_booking_date'] ?? date('Y-m-d');
 $datePickerMax = date('Y-m-d', strtotime('+365 days'));
 $datePickerAction = URLROOT . '/customerServices/detail/' . (int)($service['id'] ?? 0);
 $venueRooms = $service['venue_rooms'] ?? [];
@@ -2094,6 +2094,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
           Check
         </button>
       </div>
+      <?php if ((int)($service['min_lead_days'] ?? 0) > 0): ?>
+      <div class="date-picker-copy" style="grid-column:1 / -1">
+        <span>Earliest booking date: <?= $h(date('M j, Y', strtotime($datePickerMin))) ?>.</span>
+      </div>
+      <?php endif; ?>
     </form>
 
     <div class="booking-grid">
@@ -2111,11 +2116,14 @@ button, input, select, textarea { font-family: var(--font-sans); }
                 $isPackageHallRow = $isPackageContext && (int)($packageContext['venue_room_id'] ?? 0) > 0 && (int)($room['id'] ?? 0) === (int)($packageContext['venue_room_id'] ?? 0);
                 $roomDisplayPrice = $isPackageContext ? $packageServicePrice : (float)($room['price'] ?? 0);
                 $roomAvailable = $selectedDate !== '' && (!array_key_exists('is_available_on_date', $room) || !empty($room['is_available_on_date']));
+                $roomEarliestDate = trim((string)($room['earliest_booking_date'] ?? ''));
                 $roomStatus = $roomAvailable
                   ? $money($roomDisplayPrice)
                   : ($selectedDate === ''
                     ? 'Choose date'
-                    : (!empty($room['service_closed_on_date']) || !empty($room['room_closed_on_date']) ? 'Closed' : 'Booked'));
+                    : (!empty($room['lead_time_blocked']) && $roomEarliestDate !== ''
+                      ? 'Too soon'
+                      : (!empty($room['service_closed_on_date']) || !empty($room['room_closed_on_date']) ? 'Closed' : 'Booked')));
                 $checked = !$hasSelectedRoom && $roomAvailable;
                 if ($checked) { $hasSelectedRoom = true; }
               ?>
@@ -2136,6 +2144,9 @@ button, input, select, textarea { font-family: var(--font-sans); }
                   </div>
                   <?php if ($isPackageHallRow): ?>
                     <span class="package-hall-badge"><i data-lucide="badge-check" size="13"></i>Selected for your package</span>
+                  <?php endif; ?>
+                  <?php if (!empty($room['lead_time_blocked']) && $roomEarliestDate !== ''): ?>
+                    <span class="package-hall-badge"><i data-lucide="calendar-clock" size="13"></i>Earliest: <?= $h(date('M j, Y', strtotime($roomEarliestDate))) ?></span>
                   <?php endif; ?>
                   <?php if ($roomAvailable): ?>
                     <div class="slot-options">

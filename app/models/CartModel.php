@@ -283,6 +283,43 @@ class CartModel
         return max(0, (int)($service['min_lead_days'] ?? 0));
     }
 
+    public function getMinLeadDaysForSelection(int $serviceId, ?int $venueRoomId = null): int
+    {
+        if ($venueRoomId && $venueRoomId > 0) {
+            $this->db->dbquery(
+                "SELECT COALESCE(vr.min_lead_days, s.min_lead_days, 0) AS min_lead_days
+                 FROM venue_rooms vr
+                 INNER JOIN venues v ON v.id = vr.venue_id
+                 INNER JOIN services s ON s.id = v.service_id
+                 WHERE s.id = :sid
+                   AND vr.id = :vrid
+                   AND s.is_active = 1
+                 LIMIT 1"
+            );
+            $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+            $this->db->dbbind(':vrid', $venueRoomId, PDO::PARAM_INT);
+            $row = $this->db->getsingledata();
+            if ($row) {
+                return max(0, (int)($row['min_lead_days'] ?? 0));
+            }
+        }
+
+        return $this->getServiceMinLeadDays($serviceId);
+    }
+
+    public function isDateAllowedByLeadTime(int $serviceId, string $date, ?int $venueRoomId = null): bool
+    {
+        $date = $this->normalizeDate($date);
+        if (!$date) {
+            return false;
+        }
+
+        $minLeadDays = $this->getMinLeadDaysForSelection($serviceId, $venueRoomId);
+        $earliestDate = date('Y-m-d', strtotime('+' . $minLeadDays . ' days'));
+
+        return strtotime($date) >= strtotime($earliestDate);
+    }
+
     private function hoursForServiceDate(int $serviceId, string $date): array|false
     {
         $this->db->dbquery(
@@ -440,7 +477,7 @@ class CartModel
                     COALESCE(s.price_min, p.base_price, sp.total_price) AS price_min,
                     COALESCE(s.price_max, p.base_price, sp.total_price) AS price_max,
                     COALESCE(s.booking_type, 'fullday') AS booking_type,
-                    COALESCE(COALESCE(cart_vr.min_lead_days, selected_vr.min_lead_days), s.min_lead_days, 0) AS min_lead_days,
+                    {$minLeadSelect} AS min_lead_days,
 
                     COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
                     COALESCE(sup.supplier_id, sp_sup.supplier_id) AS supplier_id,
@@ -504,14 +541,4 @@ class CartModel
         return $row ? (float)$row['total'] : 0;
     }
 
-    /**
-     * Get minimum lead days required for a service.
-     */
-    public function getServiceMinLeadDays(int $serviceId): int
-    {
-        $this->db->dbquery("SELECT COALESCE(min_lead_days, 0) AS min_lead_days FROM services WHERE id = :sid LIMIT 1");
-        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
-        $row = $this->db->getsingledata();
-        return $row ? (int)$row['min_lead_days'] : 0;
-    }
 }

@@ -87,6 +87,14 @@ class Cart extends Controller
             'end_time' => trim($_POST['end_time'] ?? '') ?: null,
         ];
 
+        if (
+            !empty($itemData['selected_date'])
+            && !$this->cartModel->isDateAllowedByLeadTime($serviceId, $itemData['selected_date'], $itemData['venue_room_id'])
+        ) {
+            redirect('customerServices/detail/' . $serviceId);
+            return;
+        }
+
         if (!$this->userId) {
             // Not logged in — stash in session and redirect to auth
             $_SESSION['cart_pending'] = $itemData;
@@ -193,6 +201,12 @@ class Cart extends Controller
             $date = trim($_POST['date'] ?? '');
             $startTime = trim($_POST['start_time'] ?? '');
             $endTime = trim($_POST['end_time'] ?? '');
+            $venueRoomId = !empty($item['venue_room_id']) ? (int)$item['venue_room_id'] : null;
+            if (!$this->cartModel->isDateAllowedByLeadTime((int)$item['item_id'], $date, $venueRoomId)) {
+                redirect('cart');
+                return;
+            }
+
             $slot = $this->cartModel->findAvailableSlotForServiceDate((int)$item['item_id'], $date, $startTime, $endTime);
 
             if (!$slot) {
