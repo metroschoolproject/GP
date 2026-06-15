@@ -104,31 +104,64 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Could not save booking items. Please try again.'], 500);
         }
 
-        // Parse item-specific data from POST
+        // Parse shared event data plus optional per-service notes.
+        $sharedDate = trim((string)($_POST['event_date'] ?? ''));
+        $sharedStartTime = trim((string)($_POST['event_start_time'] ?? ''));
+        $sharedEndTime = trim((string)($_POST['event_end_time'] ?? ''));
+        $sharedGuestCount = max(0, min(9999, (int)($_POST['guest_count'] ?? 0)));
+        $sharedLocation = trim((string)($_POST['event_location'] ?? ''));
+        $sharedPhone = trim((string)($_POST['contact_phone'] ?? ''));
+        $sharedContactName = trim((string)($_POST['contact_name'] ?? ''));
+
         $itemsData = json_decode($_POST['items_data'] ?? '[]', true) ?: [];
         if (empty($itemsData)) {
-            // Fallback: build from POST fields
-            $names = $_POST['item_name'] ?? [];
+            $notes = $_POST['item_notes'] ?? [];
+
+            // Backward-compatible fallback for any older form still posting item-specific fields.
             $dates = $_POST['item_date'] ?? [];
             $startTimes = $_POST['item_start_time'] ?? [];
             $endTimes = $_POST['item_end_time'] ?? [];
             $guests = $_POST['item_guests'] ?? [];
-            $notes = $_POST['item_notes'] ?? [];
             $locations = $_POST['item_location'] ?? [];
             $phones = $_POST['item_phone'] ?? [];
             $contactNames = $_POST['item_contact_name'] ?? [];
 
             foreach ($items as $i => $item) {
+                $cartDate = trim((string)($item['selected_date'] ?? ''));
+                $cartStartTime = trim((string)($item['start_time'] ?? ''));
+                $cartEndTime = trim((string)($item['end_time'] ?? ''));
+
+                $postedDate = trim((string)($dates[$i] ?? ''));
+                $postedStartTime = trim((string)($startTimes[$i] ?? ''));
+                $postedEndTime = trim((string)($endTimes[$i] ?? ''));
+
+                $eventDate = $cartDate !== '' ? $cartDate : ($postedDate !== '' ? $postedDate : $sharedDate);
+                $startTime = $cartStartTime !== '' ? $cartStartTime : ($postedStartTime !== '' ? $postedStartTime : $sharedStartTime);
+                $endTime = $cartEndTime !== '' ? $cartEndTime : ($postedEndTime !== '' ? $postedEndTime : $sharedEndTime);
+
                 $itemsData[] = [
-                    'event_date' => $dates[$i] ?? ($item['selected_date'] ?? ''),
-                    'start_time' => $startTimes[$i] ?? ($item['start_time'] ?? ''),
-                    'end_time' => $endTimes[$i] ?? ($item['end_time'] ?? ''),
-                    'guest_count' => (int)($guests[$i] ?? 0),
-                    'notes' => $notes[$i] ?? '',
-                    'location' => $locations[$i] ?? '',
-                    'phone' => $phones[$i] ?? '',
-                    'contact_name' => $contactNames[$i] ?? '',
+                    'event_date' => $eventDate,
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'guest_count' => $sharedGuestCount > 0 ? $sharedGuestCount : (int)($guests[$i] ?? 0),
+                    'notes' => trim((string)($notes[$i] ?? '')),
+                    'location' => $sharedLocation !== '' ? $sharedLocation : ($locations[$i] ?? ''),
+                    'phone' => $sharedPhone !== '' ? $sharedPhone : ($phones[$i] ?? ''),
+                    'contact_name' => $sharedContactName !== '' ? $sharedContactName : ($contactNames[$i] ?? ''),
                 ];
+            }
+        }
+
+        if ($sharedDate !== '' || $sharedStartTime !== '' || $sharedEndTime !== '') {
+            $scheduleUpdated = $this->bookingModel->updateUnscheduledBookingItemsSchedule(
+                $bookingId,
+                $sharedDate,
+                $sharedStartTime,
+                $sharedEndTime
+            );
+
+            if (!$scheduleUpdated) {
+                $this->jsonResponse(['error' => 'Could not save booking schedule. Please try again.'], 500);
             }
         }
 

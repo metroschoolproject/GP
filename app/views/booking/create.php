@@ -10,6 +10,25 @@ $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
 $money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$formatDate = function ($value) {
+    $timestamp = strtotime((string)$value);
+    return $timestamp ? date('M j, Y', $timestamp) : '';
+};
+$formatTimeRange = function ($from, $to) {
+    $from = trim((string)$from);
+    $to = trim((string)$to);
+    if ($from === '' && $to === '') {
+        return '';
+    }
+    $format = function ($value) {
+        $timestamp = strtotime($value);
+        return $timestamp ? date('g:i A', $timestamp) : $value;
+    };
+    if ($from === '' || $from === $to) {
+        return $format($to ?: $from);
+    }
+    return $format($from) . ' - ' . $format($to);
+};
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -20,6 +39,21 @@ $plain = function ($v) {
     return $text;
 };
 $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
+
+$defaultDate = '';
+$defaultStartTime = '';
+$defaultEndTime = '';
+foreach ($items as $defaultItem) {
+    if ($defaultDate === '' && !empty($defaultItem['selected_date'])) {
+        $defaultDate = (string)$defaultItem['selected_date'];
+    }
+    if ($defaultStartTime === '' && !empty($defaultItem['start_time'])) {
+        $defaultStartTime = (string)$defaultItem['start_time'];
+    }
+    if ($defaultEndTime === '' && !empty($defaultItem['end_time'])) {
+        $defaultEndTime = (string)$defaultItem['end_time'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -245,9 +279,20 @@ textarea { font-family: var(--font-b); }
 .gp-item-supplier { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--plum-lt); }
 .gp-item-price-box { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; padding: 14px 16px 14px 8px; flex-shrink: 0; }
 .gp-item-price-val { font-family: var(--font-d); font-size: 20px; font-weight: 600; color: var(--plum); white-space: nowrap; }
+.gp-schedule-note { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--muted); }
+.gp-schedule-pill { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--rule); background: rgba(250,246,241,0.9); color: var(--text2); font-weight: 600; }
+.gp-schedule-pill.fixed { border-color: rgba(42,122,75,0.24); background: rgba(42,122,75,0.08); color: #24613d; }
+.gp-schedule-pill.shared { border-color: rgba(184,146,74,0.28); background: rgba(184,146,74,0.10); color: #7a5c22; }
+.gp-schedule-pill svg { width: 12px; height: 12px; flex-shrink: 0; }
 
 /* Item details section */
 .gp-item-details { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+.gp-event-card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 22px; opacity: 0; transform: translateY(24px); transition: box-shadow 0.35s var(--ease-expo), border-color 0.25s; }
+.gp-event-card.visible { opacity: 1; transform: translateY(0); }
+.gp-event-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px; }
+.gp-event-kicker { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+.gp-event-title { margin-top: 2px; font-family: var(--font-d); font-size: 24px; font-weight: 600; line-height: 1.05; color: var(--text); }
+.gp-event-copy { max-width: 360px; font-size: 12px; color: var(--muted); }
 .gp-detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .gp-detail-field { display: flex; flex-direction: column; gap: 4px; }
 .gp-detail-field.full { grid-column: 1 / -1; }
@@ -343,6 +388,7 @@ textarea { font-family: var(--font-b); }
   .gp-layout { grid-template-columns: 1fr; }
   .gp-sidebar { position: static; }
   .gp-detail-row { grid-template-columns: 1fr; }
+  .gp-event-head { flex-direction: column; }
 }
 @media (max-width: 640px) {
   .gp-item-header { grid-template-columns: 80px 1fr; }
@@ -351,7 +397,7 @@ textarea { font-family: var(--font-b); }
   :root { --pad-x: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gp-item-card, .gp-page-head, .gp-sidebar { animation: none; opacity: 1; transform: none; }
+  .gp-item-card, .gp-event-card, .gp-page-head, .gp-sidebar { animation: none; opacity: 1; transform: none; }
   .gp-orb { animation: none; }
 }
 </style>
@@ -416,6 +462,61 @@ textarea { font-family: var(--font-b); }
 
       <!-- LEFT: Items -->
       <div class="gp-items" id="gp-items">
+        <section class="gp-event-card" data-index="0" aria-labelledby="event-details-title">
+          <div class="gp-event-head">
+            <div>
+              <div class="gp-event-kicker">Event details</div>
+              <h2 class="gp-event-title" id="event-details-title">Tell suppliers once</h2>
+            </div>
+            <p class="gp-event-copy">These details fill services without a fixed date or slot. Chosen slots stay unchanged.</p>
+          </div>
+
+          <div class="gp-item-details">
+            <div class="gp-detail-row">
+              <div class="gp-detail-field">
+                <label class="gp-detail-label" for="event-date">Event date</label>
+                <input class="gp-detail-input" type="date" id="event-date" name="event_date"
+                       value="<?= $h($defaultDate) ?>">
+              </div>
+              <div class="gp-detail-field">
+                <label class="gp-detail-label" for="contact-phone">Contact phone</label>
+                <input class="gp-detail-input" type="tel" id="contact-phone" name="contact_phone"
+                       placeholder="+60 12-345 6789" value="<?= $h($user['phone']) ?>">
+              </div>
+            </div>
+
+            <div class="gp-detail-row">
+              <div class="gp-detail-field">
+                <label class="gp-detail-label" for="event-start-time">Start time</label>
+                <input class="gp-detail-input" type="time" id="event-start-time" name="event_start_time"
+                       value="<?= $h($defaultStartTime) ?>">
+              </div>
+              <div class="gp-detail-field">
+                <label class="gp-detail-label" for="event-end-time">End time</label>
+                <input class="gp-detail-input" type="time" id="event-end-time" name="event_end_time"
+                       value="<?= $h($defaultEndTime) ?>">
+              </div>
+            </div>
+
+            <div class="gp-detail-row">
+              <div class="gp-detail-field">
+                <label class="gp-detail-label">Number of guests</label>
+                <div class="gp-detail-stepper">
+                  <button type="button" class="gp-stepper-btn" data-stepper="minus" data-target="guest-count" aria-label="Decrease guests">-</button>
+                  <input class="gp-stepper-input" type="number" id="guest-count" name="guest_count"
+                         value="0" min="0" max="9999" readonly>
+                  <button type="button" class="gp-stepper-btn" data-stepper="plus" data-target="guest-count" aria-label="Increase guests">+</button>
+                </div>
+              </div>
+              <div class="gp-detail-field">
+                <label class="gp-detail-label" for="event-location">Event venue / location</label>
+                <input class="gp-detail-input" type="text" id="event-location" name="event_location"
+                       placeholder="e.g. The Grand Ballroom" value="">
+              </div>
+            </div>
+          </div>
+        </section>
+
         <?php foreach ($items as $i => $item):
           $itemId      = (int)($item['cart_item_id'] ?? 0);
           $name        = $item['service_name'] ?? 'Service';
@@ -423,12 +524,19 @@ textarea { font-family: var(--font-b); }
           $category    = $item['category_name'] ?? 'Service';
           $img         = trim($item['thumbnail_url'] ?? '');
           $price       = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
-          $selectedDate = $item['selected_date'] ?? '';
-          $startTime   = $item['start_time'] ?? '';
-          $endTime     = $item['end_time'] ?? '';
+          $bookingType = $item['booking_type'] ?? 'fullday';
+          $selectedDate = trim((string)($item['selected_date'] ?? ''));
+          $startTime = trim((string)($item['start_time'] ?? ''));
+          $endTime = trim((string)($item['end_time'] ?? ''));
+          $hasFixedSchedule = $selectedDate !== '' || $startTime !== '' || $endTime !== '';
+          $scheduleDateLabel = $selectedDate !== '' ? $formatDate($selectedDate) : '';
+          $scheduleTimeLabel = $formatTimeRange($startTime, $endTime);
+          $scheduleTypeLabel = $bookingType === 'slot'
+            ? 'Fixed slot'
+            : ($bookingType === 'flexible' ? 'Flexible schedule' : 'Full-day date');
           $detailUrl   = URLROOT . '/customerServices/detail/' . (int)($item['item_id'] ?? 0);
         ?>
-        <article class="gp-item-card" data-index="<?= $i ?>">
+        <article class="gp-item-card" data-index="<?= $i + 1 ?>">
 
           <div class="gp-item-header">
             <a class="gp-item-thumb" href="<?= $h($detailUrl) ?>" tabindex="-1" aria-hidden="true">
@@ -446,6 +554,21 @@ textarea { font-family: var(--font-b); }
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 <?= $h($supplier) ?>
               </div>
+              <div class="gp-schedule-note">
+                <?php if ($hasFixedSchedule): ?>
+                  <span class="gp-schedule-pill fixed">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                    <?= $h($scheduleTypeLabel) ?>
+                  </span>
+                  <?php if ($scheduleDateLabel !== ''): ?><span><?= $h($scheduleDateLabel) ?></span><?php endif; ?>
+                  <?php if ($scheduleTimeLabel !== ''): ?><span><?= $h($scheduleTimeLabel) ?></span><?php endif; ?>
+                <?php else: ?>
+                  <span class="gp-schedule-pill shared">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    Uses shared event details
+                  </span>
+                <?php endif; ?>
+              </div>
             </div>
             <div class="gp-item-price-box">
               <div class="gp-item-price-val"><?= $money($price) ?></div>
@@ -453,53 +576,10 @@ textarea { font-family: var(--font-b); }
           </div>
 
           <div class="gp-item-details">
-            <div class="gp-detail-row">
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="date-<?= $i ?>">Event date</label>
-                <input class="gp-detail-input" type="date" id="date-<?= $i ?>" name="item_date[<?= $i ?>]"
-                       value="<?= $h($selectedDate) ?>">
-              </div>
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="phone-<?= $i ?>">Contact phone</label>
-                <input class="gp-detail-input" type="tel" id="phone-<?= $i ?>" name="item_phone[<?= $i ?>]"
-                       placeholder="+60 12-345 6789" value="<?= $h($user['phone']) ?>">
-              </div>
-            </div>
-
-            <div class="gp-detail-row">
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="stime-<?= $i ?>">Start time</label>
-                <input class="gp-detail-input" type="time" id="stime-<?= $i ?>" name="item_start_time[<?= $i ?>]"
-                       value="<?= $h($startTime) ?>">
-              </div>
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="etime-<?= $i ?>">End time</label>
-                <input class="gp-detail-input" type="time" id="etime-<?= $i ?>" name="item_end_time[<?= $i ?>]"
-                       value="<?= $h($endTime) ?>">
-              </div>
-            </div>
-
-            <div class="gp-detail-row">
-              <div class="gp-detail-field">
-                <label class="gp-detail-label">Number of guests</label>
-                <div class="gp-detail-stepper">
-                  <button type="button" class="gp-stepper-btn" data-stepper="minus" data-target="guests-<?= $i ?>" aria-label="Decrease guests">-</button>
-                  <input class="gp-stepper-input" type="number" id="guests-<?= $i ?>" name="item_guests[<?= $i ?>]"
-                         value="0" min="0" max="9999" readonly>
-                  <button type="button" class="gp-stepper-btn" data-stepper="plus" data-target="guests-<?= $i ?>" aria-label="Increase guests">+</button>
-                </div>
-              </div>
-              <div class="gp-detail-field">
-                <label class="gp-detail-label" for="location-<?= $i ?>">Event venue / location</label>
-                <input class="gp-detail-input" type="text" id="location-<?= $i ?>" name="item_location[<?= $i ?>]"
-                       placeholder="e.g. The Grand Ballroom" value="">
-              </div>
-            </div>
-
             <div class="gp-detail-field full">
               <label class="gp-detail-label" for="notes-<?= $i ?>">Special requests / notes</label>
               <textarea class="gp-detail-textarea" id="notes-<?= $i ?>" name="item_notes[<?= $i ?>]"
-                        placeholder="Share any special requests or preferences…" data-autogrow></textarea>
+                        placeholder="Optional details for this service only…" data-autogrow></textarea>
             </div>
 
             <input type="hidden" name="item_name[<?= $i ?>]" value="<?= $h($name) ?>">
@@ -602,7 +682,7 @@ textarea { font-family: var(--font-b); }
 <script>
 (function () {
   /* Staggered card reveal */
-  const cards = document.querySelectorAll('.gp-item-card');
+  const cards = document.querySelectorAll('.gp-event-card, .gp-item-card');
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {

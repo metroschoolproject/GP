@@ -139,6 +139,7 @@ class CartModel
                     COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
                     COALESCE(s.price_min, p.base_price, sp.total_price) AS price_min,
                     COALESCE(s.price_max, p.base_price, sp.total_price) AS price_max,
+                    COALESCE(s.booking_type, 'fullday') AS booking_type,
                     COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
                     COALESCE(cat.name, package_cat.name) AS category_name,
                     p.slug AS package_slug

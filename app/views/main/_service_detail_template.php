@@ -2168,6 +2168,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                           data-date="<?= $h($day['date'] ?? '') ?>"
                           data-date-label="<?= $h($day['day_label'] ?? $day['date']) ?>"
                           data-time-label="<?= $h($slot['label'] ?? '') ?>"
+                          data-slot-id="<?= $h($slot['slot_id'] ?? '') ?>"
                           data-start-time="<?= $h($slot['start_time'] ?? '') ?>"
                           data-end-time="<?= $h($slot['end_time'] ?? '') ?>"
                           <?= $checked ? 'checked' : '' ?>>
@@ -2187,6 +2188,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                   data-date="<?= $h($day['date'] ?? '') ?>"
                   data-date-label="<?= $h($day['day_label'] ?? $day['date']) ?>"
                   data-time-label="<?= $h($firstDaySlot['label'] ?? '') ?>"
+                  data-slot-id="<?= $h($firstDaySlot['slot_id'] ?? '') ?>"
                   data-start-time="<?= $h($firstDaySlot['start_time'] ?? '') ?>"
                   data-end-time="<?= $h($firstDaySlot['end_time'] ?? '') ?>"
                   <?= $checked ? 'checked' : '' ?>>
@@ -2275,6 +2277,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <form method="POST" action="<?= URLROOT ?>/cart/add" style="display:contents;">
             <input type="hidden" name="service_id" value="<?= (int)($service['id'] ?? 0) ?>">
             <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
+            <input type="hidden" name="slot_id" id="cartSlotId" value="<?= $h($firstSlot['slot_id'] ?? '') ?>">
             <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($firstSlot['start_time'] ?? '') ?>">
             <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($firstSlot['end_time'] ?? '') ?>">
             <input type="hidden" name="price" id="cartPrice" value="<?= $isPackageContext ? $packageServicePrice : ($isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : $activeServicePrice) ?>">
@@ -2485,6 +2488,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const addCartLink = document.getElementById('addCartLink');
   const mobileBookBtn = document.getElementById('mobileBookBtn');
   const cartDate = document.getElementById('cartDate');
+  const cartSlotId = document.getElementById('cartSlotId');
   const cartStartTime = document.getElementById('cartStartTime');
   const cartEndTime = document.getElementById('cartEndTime');
   const cartPrice = document.getElementById('cartPrice');
@@ -2503,6 +2507,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update hidden form fields for cart
     if (cartDate && input.dataset.date) cartDate.value = input.dataset.date;
+    if (cartSlotId) cartSlotId.value = input.dataset.slotId || '';
     if (cartStartTime && input.dataset.startTime) cartStartTime.value = input.dataset.startTime;
     if (cartEndTime && input.dataset.endTime) cartEndTime.value = input.dataset.endTime;
     if (cartPrice && input.dataset.priceLabel) {

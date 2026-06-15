@@ -682,6 +682,7 @@ class CustomerServiceCatalog
             }
 
             return [
+                'slot_id' => $storedSlot['id'] ?? null,
                 'start_time' => $slot['start_time'],
                 'end_time' => $slot['end_time'],
                 'label' => $this->formatTimeRange($slot['start_time'], $slot['end_time']),
@@ -693,7 +694,7 @@ class CustomerServiceCatalog
     private function storedSlotsForDate($serviceId, $date)
     {
         $this->db->dbquery(
-            'SELECT start_time, end_time, confirmed_count, max_concurrent, status
+            'SELECT id, start_time, end_time, confirmed_count, max_concurrent, status
              FROM service_time_slots
              WHERE service_id = :service_id
                AND date = :date'

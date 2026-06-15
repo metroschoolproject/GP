@@ -61,6 +61,43 @@ class BookingModel
     }
 
     /**
+     * Apply the shared event schedule only to items that did not choose a slot/date earlier.
+     */
+    public function updateUnscheduledBookingItemsSchedule(int $bookingId, string $eventDate, string $startTime = '', string $endTime = ''): bool
+    {
+        $eventDate = trim($eventDate);
+        $startTime = trim($startTime);
+        $endTime = trim($endTime);
+
+        $sets = [];
+        if ($eventDate !== '') {
+            $sets[] = "booking_date = CONCAT(:event_date, ' ', COALESCE(NULLIF(:booking_start_time_for_date, ''), '00:00:00'))";
+        }
+        $sets[] = 'start_time = NULLIF(:start_time, \'\')';
+        $sets[] = 'end_time = NULLIF(:end_time, \'\')';
+
+        $this->db->dbquery(
+            "UPDATE booking_items
+             SET " . implode(', ', $sets) . "
+             WHERE booking_id = :bid
+               AND slot_id IS NULL
+               AND start_time IS NULL
+               AND end_time IS NULL
+               AND TIME(booking_date) <> '00:00:00'"
+        );
+
+        if ($eventDate !== '') {
+            $this->db->dbbind(':event_date', $eventDate);
+            $this->db->dbbind(':booking_start_time_for_date', $startTime);
+        }
+        $this->db->dbbind(':start_time', $startTime);
+        $this->db->dbbind(':end_time', $endTime);
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+
+        return $this->db->dbexecute();
+    }
+
+    /**
      * Insert event_details for a booking (per-item notes & guest counts stored in event_details).
      */
     public function insertEventDetails(int $bookingId, array $itemsData): bool
