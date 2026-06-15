@@ -178,7 +178,31 @@ class Booking extends Controller
         if (!empty($itemErrors)) {
             $this->jsonResponse(['error' => implode('; ', $itemErrors)], 400);
         }
-        
+
+        // Validate min_lead_days for each item
+        $leadTimeErrors = [];
+        $today = new DateTimeImmutable('today');
+        foreach ($items as $i => $item) {
+            $itemDate = trim($_POST['item_date'][$i] ?? '') ?: trim((string)($item['selected_date'] ?? ''));
+            if (!empty($itemDate)) {
+                $selectedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $itemDate);
+                if ($selectedDate) {
+                    $minLeadDays = (int)($item['min_lead_days'] ?? 0);
+                    $minDate = $today->add(new DateInterval('P' . $minLeadDays . 'D'));
+
+                    if ($selectedDate < $minDate) {
+                        $itemName = $item['service_name'] ?? 'Service';
+                        $dayWord = $minLeadDays === 1 ? 'day' : 'days';
+                        $leadTimeErrors[] = $itemName . ': requires ' . $minLeadDays . ' ' . $dayWord . ' advance notice (earliest: ' . $minDate->format('M j, Y') . ')';
+                    }
+                }
+            }
+        }
+
+        if (!empty($leadTimeErrors)) {
+            $this->jsonResponse(['error' => 'Lead time requirement not met: ' . implode('; ', $leadTimeErrors)], 422);
+        }
+
         // CREATE BOOKING
         $cartId = $this->cartModel->getOrCreateCart($this->userId);
         $bookingId = $this->bookingModel->createDraftFromCart($this->userId, $cartId, $adjustedTotal);
@@ -439,7 +463,28 @@ class Booking extends Controller
 
         $selectedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
         $today = new DateTimeImmutable('today');
-        if (!$selectedDate || $selectedDate < $today) {
+
+        if (!$selectedDate) {
+            $this->jsonResponse(['error' => 'Invalid date format'], 400);
+            return;
+        }
+
+        // Check min_lead_days requirement
+        $minLeadDays = $this->cartModel->getServiceMinLeadDays($serviceId);
+        $minDate = $today->add(new DateInterval('P' . $minLeadDays . 'D'));
+
+        if ($selectedDate < $minDate) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'This service requires ' . $minLeadDays . ' day' . ($minLeadDays === 1 ? '' : 's') . ' advance notice',
+                'min_lead_days' => $minLeadDays,
+                'earliest_date' => $minDate->format('Y-m-d')
+            ], 400);
+            return;
+        }
+
+        // Also handle past dates for consistency
+        if ($selectedDate < $today && $minLeadDays === 0) {
             $this->jsonResponse([
                 'success' => true,
                 'slots' => [],
@@ -447,7 +492,7 @@ class Booking extends Controller
             ]);
             return;
         }
-        
+
         $slots = $this->cartModel->getAvailableSlotsForServiceDate($serviceId, $date);
         
         if (empty($slots)) {
