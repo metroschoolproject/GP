@@ -135,17 +135,221 @@ class CartModel
         $this->db->dbquery(
             "UPDATE cart_items
              SET selected_date = :sdate,
+                 slot_id = :sid,
                  start_time = :stime,
                  end_time = :etime
              WHERE id = :ciid AND user_id = :uid
              LIMIT 1"
         );
         $this->db->dbbind(':sdate', $data['selected_date'] ?? null);
+        $this->db->dbbind(':sid', $data['slot_id'] ?? null, !empty($data['slot_id']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $this->db->dbbind(':stime', $data['start_time'] ?? null);
         $this->db->dbbind(':etime', $data['end_time'] ?? null);
         $this->db->dbbind(':ciid', $cartItemId, PDO::PARAM_INT);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         return $this->db->dbexecute();
+    }
+
+    public function getCartItem(int $userId, int $cartItemId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT ci.*, s.booking_type, s.duration_minutes, s.buffer_minutes, s.max_concurrent
+             FROM cart_items ci
+             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
+             WHERE ci.id = :ciid AND ci.user_id = :uid
+             LIMIT 1"
+        );
+        $this->db->dbbind(':ciid', $cartItemId, PDO::PARAM_INT);
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    public function getAvailableSlotsForServiceDate(int $serviceId, string $date): array
+    {
+        $date = $this->normalizeDate($date);
+        if (!$date || strtotime($date) < strtotime(date('Y-m-d'))) {
+            return [];
+        }
+
+        $this->db->dbquery(
+            "SELECT booking_type, duration_minutes, buffer_minutes, max_concurrent
+             FROM services
+             WHERE id = :sid AND is_active = 1
+             LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $service = $this->db->getsingledata();
+        if (!$service) {
+            return [];
+        }
+
+        $hours = $this->hoursForServiceDate($serviceId, $date);
+        if (!$hours) {
+            return [];
+        }
+
+        $bookingType = ($service['booking_type'] ?? 'fullday') === 'slot' ? 'slot' : 'fullday';
+        if ($bookingType !== 'slot') {
+            if (!$this->isFutureSlot($date, $hours['open_time'])) {
+                return [];
+            }
+            return [[
+                'slot_id' => null,
+                'start_time' => $hours['open_time'],
+                'end_time' => $hours['close_time'],
+                'display' => $this->formatTimeRange($hours['open_time'], $hours['close_time']),
+                'available' => max(1, (int)($service['max_concurrent'] ?? 1)),
+            ]];
+        }
+
+        $duration = max(15, (int)($service['duration_minutes'] ?? 60));
+        $buffer = max(0, (int)($service['buffer_minutes'] ?? 0));
+        $maxConcurrent = max(1, (int)($service['max_concurrent'] ?? 1));
+        $generatedSlots = $this->buildSlots($date, $hours['open_time'], $hours['close_time'], $duration, $buffer);
+        $storedSlots = $this->storedSlotsForDate($serviceId, $date);
+        $slots = [];
+
+        foreach ($generatedSlots as $slot) {
+            if (!$this->isFutureSlot($date, $slot['start_time'])) {
+                continue;
+            }
+
+            $stored = $storedSlots[$slot['start_time']] ?? null;
+            $capacity = $stored ? (int)$stored['max_concurrent'] : $maxConcurrent;
+            $confirmed = $stored ? (int)$stored['confirmed_count'] : 0;
+            $status = $stored['status'] ?? 'available';
+            $available = max(0, $capacity - $confirmed);
+
+            if ($status !== 'available' || $available <= 0) {
+                continue;
+            }
+
+            $slots[] = [
+                'slot_id' => $stored['id'] ?? null,
+                'start_time' => $slot['start_time'],
+                'end_time' => $slot['end_time'],
+                'display' => $this->formatTimeRange($slot['start_time'], $slot['end_time']),
+                'available' => $available,
+            ];
+        }
+
+        return $slots;
+    }
+
+    public function findAvailableSlotForServiceDate(int $serviceId, string $date, string $startTime, string $endTime): array|false
+    {
+        $startTime = $this->normalizeTime($startTime);
+        $endTime = $this->normalizeTime($endTime);
+
+        foreach ($this->getAvailableSlotsForServiceDate($serviceId, $date) as $slot) {
+            if ($this->normalizeTime($slot['start_time']) === $startTime && $this->normalizeTime($slot['end_time']) === $endTime) {
+                return $slot;
+            }
+        }
+
+        return false;
+    }
+
+    private function hoursForServiceDate(int $serviceId, string $date): array|false
+    {
+        $this->db->dbquery(
+            "SELECT type, open_time, close_time
+             FROM service_availability
+             WHERE service_id = :sid AND date = :sdate
+             LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $this->db->dbbind(':sdate', $date);
+        $override = $this->db->getsingledata();
+
+        if ($override) {
+            if (($override['type'] ?? '') === 'unavailable') {
+                return false;
+            }
+            return [
+                'open_time' => $override['open_time'] ?: '09:00:00',
+                'close_time' => $override['close_time'] ?: '17:00:00',
+            ];
+        }
+
+        $this->db->dbquery(
+            "SELECT open_time, close_time
+             FROM service_schedules
+             WHERE service_id = :sid
+               AND day_of_week = :dow
+               AND is_available = 1
+               AND open_time < close_time
+             LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $this->db->dbbind(':dow', (int)date('N', strtotime($date)), PDO::PARAM_INT);
+        $schedule = $this->db->getsingledata();
+
+        return $schedule ?: false;
+    }
+
+    private function storedSlotsForDate(int $serviceId, string $date): array
+    {
+        $this->db->dbquery(
+            "SELECT id, start_time, end_time, confirmed_count, max_concurrent, status
+             FROM service_time_slots
+             WHERE service_id = :sid AND date = :sdate"
+        );
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $this->db->dbbind(':sdate', $date);
+
+        $slots = [];
+        foreach ($this->db->getmultidata() as $slot) {
+            $slots[$slot['start_time']] = $slot;
+        }
+
+        return $slots;
+    }
+
+    private function buildSlots(string $date, string $openTime, string $closeTime, int $durationMinutes, int $bufferMinutes): array
+    {
+        $slots = [];
+        $cursor = strtotime($date . ' ' . $openTime);
+        $close = strtotime($date . ' ' . $closeTime);
+        $step = ($durationMinutes + $bufferMinutes) * 60;
+        $duration = $durationMinutes * 60;
+
+        if (!$cursor || !$close || $cursor >= $close || $duration <= 0 || $step <= 0) {
+            return [];
+        }
+
+        while ($cursor + $duration <= $close) {
+            $slots[] = [
+                'start_time' => date('H:i:s', $cursor),
+                'end_time' => date('H:i:s', $cursor + $duration),
+            ];
+            $cursor += $step;
+        }
+
+        return $slots;
+    }
+
+    private function isFutureSlot(string $date, string $startTime): bool
+    {
+        $slotStart = strtotime($date . ' ' . $startTime);
+        return $slotStart !== false && $slotStart > time();
+    }
+
+    private function normalizeDate(string $date): ?string
+    {
+        $timestamp = strtotime($date);
+        return $timestamp ? date('Y-m-d', $timestamp) : null;
+    }
+
+    private function normalizeTime(string $time): ?string
+    {
+        $timestamp = strtotime($time);
+        return $timestamp ? date('H:i:s', $timestamp) : null;
+    }
+
+    private function formatTimeRange(string $startTime, string $endTime): string
+    {
+        return date('g:i A', strtotime($startTime)) . ' - ' . date('g:i A', strtotime($endTime));
     }
 
     /**

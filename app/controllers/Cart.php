@@ -183,10 +183,27 @@ class Cart extends Controller
 
         $cartItemId = (int)($_POST['cart_item_id'] ?? 0);
         if ($cartItemId > 0) {
+            $item = $this->cartModel->getCartItem($this->userId, $cartItemId);
+            if (!$item || ($item['item_type'] ?? '') !== 'service') {
+                redirect('cart');
+                return;
+            }
+
+            $date = trim($_POST['date'] ?? '');
+            $startTime = trim($_POST['start_time'] ?? '');
+            $endTime = trim($_POST['end_time'] ?? '');
+            $slot = $this->cartModel->findAvailableSlotForServiceDate((int)$item['item_id'], $date, $startTime, $endTime);
+
+            if (!$slot) {
+                redirect('cart');
+                return;
+            }
+
             $this->cartModel->updateItemCustomization($this->userId, $cartItemId, [
-                'selected_date' => trim($_POST['date'] ?? '') ?: null,
-                'start_time' => trim($_POST['start_time'] ?? '') ?: null,
-                'end_time' => trim($_POST['end_time'] ?? '') ?: null,
+                'selected_date' => $date,
+                'slot_id' => $slot['slot_id'] ?? null,
+                'start_time' => $slot['start_time'],
+                'end_time' => $slot['end_time'],
             ]);
         }
 

@@ -403,29 +403,19 @@ class Booking extends Controller
         if ($serviceId <= 0 || empty($date)) {
             $this->jsonResponse(['error' => 'Invalid input'], 400);
         }
-        
-        // Get service details
-        $db = new Database();
-        $db->dbquery("SELECT booking_type FROM services WHERE id = :id LIMIT 1");
-        $db->dbbind(':id', $serviceId, PDO::PARAM_INT);
-        $service = $db->getsingledata();
-        
-        if (!$service) {
-            $this->jsonResponse(['error' => 'Service not found'], 404);
+
+        $selectedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        $today = new DateTimeImmutable('today');
+        if (!$selectedDate || $selectedDate < $today) {
+            $this->jsonResponse([
+                'success' => true,
+                'slots' => [],
+                'message' => 'No slots available for this date'
+            ]);
+            return;
         }
         
-        // Fetch available slots for this service and date
-        $db->dbquery(
-            "SELECT start_time, end_time, available_slots 
-            FROM service_availability 
-            WHERE service_id = :sid 
-            AND availability_date = :adate 
-            AND available_slots > 0
-            ORDER BY start_time ASC"
-        );
-        $db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
-        $db->dbbind(':adate', $date);
-        $slots = $db->getmultidata();
+        $slots = $this->cartModel->getAvailableSlotsForServiceDate($serviceId, $date);
         
         if (empty($slots)) {
             $this->jsonResponse([
@@ -436,16 +426,14 @@ class Booking extends Controller
             return;
         }
         
-        // Format slots for display
         $formatted = [];
         foreach ($slots as $slot) {
-            $start = strtotime($slot['start_time']);
-            $end = strtotime($slot['end_time']);
             $formatted[] = [
+                'slot_id' => $slot['slot_id'] ?? null,
                 'start_time' => $slot['start_time'],
                 'end_time' => $slot['end_time'],
-                'display' => date('g:i A', $start) . ' - ' . date('g:i A', $end),
-                'available' => (int)$slot['available_slots']
+                'display' => $slot['display'],
+                'available' => (int)$slot['available']
             ];
         }
         

@@ -606,12 +606,12 @@ class CustomerServiceCatalog
             $bookingType = ($service['booking_type'] ?? 'fullday') === 'slot' ? 'slot' : 'fullday';
             $slots = $bookingType === 'slot'
                 ? $this->availableSlotsForDate($serviceId, $dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer, (int)($service['max_concurrent'] ?? 1))
-                : [[
+                : ($this->isFutureSlot($dateValue, $hours['open_time']) ? [[
                     'start_time' => $hours['open_time'],
                     'end_time' => $hours['close_time'],
                     'label' => $this->formatTimeRange($hours['open_time'], $hours['close_time']),
                     'remaining' => max(1, (int)($service['max_concurrent'] ?? 1)),
-                ]];
+                ]] : []);
             $status = $hours['source'] === 'override' ? 'Custom hours' : 'Available';
         }
 
@@ -670,14 +670,14 @@ class CustomerServiceCatalog
         $slots = $this->buildSlots($date, $openTime, $closeTime, $durationMinutes, $bufferMinutes);
         $stored = $this->storedSlotsForDate($serviceId, $date);
 
-        return array_values(array_filter(array_map(function ($slot) use ($stored, $maxConcurrent) {
+        return array_values(array_filter(array_map(function ($slot) use ($stored, $maxConcurrent, $date) {
             $storedSlot = $stored[$slot['start_time']] ?? null;
             $capacity = $storedSlot ? (int)$storedSlot['max_concurrent'] : $maxConcurrent;
             $confirmed = $storedSlot ? (int)$storedSlot['confirmed_count'] : 0;
             $status = $storedSlot['status'] ?? 'available';
             $remaining = max(0, $capacity - $confirmed);
 
-            if ($status !== 'available' || $remaining <= 0) {
+            if ($status !== 'available' || $remaining <= 0 || !$this->isFutureSlot($date, $slot['start_time'])) {
                 return null;
             }
 
@@ -759,6 +759,12 @@ class CustomerServiceCatalog
         }
 
         return $slots;
+    }
+
+    private function isFutureSlot($date, $startTime): bool
+    {
+        $slotStart = strtotime(trim((string)$date) . ' ' . trim((string)$startTime));
+        return $slotStart !== false && $slotStart > time();
     }
 
     private function formatTimeRange($startTime, $endTime)

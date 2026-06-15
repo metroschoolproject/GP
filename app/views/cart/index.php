@@ -439,6 +439,9 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   gap: 4px;
   min-width: 0;
 }
+.gp-edit-field.is-wide {
+  grid-column: span 2;
+}
 .gp-edit-field label {
   font-size: 10px;
   font-weight: 700;
@@ -460,6 +463,31 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-edit-field input[readonly] {
   background: rgba(107,68,89,0.05);
   color: var(--text2);
+}
+.gp-edit-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 36px;
+}
+.gp-edit-slot-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid rgba(107,68,89,0.14);
+  border-radius: 999px;
+  background: rgba(107,68,89,0.05);
+  color: var(--plum);
+  font-size: 11px;
+  font-weight: 700;
+}
+.gp-edit-slot-option input { width: auto; min-height: auto; padding: 0; }
+.gp-edit-slot-note {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
 }
 .gp-save-btn {
   min-height: 36px;
@@ -930,6 +958,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
           </div>
           <?php endif; ?>
 
+          <?php if ($itemType === 'service'): ?>
           <form class="gp-edit-form" method="POST" action="<?= URLROOT ?>/cart/update">
             <input type="hidden" name="cart_item_id" value="<?= $itemId ?>">
             <button class="gp-edit-toggle" type="button" aria-expanded="false">
@@ -939,15 +968,19 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             <div class="gp-edit-fields">
               <div class="gp-edit-field">
                 <label for="cart-date-<?= $itemId ?>">Date</label>
-                <input id="cart-date-<?= $itemId ?>" type="date" name="date" value="<?= $h($selectedDate) ?>">
+                <input id="cart-date-<?= $itemId ?>" type="date" name="date" value="<?= $h($selectedDate) ?>"
+                       min="<?= date('Y-m-d') ?>"
+                       data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+                       data-current-start="<?= $h($startTime) ?>"
+                       data-current-end="<?= $h($endTime) ?>">
               </div>
-              <div class="gp-edit-field">
-                <label for="cart-start-<?= $itemId ?>">Start</label>
-                <input id="cart-start-<?= $itemId ?>" type="time" name="start_time" value="<?= $h(substr((string)$startTime, 0, 5)) ?>">
-              </div>
-              <div class="gp-edit-field">
-                <label for="cart-end-<?= $itemId ?>">End</label>
-                <input id="cart-end-<?= $itemId ?>" type="time" name="end_time" value="<?= $h(substr((string)$endTime, 0, 5)) ?>">
+              <div class="gp-edit-field is-wide">
+                <label>Available time slots</label>
+                <div class="gp-edit-slots" data-slot-container>
+                  <span class="gp-edit-slot-note">Open edit details to load available slots.</span>
+                </div>
+                <input type="hidden" name="end_time" value="<?= $h(substr((string)$endTime, 0, 5)) ?>" data-end-time-field>
+                <input type="hidden" name="slot_id" value="<?= $h($item['slot_id'] ?? '') ?>" data-slot-id-field>
               </div>
               <div class="gp-edit-field">
                 <label for="cart-price-<?= $itemId ?>">Price</label>
@@ -956,6 +989,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               <button class="gp-save-btn" type="submit">Save</button>
             </div>
           </form>
+          <?php endif; ?>
         </div>
 
         <!-- Right: price + remove -->
@@ -1093,12 +1127,107 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   }
 
   /* Inline cart item editing */
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
+  }
+
+  function normalizeClock(value) {
+    return String(value || '').slice(0, 5);
+  }
+
+  async function loadCartSlots(form) {
+    const dateInput = form.querySelector('input[name="date"]');
+    const container = form.querySelector('[data-slot-container]');
+    const saveBtn = form.querySelector('.gp-save-btn');
+    const endTimeField = form.querySelector('[data-end-time-field]');
+    const slotIdField = form.querySelector('[data-slot-id-field]');
+    if (!dateInput || !container) return;
+
+    const serviceId = parseInt(dateInput.dataset.serviceId || '0', 10);
+    const date = dateInput.value;
+    if (!serviceId || !date) {
+      container.innerHTML = '<span class="gp-edit-slot-note">Choose a date first.</span>';
+      if (saveBtn) saveBtn.disabled = true;
+      return;
+    }
+
+    container.innerHTML = '<span class="gp-edit-slot-note">Loading slots...</span>';
+    if (saveBtn) saveBtn.disabled = true;
+
+    try {
+      const response = await fetch('<?= URLROOT ?>/booking/getAvailableSlots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service_id: serviceId, date })
+      });
+      const data = await response.json();
+      const slots = Array.isArray(data.slots) ? data.slots : [];
+
+      if (!slots.length) {
+        container.innerHTML = '<span class="gp-edit-slot-note">No available slots for this date.</span>';
+        if (endTimeField) endTimeField.value = '';
+        if (slotIdField) slotIdField.value = '';
+        return;
+      }
+
+      const currentStart = normalizeClock(dateInput.dataset.currentStart);
+      const currentEnd = normalizeClock(dateInput.dataset.currentEnd);
+      const selectedIndex = Math.max(0, slots.findIndex((slot) =>
+        normalizeClock(slot.start_time) === currentStart && normalizeClock(slot.end_time) === currentEnd
+      ));
+
+      container.innerHTML = slots.map((slot, index) => `
+        <label class="gp-edit-slot-option">
+          <input type="radio"
+                 name="start_time"
+                 value="${escapeHtml(slot.start_time)}"
+                 data-end-time="${escapeHtml(slot.end_time)}"
+                 data-slot-id="${escapeHtml(slot.slot_id || '')}"
+                 ${index === selectedIndex ? 'checked' : ''}>
+          <span>${escapeHtml(slot.display)}${slot.available ? ' · ' + Number(slot.available) + ' available' : ''}</span>
+        </label>
+      `).join('');
+
+      const syncSlotFields = (radio) => {
+        if (!radio) return;
+        if (endTimeField) endTimeField.value = radio.dataset.endTime || '';
+        if (slotIdField) slotIdField.value = radio.dataset.slotId || '';
+      };
+
+      container.querySelectorAll('input[name="start_time"]').forEach((radio) => {
+        radio.addEventListener('change', () => {
+          if (radio.checked) syncSlotFields(radio);
+        });
+      });
+      syncSlotFields(container.querySelector('input[name="start_time"]:checked'));
+      if (saveBtn) saveBtn.disabled = false;
+    } catch (error) {
+      container.innerHTML = '<span class="gp-edit-slot-note">Could not load slots. Please try again.</span>';
+    }
+  }
+
   document.querySelectorAll('.gp-edit-toggle').forEach((button) => {
     button.addEventListener('click', () => {
       const form = button.closest('.gp-edit-form');
       if (!form) return;
       const isOpen = form.classList.toggle('is-open');
       button.setAttribute('aria-expanded', String(isOpen));
+      if (isOpen) loadCartSlots(form);
+    });
+  });
+
+  document.querySelectorAll('.gp-edit-form input[name="date"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      input.dataset.currentStart = '';
+      input.dataset.currentEnd = '';
+      const form = input.closest('.gp-edit-form');
+      if (form?.classList.contains('is-open')) loadCartSlots(form);
     });
   });
 
