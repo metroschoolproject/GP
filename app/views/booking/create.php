@@ -1414,6 +1414,11 @@ input[data-venue-filled="true"] {
                   </button>
                 </div>
 
+                <!-- Hidden fields for current slot (preserved when not changed) -->
+                <input type="hidden" name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>">
+                <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($slotStart) ?>">
+                <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($slotEnd) ?>">
+
                 <!-- Hidden slot selector -->
                 <div class="gp-slot-selector hidden" id="slot-selector-<?= $i ?>">
                   <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
