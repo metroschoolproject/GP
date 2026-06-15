@@ -83,6 +83,8 @@ abstract class SupplierControllerSupport extends Controller
         $payload['price_max'] = $priceMax;
         $payload['package_price'] = $priceMin;
         $payload['customize_price'] = $priceMax;
+        $minLeadDaysRaw = trim((string)($payload['min_lead_days'] ?? ''));
+        $payload['min_lead_days'] = $minLeadDaysRaw === '' ? 0 : max(0, min(365, (int)$minLeadDaysRaw));
         $payload['status'] = ($payload['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active';
         $payload['img'] = $this->uploadService->storeServiceImageFromPayload($payload['img'] ?? '', $supplierId, $type);
 

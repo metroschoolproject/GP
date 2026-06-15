@@ -127,10 +127,10 @@ class SupplierServiceManager
         $this->db->dbquery(
             'INSERT INTO services(
                 supplier_id, category_id, name, description, price' . $priceRangeColumns . ', thumbnail_url,
-                is_active, booking_type, duration_minutes, pricing_unit, max_concurrent
+                is_active, booking_type, duration_minutes, pricing_unit, max_concurrent, min_lead_days
              ) VALUES(
                 :supplier_id, :category_id, :name, :description, :price' . $priceRangeValues . ', :thumbnail_url,
-                :is_active, :booking_type, :duration_minutes, :pricing_unit, :max_concurrent
+                :is_active, :booking_type, :duration_minutes, :pricing_unit, :max_concurrent, :min_lead_days
              )'
         );
         $this->bindServiceFields($supplierId, $categoryId, $data);
@@ -177,7 +177,8 @@ class SupplierServiceManager
                  booking_type = :booking_type,
                  duration_minutes = :duration_minutes,
                  pricing_unit = :pricing_unit,
-                 max_concurrent = :max_concurrent
+                 max_concurrent = :max_concurrent,
+                 min_lead_days = :min_lead_days
              WHERE id = :id
                AND supplier_id = :supplier_id'
         );
@@ -1028,6 +1029,7 @@ class SupplierServiceManager
         $this->db->dbbind(':duration_minutes', !empty($data['duration_minutes']) ? (int)$data['duration_minutes'] : null);
         $this->db->dbbind(':pricing_unit', $data['pricing_unit'] ?? 'per_session');
         $this->db->dbbind(':max_concurrent', max(1, min(65535, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1))));
+        $this->db->dbbind(':min_lead_days', max(0, min(365, (int)($data['min_lead_days'] ?? 0))), PDO::PARAM_INT);
     }
 
     private function applyVenueRoomPriceRange($data)
@@ -1106,6 +1108,7 @@ class SupplierServiceManager
             'duration_minutes' => (int)($service['duration_minutes'] ?? 60),
             'buffer_minutes' => (int)($service['buffer_minutes'] ?? 0),
             'timeslot' => ($service['booking_type'] ?? '') === 'slot' ? 'Custom slot' : '',
+            'min_lead_days' => (int)($service['min_lead_days'] ?? 0),
             'venue_id' => isset($service['venue_id']) ? (int)$service['venue_id'] : null,
             'venue' => $venueName,
             'venue_name' => $venueName,
@@ -1188,7 +1191,8 @@ class SupplierServiceManager
                     'UPDATE venue_rooms
                      SET name = :name,
                          capacity = :capacity,
-                         price = :price' . $roomPriceRangeUpdate . '
+                         price = :price' . $roomPriceRangeUpdate . ',
+                         min_lead_days = :min_lead_days
                      WHERE id = :id
                        AND venue_id = :venue_id'
                 );
@@ -1198,8 +1202,8 @@ class SupplierServiceManager
                 $roomPriceRangeColumns = $hasRoomPriceRange ? ', price_min, price_max' : '';
                 $roomPriceRangeValues = $hasRoomPriceRange ? ', :price_min, :price_max' : '';
                 $this->db->dbquery(
-                    'INSERT INTO venue_rooms(venue_id, name, capacity, price' . $roomPriceRangeColumns . ')
-                     VALUES(:venue_id, :name, :capacity, :price' . $roomPriceRangeValues . ')'
+                    'INSERT INTO venue_rooms(venue_id, name, capacity, price' . $roomPriceRangeColumns . ', min_lead_days)
+                     VALUES(:venue_id, :name, :capacity, :price' . $roomPriceRangeValues . ', :min_lead_days)'
                 );
             }
 
@@ -1211,6 +1215,8 @@ class SupplierServiceManager
                 $this->db->dbbind(':price_min', number_format($room['price_min'], 2, '.', ''), PDO::PARAM_STR);
                 $this->db->dbbind(':price_max', number_format($room['price_max'], 2, '.', ''), PDO::PARAM_STR);
             }
+            $minLeadDays = !empty($room['min_lead_days']) ? max(0, min(365, (int)$room['min_lead_days'])) : null;
+            $this->db->dbbind(':min_lead_days', $minLeadDays, $minLeadDays === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
             $this->db->dbexecute();
 
             if (empty($room['id'])) {
@@ -1244,6 +1250,8 @@ class SupplierServiceManager
             $capacity = max(1, (int)($room['capacity'] ?? $defaultCapacity));
             $priceMin = max(0, (float)($room['package_price'] ?? $room['price_min'] ?? $room['price'] ?? $defaultPrice));
             $priceMax = max($priceMin, (float)($room['customize_price'] ?? $room['price_max'] ?? $priceMin));
+            $minLeadDaysRaw = trim((string)($room['min_lead_days'] ?? ''));
+            $minLeadDays = $minLeadDaysRaw === '' ? null : max(0, min(365, (int)$minLeadDaysRaw));
 
             if ($name === '' && $capacity <= 1 && $priceMin <= 0 && $priceMax <= 0) {
                 continue;
@@ -1258,6 +1266,7 @@ class SupplierServiceManager
                 'price_max' => $priceMax,
                 'start_time' => $this->normalizeTime($room['start_time'] ?? '09:00'),
                 'end_time' => $this->normalizeTime($room['end_time'] ?? '17:00'),
+                'min_lead_days' => $minLeadDays,
             ];
         }
 
@@ -1334,6 +1343,7 @@ class SupplierServiceManager
                     venue_rooms.capacity,
                     venue_rooms.price,
                     ' . $roomPriceRangeSelect . '
+                    venue_rooms.min_lead_days,
                     MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.date END) AS available_from,
                     MAX(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.date END) AS available_to,
                     MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.start_time END) AS start_time,
@@ -1354,6 +1364,7 @@ class SupplierServiceManager
                 'price' => (float)($room['price'] ?? 0),
                 'price_min' => (float)($room['price_min'] ?? $room['price'] ?? 0),
                 'price_max' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
+                'min_lead_days' => $room['min_lead_days'] !== null ? (int)$room['min_lead_days'] : null,
                 'available_from' => $room['available_from'] ?? '',
                 'available_to' => $room['available_to'] ?? '',
                 'start_time' => $room['start_time'] ?? '09:00:00',
