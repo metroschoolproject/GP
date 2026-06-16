@@ -274,6 +274,34 @@
 }
 
 .sd-stat-price .sd-stat-value { color: var(--primary); }
+.sd-stat-price-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sd-stat-price-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sd-stat-price-key {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.sd-stat-price-subvalue {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-2);
+  line-height: 1.2;
+}
 
 /* Publish button in topnav */
 #supplier-service-detail .btn {

@@ -28,7 +28,9 @@ $money = function ($value) {
 $durationLabel = function ($minutes) {
     $minutes = max(0, (int)$minutes);
 
- 
+    if ($minutes >= 720) {
+        return 'Full day';
+    }
 
     if ($minutes >= 60) {
         $hours = $minutes / 60;
@@ -94,7 +96,9 @@ foreach ($weeklyRows as $row) {
 $serviceCategoryRaw = $service['category'] ?? 'Others';
 $isVenue = strtolower((string)$serviceCategoryRaw) === 'venue';
 $serviceDescriptionRaw = trim((string)($service['desc'] ?? $service['description'] ?? ''));
-$servicePriceAmount = (float)($service['price_min'] ?? $service['price'] ?? 0);
+$servicePackagePrice = (float)($service['price_min'] ?? $service['package_price'] ?? $service['price'] ?? 0);
+$serviceCustomizePrice = (float)($service['price_max'] ?? $service['customize_price'] ?? $servicePackagePrice);
+$servicePriceAmount = $servicePackagePrice > 0 ? $servicePackagePrice : (float)($service['price'] ?? 0);
 $serviceStatus = ($service['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active';
 $serviceImage = trim((string)($service['img'] ?? ''));
 if ($serviceImage === '' && !empty($media[0]['file_url'])) {
@@ -132,11 +136,9 @@ $publishStatusUrl = URLROOT . '/supplier/servicePublishStatus/' . $serviceId;
 $availabilitySaveUrl = URLROOT . '/supplier/serviceAvailabilitySave/' . $serviceId;
 $overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $serviceId;
 $overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
-$roomOverrideSaveUrl = URLROOT . '/supplier/venueRoomAvailabilityOverrideSave/' . $serviceId;
-$roomOverrideDeleteUrl = URLROOT . '/supplier/venueRoomAvailabilityOverrideDelete/' . $serviceId . '/';
 $previewUrl = URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId;
 
-$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $overrideCount, $attentionItems, $isReady, $isVenue, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $roomOverrideSaveUrl, $roomOverrideDeleteUrl, $previewUrl) {
+$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $overrideCount, $attentionItems, $isReady, $isVenue, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
 ?>
 <?php
 $serviceDetailCssVersion = file_exists(APPROOT . '/../public/css/supplier-service-detail.css') ? filemtime(APPROOT . '/../public/css/supplier-service-detail.css') : time();
@@ -151,8 +153,6 @@ $serviceDetailConfig = [
         'availabilitySave' => $availabilitySaveUrl,
         'overrideSave' => $overrideSaveUrl,
         'overrideDelete' => $overrideDeleteUrl,
-        'roomOverrideSave' => $roomOverrideSaveUrl,
-        'roomOverrideDelete' => $roomOverrideDeleteUrl,
         'preview' => $previewUrl,
     ],
     'servicePayloadBase' => [
@@ -165,7 +165,6 @@ $serviceDetailConfig = [
         'status' => $serviceStatus,
         'img' => $serviceImage,
         'capacity' => (int)($service['capacity'] ?? $maxConcurrent),
-        'min_lead_days' => (int)($service['min_lead_days'] ?? 0),
         'venue' => $service['venue_name'] ?? $service['venue'] ?? '',
         'venue_location' => $service['venue_location'] ?? '',
     ],

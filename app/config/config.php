@@ -22,5 +22,25 @@ define('FACEBOOK_APP_SECRET', '0b24838fe93fdae640f11a882f1a298c');
 define('FACEBOOK_REDIRECT_URI', 'http://localhost/GP/users/facebookCallback');
 
 
+
 define('GEMINI_API_KEY', 'AQ.Ab8RN6K4xV4_5A_Gq4vIRxK4gH0hnTZgyseqwUjKbyCgXWqNlg');
+
+
+// Email Configuration
+define('MAIL_HOST', 'smtp.gmail.com');
+define('MAIL_USERNAME', 'hsumyatm7308@gmail.com');
+define('MAIL_PASSWORD', 'app-password-here');
+define('MAIL_ENCRYPTION', 'tls');
+define('MAIL_PORT', 587);
+
+// Payment Gateway (2C2P Example)
+define('PAYMENT_GATEWAY_SANDBOX', true); // Switch to false for live
+define('PAYMENT_GATEWAY_API_KEY', 'your_sandbox_key');
+define('PAYMENT_GATEWAY_SECRET', 'your_sandbox_secret');
+define('MERCHANT_ID', 'your_merchant_id');
+
+// Cron Security
+define('CRON_TOKEN', 'your-secret-cron-token');
+
+
 ?>

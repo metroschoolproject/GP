@@ -48,8 +48,17 @@
       <div class="sd-stat sd-stat-price">
         <div class="sd-stat-icon"><i class="ti ti-tag"></i></div>
         <div class="sd-stat-body">
-          <div class="sd-stat-label">Starting price</div>
-          <div class="sd-stat-value"><?= $money($servicePriceAmount) ?></div>
+          <div class="sd-stat-label">Pricing</div>
+          <div class="sd-stat-price-stack">
+            <div class="sd-stat-price-line">
+              <span class="sd-stat-price-key">Package</span>
+              <span class="sd-stat-value"><?= $money($servicePackagePrice) ?></span>
+            </div>
+            <div class="sd-stat-price-line">
+              <span class="sd-stat-price-key">Customize</span>
+              <span class="sd-stat-price-subvalue"><?= $money($serviceCustomizePrice) ?></span>
+            </div>
+          </div>
         </div>
       </div>
       <div class="sd-stat">
@@ -432,8 +441,12 @@
             <span class="sd-info-val"><?= $h($serviceCategoryRaw) ?></span>
           </div>
           <div class="sd-info-row">
-            <span class="sd-info-key">Starting price</span>
-            <span class="sd-info-val" id="serviceInfoPrice"><?= $money($servicePriceAmount) ?></span>
+            <span class="sd-info-key">Package price</span>
+            <span class="sd-info-val" id="serviceInfoPackagePrice"><?= $money($servicePackagePrice) ?></span>
+          </div>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Customize price</span>
+            <span class="sd-info-val" id="serviceInfoCustomizePrice"><?= $money($serviceCustomizePrice) ?></span>
           </div>
           <div class="sd-info-row">
             <span class="sd-info-key">Status</span>

@@ -1566,4 +1566,3 @@ class BookingModel
         return $this->db->getmultidata();
     }
 }
-}
