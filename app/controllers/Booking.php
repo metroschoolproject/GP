@@ -455,6 +455,22 @@ class Booking extends Controller
         // Generate vouchers
         $this->bookingModel->generateVouchers($bookingId);
 
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Received',
+            'Your deposit of ' . $this->money($amount) . ' has been received. The suppliers will now confirm your booking.',
+            'booking'
+        );
+
+        // Notify suppliers
+        $this->notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'Deposit Paid',
+            'The customer has paid the deposit. Please review and confirm the booking.',
+            'booking'
+        );
+
         $this->jsonResponse([
             'success' => true,
             'redirect' => URLROOT . '/booking/success/' . $bookingId,
@@ -837,8 +853,8 @@ class Booking extends Controller
         $enriched = [];
         foreach ($bookings as $b) {
             $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
-            $b['items'] = $this->bookingModel->getBookingItems((int)$b['id']);
-            $b['total_amount'] = (float)$b['total_amount'];
+            $b['items'] = $this->bookingModel->getBookingItemsForSupplier((int)$b['id'], $supplierId);
+            $b['total_amount'] = (float)($b['supplier_total_amount'] ?? $b['total_amount']);
             $enriched[] = $b;
         }
 
@@ -893,7 +909,10 @@ class Booking extends Controller
             return;
         }
 
-        $items = $this->bookingModel->getBookingItems($bookingId);
+        $items = $this->bookingModel->getBookingItemsForSupplier($bookingId, $supplierId);
+        $booking['supplier_total_amount'] = array_sum(array_map(static function ($item) {
+            return (float)($item['price'] ?? 0);
+        }, $items));
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $logs = $this->bookingModel->getStatusLogs($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
@@ -972,19 +991,28 @@ class Booking extends Controller
         // Log
         $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, 'Supplier ' . $action . 'ed booking');
 
-        // NOTIFY CUSTOMER ON DECLINE
-        if ($action === 'decline') {
-            $decliningSupplier = '';
-            foreach ($suppliers as $s) {
-                if ((int)$s['supplier_id'] === $supplierId) {
-                    $decliningSupplier = $s['shop_name'] ?? 'A supplier';
-                    break;
-                }
+        // Find supplier name for notifications
+        $shopName = '';
+        foreach ($suppliers as $s) {
+            if ((int)$s['supplier_id'] === $supplierId) {
+                $shopName = $s['shop_name'] ?? 'A supplier';
+                break;
             }
+        }
+
+        // NOTIFY CUSTOMER
+        if ($action === 'accept') {
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Booking Accepted',
+                $shopName . ' has accepted your booking! Your service is confirmed.',
+                'booking'
+            );
+        } elseif ($action === 'decline') {
             $this->notificationModel->notifyBookingCustomer(
                 $bookingId,
                 'Booking Declined',
-                $decliningSupplier . ' has declined your booking. You may need to find an alternative service.',
+                $shopName . ' has declined your booking. You may need to find an alternative service.',
                 'booking'
             );
         }
@@ -1053,6 +1081,20 @@ class Booking extends Controller
         if (!$this->bookingModel->logStatusChange($bookingId, null, 'reschedule_proposed', null, $proposalNote)) {
             $this->jsonResponse(['error' => 'Could not submit reschedule proposal'], 500);
         }
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Reschedule Proposed',
+            sprintf(
+                'A supplier has proposed a new schedule: %s from %s to %s. Reason: %s. Please review from your booking detail page.',
+                $proposedDate,
+                $proposedStartTime,
+                $proposedEndTime,
+                $reason ?: 'No reason provided'
+            ),
+            'booking'
+        );
 
         $this->jsonResponse([
             'success' => true,
@@ -1145,6 +1187,22 @@ class Booking extends Controller
         if (!$this->bookingModel->adminCancelBooking($bookingId, $reason, $adminId, $refundDeposit)) {
             $this->jsonResponse(['error' => 'Could not cancel booking.'], 500);
         }
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Booking Cancelled by Admin',
+            'Your booking has been cancelled by the administrator. Reason: ' . $reason . ($refundDeposit ? ' Your deposit will be refunded.' : ''),
+            'booking'
+        );
+
+        // Notify suppliers
+        $this->notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'Booking Cancelled',
+            'A booking has been cancelled by the administrator. Reason: ' . $reason,
+            'booking'
+        );
 
         $this->jsonResponse([
             'success' => true,
