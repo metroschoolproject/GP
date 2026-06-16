@@ -1347,4 +1347,223 @@ class BookingModel
 
         return true;
     }
+
+    /* ─── Final Payment Collection & Refund Logic ─────────────────── */
+
+    /**
+     * Collect final 90% payment for bookings where event is within 3 days.
+     * Returns count of bookings processed, or false on error.
+     * Call this via cron job daily.
+     */
+    public function collectFinalPaymentDueBookings(): int|false
+    {
+        // Find all CONFIRMED bookings with event_date between now and 3 days from now
+        $this->db->dbquery(
+            "SELECT b.id, b.total_amount, b.paid_amount
+             FROM bookings b
+             WHERE b.status = 'confirmed'
+               AND EXISTS (
+                   SELECT 1 FROM event_details ed
+                   WHERE ed.booking_id = b.id
+                     AND DATE(ed.event_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 3 DAY)
+               )
+             ORDER BY b.created_at ASC"
+        );
+
+        $bookings = $this->db->getmultidata();
+        if (!$bookings) {
+            return 0;
+        }
+
+        $processed = 0;
+        foreach ($bookings as $booking) {
+            $bookingId = (int)$booking['id'];
+            $total = (float)$booking['total_amount'];
+            $paid = (float)$booking['paid_amount'];
+
+            // Calculate remaining amount (90% not yet paid)
+            $remaining = ($total * 0.90) - ($paid - ($total * 0.10));
+
+            if ($remaining > 0) {
+                // Create pending final payment record
+                if ($this->createFinalPaymentRequest($bookingId, $remaining)) {
+                    // Update booking status to pending_final_payment
+                    $this->updateStatus($bookingId, 'pending_final_payment');
+                    $this->logStatusChange($bookingId, 'confirmed', 'pending_final_payment', null, 'Cron: Final payment due');
+                    $processed++;
+                }
+            }
+        }
+
+        return $processed;
+    }
+
+    /**
+     * Create final payment request record.
+     */
+    public function createFinalPaymentRequest(int $bookingId, float $amount): bool
+    {
+        $this->db->dbquery(
+            "INSERT INTO payments (booking_id, type, method, status, amount, escrow_status)
+             VALUES (:bid, 'remaining', 'auto_collection', 'pending', :amount, 'held')"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':amount', number_format($amount, 2, '.', ''), PDO::PARAM_STR);
+
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Confirm final payment collection and finalize booking.
+     * Called after successful payment gateway confirmation.
+     */
+    public function confirmFinalPayment(int $bookingId, string $transactionRef): bool
+    {
+        // Update payment record
+        $this->db->dbquery(
+            "UPDATE payments SET status = 'success', transaction_ref = :ref, verified_at = NOW()
+             WHERE booking_id = :bid AND type = 'remaining' AND status = 'pending' LIMIT 1"
+        );
+        $this->db->dbbind(':ref', $transactionRef, PDO::PARAM_STR);
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Update booking to finalized
+        $this->db->dbquery(
+            "UPDATE bookings SET status = 'finalized', paid_amount = total_amount WHERE id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Mark booking as completed and settle supplier payouts.
+     * Called when all suppliers mark work as complete.
+     */
+    public function markBookingCompleted(int $bookingId): bool
+    {
+        // Get booking details
+        $this->db->dbquery("SELECT status FROM bookings WHERE id = :id LIMIT 1");
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+
+        if (!$booking || !in_array($booking['status'], ['finalized', 'in_progress'], true)) {
+            return false;
+        }
+
+        // Update booking status
+        $this->db->dbquery(
+            "UPDATE bookings SET status = 'completed' WHERE id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Update booking_suppliers to completed
+        $this->db->dbquery(
+            "UPDATE booking_suppliers SET status = 'completed', completed_at = NOW()
+             WHERE booking_id = :bid AND status IN ('in_progress', 'confirmed')"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Settle supplier payouts
+        return $this->settleSupplierPayouts($bookingId);
+    }
+
+    /**
+     * Calculate refund amount based on cancellation timing and policy.
+     * Returns [refund_amount, policy_reason]
+     */
+    public function calculateRefund(int $bookingId): array|false
+    {
+        // Get booking and event date
+        $this->db->dbquery(
+            "SELECT b.total_amount, b.paid_amount, ed.event_date
+             FROM bookings b
+             LEFT JOIN event_details ed ON ed.booking_id = b.id
+             WHERE b.id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+
+        if (!$booking) {
+            return false;
+        }
+
+        $paidAmount = (float)($booking['paid_amount'] ?? 0);
+        $eventDate = $booking['event_date'] ? strtotime($booking['event_date']) : 0;
+        $now = time();
+
+        // Calculate days until event
+        $daysUntilEvent = $eventDate ? (int)(($eventDate - $now) / 86400) : 999;
+
+        // Refund Policy
+        if ($daysUntilEvent >= 7) {
+            // More than 7 days: Full refund
+            return [$paidAmount, 'Full refund - cancelled 7+ days before event'];
+        } elseif ($daysUntilEvent >= 2) {
+            // 2-7 days: 50% refund
+            return [$paidAmount * 0.50, '50% refund - cancelled 2-7 days before event'];
+        } else {
+            // Less than 2 days: No refund (non-refundable)
+            return [0, 'No refund - cancelled less than 2 days before event'];
+        }
+    }
+
+    /**
+     * Get supplier earnings (unpaid + paid payouts).
+     */
+    public function getSupplierEarnings(int $supplierId): array
+    {
+        $this->db->dbquery(
+            "SELECT
+                COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as pending_amount,
+                COALESCE(SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END), 0) as paid_amount,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+                COUNT(CASE WHEN status = 'success' THEN 1 END) as paid_count
+             FROM payments
+             WHERE supplier_id = :sid AND type = 'payout'"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+
+        return [
+            'pending_amount' => (float)($result['pending_amount'] ?? 0),
+            'paid_amount' => (float)($result['paid_amount'] ?? 0),
+            'pending_count' => (int)($result['pending_count'] ?? 0),
+            'paid_count' => (int)($result['paid_count'] ?? 0),
+            'total_earned' => (float)(($result['pending_amount'] ?? 0) + ($result['paid_amount'] ?? 0)),
+        ];
+    }
+
+    /**
+     * Get supplier payout history with pagination.
+     */
+    public function getSupplierPayouts(int $supplierId, int $limit = 20, int $offset = 0): array
+    {
+        $this->db->dbquery(
+            "SELECT p.*, b.created_at as booking_date
+             FROM payments p
+             LEFT JOIN bookings b ON p.booking_id = b.id
+             WHERE p.supplier_id = :sid AND p.type = 'payout'
+             ORDER BY p.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
+    }
+}
 }

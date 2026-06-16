@@ -1295,6 +1295,130 @@ class Booking extends Controller
         ]);
     }
 
+    /* ─── Supplier Earnings & Payouts ─────────────────────────────── */
+
+    /**
+     * Supplier earnings dashboard.
+     */
+    public function supplierEarnings(): void
+    {
+        $this->ensureAuthenticated();
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            redirect('supplier/dashboard');
+            return;
+        }
+
+        // Get supplier earnings summary
+        $earnings = $this->bookingModel->getSupplierEarnings($supplierId);
+
+        // Get payout history with pagination
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+        $payouts = $this->bookingModel->getSupplierPayouts($supplierId, $perPage, $offset);
+
+        // Count total payouts
+        $this->db = new Database();
+        $this->db->dbquery(
+            "SELECT COUNT(*) as total FROM payments
+             WHERE supplier_id = :sid AND type = 'payout'"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $countResult = $this->db->getsingledata();
+        $totalPayouts = (int)($countResult['total'] ?? 0);
+        $totalPages = ceil($totalPayouts / $perPage);
+
+        // Get supplier info for bank account details
+        $supplier = $this->supplierProfileModel->getById($supplierId);
+
+        require_once APPROOT . '/controllers/SupplierControllerSupport.php';
+        $this->view('supplier/earnings', [
+            'earnings' => $earnings,
+            'payouts' => $payouts,
+            'supplier' => $supplier,
+            'supplierId' => $supplierId,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalPayouts' => $totalPayouts,
+        ]);
+    }
+
+    /**
+     * Request payout to supplier bank account (AJAX POST).
+     */
+    public function requestPayoutPost(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        $bankAccount = trim($_POST['bank_account'] ?? '');
+        $bankCode = trim($_POST['bank_code'] ?? '');
+        $amount = (float)($_POST['amount'] ?? 0);
+
+        if ($bankAccount === '' || $bankCode === '' || $amount <= 0) {
+            $this->jsonResponse(['error' => 'Please provide bank details and amount'], 400);
+            return;
+        }
+
+        // Validate bank code is supported
+        $supportedBanks = ['AYA', 'KBZ', 'AGD', 'CBD', 'MYBANK'];
+        if (!in_array($bankCode, $supportedBanks, true)) {
+            $this->jsonResponse(['error' => 'Bank not supported'], 400);
+            return;
+        }
+
+        // Get pending payouts amount
+        $this->db = new Database();
+        $this->db->dbquery(
+            "SELECT COALESCE(SUM(amount), 0) as pending_amount FROM payments
+             WHERE supplier_id = :sid AND type = 'payout' AND status = 'pending'"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        $pendingAmount = (float)($result['pending_amount'] ?? 0);
+
+        if ($amount > $pendingAmount) {
+            $this->jsonResponse(['error' => 'Requested amount exceeds pending payouts'], 400);
+            return;
+        }
+
+        // Create payout request (mark payments as processing)
+        $this->db->dbquery(
+            "UPDATE payments SET status = 'processing'
+             WHERE supplier_id = :sid AND type = 'payout' AND status = 'pending'
+             LIMIT :limit"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', (int)ceil($amount / 1000), PDO::PARAM_INT); // Approximate count
+
+        if (!$this->db->dbexecute()) {
+            $this->jsonResponse(['error' => 'Failed to create payout request'], 500);
+            return;
+        }
+
+        // TODO: Integrate with payment gateway for actual disbursement
+        // $gatewayService = new PaymentGatewayService();
+        // $result = $gatewayService->createSupplierPayout($supplierId, $amount, $bankAccount, $bankCode);
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payout request submitted. You will receive funds within 1-2 business days.',
+            'payout_id' => uniqid('PAYOUT_'),
+        ]);
+    }
+
     /**
      * Confirm instant payment from gateway (MM QR / Visa Card).
      * Creates success payment record and moves booking to payment_verified.

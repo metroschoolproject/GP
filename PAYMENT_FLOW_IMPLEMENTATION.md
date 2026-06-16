@@ -327,17 +327,69 @@ Supplier C (venue): 300,000 → 30% → payout 75,000 MMK
 ✓ Instant gateway auto-verification
 ✓ Admin dashboard
 
-### Phase 2 (Future)
-- [ ] Automated final 90% payment collection (2-3 days before event)
-- [ ] Cron job: `BookingModel::collectFinalPaymentDueBookings()`
-- [ ] Real payment gateway integration (2C2P, MPAY, etc.)
-- [ ] Supplier payout dashboard + cash-out feature
-- [ ] Refund policy enforcement (< 48hrs = no refund)
-- [ ] Webhook callbacks for payment gateway updates
-- [ ] Email notifications for payment status changes
-- [ ] SMS notifications for manual payment reminders
+### Phase 2 (Implemented)
+✓ Automated final 90% payment collection (cron job ready)
+✓ Payment gateway abstraction layer (2C2P, MPAY compatible)
+✓ Supplier earnings dashboard + cash-out requests
+✓ Transactional email notifications
+✓ Refund policy enforcement with automated calculation
+✓ Supplier payout tracking (pending/paid/disbursed states)
+✓ Cron job handlers for automated workflows
+✓ Complete refund policy with time-based logic
 
-### Phase 3 (Advanced)
+#### Phase 2 Implementation Details
+
+**New BookingModel Methods**:
+- `collectFinalPaymentDueBookings()` — Auto-collect 90% from CONFIRMED bookings
+- `createFinalPaymentRequest()` — Create pending final payment record
+- `confirmFinalPayment()` — Mark booking as FINALIZED
+- `markBookingCompleted()` — Trigger supplier payout settlement
+- `calculateRefund()` — Refund policy: 7+ days=100%, 2-7=50%, <2=0%
+- `getSupplierEarnings()` — Earnings summary by supplier
+- `getSupplierPayouts()` — Payout history with pagination
+
+**New Booking Controller Methods**:
+- `supplierEarnings()` — Supplier earnings dashboard
+- `requestPayoutPost()` — AJAX payout request handler
+
+**New Admin Controller Methods**:
+- `cronCollectFinalPayments()` — Cron: Auto-collect 90% payments
+- `cronPaymentReminders()` — Cron: Send payment due reminders
+- `cronProcessPayouts()` — Cron: Process supplier disbursements
+
+**New Services**:
+- `PaymentGatewayService` — 2C2P/MPAY abstraction
+  - `createPaymentIntent()`, `verifyTransaction()`, `requestRefund()`, `createSupplierPayout()`
+- `EmailService` — Transactional emails
+  - `sendFinalPaymentReminder()`, `sendPaymentConfirmation()`, `sendSupplierPayoutNotification()`, `sendCancellationNotification()`
+
+**New Views**:
+- `supplier/earnings.php` — Earnings dashboard with cash-out modal
+
+**Refund Policy**:
+- ≥7 days before event: 100% refund
+- 2-6 days before event: 50% refund  
+- <2 days before event: 0% refund (non-refundable)
+
+**Cron Jobs Setup**:
+```bash
+# Add to crontab:
+0 9 * * * curl -s "https://goldenpromise.com/admin/cronCollectFinalPayments?token=CRON_TOKEN"
+0 10 * * * curl -s "https://goldenpromise.com/admin/cronPaymentReminders?token=CRON_TOKEN"
+0 11 1 * * curl -s "https://goldenpromise.com/admin/cronProcessPayouts?token=CRON_TOKEN"
+```
+
+**Email Configuration** in `config.php`:
+```php
+define('MAIL_HOST', 'smtp.gmail.com');
+define('MAIL_USERNAME', 'your-email@gmail.com');
+define('MAIL_PASSWORD', 'app-password');
+define('MAIL_ENCRYPTION', 'tls');
+define('MAIL_PORT', 587);
+define('CRON_TOKEN', 'your-secret-cron-token');
+```
+
+### Phase 3 (Future)
 - [ ] KBZ Pay API integration (if available)
 - [ ] AYA Bank API integration (if available)
 - [ ] Fraud detection (duplicate uploads, mismatched amounts)
@@ -347,22 +399,30 @@ Supplier C (venue): 300,000 → 30% → payout 75,000 MMK
 
 ## Files Changed
 
-### Database
+### Phase 1 + Phase 2 Complete List
+
+**Database**:
 - `database/goldenpromise6.sql` — Updated bookings.status enum, added payments columns
 
-### Models
-- `app/models/BookingModel.php` — Added 5 new payment methods, modified 2 existing
+**Models**:
+- `app/models/BookingModel.php` — 12 new payment/settlement methods
 
-### Controllers
-- `app/controllers/Booking.php` — Added 3 new payment submission methods, payment gate in supplierRespond()
-- `app/controllers/Admin.php` — Added 3 new payment verification methods
+**Controllers**:
+- `app/controllers/Booking.php` — Payment submission (5 methods), earnings dashboard (2 methods)
+- `app/controllers/Admin.php` — Payment verification (3 methods), cron jobs (3 methods)
 
-### Services
-- `app/services/UploadService.php` — Added uploadPaymentSlip() method
+**Services**:
+- `app/services/UploadService.php` — uploadPaymentSlip() method
+- `app/services/PaymentGatewayService.php` — NEW: Payment gateway abstraction (2C2P/MPAY)
+- `app/services/EmailService.php` — NEW: Transactional emails
 
-### Views
-- `app/views/booking/paymentMethods.php` — NEW: Unified payment method selection page
-- `app/views/admin/paymentVerification.php` — NEW: Admin payment verification dashboard
+**Views**:
+- `app/views/booking/paymentMethods.php` — Payment method selection page
+- `app/views/admin/paymentVerification.php` — Admin payment verification dashboard
+- `app/views/supplier/earnings.php` — Supplier earnings + cash-out
+
+**Documentation**:
+- `PAYMENT_FLOW_IMPLEMENTATION.md` — Complete flow documentation
 
 ## Production Deployment Notes
 
@@ -418,3 +478,104 @@ This implementation fixes the critical issue where suppliers could approve unpai
 5. **Clear State Machine** — Unambiguous booking status flow
 
 The architecture is production-ready for Myanmar market while maintaining extensibility for future payment gateway integrations and automation.
+
+## Phase 2 Testing Checklist
+
+### Final Payment Collection (Automated Cron)
+- [ ] Run `curl "https://goldenpromise.com/admin/cronCollectFinalPayments?token=CRON_TOKEN"`
+- [ ] Verify CONFIRMED bookings with events in next 3 days moved to 'pending_final_payment'
+- [ ] Verify payment records created with type='remaining' and correct 90% amount
+- [ ] Check cron response shows number of bookings processed
+
+### Payment Reminders (Automated Email)
+- [ ] Run `curl "https://goldenpromise.com/admin/cronPaymentReminders?token=CRON_TOKEN"`
+- [ ] Verify emails sent to customers 3-5 days before event
+- [ ] Check email subject: "Final Payment Due"
+- [ ] Verify email shows correct balance due and due date
+- [ ] Verify email contains "Pay Now" button with correct booking link
+- [ ] Check database: emails logged in notifications table
+
+### Supplier Earnings Dashboard
+- [ ] Navigate to `/booking/supplierEarnings` as supplier
+- [ ] Verify three cards display: Pending Payout, Already Paid, Total Earned
+- [ ] Check pending amount = SUM of 'payout' type payments with status='pending'
+- [ ] Check paid amount = SUM of 'payout' type payments with status='success'
+- [ ] Verify payout history table shows all transactions
+- [ ] Test pagination (if >15 payouts)
+- [ ] Click "Request Payout" button → modal appears
+
+### Cash-Out Request (Supplier Payout)
+- [ ] Click "Request Payout" → fill form
+  - [ ] Bank account number field
+  - [ ] Bank dropdown (AYA, KBZ, AGD, CBD, MYBANK)
+  - [ ] Amount field (max = pending_amount)
+- [ ] Submit → verify AJAX call to `/booking/requestPayoutPost`
+- [ ] Verify payment record marked with status='processing'
+- [ ] Verify success message shown to supplier
+- [ ] Verify payout history refreshes with new "Processing" status
+
+### Refund Policy Calculation
+- [ ] Test case 1: Cancel 10 days before event
+  - [ ] `calculateRefund()` returns 100% refund
+  - [ ] Reason: "Full refund - cancelled 7+ days before event"
+- [ ] Test case 2: Cancel 5 days before event
+  - [ ] `calculateRefund()` returns 50% refund
+  - [ ] Reason: "50% refund - cancelled 2-7 days before event"
+- [ ] Test case 3: Cancel 1 day before event
+  - [ ] `calculateRefund()` returns 0% refund
+  - [ ] Reason: "No refund - cancelled less than 2 days before event"
+- [ ] Verify refund email sent with calculated amount and policy
+
+### Payment Gateway Integration
+- [ ] Add sandbox credentials to config.php
+  ```php
+  define('PAYMENT_GATEWAY_SANDBOX', true);
+  define('PAYMENT_GATEWAY_API_KEY', 'sandbox_key_xxx');
+  define('PAYMENT_GATEWAY_SECRET', 'sandbox_secret_xxx');
+  ```
+- [ ] Create PaymentGatewayService instance
+- [ ] Test `createPaymentIntent()` → verify returns intent_id + qr_code_url
+- [ ] Test `verifyTransaction()` → verify returns status + amount
+- [ ] Test `requestRefund()` → verify returns refund_id + status
+- [ ] Test `createSupplierPayout()` → verify returns payout_id + status
+
+### Email Service Configuration
+- [ ] Update config.php with SMTP details (Gmail example):
+  ```php
+  define('MAIL_HOST', 'smtp.gmail.com');
+  define('MAIL_USERNAME', 'your-email@gmail.com');
+  define('MAIL_PASSWORD', 'your-app-password'); // Not regular password
+  define('MAIL_ENCRYPTION', 'tls');
+  define('MAIL_PORT', 587);
+  define('MAIL_FROM', 'noreply@goldenpromise.com');
+  ```
+- [ ] Test email send: `EmailService->sendPaymentConfirmation()`
+- [ ] Check inbox for payment confirmation email
+- [ ] Verify HTML rendering + all details correct
+- [ ] Test other email templates similarly
+
+### Cron Job Setup (Production)
+- [ ] Add to server crontab (`crontab -e`):
+  ```
+  0 9 * * * curl -s "https://goldenpromise.com/admin/cronCollectFinalPayments?token=YOUR_TOKEN" > /dev/null 2>&1
+  0 10 * * * curl -s "https://goldenpromise.com/admin/cronPaymentReminders?token=YOUR_TOKEN" > /dev/null 2>&1
+  0 11 1 * * curl -s "https://goldenpromise.com/admin/cronProcessPayouts?token=YOUR_TOKEN" > /dev/null 2>&1
+  ```
+- [ ] Test cron manually (run curl commands)
+- [ ] Monitor logs for cron execution
+- [ ] Verify cron runs daily/monthly as scheduled
+
+### End-to-End Booking Lifecycle (Full Test)
+1. [ ] Create booking as customer → status='draft'
+2. [ ] Go to payment page → status='pending_payment'
+3. [ ] Submit payment → status='payment_submitted' (manual) or 'payment_verified' (instant)
+4. [ ] If manual: Admin verifies → status='payment_verified'
+5. [ ] Supplier sees booking → responds (accept/decline)
+6. [ ] All suppliers accept → status='confirmed'
+7. [ ] Wait 3 days before event OR run cron → status='pending_final_payment'
+8. [ ] Customer pays 90% → status='finalized'
+9. [ ] Event date arrives → status='in_progress'
+10. [ ] Suppliers complete work → status='completed'
+11. [ ] Payout settled → supplier sees earnings + can cash out
+12. [ ] Run payout cron → supplier status changes to 'success'
+

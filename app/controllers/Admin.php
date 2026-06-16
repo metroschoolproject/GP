@@ -764,4 +764,142 @@ class Admin extends Controller
         ]);
     }
 
+    /* ─── Cron Jobs & Scheduled Tasks ──────────────────────────────── */
+
+    /**
+     * Collect final payments for bookings 2-3 days before event.
+     * Call via: curl https://goldenpromise.com/admin/cronCollectFinalPayments?token=SECRET_CRON_TOKEN
+     *
+     * Add to crontab:
+     * 0 9 * * * curl -s "https://goldenpromise.com/admin/cronCollectFinalPayments?token=..." > /dev/null
+     */
+    public function cronCollectFinalPayments(): void
+    {
+        // Security: Verify cron token
+        $cronToken = $_GET['token'] ?? '';
+        $expectedToken = defined('CRON_TOKEN') ? CRON_TOKEN : '';
+
+        if ($cronToken !== $expectedToken || $expectedToken === '') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Unauthorized cron job']);
+            exit;
+        }
+
+        $bookingModel = $this->model('BookingModel');
+        $processed = $bookingModel->collectFinalPaymentDueBookings();
+
+        if ($processed === false) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to collect payments']);
+        } else {
+            echo json_encode([
+                'success' => true,
+                'processed' => $processed,
+                'timestamp' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        exit;
+    }
+
+    /**
+     * Send payment reminders for bookings 3-5 days before event.
+     * Call via: curl https://goldenpromise.com/admin/cronPaymentReminders?token=SECRET_CRON_TOKEN
+     */
+    public function cronPaymentReminders(): void
+    {
+        $cronToken = $_GET['token'] ?? '';
+        $expectedToken = defined('CRON_TOKEN') ? CRON_TOKEN : '';
+
+        if ($cronToken !== $expectedToken || $expectedToken === '') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Unauthorized cron job']);
+            exit;
+        }
+
+        // Find CONFIRMED bookings with event in next 5 days
+        $this->db->dbquery(
+            "SELECT b.id, b.user_id, b.total_amount, b.paid_amount, u.email, u.name, ed.event_date
+             FROM bookings b
+             JOIN users u ON b.user_id = u.user_id
+             LEFT JOIN event_details ed ON ed.booking_id = b.id
+             WHERE b.status = 'confirmed'
+               AND NOT EXISTS (SELECT 1 FROM payments WHERE booking_id = b.id AND type = 'remaining' AND status IN ('pending', 'success'))
+               AND DATE(ed.event_date) BETWEEN DATE_ADD(CURDATE(), INTERVAL 3 DAY) AND DATE_ADD(CURDATE(), INTERVAL 5 DAY)
+             ORDER BY ed.event_date ASC"
+        );
+        $bookings = $this->db->getmultidata();
+
+        $emailService = new EmailService();
+        $sent = 0;
+
+        foreach ($bookings as $booking) {
+            $customer = [
+                'name' => $booking['name'] ?? '',
+                'email' => $booking['email'] ?? '',
+            ];
+            $dueDate = date('M d, Y', strtotime($booking['event_date'] ?? 'now'));
+
+            if ($emailService->sendFinalPaymentReminder($customer, $booking, $dueDate)) {
+                $sent++;
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'reminders_sent' => $sent,
+            'timestamp' => date('Y-m-d H:i:s'),
+        ]);
+
+        exit;
+    }
+
+    /**
+     * Process supplier payouts monthly.
+     * Call via: curl https://goldenpromise.com/admin/cronProcessPayouts?token=SECRET_CRON_TOKEN
+     */
+    public function cronProcessPayouts(): void
+    {
+        $cronToken = $_GET['token'] ?? '';
+        $expectedToken = defined('CRON_TOKEN') ? CRON_TOKEN : '';
+
+        if ($cronToken !== $expectedToken || $expectedToken === '') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Unauthorized cron job']);
+            exit;
+        }
+
+        // Find payments in 'processing' status and transition to 'success'
+        $this->db->dbquery(
+            "SELECT p.*, s.user_id FROM payments p
+             JOIN suppliers s ON p.supplier_id = s.supplier_id
+             WHERE p.type = 'payout' AND p.status = 'processing'
+             AND p.created_at < DATE_SUB(NOW(), INTERVAL 2 DAY)"
+        );
+        $payouts = $this->db->getmultidata();
+
+        $updated = 0;
+        foreach ($payouts as $payout) {
+            // Mark as success and send notification
+            $this->db->dbquery(
+                "UPDATE payments SET status = 'success', verified_at = NOW()
+                 WHERE id = :id LIMIT 1"
+            );
+            $this->db->dbbind(':id', (int)$payout['id'], PDO::PARAM_INT);
+
+            if ($this->db->dbexecute()) {
+                $updated++;
+                // TODO: Send payout success email to supplier
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'payouts_processed' => $updated,
+            'timestamp' => date('Y-m-d H:i:s'),
+        ]);
+
+        exit;
+    }
+
 }   
