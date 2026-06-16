@@ -6,11 +6,15 @@ class Payments extends Controller
 
     private $paymentModel;
     private $supplierProfileModel;
+    private $paymentGateway;
 
     public function __construct()
     {
         $this->paymentModel = $this->model('Payment');
         $this->supplierProfileModel = $this->model('SupplierProfile');
+
+        require_once APPROOT . '/services/PaymentGatewayService.php';
+        $this->paymentGateway = new PaymentGatewayService();
     }
 
     public function supplierFee()
@@ -70,10 +74,87 @@ class Payments extends Controller
                 return;
             }
 
+            $returnUrl = URLROOT . '/payments/supplierFeeCallback?payment_id=' . $paymentId;
+            $gatewayMethod = $this->mapPaymentMethod($method);
+
+            $result = $this->paymentGateway->createPaymentIntent(
+                $paymentId,
+                self::SUPPLIER_MEMBERSHIP_FEE,
+                $gatewayMethod,
+                $returnUrl
+            );
+
+            if (!($result['success'] ?? false)) {
+                $this->paymentModel->updateSupplierFeeStatus($paymentId, 'failed');
+                $data['message'] = $result['error'] ?? 'Payment gateway error. Please try again.';
+                $this->view('payments/supplier_fee', $data);
+                return;
+            }
+
+            $_SESSION['payment_' . $paymentId] = [
+                'intent_id' => $result['intent_id'] ?? '',
+                'transaction_id' => $result['transaction_id'] ?? '',
+            ];
+
+            if (!empty($result['payment_url'] ?? false)) {
+                redirect($result['payment_url']);
+            } elseif (!empty($result['qr_code_url'] ?? false)) {
+                $_SESSION['payment_qr_' . $paymentId] = $result['qr_code_url'];
+            }
+
             redirect('supplier/dashboard');
         }
 
         $this->view('payments/supplier_fee', $data);
+    }
+
+    public function supplierFeeCallback()
+    {
+        $paymentId = (int)($_GET['payment_id'] ?? 0);
+        $status = trim($_GET['status'] ?? 'pending');
+
+        if (!$paymentId) {
+            redirect('supplier/dashboard');
+        }
+
+        $payment = $this->paymentModel->getSupplierFeePaymentById($paymentId);
+
+        if (!$payment) {
+            redirect('supplier/dashboard');
+        }
+
+        $userId = $_SESSION['session_uid'] ?? $_SESSION['pending_register_user_id'] ?? null;
+        $supplier = $userId ? $this->supplierProfileModel->getByUserId((int)$userId) : null;
+
+        if (!$supplier || (int)($payment['supplier_id'] ?? 0) !== (int)($supplier['supplier_id'] ?? 0)) {
+            redirect('supplier/dashboard');
+        }
+
+        if ($status === 'success') {
+            $this->paymentModel->updateSupplierFeeStatus($paymentId, 'success');
+            $this->supplierProfileModel->updatePaymentReview(
+                (int)$payment['supplier_id'],
+                'paid',
+                'verified',
+                1,
+                null
+            );
+            $_SESSION['payment_flash'] = 'Payment successful! Your dashboard is now unlocked.';
+        } else {
+            $this->paymentModel->updateSupplierFeeStatus($paymentId, 'failed');
+            $_SESSION['payment_flash'] = 'Payment was not completed. Please try again.';
+        }
+
+        redirect('supplier/dashboard');
+    }
+
+    private function mapPaymentMethod($method)
+    {
+        return match($method) {
+            '2c2p_mmqr' => 'mm_qr',
+            '2c2p_card' => 'credit_card',
+            default => 'credit_card',
+        };
     }
 
     private function supplierFeeViewData($supplier)
