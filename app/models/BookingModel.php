@@ -382,7 +382,16 @@ class BookingModel
     public function getBookingSuppliers(int $bookingId): array
     {
         $this->db->dbquery(
-            "SELECT bs.*, sup.shop_name, sup.thumbnail_url
+            "SELECT bs.*,
+                    sup.shop_name,
+                    (
+                        SELECT sd.file_url
+                        FROM supplier_documents sd
+                        WHERE sd.supplier_id = sup.supplier_id
+                          AND sd.type = 'cover_photo'
+                        ORDER BY sd.id DESC
+                        LIMIT 1
+                    ) AS thumbnail_url
              FROM booking_suppliers bs
              LEFT JOIN suppliers sup ON bs.supplier_id = sup.supplier_id
              WHERE bs.booking_id = :bid

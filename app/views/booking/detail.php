@@ -271,6 +271,9 @@ a{color:inherit;text-decoration:none}
     <?php if (!empty($vouchers)): ?>
     <a class="gp-btn-sm" href="<?=URLROOT?>/booking/vouchers">View All Vouchers</a>
     <?php endif; ?>
+    <?php if (in_array($booking['status']??'', ['draft', 'pending_payment']) && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
+    <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Proceed to Payment</a>
+    <?php endif; ?>
     <?php if (!in_array($booking['status']??'', ['cancelled','completed'])): ?>
     <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
     <?php endif; ?>

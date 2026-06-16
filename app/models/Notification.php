@@ -180,4 +180,72 @@ class Notification
             $this->db->getmultidata()
         );
     }
+
+    /**
+     * Get supplier user IDs linked to a booking.
+     */
+    public function getSupplierUserIdsForBooking(int $bookingId): array
+    {
+        $this->db->dbquery(
+            "SELECT DISTINCT s.user_id
+             FROM booking_suppliers bs
+             INNER JOIN suppliers s ON bs.supplier_id = s.supplier_id
+             WHERE bs.booking_id = :bid
+               AND s.user_id IS NOT NULL"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+
+        return array_map(
+            static fn($row) => (int)$row['user_id'],
+            $this->db->getmultidata()
+        );
+    }
+
+    /**
+     * Notify all suppliers linked to a booking.
+     */
+    public function notifyBookingSuppliers(int $bookingId, string $title, string $message, string $type): bool
+    {
+        $userIds = $this->getSupplierUserIdsForBooking($bookingId);
+
+        if (empty($userIds)) {
+            return false;
+        }
+
+        foreach ($userIds as $userId) {
+            if (!$this->create($userId, $title, $message, $type, 'booking', $bookingId)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get the customer user ID for a booking.
+     */
+    public function getCustomerUserIdForBooking(int $bookingId): ?int
+    {
+        $this->db->dbquery(
+            "SELECT user_id FROM bookings WHERE id = :bid LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+
+        return $row ? (int)$row['user_id'] : null;
+    }
+
+    /**
+     * Notify the customer who owns a booking.
+     */
+    public function notifyBookingCustomer(int $bookingId, string $title, string $message, string $type): bool
+    {
+        $userId = $this->getCustomerUserIdForBooking($bookingId);
+
+        if (!$userId) {
+            return false;
+        }
+
+        return $this->create($userId, $title, $message, $type, 'booking', $bookingId);
+    }
 }

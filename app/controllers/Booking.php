@@ -9,6 +9,7 @@ class Booking extends Controller
     private BookingModel $bookingModel;
     private CartModel $cartModel;
     private SupplierProfile $supplierProfileModel;
+    private Notification $notificationModel;
     private ?int $userId;
     private const DEPOSIT_PERCENT = 10;
 
@@ -17,6 +18,7 @@ class Booking extends Controller
         $this->bookingModel = $this->model('BookingModel');
         $this->cartModel = $this->model('CartModel');
         $this->supplierProfileModel = $this->model('SupplierProfile');
+        $this->notificationModel = $this->model('Notification');
         $this->userId = $_SESSION['session_uid'] ?? null;
     }
 
@@ -233,6 +235,17 @@ class Booking extends Controller
         // CLEAR CART & LOG
         $this->bookingModel->clearCart($this->userId);
         $this->bookingModel->logStatusChange($bookingId, null, 'draft', $this->userId);
+
+        // NOTIFY SUPPLIERS
+        $customerName = $_SESSION['session_name'] ?? 'A customer';
+        $itemList = array_map(fn($item) => $item['service_name'] ?? 'a service', $items);
+        $serviceNames = implode(', ', $itemList);
+        $this->notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'New Booking',
+            $customerName . ' booked: ' . $serviceNames . '. Please review and confirm.',
+            'booking'
+        );
         
         $this->jsonResponse([
             'success' => true,
@@ -921,6 +934,23 @@ class Booking extends Controller
 
         // Log
         $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, 'Supplier ' . $action . 'ed booking');
+
+        // NOTIFY CUSTOMER ON DECLINE
+        if ($action === 'decline') {
+            $decliningSupplier = '';
+            foreach ($suppliers as $s) {
+                if ((int)$s['supplier_id'] === $supplierId) {
+                    $decliningSupplier = $s['shop_name'] ?? 'A supplier';
+                    break;
+                }
+            }
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Booking Declined',
+                $decliningSupplier . ' has declined your booking. You may need to find an alternative service.',
+                'booking'
+            );
+        }
 
         $this->jsonResponse([
             'success' => true,
