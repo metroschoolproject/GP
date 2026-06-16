@@ -286,7 +286,8 @@ class Booking extends Controller
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
         }
 
-        $this->view('booking/pay', [
+        // Render new payment methods page (supports KBZ Pay, AYA Bank, MM QR, Visa Card)
+        $this->view('booking/paymentMethods', [
             'booking' => $booking,
             'items' => $items,
             'total' => $total,
@@ -972,6 +973,12 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Invalid request'], 400);
         }
 
+        // GATE: Verify payment before allowing response
+        if (!$this->bookingModel->isPaymentVerified($bookingId)) {
+            $this->jsonResponse(['error' => 'Booking payment has not been verified yet. Supplier cannot respond.'], 403);
+            return;
+        }
+
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $rowId = 0;
         foreach ($suppliers as $s) {
@@ -1214,6 +1221,271 @@ class Booking extends Controller
         $this->jsonResponse([
             'success' => true,
             'message' => 'Booking cancelled successfully.',
+        ]);
+    }
+
+    /* ─── Payment Submission (Manual & Instant Methods) ──────────────── */
+
+    /**
+     * Submit payment slip for manual verification (KBZ Pay / AYA Bank).
+     * Handles file upload and creates pending payment record.
+     */
+    public function submitPaymentSlip(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $paymentMethod = trim($_POST['payment_method'] ?? '');
+        $reference = trim($_POST['reference'] ?? '');
+        $slipFile = $_FILES['slip_image'] ?? null;
+
+        if ($bookingId <= 0 || !in_array($paymentMethod, ['KBZ Pay', 'AYA Bank'], true) || $reference === '') {
+            $this->jsonResponse(['error' => 'Invalid payment data'], 400);
+            return;
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+            return;
+        }
+
+        if ($booking['status'] !== 'pending_payment') {
+            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
+            return;
+        }
+
+        // Upload slip image
+        if (!$slipFile || $slipFile['error'] !== UPLOAD_ERR_OK) {
+            $this->jsonResponse(['error' => 'Please upload a payment slip image.'], 400);
+            return;
+        }
+
+        $uploadService = new UploadService();
+        $slipPath = $uploadService->uploadPaymentSlip($slipFile, $bookingId);
+        if (!$slipPath) {
+            $this->jsonResponse(['error' => 'Failed to upload slip. Please try again.'], 500);
+            return;
+        }
+
+        // Submit payment slip
+        if (!$this->bookingModel->submitPaymentSlip($bookingId, $slipPath, $reference, $paymentMethod)) {
+            $this->jsonResponse(['error' => 'Failed to submit payment. Please try again.'], 500);
+            return;
+        }
+
+        // Update booking status to payment_submitted
+        $this->bookingModel->logStatusChange($bookingId, 'pending_payment', 'payment_submitted', $this->userId);
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Submitted',
+            'Your payment slip has been received. Admin will verify within 2 hours.',
+            'payment'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payment slip submitted successfully. Please wait for admin verification.',
+        ]);
+    }
+
+    /* ─── Supplier Earnings & Payouts ─────────────────────────────── */
+
+    /**
+     * Supplier earnings dashboard.
+     */
+    public function supplierEarnings(): void
+    {
+        $this->ensureAuthenticated();
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            redirect('supplier/dashboard');
+            return;
+        }
+
+        // Get supplier earnings summary
+        $earnings = $this->bookingModel->getSupplierEarnings($supplierId);
+
+        // Get payout history with pagination
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+        $payouts = $this->bookingModel->getSupplierPayouts($supplierId, $perPage, $offset);
+
+        // Count total payouts
+        $this->db = new Database();
+        $this->db->dbquery(
+            "SELECT COUNT(*) as total FROM payments
+             WHERE supplier_id = :sid AND type = 'payout'"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $countResult = $this->db->getsingledata();
+        $totalPayouts = (int)($countResult['total'] ?? 0);
+        $totalPages = ceil($totalPayouts / $perPage);
+
+        // Get supplier info for bank account details
+        $supplier = $this->supplierProfileModel->getById($supplierId);
+
+        require_once APPROOT . '/controllers/SupplierControllerSupport.php';
+        $this->view('supplier/earnings', [
+            'earnings' => $earnings,
+            'payouts' => $payouts,
+            'supplier' => $supplier,
+            'supplierId' => $supplierId,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalPayouts' => $totalPayouts,
+        ]);
+    }
+
+    /**
+     * Request payout to supplier bank account (AJAX POST).
+     */
+    public function requestPayoutPost(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        $bankAccount = trim($_POST['bank_account'] ?? '');
+        $bankCode = trim($_POST['bank_code'] ?? '');
+        $amount = (float)($_POST['amount'] ?? 0);
+
+        if ($bankAccount === '' || $bankCode === '' || $amount <= 0) {
+            $this->jsonResponse(['error' => 'Please provide bank details and amount'], 400);
+            return;
+        }
+
+        // Validate bank code is supported
+        $supportedBanks = ['AYA', 'KBZ', 'AGD', 'CBD', 'MYBANK'];
+        if (!in_array($bankCode, $supportedBanks, true)) {
+            $this->jsonResponse(['error' => 'Bank not supported'], 400);
+            return;
+        }
+
+        // Get pending payouts amount
+        $this->db = new Database();
+        $this->db->dbquery(
+            "SELECT COALESCE(SUM(amount), 0) as pending_amount FROM payments
+             WHERE supplier_id = :sid AND type = 'payout' AND status = 'pending'"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        $pendingAmount = (float)($result['pending_amount'] ?? 0);
+
+        if ($amount > $pendingAmount) {
+            $this->jsonResponse(['error' => 'Requested amount exceeds pending payouts'], 400);
+            return;
+        }
+
+        // Create payout request (mark payments as processing)
+        $this->db->dbquery(
+            "UPDATE payments SET status = 'processing'
+             WHERE supplier_id = :sid AND type = 'payout' AND status = 'pending'
+             LIMIT :limit"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', (int)ceil($amount / 1000), PDO::PARAM_INT); // Approximate count
+
+        if (!$this->db->dbexecute()) {
+            $this->jsonResponse(['error' => 'Failed to create payout request'], 500);
+            return;
+        }
+
+        // TODO: Integrate with payment gateway for actual disbursement
+        // $gatewayService = new PaymentGatewayService();
+        // $result = $gatewayService->createSupplierPayout($supplierId, $amount, $bankAccount, $bankCode);
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payout request submitted. You will receive funds within 1-2 business days.',
+            'payout_id' => uniqid('PAYOUT_'),
+        ]);
+    }
+
+    /**
+     * Confirm instant payment from gateway (MM QR / Visa Card).
+     * Creates success payment record and moves booking to payment_verified.
+     */
+    public function confirmInstantPayment(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $method = trim($_POST['method'] ?? '');
+        $transactionId = trim($_POST['transaction_id'] ?? '');
+        $amount = (float)($_POST['amount'] ?? 0);
+
+        if ($bookingId <= 0 || !in_array($method, ['MM QR', 'Visa', 'Mastercard'], true) || $transactionId === '' || $amount <= 0) {
+            $this->jsonResponse(['error' => 'Invalid payment data'], 400);
+            return;
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+            return;
+        }
+
+        if ($booking['status'] !== 'pending_payment') {
+            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
+            return;
+        }
+
+        // Verify amount matches expected deposit
+        $expectedDeposit = (float)$booking['total_amount'] * (self::DEPOSIT_PERCENT / 100);
+        if (abs($amount - $expectedDeposit) > 0.01) { // Allow 1 cent tolerance
+            $this->jsonResponse(['error' => 'Payment amount mismatch.'], 400);
+            return;
+        }
+
+        // Confirm instant payment (sets status to payment_verified)
+        if (!$this->bookingModel->confirmInstantPayment($bookingId, $method, $transactionId, $amount)) {
+            $this->jsonResponse(['error' => 'Failed to confirm payment.'], 500);
+            return;
+        }
+
+        $this->bookingModel->logStatusChange($bookingId, 'pending_payment', 'payment_verified', $this->userId);
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Confirmed',
+            'Your payment has been confirmed! Suppliers will now review your booking.',
+            'payment'
+        );
+
+        // Notify suppliers
+        $this->notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'New Booking — Payment Verified',
+            'A new booking with confirmed payment is ready for your review.',
+            'booking'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payment confirmed! Suppliers will review your booking shortly.',
         ]);
     }
 }

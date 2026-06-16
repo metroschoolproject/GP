@@ -229,4 +229,42 @@ class UploadService
 
         return null;
     }
+
+    /**
+     * Upload payment slip for manual verification (KBZ Pay / AYA Bank).
+     * Returns relative path or false on failure.
+     */
+    public function uploadPaymentSlip($file, int $bookingId): string|false
+    {
+        $mimeType = $this->mimeType($file);
+        $extension = $this->extensionForMime($mimeType, true);
+
+        // Allow images and PDFs for payment slips
+        $validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!in_array($mimeType, $validTypes, true) || !$extension) {
+            return false;
+        }
+
+        // Limit file size to 5MB
+        if ($file['size'] > 5 * 1024 * 1024) {
+            return false;
+        }
+
+        $relativeDir = 'uploads/payments/slips/' . date('Y/m');
+        $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
+
+        if (!$this->ensureDirectory($absoluteDir)) {
+            return false;
+        }
+
+        $basename = 'slip-' . $bookingId . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename = $basename . '.' . $extension;
+        $absolutePath = $absoluteDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
+            return false;
+        }
+
+        return $relativeDir . '/' . $filename;
+    }
 }
