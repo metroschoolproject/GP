@@ -565,7 +565,8 @@ class BookingModel
                 FROM bookings b
                 INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
                 LEFT JOIN users u ON b.user_id = u.user_id
-                WHERE bs.supplier_id = :sid";
+                WHERE bs.supplier_id = :sid
+                  AND b.status NOT IN ('draft', 'pending_payment', 'payment_submitted')";
 
         if ($statusFilter && $statusFilter !== 'all') {
             $sql .= " AND bs.status = :status";
@@ -592,7 +593,8 @@ class BookingModel
         $sql = "SELECT COUNT(*) as total
                 FROM bookings b
                 INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
-                WHERE bs.supplier_id = :sid";
+                WHERE bs.supplier_id = :sid
+                  AND b.status NOT IN ('draft', 'pending_payment', 'payment_submitted')";
 
         if ($statusFilter && $statusFilter !== 'all') {
             $sql .= " AND bs.status = :status";
@@ -1179,5 +1181,170 @@ class BookingModel
                           )
                       )
                   ))";
+    }
+
+    /* ─── Payment Verification & Gating ────────────────────────────── */
+
+    /**
+     * Check if a booking's payment has been verified.
+     * Returns true if status is payment_verified or later.
+     */
+    public function isPaymentVerified(int $bookingId): bool
+    {
+        $allowedStatuses = ['payment_verified', 'suppliers_responding', 'confirmed', 'pending_final_payment', 'finalized', 'completed'];
+
+        $this->db->dbquery("SELECT status FROM bookings WHERE id = :id LIMIT 1");
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+
+        return $booking && in_array($booking['status'], $allowedStatuses, true);
+    }
+
+    /**
+     * Submit payment slip for manual verification (KBZ Pay / AYA Bank).
+     * Sets booking status to 'payment_submitted' and creates pending payment record.
+     */
+    public function submitPaymentSlip(int $bookingId, string $slipPath, string $reference, string $method): bool
+    {
+        $this->db->dbquery(
+            "UPDATE bookings SET status = 'payment_submitted' WHERE id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Create payment record with pending status
+        $this->db->dbquery(
+            "INSERT INTO payments (booking_id, type, method, status, payment_slip_path, transaction_ref, escrow_status)
+             VALUES (:bid, 'deposit', :method, 'pending', :slip, :ref, 'held')"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':method', $method, PDO::PARAM_STR);
+        $this->db->dbbind(':slip', $slipPath, PDO::PARAM_STR);
+        $this->db->dbbind(':ref', $reference, PDO::PARAM_STR);
+
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Admin verifies payment and moves booking to 'payment_verified'.
+     * Notifies all suppliers that booking is ready for their review.
+     */
+    public function adminVerifyPayment(int $bookingId, int $adminId, string $note = ''): bool
+    {
+        // Update booking status
+        $this->db->dbquery(
+            "UPDATE bookings SET status = 'payment_verified', payment_status = 'partial' WHERE id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Update payment record to success
+        $this->db->dbquery(
+            "UPDATE payments SET status = 'success', verified_by = :admin, verified_at = NOW(), verified_note = :note
+             WHERE booking_id = :bid AND type = 'deposit' LIMIT 1"
+        );
+        $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $this->db->dbbind(':note', $note, PDO::PARAM_STR);
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Confirm instant payment (Visa/Card or MM QR).
+     * Sets booking status directly to 'payment_verified' and creates success payment record.
+     */
+    public function confirmInstantPayment(int $bookingId, string $method, string $transactionId, float $amount = 0): bool
+    {
+        // Update booking to payment_verified
+        $this->db->dbquery(
+            "UPDATE bookings SET status = 'payment_verified', payment_status = 'partial' WHERE id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Create successful payment record
+        $this->db->dbquery(
+            "INSERT INTO payments (booking_id, type, method, status, transaction_ref, escrow_status, verified_at)
+             VALUES (:bid, 'deposit', :method, 'success', :txn, 'held', NOW())"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':method', $method, PDO::PARAM_STR);
+        $this->db->dbbind(':txn', $transactionId, PDO::PARAM_STR);
+
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Calculate and settle supplier payouts after booking completion.
+     * Creates payout records for each supplier based on proportional amount.
+     */
+    public function settleSupplierPayouts(int $bookingId): bool
+    {
+        // Get booking details
+        $this->db->dbquery("SELECT total_amount, paid_amount FROM bookings WHERE id = :id LIMIT 1");
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+
+        if (!$booking || (float)$booking['paid_amount'] === 0.0) {
+            return false;
+        }
+
+        $totalAmount = (float)$booking['total_amount'];
+        $paidAmount = (float)$booking['paid_amount'];
+
+        // Get all suppliers and their amounts for this booking
+        $this->db->dbquery(
+            "SELECT bs.supplier_id,
+                    COALESCE(SUM(bi.price), 0) as supplier_service_amount
+             FROM booking_suppliers bs
+             LEFT JOIN booking_items bi ON bi.booking_id = :bid
+             LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
+             LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+             WHERE bs.booking_id = :bid
+               AND (s.supplier_id = bs.supplier_id OR sp.supplier_id = bs.supplier_id OR bi.item_type = 'package')
+             GROUP BY bs.supplier_id"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $suppliers = $this->db->getmultidata();
+
+        if (!$suppliers) {
+            return false;
+        }
+
+        // Create payout record for each supplier
+        foreach ($suppliers as $supplier) {
+            $supplierId = (int)$supplier['supplier_id'];
+            $supplierServiceAmount = (float)$supplier['supplier_service_amount'];
+
+            // Calculate proportional payout
+            $proportion = ($totalAmount > 0) ? ($supplierServiceAmount / $totalAmount) : 0;
+            $payoutAmount = $proportion * $paidAmount;
+
+            if ($payoutAmount > 0) {
+                $this->db->dbquery(
+                    "INSERT INTO payments (booking_id, supplier_id, type, amount, escrow_status, status)
+                     VALUES (:bid, :sid, 'payout', :amount, 'released', 'pending')"
+                );
+                $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+                $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+                $this->db->dbbind(':amount', number_format($payoutAmount, 2, '.', ''), PDO::PARAM_STR);
+
+                if (!$this->db->dbexecute()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

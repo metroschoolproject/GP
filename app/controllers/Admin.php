@@ -634,4 +634,134 @@ class Admin extends Controller
         return max(0, (float)str_replace(',', '', (string)$value));
     }
 
+    /* ─── Payment Verification Dashboard ────────────────────────────── */
+
+    /**
+     * Display pending payment slips for admin verification.
+     */
+    public function paymentVerification(): void
+    {
+        $bookingModel = $this->model('BookingModel');
+
+        // Get bookings with status='payment_submitted'
+        $this->db->dbquery(
+            "SELECT b.*, u.name, u.email, u.phone,
+                    p.id as payment_id, p.payment_slip_path, p.transaction_ref, p.method, p.created_at as payment_created_at,
+                    (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) as item_count
+             FROM bookings b
+             LEFT JOIN users u ON b.user_id = u.user_id
+             LEFT JOIN payments p ON b.id = p.booking_id AND p.type = 'deposit' AND p.status = 'pending'
+             WHERE b.status = 'payment_submitted'
+             ORDER BY b.created_at DESC"
+        );
+        $pendingPayments = $this->db->getmultidata();
+
+        $this->view('admin/paymentVerification', [
+            'pendingPayments' => $pendingPayments,
+        ]);
+    }
+
+    /**
+     * Verify payment slip and approve booking (AJAX POST).
+     */
+    public function verifyPaymentPost(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $adminId = $this->currentUserId();
+        if (!$adminId) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $note = trim($_POST['note'] ?? '');
+
+        if ($bookingId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid booking'], 400);
+            return;
+        }
+
+        $bookingModel = $this->model('BookingModel');
+
+        // Verify payment and update booking status
+        if (!$bookingModel->adminVerifyPayment($bookingId, $adminId, $note)) {
+            $this->jsonResponse(['error' => 'Failed to verify payment'], 500);
+            return;
+        }
+
+        // Notify customer
+        $notificationModel = $this->model('Notification');
+        $notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Verified',
+            'Your payment has been verified! Suppliers are now reviewing your booking.',
+            'payment'
+        );
+
+        // Notify suppliers
+        $notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'New Booking — Payment Verified',
+            'A new booking with confirmed payment is ready for your review.',
+            'booking'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payment verified successfully. Customer and suppliers have been notified.',
+        ]);
+    }
+
+    /**
+     * Reject payment slip and request resubmission (AJAX POST).
+     */
+    public function rejectPaymentSlipPost(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $adminId = $this->currentUserId();
+        if (!$adminId) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+            return;
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $reason = trim($_POST['reason'] ?? '');
+
+        if ($bookingId <= 0 || $reason === '') {
+            $this->jsonResponse(['error' => 'Please provide a reason'], 400);
+            return;
+        }
+
+        $bookingModel = $this->model('BookingModel');
+
+        // Reset booking to pending_payment
+        $this->db->dbquery("UPDATE bookings SET status = 'pending_payment' WHERE id = :id LIMIT 1");
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            $this->jsonResponse(['error' => 'Failed to reject payment'], 500);
+            return;
+        }
+
+        // Notify customer
+        $notificationModel = $this->model('Notification');
+        $notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Slip Rejected',
+            'Your payment slip was rejected. Reason: ' . $reason . '. Please resubmit a valid payment proof.',
+            'payment'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payment rejected and customer has been notified.',
+        ]);
+    }
+
 }   

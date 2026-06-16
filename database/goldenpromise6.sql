@@ -52,7 +52,7 @@ CREATE TABLE `bookings` (
   `total_amount` decimal(10,2) DEFAULT NULL,
   `paid_amount` decimal(10,2) DEFAULT NULL,
   `payment_status` enum('unpaid','partial','paid') DEFAULT NULL,
-  `status` enum('draft','pending_payment','paid','pending_admin','confirmed','completed','cancelled') DEFAULT NULL,
+  `status` enum('draft','pending_payment','payment_submitted','payment_verified','suppliers_responding','confirmed','pending_final_payment','finalized','completed','cancelled') DEFAULT NULL,
   `approved_by` bigint(20) DEFAULT NULL,
   `approved_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -495,12 +495,15 @@ CREATE TABLE `payments` (
   `platform_fee` decimal(10,2) DEFAULT NULL,
   `supplier_amount` decimal(10,2) DEFAULT NULL,
   `escrow_status` enum('held','released','refunded') DEFAULT NULL,
-  `type` enum('deposit','remaining','full','supplier_fee') DEFAULT NULL,
+  `escrow_released_at` timestamp NULL DEFAULT NULL,
+  `type` enum('deposit','remaining','full','supplier_fee','payout') DEFAULT NULL,
+  `payment_slip_path` varchar(255) DEFAULT NULL,
   `method` varchar(50) DEFAULT NULL,
   `status` enum('pending','success','failed') DEFAULT NULL,
   `transaction_ref` varchar(255) DEFAULT NULL,
   `verified_by` bigint(20) DEFAULT NULL,
   `verified_at` timestamp NULL DEFAULT NULL,
+  `verified_note` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

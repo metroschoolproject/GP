@@ -972,6 +972,12 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Invalid request'], 400);
         }
 
+        // GATE: Verify payment before allowing response
+        if (!$this->bookingModel->isPaymentVerified($bookingId)) {
+            $this->jsonResponse(['error' => 'Booking payment has not been verified yet. Supplier cannot respond.'], 403);
+            return;
+        }
+
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $rowId = 0;
         foreach ($suppliers as $s) {
@@ -1214,6 +1220,147 @@ class Booking extends Controller
         $this->jsonResponse([
             'success' => true,
             'message' => 'Booking cancelled successfully.',
+        ]);
+    }
+
+    /* ─── Payment Submission (Manual & Instant Methods) ──────────────── */
+
+    /**
+     * Submit payment slip for manual verification (KBZ Pay / AYA Bank).
+     * Handles file upload and creates pending payment record.
+     */
+    public function submitPaymentSlip(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $paymentMethod = trim($_POST['payment_method'] ?? '');
+        $reference = trim($_POST['reference'] ?? '');
+        $slipFile = $_FILES['slip_image'] ?? null;
+
+        if ($bookingId <= 0 || !in_array($paymentMethod, ['KBZ Pay', 'AYA Bank'], true) || $reference === '') {
+            $this->jsonResponse(['error' => 'Invalid payment data'], 400);
+            return;
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+            return;
+        }
+
+        if ($booking['status'] !== 'pending_payment') {
+            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
+            return;
+        }
+
+        // Upload slip image
+        if (!$slipFile || $slipFile['error'] !== UPLOAD_ERR_OK) {
+            $this->jsonResponse(['error' => 'Please upload a payment slip image.'], 400);
+            return;
+        }
+
+        $uploadService = new UploadService();
+        $slipPath = $uploadService->uploadPaymentSlip($slipFile, $bookingId);
+        if (!$slipPath) {
+            $this->jsonResponse(['error' => 'Failed to upload slip. Please try again.'], 500);
+            return;
+        }
+
+        // Submit payment slip
+        if (!$this->bookingModel->submitPaymentSlip($bookingId, $slipPath, $reference, $paymentMethod)) {
+            $this->jsonResponse(['error' => 'Failed to submit payment. Please try again.'], 500);
+            return;
+        }
+
+        // Update booking status to payment_submitted
+        $this->bookingModel->logStatusChange($bookingId, 'pending_payment', 'payment_submitted', $this->userId);
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Submitted',
+            'Your payment slip has been received. Admin will verify within 2 hours.',
+            'payment'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payment slip submitted successfully. Please wait for admin verification.',
+        ]);
+    }
+
+    /**
+     * Confirm instant payment from gateway (MM QR / Visa Card).
+     * Creates success payment record and moves booking to payment_verified.
+     */
+    public function confirmInstantPayment(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $method = trim($_POST['method'] ?? '');
+        $transactionId = trim($_POST['transaction_id'] ?? '');
+        $amount = (float)($_POST['amount'] ?? 0);
+
+        if ($bookingId <= 0 || !in_array($method, ['MM QR', 'Visa', 'Mastercard'], true) || $transactionId === '' || $amount <= 0) {
+            $this->jsonResponse(['error' => 'Invalid payment data'], 400);
+            return;
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+            return;
+        }
+
+        if ($booking['status'] !== 'pending_payment') {
+            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
+            return;
+        }
+
+        // Verify amount matches expected deposit
+        $expectedDeposit = (float)$booking['total_amount'] * (self::DEPOSIT_PERCENT / 100);
+        if (abs($amount - $expectedDeposit) > 0.01) { // Allow 1 cent tolerance
+            $this->jsonResponse(['error' => 'Payment amount mismatch.'], 400);
+            return;
+        }
+
+        // Confirm instant payment (sets status to payment_verified)
+        if (!$this->bookingModel->confirmInstantPayment($bookingId, $method, $transactionId, $amount)) {
+            $this->jsonResponse(['error' => 'Failed to confirm payment.'], 500);
+            return;
+        }
+
+        $this->bookingModel->logStatusChange($bookingId, 'pending_payment', 'payment_verified', $this->userId);
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Confirmed',
+            'Your payment has been confirmed! Suppliers will now review your booking.',
+            'payment'
+        );
+
+        // Notify suppliers
+        $this->notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'New Booking — Payment Verified',
+            'A new booking with confirmed payment is ready for your review.',
+            'booking'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payment confirmed! Suppliers will review your booking shortly.',
         ]);
     }
 }
