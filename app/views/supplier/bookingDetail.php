@@ -86,7 +86,14 @@ $dashboardContent = function () use (
     $formatTime,
     $statusBadgeClass,
     $statusIcon,
-    $statusDotClass
+    $statusDotClass,
+    $totalAmount,
+    $paidAmount,
+    $platformFee,
+    $supplierEarnings,
+    $supplierEarningsPaid,
+    $platformCommissionRate,
+    $depositPercent
 ) {
     $customerName = trim((string)($booking['customer_name'] ?? 'Customer'));
     $customerEmail = trim((string)($booking['customer_email'] ?? ''));
@@ -416,26 +423,59 @@ $dashboardContent = function () use (
         </div>
         <div class="space-y-3 text-sm">
           <div class="flex items-center justify-between gap-4">
-            <span class="text-app-muted">Total</span>
+            <span class="text-app-muted">Booking Total</span>
             <strong class="text-app-text"><?= $money($totalAmount) ?></strong>
           </div>
           <div class="flex items-center justify-between gap-4">
-            <span class="text-app-muted">Paid</span>
+            <span class="text-app-muted">Customer Paid</span>
             <strong class="text-app-success"><?= $money($paidAmount) ?></strong>
           </div>
           <div class="flex items-center justify-between gap-4">
-            <span class="text-app-muted">Remaining</span>
-            <strong class="<?= $remainingAmount > 0 ? 'text-app-danger' : 'text-app-success' ?>"><?= $money($remainingAmount) ?></strong>
+            <span class="text-app-muted">Remaining Balance</span>
+            <strong class="<?= ($totalAmount - $paidAmount) > 0 ? 'text-app-danger' : 'text-app-success' ?>"><?= $money($totalAmount - $paidAmount) ?></strong>
           </div>
           <div class="border-t border-app-border pt-3">
             <div class="flex items-center justify-between gap-4">
-              <span class="text-app-muted">Status</span>
+              <span class="text-app-muted">Payment Status</span>
               <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold <?= $statusBadgeClass($paymentStatus) ?>">
                 <i data-lucide="<?= $h($statusIcon($paymentStatus)) ?>" class="h-3 w-3"></i>
                 <?= $h(ucfirst($paymentStatus ?: 'pending')) ?>
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Commission Breakdown Card -->
+      <div class="bk-detail-card rounded-card border border-app-border bg-app-input p-5 shadow-sm">
+        <div class="mb-4 flex items-center gap-2.5">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+            <i data-lucide="trending-up" class="h-4 w-4"></i>
+          </div>
+          <h2 class="text-base font-bold text-app-text">Your Earnings</h2>
+        </div>
+        <div class="space-y-3 text-sm">
+          <div class="flex items-center justify-between gap-4">
+            <span class="text-app-muted">Your Share (85%)</span>
+            <strong class="text-app-success"><?= $money($supplierEarnings) ?></strong>
+          </div>
+          <div class="flex items-center justify-between gap-4">
+            <span class="text-app-muted">Platform Fee (<?= number_format($platformCommissionRate, 0) ?>%)</span>
+            <strong class="text-app-muted">-<?= $money($platformFee) ?></strong>
+          </div>
+          <div class="flex items-center justify-between gap-4">
+            <span class="text-app-muted">Deposit Paid (<?= $depositPercent ?>% of paid)</span>
+            <strong class="text-app-success"><?= $money($supplierEarningsPaid) ?></strong>
+          </div>
+          <div class="border-t border-app-border pt-3">
+            <div class="flex items-center justify-between gap-4">
+              <span class="font-semibold text-app-text">Pending Payment</span>
+              <strong class="text-app-primary"><?= $money($supplierEarnings - $supplierEarningsPaid) ?></strong>
+            </div>
+          </div>
+          <p class="mt-3 rounded-lg bg-app-soft px-3 py-2 text-xs text-app-secondary">
+            The remaining amount will be paid after the event is completed or according to your agreement terms.
+          </p>
         </div>
       </div>
 

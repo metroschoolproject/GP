@@ -30,11 +30,16 @@ $statusBadgeClass = function (string $status): string {
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = 'Incoming bookings';
 $dashboardContentClass = 'bg-app-content px-6 py-6 overflow-y-auto';
-$dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters, $money, $h, $statusBadgeClass) {
+$dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters, $money, $h, $statusBadgeClass, $currentPage, $totalPages, $totalCount, $perPage, $searchQuery) {
     $pendingCount  = (int)($stats['pending_count'] ?? 0);
     $confirmedCount = (int)($stats['confirmed_count'] ?? 0);
     $completedCount = (int)($stats['completed_count'] ?? 0);
     $estRevenue     = (float)($stats['est_revenue'] ?? 0);
+    $currentPage = $currentPage ?? 1;
+    $totalPages = $totalPages ?? 1;
+    $totalCount = $totalCount ?? 0;
+    $perPage = $perPage ?? 20;
+    $searchQuery = $searchQuery ?? '';
 ?>
 <style>
   .bk-stat-card {
@@ -120,15 +125,42 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     </div>
   </div>
 
-  <!-- ===== Header + Filter bar ===== -->
-  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <h2 class="text-base font-bold text-app-text">All Bookings</h2>
-      <p class="mt-0.5 text-xs text-app-muted">Manage and respond to your customer bookings</p>
+  <!-- ===== Header + Search + Filter bar ===== -->
+  <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-base font-bold text-app-text">All Bookings</h2>
+        <p class="mt-0.5 text-xs text-app-muted">Manage and respond to your customer bookings</p>
+      </div>
     </div>
+
+    <!-- Search bar -->
+    <form method="get" class="flex items-center gap-2">
+      <input type="hidden" name="status" value="<?= $h($activeFilter) ?>">
+      <div class="relative flex-1 sm:max-w-xs">
+        <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-muted"></i>
+        <input type="text" name="search" placeholder="Search by customer name or booking..."
+               value="<?= $h($searchQuery) ?>"
+               class="h-9 w-full rounded-lg border border-app-border bg-app-input pl-9 pr-3 text-sm text-app-text placeholder-app-muted focus:border-app-primary focus:outline-none focus:ring-1 focus:ring-app-primary/20">
+      </div>
+      <?php if ($searchQuery): ?>
+      <a href="<?= URLROOT ?>/supplier/bookings?status=<?= $h($activeFilter) ?>"
+         class="inline-flex items-center gap-1.5 rounded-lg border border-app-border bg-app-input px-3 py-2 text-xs font-semibold text-app-secondary hover:text-app-text transition-colors">
+        <i data-lucide="x" class="h-3.5 w-3.5"></i>
+        Clear
+      </a>
+      <?php endif; ?>
+    </form>
+
+    <!-- Filter pills -->
     <div class="bk-filter-bar flex items-center gap-1.5">
-      <?php foreach ($filters as $key => $f): ?>
-        <a href="<?= URLROOT ?>/supplier/bookings?status=<?= $h($key) ?>"
+      <?php foreach ($filters as $key => $f):
+        $filterUrl = URLROOT . '/supplier/bookings?status=' . $h($key);
+        if ($searchQuery) {
+          $filterUrl .= '&search=' . urlencode($searchQuery);
+        }
+      ?>
+        <a href="<?= $filterUrl ?>"
            class="bk-filter-pill inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all
                   <?= $activeFilter === $key
                     ? 'bg-app-primary text-app-white shadow-sm'
@@ -203,6 +235,63 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
           </tbody>
         </table>
       </div>
+
+      <!-- ===== Pagination ===== -->
+      <?php if ($totalPages > 1): ?>
+      <div class="flex items-center justify-between border-t border-app-border px-4 py-3.5">
+        <p class="text-xs font-medium text-app-muted">
+          Showing <?= (($currentPage - 1) * $perPage) + 1 ?> to <?= min($currentPage * $perPage, $totalCount) ?> of <?= $totalCount ?> bookings
+        </p>
+        <div class="flex items-center gap-1.5">
+          <?php
+            $pageParams = 'status=' . $h($activeFilter);
+            if ($searchQuery) {
+              $pageParams .= '&search=' . urlencode($searchQuery);
+            }
+          ?>
+          <?php if ($currentPage > 1): ?>
+          <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $currentPage - 1 ?>"
+             class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-secondary hover:bg-app-soft transition-colors">
+            <i data-lucide="chevron-left" class="h-3.5 w-3.5"></i>
+          </a>
+          <?php else: ?>
+          <span class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-muted opacity-50">
+            <i data-lucide="chevron-left" class="h-3.5 w-3.5"></i>
+          </span>
+          <?php endif; ?>
+
+          <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+            <?php if ($p === 1 || $p === $totalPages || ($p >= $currentPage - 1 && $p <= $currentPage + 1)): ?>
+              <?php if ($p === $currentPage): ?>
+              <button class="flex h-7 w-7 items-center justify-center rounded-md bg-app-primary text-app-white text-[11px] font-semibold" disabled>
+                <?= $p ?>
+              </button>
+              <?php else: ?>
+              <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $p ?>"
+                 class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-secondary hover:bg-app-soft transition-colors text-[11px] font-semibold">
+                <?= $p ?>
+              </a>
+              <?php endif; ?>
+            <?php elseif ($p === 2 && $currentPage > 3): ?>
+              <span class="px-1.5 text-app-muted">...</span>
+            <?php elseif ($p === $totalPages - 1 && $currentPage < $totalPages - 2): ?>
+              <span class="px-1.5 text-app-muted">...</span>
+            <?php endif; ?>
+          <?php endfor; ?>
+
+          <?php if ($currentPage < $totalPages): ?>
+          <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $currentPage + 1 ?>"
+             class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-secondary hover:bg-app-soft transition-colors">
+            <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
+          </a>
+          <?php else: ?>
+          <span class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-muted opacity-50">
+            <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
+          </span>
+          <?php endif; ?>
+        </div>
+      </div>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
 

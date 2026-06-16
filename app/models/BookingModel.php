@@ -483,6 +483,129 @@ class BookingModel
     }
 
     /**
+     * Get supplier bookings with pagination.
+     */
+    public function getSupplierBookingsWithPagination(int $supplierId, ?string $statusFilter = null, int $limit = 20, int $offset = 0): array
+    {
+        $sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone,
+                       bs.status AS supplier_status, bs.id AS booking_supplier_id,
+                       (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) AS item_count,
+                       (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
+                FROM bookings b
+                INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
+                LEFT JOIN users u ON b.user_id = u.user_id
+                WHERE bs.supplier_id = :sid";
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            $sql .= " AND bs.status = :status";
+        }
+
+        $sql .= " ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
+
+        $this->db->dbquery($sql);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        if ($statusFilter && $statusFilter !== 'all') {
+            $this->db->dbbind(':status', $statusFilter);
+        }
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Get total count of supplier bookings for pagination.
+     */
+    public function getSupplierBookingsCount(int $supplierId, ?string $statusFilter = null): int
+    {
+        $sql = "SELECT COUNT(*) as total
+                FROM bookings b
+                INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
+                WHERE bs.supplier_id = :sid";
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            $sql .= " AND bs.status = :status";
+        }
+
+        $this->db->dbquery($sql);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        if ($statusFilter && $statusFilter !== 'all') {
+            $this->db->dbbind(':status', $statusFilter);
+        }
+
+        $result = $this->db->getsingledata();
+        return (int)($result['total'] ?? 0);
+    }
+
+    /**
+     * Search supplier bookings by customer name, booking ref, or customer phone.
+     */
+    public function searchSupplierBookings(int $supplierId, string $searchTerm, ?string $statusFilter = null, int $limit = 20, int $offset = 0): array
+    {
+        $searchTerm = '%' . trim($searchTerm) . '%';
+
+        $sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone,
+                       bs.status AS supplier_status, bs.id AS booking_supplier_id,
+                       (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) AS item_count,
+                       (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
+                FROM bookings b
+                INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
+                LEFT JOIN users u ON b.user_id = u.user_id
+                WHERE bs.supplier_id = :sid
+                AND (u.name LIKE :search OR u.phone LIKE :search2 OR CONCAT('BK', b.id) LIKE :search3)";
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            $sql .= " AND bs.status = :status";
+        }
+
+        $sql .= " ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
+
+        $this->db->dbquery($sql);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':search', $searchTerm);
+        $this->db->dbbind(':search2', $searchTerm);
+        $this->db->dbbind(':search3', $searchTerm);
+        if ($statusFilter && $statusFilter !== 'all') {
+            $this->db->dbbind(':status', $statusFilter);
+        }
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Get count of search results for supplier bookings.
+     */
+    public function searchSupplierBookingsCount(int $supplierId, string $searchTerm, ?string $statusFilter = null): int
+    {
+        $searchTerm = '%' . trim($searchTerm) . '%';
+
+        $sql = "SELECT COUNT(*) as total
+                FROM bookings b
+                INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
+                LEFT JOIN users u ON b.user_id = u.user_id
+                WHERE bs.supplier_id = :sid
+                AND (u.name LIKE :search OR u.phone LIKE :search2 OR CONCAT('BK', b.id) LIKE :search3)";
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            $sql .= " AND bs.status = :status";
+        }
+
+        $this->db->dbquery($sql);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':search', $searchTerm);
+        $this->db->dbbind(':search2', $searchTerm);
+        $this->db->dbbind(':search3', $searchTerm);
+        if ($statusFilter && $statusFilter !== 'all') {
+            $this->db->dbbind(':status', $statusFilter);
+        }
+
+        $result = $this->db->getsingledata();
+        return (int)($result['total'] ?? 0);
+    }
+
+    /**
      * Get all bookings (admin view).
      */
     public function getAllBookings(?string $statusFilter = null, ?string $search = null): array
