@@ -135,6 +135,7 @@ button { font-family: var(--font-b); cursor: pointer; }
   <a class="gp-brand" href="<?= URLROOT ?>/main/index"><span class="gp-brand-mark">G</span>Golden Promise</a>
   <nav class="gp-header-nav"><a href="<?= URLROOT ?>/main/index">Home</a><a href="<?= URLROOT ?>/customerServices/service">Services</a><a href="<?= URLROOT ?>/booking/vouchers">Vouchers</a></nav>
   <div class="gp-header-actions">
+    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
     <div class="gp-profile-dropdown">
       <button class="gp-profile-btn" type="button" aria-expanded="false">
         <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>

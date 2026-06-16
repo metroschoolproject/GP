@@ -1553,6 +1553,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       </a>
 
       <?php if ($isLoggedIn): ?>
+      <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
       <div class="home-profile-dropdown relative">
         <button class="home-profile-btn" type="button" aria-expanded="false">
           <span class="home-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>

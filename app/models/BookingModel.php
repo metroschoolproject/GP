@@ -365,6 +365,71 @@ class BookingModel
     }
 
     /**
+     * Get booking items that belong to one supplier.
+     */
+    public function getBookingItemsForSupplier(int $bookingId, int $supplierId): array
+    {
+        $hasBookingVenueRoomColumn = $this->hasBookingVenueRoomColumn();
+        $bookingVenueSelect = $hasBookingVenueRoomColumn
+            ? 'COALESCE(bi_vr.id, slot_vr.id) AS venue_room_id,
+                    COALESCE(bi_vr.name, slot_vr.name) AS venue_room_name,
+                    COALESCE(bi_venue.name, slot_venue.name) AS venue_name'
+            : 'slot_vr.id AS venue_room_id,
+                    slot_vr.name AS venue_room_name,
+                    slot_venue.name AS venue_name';
+        $bookingVenueJoin = $hasBookingVenueRoomColumn
+            ? 'LEFT JOIN venue_rooms bi_vr ON bi_vr.id = bi.venue_room_id
+             LEFT JOIN venues bi_venue ON bi_venue.id = bi_vr.venue_id'
+            : '';
+
+        $this->db->dbquery(
+            "SELECT bi.*,
+                    COALESCE(s.name, p.name, sp.name) AS service_name,
+                    COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
+                    COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
+                    COALESCE(sup.supplier_id, sp_sup.supplier_id) AS supplier_id,
+                    cat.name AS category_name,
+                    {$bookingVenueSelect}
+             FROM booking_items bi
+             LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
+             LEFT JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
+             LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
+             LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
+             LEFT JOIN categories cat ON s.category_id = cat.id
+             {$bookingVenueJoin}
+             LEFT JOIN venue_room_availability slot_vra ON slot_vra.id = bi.slot_id
+             LEFT JOIN venue_rooms slot_vr ON slot_vr.id = slot_vra.room_id
+             LEFT JOIN venues slot_venue ON slot_venue.id = slot_vr.venue_id
+             WHERE bi.booking_id = :bid
+               AND (
+                    s.supplier_id = :sid_service
+                    OR sp.supplier_id = :sid_package
+                    OR (
+                        bi.item_type = 'package'
+                        AND EXISTS (
+                            SELECT 1
+                            FROM package_items pi_supplier
+                            LEFT JOIN services pi_service ON pi_service.id = pi_supplier.service_id
+                            WHERE pi_supplier.package_id = bi.item_id
+                              AND (
+                                  pi_supplier.default_supplier_id = :sid_default
+                                  OR pi_service.supplier_id = :sid_package_service
+                              )
+                        )
+                    )
+               )
+             ORDER BY bi.id ASC"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid_service', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid_package', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid_default', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid_package_service', $supplierId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    /**
      * Get event details for a booking.
      */
     public function getEventDetails(int $bookingId): array
@@ -459,9 +524,12 @@ class BookingModel
      */
     public function getSupplierBookings(int $supplierId, ?string $statusFilter = null): array
     {
+        $supplierItemCountSql = $this->supplierBookingItemCountSql();
+        $supplierItemTotalSql = $this->supplierBookingItemTotalSql();
         $sql = "SELECT b.*, u.name AS customer_name,
                        bs.status AS supplier_status, bs.id AS booking_supplier_id,
-                       (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) AS item_count
+                       {$supplierItemCountSql} AS item_count,
+                       {$supplierItemTotalSql} AS supplier_total_amount
                 FROM bookings b
                 INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
                 LEFT JOIN users u ON b.user_id = u.user_id
@@ -487,9 +555,12 @@ class BookingModel
      */
     public function getSupplierBookingsWithPagination(int $supplierId, ?string $statusFilter = null, int $limit = 20, int $offset = 0): array
     {
+        $supplierItemCountSql = $this->supplierBookingItemCountSql();
+        $supplierItemTotalSql = $this->supplierBookingItemTotalSql();
         $sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone,
                        bs.status AS supplier_status, bs.id AS booking_supplier_id,
-                       (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) AS item_count,
+                       {$supplierItemCountSql} AS item_count,
+                       {$supplierItemTotalSql} AS supplier_total_amount,
                        (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
                 FROM bookings b
                 INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
@@ -543,10 +614,13 @@ class BookingModel
     public function searchSupplierBookings(int $supplierId, string $searchTerm, ?string $statusFilter = null, int $limit = 20, int $offset = 0): array
     {
         $searchTerm = '%' . trim($searchTerm) . '%';
+        $supplierItemCountSql = $this->supplierBookingItemCountSql();
+        $supplierItemTotalSql = $this->supplierBookingItemTotalSql();
 
         $sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone,
                        bs.status AS supplier_status, bs.id AS booking_supplier_id,
-                       (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) AS item_count,
+                       {$supplierItemCountSql} AS item_count,
+                       {$supplierItemTotalSql} AS supplier_total_amount,
                        (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
                 FROM bookings b
                 INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
@@ -647,6 +721,7 @@ class BookingModel
      */
     public function getSupplierStats(int $supplierId): array
     {
+        $supplierItemTotalSql = $this->supplierBookingItemTotalSql();
         $this->db->dbquery(
             "SELECT
                 COUNT(*) AS total,
@@ -654,7 +729,7 @@ class BookingModel
                 SUM(CASE WHEN bs.status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_count,
                 SUM(CASE WHEN bs.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
                 SUM(CASE WHEN bs.status IN ('cancelled','rejected') THEN 1 ELSE 0 END) AS cancelled_count,
-                COALESCE(SUM(CASE WHEN bs.status IN ('confirmed','completed') THEN b.total_amount ELSE 0 END), 0) AS est_revenue
+                COALESCE(SUM(CASE WHEN bs.status IN ('confirmed','completed') THEN {$supplierItemTotalSql} ELSE 0 END), 0) AS est_revenue
              FROM booking_suppliers bs
              INNER JOIN bookings b ON bs.booking_id = b.id
              WHERE bs.supplier_id = :sid"
@@ -1052,5 +1127,57 @@ class BookingModel
         $this->logStatusChange($bookingId, null, 'cancelled', $adminId, 'Cancelled by admin: ' . $reason);
 
         return true;
+    }
+
+    private function supplierBookingItemCountSql(): string
+    {
+        return "(SELECT COUNT(*)
+                FROM booking_items bi_count
+                LEFT JOIN services s_count ON bi_count.item_id = s_count.id AND bi_count.item_type = 'service'
+                LEFT JOIN supplier_packages sp_count ON bi_count.item_id = sp_count.id AND bi_count.item_type = 'supplier_package'
+                WHERE bi_count.booking_id = b.id
+                  AND (
+                      s_count.supplier_id = bs.supplier_id
+                      OR sp_count.supplier_id = bs.supplier_id
+                      OR (
+                          bi_count.item_type = 'package'
+                          AND EXISTS (
+                              SELECT 1
+                              FROM package_items pi_count
+                              LEFT JOIN services pi_service_count ON pi_service_count.id = pi_count.service_id
+                              WHERE pi_count.package_id = bi_count.item_id
+                                AND (
+                                    pi_count.default_supplier_id = bs.supplier_id
+                                    OR pi_service_count.supplier_id = bs.supplier_id
+                                )
+                          )
+                      )
+                  ))";
+    }
+
+    private function supplierBookingItemTotalSql(): string
+    {
+        return "(SELECT COALESCE(SUM(bi_total.price), 0)
+                FROM booking_items bi_total
+                LEFT JOIN services s_total ON bi_total.item_id = s_total.id AND bi_total.item_type = 'service'
+                LEFT JOIN supplier_packages sp_total ON bi_total.item_id = sp_total.id AND bi_total.item_type = 'supplier_package'
+                WHERE bi_total.booking_id = b.id
+                  AND (
+                      s_total.supplier_id = bs.supplier_id
+                      OR sp_total.supplier_id = bs.supplier_id
+                      OR (
+                          bi_total.item_type = 'package'
+                          AND EXISTS (
+                              SELECT 1
+                              FROM package_items pi_total
+                              LEFT JOIN services pi_service_total ON pi_service_total.id = pi_total.service_id
+                              WHERE pi_total.package_id = bi_total.item_id
+                                AND (
+                                    pi_total.default_supplier_id = bs.supplier_id
+                                    OR pi_service_total.supplier_id = bs.supplier_id
+                                )
+                          )
+                      )
+                  ))";
     }
 }

@@ -816,6 +816,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
       <?php if ($cartCount > 0): ?><span class="gp-cart-count"><?= $cartCount ?></span><?php endif; ?>
     </a>
     <?php if ($isLoggedIn): ?>
+    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
     <div class="gp-profile-dropdown">
       <button class="gp-profile-btn" type="button" aria-expanded="false">
         <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>

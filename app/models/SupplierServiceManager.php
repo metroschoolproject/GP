@@ -575,20 +575,23 @@ class SupplierServiceManager
         $duration = max(15, min(720, (int)($data['duration_minutes'] ?? 60)));
         $buffer = max(0, min(240, (int)($data['buffer_minutes'] ?? 0)));
         $maxConcurrent = max(1, min(20, (int)($data['max_concurrent'] ?? 1)));
+        $minLeadDays = max(0, min(365, (int)($data['min_lead_days'] ?? 0)));
         $weekly = is_array($data['weekly'] ?? null) ? $data['weekly'] : [];
 
         $this->db->dbquery(
             'UPDATE services
-             SET duration_minutes = :duration_minutes,
-                 buffer_minutes = :buffer_minutes,
-                 max_concurrent = :max_concurrent,
-                 booking_type = :booking_type
+                 SET duration_minutes = :duration_minutes,
+                     buffer_minutes = :buffer_minutes,
+                     max_concurrent = :max_concurrent,
+                     min_lead_days = :min_lead_days,
+                     booking_type = :booking_type
              WHERE id = :id
                AND supplier_id = :supplier_id'
         );
         $this->db->dbbind(':duration_minutes', $duration);
         $this->db->dbbind(':buffer_minutes', $buffer);
         $this->db->dbbind(':max_concurrent', $maxConcurrent);
+        $this->db->dbbind(':min_lead_days', $minLeadDays);
         $this->db->dbbind(':booking_type', 'slot');
         $this->db->dbbind(':id', (int)$serviceId);
         $this->db->dbbind(':supplier_id', (int)$supplierId);

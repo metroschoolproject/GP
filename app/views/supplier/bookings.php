@@ -31,350 +31,634 @@ $dashboardTitle = 'Bookings';
 $dashboardCrumb = 'Incoming bookings';
 $dashboardContentClass = 'bg-app-content px-6 py-6 overflow-y-auto';
 $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters, $money, $h, $statusBadgeClass, $currentPage, $totalPages, $totalCount, $perPage, $searchQuery, $performanceMetrics, $upcomingBookings) {
-    $pendingCount  = (int)($stats['pending_count'] ?? 0);
+    $pendingCount   = (int)($stats['pending_count'] ?? 0);
     $confirmedCount = (int)($stats['confirmed_count'] ?? 0);
     $completedCount = (int)($stats['completed_count'] ?? 0);
     $estRevenue     = (float)($stats['est_revenue'] ?? 0);
-    $currentPage = $currentPage ?? 1;
-    $totalPages = $totalPages ?? 1;
-    $totalCount = $totalCount ?? 0;
-    $perPage = $perPage ?? 20;
-    $searchQuery = $searchQuery ?? '';
+    $currentPage    = $currentPage ?? 1;
+    $totalPages     = $totalPages ?? 1;
+    $totalCount     = $totalCount ?? 0;
+    $perPage        = $perPage ?? 20;
+    $searchQuery    = $searchQuery ?? '';
     $performanceMetrics = $performanceMetrics ?? [];
-    $upcomingBookings = $upcomingBookings ?? [];
+    $upcomingBookings   = $upcomingBookings ?? [];
 ?>
 <style>
-  .bk-stat-card {
-    transition: transform 140ms ease, box-shadow 140ms ease;
-  }
-  .bk-stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(34,24,19,0.08);
-  }
-  .bk-table-row {
-    transition: background 120ms ease;
-  }
-  .bk-table-row:hover {
-    background: var(--color-app-input, #f9fafb);
-  }
-  .bk-filter-pill {
-    transition: all 160ms ease;
-  }
-  @media (max-width: 640px) {
-    .bk-stats-grid {
-      grid-template-columns: repeat(2, 1fr) !important;
+/* ── Bookings view ────────────────────────────────────────────── */
+.bk-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.bk-kpi {
+    background: var(--color-app-input, #fff);
+    border: 1px solid var(--color-app-border, #e5e7eb);
+    border-left-width: 3px;
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+.bk-kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-app-muted, #9ca3af);
+}
+.bk-kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-app-text, #111827);
+    margin-top: 4px;
+    line-height: 1;
+}
+.bk-kpi-sub {
+    font-size: 11px;
+    color: var(--color-app-muted, #9ca3af);
+    margin-top: 3px;
+}
+.bk-kpi-pending   { border-left-color: #d97706; }
+.bk-kpi-confirmed { border-left-color: #059669; }
+.bk-kpi-completed { border-left-color: #2563eb; }
+.bk-kpi-revenue   { border-left-color: var(--color-app-border, #e5e7eb); }
+
+/* Pending alert banner */
+.bk-pending-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 16px;
+    background: #fffbeb;
+    border-bottom: 1px solid #fde68a;
+}
+.bk-pending-banner .bk-pb-icon {
+    color: #92400e;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.bk-pending-banner .bk-pb-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+}
+.bk-pending-banner .bk-pb-sub {
+    font-size: 12px;
+    color: #b45309;
+    margin-top: 1px;
+}
+
+/* Section card */
+.bk-section {
+    background: var(--color-app-input, #fff);
+    border: 1px solid var(--color-app-border, #e5e7eb);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Toolbar */
+.bk-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-app-border, #e5e7eb);
+    flex-wrap: wrap;
+}
+.bk-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.bk-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--color-app-border, #e5e7eb);
+    background: transparent;
+    color: var(--color-app-secondary, #6b7280);
+    text-decoration: none;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+}
+.bk-pill:hover {
+    background: var(--color-app-soft, #f9fafb);
+    color: var(--color-app-text, #111827);
+}
+.bk-pill-active-all {
+    background: var(--color-app-text, #111827);
+    color: #fff;
+    border-color: var(--color-app-text, #111827);
+}
+.bk-pill-active-pending {
+    background: #92400e;
+    color: #fff;
+    border-color: #92400e;
+}
+.bk-pill-active-confirmed {
+    background: #065f46;
+    color: #fff;
+    border-color: #065f46;
+}
+.bk-pill-active-completed {
+    background: #1e40af;
+    color: #fff;
+    border-color: #1e40af;
+}
+.bk-pill-active-rejected {
+    background: #991b1b;
+    color: #fff;
+    border-color: #991b1b;
+}
+
+/* Search */
+.bk-search-wrap {
+    margin-left: auto;
+    position: relative;
+}
+.bk-search-wrap i[data-lucide] {
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: var(--color-app-muted, #9ca3af);
+    pointer-events: none;
+}
+.bk-search-input {
+    font-size: 13px;
+    height: 34px;
+    padding: 0 10px 0 30px;
+    border-radius: 8px;
+    border: 1px solid var(--color-app-border, #e5e7eb);
+    background: var(--color-app-soft, #f9fafb);
+    color: var(--color-app-text, #111827);
+    width: 220px;
+    transition: border-color 0.12s;
+}
+.bk-search-input::placeholder { color: var(--color-app-muted, #9ca3af); }
+.bk-search-input:focus {
+    outline: none;
+    border-color: var(--color-app-primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+}
+
+/* Table */
+.bk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bk-table thead tr {
+    background: var(--color-app-soft, #f9fafb);
+    border-bottom: 1px solid var(--color-app-border, #e5e7eb);
+}
+.bk-table th {
+    padding: 10px 16px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-app-muted, #9ca3af);
+    text-align: left;
+    white-space: nowrap;
+}
+.bk-table th.bk-right,
+.bk-table td.bk-right { text-align: right; }
+.bk-table tbody tr {
+    border-bottom: 1px solid var(--color-app-border, #e5e7eb);
+    transition: background 0.1s;
+}
+.bk-table tbody tr:last-child { border-bottom: none; }
+.bk-table tbody tr:hover { background: var(--color-app-soft, #f9fafb); }
+.bk-table td {
+    padding: 13px 16px;
+    color: var(--color-app-text, #111827);
+    vertical-align: middle;
+}
+
+/* Customer cell */
+.bk-customer-cell { display: flex; align-items: center; gap: 9px; }
+.bk-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    background: var(--color-app-soft, #f3f4f6);
+    color: var(--color-app-secondary, #6b7280);
+}
+.bk-cname { font-weight: 600; font-size: 13px; color: var(--color-app-text, #111827); }
+.bk-cdate { font-size: 11px; color: var(--color-app-muted, #9ca3af); margin-top: 1px; }
+.bk-ref {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-app-secondary, #6b7280);
+    font-family: ui-monospace, monospace;
+}
+.bk-amount { font-weight: 600; }
+
+/* Status badges */
+.bk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.bk-badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+.bk-badge-pending   { background: #fef3c7; color: #92400e; }
+.bk-badge-pending .bk-badge-dot   { background: #d97706; }
+.bk-badge-confirmed { background: #d1fae5; color: #065f46; }
+.bk-badge-confirmed .bk-badge-dot { background: #059669; }
+.bk-badge-completed { background: #dbeafe; color: #1e40af; }
+.bk-badge-completed .bk-badge-dot { background: #2563eb; }
+.bk-badge-rejected  { background: #fee2e2; color: #991b1b; }
+.bk-badge-rejected .bk-badge-dot  { background: #ef4444; }
+.bk-badge-cancelled { background: #fee2e2; color: #991b1b; }
+.bk-badge-cancelled .bk-badge-dot { background: #ef4444; }
+
+/* Action buttons */
+.bk-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.bk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 7px;
+    border: 1px solid var(--color-app-border, #e5e7eb);
+    cursor: pointer;
+    background: transparent;
+    color: var(--color-app-text, #111827);
+    text-decoration: none;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+}
+.bk-btn i[data-lucide] { width: 13px; height: 13px; }
+.bk-btn-confirm {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+.bk-btn-confirm:hover {
+    background: #a7f3d0;
+    border-color: #34d399;
+}
+.bk-btn-decline {
+    background: transparent;
+    color: var(--color-app-secondary, #6b7280);
+    border-color: var(--color-app-border, #e5e7eb);
+}
+.bk-btn-decline:hover {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+.bk-btn-view {
+    color: var(--color-app-secondary, #6b7280);
+}
+.bk-btn-view:hover {
+    background: var(--color-app-soft, #f9fafb);
+    color: var(--color-app-text, #111827);
+}
+
+/* Empty state */
+.bk-empty {
+    text-align: center;
+    padding: 56px 24px;
+}
+.bk-empty-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: var(--color-app-soft, #f9fafb);
+    color: var(--color-app-muted, #9ca3af);
+}
+.bk-empty-icon i[data-lucide] { width: 22px; height: 22px; }
+.bk-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-app-text, #111827);
+}
+.bk-empty-sub {
+    font-size: 13px;
+    color: var(--color-app-muted, #9ca3af);
+    margin-top: 4px;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Pagination */
+.bk-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 16px;
+    border-top: 1px solid var(--color-app-border, #e5e7eb);
+}
+.bk-page-info { font-size: 12px; color: var(--color-app-muted, #9ca3af); }
+.bk-page-btns { display: flex; align-items: center; gap: 4px; }
+.bk-page-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    border: 1px solid var(--color-app-border, #e5e7eb);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-app-secondary, #6b7280);
+    background: transparent;
+    transition: all 0.1s;
+}
+.bk-page-btn:hover:not(.bk-page-btn-cur):not(.bk-page-btn-disabled) {
+    background: var(--color-app-soft, #f9fafb);
+    color: var(--color-app-text, #111827);
+}
+.bk-page-btn-cur {
+    background: var(--color-app-text, #111827);
+    color: #fff;
+    border-color: var(--color-app-text, #111827);
+}
+.bk-page-btn-disabled { opacity: 0.35; pointer-events: none; }
+.bk-page-btn i[data-lucide] { width: 13px; height: 13px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .bk-kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .bk-hide-sm { display: none !important; }
+    .bk-search-wrap { margin-left: 0; width: 100%; }
+    .bk-search-input { width: 100%; }
+    .bk-toolbar { gap: 6px; }
+}
+@media (max-width: 480px) {
+    .bk-kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .bk-filter-group {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
     }
-    .bk-filter-bar {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding-bottom: 4px;
-    }
-    .bk-filter-bar::-webkit-scrollbar { display: none; }
-    .bk-table th, .bk-table td {
-      padding-left: 0.75rem !important;
-      padding-right: 0.75rem !important;
-    }
-  }
+    .bk-filter-group::-webkit-scrollbar { display: none; }
+}
 </style>
 
-<section class="mx-auto max-w-[1600px] space-y-5 font-ui text-[13px] text-app-text antialiased">
+<section class="mx-auto max-w-[1400px] space-y-4 font-ui text-[13px] text-app-text antialiased">
 
-  <!-- ===== Performance KPI cards row ===== -->
-  <?php if (!empty($performanceMetrics)): ?>
-  <div class="bk-stats-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-    <!-- Response Rate -->
-    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
-      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
-        <i data-lucide="activity" class="h-4 w-4"></i>
-      </div>
-      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Response Rate</p>
-      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= number_format((float)($performanceMetrics['response_rate'] ?? 0), 0) ?>%</p>
-      <p class="mt-0.5 text-[11px] text-app-muted"><?= (int)($performanceMetrics['accepted_count'] ?? 0) ?> accepted</p>
+    <!-- Page header -->
+    <div>
+        <h2 class="text-base font-bold text-app-text">Bookings</h2>
+        <p class="mt-0.5 text-xs text-app-muted">Review and respond to incoming customer bookings</p>
     </div>
 
-    <!-- Acceptance Rate -->
-    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
-      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-success/10 text-app-success">
-        <i data-lucide="trending-up" class="h-4 w-4"></i>
-      </div>
-      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Acceptance Rate</p>
-      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= number_format((float)($performanceMetrics['acceptance_rate'] ?? 0), 0) ?>%</p>
-      <p class="mt-0.5 text-[11px] text-app-muted"><?= (int)($performanceMetrics['rejected_count'] ?? 0) ?> rejected</p>
-    </div>
-
-    <!-- Avg Response Time -->
-    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
-      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-soft text-app-secondary">
-        <i data-lucide="clock" class="h-4 w-4"></i>
-      </div>
-      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Avg Response</p>
-      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= (float)($performanceMetrics['avg_response_hours'] ?? 0) ?>h</p>
-      <p class="mt-0.5 text-[11px] text-app-muted">Time to respond</p>
-    </div>
-
-    <!-- Total Bookings -->
-    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
-      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-warning/10 text-app-warning">
-        <i data-lucide="calendar" class="h-4 w-4"></i>
-      </div>
-      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Total Bookings</p>
-      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= (int)($performanceMetrics['total_bookings'] ?? 0) ?></p>
-      <p class="mt-0.5 text-[11px] text-app-muted">All time</p>
-    </div>
-  </div>
-  <?php endif; ?>
-
-  <!-- ===== Stat cards row ===== -->
-  <div class="bk-stats-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-    <!-- Pending -->
-    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
-      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-warning/10 text-app-warning">
-        <i data-lucide="clock" class="h-4 w-4"></i>
-      </div>
-      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Pending</p>
-      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= $pendingCount ?></p>
-      <p class="mt-0.5 text-[11px] text-app-muted">Awaiting your response</p>
-    </div>
-
-    <!-- Confirmed -->
-    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
-      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-success/10 text-app-success">
-        <i data-lucide="check-circle" class="h-4 w-4"></i>
-      </div>
-      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Confirmed</p>
-      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= $confirmedCount ?></p>
-      <p class="mt-0.5 text-[11px] text-app-muted">Upcoming bookings</p>
-    </div>
-
-    <!-- Completed -->
-    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
-      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-soft text-app-accent">
-        <i data-lucide="badge-check" class="h-4 w-4"></i>
-      </div>
-      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Completed</p>
-      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= $completedCount ?></p>
-      <p class="mt-0.5 text-[11px] text-app-muted">Successfully delivered</p>
-    </div>
-
-    <!-- Est. Revenue (dark standout card) -->
-    <div class="bk-stat-card relative overflow-hidden rounded-card bg-app-text p-4 text-app-white shadow-xl">
-      <div class="relative z-10">
-        <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-white/10 text-app-white">
-          <i data-lucide="wallet" class="h-4 w-4"></i>
+    <!-- ── KPI row ───────────────────────────────────────────────── -->
+    <div class="bk-kpi-row">
+        <div class="bk-kpi bk-kpi-pending">
+            <p class="bk-kpi-label">Pending</p>
+            <p class="bk-kpi-value"><?= $pendingCount ?></p>
+            <p class="bk-kpi-sub">Need your response</p>
         </div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-app-white/70">Est. Revenue</p>
-        <p class="mt-1 text-2xl font-bold tracking-tight text-app-white"><?= $money($estRevenue) ?></p>
-        <p class="mt-0.5 text-[11px] text-app-white/50">Across all bookings</p>
-      </div>
-      <svg class="absolute -right-4 -top-4 h-20 w-20 rotate-12 text-app-white/5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>
-    </div>
-  </div>
-
-  <!-- ===== Header + Search + Filter bar ===== -->
-  <div class="flex flex-col gap-3">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h2 class="text-base font-bold text-app-text">All Bookings</h2>
-        <p class="mt-0.5 text-xs text-app-muted">Manage and respond to your customer bookings</p>
-      </div>
-    </div>
-
-    <!-- Search bar -->
-    <form method="get" class="flex items-center gap-2">
-      <input type="hidden" name="status" value="<?= $h($activeFilter) ?>">
-      <div class="relative flex-1 sm:max-w-xs">
-        <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-muted"></i>
-        <input type="text" name="search" placeholder="Search by customer name or booking..."
-               value="<?= $h($searchQuery) ?>"
-               class="h-9 w-full rounded-lg border border-app-border bg-app-input pl-9 pr-3 text-sm text-app-text placeholder-app-muted focus:border-app-primary focus:outline-none focus:ring-1 focus:ring-app-primary/20">
-      </div>
-      <?php if ($searchQuery): ?>
-      <a href="<?= URLROOT ?>/supplier/bookings?status=<?= $h($activeFilter) ?>"
-         class="inline-flex items-center gap-1.5 rounded-lg border border-app-border bg-app-input px-3 py-2 text-xs font-semibold text-app-secondary hover:text-app-text transition-colors">
-        <i data-lucide="x" class="h-3.5 w-3.5"></i>
-        Clear
-      </a>
-      <?php endif; ?>
-    </form>
-
-    <!-- Filter pills -->
-    <div class="bk-filter-bar flex items-center gap-1.5">
-      <?php foreach ($filters as $key => $f):
-        $filterUrl = URLROOT . '/supplier/bookings?status=' . $h($key);
-        if ($searchQuery) {
-          $filterUrl .= '&search=' . urlencode($searchQuery);
-        }
-      ?>
-        <a href="<?= $filterUrl ?>"
-           class="bk-filter-pill inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all
-                  <?= $activeFilter === $key
-                    ? 'bg-app-primary text-app-white shadow-sm'
-                    : 'border border-app-border bg-app-input text-app-secondary hover:text-app-text hover:border-app-muted' ?>">
-          <i data-lucide="<?= $h($f['icon']) ?>" class="h-3 w-3"></i>
-          <?= $h($f['label']) ?>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </div>
-
-  <!-- ===== Upcoming Bookings Section ===== -->
-  <?php if (!empty($upcomingBookings)): ?>
-  <div class="rounded-card border border-app-border bg-app-input p-5 shadow-sm">
-    <div class="mb-4 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
-          <i data-lucide="calendar-days" class="h-4 w-4"></i>
+        <div class="bk-kpi bk-kpi-confirmed">
+            <p class="bk-kpi-label">Confirmed</p>
+            <p class="bk-kpi-value"><?= $confirmedCount ?></p>
+            <p class="bk-kpi-sub">Upcoming events</p>
         </div>
-        <h3 class="text-base font-bold text-app-text">Upcoming Confirmed Bookings</h3>
-      </div>
-      <span class="rounded-full bg-app-soft px-2.5 py-1 text-xs font-semibold text-app-secondary"><?= count($upcomingBookings) ?></span>
-    </div>
-    <div class="space-y-2">
-      <?php foreach ($upcomingBookings as $upcoming): ?>
-      <div class="flex items-center justify-between rounded-lg border border-app-border/50 bg-app-panel p-3 hover:border-app-border transition-colors">
-        <div class="flex items-center gap-3">
-          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-app-primary/10 text-[10px] font-bold text-app-primary">
-            <?= $h(strtoupper(substr($upcoming['customer_name'] ?? 'C', 0, 1))) ?>
-          </div>
-          <div>
-            <p class="text-sm font-semibold text-app-text"><?= $h($upcoming['customer_name'] ?? 'Customer') ?></p>
-            <p class="text-xs text-app-muted"><?= $h($upcoming['event_date'] ?? '-') ?></p>
-          </div>
+        <div class="bk-kpi bk-kpi-completed">
+            <p class="bk-kpi-label">Completed</p>
+            <p class="bk-kpi-value"><?= $completedCount ?></p>
+            <p class="bk-kpi-sub">Successfully delivered</p>
         </div>
-        <div class="text-right">
-          <p class="text-sm font-semibold text-app-text"><?= $money($upcoming['total_amount'] ?? 0) ?></p>
-          <a href="<?= URLROOT ?>/supplier/bookingDetail/<?= (int)$upcoming['id'] ?>" class="text-[10px] font-semibold text-app-primary hover:underline">View</a>
+        <div class="bk-kpi bk-kpi-revenue">
+            <p class="bk-kpi-label">Est. revenue</p>
+            <p class="bk-kpi-value"><?= $money($estRevenue) ?></p>
+            <p class="bk-kpi-sub">Across all bookings</p>
         </div>
-      </div>
-      <?php endforeach; ?>
     </div>
-  </div>
-  <?php endif; ?>
 
-  <!-- ===== Bookings table ===== -->
-  <div class="overflow-hidden rounded-card border border-app-border bg-app-input shadow-sm">
-    <?php if (empty($bookings)): ?>
-      <div class="flex flex-col items-center justify-center px-6 py-16 text-center">
-        <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-app-soft text-app-muted">
-          <i data-lucide="calendar-x" class="h-6 w-6"></i>
+    <!-- ── Main table section ────────────────────────────────────── -->
+    <div class="bk-section">
+
+        <!-- Pending alert banner — only shown when there are pending bookings -->
+        <?php if ($pendingCount > 0): ?>
+        <div class="bk-pending-banner">
+            <i data-lucide="alert-circle" class="bk-pb-icon h-4 w-4"></i>
+            <div>
+                <p class="bk-pb-title"><?= $pendingCount ?> booking<?= $pendingCount !== 1 ? 's' : '' ?> waiting for your response</p>
+                <p class="bk-pb-sub">Respond within 24 hours to maintain a good acceptance rate</p>
+            </div>
         </div>
-        <p class="text-base font-semibold text-app-text">No bookings found</p>
-        <p class="mt-1 max-w-sm text-sm text-app-muted">Incoming customer bookings will appear here. When a customer books your service, you'll be able to review and respond.</p>
-      </div>
-    <?php else: ?>
-      <div class="overflow-x-auto">
-        <table class="bk-table min-w-full text-left text-sm">
-          <thead>
-            <tr class="border-b border-app-border bg-app-soft/60">
-              <th class="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-app-muted">Booking</th>
-              <th class="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-app-muted">Customer</th>
-              <th class="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-app-muted">Services</th>
-              <th class="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-app-muted">Amount</th>
-              <th class="px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-app-muted">Status</th>
-              <th class="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-app-muted">Action</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-app-border">
-            <?php foreach ($bookings as $booking):
-              $bStatus = strtolower($booking['supplier_status'] ?? 'pending');
+        <?php endif; ?>
+
+        <!-- Toolbar: filters + search -->
+        <div class="bk-toolbar">
+            <div class="bk-filter-group">
+                <?php foreach ($filters as $key => $f):
+                    $filterUrl = URLROOT . '/supplier/bookings?status=' . $h($key);
+                    if ($searchQuery) {
+                        $filterUrl .= '&search=' . urlencode($searchQuery);
+                    }
+                    // Build active class name
+                    $isActive = $activeFilter === $key;
+                    $activeClass = $isActive ? 'bk-pill-active-' . $h($key) : '';
+                    // Label with count badge for pending
+                    $label = $h($f['label']);
+                    if ($key === 'pending' && $pendingCount > 0) {
+                        $label .= ' (' . $pendingCount . ')';
+                    }
+                ?>
+                <a href="<?= $filterUrl ?>"
+                   class="bk-pill <?= $activeClass ?>">
+                    <?= $label ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Search -->
+            <form method="get" class="bk-search-wrap">
+                <input type="hidden" name="status" value="<?= $h($activeFilter) ?>">
+                <i data-lucide="search"></i>
+                <input
+                    type="text"
+                    name="search"
+                    placeholder="Search bookings…"
+                    value="<?= $h($searchQuery) ?>"
+                    class="bk-search-input"
+                    aria-label="Search bookings"
+                >
+            </form>
+        </div>
+
+        <!-- Table -->
+        <?php if (empty($bookings)): ?>
+            <div class="bk-empty">
+                <div class="bk-empty-icon">
+                    <i data-lucide="calendar-x"></i>
+                </div>
+                <p class="bk-empty-title">
+                    <?= $searchQuery ? 'No results for "' . $h($searchQuery) . '"' : 'No bookings found' ?>
+                </p>
+                <p class="bk-empty-sub">
+                    <?= $searchQuery
+                        ? 'Try a different name or booking reference.'
+                        : 'Incoming customer bookings will appear here.' ?>
+                </p>
+                <?php if ($searchQuery): ?>
+                <a href="<?= URLROOT ?>/supplier/bookings?status=<?= $h($activeFilter) ?>"
+                   class="bk-btn bk-btn-view mt-4 inline-flex">
+                    <i data-lucide="x"></i>
+                    Clear search
+                </a>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
+            <div style="overflow-x: auto;">
+                <table class="bk-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th class="bk-hide-sm">Booking ref</th>
+                            <th class="bk-hide-sm">Event date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th class="bk-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($bookings as $booking):
+                            $bStatus  = strtolower($booking['supplier_status'] ?? 'pending');
+                            $initials = strtoupper(substr($booking['customer_name'] ?? 'C', 0, 1));
+                            $eventDate = $booking['event_date'] ?? ($booking['booking_date'] ?? '—');
+                        ?>
+                        <tr>
+                            <!-- Customer -->
+                            <td>
+                                <div class="bk-customer-cell">
+                                    <div class="bk-avatar"><?= $h($initials) ?></div>
+                                    <div>
+                                        <div class="bk-cname"><?= $h($booking['customer_name'] ?? 'Customer') ?></div>
+                                        <div class="bk-cdate bk-hide-sm"><?= $h($eventDate) ?></div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Ref -->
+                            <td class="bk-hide-sm">
+                                <span class="bk-ref"><?= $h($booking['booking_ref'] ?? '') ?></span>
+                            </td>
+
+                            <!-- Event date (desktop column) -->
+                            <td class="bk-hide-sm" style="color: var(--color-app-secondary, #6b7280);">
+                                <?= $h($eventDate) ?>
+                            </td>
+
+                            <!-- Amount -->
+                            <td class="bk-amount">
+                                <?= $money($booking['total_amount'] ?? 0) ?>
+                            </td>
+
+                            <!-- Status badge -->
+                            <td>
+                                <span class="bk-badge bk-badge-<?= $h($bStatus) ?>">
+                                    <span class="bk-badge-dot"></span>
+                                    <?= $h(ucfirst($bStatus)) ?>
+                                </span>
+                            </td>
+
+	                            <!-- Actions -->
+	                            <td class="bk-right">
+	                                <div class="bk-actions">
+	                                    <a class="bk-btn bk-btn-view"
+	                                       href="<?= URLROOT ?>/supplier/bookingDetail/<?= (int)$booking['id'] ?>">
+	                                        <i data-lucide="<?= $bStatus === 'pending' ? 'clipboard-check' : 'eye' ?>"></i>
+	                                        <?= $bStatus === 'pending' ? 'Review' : 'View' ?>
+	                                    </a>
+	                                </div>
+	                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <?php if ($totalPages > 1):
+                $pageParams = 'status=' . $h($activeFilter);
+                if ($searchQuery) {
+                    $pageParams .= '&search=' . urlencode($searchQuery);
+                }
             ?>
-              <tr class="bk-table-row">
-                <td class="px-4 py-3.5">
-                  <p class="font-semibold text-app-text"><?= $h($booking['booking_ref'] ?? '') ?></p>
-                </td>
-                <td class="px-4 py-3.5">
-                  <div class="flex items-center gap-2.5">
-                    <div class="flex h-7 w-7 items-center justify-center rounded-full bg-app-soft text-[10px] font-semibold text-app-secondary">
-                      <?= $h(strtoupper(substr($booking['customer_name'] ?? 'C', 0, 1))) ?>
-                    </div>
-                    <span class="text-app-secondary"><?= $h($booking['customer_name'] ?? 'Customer') ?></span>
-                  </div>
-                </td>
-                <td class="px-4 py-3.5 text-app-secondary">
-                  <?= (int)($booking['item_count'] ?? count($booking['items'] ?? [])) ?> item(s)
-                </td>
-                <td class="px-4 py-3.5 font-semibold text-app-text">
-                  <?= $money($booking['total_amount'] ?? 0) ?>
-                </td>
-                <td class="px-4 py-3.5">
-                  <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold <?= $statusBadgeClass($bStatus) ?>">
-                    <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>
-                    <?= $h(ucfirst($bStatus)) ?>
-                  </span>
-                </td>
-                <td class="px-4 py-3.5 text-right">
-                  <a class="inline-flex items-center gap-1.5 rounded-lg border border-app-border bg-app-panel px-3 py-2 text-xs font-semibold text-app-text transition hover:bg-app-primary hover:text-app-white hover:border-app-primary hover:shadow-sm"
-                     href="<?= URLROOT ?>/supplier/bookingDetail/<?= (int)$booking['id'] ?>">
-                    <i data-lucide="eye" class="h-3.5 w-3.5"></i>
-                    View
-                  </a>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
+            <div class="bk-pagination">
+                <span class="bk-page-info">
+                    Showing <?= (($currentPage - 1) * $perPage) + 1 ?>–<?= min($currentPage * $perPage, $totalCount) ?> of <?= $totalCount ?>
+                </span>
+                <div class="bk-page-btns">
+                    <!-- Prev -->
+                    <?php if ($currentPage > 1): ?>
+                    <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $currentPage - 1 ?>"
+                       class="bk-page-btn" aria-label="Previous page">
+                        <i data-lucide="chevron-left"></i>
+                    </a>
+                    <?php else: ?>
+                    <span class="bk-page-btn bk-page-btn-disabled" aria-disabled="true">
+                        <i data-lucide="chevron-left"></i>
+                    </span>
+                    <?php endif; ?>
 
-      <!-- ===== Pagination ===== -->
-      <?php if ($totalPages > 1): ?>
-      <div class="flex items-center justify-between border-t border-app-border px-4 py-3.5">
-        <p class="text-xs font-medium text-app-muted">
-          Showing <?= (($currentPage - 1) * $perPage) + 1 ?> to <?= min($currentPage * $perPage, $totalCount) ?> of <?= $totalCount ?> bookings
-        </p>
-        <div class="flex items-center gap-1.5">
-          <?php
-            $pageParams = 'status=' . $h($activeFilter);
-            if ($searchQuery) {
-              $pageParams .= '&search=' . urlencode($searchQuery);
-            }
-          ?>
-          <?php if ($currentPage > 1): ?>
-          <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $currentPage - 1 ?>"
-             class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-secondary hover:bg-app-soft transition-colors">
-            <i data-lucide="chevron-left" class="h-3.5 w-3.5"></i>
-          </a>
-          <?php else: ?>
-          <span class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-muted opacity-50">
-            <i data-lucide="chevron-left" class="h-3.5 w-3.5"></i>
-          </span>
-          <?php endif; ?>
+                    <!-- Page numbers -->
+                    <?php for ($p = 1; $p <= $totalPages; $p++):
+                        $showPage = ($p === 1)
+                            || ($p === $totalPages)
+                            || ($p >= $currentPage - 1 && $p <= $currentPage + 1);
+                        $isEllipsisBefore = ($p === 2 && $currentPage > 3);
+                        $isEllipsisAfter  = ($p === $totalPages - 1 && $currentPage < $totalPages - 2);
+                    ?>
+                        <?php if ($showPage): ?>
+                            <?php if ($p === $currentPage): ?>
+                            <span class="bk-page-btn bk-page-btn-cur" aria-current="page"><?= $p ?></span>
+                            <?php else: ?>
+                            <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $p ?>"
+                               class="bk-page-btn"><?= $p ?></a>
+                            <?php endif; ?>
+                        <?php elseif ($isEllipsisBefore || $isEllipsisAfter): ?>
+                            <span style="padding: 0 4px; color: var(--color-app-muted, #9ca3af); font-size: 12px;">…</span>
+                        <?php endif; ?>
+                    <?php endfor; ?>
 
-          <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-            <?php if ($p === 1 || $p === $totalPages || ($p >= $currentPage - 1 && $p <= $currentPage + 1)): ?>
-              <?php if ($p === $currentPage): ?>
-              <button class="flex h-7 w-7 items-center justify-center rounded-md bg-app-primary text-app-white text-[11px] font-semibold" disabled>
-                <?= $p ?>
-              </button>
-              <?php else: ?>
-              <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $p ?>"
-                 class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-secondary hover:bg-app-soft transition-colors text-[11px] font-semibold">
-                <?= $p ?>
-              </a>
-              <?php endif; ?>
-            <?php elseif ($p === 2 && $currentPage > 3): ?>
-              <span class="px-1.5 text-app-muted">...</span>
-            <?php elseif ($p === $totalPages - 1 && $currentPage < $totalPages - 2): ?>
-              <span class="px-1.5 text-app-muted">...</span>
+                    <!-- Next -->
+                    <?php if ($currentPage < $totalPages): ?>
+                    <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $currentPage + 1 ?>"
+                       class="bk-page-btn" aria-label="Next page">
+                        <i data-lucide="chevron-right"></i>
+                    </a>
+                    <?php else: ?>
+                    <span class="bk-page-btn bk-page-btn-disabled" aria-disabled="true">
+                        <i data-lucide="chevron-right"></i>
+                    </span>
+                    <?php endif; ?>
+                </div>
+            </div>
             <?php endif; ?>
-          <?php endfor; ?>
+        <?php endif; ?>
 
-          <?php if ($currentPage < $totalPages): ?>
-          <a href="<?= URLROOT ?>/supplier/bookings?<?= $pageParams ?>&page=<?= $currentPage + 1 ?>"
-             class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-secondary hover:bg-app-soft transition-colors">
-            <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
-          </a>
-          <?php else: ?>
-          <span class="flex h-7 w-7 items-center justify-center rounded-md border border-app-border text-app-muted opacity-50">
-            <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
-          </span>
-          <?php endif; ?>
-        </div>
-      </div>
-      <?php endif; ?>
-    <?php endif; ?>
-  </div>
+    </div><!-- /.bk-section -->
 
 </section>
 <?php

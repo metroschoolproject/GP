@@ -1852,6 +1852,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
       Cart
     </a>
     <?php if ($isLoggedIn): ?>
+    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
     <div class="tb-profile-dropdown">
       <button class="tb-profile-btn" type="button" aria-expanded="false">
         <span class="tb-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>

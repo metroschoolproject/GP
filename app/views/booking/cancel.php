@@ -41,6 +41,7 @@ $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
     <a href="<?= URLROOT ?>/customerServices/service">Services</a>
   </nav>
   <div class="gp-header-actions" style="display:flex;align-items:center;gap:10px">
+    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
     <div class="gp-profile-dropdown">
       <button class="gp-profile-btn" type="button" aria-expanded="false">
         <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>

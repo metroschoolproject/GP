@@ -654,6 +654,28 @@ class Booking extends Controller
         ]);
     }
 
+    public function notificationsJson(): void
+    {
+        $this->ensureAuthenticated();
+
+        $this->jsonResponse([
+            'unread_count' => $this->notificationModel->getUnreadCount($this->userId),
+            'notifications' => $this->notificationModel->getLatest($this->userId, 8),
+        ]);
+    }
+
+    public function markNotificationRead($notificationId = null): void
+    {
+        $this->ensureAuthenticated();
+
+        if (!$notificationId) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Notification id is required.'], 422);
+        }
+
+        $this->notificationModel->markRead((int)$notificationId, $this->userId);
+        $this->jsonResponse(['status' => 'success']);
+    }
+
     /* ─── Booking Detail (Customer) ─────────────────────────────── */
 
     public function detail(int $bookingId): void

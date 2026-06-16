@@ -231,6 +231,10 @@
               <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
             </div>
             <?php endif; ?>
+            <div class="sd-avail-field">
+              <label>Minimum notice</label>
+              <input id="availabilityMinLeadDays" type="number" min="0" max="365" value="<?= (int)($service['min_lead_days'] ?? 0) ?>">
+            </div>
           </div>
 
           <!-- Day cards -->
@@ -442,6 +446,10 @@
           <div class="sd-info-row">
             <span class="sd-info-key">Slot duration</span>
             <span class="sd-info-val"><?= $h($durationLabel($slotDuration)) ?></span>
+          </div>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Minimum notice</span>
+            <span class="sd-info-val" id="serviceInfoMinLeadDays"><?= (int)($service['min_lead_days'] ?? 0) ?> days</span>
           </div>
           <?php if ($isVenue): ?>
             <div class="sd-info-row">

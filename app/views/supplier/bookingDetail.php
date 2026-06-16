@@ -5,6 +5,7 @@ $eventDetails = $eventDetails ?? [];
 $logs = $logs ?? [];
 $bookingRef = $bookingRef ?? '';
 $supplierStatus = strtolower($supplierStatus ?? 'pending');
+$depositPercent = $depositPercent ?? 30;
 
 $money = fn($v) => 'RM ' . number_format((float)$v, 0);
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -87,12 +88,6 @@ $dashboardContent = function () use (
     $statusBadgeClass,
     $statusIcon,
     $statusDotClass,
-    $totalAmount,
-    $paidAmount,
-    $platformFee,
-    $supplierEarnings,
-    $supplierEarningsPaid,
-    $platformCommissionRate,
     $depositPercent
 ) {
     $customerName = trim((string)($booking['customer_name'] ?? 'Customer'));
@@ -103,9 +98,15 @@ $dashboardContent = function () use (
     $startTime = $formatTime($firstDetail['start_time'] ?? '');
     $endTime = $formatTime($firstDetail['end_time'] ?? '');
     $eventTime = trim($startTime . ' - ' . $endTime, ' -');
-    $totalAmount = (float)($booking['total_amount'] ?? 0);
-    $paidAmount = (float)($booking['paid_amount'] ?? 0);
+    $totalAmount = (float)($booking['supplier_total_amount'] ?? array_sum(array_map(static function ($item) {
+        return (float)($item['price'] ?? 0);
+    }, $items)));
+    $paidAmount = min((float)($booking['paid_amount'] ?? 0), $totalAmount);
     $remainingAmount = max(0, $totalAmount - $paidAmount);
+    $platformCommissionRate = 15;
+    $platformFee = $totalAmount * ($platformCommissionRate / 100);
+    $supplierEarnings = max(0, $totalAmount - $platformFee);
+    $supplierEarningsPaid = min($supplierEarnings, $paidAmount * ((100 - $platformCommissionRate) / 100));
     $paymentStatus = strtolower((string)($booking['payment_status'] ?? 'pending'));
     $bookingStatus = strtolower((string)($booking['status'] ?? $supplierStatus));
 ?>
@@ -228,7 +229,7 @@ $dashboardContent = function () use (
       <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-success/10 text-app-success">
         <i data-lucide="wallet" class="h-4 w-4"></i>
       </div>
-      <p class="text-xs font-semibold uppercase tracking-wide text-app-muted">Total amount</p>
+      <p class="text-xs font-semibold uppercase tracking-wide text-app-muted">Supplier subtotal</p>
       <p class="mt-1 text-xl font-bold text-app-text"><?= $money($totalAmount) ?></p>
       <p class="mt-0.5 text-[11px] text-app-muted"><?= $money($paidAmount) ?> paid</p>
     </div>
@@ -427,7 +428,7 @@ $dashboardContent = function () use (
         </div>
         <div class="space-y-3 text-sm">
           <div class="flex items-center justify-between gap-4">
-            <span class="text-app-muted">Booking Total</span>
+            <span class="text-app-muted">Supplier Subtotal</span>
             <strong class="text-app-text"><?= $money($totalAmount) ?></strong>
           </div>
           <div class="flex items-center justify-between gap-4">

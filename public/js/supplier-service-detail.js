@@ -11,6 +11,11 @@ function showMessage(elementId, text, success = false) {
   element.style.alignItems = 'center';
 }
 
+function currentServiceMinLeadDays() {
+  const element = document.getElementById('availabilityMinLeadDays');
+  return Math.max(0, Math.min(365, parseInt(element?.value || '0', 10) || 0));
+}
+
 async function jsonPost(url, payload = {}) {
   const response = await fetch(url, {
     method: 'POST',
@@ -213,12 +218,17 @@ document.getElementById('saveAvailabilityBtn')?.addEventListener('click', async 
 
   try {
     const concurrentElement = document.getElementById('availabilityConcurrent');
+    const minLeadDays = currentServiceMinLeadDays();
     await jsonPost(urls.availabilitySave, {
       duration_minutes: document.getElementById('availabilityDuration').value,
       buffer_minutes: document.getElementById('availabilityBuffer').value,
       max_concurrent: concurrentElement ? concurrentElement.value : 1,
+      min_lead_days: minLeadDays,
       weekly
     });
+    serviceDetailConfig.servicePayloadBase.min_lead_days = minLeadDays;
+    const infoMinLeadDays = document.getElementById('serviceInfoMinLeadDays');
+    if (infoMinLeadDays) infoMinLeadDays.textContent = minLeadDays + ' days';
     const openCount = weekly.filter(day => day.is_available).length;
     const badge = document.getElementById('openDaysBadge');
     if (badge) badge.textContent = openCount + ' days open';
@@ -343,12 +353,16 @@ function updateServiceInfoFromService(service = {}) {
   const infoHalls = document.getElementById('serviceInfoHalls');
   const infoVenue = document.getElementById('serviceInfoVenue');
   const infoConcurrent = document.getElementById('serviceInfoConcurrent');
+  const infoMinLeadDays = document.getElementById('serviceInfoMinLeadDays');
 
   if (infoHalls) infoHalls.textContent = String(rooms.length || document.querySelectorAll('.sd-hall-card').length);
   if (infoVenue && (service.venue_name || service.venue)) infoVenue.textContent = service.venue_name || service.venue;
   if (infoConcurrent) {
     const maxCapacity = rooms.reduce((max, room) => Math.max(max, Number(room.capacity || 0)), 0);
     infoConcurrent.textContent = String(maxCapacity || service.capacity || service.max_concurrent || infoConcurrent.textContent);
+  }
+  if (infoMinLeadDays && service.min_lead_days !== undefined) {
+    infoMinLeadDays.textContent = Number(service.min_lead_days || 0) + ' days';
   }
 
   const priceValue = document.getElementById('serviceInfoPrice');
@@ -395,6 +409,7 @@ document.getElementById('saveHallsBtn')?.addEventListener('click', async () => {
   try {
     const result = await jsonPost(urls.serviceUpdate, {
       ...serviceDetailConfig.servicePayloadBase,
+      min_lead_days: currentServiceMinLeadDays(),
       rooms: collectHalls(),
       rooms_replace: true
     });

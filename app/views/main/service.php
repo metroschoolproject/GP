@@ -521,6 +521,7 @@ button,input,select{font-family:var(--font-body);outline:none}
       <?php endif; ?>
     </a>
     <?php if ($isLoggedIn): ?>
+    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
     <div class="gp-profile-wrap">
       <button class="gp-profile-btn" type="button" aria-expanded="false">
         <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
