@@ -30,7 +30,7 @@ $statusBadgeClass = function (string $status): string {
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = 'Incoming bookings';
 $dashboardContentClass = 'bg-app-content px-6 py-6 overflow-y-auto';
-$dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters, $money, $h, $statusBadgeClass, $currentPage, $totalPages, $totalCount, $perPage, $searchQuery) {
+$dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters, $money, $h, $statusBadgeClass, $currentPage, $totalPages, $totalCount, $perPage, $searchQuery, $performanceMetrics, $upcomingBookings) {
     $pendingCount  = (int)($stats['pending_count'] ?? 0);
     $confirmedCount = (int)($stats['confirmed_count'] ?? 0);
     $completedCount = (int)($stats['completed_count'] ?? 0);
@@ -40,6 +40,8 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     $totalCount = $totalCount ?? 0;
     $perPage = $perPage ?? 20;
     $searchQuery = $searchQuery ?? '';
+    $performanceMetrics = $performanceMetrics ?? [];
+    $upcomingBookings = $upcomingBookings ?? [];
 ?>
 <style>
   .bk-stat-card {
@@ -78,6 +80,51 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 </style>
 
 <section class="mx-auto max-w-[1600px] space-y-5 font-ui text-[13px] text-app-text antialiased">
+
+  <!-- ===== Performance KPI cards row ===== -->
+  <?php if (!empty($performanceMetrics)): ?>
+  <div class="bk-stats-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Response Rate -->
+    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
+      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+        <i data-lucide="activity" class="h-4 w-4"></i>
+      </div>
+      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Response Rate</p>
+      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= number_format((float)($performanceMetrics['response_rate'] ?? 0), 0) ?>%</p>
+      <p class="mt-0.5 text-[11px] text-app-muted"><?= (int)($performanceMetrics['accepted_count'] ?? 0) ?> accepted</p>
+    </div>
+
+    <!-- Acceptance Rate -->
+    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
+      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-success/10 text-app-success">
+        <i data-lucide="trending-up" class="h-4 w-4"></i>
+      </div>
+      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Acceptance Rate</p>
+      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= number_format((float)($performanceMetrics['acceptance_rate'] ?? 0), 0) ?>%</p>
+      <p class="mt-0.5 text-[11px] text-app-muted"><?= (int)($performanceMetrics['rejected_count'] ?? 0) ?> rejected</p>
+    </div>
+
+    <!-- Avg Response Time -->
+    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
+      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-soft text-app-secondary">
+        <i data-lucide="clock" class="h-4 w-4"></i>
+      </div>
+      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Avg Response</p>
+      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= (float)($performanceMetrics['avg_response_hours'] ?? 0) ?>h</p>
+      <p class="mt-0.5 text-[11px] text-app-muted">Time to respond</p>
+    </div>
+
+    <!-- Total Bookings -->
+    <div class="bk-stat-card rounded-card border border-app-border bg-app-input p-4 shadow-sm">
+      <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-warning/10 text-app-warning">
+        <i data-lucide="calendar" class="h-4 w-4"></i>
+      </div>
+      <p class="text-xs font-semibold text-app-muted uppercase tracking-wide">Total Bookings</p>
+      <p class="mt-1 text-2xl font-bold tracking-tight text-app-text"><?= (int)($performanceMetrics['total_bookings'] ?? 0) ?></p>
+      <p class="mt-0.5 text-[11px] text-app-muted">All time</p>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <!-- ===== Stat cards row ===== -->
   <div class="bk-stats-grid grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -171,6 +218,40 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
       <?php endforeach; ?>
     </div>
   </div>
+
+  <!-- ===== Upcoming Bookings Section ===== -->
+  <?php if (!empty($upcomingBookings)): ?>
+  <div class="rounded-card border border-app-border bg-app-input p-5 shadow-sm">
+    <div class="mb-4 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+          <i data-lucide="calendar-days" class="h-4 w-4"></i>
+        </div>
+        <h3 class="text-base font-bold text-app-text">Upcoming Confirmed Bookings</h3>
+      </div>
+      <span class="rounded-full bg-app-soft px-2.5 py-1 text-xs font-semibold text-app-secondary"><?= count($upcomingBookings) ?></span>
+    </div>
+    <div class="space-y-2">
+      <?php foreach ($upcomingBookings as $upcoming): ?>
+      <div class="flex items-center justify-between rounded-lg border border-app-border/50 bg-app-panel p-3 hover:border-app-border transition-colors">
+        <div class="flex items-center gap-3">
+          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-app-primary/10 text-[10px] font-bold text-app-primary">
+            <?= $h(strtoupper(substr($upcoming['customer_name'] ?? 'C', 0, 1))) ?>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-app-text"><?= $h($upcoming['customer_name'] ?? 'Customer') ?></p>
+            <p class="text-xs text-app-muted"><?= $h($upcoming['event_date'] ?? '-') ?></p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-semibold text-app-text"><?= $money($upcoming['total_amount'] ?? 0) ?></p>
+          <a href="<?= URLROOT ?>/supplier/bookingDetail/<?= (int)$upcoming['id'] ?>" class="text-[10px] font-semibold text-app-primary hover:underline">View</a>
+        </div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <!-- ===== Bookings table ===== -->
   <div class="overflow-hidden rounded-card border border-app-border bg-app-input shadow-sm">

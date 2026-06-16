@@ -830,6 +830,8 @@ class Booking extends Controller
 
         $totalPages = ceil($totalCount / $perPage);
         $stats = $this->bookingModel->getSupplierStats($supplierId);
+        $performanceMetrics = $this->bookingModel->getSupplierPerformanceMetrics($supplierId);
+        $upcomingBookings = $this->bookingModel->getSupplierUpcomingBookings($supplierId);
 
         // Enrich bookings with items and ref
         $enriched = [];
@@ -845,6 +847,8 @@ class Booking extends Controller
         $this->view('supplier/bookings', [
             'bookings' => $enriched,
             'stats' => $stats,
+            'performanceMetrics' => $performanceMetrics,
+            'upcomingBookings' => $upcomingBookings,
             'activeFilter' => $filter,
             'supplierId' => $supplierId,
             'currentPage' => $page,

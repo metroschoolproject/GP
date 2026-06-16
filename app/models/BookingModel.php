@@ -664,6 +664,70 @@ class BookingModel
     }
 
     /**
+     * Get supplier performance metrics (KPIs).
+     */
+    public function getSupplierPerformanceMetrics(int $supplierId): array
+    {
+        // Response rate & acceptance rate
+        $this->db->dbquery(
+            "SELECT
+                COUNT(*) AS total_bookings,
+                SUM(CASE WHEN bs.status IN ('confirmed', 'rejected') THEN 1 ELSE 0 END) AS responded_count,
+                SUM(CASE WHEN bs.status = 'confirmed' THEN 1 ELSE 0 END) AS accepted_count,
+                SUM(CASE WHEN bs.status = 'rejected' THEN 1 ELSE 0 END) AS rejected_count,
+                COALESCE(AVG(TIMESTAMPDIFF(HOUR, b.created_at, bs.updated_at)), 0) AS avg_response_hours
+             FROM booking_suppliers bs
+             INNER JOIN bookings b ON bs.booking_id = b.id
+             WHERE bs.supplier_id = :sid
+             AND bs.status IN ('confirmed', 'rejected', 'pending')"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $metrics = $this->db->getsingledata() ?: [];
+
+        $totalBookings = (int)($metrics['total_bookings'] ?? 0);
+        $respondedCount = (int)($metrics['responded_count'] ?? 0);
+        $acceptedCount = (int)($metrics['accepted_count'] ?? 0);
+        $rejectedCount = (int)($metrics['rejected_count'] ?? 0);
+        $avgResponseHours = (float)($metrics['avg_response_hours'] ?? 0);
+
+        $responseRate = $totalBookings > 0 ? round(($respondedCount / $totalBookings) * 100, 1) : 0;
+        $acceptanceRate = $respondedCount > 0 ? round(($acceptedCount / $respondedCount) * 100, 1) : 0;
+
+        return [
+            'total_bookings' => $totalBookings,
+            'response_rate' => $responseRate,
+            'acceptance_rate' => $acceptanceRate,
+            'avg_response_hours' => round($avgResponseHours, 1),
+            'accepted_count' => $acceptedCount,
+            'rejected_count' => $rejectedCount,
+        ];
+    }
+
+    /**
+     * Get supplier upcoming bookings.
+     */
+    public function getSupplierUpcomingBookings(int $supplierId, int $limit = 5): array
+    {
+        $this->db->dbquery(
+            "SELECT b.id, b.total_amount, u.name AS customer_name,
+                    bs.status AS supplier_status,
+                    (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
+             FROM bookings b
+             INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
+             LEFT JOIN users u ON b.user_id = u.user_id
+             WHERE bs.supplier_id = :sid
+             AND bs.status = 'confirmed'
+             AND b.status != 'completed'
+             ORDER BY (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) ASC
+             LIMIT :limit"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
+    }
+
+    /**
      * Get admin stats.
      */
     public function getAdminStats(): array
