@@ -844,6 +844,23 @@ textarea { font-family: var(--sans); }
   font-size: 12px;
   font-weight: 600;
 }
+.gp-booking-reminder {
+  display: none;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: var(--r-sm);
+  background: #fef2f2;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.gp-booking-reminder.show { display: block; }
+.gp-booking-reminder ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
 .gp-detail-textarea { min-height: 70px; resize: vertical; }
 .gp-detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .gp-detail-field { display: flex; flex-direction: column; gap: 4px; }
@@ -1435,7 +1452,9 @@ input[type="date"]:invalid {
                 </div>
 
                 <!-- Hidden fields for current slot (preserved when not changed) -->
-                <input type="hidden" name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>">
+                <input type="hidden" name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
+                       data-min-lead-days="<?= (int)$minLeadDays ?>"
+                       data-earliest-date="<?= $h($earliestBookingDate) ?>">
                 <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($slotStart) ?>">
                 <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($slotEnd) ?>">
 
@@ -1610,6 +1629,7 @@ input[type="date"]:invalid {
           </div>
 
           <div class="gp-summary-footer">
+            <div class="gp-booking-reminder" id="booking-reminder" role="alert" aria-live="polite"></div>
             <button class="gp-btn-primary" type="submit" id="submit-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               Confirm &amp; Proceed
@@ -1819,11 +1839,16 @@ input[type="date"]:invalid {
   /* ─── Form submission ─────────────────────── */
   const form = document.getElementById('booking-form');
   const submitBtn = document.getElementById('submit-btn');
+  const bookingReminder = document.getElementById('booking-reminder');
   const originalSubmitHtml = submitBtn.innerHTML;
 
   function clearRequiredHighlights() {
     form.querySelectorAll('.is-missing').forEach(el => el.classList.remove('is-missing'));
     form.querySelectorAll('.gp-required-hint').forEach(el => el.remove());
+    if (bookingReminder) {
+      bookingReminder.classList.remove('show');
+      bookingReminder.innerHTML = '';
+    }
   }
 
   function markMissing(field) {
@@ -1846,6 +1871,24 @@ input[type="date"]:invalid {
     hint.className = 'gp-required-hint';
     hint.textContent = message;
     host.appendChild(hint);
+  }
+
+  function showBookingReminder(messages, title) {
+    if (!bookingReminder || !messages.length) return;
+    const items = messages.slice(0, 5).map(message => '<li>' + escapeHtml(message) + '</li>').join('');
+    const extra = messages.length > 5 ? '<li>And ' + (messages.length - 5) + ' more item(s).</li>' : '';
+    bookingReminder.innerHTML = '<div>' + escapeHtml(title) + '</div><ul>' + items + extra + '</ul>';
+    bookingReminder.classList.add('show');
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
   }
 
   function validateRequiredBookingInfo() {
@@ -1938,8 +1981,10 @@ input[type="date"]:invalid {
 
       if (leadTimeViolations.length) {
         errorMsg = 'Lead time requirement not met: ' + errorMsg;
+        showBookingReminder(allErrors, 'Please choose a later date before proceeding.');
       } else {
         errorMsg = 'Please complete the required booking details before continuing. ' + errorMsg;
+        showBookingReminder(allErrors, 'Please complete these details before proceeding.');
       }
 
       showToast(errorMsg, 'error');
@@ -1963,13 +2008,17 @@ input[type="date"]:invalid {
         if (data.success && data.redirect) {
           window.location.href = data.redirect;
         } else {
-          showToast(data.error || 'Something went wrong. Please try again.', 'error');
+          const error = data.error || 'Something went wrong. Please try again.';
+          showBookingReminder([error], 'Please fix this before proceeding.');
+          showToast(error, 'error');
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalSubmitHtml;
         }
       })
       .catch(() => {
-        showToast('Something went wrong. Please try again.', 'error');
+        const error = 'Something went wrong. Please try again.';
+        showBookingReminder([error], 'Please fix this before proceeding.');
+        showToast(error, 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalSubmitHtml;
       });
