@@ -814,8 +814,24 @@ class Booking extends Controller
         }
 
         $filter = trim($_GET['status'] ?? 'all');
-        $bookings = $this->bookingModel->getSupplierBookings($supplierId, $filter);
+        $search = trim($_GET['search'] ?? '');
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
+        // Fetch bookings based on search or normal view
+        if (!empty($search)) {
+            $bookings = $this->bookingModel->searchSupplierBookings($supplierId, $search, $filter, $perPage, $offset);
+            $totalCount = $this->bookingModel->searchSupplierBookingsCount($supplierId, $search, $filter);
+        } else {
+            $bookings = $this->bookingModel->getSupplierBookingsWithPagination($supplierId, $filter, $perPage, $offset);
+            $totalCount = $this->bookingModel->getSupplierBookingsCount($supplierId, $filter);
+        }
+
+        $totalPages = ceil($totalCount / $perPage);
         $stats = $this->bookingModel->getSupplierStats($supplierId);
+        $performanceMetrics = $this->bookingModel->getSupplierPerformanceMetrics($supplierId);
+        $upcomingBookings = $this->bookingModel->getSupplierUpcomingBookings($supplierId);
 
         // Enrich bookings with items and ref
         $enriched = [];
@@ -831,8 +847,15 @@ class Booking extends Controller
         $this->view('supplier/bookings', [
             'bookings' => $enriched,
             'stats' => $stats,
+            'performanceMetrics' => $performanceMetrics,
+            'upcomingBookings' => $upcomingBookings,
             'activeFilter' => $filter,
             'supplierId' => $supplierId,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
+            'searchQuery' => $search,
         ]);
     }
 
@@ -875,6 +898,14 @@ class Booking extends Controller
         $logs = $this->bookingModel->getStatusLogs($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
 
+        // Calculate commission breakdown
+        $totalAmount = (float)($booking['total_amount'] ?? 0);
+        $paidAmount = (float)($booking['paid_amount'] ?? 0);
+        $platformCommissionRate = 0.15; // 15% platform fee
+        $platformFee = $totalAmount * $platformCommissionRate;
+        $supplierEarnings = $totalAmount - $platformFee;
+        $supplierEarningsPaid = $paidAmount - ($paidAmount * $platformCommissionRate);
+
         $this->view('supplier/bookingDetail', [
             'booking' => $booking,
             'items' => $items,
@@ -885,6 +916,12 @@ class Booking extends Controller
             'supplierRowId' => $currentSupplierRowId ?? 0,
             'supplierId' => $supplierId,
             'depositPercent' => self::DEPOSIT_PERCENT,
+            'totalAmount' => $totalAmount,
+            'paidAmount' => $paidAmount,
+            'platformFee' => $platformFee,
+            'supplierEarnings' => $supplierEarnings,
+            'supplierEarningsPaid' => $supplierEarningsPaid,
+            'platformCommissionRate' => $platformCommissionRate * 100,
         ]);
     }
 
@@ -956,6 +993,70 @@ class Booking extends Controller
             'success' => true,
             'new_status' => $newStatus,
             'message' => $action === 'accept' ? 'Booking accepted!' : 'Booking declined.',
+        ]);
+    }
+
+    /**
+     * Supplier propose reschedule (AJAX POST).
+     */
+    public function supplierProposeReschedule(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $proposedDate = trim($_POST['proposed_date'] ?? '');
+        $proposedStartTime = trim($_POST['proposed_start_time'] ?? '');
+        $proposedEndTime = trim($_POST['proposed_end_time'] ?? '');
+        $reason = trim($_POST['reason'] ?? '');
+
+        if ($bookingId <= 0 || !$proposedDate || !$proposedStartTime || !$proposedEndTime) {
+            $this->jsonResponse(['error' => 'Please provide proposed date and time'], 400);
+        }
+
+        // Validate date is in the future
+        $proposed = DateTimeImmutable::createFromFormat('!Y-m-d', $proposedDate);
+        $today = new DateTimeImmutable('today');
+        if (!$proposed || $proposed < $today) {
+            $this->jsonResponse(['error' => 'Proposed date must be in the future'], 400);
+        }
+
+        // Check supplier is associated with booking
+        $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+        $isAssociated = false;
+        foreach ($suppliers as $s) {
+            if ((int)$s['supplier_id'] === $supplierId) {
+                $isAssociated = true;
+                break;
+            }
+        }
+
+        if (!$isAssociated) {
+            $this->jsonResponse(['error' => 'Not associated with this booking'], 403);
+        }
+
+        // Store reschedule proposal
+        $proposalNote = sprintf(
+            "Supplier proposed reschedule to %s from %s to %s. Reason: %s",
+            $proposedDate,
+            $proposedStartTime,
+            $proposedEndTime,
+            $reason ?: 'No reason provided'
+        );
+
+        if (!$this->bookingModel->logStatusChange($bookingId, null, 'reschedule_proposed', null, $proposalNote)) {
+            $this->jsonResponse(['error' => 'Could not submit reschedule proposal'], 500);
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Reschedule proposal sent to customer. They will review and confirm shortly.',
         ]);
     }
 
