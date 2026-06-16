@@ -936,33 +936,18 @@ class Booking extends Controller
             return (float)($item['price'] ?? 0);
         }, $items));
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
-        $logs = $this->bookingModel->getStatusLogs($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
-
-        // Calculate commission breakdown
-        $totalAmount = (float)($booking['total_amount'] ?? 0);
-        $paidAmount = (float)($booking['paid_amount'] ?? 0);
-        $platformCommissionRate = 0.15; // 15% platform fee
-        $platformFee = $totalAmount * $platformCommissionRate;
-        $supplierEarnings = $totalAmount - $platformFee;
-        $supplierEarningsPaid = $paidAmount - ($paidAmount * $platformCommissionRate);
 
         $this->view('supplier/bookingDetail', [
             'booking' => $booking,
             'items' => $items,
             'eventDetails' => $eventDetails,
-            'logs' => $logs,
+            'suppliers' => $suppliers,
             'bookingRef' => $bookingRef,
             'supplierStatus' => $currentSupplierStatus ?? 'pending',
             'supplierRowId' => $currentSupplierRowId ?? 0,
             'supplierId' => $supplierId,
             'depositPercent' => self::DEPOSIT_PERCENT,
-            'totalAmount' => $totalAmount,
-            'paidAmount' => $paidAmount,
-            'platformFee' => $platformFee,
-            'supplierEarnings' => $supplierEarnings,
-            'supplierEarningsPaid' => $supplierEarningsPaid,
-            'platformCommissionRate' => $platformCommissionRate * 100,
         ]);
     }
 

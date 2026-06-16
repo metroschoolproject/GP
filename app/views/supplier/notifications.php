@@ -3,24 +3,20 @@ $notifications = $notifications ?? [];
 $unreadCount = (int)($unreadCount ?? 0);
 $message = $message ?? '';
 
-$dashboardTitle = 'Admin';
-$dashboardCrumb = 'Notifications';
-$dashboardContentClass = 'admin-notifications-content';
-
-$notificationHref = function ($item) {
-    return URLROOT . '/admin/notification/' . (int)($item['id'] ?? 0);
-};
-
 $h = function ($value) {
     return htmlspecialchars(htmlspecialchars_decode((string)$value, ENT_QUOTES), ENT_QUOTES, 'UTF-8');
 };
 
+$notificationHref = function ($item) {
+    return URLROOT . '/supplier/notification/' . (int)($item['id'] ?? 0);
+};
+
+$dashboardTitle = 'Supplier';
+$dashboardCrumb = 'Notifications';
+$dashboardContentClass = 'bg-app-content px-6 py-6 overflow-y-auto';
 $dashboardContent = function () use ($notifications, $unreadCount, $message, $notificationHref, $h) {
 ?>
 <style>
-    .admin-notifications-content {
-        min-height: 100%;
-    }
     .noti-page {
         max-width: 960px;
     }
@@ -115,7 +111,7 @@ $dashboardContent = function () use ($notifications, $unreadCount, $message, $no
     <div class="noti-head">
         <div>
             <p class="noti-eyebrow text-app-muted">Notifications</p>
-            <h1 class="noti-title text-app-text">Admin Notifications</h1>
+            <h1 class="noti-title text-app-text">Your Notifications</h1>
         </div>
         <span class="noti-pill border border-app-border bg-app-card text-app-secondary">
             <?= $unreadCount ?> unread
@@ -165,6 +161,6 @@ $dashboardContent = function () use ($notifications, $unreadCount, $message, $no
     <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?>
 </head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">
-    <?php require APPROOT . '/views/dashboardLayout/adminsidebar.php'; ?>
+    <?php require APPROOT . '/views/dashboardLayout/suppliersidebar.php'; ?>
 </body>
 </html>
