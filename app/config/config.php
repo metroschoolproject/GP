@@ -33,11 +33,13 @@ define('MAIL_PASSWORD', 'app-password-here');
 define('MAIL_ENCRYPTION', 'tls');
 define('MAIL_PORT', 587);
 
-// Payment Gateway (2C2P Example)
-define('PAYMENT_GATEWAY_SANDBOX', true); // Switch to false for live
-define('PAYMENT_GATEWAY_API_KEY', 'your_sandbox_key');
-define('PAYMENT_GATEWAY_SECRET', 'your_sandbox_secret');
-define('MERCHANT_ID', 'your_merchant_id');
+// Payment Gateway (2C2P - MM QR & Card Payments)
+// Sign up at: https://www.2c2p.com/
+// API Docs: https://developer.2c2p.com/
+define('PAYMENT_GATEWAY_SANDBOX', true); // Switch to false for production
+define('PAYMENT_GATEWAY_API_KEY', 'your_2c2p_api_key'); // From 2C2P dashboard
+define('PAYMENT_GATEWAY_SECRET', 'your_2c2p_api_secret'); // From 2C2P dashboard
+define('MERCHANT_ID', 'your_2c2p_merchant_id'); // From 2C2P dashboard
 
 // Cron Security
 define('CRON_TOKEN', 'your-secret-cron-token');

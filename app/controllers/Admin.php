@@ -1,6 +1,7 @@
 <?php
 
 require_once APPROOT . '/services/UploadService.php';
+require_once APPROOT . '/services/PaymentGatewayService.php';
 require_once APPROOT . '/controllers/Booking.php';
 
 class Admin extends Controller
@@ -10,6 +11,7 @@ class Admin extends Controller
     private $paymentModel;
     private $serviceManagementModel;
     private $uploadService;
+    private $paymentGateway;
 
     public function __construct()
     {
@@ -18,6 +20,7 @@ class Admin extends Controller
         $this->paymentModel = $this->model('Payment');
         $this->serviceManagementModel = $this->model('SupplierServiceManager');
         $this->uploadService = new UploadService();
+        $this->paymentGateway = new PaymentGatewayService();
     }   
 
     public function dashboard()
@@ -855,8 +858,12 @@ class Admin extends Controller
     }
 
     /**
-     * Process supplier payouts monthly.
+     * Process supplier payouts via 2C2P.
      * Call via: curl https://goldenpromise.com/admin/cronProcessPayouts?token=SECRET_CRON_TOKEN
+     *
+     * Payouts are created when supplier fee is paid. This cron processes pending payouts.
+     * For now, suppliers need to provide bank details during onboarding.
+     * TODO: Add bank_account and bank_code columns to suppliers table.
      */
     public function cronProcessPayouts(): void
     {
@@ -869,33 +876,62 @@ class Admin extends Controller
             exit;
         }
 
-        // Find payments in 'processing' status and transition to 'success'
         $this->db->dbquery(
-            "SELECT p.*, s.user_id FROM payments p
+            "SELECT p.*, s.supplier_id, s.bank_account, s.bank_code
+             FROM payments p
              JOIN suppliers s ON p.supplier_id = s.supplier_id
-             WHERE p.type = 'payout' AND p.status = 'processing'
-             AND p.created_at < DATE_SUB(NOW(), INTERVAL 2 DAY)"
+             WHERE p.type = 'payout' AND p.status = 'pending'"
         );
         $payouts = $this->db->getmultidata();
 
-        $updated = 0;
-        foreach ($payouts as $payout) {
-            // Mark as success and send notification
-            $this->db->dbquery(
-                "UPDATE payments SET status = 'success', verified_at = NOW()
-                 WHERE id = :id LIMIT 1"
-            );
-            $this->db->dbbind(':id', (int)$payout['id'], PDO::PARAM_INT);
+        $processed = 0;
+        $failed = 0;
 
-            if ($this->db->dbexecute()) {
-                $updated++;
-                // TODO: Send payout success email to supplier
+        foreach ($payouts as $payout) {
+            $bankAccount = $payout['bank_account'] ?? '';
+            $bankCode = $payout['bank_code'] ?? 'AYA';
+
+            if (!$bankAccount) {
+                $this->db->dbquery(
+                    "UPDATE payments SET status = 'failed', verified_at = NOW()
+                     WHERE id = :id LIMIT 1"
+                );
+                $this->db->dbbind(':id', (int)$payout['id']);
+                $this->db->dbexecute();
+                $failed++;
+                continue;
+            }
+
+            $result = $this->paymentGateway->createSupplierPayout(
+                (int)$payout['supplier_id'],
+                (float)$payout['amount'],
+                $bankAccount,
+                $bankCode
+            );
+
+            if ($result['success'] ?? false) {
+                $this->db->dbquery(
+                    "UPDATE payments SET status = 'processing', verified_at = NOW()
+                     WHERE id = :id LIMIT 1"
+                );
+                $this->db->dbbind(':id', (int)$payout['id']);
+                $this->db->dbexecute();
+                $processed++;
+            } else {
+                $this->db->dbquery(
+                    "UPDATE payments SET status = 'failed', verified_at = NOW()
+                     WHERE id = :id LIMIT 1"
+                );
+                $this->db->dbbind(':id', (int)$payout['id']);
+                $this->db->dbexecute();
+                $failed++;
             }
         }
 
         echo json_encode([
             'success' => true,
-            'payouts_processed' => $updated,
+            'payouts_processed' => $processed,
+            'payouts_failed' => $failed,
             'timestamp' => date('Y-m-d H:i:s'),
         ]);
 

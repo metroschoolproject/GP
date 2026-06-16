@@ -204,18 +204,6 @@ a { color: inherit; text-decoration: none; }
         <div class="gp-summary-title" style="margin-bottom: 16px;">Select payment method</div>
 
         <div class="gp-methods-grid">
-          <button type="button" class="gp-method-btn" data-method="kbz-pay">
-            <div class="gp-method-icon">📱</div>
-            <div>KBZ Pay</div>
-            <div style="font-size: 10px; color: var(--muted);">Mobile Wallet</div>
-          </button>
-
-          <button type="button" class="gp-method-btn" data-method="aya-bank">
-            <div class="gp-method-icon">🏦</div>
-            <div>AYA Bank</div>
-            <div style="font-size: 10px; color: var(--muted);">Bank Transfer</div>
-          </button>
-
           <button type="button" class="gp-method-btn" data-method="mm-qr">
             <div class="gp-method-icon">📲</div>
             <div>MM QR</div>
@@ -233,54 +221,6 @@ a { color: inherit; text-decoration: none; }
         <form id="payment-form">
           <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
           <input type="hidden" name="payment_method" id="payment_method" value="">
-
-          <!-- KBZ Pay Details -->
-          <div id="kbz-pay-details" class="gp-method-details">
-            <div class="gp-alert">
-              ✓ KBZ Pay account: 09XXXXXXXXX<br>
-              Account holder: Golden Promise Co.
-            </div>
-            <div class="gp-alert" style="background: #dbeafe; border-color: #93c5fd; color: #1e40af;">
-              Steps: Open KBZ Pay → Scan QR code below → Enter amount <?= $money($deposit) ?> → Confirm
-            </div>
-            <div style="text-align: center; padding: 20px; background: var(--surface); border-radius: var(--r-md); margin-bottom: 12px;">
-              <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">Scan this QR code:</div>
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://kbzpay.goldenpromise.com" alt="KBZ Pay QR" style="width: 160px; height: 160px;">
-            </div>
-            <div class="gp-field">
-              <label>Reference Number (from KBZ Pay)</label>
-              <input type="text" name="reference" required placeholder="e.g., KBZ20260616123456">
-            </div>
-            <div class="gp-field">
-              <label>Upload Payment Slip</label>
-              <input type="file" name="slip_image" accept="image/*,application/pdf" required>
-            </div>
-            <button type="submit" class="gp-pay-btn">Submit Payment Slip</button>
-          </div>
-
-          <!-- AYA Bank Details -->
-          <div id="aya-bank-details" class="gp-method-details">
-            <div class="gp-alert">
-              <strong>AYA Bank Account Details:</strong>
-              Account Number: 1234567890<br>
-              Account Name: Golden Promise Co.
-            </div>
-            <div class="gp-bank-account">
-              <strong>What to do:</strong>
-              1. Transfer <?= $money($deposit) ?> to the account above<br>
-              2. Use reference: Booking <?= $h($bookingRef) ?> as description<br>
-              3. Upload the transaction receipt below
-            </div>
-            <div class="gp-field" style="margin-top: 12px;">
-              <label>Reference Number (from AYA Bank)</label>
-              <input type="text" name="reference" required placeholder="e.g., AYA-20260616-123456">
-            </div>
-            <div class="gp-field">
-              <label>Upload Payment Receipt</label>
-              <input type="file" name="slip_image" accept="image/*,application/pdf" required>
-            </div>
-            <button type="submit" class="gp-pay-btn">Submit Payment Proof</button>
-          </div>
 
           <!-- MM QR Details -->
           <div id="mm-qr-details" class="gp-method-details">
@@ -379,9 +319,7 @@ paymentForm.addEventListener('submit', async (e) => {
   const bookingId = document.querySelector('input[name="booking_id"]').value;
   const formData = new FormData(paymentForm);
 
-  const endpoint = method === 'kbz-pay' || method === 'aya-bank'
-    ? '<?= URLROOT ?>/booking/submitPaymentSlip'
-    : '<?= URLROOT ?>/booking/confirmInstantPayment';
+  const endpoint = '<?= URLROOT ?>/booking/confirmInstantPayment';
 
   try {
     const resp = await fetch(endpoint, { method: 'POST', body: formData });
