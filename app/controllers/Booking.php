@@ -286,7 +286,8 @@ class Booking extends Controller
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
         }
 
-        $this->view('booking/pay', [
+        // Render new payment methods page (supports KBZ Pay, AYA Bank, MM QR, Visa Card)
+        $this->view('booking/paymentMethods', [
             'booking' => $booking,
             'items' => $items,
             'total' => $total,
