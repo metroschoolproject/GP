@@ -112,15 +112,15 @@
                 <div class="side-list">
                     <div class="side-item">
                         <span>Step 1</span>
-                        <p>Choose KBZ Pay or AYA Bank Transfer.</p>
+                        <p>Choose your payment method: MM QR or Visa Card.</p>
                     </div>
                     <div class="side-item">
                         <span>Step 2</span>
-                        <p>Scan the KBZ QR, or upload the AYA transfer slip.</p>
+                        <p>Complete payment on the secure gateway.</p>
                     </div>
                     <div class="side-item">
                         <span>Step 3</span>
-                        <p>Dashboard unlocks after KBZ success or admin approval.</p>
+                        <p>Dashboard unlocks after payment is verified.</p>
                     </div>
                 </div>
             </aside>
