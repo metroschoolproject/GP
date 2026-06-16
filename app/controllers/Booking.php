@@ -992,6 +992,70 @@ class Booking extends Controller
         ]);
     }
 
+    /**
+     * Supplier propose reschedule (AJAX POST).
+     */
+    public function supplierProposeReschedule(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $proposedDate = trim($_POST['proposed_date'] ?? '');
+        $proposedStartTime = trim($_POST['proposed_start_time'] ?? '');
+        $proposedEndTime = trim($_POST['proposed_end_time'] ?? '');
+        $reason = trim($_POST['reason'] ?? '');
+
+        if ($bookingId <= 0 || !$proposedDate || !$proposedStartTime || !$proposedEndTime) {
+            $this->jsonResponse(['error' => 'Please provide proposed date and time'], 400);
+        }
+
+        // Validate date is in the future
+        $proposed = DateTimeImmutable::createFromFormat('!Y-m-d', $proposedDate);
+        $today = new DateTimeImmutable('today');
+        if (!$proposed || $proposed < $today) {
+            $this->jsonResponse(['error' => 'Proposed date must be in the future'], 400);
+        }
+
+        // Check supplier is associated with booking
+        $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+        $isAssociated = false;
+        foreach ($suppliers as $s) {
+            if ((int)$s['supplier_id'] === $supplierId) {
+                $isAssociated = true;
+                break;
+            }
+        }
+
+        if (!$isAssociated) {
+            $this->jsonResponse(['error' => 'Not associated with this booking'], 403);
+        }
+
+        // Store reschedule proposal
+        $proposalNote = sprintf(
+            "Supplier proposed reschedule to %s from %s to %s. Reason: %s",
+            $proposedDate,
+            $proposedStartTime,
+            $proposedEndTime,
+            $reason ?: 'No reason provided'
+        );
+
+        if (!$this->bookingModel->logStatusChange($bookingId, null, 'reschedule_proposed', null, $proposalNote)) {
+            $this->jsonResponse(['error' => 'Could not submit reschedule proposal'], 500);
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Reschedule proposal sent to customer. They will review and confirm shortly.',
+        ]);
+    }
+
     /* ─── Admin Booking Views ─────────────────────────────────── */
 
     /**

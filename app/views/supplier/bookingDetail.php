@@ -196,7 +196,7 @@ $dashboardContent = function () use (
               <p class="text-xs text-app-muted">Accept this booking or decline it from your queue.</p>
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button type="button" class="booking-action bk-action-btn inline-flex items-center gap-1.5 rounded-lg bg-app-success px-4 py-2 text-xs font-bold text-white" data-action="accept">
               <i data-lucide="check" class="h-3.5 w-3.5"></i>
               Accept
@@ -204,6 +204,10 @@ $dashboardContent = function () use (
             <button type="button" class="booking-action bk-action-btn inline-flex items-center gap-1.5 rounded-lg bg-app-danger px-4 py-2 text-xs font-bold text-white" data-action="decline">
               <i data-lucide="x" class="h-3.5 w-3.5"></i>
               Decline
+            </button>
+            <button type="button" id="reschedule-btn" class="inline-flex items-center gap-1.5 rounded-lg border border-app-border bg-app-input px-4 py-2 text-xs font-bold text-app-text hover:bg-app-soft transition-colors">
+              <i data-lucide="calendar" class="h-3.5 w-3.5"></i>
+              Propose Reschedule
             </button>
           </div>
         </div>
@@ -503,9 +507,112 @@ $dashboardContent = function () use (
       </div>
     </aside>
   </div>
+
+  <!-- Reschedule Modal -->
+  <div id="reschedule-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50 transition-opacity"></div>
+    <div class="relative flex min-h-screen items-center justify-center p-4">
+      <div class="relative w-full max-w-md rounded-lg bg-app-panel shadow-xl">
+        <div class="flex items-center justify-between border-b border-app-border px-6 py-4">
+          <h3 class="text-base font-bold text-app-text">Propose Reschedule</h3>
+          <button type="button" class="reschedule-close text-app-muted hover:text-app-text">
+            <i data-lucide="x" class="h-5 w-5"></i>
+          </button>
+        </div>
+        <form id="reschedule-form" class="space-y-4 p-6">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-app-muted">Proposed Date</label>
+            <input type="date" name="proposed_date" required
+                   class="mt-2 w-full rounded-lg border border-app-border bg-app-input px-3 py-2 text-sm text-app-text focus:border-app-primary focus:outline-none">
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-app-muted">Start Time</label>
+              <input type="time" name="proposed_start_time" required
+                     class="mt-2 w-full rounded-lg border border-app-border bg-app-input px-3 py-2 text-sm text-app-text focus:border-app-primary focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-app-muted">End Time</label>
+              <input type="time" name="proposed_end_time" required
+                     class="mt-2 w-full rounded-lg border border-app-border bg-app-input px-3 py-2 text-sm text-app-text focus:border-app-primary focus:outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-app-muted">Reason for Reschedule</label>
+            <textarea name="reason" rows="3"
+                      placeholder="e.g., Equipment already booked on that date"
+                      class="mt-2 w-full rounded-lg border border-app-border bg-app-input px-3 py-2 text-sm text-app-text focus:border-app-primary focus:outline-none"></textarea>
+          </div>
+          <div class="flex gap-2 pt-4">
+            <button type="button" class="reschedule-close flex-1 rounded-lg border border-app-border px-4 py-2 text-xs font-semibold text-app-text hover:bg-app-input transition-colors">
+              Cancel
+            </button>
+            <button type="submit" class="flex-1 rounded-lg bg-app-primary px-4 py-2 text-xs font-semibold text-app-white hover:bg-app-primary/90 transition-colors">
+              Send Proposal
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </section>
 
 <script>
+const rescheduleModal = document.getElementById('reschedule-modal');
+const rescheduleBtn = document.getElementById('reschedule-btn');
+const rescheduleForm = document.getElementById('reschedule-form');
+const closeButtons = document.querySelectorAll('.reschedule-close');
+
+if (rescheduleBtn && rescheduleModal) {
+  rescheduleBtn.addEventListener('click', () => {
+    rescheduleModal.classList.remove('hidden');
+  });
+
+  closeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      rescheduleModal.classList.add('hidden');
+    });
+  });
+
+  rescheduleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = rescheduleForm.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+
+    const formData = new FormData(rescheduleForm);
+    formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+
+    try {
+      const response = await fetch('<?= URLROOT ?>/supplier/proposeReschedule', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json().catch(() => ({}));
+      if (data.success) {
+        alert(data.message);
+        rescheduleModal.classList.add('hidden');
+        rescheduleForm.reset();
+        window.location.reload();
+      } else {
+        alert(data.error || 'Could not send reschedule proposal.');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    }
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  });
+
+  rescheduleModal.addEventListener('click', (e) => {
+    if (e.target === rescheduleModal) {
+      rescheduleModal.classList.add('hidden');
+    }
+  });
+}
+
 document.querySelectorAll('.booking-action').forEach((button) => {
   button.addEventListener('click', async () => {
     button.disabled = true;
