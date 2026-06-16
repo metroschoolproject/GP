@@ -8,7 +8,7 @@ define('NETWORK_IMG_ROOT', 'http://10.247.249.2/GP/public');
 define('APPROOT', dirname(dirname(__FILE__)));
 // define('VENDOR_AUTOLOAD','');
 
-define('DB_HOST', 'localhost');
+define('DB_HOST', 'localhost;port=3307');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'goldenpromise');
