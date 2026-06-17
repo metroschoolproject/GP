@@ -7,6 +7,9 @@ $logs = $logs ?? [];
 $vouchers = $vouchers ?? [];
 $bookingRef = $bookingRef ?? '';
 $depositPercent = (int)($depositPercent ?? 10);
+$canReview = $canReview ?? false;
+$existingReview = $existingReview ?? null;
+$canEditReview = $canEditReview ?? false;
 
 $statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled'];
 $money = fn($v) => 'RM '.number_format((float)$v,0);
@@ -103,6 +106,24 @@ a{color:inherit;text-decoration:none}
 
 .gp-bottom-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 
+.gp-review-section{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden;margin-top:24px}
+.gp-review-section-h{padding:14px 18px;border-bottom:1px solid var(--rule);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.gp-review-section-b{padding:18px}
+.gp-star-picker{display:flex;gap:6px;margin-bottom:12px}
+.gp-star-btn{background:none;border:none;cursor:pointer;font-size:26px;color:var(--rule-strong);padding:0;line-height:1;transition:color .15s}
+.gp-star-btn.active,.gp-star-btn:hover,.gp-star-btn.hover{color:#d6a72d}
+.gp-review-textarea{width:100%;padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--rule-strong);background:#faf7f2;font-family:var(--font-b);font-size:13px;color:var(--text);resize:vertical;min-height:90px;outline:none;transition:border-color .2s}
+.gp-review-textarea:focus{border-color:var(--plum)}
+.gp-review-chars{font-size:10px;color:var(--muted);text-align:right;margin-top:3px}
+.gp-review-existing{display:flex;flex-direction:column;gap:8px}
+.gp-review-stars{color:#d6a72d;font-size:18px;letter-spacing:-1px}
+.gp-review-body{font-size:13px;color:var(--text2);line-height:1.6}
+.gp-review-meta{font-size:11px;color:var(--muted)}
+.gp-review-actions{display:flex;gap:8px;margin-top:6px}
+.gp-flash-success{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
+.gp-flash-error{background:#fdecea;color:#c62828;border:1px solid #ef9a9a;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
+.gp-edit-form{margin-top:12px;display:none}
+
 @media(max-width:768px){.gp-layout{grid-template-columns:1fr}}
 @media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}}
 </style>
@@ -110,7 +131,7 @@ a{color:inherit;text-decoration:none}
 
 <header class="gp-header">
   <a class="gp-brand" href="<?=URLROOT?>/main/index"><span class="gp-brand-mark">G</span>Golden Promise</a>
-  <nav class="gp-header-nav"><a href="<?=URLROOT?>/main/index">Home</a><a href="<?=URLROOT?>/booking/myBookings">Bookings</a></nav>
+  <nav class="gp-header-nav"><a href="<?=URLROOT?>/main/index">Home</a><a href="<?=URLROOT?>/booking/myBookings">Bookings</a><a href="<?=URLROOT?>/review/my">My Reviews</a></nav>
   <div class="gp-header-actions">
     <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
     <div class="gp-profile-dropdown">
@@ -123,6 +144,10 @@ a{color:inherit;text-decoration:none}
         <a class="gp-profile-menu-item" href="<?=URLROOT?>/booking/myBookings">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           My Bookings
+        </a>
+        <a class="gp-profile-menu-item" href="<?=URLROOT?>/review/my">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          My Reviews
         </a>
         <a class="gp-profile-menu-item gp-profile-menu-item--danger" href="<?=URLROOT?>/users/logout">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -318,6 +343,73 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
 
+  <?php $reviewFlashSuccess = $_SESSION['review_success'] ?? null; $reviewFlashError = $_SESSION['review_error'] ?? null; unset($_SESSION['review_success'], $_SESSION['review_error']); ?>
+  <?php if ($canReview || $existingReview): ?>
+  <div class="gp-review-section">
+    <div class="gp-review-section-h">Your Review</div>
+    <div class="gp-review-section-b">
+      <?php if ($reviewFlashSuccess): ?>
+        <div class="gp-flash-success"><?= $h($reviewFlashSuccess) ?></div>
+      <?php elseif ($reviewFlashError): ?>
+        <div class="gp-flash-error"><?= $h($reviewFlashError) ?></div>
+      <?php endif; ?>
+
+      <?php if ($existingReview): ?>
+        <div class="gp-review-existing" id="reviewDisplay">
+          <div class="gp-review-stars"><?= str_repeat('★', (int)($existingReview['rating'] ?? 0)) . str_repeat('☆', 5 - (int)($existingReview['rating'] ?? 0)) ?></div>
+          <div class="gp-review-body" id="reviewCommentDisplay"><?= $h((string)($existingReview['comment'] ?? '')) ?></div>
+          <div class="gp-review-actions">
+            <?php if ($canEditReview): ?>
+              <button class="gp-btn-sm" type="button" onclick="toggleEditReview()">Edit</button>
+            <?php endif; ?>
+            <form method="POST" action="<?=URLROOT?>/review/delete/<?=(int)$existingReview['id']?>" style="display:inline" onsubmit="return confirm('Remove your review?')">
+              <input type="hidden" name="booking_id" value="<?=(int)($booking['id']??0)?>">
+              <button class="gp-btn-sm danger" type="submit">Delete</button>
+            </form>
+          </div>
+        </div>
+        <?php if ($canEditReview): ?>
+        <div class="gp-edit-form" id="editReviewForm">
+          <div class="gp-star-picker" id="editStarPicker" data-value="<?=(int)($existingReview['rating']??5)?>">
+            <?php for ($s = 1; $s <= 5; $s++): ?>
+              <button class="gp-star-btn<?= $s <= (int)($existingReview['rating']??5) ? ' active' : '' ?>" type="button" data-val="<?=$s?>" onclick="setEditStar(<?=$s?>)">★</button>
+            <?php endfor; ?>
+          </div>
+          <textarea class="gp-review-textarea" id="editCommentInput" maxlength="2000" oninput="updateCharCount('editCommentCount',this.value,2000)"><?= $h((string)($existingReview['comment'] ?? '')) ?></textarea>
+          <div class="gp-review-chars"><span id="editCommentCount"><?=strlen($existingReview['comment']??'')?></span> / 2000</div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="gp-btn-sm primary" type="button" onclick="submitEditReview(<?=(int)$existingReview['id']?>)">Save</button>
+            <button class="gp-btn-sm" type="button" onclick="toggleEditReview()">Cancel</button>
+          </div>
+        </div>
+        <?php endif; ?>
+
+      <?php elseif ($canReview): ?>
+        <form method="POST" action="<?=URLROOT?>/review/submit/<?=(int)($booking['id']??0)?>">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">How was your experience with this booking?</p>
+          <div class="gp-star-picker" id="submitStarPicker">
+            <?php for ($s = 1; $s <= 5; $s++): ?>
+              <button class="gp-star-btn" type="button" data-val="<?=$s?>" onclick="setSubmitStar(<?=$s?>)">★</button>
+            <?php endfor; ?>
+          </div>
+          <input type="hidden" name="rating" id="submitRatingInput" value="">
+          <textarea class="gp-review-textarea" name="comment" placeholder="Share your experience (min 10 characters)…" maxlength="2000" oninput="updateCharCount('submitCommentCount',this.value,2000)"></textarea>
+          <div class="gp-review-chars"><span id="submitCommentCount">0</span> / 2000</div>
+          <div style="margin-top:12px">
+            <button class="gp-btn-sm primary" type="submit" onclick="return validateReviewForm()">Submit Review</button>
+          </div>
+        </form>
+      <?php endif; ?>
+    </div>
+  </div>
+  <?php elseif ($reviewFlashSuccess || $reviewFlashError): ?>
+    <?php if ($reviewFlashSuccess): ?>
+      <div class="gp-flash-success" style="margin-top:16px"><?= $h($reviewFlashSuccess) ?></div>
+    <?php elseif ($reviewFlashError): ?>
+      <div class="gp-flash-error" style="margin-top:16px"><?= $h($reviewFlashError) ?></div>
+    <?php endif; ?>
+  <?php endif; ?>
+
   <div class="gp-bottom-actions">
     <a class="gp-btn-sm" href="<?=URLROOT?>/booking/myBookings">Back to Bookings</a>
     <?php if (!empty($vouchers)): ?>
@@ -335,5 +427,56 @@ a{color:inherit;text-decoration:none}
 </main>
 <script>
 document.addEventListener('click',(e)=>{const btn=e.target.closest('.gp-profile-btn');if(btn){const x=btn.getAttribute('aria-expanded')==='true';document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));btn.setAttribute('aria-expanded',String(!x));return}document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'))});
+
+function updateCharCount(id, val, max) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val.length;
+}
+function setSubmitStar(val) {
+  document.getElementById('submitRatingInput').value = val;
+  document.querySelectorAll('#submitStarPicker .gp-star-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.val) <= val);
+  });
+}
+function setEditStar(val) {
+  const picker = document.getElementById('editStarPicker');
+  if (picker) picker.dataset.value = val;
+  document.querySelectorAll('#editStarPicker .gp-star-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.val) <= val);
+  });
+}
+function validateReviewForm() {
+  const rating = document.getElementById('submitRatingInput').value;
+  if (!rating) { alert('Please select a star rating.'); return false; }
+  return true;
+}
+function toggleEditReview() {
+  const form = document.getElementById('editReviewForm');
+  const display = document.getElementById('reviewDisplay');
+  if (!form) return;
+  const showing = form.style.display === 'block';
+  form.style.display = showing ? 'none' : 'block';
+  if (display) display.style.display = showing ? 'flex' : 'none';
+}
+function submitEditReview(reviewId) {
+  const picker = document.getElementById('editStarPicker');
+  const rating = picker ? parseInt(picker.dataset.value) : 0;
+  const comment = (document.getElementById('editCommentInput')?.value || '').trim();
+  if (!rating || rating < 1 || rating > 5) { alert('Please select a rating.'); return; }
+  if (comment.length < 10) { alert('Comment must be at least 10 characters.'); return; }
+  fetch('<?=URLROOT?>/review/update/' + reviewId, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({rating, comment})
+  }).then(r => r.json()).then(d => {
+    if (d.status === 'success') {
+      document.getElementById('reviewCommentDisplay').textContent = comment;
+      document.querySelectorAll('.gp-review-stars')[0].textContent = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+      toggleEditReview();
+    } else {
+      alert(d.error || 'Could not update review.');
+    }
+  }).catch(() => alert('Network error. Please try again.'));
+}
 </script>
 </body></html>

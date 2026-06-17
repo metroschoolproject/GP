@@ -9,6 +9,7 @@ $notificationJsonUrl = $notificationConfig['jsonUrl']
 $notificationMarkReadUrl = $notificationConfig['markReadUrl']
     ?? $notificationMarkReadUrl
     ?? ($notificationBasePath ? URLROOT . $notificationBasePath . '/markNotificationRead/' : '');
+$notificationDetailUrlBase = $notificationConfig['detailUrlBase'] ?? $notificationDetailUrlBase ?? null;
 $notificationReviewUrl = $notificationConfig['reviewUrl']
     ?? $notificationReviewUrl
     ?? ($notificationBasePath ? URLROOT . $notificationBasePath . '/dashboard' : '#');
@@ -134,9 +135,14 @@ $notificationReviewLabel = $notificationConfig['reviewLabel'] ?? 'Review all';
     const notificationMarkReadUrl = <?= json_encode($notificationMarkReadUrl) ?>;
     const notificationDefaultUrl = <?= json_encode($notificationDefaultUrl) ?>;
     const notificationReferenceUrls = <?= json_encode($notificationReferenceUrls) ?>;
+    const notificationDetailUrlBase = <?= json_encode($notificationDetailUrlBase) ?>;
     const notificationEmptyText = <?= json_encode($notificationEmptyText) ?>;
 
     function notificationHref(item) {
+        if (notificationDetailUrlBase) {
+            return notificationDetailUrlBase + encodeURIComponent(item.id);
+        }
+
         const baseUrl = notificationReferenceUrls[item.reference_type];
 
         if (baseUrl && item.reference_id) {

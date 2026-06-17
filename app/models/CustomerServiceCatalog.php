@@ -312,7 +312,15 @@ class CustomerServiceCatalog
         $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate, $formatted['min_lead_days']) : [];
         $formatted['decoration_styles'] = strtolower((string)$formatted['category']) === 'decoration' ? $this->getDecorationStyles($serviceId) : [];
         $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted, $selectedDate);
-        $formatted['reviews'] = $this->getServiceReviews($serviceId);
+
+        require_once APPROOT . '/models/ReviewModel.php';
+        $reviewModel = new ReviewModel();
+        $ratingData = $reviewModel->getAverageRating($serviceId);
+        $formatted['reviews'] = $reviewModel->getByService($serviceId, 'recent', 4, 0);
+        $formatted['rating'] = $ratingData['avg_rating'];
+        $formatted['review_count'] = $ratingData['review_count'];
+        $formatted['review_distribution'] = $ratingData['distribution'];
+
         $formatted['related'] = $this->getRelatedServices($serviceId, $formatted['category_slug']);
 
         return $formatted;
