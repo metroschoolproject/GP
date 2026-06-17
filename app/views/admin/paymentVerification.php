@@ -45,18 +45,41 @@ $money = fn($v) => number_format((float)$v, 0) . ' MMK';
           </div>
 
           <div class="px-6 py-4">
+            <?php
+              $bankName     = $h($payment['bank_name'] ?? $payment['method'] ?? 'Unknown');
+              $accountName  = $h($payment['account_name'] ?? '');
+              $mobileNumber = $h($payment['mobile_number'] ?? '');
+              $paidAmount   = !empty($payment['paid_amount']) ? number_format((float)$payment['paid_amount'], 0) . ' MMK' : 'N/A';
+              $paidAt       = !empty($payment['paid_at']) ? date('M d, Y H:i', strtotime($payment['paid_at'])) : 'N/A';
+            ?>
             <div class="grid grid-cols-2 gap-4 mb-6 pb-6 border-b border-gray-200">
               <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Payment Method</p>
-                <p class="text-sm text-gray-800 mt-1"><?= $method ?></p>
+                <p class="text-xs text-gray-500 font-semibold uppercase">Bank / Method</p>
+                <p class="text-sm text-gray-800 mt-1 font-semibold"><?= $bankName ?></p>
               </div>
               <div>
                 <p class="text-xs text-gray-500 font-semibold uppercase">Items</p>
                 <p class="text-sm text-gray-800 mt-1"><?= $itemCount ?> service<?= $itemCount !== 1 ? 's' : '' ?></p>
               </div>
               <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Reference</p>
+                <p class="text-xs text-gray-500 font-semibold uppercase">Sender Account Name</p>
+                <p class="text-sm text-gray-800 mt-1"><?= $accountName ?: 'N/A' ?></p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 font-semibold uppercase">Mobile Number</p>
+                <p class="text-sm text-gray-800 mt-1"><?= $mobileNumber ?: 'N/A' ?></p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 font-semibold uppercase">Transaction ID</p>
                 <p class="text-sm text-gray-800 mt-1"><code class="bg-gray-100 px-2 py-1 rounded"><?= $reference ?: 'N/A' ?></code></p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 font-semibold uppercase">Amount Paid</p>
+                <p class="text-sm text-gray-800 mt-1 font-semibold"><?= $paidAmount ?></p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 font-semibold uppercase">Transfer Date &amp; Time</p>
+                <p class="text-sm text-gray-800 mt-1"><?= $paidAt ?></p>
               </div>
               <div>
                 <p class="text-xs text-gray-500 font-semibold uppercase">Submitted</p>

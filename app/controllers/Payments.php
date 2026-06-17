@@ -6,15 +6,11 @@ class Payments extends Controller
 
     private $paymentModel;
     private $supplierProfileModel;
-    private $paymentGateway;
 
     public function __construct()
     {
         $this->paymentModel = $this->model('Payment');
         $this->supplierProfileModel = $this->model('SupplierProfile');
-
-        require_once APPROOT . '/services/PaymentGatewayService.php';
-        $this->paymentGateway = new PaymentGatewayService();
     }
 
     public function supplierFee()
@@ -53,128 +49,81 @@ class Payments extends Controller
         unset($_SESSION['payment_flash']);
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            $method = trim($_POST['method'] ?? '');
+            $bankName     = trim($_POST['bank_name'] ?? '');
+            $accountName  = trim($_POST['account_name'] ?? '');
+            $transactionRef = trim($_POST['transaction_ref'] ?? '');
+            $paidAmount   = (float)str_replace(',', '', $_POST['paid_amount'] ?? '0');
+            $paidAt       = trim($_POST['paid_at'] ?? '');
+            $mobileNumber = trim($_POST['mobile_number'] ?? '');
 
-            if ($method === '' || !$this->isAllowedMethod($method)) {
-                $data['message'] = 'Please choose a valid payment method.';
+            if (
+                !$this->isAllowedMethod($bankName)
+                || $accountName === ''
+                || $transactionRef === ''
+                || $paidAmount <= 0
+                || $paidAt === ''
+                || $mobileNumber === ''
+            ) {
+                $data['message'] = 'Please fill in all required fields.';
                 $this->view('payments/supplier_fee', $data);
                 return;
             }
 
-            $paymentId = $this->paymentModel->createSupplierFeePayment(
+            $slipPath = '';
+            if (!empty($_FILES['slip_image']['name']) && ($_FILES['slip_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+                $slipPath = $this->storePaymentSlip($_FILES['slip_image']);
+            }
+
+            $paymentId = $this->paymentModel->submitManualSupplierFeePayment(
                 (int)$supplier['supplier_id'],
                 self::SUPPLIER_MEMBERSHIP_FEE,
-                $method,
-                null
+                $bankName,
+                $accountName,
+                $mobileNumber,
+                $transactionRef,
+                $paidAmount,
+                $paidAt,
+                $slipPath
             );
 
             if (!$paymentId) {
-                $data['message'] = 'We could not create your payment. Please try again.';
+                $data['message'] = 'Could not save your payment proof. Please try again.';
                 $this->view('payments/supplier_fee', $data);
                 return;
             }
 
-            $returnUrl = URLROOT . '/payments/supplierFeeCallback?payment_id=' . $paymentId;
-            $backendReturnUrl = URLROOT . '/webhook/paymentGatewayCallback?payment_id=' . $paymentId;
-            $gatewayMethod = $this->mapPaymentMethod($method);
-
-            $result = $this->paymentGateway->createPaymentIntent(
-                $paymentId,
-                self::SUPPLIER_MEMBERSHIP_FEE,
-                $gatewayMethod,
-                $returnUrl,
-                $backendReturnUrl
-            );
-
-            if (!($result['success'] ?? false)) {
-                $this->paymentModel->updateSupplierFeeStatus($paymentId, 'failed');
-                $data['message'] = $result['error'] ?? 'Payment gateway error. Please try again.';
-                $this->view('payments/supplier_fee', $data);
-                return;
-            }
-
-            $_SESSION['payment_' . $paymentId] = [
-                'invoice_no' => $result['invoice_no'] ?? '',
-                'payment_token' => $result['payment_token'] ?? '',
-            ];
-
-            if (!empty($result['payment_url'] ?? false)) {
-                redirect($result['payment_url']);
-            } elseif (!empty($result['qr_code_url'] ?? false)) {
-                $_SESSION['payment_qr_' . $paymentId] = $result['qr_code_url'];
-            }
-
+            $_SESSION['payment_flash'] = 'Your payment proof has been submitted. Admin will verify and unlock your dashboard shortly.';
             redirect('supplier/dashboard');
         }
 
         $this->view('payments/supplier_fee', $data);
     }
 
-    public function supplierFeeCallback()
+    private function storePaymentSlip(array $file): string
     {
-        $paymentId = (int)($_GET['payment_id'] ?? 0);
-        $payload = trim($_POST['payload'] ?? $_GET['payload'] ?? '');
+        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        $mimeType = mime_content_type($file['tmp_name']);
 
-        if (!$paymentId) {
-            redirect('supplier/dashboard');
+        if (!in_array($mimeType, $allowed, true) || $file['size'] > 5 * 1024 * 1024) {
+            return '';
         }
 
-        $payment = $this->paymentModel->getSupplierFeePaymentById($paymentId);
+        $extMap = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'application/pdf' => 'pdf'];
+        $ext = $extMap[$mimeType] ?? 'jpg';
+        $relDir = 'uploads/payment-slips/' . date('Y/m');
+        $absDir = dirname(APPROOT) . '/public/' . $relDir;
 
-        if (!$payment) {
-            redirect('supplier/dashboard');
+        if (!is_dir($absDir)) {
+            mkdir($absDir, 0755, true);
         }
 
-        $userId = $_SESSION['session_uid'] ?? $_SESSION['pending_register_user_id'] ?? null;
-        $supplier = $userId ? $this->supplierProfileModel->getByUserId((int)$userId) : null;
+        $filename = 'slip-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
 
-        if (!$supplier || (int)($payment['supplier_id'] ?? 0) !== (int)($supplier['supplier_id'] ?? 0)) {
-            redirect('supplier/dashboard');
+        if (move_uploaded_file($file['tmp_name'], $absDir . '/' . $filename)) {
+            return 'public/' . $relDir . '/' . $filename;
         }
 
-        if ($payload === '') {
-            $_SESSION['payment_flash'] = 'Payment is still pending. If you completed sandbox payment, refresh the dashboard after the gateway callback arrives.';
-            redirect('supplier/dashboard');
-        }
-
-        $gatewayResponse = $this->paymentGateway->decodeGatewayPayload($payload);
-
-        if (!$gatewayResponse) {
-            $_SESSION['payment_flash'] = 'We could not verify the gateway response. Please try again.';
-            redirect('supplier/dashboard');
-        }
-
-        $isSuccess = ($gatewayResponse['respCode'] ?? '') === '0000';
-        $transactionRef = $gatewayResponse['tranRef']
-            ?? $gatewayResponse['transactionID']
-            ?? $gatewayResponse['approvalCode']
-            ?? ($gatewayResponse['invoiceNo'] ?? '');
-
-        if ($isSuccess) {
-            $this->paymentModel->updateSupplierFeeGatewaySuccess($paymentId, (string)$transactionRef);
-            $this->supplierProfileModel->updatePaymentReview(
-                (int)$payment['supplier_id'],
-                'paid',
-                'verified',
-                1,
-                null
-            );
-            $_SESSION['payment_flash'] = 'Payment successful! Your dashboard is now unlocked.';
-        } else {
-            $this->paymentModel->updateSupplierFeeStatus($paymentId, 'failed');
-            $_SESSION['payment_flash'] = 'Payment was not completed: ' . ($gatewayResponse['respDesc'] ?? 'Please try again.');
-        }
-
-        redirect('supplier/dashboard');
-    }
-
-    private function mapPaymentMethod($method)
-    {
-        return match($method) {
-            '2c2p_mmqr' => 'mm_qr',
-            '2c2p_card' => 'credit_card',
-            default => 'credit_card',
-        };
+        return '';
     }
 
     private function supplierFeeViewData($supplier)
@@ -184,30 +133,24 @@ class Payments extends Controller
             'paymentContext' => [
                 'eyebrow' => 'Supplier membership',
                 'title' => 'Complete your partner payment',
-                'intro' => 'Choose your payment method to complete the membership fee.',
+                'intro' => 'Transfer 50,000 MMK to our account, then fill in the form below with your transfer details. Admin will verify and unlock your dashboard.',
                 'amountLabel' => 'Membership fee',
                 'amount' => self::SUPPLIER_MEMBERSHIP_FEE,
                 'currency' => 'MMK',
                 'summary' => [
                     'Business' => $supplier['shop_name'] ?? 'Supplier account',
                     'Service' => $supplier['service_name'] ?? 'Service information',
-                    'Payment type' => 'Supplier fee',
+                    'Payment type' => 'Supplier fee (one-time)',
                     'Review status' => ucfirst($supplier['status'] ?? 'pending'),
-                ],
-                'methods' => [
-                    '2c2p_mmqr' => 'MM QR',
-                    '2c2p_card' => 'Visa Card',
                 ],
                 'action' => URLROOT . '/payments/supplierFee',
                 'backUrl' => URLROOT . '/supplier/dashboard',
-                'submitLabel' => 'Continue',
-                'note' => 'You will be redirected to complete your payment securely.',
             ],
         ];
     }
 
     private function isAllowedMethod($method)
     {
-        return in_array($method, ['2c2p_mmqr', '2c2p_card'], true);
+        return in_array($method, ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / MasterCard'], true);
     }
 }

@@ -660,7 +660,9 @@ class Admin extends Controller
         // Get bookings with status='payment_submitted'
         $this->db->dbquery(
             "SELECT b.*, u.name, u.email, u.phone,
-                    p.id as payment_id, p.payment_slip_path, p.transaction_ref, p.method, p.created_at as payment_created_at,
+                    p.id as payment_id, p.payment_slip_path, p.transaction_ref, p.method,
+                    p.bank_name, p.account_name, p.mobile_number, p.paid_amount, p.paid_at,
+                    p.created_at as payment_created_at,
                     (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) as item_count
              FROM bookings b
              LEFT JOIN users u ON b.user_id = u.user_id

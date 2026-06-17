@@ -52,6 +52,48 @@ class Payment
         return (int)$this->db->lastinsertid();
     }
 
+    public function submitManualSupplierFeePayment(
+        int $supplierId,
+        float $amount,
+        string $bankName,
+        string $accountName,
+        string $mobileNumber,
+        string $transactionRef,
+        float $paidAmount,
+        string $paidAt,
+        string $slipPath = ''
+    ): ?int {
+        $this->db->dbquery(
+            'INSERT INTO payments(
+                supplier_id, amount, platform_fee, supplier_amount, escrow_status, type,
+                method, bank_name, account_name, mobile_number, transaction_ref,
+                paid_amount, paid_at, payment_slip_path, status
+             ) VALUES(
+                :supplier_id, :amount, :amount, :zero, NULL, :type,
+                :method, :bank_name, :account_name, :mobile_number, :transaction_ref,
+                :paid_amount, :paid_at, :slip_path, :status
+             )'
+        );
+        $this->db->dbbind(':supplier_id', $supplierId);
+        $this->db->dbbind(':amount', number_format($amount, 2, '.', ''));
+        $this->db->dbbind(':zero', '0.00');
+        $this->db->dbbind(':type', 'supplier_fee');
+        $this->db->dbbind(':method', $bankName);
+        $this->db->dbbind(':bank_name', $bankName);
+        $this->db->dbbind(':account_name', $accountName);
+        $this->db->dbbind(':mobile_number', $mobileNumber);
+        $this->db->dbbind(':transaction_ref', $transactionRef);
+        $this->db->dbbind(':paid_amount', round($paidAmount, 2));
+        $this->db->dbbind(':paid_at', $paidAt ?: null);
+        $this->db->dbbind(':slip_path', $slipPath ?: null);
+        $this->db->dbbind(':status', 'pending');
+
+        if (!$this->db->dbexecute()) {
+            return null;
+        }
+        return (int)$this->db->lastinsertid();
+    }
+
     public function hasPendingSupplierFeePayment($supplierId)
     {
         return !empty($this->getLatestSupplierFeePayment($supplierId, 'pending'));
@@ -106,8 +148,14 @@ class Payment
                          payments.supplier_id,
                          payments.amount,
                          payments.method,
+                         payments.bank_name,
+                         payments.account_name,
+                         payments.mobile_number,
+                         payments.paid_amount,
+                         payments.paid_at,
                          payments.status,
                          payments.transaction_ref,
+                         payments.payment_slip_path,
                          payments.verified_at,
                          payments.created_at,
                          suppliers.shop_name,
@@ -142,8 +190,14 @@ class Payment
                     payments.supplier_id,
                     payments.amount,
                     payments.method,
+                    payments.bank_name,
+                    payments.account_name,
+                    payments.mobile_number,
+                    payments.paid_amount,
+                    payments.paid_at,
                     payments.status,
                     payments.transaction_ref,
+                    payments.payment_slip_path,
                     payments.verified_at,
                     payments.created_at,
                     suppliers.shop_name,

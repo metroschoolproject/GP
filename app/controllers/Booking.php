@@ -10,7 +10,6 @@ class Booking extends Controller
     private CartModel $cartModel;
     private SupplierProfile $supplierProfileModel;
     private Notification $notificationModel;
-    private PaymentGatewayService $paymentGateway;
     private ?int $userId;
     private const DEPOSIT_PERCENT = 10;
 
@@ -20,8 +19,6 @@ class Booking extends Controller
         $this->cartModel = $this->model('CartModel');
         $this->supplierProfileModel = $this->model('SupplierProfile');
         $this->notificationModel = $this->model('Notification');
-        require_once APPROOT . '/services/PaymentGatewayService.php';
-        $this->paymentGateway = new PaymentGatewayService();
         $this->userId = $_SESSION['session_uid'] ?? null;
     }
 
@@ -305,7 +302,6 @@ class Booking extends Controller
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
         }
 
-        // Render new payment methods page (supports KBZ Pay, AYA Bank, MM QR, Visa Card)
         $this->view('booking/paymentMethods', [
             'booking' => $booking,
             'items' => $items,
@@ -314,343 +310,115 @@ class Booking extends Controller
             'depositPercent' => self::DEPOSIT_PERCENT,
             'balance' => $total - $deposit,
             'bookingRef' => $this->bookingModel->generateBookingRef($bookingId),
-            'stripePublishableKey' => $this->getStripePublishableKey(),
         ]);
     }
 
     /**
-     * Process Stripe payment (AJAX POST).
+     * Handle manual bank transfer form submission (POST).
      */
-    public function processPayment(): void
+    public function submitManualPayment(): void
     {
         $this->ensureAuthenticated();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['error' => 'Method not allowed'], 405);
-        }
-
-        $bookingId = (int)($_POST['booking_id'] ?? 0);
-        $paymentMethodId = trim($_POST['payment_method_id'] ?? '');
-
-        if ($bookingId <= 0 || $paymentMethodId === '') {
-            $this->jsonResponse(['error' => 'Invalid payment data'], 400);
-        }
-
-        $booking = $this->bookingModel->getBookingById($bookingId);
-        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
-            $this->jsonResponse(['error' => 'Booking not found'], 404);
-        }
-
-        if (!in_array($booking['status'] ?? '', ['draft', 'pending_payment'], true)) {
-            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
-        }
-
-        $total = (float)$booking['total_amount'];
-        $deposit = $total * (self::DEPOSIT_PERCENT / 100);
-
-        try {
-            $stripe = $this->getStripeClient();
-
-            // Create a PaymentIntent for the deposit amount (in cents)
-            $intent = \Stripe\PaymentIntent::create([
-                'amount' => (int)round($deposit * 100), // cents
-                'currency' => 'myr',
-                'payment_method' => $paymentMethodId,
-                'confirmation_method' => 'manual',
-                'confirm' => true,
-                'description' => 'Booking #' . $this->bookingModel->generateBookingRef($bookingId),
-                'metadata' => [
-                    'booking_id' => (string)$bookingId,
-                    'user_id' => (string)$this->userId,
-                ],
-                'return_url' => URLROOT . '/booking/success/' . $bookingId,
-            ]);
-
-            if ($intent->status === 'succeeded') {
-                // Payment succeeded immediately
-                $this->handleSuccessfulPayment($bookingId, $deposit, $intent->id);
-                return;
-            } elseif ($intent->status === 'requires_action') {
-                // 3D Secure required
-                $this->jsonResponse([
-                    'requires_action' => true,
-                    'payment_intent_client_secret' => $intent->client_secret,
-                ]);
-                return;
-            }
-
-            $this->jsonResponse(['error' => 'Unexpected payment status: ' . $intent->status], 400);
-        } catch (\Stripe\Exception\CardException $e) {
-            $this->jsonResponse([
-                'error' => $e->getMessage() ?: 'Your card was declined. Please try a different card.',
-                'decline_code' => $e->getDeclineCode(),
-            ], 402);
-        } catch (\Throwable $e) {
-            $this->jsonResponse([
-                'error' => 'Payment processing error. Your card has not been charged. Please try again.',
-            ], 500);
-        }
-    }
-
-    public function startGatewayPayment(): void
-    {
-        $this->ensureAuthenticated();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['error' => 'Method not allowed'], 405);
-        }
-
-        $bookingId = (int)($_POST['booking_id'] ?? 0);
-        $method = trim($_POST['payment_method'] ?? '');
-
-        if ($bookingId <= 0 || !in_array($method, ['mm-qr', 'visa-card'], true)) {
-            $this->jsonResponse(['error' => 'Please choose a valid payment method.'], 400);
-        }
-
-        $booking = $this->bookingModel->getBookingById($bookingId);
-        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
-            $this->jsonResponse(['error' => 'Booking not found'], 404);
-        }
-
-        if (!in_array($booking['status'] ?? '', ['draft', 'pending_payment'], true)) {
-            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
-        }
-
-        if (($booking['status'] ?? '') === 'draft') {
-            $this->bookingModel->updateStatus($bookingId, 'pending_payment');
-            $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
-        }
-
-        $deposit = (float)$booking['total_amount'] * (self::DEPOSIT_PERCENT / 100);
-        $gatewayMethod = $method === 'mm-qr' ? 'mm_qr' : 'credit_card';
-        $localMethod = $method === 'mm-qr' ? '2c2p_mmqr' : '2c2p_card';
-
-        $paymentId = $this->bookingModel->createPayment($bookingId, $deposit, 'deposit', $localMethod);
-        if (!$paymentId) {
-            $this->jsonResponse(['error' => 'Could not create payment record. Please try again.'], 500);
-        }
-
-        $returnUrl = URLROOT . '/booking/gatewayPaymentReturn/' . $bookingId . '?payment_id=' . $paymentId;
-        $backendReturnUrl = URLROOT . '/booking/gatewayPaymentReturn/' . $bookingId . '?payment_id=' . $paymentId;
-        $result = $this->paymentGateway->createPaymentIntent($paymentId, $deposit, $gatewayMethod, $returnUrl, $backendReturnUrl);
-
-        if (!($result['success'] ?? false)) {
-            if (defined('PAYMENT_GATEWAY_SANDBOX') && PAYMENT_GATEWAY_SANDBOX && (($result['response']['respCode'] ?? '') === '9007')) {
-                $transactionRef = 'SANDBOX-' . strtoupper(bin2hex(random_bytes(4))) . '-' . $paymentId;
-                $this->confirmGatewayPaymentRecord($booking, $paymentId, $deposit, $transactionRef);
-                $this->jsonResponse([
-                    'success' => true,
-                    'redirect' => URLROOT . '/booking/success/' . $bookingId,
-                    'message' => 'Sandbox payment approved locally because 2C2P rejected the configured test credentials.',
-                    'sandbox_fallback' => true,
-                ]);
-            }
-
-            $this->bookingModel->updatePaymentStatus($paymentId, 'failed');
-            $this->jsonResponse([
-                'error' => $result['error'] ?? '2C2P sandbox could not start payment.',
-            ], 502);
-        }
-
-        $this->jsonResponse([
-            'success' => true,
-            'redirect' => $result['payment_url'],
-        ]);
-    }
-
-    public function gatewayPaymentReturn(int $bookingId): void
-    {
-        $this->ensureAuthenticated();
-
-        $paymentId = (int)($_GET['payment_id'] ?? 0);
-        $payload = trim($_POST['payload'] ?? $_GET['payload'] ?? '');
-
-        $booking = $this->bookingModel->getBookingById($bookingId);
-        if (!$booking || (int)$booking['user_id'] !== $this->userId || $paymentId <= 0) {
             redirect('booking/myBookings');
             return;
         }
 
-        if ($payload === '') {
-            $_SESSION['booking_payment_flash'] = 'Payment is pending. If you completed sandbox payment, wait a moment and refresh.';
-            redirect('booking/detail/' . $bookingId);
-            return;
-        }
+        $bookingId    = (int)($_POST['booking_id'] ?? 0);
+        $bankName     = trim($_POST['bank_name'] ?? '');
+        $accountName  = trim($_POST['account_name'] ?? '');
+        $transactionRef = trim($_POST['transaction_ref'] ?? '');
+        $paidAmount   = (float)str_replace(',', '', $_POST['paid_amount'] ?? '0');
+        $paidAt       = trim($_POST['paid_at'] ?? '');
+        $mobileNumber = trim($_POST['mobile_number'] ?? '');
 
-        $gatewayResponse = $this->paymentGateway->decodeGatewayPayload($payload);
-        if (!$gatewayResponse) {
-            $_SESSION['booking_payment_flash'] = 'Could not verify payment gateway response.';
-            redirect('booking/detail/' . $bookingId);
-            return;
-        }
+        $allowed = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / MasterCard'];
 
-        if (($gatewayResponse['respCode'] ?? '') !== '0000') {
-            $this->bookingModel->updatePaymentStatus($paymentId, 'failed');
-            $_SESSION['booking_payment_flash'] = 'Payment failed: ' . ($gatewayResponse['respDesc'] ?? 'Please try again.');
+        if (
+            $bookingId <= 0
+            || !in_array($bankName, $allowed, true)
+            || $accountName === ''
+            || $transactionRef === ''
+            || $paidAmount <= 0
+            || $paidAt === ''
+            || $mobileNumber === ''
+        ) {
+            $_SESSION['booking_payment_flash'] = 'Please fill in all required fields.';
             redirect('booking/pay/' . $bookingId);
             return;
         }
 
-        $transactionRef = $gatewayResponse['tranRef']
-            ?? $gatewayResponse['transactionID']
-            ?? $gatewayResponse['approvalCode']
-            ?? ($gatewayResponse['invoiceNo'] ?? '');
-
-        $deposit = (float)$booking['total_amount'] * (self::DEPOSIT_PERCENT / 100);
-        $this->confirmGatewayPaymentRecord($booking, $paymentId, $deposit, (string)$transactionRef);
-
-        redirect('booking/success/' . $bookingId);
-    }
-
-    private function confirmGatewayPaymentRecord(array $booking, int $paymentId, float $deposit, string $transactionRef): void
-    {
-        $bookingId = (int)($booking['id'] ?? 0);
-
-        $this->bookingModel->confirmPayment($paymentId, $transactionRef);
-        $this->bookingModel->updatePaidAmount($bookingId, $deposit);
-
-        $isPackage = $this->bookingModel->isPackageBooking($bookingId);
-        if ($isPackage) {
-            $this->bookingModel->autoConfirmAllSuppliers($bookingId);
-        }
-        $this->bookingModel->updateStatus($bookingId, 'confirmed', 'partial');
-        $this->bookingModel->logStatusChange($bookingId, $booking['status'] ?? 'pending_payment', 'confirmed', $this->userId);
-        $this->bookingModel->generateVouchers($bookingId);
-
-        if ($isPackage) {
-            $this->notificationModel->notifyBookingCustomer(
-                $bookingId,
-                'Booking Confirmed',
-                'Your deposit of ' . $this->money($deposit) . ' has been confirmed. Your booking is confirmed!',
-                'payment'
-            );
-        } else {
-            $this->notificationModel->notifyBookingCustomer(
-                $bookingId,
-                'Payment Confirmed',
-                'Your deposit of ' . $this->money($deposit) . ' has been confirmed.',
-                'payment'
-            );
-            $this->notificationModel->notifyBookingSuppliers(
-                $bookingId,
-                'Deposit Paid',
-                'The customer has paid the deposit. The booking is now confirmed.',
-                'booking'
-            );
-        }
-    }
-
-    /**
-     * Confirm payment after 3D Secure authentication.
-     */
-    public function confirmPayment(): void
-    {
-        $this->ensureAuthenticated();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['error' => 'Method not allowed'], 405);
-        }
-
-        $paymentIntentId = trim($_POST['payment_intent_id'] ?? '');
-        $bookingId = (int)($_POST['booking_id'] ?? 0);
-
-        if ($paymentIntentId === '' || $bookingId <= 0) {
-            $this->jsonResponse(['error' => 'Invalid data'], 400);
-        }
-
-        try {
-            $stripe = $this->getStripeClient();
-            $intent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
-
-            if ($intent->status === 'succeeded') {
-                // Get proper booking amount from metadata or booking record
-                $booking = $this->bookingModel->getBookingById($bookingId);
-                if (!$booking || (int)$booking['user_id'] !== $this->userId) {
-                    $this->jsonResponse(['error' => 'Booking not found'], 404);
-                }
-                $total = (float)$booking['total_amount'];
-                $deposit = $total * (self::DEPOSIT_PERCENT / 100);
-
-                $this->handleSuccessfulPayment($bookingId, $deposit, $intent->id);
-                return;
-            } elseif ($intent->status === 'requires_confirmation') {
-                $intent->confirm();
-                if ($intent->status === 'succeeded') {
-                    $booking = $this->bookingModel->getBookingById($bookingId);
-                    if (!$booking || (int)$booking['user_id'] !== $this->userId) {
-                        $this->jsonResponse(['error' => 'Booking not found'], 404);
-                    }
-                    $total = (float)$booking['total_amount'];
-                    $deposit = $total * (self::DEPOSIT_PERCENT / 100);
-                    $this->handleSuccessfulPayment($bookingId, $deposit, $intent->id);
-                    return;
-                }
-                $this->jsonResponse(['requires_action' => true, 'payment_intent_client_secret' => $intent->client_secret]);
-                return;
-            }
-
-            $this->jsonResponse(['error' => 'Payment not completed. Status: ' . $intent->status], 400);
-        } catch (\Throwable $e) {
-            $this->jsonResponse(['error' => 'Could not confirm payment: ' . $e->getMessage()], 500);
-        }
-    }
-
-    private function handleSuccessfulPayment(int $bookingId, float $amount, string $transactionRef): void
-    {
         $booking = $this->bookingModel->getBookingById($bookingId);
         if (!$booking || (int)$booking['user_id'] !== $this->userId) {
-            $this->jsonResponse(['error' => 'Booking not found'], 404);
+            redirect('booking/myBookings');
+            return;
         }
 
-        if (($booking['payment_status'] ?? '') === 'paid' || (float)($booking['paid_amount'] ?? 0) >= $amount) {
-            $this->jsonResponse([
-                'success' => true,
-                'redirect' => URLROOT . '/booking/success/' . $bookingId,
-            ]);
+        if (!in_array($booking['status'] ?? '', ['draft', 'pending_payment'], true)) {
+            redirect('booking/detail/' . $bookingId);
+            return;
         }
 
-        // Create payment record
-        $paymentId = $this->bookingModel->createPayment($bookingId, $amount, 'deposit', 'stripe');
-        if ($paymentId) {
-            $this->bookingModel->confirmPayment($paymentId, $transactionRef);
+        // Store uploaded slip
+        $slipPath = '';
+        if (!empty($_FILES['slip_image']['name']) && ($_FILES['slip_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $slipPath = $this->storePaymentSlip($_FILES['slip_image']);
         }
 
-        $this->bookingModel->updatePaidAmount($bookingId, $amount);
+        $ok = $this->bookingModel->submitPaymentSlip(
+            $bookingId,
+            $slipPath,
+            $transactionRef,
+            $bankName,
+            $accountName,
+            $mobileNumber,
+            $paidAmount,
+            $paidAt
+        );
 
-        $isPackage = $this->bookingModel->isPackageBooking($bookingId);
-        if ($isPackage) {
-            $this->bookingModel->autoConfirmAllSuppliers($bookingId);
-        }
-        $this->bookingModel->updateStatus($bookingId, 'confirmed', 'partial');
-        $this->bookingModel->logStatusChange($bookingId, $booking['status'] ?? 'pending_payment', 'confirmed', $this->userId);
-        $this->bookingModel->generateVouchers($bookingId);
-
-        if ($isPackage) {
-            $this->notificationModel->notifyBookingCustomer(
-                $bookingId,
-                'Booking Confirmed',
-                'Your deposit has been received and your booking is confirmed!',
-                'booking'
-            );
-        } else {
-            $this->notificationModel->notifyBookingCustomer(
-                $bookingId,
-                'Payment Received',
-                'Your deposit of ' . $this->money($amount) . ' has been received. Your booking is confirmed!',
-                'booking'
-            );
-            $this->notificationModel->notifyBookingSuppliers(
-                $bookingId,
-                'Deposit Paid',
-                'The customer has paid the deposit. The booking is now confirmed.',
-                'booking'
-            );
+        if (!$ok) {
+            $_SESSION['booking_payment_flash'] = 'Could not save your payment proof. Please try again.';
+            redirect('booking/pay/' . $bookingId);
+            return;
         }
 
-        $this->jsonResponse([
-            'success' => true,
-            'redirect' => URLROOT . '/booking/success/' . $bookingId,
-        ]);
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Proof Submitted',
+            'Your bank transfer details have been received. Our team will verify and confirm shortly.',
+            'payment'
+        );
+
+        $_SESSION['booking_payment_flash'] = 'Your payment proof has been submitted. We will verify and confirm your booking shortly.';
+        redirect('booking/detail/' . $bookingId);
+    }
+
+    private function storePaymentSlip(array $file): string
+    {
+        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        $mimeType = mime_content_type($file['tmp_name']);
+
+        if (!in_array($mimeType, $allowed, true) || $file['size'] > 5 * 1024 * 1024) {
+            return '';
+        }
+
+        $extMap = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'application/pdf' => 'pdf'];
+        $ext = $extMap[$mimeType] ?? 'jpg';
+        $relDir = 'uploads/payment-slips/' . date('Y/m');
+        $absDir = dirname(APPROOT) . '/public/' . $relDir;
+
+        if (!is_dir($absDir)) {
+            mkdir($absDir, 0755, true);
+        }
+
+        $filename = 'slip-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
+
+        if (move_uploaded_file($file['tmp_name'], $absDir . '/' . $filename)) {
+            return 'public/' . $relDir . '/' . $filename;
+        }
+
+        return '';
     }
 
     /* ─── Available Slots ──────────────── */
@@ -958,21 +726,6 @@ class Booking extends Controller
             'success' => true,
             'message' => 'Your cancellation request has been submitted.',
         ]);
-    }
-
-    /* ─── Stripe Helpers ─────────────────────────────────────── */
-
-    private function getStripePublishableKey(): string
-    {
-        // In production, load from config
-        $key = getenv('STRIPE_PUBLISHABLE_KEY') ?: 'pk_test_51R8J48A8prqB0d4XosOJQOAU01iXIJhXT5XoE7tIQBc8QELkQtqFRVhNqnqI6ELB7TAUQyP5WFK5yMfx7Z6ctQQW003ImAlGHD';
-        return $key ?: '';
-    }
-
-    private function getStripeClient(): \Stripe\StripeClient
-    {
-        $secretKey = getenv('STRIPE_SECRET_KEY') ?: 'sk_test_51R8J48A8prqB0d4XNMGtyys8dyQ8sC0Nd30N3tIp6M9wxqCaQ23LqIYYRrLb1Nsy3NqTTdpFVVV2qVwaxGV3wUJ2001ZNCpLtd';
-        return new \Stripe\StripeClient($secretKey);
     }
 
     /* ─── User Helper ────────────────────────────────────────── */

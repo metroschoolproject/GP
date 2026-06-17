@@ -107,20 +107,20 @@
             <aside class="payment-side">
                 <h2 class="side-heading">
                     <span class="side-icon"><i data-lucide="list-checks" class="h-4 w-4"></i></span>
-                    Payment review
+                    How it works
                 </h2>
                 <div class="side-list">
                     <div class="side-item">
                         <span>Step 1</span>
-                        <p>Choose your payment method: MM QR or Visa Card.</p>
+                        <p>Choose your bank or payment app (KBZ Pay, Wave Money, AYA Pay, etc.).</p>
                     </div>
                     <div class="side-item">
                         <span>Step 2</span>
-                        <p>Complete payment on the secure gateway.</p>
+                        <p>Transfer 50,000 MMK to the account shown, then fill in your transfer details.</p>
                     </div>
                     <div class="side-item">
                         <span>Step 3</span>
-                        <p>Dashboard unlocks after payment is verified.</p>
+                        <p>Our admin will verify your payment and unlock your supplier dashboard.</p>
                     </div>
                 </div>
             </aside>
