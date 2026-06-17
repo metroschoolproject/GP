@@ -390,6 +390,14 @@ class Booking extends Controller
             'payment'
         );
 
+        $this->notificationModel->notifyAdmins(
+            'New Payment Proof Submitted',
+            'Booking #' . $bookingId . ' — ' . ($booking['customer_name'] ?? 'A customer') . ' submitted payment proof. Please verify.',
+            'payment',
+            'booking',
+            $bookingId
+        );
+
         $_SESSION['booking_payment_flash'] = 'Your payment proof has been submitted. We will verify and confirm your booking shortly.';
         redirect('booking/detail/' . $bookingId);
     }
@@ -638,6 +646,7 @@ class Booking extends Controller
         $logs = $this->bookingModel->getStatusLogs($bookingId);
         $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $depositPayment = $this->bookingModel->getDepositPayment($bookingId);
 
         $this->view('booking/detail', [
             'booking' => $booking,
@@ -648,6 +657,7 @@ class Booking extends Controller
             'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
             'depositPercent' => self::DEPOSIT_PERCENT,
+            'depositPayment' => $depositPayment ?: [],
         ]);
     }
 
