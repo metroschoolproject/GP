@@ -1483,15 +1483,21 @@ class BookingModel
     }
 
     /**
-     * Submit payment slip for manual verification (KBZ Pay / AYA Bank).
-     * Sets booking status to 'payment_submitted' and creates pending payment record.
+     * Submit manual bank transfer proof for admin verification.
+     * Sets booking status to 'payment_submitted' and creates a pending payment record.
      */
-    public function submitPaymentSlip(int $bookingId, string $slipPath, string $reference, string $method): bool
-    {
+    public function submitPaymentSlip(
+        int $bookingId,
+        string $slipPath,
+        string $reference,
+        string $method,
+        string $accountName = '',
+        string $mobileNumber = '',
+        float $paidAmount = 0.0,
+        string $paidAt = ''
+    ): bool {
         $status = $this->normalizeBookingStatus('payment_submitted');
-        $this->db->dbquery(
-            "UPDATE bookings SET status = :status WHERE id = :id LIMIT 1"
-        );
+        $this->db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");
         $this->db->dbbind(':status', $status);
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
 
@@ -1499,14 +1505,21 @@ class BookingModel
             return false;
         }
 
-        // Create payment record with pending status
         $this->db->dbquery(
-            "INSERT INTO payments (booking_id, type, method, status, payment_slip_path, transaction_ref, escrow_status)
-             VALUES (:bid, 'deposit', :method, 'pending', :slip, :ref, 'held')"
+            "INSERT INTO payments
+                (booking_id, type, method, bank_name, account_name, mobile_number, paid_amount, paid_at,
+                 status, payment_slip_path, transaction_ref, escrow_status)
+             VALUES
+                (:bid, 'deposit', :method, :method, :account_name, :mobile_number, :paid_amount, :paid_at,
+                 'pending', :slip, :ref, 'held')"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':method', $method, PDO::PARAM_STR);
-        $this->db->dbbind(':slip', $slipPath, PDO::PARAM_STR);
+        $this->db->dbbind(':account_name', $accountName !== '' ? $accountName : null);
+        $this->db->dbbind(':mobile_number', $mobileNumber !== '' ? $mobileNumber : null);
+        $this->db->dbbind(':paid_amount', $paidAmount > 0 ? round($paidAmount, 2) : null);
+        $this->db->dbbind(':paid_at', $paidAt !== '' ? $paidAt : null);
+        $this->db->dbbind(':slip', $slipPath !== '' ? $slipPath : null);
         $this->db->dbbind(':ref', $reference, PDO::PARAM_STR);
 
         return $this->db->dbexecute();

@@ -241,10 +241,11 @@ $dashboardContent = function () use (
           <tr>
             <th>Business</th>
             <th>Amount</th>
-            <th>Method</th>
-            <th>Reference</th>
+            <th>Bank</th>
+            <th>Sender Name</th>
+            <th>Transaction ID</th>
+            <th>Slip</th>
             <th>Status</th>
-            <th>Reviewed By</th>
             <th>Date</th>
             <th>Action</th>
           </tr>
@@ -252,7 +253,7 @@ $dashboardContent = function () use (
         <tbody>
           <?php if (empty($payments)): ?>
             <tr>
-              <td colspan="8" class="empty-row">No supplier payment submissions found.</td>
+              <td colspan="9" class="empty-row">No supplier payment submissions found.</td>
             </tr>
           <?php endif; ?>
 
@@ -263,9 +264,11 @@ $dashboardContent = function () use (
               $statusLabel = $paymentStatus === 'success' ? 'Approved' : ($paymentStatus === 'failed' ? 'Rejected' : 'Pending');
               $badgeClass = $paymentStatus === 'success' ? 'badge-success' : ($paymentStatus === 'failed' ? 'badge-failed' : 'badge-pending');
               $submittedAt = !empty($payment['created_at']) ? date('M j, Y', strtotime($payment['created_at'])) : '-';
-              $reviewedBy = $paymentStatus === 'pending' ? '-' : (($payment['method'] ?? '') === 'KBZ Pay' ? 'Gateway' : 'Admin');
-              $paymentProof = trim((string)($payment['transaction_ref'] ?? ''));
-              $hasSlip = preg_match('/\.(jpe?g|png|webp)$/i', $paymentProof) === 1;
+              $bankDisplay = htmlspecialchars($payment['bank_name'] ?? $payment['method'] ?? '-', ENT_QUOTES, 'UTF-8');
+              $senderName  = htmlspecialchars($payment['account_name'] ?? '-', ENT_QUOTES, 'UTF-8');
+              $txnRef      = trim((string)($payment['transaction_ref'] ?? ''));
+              $slipPath    = trim((string)($payment['payment_slip_path'] ?? ''));
+              $hasSlip     = $slipPath !== '' && preg_match('/\.(jpe?g|png|webp|pdf)$/i', $slipPath) === 1;
             ?>
             <tr class="<?= $selectedPaymentId === $paymentId ? 'is-selected' : '' ?>">
               <td>
@@ -273,19 +276,22 @@ $dashboardContent = function () use (
                 <div class="biz-email"><?= htmlspecialchars($payment['owner_email'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
               </td>
               <td><span class="amount"><?= number_format((float)($payment['amount'] ?? 0)) ?> MMK</span></td>
-              <td><span class="method-text"><?= htmlspecialchars($payment['method'] ?? '-', ENT_QUOTES, 'UTF-8') ?></span></td>
+              <td><span class="method-text"><?= $bankDisplay ?></span></td>
+              <td><span class="method-text"><?= $senderName ?></span></td>
+              <td>
+                <span class="ref-code"><?= htmlspecialchars($txnRef !== '' ? $txnRef : '-', ENT_QUOTES, 'UTF-8') ?></span>
+              </td>
               <td>
                 <?php if ($hasSlip): ?>
-                  <a class="slip-link" href="<?= htmlspecialchars($paymentProof, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
+                  <a class="slip-link" href="<?= URLROOT ?>/<?= htmlspecialchars($slipPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
                     <i data-lucide="image" class="h-3.5 w-3.5"></i>
-                    View slip
+                    View
                   </a>
                 <?php else: ?>
-                  <span class="ref-code"><?= htmlspecialchars($paymentProof !== '' ? $paymentProof : '-', ENT_QUOTES, 'UTF-8') ?></span>
+                  <span class="reviewed-by">—</span>
                 <?php endif; ?>
               </td>
               <td><span class="badge <?= $badgeClass ?>"><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?></span></td>
-              <td><span class="reviewed-by"><?= htmlspecialchars($reviewedBy, ENT_QUOTES, 'UTF-8') ?></span></td>
               <td><span class="date-text"><?= htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8') ?></span></td>
               <td>
                 <?php if ($paymentStatus === 'pending'): ?>

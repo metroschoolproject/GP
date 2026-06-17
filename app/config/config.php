@@ -33,15 +33,15 @@ define('MAIL_PASSWORD', 'app-password-here');
 define('MAIL_ENCRYPTION', 'tls');
 define('MAIL_PORT', 587);
 
-// Payment Gateway (2C2P - MM QR & Card Payments)
-// Sandbox docs: https://developer.2c2p.com/docs/sandbox-setup
-define('PAYMENT_GATEWAY_SANDBOX', true); // Switch to false only with production credentials
-define('PAYMENT_GATEWAY_SECRET', '72B8F060B3B923E580411200068A764610F61034AE729AB9EF20CAFF93AFA1B9'); // Sandbox/production Secret Key
-define('MERCHANT_ID', 'JT02'); // Sandbox/production Merchant ID
-define('PAYMENT_GATEWAY_CURRENCY', 'MMK'); // ISO 4217 alpha code for Myanmar Kyat
-define('PAYMENT_GATEWAY_CARD_CHANNEL', 'CC');
-define('PAYMENT_GATEWAY_MMQR_CHANNEL', ''); // Fill this when 2C2P gives you the MMQR sandbox channel code
-// 2C2P sandbox card: 4111111111111111, CVV 123, OTP 123456, any future expiry date.
+// Platform bank accounts for manual payment — fill in real account numbers before going live
+define('PLATFORM_BANK_ACCOUNTS', [
+    'KBZ Pay'           => ['account' => '09-XXXX-XXXXX',    'name' => 'Golden Promise Co., Ltd.'],
+    'Wave Money'        => ['account' => '09-XXXX-XXXXX',    'name' => 'Golden Promise Co., Ltd.'],
+    'AYA Pay'           => ['account' => '09-XXXX-XXXXX',    'name' => 'Golden Promise Co., Ltd.'],
+    'Yoma Bank'         => ['account' => 'XXXX-XXXX-XXXX',   'name' => 'Golden Promise Co., Ltd.'],
+    'CB Bank'           => ['account' => 'XXXX-XXXX-XXXX',   'name' => 'Golden Promise Co., Ltd.'],
+    'Visa / MasterCard' => ['account' => 'XXXX-XXXX-XXXX-XXXX', 'name' => 'Golden Promise Co., Ltd.'],
+]);
 
 // Cron Security
 define('CRON_TOKEN', 'your-secret-cron-token');
