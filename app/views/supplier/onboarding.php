@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier Onboarding - <?= APPNAME ?></title>
     <?php $dashboardCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
+    <?php $leftBgVersion = file_exists(APPROOT . '/../public/images/onboarding/supplier-left-bg.jpg') ? filemtime(APPROOT . '/../public/images/onboarding/supplier-left-bg.jpg') : time(); ?>
     <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $dashboardCssVersion ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,8 +41,9 @@
         /* ── Split layout ── */
         .split {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 48fr 50fr;
             height: 100vh;
+            position: relative;
             transition: grid-template-columns 0.35s ease;
         }
         .split.agreement-mode {
@@ -56,6 +58,33 @@
             justify-content: center;
             padding: 64px 60px;
             position: relative;
+            z-index: 2;
+            border-right: 0 !important;
+            overflow: hidden;
+        }
+        .left-panel-bg {
+            position: absolute;
+            inset: -14px;
+            z-index: 0;
+            background:
+                linear-gradient(rgb(245 232 217 / 0.16), rgb(250 245 239 / 0.28)),
+                url("<?= URLROOT ?>/public/images/onboarding/supplier-left-bg.jpg?v=<?= $leftBgVersion ?>") center / cover no-repeat;
+            filter: blur(3.5px) saturate(1.02);
+            transform: scale(1.02);
+            pointer-events: none;
+        }
+        .left-panel-bg::after {
+            content: "";
+            position: absolute;
+            inset: 14px;
+            background:
+                radial-gradient(circle at 20% 26%, rgb(255 255 255 / 0.18), transparent 28%),
+                linear-gradient(90deg, rgb(250 245 239 / 0.34), rgb(245 232 217 / 0.18));
+        }
+        .brand,
+        .supplier-flash,
+        .step-counter-left,
+        .step-panel {
             z-index: 2;
         }
         .agreement-mode .left-panel {
@@ -518,6 +547,61 @@
         }
         .email-chip svg { width: 13px; height: 13px; flex-shrink: 0; }
 
+        /* ── Red string divider ── */
+        .fate-string-divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: min(16vw, 150px);
+            z-index: 7;
+            pointer-events: none;
+        }
+        .agreement-mode .fate-string-divider {
+            display: none;
+        }
+        .fate-string-divider svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            overflow: visible;
+        }
+        .fate-string-shadow,
+        .fate-string-main,
+        .fate-string-highlight,
+        .fate-string-fiber,
+        .fate-heart-thread {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .fate-string-shadow {
+            stroke: rgb(62 12 18 / 0.14);
+            stroke-width: 4.6;
+            filter: blur(1.4px);
+        }
+        .fate-string-main {
+            stroke: #9f1020;
+            stroke-width: 1.9;
+            filter: drop-shadow(1px 3px 4px rgb(64 14 20 / 0.26));
+        }
+        .fate-string-highlight {
+            stroke: #f0a4a0;
+            stroke-width: 0.55;
+            opacity: 0.52;
+        }
+        .fate-string-fiber {
+            stroke: rgb(92 8 17 / 0.34);
+            stroke-width: 0.55;
+            stroke-dasharray: 1 8;
+            opacity: 0.7;
+        }
+        .fate-heart-thread {
+            stroke: #9f1020;
+            stroke-width: 1.85;
+            filter: drop-shadow(2px 4px 6px rgb(70 18 24 / 0.2));
+        }
+
         /* ── RIGHT PANEL (loose home-style photo collage) ── */
         .right-panel {
             position: relative;
@@ -526,6 +610,10 @@
         }
 
         .right-panel::before {
+            display: none;
+        }
+
+        .right-panel::after {
             display: none;
         }
 
@@ -695,6 +783,7 @@
             body { overflow: auto; }
             .split { grid-template-columns: 1fr; height: auto; }
             .right-panel { height: 44vh; order: -1; }
+            .fate-string-divider { display: none; }
             .left-panel { padding: 48px 28px 80px; }
             .step-panel { padding: 64px 28px 80px; }
             .agreement-mode .left-panel { padding: 28px 18px 82px; }
@@ -717,6 +806,7 @@
          LEFT PANEL
     ════════════════════════════════ -->
     <div class="left-panel border-r border-app-border bg-app-sidebar shadow-panel" id="leftPanel">
+        <div class="left-panel-bg" aria-hidden="true"></div>
         <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
 
         <div class="brand">
@@ -724,7 +814,7 @@
         </div>
 
         <?php if (!empty($message)): ?>
-        <div class="<?= !empty($submitted) ? 'border-app-border bg-app-soft text-app-success' : 'border-app-border bg-app-danger-soft text-app-danger' ?>" style="position:absolute;top:80px;left:48px;right:48px;padding:12px 16px;border-radius:10px;font-family:system-ui;font-size:13px;border-width:1px;border-style:solid;">
+        <div class="supplier-flash <?= !empty($submitted) ? 'border-app-border bg-app-soft text-app-success' : 'border-app-border bg-app-danger-soft text-app-danger' ?>" style="position:absolute;top:80px;left:48px;right:48px;padding:12px 16px;border-radius:10px;font-family:system-ui;font-size:13px;border-width:1px;border-style:solid;">
             <?= $message ?>
         </div>
         <?php endif; ?>
@@ -938,6 +1028,16 @@
          RIGHT PANEL (imagery)
     ════════════════════════════════ -->
     <div class="right-panel" id="rightPanel">
+
+        <div class="fate-string-divider" aria-hidden="true">
+            <svg viewBox="0 0 150 900" preserveAspectRatio="none" focusable="false">
+                <path class="fate-string-shadow" d="M0 0 C6 126 38 202 78 272 C122 350 122 396 70 452 C24 502 40 562 88 634 C126 690 112 768 68 822 C30 864 8 888 0 900" />
+                <path class="fate-string-main" d="M0 0 C6 126 38 202 78 272 C122 350 122 396 70 452 C24 502 40 562 88 634 C126 690 112 768 68 822 C30 864 8 888 0 900" />
+                <path class="fate-string-highlight" d="M1.5 0 C8 124 40 200 80 270 C124 348 124 396 72 452 C26 502 42 560 90 632 C128 690 114 770 70 824 C32 866 10 890 1.5 900" />
+                <path class="fate-string-fiber" d="M-1.5 0 C4 128 36 204 76 274 C120 352 120 396 68 452 C22 504 38 564 86 636 C124 688 110 766 66 820 C28 862 6 886 -1.5 900" />
+                <path class="fate-heart-thread" d="M60 454 C39 454 32 433 49 425 C69 416 82 436 77 464 C73 435 87 402 110 411 C136 421 123 462 78 490 C61 501 55 482 76 467 C93 455 112 458 139 468" />
+            </svg>
+        </div>
 
         <!-- Each slide corresponds to a step. Uses free Unsplash wedding images. -->
         <!-- Slide 0: Welcome -->
