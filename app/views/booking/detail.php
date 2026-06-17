@@ -8,7 +8,7 @@ $vouchers = $vouchers ?? [];
 $bookingRef = $bookingRef ?? '';
 $depositPercent = (int)($depositPercent ?? 10);
 
-$statusLabels = ['draft'=>'Draft','pending_payment'=>'Pending Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled'];
+$statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled'];
 $money = fn($v) => 'RM '.number_format((float)$v,0);
 $plain = function($v){ $t=(string)$v; for($i=0;$i<10;$i++){$d=html_entity_decode($t,ENT_QUOTES|ENT_HTML5,'UTF-8');if($d===$t)break;$t=$d;}return $t; };
 $h = fn($v)=>htmlspecialchars($plain($v),ENT_QUOTES,'UTF-8');
@@ -146,6 +146,28 @@ a{color:inherit;text-decoration:none}
     ?>"><?=$statusLabels[$s]??ucfirst($s)?></span>
   </div>
 
+  <?php $currentStatus = $booking['status'] ?? ''; ?>
+
+  <?php if ($currentStatus === 'pending_supplier_response'): ?>
+  <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:4px;">
+    <svg style="flex-shrink:0;margin-top:2px;color:#d97706" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:2px;">Waiting for supplier confirmation</div>
+      <div style="font-size:12px;color:#b45309;">Your booking request has been sent. The supplier has up to 48 hours to accept or decline. You will be notified when they respond.</div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($currentStatus === 'pending_payment' && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:4px;">
+    <svg style="flex-shrink:0;margin-top:2px;color:#16a34a" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:#166534;margin-bottom:2px;">Supplier accepted — please complete payment</div>
+      <div style="font-size:12px;color:#15803d;">Your booking request was accepted! Please pay your 10% deposit below to lock in your booking.</div>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <div class="gp-layout">
     <!-- LEFT: Timeline -->
     <div class="gp-col">
@@ -274,6 +296,8 @@ a{color:inherit;text-decoration:none}
     <?php endif; ?>
     <?php if (in_array($booking['status']??'', ['draft', 'pending_payment']) && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
     <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Proceed to Payment</a>
+    <?php elseif (($booking['status']??'') === 'pending_supplier_response'): ?>
+    <span class="gp-btn-sm" style="cursor:default;opacity:0.6;" title="Payment available after supplier confirms">Awaiting Supplier Response</span>
     <?php endif; ?>
     <?php if (!in_array($booking['status']??'', ['cancelled','completed'])): ?>
     <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
