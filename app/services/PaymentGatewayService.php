@@ -46,7 +46,7 @@ class PaymentGatewayService
             'merchantID' => $this->merchantId,
             'invoiceNo' => $invoiceNo,
             'description' => 'Golden Promise Payment #' . $paymentId,
-            'amount' => round($amount, 2),
+            'amount' => number_format($amount, 2, '.', ''),
             'currencyCode' => $currency,
             'frontendReturnUrl' => $returnUrl,
             'backendReturnUrl' => $backendReturnUrl ?: URLROOT . '/webhook/paymentGatewayCallback?payment_id=' . $paymentId,
