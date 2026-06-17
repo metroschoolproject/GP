@@ -435,14 +435,14 @@
         </div>
         <div>
           <label class="fm-label" for="oCategory">Category</label>
-          <select id="oCategory" class="fm-select"></select>
+          <select id="oCategory" class="fm-select" onchange="onOthersCategoryChange(this.value)"></select>
         </div>
       </div>
       <div>
         <label class="fm-label" for="oDesc">Description</label>
         <textarea id="oDesc" rows="3" placeholder="Describe the service…" class="fm-textarea"></textarea>
       </div>
-      <div class="modal-grid-2" style="grid-template-columns:1fr 1fr 1fr">
+      <div id="oStandardPriceFields" class="modal-grid-2" style="grid-template-columns:1fr 1fr 1fr">
         <div>
           <label class="fm-label" for="oPriceMin">Package price (MMK)</label>
           <input id="oPriceMin" type="number" min="0" step="0.01" placeholder="e.g. 800" class="fm-input"/>
@@ -455,6 +455,33 @@
           <label class="fm-label" for="oCapacity">Max concurrent</label>
           <input id="oCapacity" type="number" min="1" step="1" placeholder="e.g. 50" class="fm-input"/>
         </div>
+      </div>
+      <!-- Decoration styles — shown only for Decoration category -->
+      <div id="oDecorationExtras" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="fm-label" style="margin-bottom:0">Decoration styles &amp; prices</span>
+          <button type="button" onclick="addDecorationStyle('o')" class="room-add">+ Add style</button>
+        </div>
+        <div id="oStylesList" class="space-y-2"></div>
+      </div>
+      <!-- Rental pricing — shown only for Dress / Accessories -->
+      <div id="oRentalExtras" class="hidden space-y-3">
+        <div class="fm-label" style="margin-bottom:4px">Pricing options</div>
+        <div class="modal-grid-2">
+          <div>
+            <label class="fm-label" for="oBorrowPrice">Borrow price (MMK)</label>
+            <input id="oBorrowPrice" type="number" min="0" step="0.01" placeholder="e.g. 150000" class="fm-input"/>
+          </div>
+          <div>
+            <label class="fm-label" for="oReturnDays">Return within (days)</label>
+            <input id="oReturnDays" type="number" min="1" step="1" placeholder="e.g. 3" class="fm-input"/>
+          </div>
+        </div>
+        <div>
+          <label class="fm-label" for="oBuyPrice">Buy price (MMK)</label>
+          <input id="oBuyPrice" type="number" min="0" step="0.01" placeholder="e.g. 850000" class="fm-input"/>
+        </div>
+        <div style="font-size:12px;color:#888">Fill in one or both. Leave blank to hide that option from customers.</div>
       </div>
       <div>
         <label class="fm-label" for="oMinLeadDays">Minimum booking notice (days)</label>
@@ -533,6 +560,33 @@
           </div>
           <div id="esRoomsList" class="space-y-3"></div>
         </div>
+      </div>
+      <!-- Decoration extras — shown only for Decoration -->
+      <div id="esDecorationExtras" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="fm-label" style="margin-bottom:0">Decoration styles &amp; prices</span>
+          <button type="button" onclick="addDecorationStyle('es')" class="room-add">+ Add style</button>
+        </div>
+        <div id="esStylesList" class="space-y-2"></div>
+      </div>
+      <!-- Rental extras — shown only for Dress / Accessories -->
+      <div id="esRentalExtras" class="hidden space-y-3">
+        <div class="fm-label" style="margin-bottom:4px">Pricing options</div>
+        <div class="modal-grid-2">
+          <div>
+            <label class="fm-label" for="esBorrowPrice">Borrow price (MMK)</label>
+            <input id="esBorrowPrice" type="number" min="0" step="0.01" class="fm-input"/>
+          </div>
+          <div>
+            <label class="fm-label" for="esReturnDays">Return within (days)</label>
+            <input id="esReturnDays" type="number" min="1" step="1" class="fm-input"/>
+          </div>
+        </div>
+        <div>
+          <label class="fm-label" for="esBuyPrice">Buy price (MMK)</label>
+          <input id="esBuyPrice" type="number" min="0" step="0.01" class="fm-input"/>
+        </div>
+        <div style="font-size:12px;color:#888">Fill in one or both. Leave blank to hide that option from customers.</div>
       </div>
     </div>
     <div class="modal-f">

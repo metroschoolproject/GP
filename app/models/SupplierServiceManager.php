@@ -139,6 +139,8 @@ class SupplierServiceManager
 
         $serviceId = (int)$this->db->lastinsertid();
         $this->saveVenueDetails($supplierId, $serviceId, $data);
+        $this->saveDecorationStyles($serviceId, $data);
+        $this->saveRentalPricing($serviceId, $data);
 
         return $this->getServiceById($serviceId, $supplierId);
     }
@@ -187,6 +189,8 @@ class SupplierServiceManager
         $this->db->dbbind(':id', (int)$serviceId);
         $this->db->dbexecute();
         $this->saveVenueDetails($supplierId, $serviceId, $data);
+        $this->saveDecorationStyles($serviceId, $data);
+        $this->saveRentalPricing($serviceId, $data);
 
         return $this->getServiceById($serviceId, $supplierId);
     }
@@ -198,6 +202,14 @@ class SupplierServiceManager
         $this->db->dbexecute();
 
         $this->db->dbquery('DELETE FROM service_media WHERE service_id = :service_id');
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbexecute();
+
+        $this->db->dbquery('DELETE FROM decoration_styles WHERE service_id = :service_id');
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbexecute();
+
+        $this->db->dbquery('DELETE FROM service_rental_pricing WHERE service_id = :service_id');
         $this->db->dbbind(':service_id', (int)$serviceId);
         $this->db->dbexecute();
 
@@ -494,8 +506,13 @@ class SupplierServiceManager
         $price = (float)($service['price_min'] ?? $service['price'] ?? 0);
         $media = is_array($service['media'] ?? null) ? $service['media'] : [];
         $weekly = is_array($service['availability']['weekly'] ?? null) ? $service['availability']['weekly'] : [];
-        $isVenue = strtolower((string)($service['category'] ?? '')) === 'venue';
+        $category = strtolower((string)($service['category'] ?? ''));
+        $isVenue = $category === 'venue';
+        $isDecoration = $category === 'decoration';
+        $isRental = in_array($category, ['dress', 'accessories'], true);
         $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'] : [];
+        $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
+        $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 
         if ($name === '') {
             $missing[] = 'Add the service name.';
@@ -505,7 +522,7 @@ class SupplierServiceManager
             $missing[] = 'Add a service description.';
         }
 
-        if ($price <= 0) {
+        if ($price <= 0 && !$isDecoration && !$isRental) {
             $missing[] = 'Add a valid package price.';
         }
 
@@ -518,6 +535,17 @@ class SupplierServiceManager
                 $missing[] = 'Add at least one hall or room.';
             } elseif (!$this->hasValidVenueRooms($venueRooms)) {
                 $missing[] = 'Each hall needs a name, capacity, price, start time, and end time.';
+            }
+        } elseif ($isDecoration) {
+            $validStyles = array_filter($decorationStyles, fn($s) => trim((string)($s['name'] ?? '')) !== '' && (float)($s['price'] ?? 0) > 0);
+            if (empty($validStyles)) {
+                $missing[] = 'Add at least one decoration style with a name and price.';
+            }
+        } elseif ($isRental) {
+            $hasBorrow = ($rentalPricing['borrow_price'] ?? 0) > 0;
+            $hasBuy = ($rentalPricing['buy_price'] ?? 0) > 0;
+            if (!$hasBorrow && !$hasBuy) {
+                $missing[] = 'Add a borrow price, a buy price, or both.';
             }
         } elseif (!$this->hasOpenWeeklySchedule($weekly)) {
             $missing[] = 'Set at least one weekly available day with valid start and end time.';
@@ -1098,6 +1126,8 @@ class SupplierServiceManager
         $priceMax = max($priceMin, (float)($service['price_max'] ?? $priceMin));
         $venueName = trim((string)($service['venue_name'] ?? ''));
 
+        $category = strtolower((string)($service['category'] ?? ''));
+
         return [
             'id' => (int)$service['id'],
             'name' => $service['name'] ?? '',
@@ -1120,6 +1150,8 @@ class SupplierServiceManager
             'venue_name' => $venueName,
             'venue_location' => $service['venue_location'] ?? '',
             'venue_rooms' => !empty($service['venue_id']) ? $this->getVenueRooms((int)$service['venue_id']) : [],
+            'decoration_styles' => $category === 'decoration' ? $this->getDecorationStyles((int)$service['id']) : [],
+            'rental_pricing' => in_array($category, ['dress', 'accessories'], true) ? $this->getRentalPricing((int)$service['id']) : null,
         ];
     }
 
@@ -1186,6 +1218,7 @@ class SupplierServiceManager
         $submittedRoomIds = [];
 
         foreach ($rooms as $room) {
+            $hasRoomPhoto = $this->hasVenueRoomPhotoColumn();
             if (!empty($room['id'])) {
                 $roomId = (int)$room['id'];
                 $roomPriceRangeUpdate = $hasRoomPriceRange
@@ -1193,12 +1226,13 @@ class SupplierServiceManager
                          price_min = :price_min,
                          price_max = :price_max'
                     : '';
+                $roomPhotoUpdate = $hasRoomPhoto && $room['photo_url'] !== null ? ', photo_url = :photo_url' : '';
                 $this->db->dbquery(
                     'UPDATE venue_rooms
                      SET name = :name,
                          capacity = :capacity,
                          price = :price' . $roomPriceRangeUpdate . ',
-                         min_lead_days = :min_lead_days
+                         min_lead_days = :min_lead_days' . $roomPhotoUpdate . '
                      WHERE id = :id
                        AND venue_id = :venue_id'
                 );
@@ -1207,9 +1241,11 @@ class SupplierServiceManager
             } else {
                 $roomPriceRangeColumns = $hasRoomPriceRange ? ', price_min, price_max' : '';
                 $roomPriceRangeValues = $hasRoomPriceRange ? ', :price_min, :price_max' : '';
+                $roomPhotoColumns = $hasRoomPhoto ? ', photo_url' : '';
+                $roomPhotoValues = $hasRoomPhoto ? ', :photo_url' : '';
                 $this->db->dbquery(
-                    'INSERT INTO venue_rooms(venue_id, name, capacity, price' . $roomPriceRangeColumns . ', min_lead_days)
-                     VALUES(:venue_id, :name, :capacity, :price' . $roomPriceRangeValues . ', :min_lead_days)'
+                    'INSERT INTO venue_rooms(venue_id, name, capacity, price' . $roomPriceRangeColumns . ', min_lead_days' . $roomPhotoColumns . ')
+                     VALUES(:venue_id, :name, :capacity, :price' . $roomPriceRangeValues . ', :min_lead_days' . $roomPhotoValues . ')'
                 );
             }
 
@@ -1223,6 +1259,9 @@ class SupplierServiceManager
             }
             $minLeadDays = !empty($room['min_lead_days']) ? max(0, min(365, (int)$room['min_lead_days'])) : null;
             $this->db->dbbind(':min_lead_days', $minLeadDays, $minLeadDays === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+            if ($hasRoomPhoto && ($room['photo_url'] !== null || !empty($room['id']))) {
+                $this->db->dbbind(':photo_url', $room['photo_url'] ?? null);
+            }
             $this->db->dbexecute();
 
             if (empty($room['id'])) {
@@ -1273,6 +1312,7 @@ class SupplierServiceManager
                 'start_time' => $this->normalizeTime($room['start_time'] ?? '09:00'),
                 'end_time' => $this->normalizeTime($room['end_time'] ?? '17:00'),
                 'min_lead_days' => $minLeadDays,
+                'photo_url' => trim((string)($room['photo_url'] ?? '')) ?: null,
             ];
         }
 
@@ -1343,6 +1383,7 @@ class SupplierServiceManager
         $roomPriceRangeGroupBy = $this->hasVenueRoomPriceRangeColumns()
             ? ', venue_rooms.price_min, venue_rooms.price_max'
             : '';
+        $roomPhotoSelect = $this->hasVenueRoomPhotoColumn() ? 'venue_rooms.photo_url,' : "'' AS photo_url,";
         $this->db->dbquery(
             'SELECT venue_rooms.id,
                     venue_rooms.name,
@@ -1350,6 +1391,7 @@ class SupplierServiceManager
                     venue_rooms.price,
                     ' . $roomPriceRangeSelect . '
                     venue_rooms.min_lead_days,
+                    ' . $roomPhotoSelect . '
                     MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.date END) AS available_from,
                     MAX(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.date END) AS available_to,
                     MIN(CASE WHEN venue_room_availability.is_available = 1 THEN venue_room_availability.start_time END) AS start_time,
@@ -1371,6 +1413,7 @@ class SupplierServiceManager
                 'price_min' => (float)($room['price_min'] ?? $room['price'] ?? 0),
                 'price_max' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
                 'min_lead_days' => $room['min_lead_days'] !== null ? (int)$room['min_lead_days'] : null,
+                'photo_url' => $room['photo_url'] ?? null,
                 'available_from' => $room['available_from'] ?? '',
                 'available_to' => $room['available_to'] ?? '',
                 'start_time' => $room['start_time'] ?? '09:00:00',
@@ -1862,5 +1905,121 @@ class SupplierServiceManager
         $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $value), '-'));
 
         return $slug !== '' ? $slug : 'category';
+    }
+
+    private function hasVenueRoomPhotoColumn(): bool
+    {
+        static $checked = null;
+        if ($checked !== null) {
+            return $checked;
+        }
+        try {
+            $this->db->dbquery("SHOW COLUMNS FROM venue_rooms LIKE 'photo_url'");
+            $checked = (bool)$this->db->getsingledata();
+        } catch (Throwable $e) {
+            $checked = false;
+        }
+
+        return $checked;
+    }
+
+    private function saveDecorationStyles(int $serviceId, array $data): void
+    {
+        $category = strtolower((string)($data['category'] ?? ''));
+        if ($category !== 'decoration') {
+            return;
+        }
+
+        $styles = is_array($data['decoration_styles'] ?? null) ? $data['decoration_styles'] : [];
+
+        $this->db->dbquery('DELETE FROM decoration_styles WHERE service_id = :service_id');
+        $this->db->dbbind(':service_id', $serviceId);
+        $this->db->dbexecute();
+
+        $sort = 0;
+        foreach ($styles as $style) {
+            $name = trim((string)($style['name'] ?? ''));
+            $price = max(0, (float)($style['price'] ?? 0));
+            if ($name === '') {
+                continue;
+            }
+            $this->db->dbquery(
+                'INSERT INTO decoration_styles (service_id, name, price, sort_order)
+                 VALUES (:service_id, :name, :price, :sort_order)'
+            );
+            $this->db->dbbind(':service_id', $serviceId);
+            $this->db->dbbind(':name', $name);
+            $this->db->dbbind(':price', number_format($price, 2, '.', ''), PDO::PARAM_STR);
+            $this->db->dbbind(':sort_order', $sort++, PDO::PARAM_INT);
+            $this->db->dbexecute();
+        }
+    }
+
+    private function getDecorationStyles(int $serviceId): array
+    {
+        $this->db->dbquery(
+            'SELECT id, name, price
+             FROM decoration_styles
+             WHERE service_id = :service_id
+             ORDER BY sort_order ASC, id ASC'
+        );
+        $this->db->dbbind(':service_id', $serviceId);
+
+        return array_map(function ($row) {
+            return [
+                'id' => (int)$row['id'],
+                'name' => $row['name'] ?? '',
+                'price' => (float)$row['price'],
+            ];
+        }, $this->db->getmultidata());
+    }
+
+    private function saveRentalPricing(int $serviceId, array $data): void
+    {
+        $category = strtolower((string)($data['category'] ?? ''));
+        if (!in_array($category, ['dress', 'accessories'], true)) {
+            return;
+        }
+
+        $rental = is_array($data['rental_pricing'] ?? null) ? $data['rental_pricing'] : [];
+        $borrowPrice = ($rental['borrow_price'] ?? 0) > 0 ? (float)$rental['borrow_price'] : null;
+        $returnDays = $borrowPrice !== null && ($rental['return_days'] ?? 0) > 0 ? (int)$rental['return_days'] : null;
+        $buyPrice = ($rental['buy_price'] ?? 0) > 0 ? (float)$rental['buy_price'] : null;
+
+        $this->db->dbquery(
+            'INSERT INTO service_rental_pricing (service_id, borrow_price, return_days, buy_price)
+             VALUES (:service_id, :borrow_price, :return_days, :buy_price)
+             ON DUPLICATE KEY UPDATE
+               borrow_price = VALUES(borrow_price),
+               return_days  = VALUES(return_days),
+               buy_price    = VALUES(buy_price)'
+        );
+        $this->db->dbbind(':service_id', $serviceId);
+        $this->db->dbbind(':borrow_price', $borrowPrice);
+        $this->db->dbbind(':return_days', $returnDays, $returnDays === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $this->db->dbbind(':buy_price', $buyPrice);
+        $this->db->dbexecute();
+    }
+
+    private function getRentalPricing(int $serviceId): ?array
+    {
+        $this->db->dbquery(
+            'SELECT borrow_price, return_days, buy_price
+             FROM service_rental_pricing
+             WHERE service_id = :service_id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':service_id', $serviceId);
+        $row = $this->db->getsingledata();
+
+        if (!$row) {
+            return null;
+        }
+
+        return [
+            'borrow_price' => $row['borrow_price'] !== null ? (float)$row['borrow_price'] : null,
+            'return_days' => $row['return_days'] !== null ? (int)$row['return_days'] : null,
+            'buy_price' => $row['buy_price'] !== null ? (float)$row['buy_price'] : null,
+        ];
     }
 }
