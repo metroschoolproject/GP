@@ -6,6 +6,8 @@ class SupplierServiceManager
     private $hasServicePriceRangeColumns = null;
     private $hasVenueRoomPriceRangeColumns = null;
     private $hasVenueServiceColumn = null;
+    private $hasRentalPriceMatrixColumns = null;
+    private $rentalPricingColumns = null;
 
     public function __construct()
     {
@@ -121,6 +123,7 @@ class SupplierServiceManager
     public function createService($supplierId, $data)
     {
         $data = $this->applyVenueRoomPriceRange($data);
+        $data = $this->applyRentalPriceRange($data);
         $categoryId = $this->findOrCreateCategory($data['category'] ?? 'Others');
         $priceRangeColumns = $this->hasServicePriceRangeColumns() ? ', price_min, price_max' : '';
         $priceRangeValues = $this->hasServicePriceRangeColumns() ? ', :price_min, :price_max' : '';
@@ -162,6 +165,7 @@ class SupplierServiceManager
         }
 
         $data = $this->applyVenueRoomPriceRange($data);
+        $data = $this->applyRentalPriceRange($data);
         $categoryId = $this->findOrCreateCategory($data['category'] ?? $service['category'] ?? 'Others');
         $priceRangeUpdate = $this->hasServicePriceRangeColumns()
             ? ',
@@ -542,8 +546,10 @@ class SupplierServiceManager
                 $missing[] = 'Add at least one decoration style with a name and price.';
             }
         } elseif ($isRental) {
-            $hasBorrow = ($rentalPricing['borrow_price'] ?? 0) > 0;
-            $hasBuy = ($rentalPricing['buy_price'] ?? 0) > 0;
+            $hasBorrow = ($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0) > 0
+                || ($rentalPricing['borrow_customize_price'] ?? 0) > 0;
+            $hasBuy = ($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0) > 0
+                || ($rentalPricing['buy_customize_price'] ?? 0) > 0;
             if (!$hasBorrow && !$hasBuy) {
                 $missing[] = 'Add a borrow price, a buy price, or both.';
             }
@@ -1109,6 +1115,33 @@ class SupplierServiceManager
         return $data;
     }
 
+    private function applyRentalPriceRange($data)
+    {
+        $category = strtolower((string)($data['category'] ?? ''));
+        if (!in_array($category, ['dress', 'accessories'], true)) {
+            return $data;
+        }
+
+        $rental = is_array($data['rental_pricing'] ?? null) ? $data['rental_pricing'] : [];
+        $borrowPackage = max(0, (float)($rental['borrow_package_price'] ?? $rental['borrow_price'] ?? 0));
+        $borrowCustomize = max($borrowPackage, (float)($rental['borrow_customize_price'] ?? $rental['borrow_price'] ?? $borrowPackage));
+        $buyPackage = max(0, (float)($rental['buy_package_price'] ?? $rental['buy_price'] ?? 0));
+        $buyCustomize = max($buyPackage, (float)($rental['buy_customize_price'] ?? $rental['buy_price'] ?? $buyPackage));
+
+        $packagePrices = array_values(array_filter([$borrowPackage, $buyPackage], static fn($price) => $price > 0));
+        $customizePrices = array_values(array_filter([$borrowCustomize, $buyCustomize], static fn($price) => $price > 0));
+        $priceMin = !empty($packagePrices) ? min($packagePrices) : 0;
+        $priceMax = !empty($customizePrices) ? max($customizePrices) : $priceMin;
+
+        $data['price'] = $priceMin;
+        $data['price_min'] = $priceMin;
+        $data['price_max'] = max($priceMin, $priceMax);
+        $data['package_price'] = $data['price_min'];
+        $data['customize_price'] = $data['price_max'];
+
+        return $data;
+    }
+
     private function bindPackageFields($supplierId, $data, $categories)
     {
         $this->db->dbbind(':supplier_id', (int)$supplierId);
@@ -1241,8 +1274,8 @@ class SupplierServiceManager
             } else {
                 $roomPriceRangeColumns = $hasRoomPriceRange ? ', price_min, price_max' : '';
                 $roomPriceRangeValues = $hasRoomPriceRange ? ', :price_min, :price_max' : '';
-                $roomPhotoColumns = $hasRoomPhoto ? ', photo_url' : '';
-                $roomPhotoValues = $hasRoomPhoto ? ', :photo_url' : '';
+                $roomPhotoColumns = $hasRoomPhoto && $room['photo_url'] !== null ? ', photo_url' : '';
+                $roomPhotoValues = $hasRoomPhoto && $room['photo_url'] !== null ? ', :photo_url' : '';
                 $this->db->dbquery(
                     'INSERT INTO venue_rooms(venue_id, name, capacity, price' . $roomPriceRangeColumns . ', min_lead_days' . $roomPhotoColumns . ')
                      VALUES(:venue_id, :name, :capacity, :price' . $roomPriceRangeValues . ', :min_lead_days' . $roomPhotoValues . ')'
@@ -1259,7 +1292,7 @@ class SupplierServiceManager
             }
             $minLeadDays = !empty($room['min_lead_days']) ? max(0, min(365, (int)$room['min_lead_days'])) : null;
             $this->db->dbbind(':min_lead_days', $minLeadDays, $minLeadDays === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            if ($hasRoomPhoto && ($room['photo_url'] !== null || !empty($room['id']))) {
+            if ($hasRoomPhoto && $room['photo_url'] !== null) {
                 $this->db->dbbind(':photo_url', $room['photo_url'] ?? null);
             }
             $this->db->dbexecute();
@@ -1590,6 +1623,48 @@ class SupplierServiceManager
         $this->hasVenueRoomPriceRangeColumns = (int)($row['total'] ?? 0) >= 2;
 
         return $this->hasVenueRoomPriceRangeColumns;
+    }
+
+    private function hasRentalPriceMatrixColumns()
+    {
+        if ($this->hasRentalPriceMatrixColumns !== null) {
+            return $this->hasRentalPriceMatrixColumns;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "service_rental_pricing"
+               AND COLUMN_NAME IN (
+                    "borrow_package_price",
+                    "borrow_customize_price",
+                    "buy_package_price",
+                    "buy_customize_price"
+               )'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasRentalPriceMatrixColumns = (int)($row['total'] ?? 0) >= 4;
+
+        return $this->hasRentalPriceMatrixColumns;
+    }
+
+    private function rentalPricingColumns(): array
+    {
+        if ($this->rentalPricingColumns !== null) {
+            return $this->rentalPricingColumns;
+        }
+
+        $this->db->dbquery(
+            'SELECT COLUMN_NAME
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "service_rental_pricing"'
+        );
+        $rows = $this->db->getmultidata();
+        $this->rentalPricingColumns = array_map(static fn($row) => (string)($row['COLUMN_NAME'] ?? ''), $rows);
+
+        return $this->rentalPricingColumns;
     }
 
     private function venueSelectFields()
@@ -1982,29 +2057,77 @@ class SupplierServiceManager
         }
 
         $rental = is_array($data['rental_pricing'] ?? null) ? $data['rental_pricing'] : [];
-        $borrowPrice = ($rental['borrow_price'] ?? 0) > 0 ? (float)$rental['borrow_price'] : null;
-        $returnDays = $borrowPrice !== null && ($rental['return_days'] ?? 0) > 0 ? (int)$rental['return_days'] : null;
-        $buyPrice = ($rental['buy_price'] ?? 0) > 0 ? (float)$rental['buy_price'] : null;
+        $borrowPackagePrice = ($rental['borrow_package_price'] ?? $rental['borrow_price'] ?? 0) > 0 ? (float)($rental['borrow_package_price'] ?? $rental['borrow_price']) : null;
+        $borrowCustomizePrice = ($rental['borrow_customize_price'] ?? 0) > 0 ? (float)$rental['borrow_customize_price'] : $borrowPackagePrice;
+        $returnDays = $borrowPackagePrice !== null && ($rental['return_days'] ?? 0) > 0 ? (int)$rental['return_days'] : null;
+        $buyPackagePrice = ($rental['buy_package_price'] ?? $rental['buy_price'] ?? 0) > 0 ? (float)($rental['buy_package_price'] ?? $rental['buy_price']) : null;
+        $buyCustomizePrice = ($rental['buy_customize_price'] ?? 0) > 0 ? (float)$rental['buy_customize_price'] : $buyPackagePrice;
+        $borrowCustomizePrice = $borrowCustomizePrice !== null ? max($borrowPackagePrice ?? 0, $borrowCustomizePrice) : null;
+        $buyCustomizePrice = $buyCustomizePrice !== null ? max($buyPackagePrice ?? 0, $buyCustomizePrice) : null;
 
-        $this->db->dbquery(
-            'INSERT INTO service_rental_pricing (service_id, borrow_price, return_days, buy_price)
-             VALUES (:service_id, :borrow_price, :return_days, :buy_price)
-             ON DUPLICATE KEY UPDATE
-               borrow_price = VALUES(borrow_price),
-               return_days  = VALUES(return_days),
-               buy_price    = VALUES(buy_price)'
-        );
+        $this->db->dbquery('SELECT id FROM service_rental_pricing WHERE service_id = :service_id LIMIT 1');
         $this->db->dbbind(':service_id', $serviceId);
-        $this->db->dbbind(':borrow_price', $borrowPrice);
-        $this->db->dbbind(':return_days', $returnDays, $returnDays === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-        $this->db->dbbind(':buy_price', $buyPrice);
+        $existing = $this->db->getsingledata();
+
+        $values = [
+            'borrow_package_price' => $borrowPackagePrice,
+            'borrow_customize_price' => $borrowCustomizePrice,
+            'borrow_price' => $borrowPackagePrice,
+            'return_days' => $returnDays,
+            'buy_package_price' => $buyPackagePrice,
+            'buy_customize_price' => $buyCustomizePrice,
+            'buy_price' => $buyPackagePrice,
+        ];
+        $values = array_intersect_key($values, array_flip($this->rentalPricingColumns()));
+
+        if (empty($values)) {
+            return;
+        }
+
+        if ($existing) {
+            $sets = [];
+            foreach (array_keys($values) as $column) {
+                $sets[] = $column . ' = :' . $column;
+            }
+            $this->db->dbquery(
+                'UPDATE service_rental_pricing
+                 SET ' . implode(', ', $sets) . '
+                 WHERE service_id = :service_id'
+            );
+        } else {
+            $columns = array_merge(['service_id'], array_keys($values));
+            $placeholders = array_map(static fn($column) => ':' . $column, $columns);
+            $this->db->dbquery(
+                'INSERT INTO service_rental_pricing (' . implode(', ', $columns) . ')
+                 VALUES (' . implode(', ', $placeholders) . ')'
+            );
+        }
+
+        $this->db->dbbind(':service_id', $serviceId);
+        foreach ($values as $column => $value) {
+            $this->db->dbbind(':' . $column, $value, $value === null ? PDO::PARAM_NULL : null);
+        }
         $this->db->dbexecute();
     }
 
     private function getRentalPricing(int $serviceId): ?array
     {
+        $columns = array_values(array_intersect($this->rentalPricingColumns(), [
+            'borrow_package_price',
+            'borrow_customize_price',
+            'borrow_price',
+            'return_days',
+            'buy_package_price',
+            'buy_customize_price',
+            'buy_price',
+        ]));
+
+        if (empty($columns)) {
+            return null;
+        }
+
         $this->db->dbquery(
-            'SELECT borrow_price, return_days, buy_price
+            'SELECT ' . implode(', ', $columns) . '
              FROM service_rental_pricing
              WHERE service_id = :service_id
              LIMIT 1'
@@ -2016,10 +2139,19 @@ class SupplierServiceManager
             return null;
         }
 
+        $borrowPackage = $row['borrow_package_price'] ?? $row['borrow_price'] ?? null;
+        $borrowCustomize = $row['borrow_customize_price'] ?? $row['borrow_price'] ?? $borrowPackage;
+        $buyPackage = $row['buy_package_price'] ?? $row['buy_price'] ?? null;
+        $buyCustomize = $row['buy_customize_price'] ?? $row['buy_price'] ?? $buyPackage;
+
         return [
-            'borrow_price' => $row['borrow_price'] !== null ? (float)$row['borrow_price'] : null,
-            'return_days' => $row['return_days'] !== null ? (int)$row['return_days'] : null,
-            'buy_price' => $row['buy_price'] !== null ? (float)$row['buy_price'] : null,
+            'borrow_package_price' => $borrowPackage !== null ? (float)$borrowPackage : null,
+            'borrow_customize_price' => $borrowCustomize !== null ? (float)$borrowCustomize : null,
+            'borrow_price' => ($row['borrow_price'] ?? $borrowPackage) !== null ? (float)($row['borrow_price'] ?? $borrowPackage) : null,
+            'return_days' => ($row['return_days'] ?? null) !== null ? (int)$row['return_days'] : null,
+            'buy_package_price' => $buyPackage !== null ? (float)$buyPackage : null,
+            'buy_customize_price' => $buyCustomize !== null ? (float)$buyCustomize : null,
+            'buy_price' => ($row['buy_price'] ?? $buyPackage) !== null ? (float)($row['buy_price'] ?? $buyPackage) : null,
         ];
     }
 }

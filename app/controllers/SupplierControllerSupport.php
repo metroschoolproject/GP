@@ -87,6 +87,15 @@ abstract class SupplierControllerSupport extends Controller
         $payload['min_lead_days'] = $minLeadDaysRaw === '' ? 0 : max(0, min(365, (int)$minLeadDaysRaw));
         $payload['status'] = ($payload['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active';
         $payload['img'] = $this->uploadService->storeServiceImageFromPayload($payload['img'] ?? '', $supplierId, $type);
+        if (!empty($payload['rooms']) && is_array($payload['rooms'])) {
+            foreach ($payload['rooms'] as &$room) {
+                if (!is_array($room)) {
+                    continue;
+                }
+                $room['photo_url'] = $this->uploadService->storeServiceImageFromPayload($room['photo_url'] ?? '', $supplierId, 'hall');
+            }
+            unset($room);
+        }
 
         if (isset($payload['categories']) && is_array($payload['categories'])) {
             $payload['categories'] = array_values(array_filter(array_map(function ($category) {

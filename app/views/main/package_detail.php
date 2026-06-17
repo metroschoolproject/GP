@@ -19,6 +19,43 @@ $moneyRange = function ($svc) use ($money) {
     }
     return $money($svc['package_price'] ?? $svc['unit_price'] ?? $svc['price_min'] ?? $svc['price'] ?? 0);
 };
+$isRentalCategory = static function ($svc): bool {
+    $slug = strtolower(trim((string)($svc['category_slug'] ?? '')));
+    $name = strtolower(trim((string)($svc['category_name'] ?? '')));
+
+    return in_array($slug, ['dress', 'accessories'], true)
+        || in_array($name, ['dress', 'accessories'], true);
+};
+$rentalRows = static function ($svc) use ($money, $isRentalCategory): array {
+    if (!$isRentalCategory($svc)) {
+        return [];
+    }
+
+    $rows = [];
+    $borrowPackagePrice = (float)($svc['borrow_package_price'] ?? $svc['borrow_price'] ?? 0);
+    $borrowCustomizePrice = (float)($svc['borrow_customize_price'] ?? $svc['borrow_price'] ?? $borrowPackagePrice);
+    $buyPackagePrice = (float)($svc['buy_package_price'] ?? $svc['buy_price'] ?? 0);
+    $buyCustomizePrice = (float)($svc['buy_customize_price'] ?? $svc['buy_price'] ?? $buyPackagePrice);
+    if ($borrowPackagePrice > 0 || $borrowCustomizePrice > 0) {
+        $returnDays = (int)($svc['return_days'] ?? 0);
+        $rows[] = [
+            'label' => 'Borrow',
+            'package' => $borrowPackagePrice > 0 ? $money($borrowPackagePrice) : '—',
+            'customize' => $borrowCustomizePrice > 0 ? $money(max($borrowPackagePrice, $borrowCustomizePrice)) : '—',
+            'meta' => $returnDays > 0 ? $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . ' return' : 'Rental option',
+        ];
+    }
+    if ($buyPackagePrice > 0 || $buyCustomizePrice > 0) {
+        $rows[] = [
+            'label' => 'Buy',
+            'package' => $buyPackagePrice > 0 ? $money($buyPackagePrice) : '—',
+            'customize' => $buyCustomizePrice > 0 ? $money(max($buyPackagePrice, $buyCustomizePrice)) : '—',
+            'meta' => 'Purchase option',
+        ];
+    }
+
+    return $rows;
+};
 $serviceDetailUrl = function ($svc) use ($package) {
     $url = URLROOT . '/customerServices/detail/' . (int)($svc['id'] ?? 0);
     $params = [
@@ -390,6 +427,60 @@ img { display: block; max-width: 100%; }
   margin-top: 8px;
   font-size: 11px; font-weight: 700; color: #d4a047;
 }
+.gp-svc-rental {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.gp-svc-rental-pill {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(109,76,91,0.16);
+  border-radius: 8px;
+  background: rgba(109,76,91,0.05);
+}
+.gp-svc-rental-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--c-accent);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.gp-svc-rental-value {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.gp-svc-rental-price {
+  min-width: 0;
+}
+.gp-svc-rental-price small {
+  display: block;
+  color: var(--c-muted);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.gp-svc-rental-price strong {
+  display: block;
+  color: var(--c-strong);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.gp-svc-rental-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--c-muted);
+  font-size: 10px;
+  line-height: 1.3;
+}
 .gp-svc-foot {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-top: 10px; padding-top: 10px;
@@ -576,6 +667,30 @@ img { display: block; max-width: 100%; }
               <?php endif; ?>
               <h3 class="gp-svc-name"><?= $h($svc['name'] ?? '') ?></h3>
               <p class="gp-svc-desc"><?= $h($svc['description'] ?? '') ?></p>
+              <?php $rentalOptions = $rentalRows($svc); ?>
+              <?php if (!empty($rentalOptions)): ?>
+              <div class="gp-svc-rental" aria-label="Dress and accessory rental pricing">
+                <?php foreach ($rentalOptions as $option): ?>
+                  <div class="gp-svc-rental-pill">
+                    <span class="gp-svc-rental-label">
+                      <i data-lucide="<?= $option['label'] === 'Borrow' ? 'refresh-cw' : 'shopping-bag' ?>" style="width:11px;height:11px"></i>
+                      <?= $h($option['label']) ?>
+                    </span>
+                    <div class="gp-svc-rental-value">
+                      <span class="gp-svc-rental-price">
+                        <small>Package</small>
+                        <strong><?= $h($option['package']) ?></strong>
+                      </span>
+                      <span class="gp-svc-rental-price">
+                        <small>Customize</small>
+                        <strong><?= $h($option['customize']) ?></strong>
+                      </span>
+                    </div>
+                    <span class="gp-svc-rental-meta"><?= $h($option['meta']) ?></span>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+              <?php endif; ?>
               <?php if ((float)($svc['rating'] ?? 0) > 0): ?>
               <div class="gp-svc-rating">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>

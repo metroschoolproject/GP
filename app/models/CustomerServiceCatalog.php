@@ -5,6 +5,9 @@ class CustomerServiceCatalog
     private $db;
     private $hasServicePriceRangeColumns = null;
     private $hasVenueRoomPriceRangeColumns = null;
+    private $hasVenueRoomPhotoColumn = null;
+    private $hasServiceRentalPricingTable = null;
+    private $hasRentalPriceMatrixColumns = null;
 
     public function __construct()
     {
@@ -243,6 +246,8 @@ class CustomerServiceCatalog
     public function getServiceDetail($serviceId, $selectedDate = '')
     {
         $priceRangeFields = $this->servicePriceRangeSelectFields();
+        $rentalSelect = $this->serviceRentalPricingSelectFields();
+        $rentalJoin = $this->serviceRentalPricingJoin();
         $this->db->dbquery(
             'SELECT services.id,
                     services.name,
@@ -256,6 +261,7 @@ class CustomerServiceCatalog
                     services.max_concurrent,
                     services.min_lead_days,
                     services.pricing_unit,
+                    ' . $rentalSelect . '
                     categories.name AS category,
                     categories.slug AS category_slug,
                     suppliers.supplier_id,
@@ -267,6 +273,7 @@ class CustomerServiceCatalog
              FROM services
              INNER JOIN suppliers ON suppliers.supplier_id = services.supplier_id
              LEFT JOIN categories ON categories.id = services.category_id
+             ' . $rentalJoin . '
              LEFT JOIN (
                 SELECT service_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
                 FROM reviews
@@ -415,6 +422,12 @@ class CustomerServiceCatalog
             ? 'venue_rooms.price_min,
                       venue_rooms.price_max,'
             : '';
+        $roomPhotoSelect = $this->hasVenueRoomPhotoColumn()
+            ? 'venue_rooms.photo_url,'
+            : "'' AS photo_url,";
+        $roomPhotoGroupBy = $this->hasVenueRoomPhotoColumn()
+            ? 'venue_rooms.photo_url,'
+            : '';
 
         $this->db->dbquery(
             'SELECT venue_rooms.id,
@@ -423,6 +436,7 @@ class CustomerServiceCatalog
                     venue_rooms.price,
                     ' . $roomPriceRangeSelect . '
                     venue_rooms.min_lead_days,
+                    ' . $roomPhotoSelect . '
                     COALESCE(selected_room_availability.start_time, default_room_availability.start_time) AS start_time,
                     COALESCE(selected_room_availability.end_time, default_room_availability.end_time) AS end_time,
                     selected_room_availability.id AS selected_availability_id,
@@ -444,6 +458,7 @@ class CustomerServiceCatalog
                       venue_rooms.price,
                       ' . $roomPriceRangeGroupBy . '
                       venue_rooms.min_lead_days,
+                      ' . $roomPhotoGroupBy . '
                       selected_room_availability.start_time,
                       selected_room_availability.end_time,
                       selected_room_availability.id,
@@ -484,6 +499,7 @@ class CustomerServiceCatalog
                 'package_price' => (float)($room['price_min'] ?? $room['price'] ?? 0),
                 'customize_price' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
                 'min_lead_days' => $room['min_lead_days'] !== null ? $minLeadDays : null,
+                'photo_url' => trim((string)($room['photo_url'] ?? '')),
                 'earliest_booking_date' => $earliestDate,
                 'lead_time_blocked' => $leadTimeBlocked,
                 'start_time' => $room['start_time'] ?? '09:00:00',
@@ -849,6 +865,15 @@ class CustomerServiceCatalog
             'pricing_unit' => $service['pricing_unit'] ?? 'per_session',
             'min_lead_days' => max(0, (int)($service['min_lead_days'] ?? 0)),
             'earliest_booking_date' => $this->earliestBookingDate((int)($service['min_lead_days'] ?? 0)),
+            'rental_pricing' => [
+                'borrow_package_price' => ($service['borrow_package_price'] ?? null) !== null ? (float)$service['borrow_package_price'] : null,
+                'borrow_customize_price' => ($service['borrow_customize_price'] ?? null) !== null ? (float)$service['borrow_customize_price'] : null,
+                'borrow_price' => ($service['borrow_price'] ?? null) !== null ? (float)$service['borrow_price'] : null,
+                'buy_package_price' => ($service['buy_package_price'] ?? null) !== null ? (float)$service['buy_package_price'] : null,
+                'buy_customize_price' => ($service['buy_customize_price'] ?? null) !== null ? (float)$service['buy_customize_price'] : null,
+                'buy_price' => ($service['buy_price'] ?? null) !== null ? (float)$service['buy_price'] : null,
+                'return_days' => ($service['return_days'] ?? null) !== null ? (int)$service['return_days'] : null,
+            ],
         ];
     }
 
@@ -882,6 +907,42 @@ class CustomerServiceCatalog
         return $this->hasServicePriceRangeColumns()
             ? 'COALESCE(services.price_max, services.price_min, services.price)'
             : 'services.price';
+    }
+
+    private function serviceRentalPricingSelectFields()
+    {
+        if (!$this->hasServiceRentalPricingTable()) {
+            return 'NULL AS borrow_package_price,
+               NULL AS borrow_customize_price,
+               NULL AS borrow_price,
+               NULL AS buy_package_price,
+               NULL AS buy_customize_price,
+               NULL AS buy_price,
+               NULL AS return_days,';
+        }
+
+        return $this->hasRentalPriceMatrixColumns()
+            ? 'service_rental_pricing.borrow_package_price,
+               service_rental_pricing.borrow_customize_price,
+               service_rental_pricing.borrow_price,
+               service_rental_pricing.buy_package_price,
+               service_rental_pricing.buy_customize_price,
+               service_rental_pricing.buy_price,
+               service_rental_pricing.return_days,'
+            : 'service_rental_pricing.borrow_price AS borrow_package_price,
+               service_rental_pricing.borrow_price AS borrow_customize_price,
+               service_rental_pricing.borrow_price,
+               service_rental_pricing.buy_price AS buy_package_price,
+               service_rental_pricing.buy_price AS buy_customize_price,
+               service_rental_pricing.buy_price,
+               service_rental_pricing.return_days,';
+    }
+
+    private function serviceRentalPricingJoin()
+    {
+        return $this->hasServiceRentalPricingTable()
+            ? 'LEFT JOIN service_rental_pricing ON service_rental_pricing.service_id = services.id'
+            : '';
     }
 
     private function normalizePriceFilter($price)
@@ -930,5 +991,71 @@ class CustomerServiceCatalog
         $this->hasVenueRoomPriceRangeColumns = (int)($row['total'] ?? 0) >= 2;
 
         return $this->hasVenueRoomPriceRangeColumns;
+    }
+
+    private function hasVenueRoomPhotoColumn()
+    {
+        if ($this->hasVenueRoomPhotoColumn !== null) {
+            return $this->hasVenueRoomPhotoColumn;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "venue_rooms"
+               AND COLUMN_NAME = "photo_url"'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasVenueRoomPhotoColumn = (int)($row['total'] ?? 0) > 0;
+
+        return $this->hasVenueRoomPhotoColumn;
+    }
+
+    private function hasServiceRentalPricingTable()
+    {
+        if ($this->hasServiceRentalPricingTable !== null) {
+            return $this->hasServiceRentalPricingTable;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.TABLES
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "service_rental_pricing"'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasServiceRentalPricingTable = (int)($row['total'] ?? 0) > 0;
+
+        return $this->hasServiceRentalPricingTable;
+    }
+
+    private function hasRentalPriceMatrixColumns()
+    {
+        if ($this->hasRentalPriceMatrixColumns !== null) {
+            return $this->hasRentalPriceMatrixColumns;
+        }
+
+        if (!$this->hasServiceRentalPricingTable()) {
+            $this->hasRentalPriceMatrixColumns = false;
+            return false;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "service_rental_pricing"
+               AND COLUMN_NAME IN (
+                    "borrow_package_price",
+                    "borrow_customize_price",
+                    "buy_package_price",
+                    "buy_customize_price"
+               )'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasRentalPriceMatrixColumns = (int)($row['total'] ?? 0) >= 4;
+
+        return $this->hasRentalPriceMatrixColumns;
     }
 }

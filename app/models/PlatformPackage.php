@@ -8,6 +8,8 @@ class PlatformPackage
     private $packageQuantityColumns = null;
     private $packageCategoryColumn = null;
     private $packageVenueRoomColumn = null;
+    private $serviceRentalPricingTable = null;
+    private $rentalPriceMatrixColumns = null;
 
     public function __construct()
     {
@@ -701,6 +703,34 @@ class PlatformPackage
      */
     public function getPackageBySlug($slug)
     {
+        if (!$this->hasServiceRentalPricingTable()) {
+            $rentalSelect = 'NULL AS borrow_package_price,
+               NULL AS borrow_customize_price,
+               NULL AS borrow_price,
+               NULL AS buy_package_price,
+               NULL AS buy_customize_price,
+               NULL AS buy_price,
+               NULL AS return_days,';
+        } elseif ($this->hasRentalPriceMatrixColumns()) {
+            $rentalSelect = 'srp.borrow_package_price,
+               srp.borrow_customize_price,
+               srp.borrow_price,
+               srp.buy_package_price,
+               srp.buy_customize_price,
+               srp.buy_price,
+               srp.return_days,';
+        } else {
+            $rentalSelect = 'srp.borrow_price AS borrow_package_price,
+               srp.borrow_price AS borrow_customize_price,
+               srp.borrow_price,
+               srp.buy_price AS buy_package_price,
+               srp.buy_price AS buy_customize_price,
+               srp.buy_price,
+               srp.return_days,';
+        }
+        $rentalJoin = $this->hasServiceRentalPricingTable()
+            ? 'LEFT JOIN service_rental_pricing srp ON srp.service_id = svc.id'
+            : '';
         $hallSelect = $this->hasPackageVenueRoomColumn()
             ? 'pi.venue_room_id,
                vr.name AS venue_room_name,
@@ -749,6 +779,7 @@ class PlatformPackage
                     svc.booking_type,
                     svc.duration_minutes,
                     svc.pricing_unit,
+                    ' . $rentalSelect . '
                     sup.shop_name AS supplier_name,
                     COALESCE(review_stats.avg_rating, 0) AS avg_rating,
                     COALESCE(review_stats.review_count, 0) AS review_count
@@ -756,6 +787,7 @@ class PlatformPackage
              LEFT JOIN categories c ON c.id = pi.category_id
              LEFT JOIN services svc ON svc.id = pi.service_id
              LEFT JOIN suppliers sup ON sup.supplier_id = pi.default_supplier_id
+             ' . $rentalJoin . '
              ' . $hallJoin . '
              LEFT JOIN (
                 SELECT service_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
@@ -794,6 +826,13 @@ class PlatformPackage
                 'booking_type' => $item['booking_type'],
                 'duration_minutes' => $item['duration_minutes'],
                 'pricing_unit' => $item['pricing_unit'],
+                'borrow_package_price' => $item['borrow_package_price'] ?? null,
+                'borrow_customize_price' => $item['borrow_customize_price'] ?? null,
+                'borrow_price' => $item['borrow_price'] ?? null,
+                'buy_package_price' => $item['buy_package_price'] ?? null,
+                'buy_customize_price' => $item['buy_customize_price'] ?? null,
+                'buy_price' => $item['buy_price'] ?? null,
+                'return_days' => $item['return_days'] ?? null,
             ]) + [
                 'category_id' => (int)($item['category_id'] ?? 0),
                 'category_name' => $item['category_name'] ?? '',
@@ -985,6 +1024,13 @@ class PlatformPackage
             'booking_type' => $service['booking_type'] ?? 'fullday',
             'duration_minutes' => (int)($service['duration_minutes'] ?? 0),
             'pricing_unit' => $service['pricing_unit'] ?? 'per_session',
+            'borrow_package_price' => ($service['borrow_package_price'] ?? null) !== null ? (float)$service['borrow_package_price'] : null,
+            'borrow_customize_price' => ($service['borrow_customize_price'] ?? null) !== null ? (float)$service['borrow_customize_price'] : null,
+            'borrow_price' => ($service['borrow_price'] ?? null) !== null ? (float)$service['borrow_price'] : null,
+            'buy_package_price' => ($service['buy_package_price'] ?? null) !== null ? (float)$service['buy_package_price'] : null,
+            'buy_customize_price' => ($service['buy_customize_price'] ?? null) !== null ? (float)$service['buy_customize_price'] : null,
+            'buy_price' => ($service['buy_price'] ?? null) !== null ? (float)$service['buy_price'] : null,
+            'return_days' => ($service['return_days'] ?? null) !== null ? (int)$service['return_days'] : null,
         ];
     }
 
@@ -1123,6 +1169,59 @@ class PlatformPackage
 
         $this->packageVenueRoomColumn = $this->tableHasColumn('package_items', 'venue_room_id');
         return $this->packageVenueRoomColumn;
+    }
+
+    private function hasServiceRentalPricingTable()
+    {
+        if ($this->serviceRentalPricingTable !== null) {
+            return $this->serviceRentalPricingTable;
+        }
+
+        $this->serviceRentalPricingTable = $this->tableExists('service_rental_pricing');
+        return $this->serviceRentalPricingTable;
+    }
+
+    private function hasRentalPriceMatrixColumns()
+    {
+        if ($this->rentalPriceMatrixColumns !== null) {
+            return $this->rentalPriceMatrixColumns;
+        }
+
+        if (!$this->hasServiceRentalPricingTable()) {
+            $this->rentalPriceMatrixColumns = false;
+            return false;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "service_rental_pricing"
+               AND COLUMN_NAME IN (
+                    "borrow_package_price",
+                    "borrow_customize_price",
+                    "buy_package_price",
+                    "buy_customize_price"
+               )'
+        );
+        $row = $this->db->getsingledata();
+        $this->rentalPriceMatrixColumns = (int)($row['total'] ?? 0) >= 4;
+
+        return $this->rentalPriceMatrixColumns;
+    }
+
+    private function tableExists($tableName)
+    {
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.TABLES
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = :table_name'
+        );
+        $this->db->dbbind(':table_name', (string)$tableName);
+        $row = $this->db->getsingledata();
+
+        return (int)($row['total'] ?? 0) > 0;
     }
 
     private function tableHasColumn($tableName, $columnName)

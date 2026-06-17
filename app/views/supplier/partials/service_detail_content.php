@@ -1,5 +1,15 @@
 <div id="supplier-service-detail">
 
+<?php
+// Derived rental pricing variables (used in stats bar and rental card below)
+$rentBorrowPackagePrice = (float)($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0);
+$rentBorrowCustomizePrice = (float)($rentalPricing['borrow_customize_price'] ?? $rentalPricing['borrow_price'] ?? $rentBorrowPackagePrice);
+$rentReturnDays = (int)($rentalPricing['return_days'] ?? 0);
+$rentBuyPackagePrice = (float)($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0);
+$rentBuyCustomizePrice = (float)($rentalPricing['buy_customize_price'] ?? $rentalPricing['buy_price'] ?? $rentBuyPackagePrice);
+$hasRentalPricing = $rentBorrowPackagePrice > 0 || $rentBorrowCustomizePrice > 0 || $rentBuyPackagePrice > 0 || $rentBuyCustomizePrice > 0;
+?>
+
   <!-- ═══════════════ HERO ═══════════════ -->
   <div class="sd-hero sd-anim-hero">
 
@@ -50,6 +60,16 @@
         <div class="sd-stat-body">
           <div class="sd-stat-label">Pricing</div>
           <div class="sd-stat-price-stack">
+            <?php if ($isRental): ?>
+            <div class="sd-stat-price-line">
+              <span class="sd-stat-price-key">Borrow</span>
+              <span class="sd-stat-value"><?= $rentBorrowPackagePrice > 0 ? $money($rentBorrowPackagePrice) : '—' ?></span>
+            </div>
+            <div class="sd-stat-price-line">
+              <span class="sd-stat-price-key">Buy</span>
+              <span class="sd-stat-price-subvalue"><?= $rentBuyPackagePrice > 0 ? $money($rentBuyPackagePrice) : '—' ?></span>
+            </div>
+            <?php else: ?>
             <div class="sd-stat-price-line">
               <span class="sd-stat-price-key">Package</span>
               <span class="sd-stat-value"><?= $money($servicePackagePrice) ?></span>
@@ -58,6 +78,7 @@
               <span class="sd-stat-price-key">Customize</span>
               <span class="sd-stat-price-subvalue"><?= $money($serviceCustomizePrice) ?></span>
             </div>
+            <?php endif; ?>
           </div>
         </div>
       </div>
@@ -163,11 +184,27 @@
               <?php foreach ($venueRooms as $room): ?>
                 <div class="sd-hall-card" data-room-id="<?= (int)($room['id'] ?? 0) ?>">
                   <input type="hidden" class="hall-id" value="<?= (int)($room['id'] ?? 0) ?>">
+                  <input type="hidden" class="hall-photo-url" value="<?= $h($room['photo_url'] ?? '') ?>">
                   <div class="sd-hall-head">
                     <div class="sd-hall-head-left">
                       <div class="sd-hall-icon"><i class="ti ti-door"></i></div>
                     </div>
                     <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" onclick="removeHall(this)"><i class="ti ti-trash" style="font-size:13px"></i></button>
+                  </div>
+                  <div class="sd-hall-photo">
+                    <div class="sd-hall-photo-preview <?= empty($room['photo_url']) ? 'is-empty' : '' ?>">
+                      <?php if (!empty($room['photo_url'])): ?>
+                        <img src="<?= $h($room['photo_url']) ?>" alt="<?= $h(($room['name'] ?? 'Hall') . ' photo') ?>">
+                      <?php else: ?>
+                        <i class="ti ti-photo"></i>
+                        <span>Hall photo</span>
+                      <?php endif; ?>
+                    </div>
+                    <label class="sd-hall-photo-btn">
+                      <i class="ti ti-upload"></i>
+                      <span><?= empty($room['photo_url']) ? 'Add photo' : 'Change photo' ?></span>
+                      <input type="file" accept="image/*" class="hall-photo-input" style="display:none">
+                    </label>
                   </div>
                   <div class="sd-hall-fields">
                     <div class="sd-hall-fg full"><label>Hall name</label><input class="sd-hall-input hall-name" value="<?= $h($room['name'] ?? '') ?>"></div>
@@ -404,6 +441,60 @@
         </div>
       </div>
 
+      <!-- === RENTAL PRICING (Dress / Accessories) === -->
+      <?php if ($isRental): ?>
+      <div class="sd-card sd-anim-card-3">
+        <div class="sd-card-head">
+          <div>
+            <div class="sd-card-title">Rental pricing</div>
+            <div class="sd-card-sub">Borrow or buy options for this item</div>
+          </div>
+          <?php if ($hasRentalPricing): ?>
+          <span class="sd-badge" style="background:var(--success-bg, #dcfce7);color:var(--success, #166534)">Set</span>
+          <?php else: ?>
+          <span class="sd-badge" style="background:var(--warning-bg, #fef3c7);color:var(--warning, #92400e)">Not set</span>
+          <?php endif; ?>
+        </div>
+        <div class="sd-card-body">
+          <?php if ($hasRentalPricing): ?>
+            <?php if ($rentBorrowPackagePrice > 0 || $rentBorrowCustomizePrice > 0): ?>
+            <div class="sd-rental-row">
+              <div class="sd-rental-icon"><i class="ti ti-clock"></i></div>
+              <div class="sd-rental-body">
+                <div class="sd-rental-label">Borrow price</div>
+                <div class="sd-rental-matrix">
+                  <span><small>Package</small><strong><?= $rentBorrowPackagePrice > 0 ? $money($rentBorrowPackagePrice) : '—' ?></strong></span>
+                  <span><small>Customize</small><strong><?= $rentBorrowCustomizePrice > 0 ? $money($rentBorrowCustomizePrice) : '—' ?></strong></span>
+                </div>
+                <?php if ($rentReturnDays > 0): ?>
+                <div class="sd-rental-sub">Return within <?= (int)$rentReturnDays ?> <?= $rentReturnDays === 1 ? 'day' : 'days' ?></div>
+                <?php endif; ?>
+              </div>
+            </div>
+            <?php endif; ?>
+            <?php if ($rentBuyPackagePrice > 0 || $rentBuyCustomizePrice > 0): ?>
+            <div class="sd-rental-row">
+              <div class="sd-rental-icon"><i class="ti ti-shopping-bag"></i></div>
+              <div class="sd-rental-body">
+                <div class="sd-rental-label">Buy price</div>
+                <div class="sd-rental-matrix">
+                  <span><small>Package</small><strong><?= $rentBuyPackagePrice > 0 ? $money($rentBuyPackagePrice) : '—' ?></strong></span>
+                  <span><small>Customize</small><strong><?= $rentBuyCustomizePrice > 0 ? $money($rentBuyCustomizePrice) : '—' ?></strong></span>
+                </div>
+              </div>
+            </div>
+            <?php endif; ?>
+          <?php else: ?>
+            <div class="sd-empty">
+              <i class="ti ti-tag"></i>
+              <p>No rental pricing set</p>
+              <small>Add borrow or buy pricing from the service edit form.</small>
+            </div>
+          <?php endif; ?>
+        </div>
+      </div>
+      <?php endif; ?>
+
       <!-- === BOOKING PREVIEW === -->
       <div class="sd-card sd-anim-card-4">
         <div class="sd-card-head">
@@ -440,6 +531,30 @@
             <span class="sd-info-key">Category</span>
             <span class="sd-info-val"><?= $h($serviceCategoryRaw) ?></span>
           </div>
+          <?php if ($isRental): ?>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Borrow package</span>
+            <span class="sd-info-val" id="serviceInfoBorrowPackagePrice"><?= $rentBorrowPackagePrice > 0 ? $money($rentBorrowPackagePrice) : '—' ?></span>
+          </div>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Borrow customize</span>
+            <span class="sd-info-val" id="serviceInfoBorrowCustomizePrice"><?= $rentBorrowCustomizePrice > 0 ? $money($rentBorrowCustomizePrice) : '—' ?></span>
+          </div>
+          <?php if (($rentBorrowPackagePrice > 0 || $rentBorrowCustomizePrice > 0) && $rentReturnDays > 0): ?>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Return within</span>
+            <span class="sd-info-val"><?= (int)$rentReturnDays ?> <?= $rentReturnDays === 1 ? 'day' : 'days' ?></span>
+          </div>
+          <?php endif; ?>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Buy package</span>
+            <span class="sd-info-val" id="serviceInfoBuyPackagePrice"><?= $rentBuyPackagePrice > 0 ? $money($rentBuyPackagePrice) : '—' ?></span>
+          </div>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Buy customize</span>
+            <span class="sd-info-val" id="serviceInfoBuyCustomizePrice"><?= $rentBuyCustomizePrice > 0 ? $money($rentBuyCustomizePrice) : '—' ?></span>
+          </div>
+          <?php else: ?>
           <div class="sd-info-row">
             <span class="sd-info-key">Package price</span>
             <span class="sd-info-val" id="serviceInfoPackagePrice"><?= $money($servicePackagePrice) ?></span>
@@ -448,6 +563,7 @@
             <span class="sd-info-key">Customize price</span>
             <span class="sd-info-val" id="serviceInfoCustomizePrice"><?= $money($serviceCustomizePrice) ?></span>
           </div>
+          <?php endif; ?>
           <div class="sd-info-row">
             <span class="sd-info-key">Status</span>
             <span class="sd-info-val">
@@ -456,10 +572,12 @@
               </span>
             </span>
           </div>
+          <?php if (!$isRental): ?>
           <div class="sd-info-row">
             <span class="sd-info-key">Slot duration</span>
             <span class="sd-info-val"><?= $h($durationLabel($slotDuration)) ?></span>
           </div>
+          <?php endif; ?>
           <div class="sd-info-row">
             <span class="sd-info-key">Minimum notice</span>
             <span class="sd-info-val" id="serviceInfoMinLeadDays"><?= (int)($service['min_lead_days'] ?? 0) ?> days</span>
@@ -473,7 +591,7 @@
               <span class="sd-info-key">Halls</span>
               <span class="sd-info-val" id="serviceInfoHalls"><?= count($venueRooms) ?></span>
             </div>
-          <?php else: ?>
+          <?php elseif (!$isRental): ?>
             <div class="sd-info-row">
               <span class="sd-info-key">Concurrent bookings</span>
               <span class="sd-info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>

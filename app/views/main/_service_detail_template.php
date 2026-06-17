@@ -76,6 +76,35 @@ $money = function ($value) {
 $moneyRange = function ($service) use ($money) {
     return $money($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
 };
+$isRentalCategory = in_array(strtolower(trim((string)($service['category_slug'] ?? ''))), ['dress', 'accessories'], true)
+    || in_array(strtolower(trim((string)($service['category'] ?? ''))), ['dress', 'accessories'], true);
+$rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
+$rentalOptions = [];
+if ($isRentalCategory) {
+    $borrowPackagePrice = (float)($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0);
+    $borrowCustomizePrice = (float)($rentalPricing['borrow_customize_price'] ?? $rentalPricing['borrow_price'] ?? $borrowPackagePrice);
+    $buyPackagePrice = (float)($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0);
+    $buyCustomizePrice = (float)($rentalPricing['buy_customize_price'] ?? $rentalPricing['buy_price'] ?? $buyPackagePrice);
+    if ($borrowPackagePrice > 0 || $borrowCustomizePrice > 0) {
+        $returnDays = (int)($rentalPricing['return_days'] ?? 0);
+        $rentalOptions[] = [
+            'label' => 'Borrow',
+            'package' => $borrowPackagePrice > 0 ? $money($borrowPackagePrice) : '—',
+            'customize' => $borrowCustomizePrice > 0 ? $money(max($borrowPackagePrice, $borrowCustomizePrice)) : '—',
+            'meta' => $returnDays > 0 ? $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . ' return' : 'Rental option',
+            'icon' => 'refresh-cw',
+        ];
+    }
+    if ($buyPackagePrice > 0 || $buyCustomizePrice > 0) {
+        $rentalOptions[] = [
+            'label' => 'Buy',
+            'package' => $buyPackagePrice > 0 ? $money($buyPackagePrice) : '—',
+            'customize' => $buyCustomizePrice > 0 ? $money(max($buyPackagePrice, $buyCustomizePrice)) : '—',
+            'meta' => 'Purchase option',
+            'icon' => 'shopping-bag',
+        ];
+    }
+}
 $activeServicePrice = (float)($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
 $isPackageContext = ($service['price_context'] ?? '') === 'package' && !empty($service['package_context']);
 $packageContext = $isPackageContext ? ($service['package_context'] ?? []) : [];
@@ -1000,6 +1029,69 @@ button, input, select, textarea { font-family: var(--font-sans); }
   color: var(--wine-dark);
   line-height: 1;
 }
+.rental-price-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+.rental-price-card {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.56);
+}
+.rental-price-card .rental-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--wine-glow);
+  color: var(--wine);
+}
+.rental-price-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.rental-price-card strong {
+  display: block;
+  color: var(--wine-dark);
+  font-size: 16px;
+  font-weight: 900;
+}
+.rental-price-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 5px 0 2px;
+}
+.rental-price-grid em {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.rental-price-grid strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.rental-price-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
 
 /* ─── PORTFOLIO GRID ────────────────────────────────── */
 .portfolio-grid {
@@ -1178,6 +1270,37 @@ button, input, select, textarea { font-family: var(--font-sans); }
   background:
     linear-gradient(135deg, rgba(185,74,72,0.10), rgba(216,180,106,0.11)),
     var(--panel-strong);
+}
+
+.hall-row-body {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.hall-photo {
+  width: 112px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid rgba(118,90,70,0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(216,180,106,0.14), rgba(185,74,72,0.10)),
+    rgba(255,250,247,0.8);
+}
+
+.hall-photo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.hall-photo.is-empty {
+  display: grid;
+  place-items: center;
+  color: rgba(118,90,70,0.45);
 }
 
 .radio-dot {
@@ -1815,6 +1938,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .sticky-summary { display: none; }
   .mobile-book-bar { display: block; }
   .availability-row { grid-template-columns: 1fr; gap: 8px; padding: 12px; }
+  .hall-row-body { grid-template-columns: 1fr; }
+  .hall-photo { width: 100%; max-height: 190px; }
   .availability-status { width: max-content; }
   .reviews-grid { grid-template-columns: 1fr; }
   .review-item { grid-template-columns: 1fr; }
@@ -2035,6 +2160,29 @@ button, input, select, textarea { font-family: var(--font-sans); }
     <aside class="split-sidebar">
       <div class="glass-stats" data-aos="fade-left" data-aos-delay="200">
         <div class="stat-price"><?= $moneyRange($service) ?></div>
+        <?php if (!empty($rentalOptions)): ?>
+          <div class="rental-price-stack" aria-label="Dress and accessory pricing options">
+            <?php foreach ($rentalOptions as $option): ?>
+              <div class="rental-price-card">
+                <div class="rental-icon"><i data-lucide="<?= $h($option['icon']) ?>" size="16"></i></div>
+                <div>
+                  <span><?= $h($option['label']) ?></span>
+                  <div class="rental-price-grid">
+                    <div>
+                      <em>Package</em>
+                      <strong><?= $h($option['package']) ?></strong>
+                    </div>
+                    <div>
+                      <em>Customize</em>
+                      <strong><?= $h($option['customize']) ?></strong>
+                    </div>
+                  </div>
+                  <small><?= $h($option['meta']) ?></small>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
         <div class="stat-item" style="padding-top:18px;">
           <div class="stat-icon"><i data-lucide="clock" size="16"></i></div>
           <div class="stat-content">
@@ -2116,6 +2264,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
               <?php
                 $isPackageHallRow = $isPackageContext && (int)($packageContext['venue_room_id'] ?? 0) > 0 && (int)($room['id'] ?? 0) === (int)($packageContext['venue_room_id'] ?? 0);
                 $roomDisplayPrice = $isPackageContext ? $packageServicePrice : (float)($room['price'] ?? 0);
+                $roomPhotoUrl = trim((string)($room['photo_url'] ?? ''));
                 $roomAvailable = $selectedDate !== '' && (!array_key_exists('is_available_on_date', $room) || !empty($room['is_available_on_date']));
                 $roomEarliestDate = trim((string)($room['earliest_booking_date'] ?? ''));
                 $roomStatus = $roomAvailable
@@ -2130,47 +2279,56 @@ button, input, select, textarea { font-family: var(--font-sans); }
               ?>
               <div class="availability-row <?= $checked ? 'is-selected' : '' ?> <?= $isPackageHallRow ? 'is-package-selected' : '' ?> <?= $roomAvailable ? '' : 'is-unavailable' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($index * 80, 300) ?>">
                 <span class="radio-dot"></span>
-                <div>
-                  <div class="availability-head">
-                    <span class="availability-name">
-                      <?= $h($room['name'] ?: 'Venue hall') ?>
-                      <span>
-                        <?= $h(trim((string)($room['venue_name'] ?? ''))) ?>
-                        <?= !empty($room['venue_location']) ? ' · ' . $h($room['venue_location']) : '' ?>
-                        · <?= $h($timeRange($room['start_time'] ?? '09:00', $room['end_time'] ?? '17:00')) ?>
-                        <?= $selectedDateLabel !== '' ? ' · ' . $h($selectedDateLabel) : '' ?>
-                      </span>
-                    </span>
-                    <span class="availability-status"><?= $h($roomStatus) ?></span>
+                <div class="hall-row-body">
+                  <div class="hall-photo <?= $roomPhotoUrl === '' ? 'is-empty' : '' ?>">
+                    <?php if ($roomPhotoUrl !== ''): ?>
+                      <img src="<?= $h($roomPhotoUrl) ?>" alt="<?= $h(($room['name'] ?: 'Venue hall') . ' photo') ?>" loading="lazy">
+                    <?php else: ?>
+                      <i data-lucide="image" size="20"></i>
+                    <?php endif; ?>
                   </div>
-                  <?php if ($isPackageHallRow): ?>
-                    <span class="package-hall-badge"><i data-lucide="badge-check" size="13"></i>Selected for your package</span>
-                  <?php endif; ?>
-                  <?php if (!empty($room['lead_time_blocked']) && $roomEarliestDate !== ''): ?>
-                    <span class="package-hall-badge"><i data-lucide="calendar-clock" size="13"></i>Earliest: <?= $h(date('M j, Y', strtotime($roomEarliestDate))) ?></span>
-                  <?php endif; ?>
-                  <?php if ($roomAvailable): ?>
-                    <div class="slot-options">
-                      <label class="slot-chip <?= $isPackageHallRow ? 'is-locked' : '' ?>" <?= $isPackageHallRow ? 'title="Included in your package"' : '' ?>>
-                        <input type="radio" name="service_slot"
-                          value="room|<?= (int)$room['id'] ?>"
-                          data-room-id="<?= (int)$room['id'] ?>"
-                          data-venue-room-id="<?= (int)$room['id'] ?>"
-                          data-date="<?= $h($selectedDate) ?>"
-                          data-date-label="<?= $h($selectedDateLabel ?: 'Choose a wedding date') ?>"
-                          data-hall-label="<?= $h($room['name'] ?: 'Selected hall') ?>"
-                          data-time-label="<?= (int)($room['capacity'] ?? 1) ?> guests"
-                          data-price-label="<?= $money($roomDisplayPrice) ?>"
-                          data-price-value="<?= $h($roomDisplayPrice) ?>"
-                          data-slot-id=""
-                          data-start-time="<?= $h($room['start_time'] ?? '') ?>"
-                          data-end-time="<?= $h($room['end_time'] ?? '') ?>"
-                          <?= $checked ? 'checked' : '' ?>
-                          <?= $isPackageHallRow ? 'disabled' : '' ?>>
-                        <?= $isPackageHallRow ? 'Included in your package' : (int)($room['capacity'] ?? 1) . ' guests' ?>
-                      </label>
+                  <div>
+                    <div class="availability-head">
+                      <span class="availability-name">
+                        <?= $h($room['name'] ?: 'Venue hall') ?>
+                        <span>
+                          <?= $h(trim((string)($room['venue_name'] ?? ''))) ?>
+                          <?= !empty($room['venue_location']) ? ' · ' . $h($room['venue_location']) : '' ?>
+                          · <?= $h($timeRange($room['start_time'] ?? '09:00', $room['end_time'] ?? '17:00')) ?>
+                          <?= $selectedDateLabel !== '' ? ' · ' . $h($selectedDateLabel) : '' ?>
+                        </span>
+                      </span>
+                      <span class="availability-status"><?= $h($roomStatus) ?></span>
                     </div>
-                  <?php endif; ?>
+                    <?php if ($isPackageHallRow): ?>
+                      <span class="package-hall-badge"><i data-lucide="badge-check" size="13"></i>Selected for your package</span>
+                    <?php endif; ?>
+                    <?php if (!empty($room['lead_time_blocked']) && $roomEarliestDate !== ''): ?>
+                      <span class="package-hall-badge"><i data-lucide="calendar-clock" size="13"></i>Earliest: <?= $h(date('M j, Y', strtotime($roomEarliestDate))) ?></span>
+                    <?php endif; ?>
+                    <?php if ($roomAvailable): ?>
+                      <div class="slot-options">
+                        <label class="slot-chip <?= $isPackageHallRow ? 'is-locked' : '' ?>" <?= $isPackageHallRow ? 'title="Included in your package"' : '' ?>>
+                          <input type="radio" name="service_slot"
+                            value="room|<?= (int)$room['id'] ?>"
+                            data-room-id="<?= (int)$room['id'] ?>"
+                            data-venue-room-id="<?= (int)$room['id'] ?>"
+                            data-date="<?= $h($selectedDate) ?>"
+                            data-date-label="<?= $h($selectedDateLabel ?: 'Choose a wedding date') ?>"
+                            data-hall-label="<?= $h($room['name'] ?: 'Selected hall') ?>"
+                            data-time-label="<?= (int)($room['capacity'] ?? 1) ?> guests"
+                            data-price-label="<?= $money($roomDisplayPrice) ?>"
+                            data-price-value="<?= $h($roomDisplayPrice) ?>"
+                            data-slot-id=""
+                            data-start-time="<?= $h($room['start_time'] ?? '') ?>"
+                            data-end-time="<?= $h($room['end_time'] ?? '') ?>"
+                            <?= $checked ? 'checked' : '' ?>
+                            <?= $isPackageHallRow ? 'disabled' : '' ?>>
+                          <?= $isPackageHallRow ? 'Included in your package' : (int)($room['capacity'] ?? 1) . ' guests' ?>
+                        </label>
+                      </div>
+                    <?php endif; ?>
+                  </div>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -2303,6 +2461,20 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <span><?= $isPackageContext ? 'Package service price' : 'Estimated total' ?></span>
           <strong><?= $isPackageContext ? $money($packageServicePrice) : ($isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service)) ?></strong>
         </div>
+        <?php if (!empty($rentalOptions)): ?>
+          <div class="package-price-panel" aria-label="Dress and accessory pricing">
+            <?php foreach ($rentalOptions as $option): ?>
+              <div class="package-price-line">
+                <span><?= $h($option['label']) ?> package</span>
+                <strong><?= $h($option['package']) ?></strong>
+              </div>
+              <div class="package-price-line">
+                <span><?= $h($option['label']) ?> customize</span>
+                <strong><?= $h($option['customize']) ?></strong>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
         <?php if ($isPackageContext): ?>
           <div class="package-price-panel" aria-label="Package pricing comparison">
             <div class="package-price-line is-package">

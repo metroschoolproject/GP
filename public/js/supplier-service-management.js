@@ -499,20 +499,28 @@ function validateDecorationStyles(prefix) {
 
 // ── RENTAL PRICING ────────────────────────────────────────────
 function collectRentalPricing(prefix) {
-  const borrowPrice = parseFloat(document.getElementById(prefix + 'BorrowPrice')?.value || '0') || 0;
+  const borrowPackagePrice = parseFloat(document.getElementById(prefix + 'BorrowPackagePrice')?.value || document.getElementById(prefix + 'BorrowPrice')?.value || '0') || 0;
+  const borrowCustomizeRaw = parseFloat(document.getElementById(prefix + 'BorrowCustomizePrice')?.value || '0') || 0;
+  const borrowCustomizePrice = borrowCustomizeRaw > 0 ? Math.max(borrowPackagePrice, borrowCustomizeRaw) : borrowPackagePrice;
   const returnDays = parseInt(document.getElementById(prefix + 'ReturnDays')?.value || '0') || 0;
-  const buyPrice = parseFloat(document.getElementById(prefix + 'BuyPrice')?.value || '0') || 0;
+  const buyPackagePrice = parseFloat(document.getElementById(prefix + 'BuyPackagePrice')?.value || document.getElementById(prefix + 'BuyPrice')?.value || '0') || 0;
+  const buyCustomizeRaw = parseFloat(document.getElementById(prefix + 'BuyCustomizePrice')?.value || '0') || 0;
+  const buyCustomizePrice = buyCustomizeRaw > 0 ? Math.max(buyPackagePrice, buyCustomizeRaw) : buyPackagePrice;
   return {
-    borrow_price: borrowPrice > 0 ? borrowPrice : null,
-    return_days: borrowPrice > 0 && returnDays > 0 ? returnDays : null,
-    buy_price: buyPrice > 0 ? buyPrice : null,
+    borrow_package_price: borrowPackagePrice > 0 ? borrowPackagePrice : null,
+    borrow_customize_price: borrowCustomizePrice > 0 ? borrowCustomizePrice : null,
+    borrow_price: borrowPackagePrice > 0 ? borrowPackagePrice : null,
+    return_days: borrowPackagePrice > 0 && returnDays > 0 ? returnDays : null,
+    buy_package_price: buyPackagePrice > 0 ? buyPackagePrice : null,
+    buy_customize_price: buyCustomizePrice > 0 ? buyCustomizePrice : null,
+    buy_price: buyPackagePrice > 0 ? buyPackagePrice : null,
   };
 }
 
 function validateRentalPricing(prefix) {
   const rental = collectRentalPricing(prefix);
-  if (!rental.borrow_price && !rental.buy_price) {
-    alert('Add a borrow price, a buy price, or both.');
+  if (!rental.borrow_package_price && !rental.buy_package_price) {
+    alert('Add a borrow package price, a buy package price, or both.');
     return false;
   }
   return true;
@@ -970,7 +978,19 @@ async function saveVenue() {
 
 // ── ADD OTHERS ────────────────────────────────────────────────
 function openAddOthers(selectedCategory) {
-  clearFieldValues(['oName','oDesc','oPriceMin','oPriceMax','oCapacity','oImgData','oBorrowPrice','oReturnDays','oBuyPrice']);
+  clearFieldValues([
+    'oName',
+    'oDesc',
+    'oPriceMin',
+    'oPriceMax',
+    'oCapacity',
+    'oImgData',
+    'oBorrowPackagePrice',
+    'oBorrowCustomizePrice',
+    'oReturnDays',
+    'oBuyPackagePrice',
+    'oBuyCustomizePrice'
+  ]);
   resetImgBox('othersImgBox', true);
   const list = document.getElementById('oStylesList');
   if (list) list.innerHTML = '';
@@ -1038,9 +1058,11 @@ function openEditService(id) {
   }
   if (isRentalEdit) {
     const rp = item.rental_pricing || {};
-    document.getElementById('esBorrowPrice').value = rp.borrow_price ?? '';
+    document.getElementById('esBorrowPackagePrice').value = rp.borrow_package_price ?? rp.borrow_price ?? '';
+    document.getElementById('esBorrowCustomizePrice').value = rp.borrow_customize_price ?? rp.borrow_price ?? '';
     document.getElementById('esReturnDays').value = rp.return_days ?? '';
-    document.getElementById('esBuyPrice').value = rp.buy_price ?? '';
+    document.getElementById('esBuyPackagePrice').value = rp.buy_package_price ?? rp.buy_price ?? '';
+    document.getElementById('esBuyCustomizePrice').value = rp.buy_customize_price ?? rp.buy_price ?? '';
   }
   document.getElementById('editServiceModal').classList.remove('hidden');
 }

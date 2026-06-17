@@ -8,7 +8,7 @@ WHERE NOT EXISTS (SELECT 1 FROM categories WHERE slug = 'decoration');
 
 -- 2. Add photo per venue hall/room
 ALTER TABLE venue_rooms
-ADD COLUMN IF NOT EXISTS photo_url text DEFAULT NULL AFTER min_lead_days;
+ADD COLUMN IF NOT EXISTS photo_url mediumtext DEFAULT NULL AFTER min_lead_days;
 
 -- 3. Decoration styles (free-text name + price, supplier-defined)
 CREATE TABLE IF NOT EXISTS decoration_styles (

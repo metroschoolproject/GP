@@ -95,6 +95,8 @@ foreach ($weeklyRows as $row) {
 
 $serviceCategoryRaw = $service['category'] ?? 'Others';
 $isVenue = strtolower((string)$serviceCategoryRaw) === 'venue';
+$isRental = in_array(strtolower((string)$serviceCategoryRaw), ['dress', 'accessories'], true);
+$rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 $serviceDescriptionRaw = trim((string)($service['desc'] ?? $service['description'] ?? ''));
 $servicePackagePrice = (float)($service['price_min'] ?? $service['package_price'] ?? $service['price'] ?? 0);
 $serviceCustomizePrice = (float)($service['price_max'] ?? $service['customize_price'] ?? $servicePackagePrice);
@@ -138,7 +140,7 @@ $overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $ser
 $overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
 $previewUrl = URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId;
 
-$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $overrideCount, $attentionItems, $isReady, $isVenue, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
+$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
 ?>
 <?php
 $serviceDetailCssVersion = file_exists(APPROOT . '/../public/css/supplier-service-detail.css') ? filemtime(APPROOT . '/../public/css/supplier-service-detail.css') : time();
@@ -167,6 +169,7 @@ $serviceDetailConfig = [
         'capacity' => (int)($service['capacity'] ?? $maxConcurrent),
         'venue' => $service['venue_name'] ?? $service['venue'] ?? '',
         'venue_location' => $service['venue_location'] ?? '',
+        'rental_pricing' => $rentalPricing ?: null,
     ],
 ];
 ?>

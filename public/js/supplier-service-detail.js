@@ -272,18 +272,31 @@ function hallCardHtml(room = {}) {
   const packagePrice = room.price_min ?? room.package_price ?? room.price ?? 0;
   const customizePrice = room.price_max ?? room.customize_price ?? packagePrice;
   const minLeadDays = room.min_lead_days ?? '';
+  const photoUrl = room.photo_url || '';
+  const photoPreview = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" alt="${escapeHtml((room.name || 'Hall') + ' photo')}">`
+    : '<i class="ti ti-photo"></i><span>Hall photo</span>';
 
   return `
     <div class="sd-hall-card" data-room-id="${room.id || 0}">
       <input type="hidden" class="hall-id" value="${room.id || ''}">
+      <input type="hidden" class="hall-photo-url" value="${escapeHtml(photoUrl)}">
       <div class="sd-hall-head">
         <div class="sd-hall-head-left">
           <div class="sd-hall-icon"><i class="ti ti-door"></i></div>
         </div>
         <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" onclick="removeHall(this)"><i class="ti ti-trash" style="font-size:13px"></i></button>
       </div>
+      <div class="sd-hall-photo">
+        <div class="sd-hall-photo-preview ${photoUrl ? '' : 'is-empty'}">${photoPreview}</div>
+        <label class="sd-hall-photo-btn">
+          <i class="ti ti-upload"></i>
+          <span>${photoUrl ? 'Change photo' : 'Add photo'}</span>
+          <input type="file" accept="image/*" class="hall-photo-input" style="display:none">
+        </label>
+      </div>
       <div class="sd-hall-fields">
-        <div class="sd-hall-fg full"><label>Hall name</label><input class="sd-hall-input hall-name" value="${room.name || ''}"></div>
+        <div class="sd-hall-fg full"><label>Hall name</label><input class="sd-hall-input hall-name" value="${escapeHtml(room.name || '')}"></div>
         <div class="sd-hall-fg"><label>Capacity</label><input type="number" min="1" class="sd-hall-input hall-capacity" value="${room.capacity || 1}"></div>
         <div class="sd-hall-fg"><label>Package price</label><input type="number" min="0" step="0.01" class="sd-hall-input hall-price hall-price-min" value="${packagePrice}"></div>
         <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input hall-price-max" value="${customizePrice}"></div>
@@ -380,6 +393,12 @@ function updateServiceInfoFromService(service = {}) {
   const infoVenue = document.getElementById('serviceInfoVenue');
   const infoConcurrent = document.getElementById('serviceInfoConcurrent');
   const infoMinLeadDays = document.getElementById('serviceInfoMinLeadDays');
+  const infoPackagePrice = document.getElementById('serviceInfoPackagePrice');
+  const infoCustomizePrice = document.getElementById('serviceInfoCustomizePrice');
+  const infoBorrowPackagePrice = document.getElementById('serviceInfoBorrowPackagePrice');
+  const infoBorrowCustomizePrice = document.getElementById('serviceInfoBorrowCustomizePrice');
+  const infoBuyPackagePrice = document.getElementById('serviceInfoBuyPackagePrice');
+  const infoBuyCustomizePrice = document.getElementById('serviceInfoBuyCustomizePrice');
 
   if (infoHalls) infoHalls.textContent = String(rooms.length || document.querySelectorAll('.sd-hall-card').length);
   if (infoVenue && (service.venue_name || service.venue)) infoVenue.textContent = service.venue_name || service.venue;
@@ -390,10 +409,32 @@ function updateServiceInfoFromService(service = {}) {
   if (infoMinLeadDays && service.min_lead_days !== undefined) {
     infoMinLeadDays.textContent = Number(service.min_lead_days || 0) + ' days';
   }
+  if (infoPackagePrice && (service.price_min || service.price)) {
+    infoPackagePrice.textContent = formatMoney(service.price_min || service.price);
+  }
+  if (infoCustomizePrice && service.price_max !== undefined) {
+    infoCustomizePrice.textContent = formatMoney(service.price_max);
+  }
 
-  const priceValue = document.getElementById('serviceInfoPrice');
-  if (priceValue && (service.price_min || service.price)) {
-    priceValue.textContent = formatMoney(service.price_min || service.price);
+  // Update rental pricing in service info sidebar if present
+  const rental = service.rental_pricing;
+  if (rental) {
+    const borrowPackage = rental.borrow_package_price ?? rental.borrow_price;
+    const borrowCustomize = rental.borrow_customize_price ?? rental.borrow_price;
+    const buyPackage = rental.buy_package_price ?? rental.buy_price;
+    const buyCustomize = rental.buy_customize_price ?? rental.buy_price;
+    if (infoBorrowPackagePrice && borrowPackage != null) {
+      infoBorrowPackagePrice.textContent = borrowPackage > 0 ? formatMoney(borrowPackage) : '—';
+    }
+    if (infoBorrowCustomizePrice && borrowCustomize != null) {
+      infoBorrowCustomizePrice.textContent = borrowCustomize > 0 ? formatMoney(borrowCustomize) : '—';
+    }
+    if (infoBuyPackagePrice && buyPackage != null) {
+      infoBuyPackagePrice.textContent = buyPackage > 0 ? formatMoney(buyPackage) : '—';
+    }
+    if (infoBuyCustomizePrice && buyCustomize != null) {
+      infoBuyCustomizePrice.textContent = buyCustomize > 0 ? formatMoney(buyCustomize) : '—';
+    }
   }
 }
 
@@ -425,10 +466,35 @@ function collectHalls() {
       customize_price: priceMax,
       start_time: start,
       end_time: end,
-      min_lead_days: minLeadDays
+      min_lead_days: minLeadDays,
+      photo_url: card.querySelector('.hall-photo-url')?.value || null
     };
   }).filter(room => room.name || room.capacity > 1 || room.price_min > 0 || room.price_max > 0);
 }
+
+document.getElementById('hallGrid')?.addEventListener('change', async event => {
+  const input = event.target.closest('.hall-photo-input');
+  if (!input || !input.files?.[0]) return;
+
+  const card = input.closest('.sd-hall-card');
+  const hidden = card?.querySelector('.hall-photo-url');
+  const preview = card?.querySelector('.sd-hall-photo-preview');
+  const label = card?.querySelector('.sd-hall-photo-btn span');
+
+  try {
+    const dataUrl = await fileToDataUrl(input.files[0]);
+    if (hidden) hidden.value = dataUrl;
+    if (preview) {
+      preview.classList.remove('is-empty');
+      preview.innerHTML = `<img src="${dataUrl}" alt="Hall photo preview">`;
+    }
+    if (label) label.textContent = 'Change photo';
+  } catch (error) {
+    showMessage('hallMessage', 'Could not read hall photo. Please try another image.');
+  } finally {
+    input.value = '';
+  }
+});
 
 document.getElementById('saveHallsBtn')?.addEventListener('click', async () => {
   showMessage('hallMessage', '');
