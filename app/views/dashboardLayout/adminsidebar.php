@@ -165,13 +165,17 @@ if (!function_exists('dashboard_admin_nav_class')) {
                     <span class="flex-1 text-left">Payments</span>
                     <i data-chevron="payments" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div data-subnav-panel="payments" class="<?= strpos($currentPath, 'admin/payments') !== false ? '' : 'hidden' ?> pl-6">
+                <div data-subnav-panel="payments" class="<?= strpos($currentPath, 'admin/payment') !== false ? '' : 'hidden' ?> pl-6">
                     <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                        <a href="<?= URLROOT ?>/admin/payments?status=all" class="<?= $paymentStatusFilter === 'all' ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
+                        <a href="<?= URLROOT ?>/admin/paymentVerification" class="<?= strpos($currentPath, 'admin/paymentVerification') !== false ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
+                            <i data-lucide="receipt-text" class="h-3.5 w-3.5 text-app-header-muted"></i>
+                            <span>Deposit verification</span>
+                        </a>
+                        <a href="<?= URLROOT ?>/admin/payments?status=all" class="<?= strpos($currentPath, 'admin/paymentVerification') === false && $paymentStatusFilter === 'all' ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
                             <i data-lucide="credit-card" class="h-3.5 w-3.5 text-app-header-muted"></i>
                             <span>History</span>
                         </a>
-                        <a href="<?= URLROOT ?>/admin/payments?status=pending" class="<?= $paymentStatusFilter === 'pending' ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
+                        <a href="<?= URLROOT ?>/admin/payments?status=pending" class="<?= strpos($currentPath, 'admin/paymentVerification') === false && $paymentStatusFilter === 'pending' ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
                             <i data-lucide="clock" class="h-3.5 w-3.5 text-app-header-muted"></i>
                             <span>Pending</span>
                         </a>
