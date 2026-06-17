@@ -1383,8 +1383,10 @@ input[type="date"]:invalid {
             || str_contains($serviceNameText, 'make up');
         ?>
 
+        <?php $itemBookingType = $item['booking_type'] ?? 'fullday'; ?>
         <article class="gp-card gp-item-card" data-index="<?= $i + 1 ?>"
                  data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>"
+                 data-booking-type="<?= $h($itemBookingType) ?>"
                  data-price-index="<?= $i ?>"
                  data-unit-price="<?= $h($linePrice) ?>"
                  data-guest-priced="<?= $isGuestPriced ? 'yes' : 'no' ?>"
@@ -1497,22 +1499,35 @@ input[type="date"]:invalid {
                   $minDate = $today->add(new DateInterval('P' . $minLeadDays . 'D'));
                   $minDateStr = $minDate->format('Y-m-d');
                   $minDateDisplay = $minDate->format('M j, Y');
+                  $isFulldayItem = ($itemBookingType === 'fullday');
                 ?>
                 <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select date</label>
                 <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
                        name="item_date[<?= $i ?>]"
                        min="<?= $minDateStr ?>"
+                       <?php if (!$isFulldayItem): ?>
                        data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+                       <?php endif; ?>
                        data-min-lead-days="<?= $minLeadDays ?>"
                        data-index="<?= $i ?>" required>
                 <?php if ($minLeadDays > 0): ?>
                   <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
                 <?php endif; ?>
 
-                <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
-                <div class="gp-slots-container" id="slots-<?= $i ?>">
-                  <p class="loading">Select a date to see available slots</p>
-                </div>
+                <?php if ($isFulldayItem): ?>
+                  <!-- Full-day booking: time is managed automatically -->
+                  <input type="hidden" name="item_start_time[<?= $i ?>]" value="00:00:00">
+                  <input type="hidden" name="item_end_time[<?= $i ?>]" value="23:59:59">
+                  <div class="gp-input-note" style="margin-top:8px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Full-day booking — time is managed automatically
+                  </div>
+                <?php else: ?>
+                  <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
+                  <div class="gp-slots-container" id="slots-<?= $i ?>">
+                    <p class="loading">Select a date to see available slots</p>
+                  </div>
+                <?php endif; ?>
               <?php endif; ?>
             </fieldset>
 
@@ -1938,15 +1953,17 @@ input[type="date"]:invalid {
         }
       }
 
+      const isFullday = card.dataset.bookingType === 'fullday';
+
       if (!itemDate) {
         missing.push('date');
         rememberMissing(card.querySelector(`[name="item_date[${index}]"]`));
       }
-      if (!itemStart) {
+      if (!isFullday && !itemStart) {
         missing.push('time slot');
         rememberMissing(card.querySelector(`[name="item_start_time[${index}]"]`));
       }
-      if (itemStart && !itemEnd) {
+      if (!isFullday && itemStart && !itemEnd) {
         missing.push('time slot end');
         rememberMissing(card.querySelector(`[name="item_start_time[${index}]"]`));
       }
