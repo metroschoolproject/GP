@@ -1978,4 +1978,31 @@ class BookingModel
 
         return $this->db->getmultidata();
     }
+
+    public function getCustomerForBooking(int $bookingId): array
+    {
+        $this->db->dbquery(
+            "SELECT u.user_id, u.name, u.email
+             FROM bookings b
+             JOIN users u ON b.user_id = u.user_id
+             WHERE b.id = :bid
+             LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getsingledata() ?: [];
+    }
+
+    public function getSupplierEmailsForBooking(int $bookingId): array
+    {
+        $this->db->dbquery(
+            "SELECT DISTINCT u.name, u.email, sup.shop_name
+             FROM booking_suppliers bs
+             JOIN suppliers sup ON bs.supplier_id = sup.supplier_id
+             JOIN users u ON sup.user_id = u.user_id
+             WHERE bs.booking_id = :bid
+             AND bs.status NOT IN ('rejected', 'cancelled')"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getmultidata() ?: [];
+    }
 }

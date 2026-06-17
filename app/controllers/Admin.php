@@ -3,6 +3,7 @@
 require_once APPROOT . '/services/UploadService.php';
 require_once APPROOT . '/services/PaymentGatewayService.php';
 require_once APPROOT . '/controllers/Booking.php';
+require_once APPROOT . '/services/EmailService.php';
 
 class Admin extends Controller
 {
@@ -760,6 +761,20 @@ class Admin extends Controller
             'A new booking with confirmed payment is ready for your review.',
             'booking'
         );
+
+        // Send event-detail email to customer, suppliers, and admin
+        $booking   = $bookingModel->getBookingById($bookingId);
+        $items     = $bookingModel->getBookingItems($bookingId);
+        $customer  = $bookingModel->getCustomerForBooking($bookingId);
+        $suppliers = $bookingModel->getSupplierEmailsForBooking($bookingId);
+        $adminEmail = [
+            'email' => defined('MAIL_FROM') ? MAIL_FROM : 'admin@goldenpromise.com',
+            'name'  => 'Golden Promise Admin',
+        ];
+        if ($customer && $booking) {
+            $emailService = new EmailService();
+            $emailService->sendPaymentVerifiedEvent($customer, $suppliers, $adminEmail, $booking, $items);
+        }
 
         $this->jsonResponse([
             'success' => true,

@@ -1,6 +1,7 @@
 <?php
 
 require_once APPROOT . '/traits/JsonResponseTrait.php';
+require_once APPROOT . '/services/EmailService.php';
 
 class Booking extends Controller
 {
@@ -144,16 +145,23 @@ class Booking extends Controller
             $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
             $currentItemErrors = [];
             
+            // For fullday items (packages and fullday services), time slots are not required.
+            $isFullday = ($item['booking_type'] ?? 'fullday') === 'fullday';
+            if ($isFullday) {
+                if (empty($itemStartTime)) $itemStartTime = '00:00:00';
+                if (empty($itemEndTime))   $itemEndTime   = '23:59:59';
+            }
+
             // Required details for suppliers before payment.
             if (empty($itemDate)) {
                 $currentItemErrors[] = 'Date is required';
             } elseif (!$this->isDateAllowedByLeadTime($itemDate, $minLeadDays)) {
                 $currentItemErrors[] = $this->leadTimeMessage($minLeadDays);
             }
-            if (empty($itemStartTime)) {
+            if (!$isFullday && empty($itemStartTime)) {
                 $currentItemErrors[] = 'Time slot is required';
             }
-            if (empty($itemEndTime)) {
+            if (!$isFullday && empty($itemEndTime)) {
                 $currentItemErrors[] = 'Time slot end time is required';
             }
             if (empty($itemContactName)) {
@@ -259,6 +267,17 @@ class Booking extends Controller
             $this->bookingModel->updateStatus($bookingId, 'pending_payment');
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
 
+            // Send booking confirmation email to customer
+            $userData = $this->getUserData();
+            if (!empty($userData['email'])) {
+                $emailService = new EmailService();
+                $emailService->sendBookingConfirmation(
+                    ['name' => $userData['name'], 'email' => $userData['email']],
+                    ['id' => $bookingId, 'total_amount' => $adjustedTotal ?: $total],
+                    $items
+                );
+            }
+
             $this->jsonResponse([
                 'success' => true,
                 'booking_id' => $bookingId,
@@ -275,6 +294,15 @@ class Booking extends Controller
                 $customerName . ' is requesting: ' . $serviceNames . '. Please accept or decline within 48 hours.',
                 'booking'
             );
+
+            // Email each supplier about the new booking request
+            $supplierEmails = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
+            if (!empty($supplierEmails)) {
+                $emailService = new EmailService();
+                foreach ($supplierEmails as $supplier) {
+                    $emailService->sendNewBookingRequest($supplier, $customerName, $items, $bookingId);
+                }
+            }
 
             $this->jsonResponse([
                 'success' => true,
@@ -965,6 +993,15 @@ class Booking extends Controller
         $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus);
         $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, 'Supplier ' . $action . 'ed booking');
 
+        // Gather customer info and first item details for emails (fetched once, used below)
+        $customerInfo   = $this->bookingModel->getCustomerForBooking($bookingId);
+        $bookingItems   = $this->bookingModel->getBookingItems($bookingId);
+        $firstItem      = $bookingItems[0] ?? [];
+        $firstItemName  = $firstItem['service_name'] ?? $firstItem['package_name'] ?? 'your service';
+        $firstItemDate  = !empty($firstItem['booking_date'])
+            ? date('l, M j, Y', strtotime($firstItem['booking_date']))
+            : 'your selected date';
+
         // Custom-flow: handle booking-level status transition
         if ($isPendingSupplierResponse) {
             if ($action === 'accept') {
@@ -978,6 +1015,10 @@ class Booking extends Controller
                         $shopName . ' accepted your booking request. Please complete your 10% deposit to confirm.',
                         'booking'
                     );
+                    if (!empty($customerInfo['email'])) {
+                        $emailService = new EmailService();
+                        $emailService->sendSupplierAccepted($customerInfo, $shopName, $firstItemName, $firstItemDate, $bookingId);
+                    }
                 }
             } elseif ($action === 'decline') {
                 $this->bookingModel->updateStatus($bookingId, 'cancelled');
@@ -989,6 +1030,10 @@ class Booking extends Controller
                     $shopName . ' is unavailable for your requested dates. Please search for another supplier.',
                     'booking'
                 );
+                if (!empty($customerInfo['email'])) {
+                    $emailService = new EmailService();
+                    $emailService->sendSupplierDeclined($customerInfo, $shopName, $firstItemName, $firstItemDate, $bookingId);
+                }
             }
 
             $this->jsonResponse([
@@ -1007,6 +1052,10 @@ class Booking extends Controller
                 $shopName . ' has accepted your booking! Your service is confirmed.',
                 'booking'
             );
+            if (!empty($customerInfo['email'])) {
+                $emailService = new EmailService();
+                $emailService->sendSupplierAccepted($customerInfo, $shopName, $firstItemName, $firstItemDate, $bookingId);
+            }
         } else {
             $this->notificationModel->notifyBookingCustomer(
                 $bookingId,
@@ -1014,6 +1063,10 @@ class Booking extends Controller
                 $shopName . ' has declined your booking. You may need to find an alternative service.',
                 'booking'
             );
+            if (!empty($customerInfo['email'])) {
+                $emailService = new EmailService();
+                $emailService->sendSupplierDeclined($customerInfo, $shopName, $firstItemName, $firstItemDate, $bookingId);
+            }
         }
 
         $this->jsonResponse([
