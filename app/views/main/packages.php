@@ -837,8 +837,8 @@ img { display: block; max-width: 100%; }
             </div>
             <div class="gp-pkg-foot">
               <div>
-                <span class="gp-pkg-price"><?= $money($pkg['base_price'] ?? 0) ?></span>
-                <span class="gp-pkg-price-label">Starting from</span>
+                <span class="gp-pkg-price"><?= $money($pkg['package_price'] ?? $pkg['base_price'] ?? 0) ?></span>
+                <span class="gp-pkg-price-label">Complete package price</span>
               </div>
               <a class="gp-pkg-btn" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>">
                 Explore

@@ -21,7 +21,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   // ── Price calculations ────────────────────────────────────────────────────
   $includedTotal = 0;
   $includedServiceIds = [];
-  $includedCategoryIds = [];
+  $includedCategoryNames = [];
   $hasVenueItems = false;
   foreach (($package['items'] ?? []) as $item) {
     $includedTotal += (float)($item['default_price'] ?? $item['price_min'] ?? $item['price'] ?? 0);
@@ -29,7 +29,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       $includedServiceIds[(int)$item['service_id']] = true;
     }
     if (!empty($item['category_id'])) {
-      $includedCategoryIds[(int)$item['category_id']] = true;
+      $includedCategoryNames[(int)$item['category_id']] = trim((string)($item['category_name'] ?? 'this category'));
     }
     if (!empty($item['venue_room_id']) || !empty($item['hall_name']) || !empty($hallOptionsByService[(int)($item['service_id'] ?? 0)])) {
       $hasVenueItems = true;
@@ -50,14 +50,9 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   $pkgCategorySlug = strtolower(trim((string)($package['category_slug'] ?? $pkgCategoryName)));
   $isVenuePackage  = str_contains($pkgCategorySlug, 'venue') || str_contains($pkgCategorySlug, 'hall');
 
-  // One package may include many categories, but only one service per category.
-  $addableServices = array_filter($serviceOptions, function ($svc) use ($includedServiceIds, $includedCategoryIds) {
+  $addableServices = array_filter($serviceOptions, function ($svc) use ($includedServiceIds) {
     $svcId = (int)($svc['id'] ?? 0);
     if ($svcId > 0 && isset($includedServiceIds[$svcId])) {
-      return false;
-    }
-    $categoryId = (int)($svc['category_id'] ?? 0);
-    if ($categoryId > 0 && isset($includedCategoryIds[$categoryId])) {
       return false;
     }
     return true;
@@ -262,7 +257,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       <div class="pkg-category-label">Package Category</div>
       <div class="pkg-category-name"><?= $h($pkgCategoryName) ?></div>
     </div>
-    <div class="pkg-category-note">Packages can mix categories; add only one service from each category.</div>
+    <div class="pkg-category-note">Packages can include any services admin chooses.</div>
   </div>
   <?php endif; ?>
 
@@ -354,7 +349,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     <div class="card-title">Included Services</div>
 
     <?php if (empty($package['items'])): ?>
-      <div class="service-empty">No services added yet. Use the form below to add one service from each category.</div>
+      <div class="service-empty">No services added yet. Use the form below to add services to this package.</div>
     <?php else: ?>
       <table class="service-table">
         <thead>
@@ -475,6 +470,8 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
                       data-name="<?= $h($svc['name'] ?? '') ?>"
                       data-supplier="<?= $h($svc['supplier_name'] ?? '') ?>"
                       data-price="<?= $h($priceLabel) ?>"
+                      data-category-id="<?= (int)($svc['category_id'] ?? 0) ?>"
+                      data-category-name="<?= $h($svc['category_name'] ?? 'this category') ?>"
                       data-food="<?= $isFoodSvc ? '1' : '0' ?>"
                       data-room-count="<?= count($hallOptionsByService[$svcId] ?? []) ?>">
                 <?= $h(($svc['category_name'] ?? 'Service') . ' — ' . ($svc['name'] ?? '') . ' — ' . ($svc['supplier_name'] ?? '') . ' — ' . $priceLabel) ?>
@@ -587,7 +584,9 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   const guestCountRow = document.getElementById('guestCountRow');
   const guestCountHidden = document.getElementById('guestCountHidden');
   const guestCountInput  = document.getElementById('guestCountInput');
+  const addServiceForm = document.getElementById('addServiceForm');
   const hallOptionsByService = <?= json_encode($hallOptionsByService, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+  const includedCategoryNames = <?= json_encode($includedCategoryNames, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
   const stepEl = (n) => document.getElementById('stepIndicator' + n);
 
@@ -772,6 +771,18 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   /* Guest count sync */
   if (guestCountInput && guestCountHidden) {
     guestCountInput.addEventListener('input', () => { guestCountHidden.value = guestCountInput.value; });
+  }
+
+  if (addServiceForm && serviceSelect) {
+    addServiceForm.addEventListener('submit', event => {
+      const opt = serviceSelect.options[serviceSelect.selectedIndex];
+      const categoryId = opt?.dataset.categoryId || '';
+      if (!categoryId || !includedCategoryNames[categoryId]) return;
+
+      const categoryName = opt.dataset.categoryName || includedCategoryNames[categoryId] || 'this category';
+      const ok = confirm('This package already includes a ' + categoryName + ' service. Add another ' + categoryName + ' service anyway?');
+      if (!ok) event.preventDefault();
+    });
   }
 })();
 </script>

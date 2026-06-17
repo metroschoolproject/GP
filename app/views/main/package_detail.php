@@ -9,6 +9,7 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => 'MMK ' . number_format((float)$v, 0);
+$packageCustomerPrice = (float)($package['package_price'] ?? $package['base_price'] ?? 0);
 $moneyRange = function ($svc) use ($money) {
     if (($svc['quantity_type'] ?? 'fixed') === 'guests') {
         $quantity = max(1, (int)($svc['quantity'] ?? 1));
@@ -504,14 +505,27 @@ img { display: block; max-width: 100%; }
 
 <main class="gp-detail-page">
 
-  
+  <section class="gp-detail-hero">
+    <div class="gp-detail-hero-overline">Wedding package</div>
+    <h1><?= $h($package['name'] ?? 'Package') ?></h1>
+    <?php if (!empty($package['tagline'])): ?>
+      <p class="tagline"><?= $h($package['tagline']) ?></p>
+    <?php endif; ?>
+    <?php if (!empty($package['description'])): ?>
+      <p class="desc"><?= $h($package['description']) ?></p>
+    <?php endif; ?>
+    <div class="price-hero">
+      <?= $money($packageCustomerPrice) ?>
+      <span class="price-hero-label">complete package price</span>
+    </div>
+  </section>
 
 
     <form class="gp-package-cart-form" method="POST" action="<?= URLROOT ?>/cart/addPackage">
       <input type="hidden" name="package_id" value="<?= (int)($package['package_id'] ?? 0) ?>">
-      <input type="hidden" name="price" value="<?= (float)($package['base_price'] ?? 0) ?>">
+      <input type="hidden" name="price" value="<?= $packageCustomerPrice ?>">
       <button class="gp-package-cart-btn" type="submit">
-        Add package to cart
+        Add package to cart · <?= $money($packageCustomerPrice) ?>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </button>
     </form>
@@ -626,6 +640,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-
-
-

@@ -2,6 +2,8 @@
 
 class PlatformPackage
 {
+    private const AGENT_FEE_RATE = 0.05;
+
     private $db;
     private $packageQuantityColumns = null;
     private $packageCategoryColumn = null;
@@ -118,7 +120,7 @@ class PlatformPackage
         }
 
         $package['items'] = $this->getPackageItems($packageId);
-        return $package;
+        return $this->withCustomerPackagePrice($package);
     }
 
     /**
@@ -334,10 +336,6 @@ class PlatformPackage
         }
 
         $serviceCategoryId = (int)($service['category_id'] ?? 0);
-        if ($serviceCategoryId > 0 && $this->packageHasCategory((int)$packageId, $serviceCategoryId)) {
-            return false;
-        }
-
         if ($this->hasPackageCategoryColumn() && $serviceCategoryId > 0) {
             $this->db->dbquery('UPDATE packages SET category_id = :category_id WHERE package_id = :package_id AND category_id IS NULL');
             $this->db->dbbind(':category_id', $serviceCategoryId);
@@ -646,6 +644,7 @@ class PlatformPackage
             $pid = (int)$pkg['package_id'];
             $pkg['categories'] = $itemsByPackage[$pid] ?? [];
             $pkg['service_count'] = (int)($pkg['item_count'] ?? 0);
+            $pkg = $this->withCustomerPackagePrice($pkg);
         }
         unset($pkg);
 
@@ -771,6 +770,10 @@ class PlatformPackage
         $this->db->dbbind(':package_id', (int)$package['package_id']);
         $items = $this->db->getmultidata();
         $package['items'] = $items;
+        $package['included_total'] = array_reduce($items, static function ($total, $item) {
+            return $total + (float)($item['default_price'] ?? 0);
+        }, 0.0);
+        $package = $this->withCustomerPackagePrice($package);
         $package['services'] = array_values(array_filter(array_map(function ($item) {
             if (empty($item['service_id'])) {
                 return null;
@@ -948,7 +951,7 @@ class PlatformPackage
         );
         $this->db->dbbind(':limit', (int)$limit);
 
-        return $this->db->getmultidata();
+        return array_map([$this, 'withCustomerPackagePrice'], $this->db->getmultidata());
     }
 
     /**
@@ -983,6 +986,21 @@ class PlatformPackage
             'duration_minutes' => (int)($service['duration_minutes'] ?? 0),
             'pricing_unit' => $service['pricing_unit'] ?? 'per_session',
         ];
+    }
+
+    private function withCustomerPackagePrice(array $package): array
+    {
+        $includedTotal = (float)($package['included_total'] ?? 0);
+        $storedBasePrice = (float)($package['base_price'] ?? 0);
+        $packageBasePrice = $storedBasePrice > 0 ? $storedBasePrice : $includedTotal;
+        $agentFee = $packageBasePrice * self::AGENT_FEE_RATE;
+
+        $package['package_base_price'] = $packageBasePrice;
+        $package['agent_fee_rate'] = self::AGENT_FEE_RATE;
+        $package['agent_fee'] = $agentFee;
+        $package['package_price'] = $packageBasePrice + $agentFee;
+
+        return $package;
     }
 
     private function getServiceForPackageItem($serviceId)
@@ -1121,21 +1139,6 @@ class PlatformPackage
         $row = $this->db->getsingledata();
 
         return (int)($row['total'] ?? 0) > 0;
-    }
-
-    private function packageHasCategory($packageId, $categoryId)
-    {
-        $this->db->dbquery(
-            'SELECT id
-             FROM package_items
-             WHERE package_id = :package_id
-               AND category_id = :category_id
-             LIMIT 1'
-        );
-        $this->db->dbbind(':package_id', (int)$packageId);
-        $this->db->dbbind(':category_id', (int)$categoryId);
-
-        return (bool)$this->db->getsingledata();
     }
 
     private function getVenueRoomForService($serviceId, $roomId)

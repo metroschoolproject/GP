@@ -144,10 +144,14 @@ class Cart extends Controller
             return;
         }
 
+        $packageModel = $this->model('PlatformPackage');
+        $package = $packageModel->getPackageById($packageId);
+        $packagePrice = $package ? (float)($package['package_price'] ?? $package['base_price'] ?? 0) : 0;
+
         $itemData = [
             'item_type' => 'package',
             'item_id' => $packageId,
-            'price' => !empty($_POST['price']) ? (float)$_POST['price'] : null,
+            'price' => $packagePrice > 0 ? $packagePrice : (!empty($_POST['price']) ? (float)$_POST['price'] : null),
             'source' => 'package',
         ];
 

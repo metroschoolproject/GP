@@ -28,7 +28,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
 <style>
   .admin-pkg-create{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
   .admin-pkg-page *{box-sizing:border-box}
-  .admin-pkg-page{--bg:#FBFBF9;--surface:#ffffff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;max-width:800px;margin:0 auto}
+  .admin-pkg-page{--bg:#FBFBF9;--surface:#ffffff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;max-width:980px;margin:0 auto}
 
   .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;margin-bottom:16px}
   .back-link:hover{color:var(--primary)}
@@ -52,12 +52,15 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   input[type=number]{width:140px}
   select{width:100%}
 
-  .cat-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;padding:8px 0}
-  .cat-option{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border-light);border-radius:.5rem;cursor:pointer;transition:all .12s}
+  .cat-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:8px 0}
+  .cat-option{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--border-light);border-radius:.5rem;cursor:pointer;transition:all .12s;background:var(--surface)}
   .cat-option:hover{background:var(--soft)}
   .cat-option input[type=checkbox]{width:auto;margin:0}
   .cat-option.selected{background:var(--primary-soft);border-color:var(--primary)}
-  .service-select{min-height:220px}
+  .service-category{border:1px solid var(--border-light);border-radius:.75rem;background:var(--bg);padding:14px;margin-top:12px}
+  .service-category-title{margin:0 0 10px;color:var(--text);font-size:12px;font-weight:800}
+  .service-option-title{display:block;color:var(--text);font-size:13px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
+  .service-option-meta{display:block;margin-top:3px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.45}
   .hint{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5}
 
   .toggle-wrap{display:flex;align-items:center;gap:10px}
@@ -77,7 +80,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
     <div class="flash"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
   <?php endif; ?>
 
-  <form method="POST" action="<?= URLROOT ?>/admin/packageCreate" enctype="multipart/form-data">
+  <form id="packageCreateForm" method="POST" action="<?= URLROOT ?>/admin/packageCreate" enctype="multipart/form-data">
     <div class="card">
       <div class="card-title">Package Details</div>
 
@@ -103,15 +106,15 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
       </div>
 
       <div class="field">
-        <label>Package Category *</label>
+        <label>Package Category</label>
         <?php if (!empty($categories)): ?>
-          <select name="category_id" id="packageCategorySelect" required>
-            <option value="">Choose one category</option>
+          <select name="category_id" id="packageCategorySelect">
+            <option value="">No display category</option>
             <?php foreach ($categories as $cat): ?>
               <option value="<?= (int)$cat['id'] ?>"><?= $h($cat['name'] ?? '') ?></option>
             <?php endforeach; ?>
           </select>
-          <p class="hint" style="margin-top:6px">A package can contain services from one category only.</p>
+          <p class="hint" style="margin-top:6px">Used for browsing and filtering. The package can still include services from any category.</p>
         <?php else: ?>
           <input type="text" value="No categories available" readonly>
           <input type="hidden" name="category_id" value="0">
@@ -144,22 +147,31 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
           <input type="number" name="guest_count" min="1" step="1" value="100">
           <p class="hint" style="margin-top:6px">Used only for selected Food/Catering services. Other services stay fixed.</p>
         </div>
-        <select class="service-select" name="service_ids[]" id="packageServiceSelect" multiple>
-          <?php foreach ($servicesByCategory as $categoryGroup): ?>
-            <optgroup label="<?= $h($categoryGroup['name'] ?? 'Other') ?>" data-category-id="<?= (int)($categoryGroup['id'] ?? 0) ?>">
+        <?php foreach ($servicesByCategory as $categoryGroup): ?>
+          <section class="service-category">
+            <h3 class="service-category-title"><?= $h($categoryGroup['name'] ?? 'Other') ?></h3>
+            <div class="cat-checklist">
               <?php foreach (($categoryGroup['services'] ?? []) as $service):
                 $isFoodService = strpos(strtolower((string)(($service['category_slug'] ?? '') . ' ' . ($service['category_name'] ?? ''))), 'food') !== false
                   || strpos(strtolower((string)(($service['category_slug'] ?? '') . ' ' . ($service['category_name'] ?? ''))), 'cater') !== false;
-                $label = ($service['name'] ?? 'Service')
-                  . ' - ' . ($service['supplier_name'] ?? 'Supplier')
-                  . ' - ' . $money($service['display_price'] ?? 0)
-                  . ($isFoodService ? ' per guest' : '');
               ?>
-                <option value="<?= (int)($service['id'] ?? 0) ?>" data-category-id="<?= (int)($service['category_id'] ?? 0) ?>"><?= $h($label) ?></option>
+                <label class="cat-option">
+                  <input type="checkbox"
+                         name="service_ids[]"
+                         value="<?= (int)($service['id'] ?? 0) ?>"
+                         data-category-id="<?= (int)($service['category_id'] ?? 0) ?>"
+                         data-category-name="<?= $h($service['category_name'] ?? 'this category') ?>">
+                  <span>
+                    <span class="service-option-title"><?= $h($service['name'] ?? 'Service') ?></span>
+                    <span class="service-option-meta">
+                      <?= $h($service['supplier_name'] ?? 'Supplier') ?> · <?= $money($service['display_price'] ?? 0) ?><?= $isFoodService ? ' per guest' : '' ?>
+                    </span>
+                  </span>
+                </label>
               <?php endforeach; ?>
-            </optgroup>
-          <?php endforeach; ?>
-        </select>
+            </div>
+          </section>
+        <?php endforeach; ?>
       <?php endif; ?>
     </div>
 
@@ -170,27 +182,34 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   </form>
 </div>
 <script>
-  (function () {
-    const categorySelect = document.getElementById('packageCategorySelect');
-    const serviceSelect = document.getElementById('packageServiceSelect');
-    if (!categorySelect || !serviceSelect) return;
+  const packageCreateForm = document.getElementById('packageCreateForm');
+  const serviceCheckboxes = document.querySelectorAll('.cat-option input[type="checkbox"]');
 
-    function syncServiceOptions() {
-      const categoryId = categorySelect.value;
-      Array.from(serviceSelect.options).forEach(option => {
-        const allowed = categoryId !== '' && option.dataset.categoryId === categoryId;
-        option.disabled = !allowed;
-        option.hidden = !allowed;
-        if (!allowed) option.selected = false;
-      });
-      Array.from(serviceSelect.querySelectorAll('optgroup')).forEach(group => {
-        group.hidden = categoryId === '' || group.dataset.categoryId !== categoryId;
-      });
-    }
+  serviceCheckboxes.forEach(input => {
+    input.addEventListener('change', () => {
+      input.closest('.cat-option')?.classList.toggle('selected', input.checked);
+    });
+  });
 
-    categorySelect.addEventListener('change', syncServiceOptions);
-    syncServiceOptions();
-  })();
+  packageCreateForm?.addEventListener('submit', event => {
+    const counts = new Map();
+    serviceCheckboxes.forEach(input => {
+      if (!input.checked) return;
+      const categoryId = input.dataset.categoryId || '0';
+      const categoryName = input.dataset.categoryName || 'this category';
+      if (!counts.has(categoryId)) counts.set(categoryId, { name: categoryName, count: 0 });
+      counts.get(categoryId).count += 1;
+    });
+
+    const duplicates = Array.from(counts.values()).filter(item => item.count > 1);
+    if (duplicates.length === 0) return;
+
+    const message = duplicates
+      .map(item => item.count + ' services from ' + item.name)
+      .join(', ');
+    const ok = confirm('You selected ' + message + '. Create the package with these same-category services?');
+    if (!ok) event.preventDefault();
+  });
 </script>
 <?php
 };

@@ -49,7 +49,10 @@ class BookingModel
             "INSERT INTO booking_items (booking_id, item_type, source, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn})
             SELECT :bid, ci.item_type, COALESCE(ci.source, 'custom'), ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
-                    COALESCE(ci.price, s.price_min, s.price, p.base_price, sp.total_price, 0),
+                    CASE
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
+                        ELSE COALESCE(ci.price, s.price_min, s.price, sp.total_price, 0)
+                    END,
                     'pending',
                     ci.slot_id, ci.start_time, ci.end_time,
                     COALESCE(s.booking_type, 'fullday'){$venueRoomSelectColumn}

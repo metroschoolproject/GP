@@ -466,7 +466,10 @@ class CartModel
                     ci.item_type, 
                     ci.item_id, 
                     ci.selected_date,
-                    ci.price AS cart_price, 
+                    CASE
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price)
+                        ELSE ci.price
+                    END AS cart_price, 
                     ci.slot_id, 
                     ci.start_time, 
                     ci.end_time,
@@ -474,8 +477,8 @@ class CartModel
                     
                     COALESCE(s.name, p.name, sp.name) AS service_name,
                     COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
-                    COALESCE(s.price_min, p.base_price, sp.total_price) AS price_min,
-                    COALESCE(s.price_max, p.base_price, sp.total_price) AS price_max,
+                    COALESCE(s.price_min, p.base_price * 1.05, sp.total_price) AS price_min,
+                    COALESCE(s.price_max, p.base_price * 1.05, sp.total_price) AS price_max,
                     COALESCE(s.booking_type, 'fullday') AS booking_type,
                     {$minLeadSelect} AS min_lead_days,
 
@@ -529,7 +532,12 @@ class CartModel
     public function getCartTotal(int $userId): float
     {
         $this->db->dbquery(
-            "SELECT COALESCE(SUM(COALESCE(ci.price, s.price_min, s.price, p.base_price, sp.total_price, 0)), 0) AS total
+            "SELECT COALESCE(SUM(
+                CASE
+                    WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
+                    ELSE COALESCE(ci.price, s.price_min, s.price, sp.total_price, 0)
+                END
+             ), 0) AS total
              FROM cart_items ci
              LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
              LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
