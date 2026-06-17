@@ -28,10 +28,12 @@ $notificationConfig = $notificationConfig ?? [
     'role' => 'supplier',
     'reviewUrl' => URLROOT . '/supplier/notifications',
     'defaultUrl' => URLROOT . '/supplier/dashboard',
+    'detailUrlBase' => URLROOT . '/supplier/notification/',
     'referenceUrls' => [
-        'supplier' => URLROOT . '/supplier/dashboard?supplier=',
+        'booking' => URLROOT . '/supplier/bookingDetail/',
+        'service' => URLROOT . '/supplier/serviceDetail/',
         'payment' => URLROOT . '/supplier/dashboard?payment=',
-        'booking' => URLROOT . '/supplier/dashboard?booking=',
+        'publish_request' => URLROOT . '/supplier/serviceDetail/',
     ],
 ];
 

@@ -9,6 +9,7 @@ $notificationConfig = $notificationConfig ?? [
     'role' => 'admin',
     'reviewUrl' => URLROOT . '/admin/notifications',
     'defaultUrl' => URLROOT . '/admin/dashboard',
+    'detailUrlBase' => URLROOT . '/admin/notification/',
     'referenceUrls' => [
         'supplier' => URLROOT . '/admin/supplier/',
         'payment' => URLROOT . '/admin/payments?payment=',

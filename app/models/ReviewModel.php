@@ -63,7 +63,11 @@ class ReviewModel
     public function create(int $bookingId, int $customerId, int $rating, string $comment): int
     {
         $this->db->dbquery(
-            'SELECT supplier_id FROM bookings WHERE id = :booking_id LIMIT 1'
+            'SELECT s.supplier_id
+              FROM booking_items bi
+              JOIN services s ON s.id = bi.item_id AND bi.item_type = \'service\'
+             WHERE bi.booking_id = :booking_id
+             LIMIT 1'
         );
         $this->db->dbbind(':booking_id', $bookingId);
         $row = $this->db->getsingledata();
@@ -252,7 +256,7 @@ class ReviewModel
              JOIN users u ON u.user_id = r.customer_id
              JOIN booking_items bi ON bi.booking_id = r.booking_id AND bi.item_type = \'service\'
              JOIN services s ON s.id = bi.item_id AND s.supplier_id = :supplier_id
-             WHERE b.supplier_id = :supplier_id2
+             WHERE r.supplier_id = :supplier_id2
                AND r.deleted_at IS NULL
              GROUP BY r.id
              ORDER BY r.created_at DESC
@@ -279,7 +283,7 @@ class ReviewModel
                 SUM(r.rating = 1) AS one
              FROM reviews r
              JOIN bookings b ON b.id = r.booking_id
-             WHERE b.supplier_id = :supplier_id
+             WHERE r.supplier_id = :supplier_id
                AND r.deleted_at IS NULL'
         );
         $this->db->dbbind(':supplier_id', $supplierId);
