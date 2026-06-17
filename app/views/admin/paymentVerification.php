@@ -1,160 +1,210 @@
 <?php
 $pendingPayments = $pendingPayments ?? [];
-$h = fn($v) => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+$h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
+$dateTime = static function ($value, string $fallback = '-') {
+    if (empty($value)) return $fallback;
+    $timestamp = strtotime((string)$value);
+    return $timestamp ? date('M d, Y H:i', $timestamp) : $fallback;
+};
+
+$pendingCount = count($pendingPayments);
+$pendingTotal = 0.0;
+foreach ($pendingPayments as $payment) {
+    $pendingTotal += (float)($payment['paid_amount'] ?? $payment['payment_amount'] ?? ((float)($payment['total_amount'] ?? 0) * 0.1));
+}
+
+$dashboardTitle = 'Payments';
+$dashboardCrumb = 'Verification';
+$dashboardContentClass = 'bg-app-content px-6 py-6 overflow-y-auto';
+$dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTotal, $h, $money, $dateTime) {
 ?>
-<div class="container mx-auto px-4 py-8">
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-800">Payment Verification</h1>
-    <p class="text-gray-600 mt-2">Review and verify customer payment slips for manual payment methods</p>
+<section class="mx-auto max-w-7xl space-y-5">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-app-header-muted">Manual payment queue</p>
+      <h1 class="mt-2 text-3xl font-bold tracking-tight text-app-text">Payment verification</h1>
+      <p class="mt-1 text-sm text-app-muted">Review customer transfer proof, confirm the deposit, or request a new proof.</p>
+    </div>
+    <a href="<?= URLROOT ?>/admin/payments" class="rounded-lg border border-app-panel-border bg-white px-4 py-2 text-sm font-bold text-app-secondary hover:bg-app-input">Payment history</a>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <div class="rounded-xl border border-app-panel-border bg-white p-5 shadow-sm">
+      <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Awaiting review</p>
+      <p class="mt-2 text-2xl font-bold text-app-text"><?= (int)$pendingCount ?></p>
+    </div>
+    <div class="rounded-xl border border-app-panel-border bg-white p-5 shadow-sm">
+      <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Submitted amount</p>
+      <p class="mt-2 text-2xl font-bold text-app-text"><?= $money($pendingTotal) ?></p>
+    </div>
+    <div class="rounded-xl border border-app-panel-border bg-white p-5 shadow-sm">
+      <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Next step</p>
+      <p class="mt-2 text-sm font-semibold text-app-secondary">Match amount, transaction ID, sender, and proof file before verifying.</p>
+    </div>
   </div>
 
   <?php if (empty($pendingPayments)): ?>
-    <div class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-      <div class="text-green-700">
-        <p class="text-lg font-semibold">✓ All payments verified</p>
-        <p class="text-sm mt-2">No pending payment verifications at this time.</p>
-      </div>
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center">
+      <p class="text-lg font-bold text-emerald-800">All payment proofs are reviewed</p>
+      <p class="mt-2 text-sm text-emerald-700">New customer deposits will appear here after submission.</p>
     </div>
   <?php else: ?>
-    <div class="grid gap-6">
-      <?php foreach ($pendingPayments as $payment):
-        $bookingId = (int)($payment['id'] ?? 0);
-        $customerName = $h($payment['name'] ?? 'Unknown');
-        $amount = (float)($payment['total_amount'] ?? 0);
-        $method = $h($payment['method'] ?? 'Unknown');
-        $reference = $h($payment['transaction_ref'] ?? '');
-        $slipPath = $payment['payment_slip_path'] ?? '';
-        $submittedAt = $payment['payment_created_at'] ?? '';
-        $itemCount = (int)($payment['item_count'] ?? 0);
-      ?>
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div class="border-b border-gray-200 px-6 py-4 bg-gradient-to-r from-purple-50 to-pink-50">
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-800">Booking #<?= $bookingId ?></h3>
-                <p class="text-sm text-gray-600 mt-1"><?= $customerName ?></p>
-                <p class="text-sm text-gray-500 mt-1">Deposit: <strong><?= $money($amount * 0.1) ?></strong></p>
+    <div class="space-y-5">
+      <?php foreach ($pendingPayments as $payment): ?>
+        <?php
+          $bookingId = (int)($payment['id'] ?? 0);
+          $paymentId = (int)($payment['payment_id'] ?? 0);
+          $bookingRef = (string)($payment['booking_ref'] ?? ('Booking #' . $bookingId));
+          $customerName = (string)($payment['name'] ?? 'Unknown customer');
+          $customerEmail = (string)($payment['email'] ?? '');
+          $customerPhone = (string)($payment['phone'] ?? '');
+          $totalAmount = (float)($payment['total_amount'] ?? 0);
+          $expectedDeposit = $totalAmount * 0.1;
+          $paidAmountRaw = $payment['paid_amount'] ?? $payment['payment_amount'] ?? null;
+          $paidAmount = $paidAmountRaw !== null && $paidAmountRaw !== '' ? (float)$paidAmountRaw : 0.0;
+          $displayPaid = $paidAmount > 0 ? $paidAmount : $expectedDeposit;
+          $method = (string)($payment['bank_name'] ?? $payment['method'] ?? '-');
+          $accountName = (string)($payment['account_name'] ?? '');
+          $mobileNumber = (string)($payment['mobile_number'] ?? '');
+          $reference = (string)($payment['transaction_ref'] ?? '');
+          $slipPath = trim((string)($payment['payment_slip_path'] ?? ''));
+          $submittedAt = $dateTime($payment['payment_created_at'] ?? null);
+          $paidAt = $dateTime($payment['paid_at'] ?? null);
+          $itemCount = (int)($payment['item_count'] ?? 0);
+          $slipExt = strtolower(pathinfo($slipPath, PATHINFO_EXTENSION));
+          $isImageSlip = $slipPath !== '' && in_array($slipExt, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+        ?>
+        <article class="overflow-hidden rounded-xl border border-app-panel-border bg-white shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-4 border-b border-app-panel-border bg-app-soft px-5 py-4">
+            <div>
+              <div class="flex flex-wrap items-center gap-3">
+                <h2 class="text-xl font-bold text-app-text"><?= $h($bookingRef) ?></h2>
+                <?php if ($paymentId > 0): ?>
+                  <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-amber-800">Awaiting review</span>
+                <?php else: ?>
+                  <span class="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-rose-800">Payment record missing</span>
+                <?php endif; ?>
               </div>
-              <div class="text-right">
-                <div class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                  ⏳ Awaiting Verification
-                </div>
-              </div>
+              <p class="mt-1 text-sm text-app-muted"><?= $h($customerName) ?><?php if ($customerEmail !== ''): ?> · <?= $h($customerEmail) ?><?php endif; ?></p>
             </div>
+            <a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>" class="rounded-lg border border-app-panel-border bg-white px-4 py-2 text-sm font-bold text-app-secondary hover:bg-app-input">Open booking</a>
           </div>
 
-          <div class="px-6 py-4">
-            <?php
-              $bankName     = $h($payment['bank_name'] ?? $payment['method'] ?? 'Unknown');
-              $accountName  = $h($payment['account_name'] ?? '');
-              $mobileNumber = $h($payment['mobile_number'] ?? '');
-              $paidAmount   = !empty($payment['paid_amount']) ? number_format((float)$payment['paid_amount'], 0) . ' MMK' : 'N/A';
-              $paidAt       = !empty($payment['paid_at']) ? date('M d, Y H:i', strtotime($payment['paid_at'])) : 'N/A';
-            ?>
-            <div class="grid grid-cols-2 gap-4 mb-6 pb-6 border-b border-gray-200">
-              <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Bank / Method</p>
-                <p class="text-sm text-gray-800 mt-1 font-semibold"><?= $bankName ?></p>
+          <div class="grid gap-0 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <div class="p-5">
+              <div class="grid gap-3 md:grid-cols-3">
+                <div class="rounded-lg border border-app-panel-border bg-app-input p-4">
+                  <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Amount sent</p>
+                  <p class="mt-2 text-2xl font-bold text-app-text"><?= $money($displayPaid) ?></p>
+                </div>
+                <div class="rounded-lg border border-app-panel-border bg-app-input p-4">
+                  <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Expected deposit</p>
+                  <p class="mt-2 text-2xl font-bold text-app-text"><?= $money($expectedDeposit) ?></p>
+                </div>
+                <div class="rounded-lg border border-app-panel-border bg-app-input p-4">
+                  <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Booking total</p>
+                  <p class="mt-2 text-2xl font-bold text-app-text"><?= $money($totalAmount) ?></p>
+                </div>
               </div>
-              <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Items</p>
-                <p class="text-sm text-gray-800 mt-1"><?= $itemCount ?> service<?= $itemCount !== 1 ? 's' : '' ?></p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Sender Account Name</p>
-                <p class="text-sm text-gray-800 mt-1"><?= $accountName ?: 'N/A' ?></p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Mobile Number</p>
-                <p class="text-sm text-gray-800 mt-1"><?= $mobileNumber ?: 'N/A' ?></p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Transaction ID</p>
-                <p class="text-sm text-gray-800 mt-1"><code class="bg-gray-100 px-2 py-1 rounded"><?= $reference ?: 'N/A' ?></code></p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Amount Paid</p>
-                <p class="text-sm text-gray-800 mt-1 font-semibold"><?= $paidAmount ?></p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Transfer Date &amp; Time</p>
-                <p class="text-sm text-gray-800 mt-1"><?= $paidAt ?></p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500 font-semibold uppercase">Submitted</p>
-                <p class="text-sm text-gray-800 mt-1"><?= date('M d, H:i', strtotime($submittedAt)) ?></p>
-              </div>
+
+              <dl class="mt-5 grid gap-x-6 gap-y-4 md:grid-cols-3">
+                <div>
+                  <dt class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Payment method</dt>
+                  <dd class="mt-1 font-semibold text-app-text"><?= $h($method ?: '-') ?></dd>
+                </div>
+                <div>
+                  <dt class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Transaction ID</dt>
+                  <dd class="mt-1 break-all font-mono text-sm font-semibold text-app-text"><?= $h($reference ?: '-') ?></dd>
+                </div>
+                <div>
+                  <dt class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Items</dt>
+                  <dd class="mt-1 font-semibold text-app-text"><?= $itemCount ?> service<?= $itemCount === 1 ? '' : 's' ?></dd>
+                </div>
+                <div>
+                  <dt class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Sender account</dt>
+                  <dd class="mt-1 font-semibold text-app-text"><?= $h($accountName ?: '-') ?></dd>
+                </div>
+                <div>
+                  <dt class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Sender phone</dt>
+                  <dd class="mt-1 font-semibold text-app-text"><?= $h($mobileNumber ?: '-') ?></dd>
+                </div>
+                <div>
+                  <dt class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Customer phone</dt>
+                  <dd class="mt-1 font-semibold text-app-text"><?= $h($customerPhone ?: '-') ?></dd>
+                </div>
+                <div>
+                  <dt class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Transfer time</dt>
+                  <dd class="mt-1 font-semibold text-app-text"><?= $h($paidAt) ?></dd>
+                </div>
+                <div>
+                  <dt class="text-[11px] font-bold uppercase tracking-[0.14em] text-app-muted">Submitted</dt>
+                  <dd class="mt-1 font-semibold text-app-text"><?= $h($submittedAt) ?></dd>
+                </div>
+              </dl>
+
+              <?php if ($paymentId > 0): ?>
+                <form class="payment-verification-form mt-5 rounded-lg border border-app-panel-border bg-app-soft p-4" data-booking-id="<?= $bookingId ?>">
+                  <label class="text-xs font-bold uppercase tracking-[0.14em] text-app-muted" for="note-<?= $bookingId ?>">Admin note</label>
+                  <textarea id="note-<?= $bookingId ?>" name="note" class="mt-2 min-h-[76px] w-full rounded-lg border border-app-panel-border bg-white p-3 text-sm text-app-text outline-none focus:border-app-primary" placeholder="Optional note for this verification"></textarea>
+                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                    <button type="button" class="verify-payment-btn rounded-lg bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800">Verify deposit</button>
+                    <button type="button" class="reject-payment-btn rounded-lg border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-700 hover:bg-rose-50">Reject proof</button>
+                  </div>
+                </form>
+              <?php else: ?>
+                <div class="mt-5 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                  This booking is marked as payment submitted, but no pending deposit payment record was saved. Ask the customer to resubmit after the payment fields migration is applied.
+                </div>
+              <?php endif; ?>
             </div>
 
-            <?php if ($slipPath): ?>
-              <div class="mb-6 pb-6 border-b border-gray-200">
-                <p class="text-xs text-gray-500 font-semibold uppercase mb-3">Payment Slip</p>
-                <div class="bg-gray-50 rounded-lg p-4">
-                  <?php
-                    $extension = strtolower(pathinfo($slipPath, PATHINFO_EXTENSION));
-                    if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'])):
-                  ?>
-                    <img src="<?= URLROOT ?>/<?= $slipPath ?>" alt="Payment Slip" class="max-w-sm max-h-64 rounded border border-gray-200">
+            <aside class="border-t border-app-panel-border bg-app-soft p-5 xl:border-l xl:border-t-0">
+              <p class="text-xs font-bold uppercase tracking-[0.16em] text-app-muted">Payment proof</p>
+              <?php if ($slipPath !== ''): ?>
+                <a href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" class="mt-3 block overflow-hidden rounded-lg border border-app-panel-border bg-white">
+                  <?php if ($isImageSlip): ?>
+                    <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip for <?= $h($bookingRef) ?>" class="max-h-[360px] w-full object-contain">
                   <?php else: ?>
-                    <a href="<?= URLROOT ?>/<?= $slipPath ?>" target="_blank" class="text-blue-600 hover:underline">
-                      📄 View Document
-                    </a>
+                    <span class="block px-4 py-6 text-sm font-bold text-app-primary">Open uploaded payment document</span>
                   <?php endif; ?>
-                </div>
-              </div>
-            <?php endif; ?>
-
-            <!-- Verification Form -->
-            <div class="bg-gray-50 rounded-lg p-4">
-              <form class="payment-verification-form" data-booking-id="<?= $bookingId ?>">
-                <div class="mb-4">
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">Verification Notes (optional)</label>
-                  <textarea name="note" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" rows="2" placeholder="Add any notes about this payment verification..."></textarea>
-                </div>
-
-                <div class="flex gap-3">
-                  <button type="button" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition verify-payment-btn">
-                    ✓ Verify & Approve
-                  </button>
-                  <button type="button" class="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition reject-payment-btn">
-                    ✕ Reject
-                  </button>
-                </div>
-              </form>
-            </div>
+                </a>
+              <?php else: ?>
+                <div class="mt-3 rounded-lg border border-dashed border-app-panel-border bg-white p-5 text-sm text-app-muted">No proof file was saved for this payment.</div>
+              <?php endif; ?>
+            </aside>
           </div>
-        </div>
+        </article>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
-</div>
+</section>
 
-<div id="toast" class="fixed top-4 right-4 max-w-sm z-50 opacity-0 pointer-events-none transition-all duration-300"></div>
+<div id="toast" class="fixed right-4 top-4 z-50 max-w-sm opacity-0 pointer-events-none transition-all duration-300"></div>
 
 <script>
 function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = message;
-  toast.className = 'fixed top-4 right-4 max-w-sm z-50 opacity-100 pointer-events-auto transition-all duration-300 px-4 py-3 rounded-lg font-semibold';
-
+  toast.className = 'fixed right-4 top-4 z-50 max-w-sm opacity-100 pointer-events-auto transition-all duration-300 rounded-lg border px-4 py-3 text-sm font-bold';
   if (type === 'error') {
-    toast.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+    toast.classList.add('border-rose-200', 'bg-rose-50', 'text-rose-800');
   } else {
-    toast.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+    toast.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-800');
   }
 
   setTimeout(() => {
     toast.classList.remove('opacity-100', 'pointer-events-auto');
     toast.classList.add('opacity-0', 'pointer-events-none');
-  }, 4000);
+  }, 3500);
 }
 
 document.querySelectorAll('.payment-verification-form').forEach(form => {
-  form.addEventListener('click', async (e) => {
-    if (e.target.matches('.verify-payment-btn')) {
+  form.addEventListener('click', async event => {
+    if (event.target.matches('.verify-payment-btn')) {
       await handleVerification(form, true);
-    } else if (e.target.matches('.reject-payment-btn')) {
+    }
+    if (event.target.matches('.reject-payment-btn')) {
       await handleVerification(form, false);
     }
   });
@@ -163,7 +213,6 @@ document.querySelectorAll('.payment-verification-form').forEach(form => {
 async function handleVerification(form, approve) {
   const bookingId = form.dataset.bookingId;
   const note = form.querySelector('textarea[name="note"]').value;
-
   const endpoint = approve
     ? '<?= URLROOT ?>/admin/verifyPaymentPost'
     : '<?= URLROOT ?>/admin/rejectPaymentSlipPost';
@@ -171,31 +220,37 @@ async function handleVerification(form, approve) {
   const formData = new FormData();
   formData.append('booking_id', bookingId);
   formData.append('note', note);
+
   if (!approve) {
-    // For reject, need reason
-    const reason = prompt('Please provide a reason for rejection:');
+    const reason = prompt('Reason for rejecting this payment proof:');
     if (!reason) return;
     formData.set('reason', reason);
   }
 
   try {
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await resp.json();
+    const response = await fetch(endpoint, { method: 'POST', body: formData });
+    const data = await response.json();
 
     if (data.success) {
-      showToast(data.message, 'success');
-      setTimeout(() => {
-        location.reload();
-      }, 1500);
+      showToast(data.message || 'Payment review saved.');
+      setTimeout(() => location.reload(), 1200);
     } else {
-      showToast(data.error || 'Operation failed', 'error');
+      showToast(data.error || 'Operation failed.', 'error');
     }
-  } catch (err) {
+  } catch (error) {
     showToast('Connection error. Please try again.', 'error');
   }
 }
 </script>
+<?php
+};
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?>
+</head>
+<body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">
+  <?php require_once APPROOT . '/views/dashboardLayout/sidebar.php'; ?>
+</body>
+</html>

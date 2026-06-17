@@ -1209,6 +1209,80 @@ class Booking extends Controller
         ]);
     }
 
+    /**
+     * Admin marks a booking as received/verified and notifies both sides.
+     */
+    public function adminMarkBookingReceived(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $adminId = (int)($_SESSION['session_uid'] ?? 0);
+        if ($adminId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $note = trim((string)($_POST['note'] ?? ''));
+
+        if ($bookingId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid booking'], 400);
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        $oldStatus = (string)($booking['status'] ?? 'draft');
+        if (in_array($oldStatus, ['cancelled', 'completed'], true)) {
+            $this->jsonResponse(['error' => 'This booking can no longer be marked as received.'], 400);
+        }
+
+        $payments = $this->bookingModel->getBookingPayments($bookingId);
+        $hasPendingDeposit = false;
+        foreach ($payments as $payment) {
+            if (($payment['type'] ?? '') === 'deposit' && ($payment['status'] ?? '') === 'pending') {
+                $hasPendingDeposit = true;
+                break;
+            }
+        }
+
+        $saved = $hasPendingDeposit
+            ? $this->bookingModel->adminVerifyPayment($bookingId, $adminId, $note)
+            : $this->bookingModel->updateStatus($bookingId, 'payment_verified', 'partial');
+
+        if (!$saved) {
+            $this->jsonResponse(['error' => 'Could not mark booking as received.'], 500);
+        }
+
+        $updatedBooking = $this->bookingModel->getBookingById($bookingId);
+        $newStatus = (string)($updatedBooking['status'] ?? 'payment_verified');
+        $logNote = 'Marked as received by admin' . ($note !== '' ? ': ' . $note : '');
+        $this->bookingModel->logStatusChange($bookingId, $oldStatus, $newStatus, $adminId, $logNote);
+
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Booking Received',
+            'Your booking ' . $bookingRef . ' has been received and is being processed by Golden Promise.',
+            'booking'
+        );
+
+        $this->notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'Booking Received by Admin',
+            'Booking ' . $bookingRef . ' has been received by admin. Please review the booking details and prepare for the next step.',
+            'booking'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Booking marked as received. Customer and suppliers have been notified.',
+        ]);
+    }
+
     /* ─── Payment Submission (Manual & Instant Methods) ──────────────── */
 
     /**

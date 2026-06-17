@@ -84,6 +84,12 @@ class Admin extends Controller
         return call_user_func_array([$bookingController, 'adminCancelBooking'], func_get_args());
     }
 
+    public function markBookingReceived()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminMarkBookingReceived'], func_get_args());
+    }
+
     public function notification($notificationId = null)
     {
         if (!$notificationId) {
@@ -662,7 +668,7 @@ class Admin extends Controller
         $bookingModel = $this->model('BookingModel');
         $db = new Database();
         $manualPaymentSelects = [];
-        foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at'] as $column) {
+        foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at', 'payment_slip_path'] as $column) {
             $db->dbquery("SHOW COLUMNS FROM payments LIKE :column");
             $db->dbbind(':column', $column);
             $manualPaymentSelects[] = $db->getsingledata()
@@ -673,7 +679,7 @@ class Admin extends Controller
         // Get bookings with status='payment_submitted'
         $db->dbquery(
             "SELECT b.*, u.name, u.email, u.phone,
-                    p.id as payment_id, p.payment_slip_path, p.transaction_ref, p.method,
+                    p.id as payment_id, p.amount as payment_amount, p.transaction_ref, p.method,
                     " . implode(', ', $manualPaymentSelects) . ",
                     p.created_at as payment_created_at,
                     (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) as item_count
@@ -684,6 +690,10 @@ class Admin extends Controller
              ORDER BY b.created_at DESC"
         );
         $pendingPayments = $db->getmultidata();
+        foreach ($pendingPayments as &$payment) {
+            $payment['booking_ref'] = $bookingModel->generateBookingRef((int)$payment['id']);
+        }
+        unset($payment);
 
         $this->view('admin/paymentVerification', [
             'pendingPayments' => $pendingPayments,
@@ -779,12 +789,21 @@ class Admin extends Controller
         }
 
         // Mark the pending payment record as failed
+        $this->db->dbquery("SHOW COLUMNS FROM payments LIKE 'verified_note'");
+        $hasVerifiedNote = (bool)$this->db->getsingledata();
+        $setParts = ["status = 'failed'", 'verified_by = :admin', 'verified_at = NOW()'];
+        if ($hasVerifiedNote) {
+            $setParts[] = 'verified_note = :reason';
+        }
+
         $this->db->dbquery(
-            "UPDATE payments SET status = 'failed', verified_by = :admin, verified_at = NOW(), verified_note = :reason
+            "UPDATE payments SET " . implode(', ', $setParts) . "
              WHERE booking_id = :bid AND type = 'deposit' AND status = 'pending' LIMIT 1"
         );
         $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
-        $this->db->dbbind(':reason', $reason, PDO::PARAM_STR);
+        if ($hasVerifiedNote) {
+            $this->db->dbbind(':reason', $reason, PDO::PARAM_STR);
+        }
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbexecute();
 

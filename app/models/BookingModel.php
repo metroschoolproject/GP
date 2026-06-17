@@ -816,7 +816,8 @@ class BookingModel
      */
     public function getAllBookings(?string $statusFilter = null, ?string $search = null): array
     {
-        $sql = "SELECT b.*, u.name AS customer_name,
+        $sql = "SELECT b.*, u.name AS customer_name, u.email AS customer_email, u.phone AS customer_phone,
+                       (SELECT event_date FROM event_details ed WHERE ed.booking_id = b.id ORDER BY ed.event_date ASC LIMIT 1) AS event_date,
                        (SELECT GROUP_CONCAT(DISTINCT sup.shop_name SEPARATOR ', ')
                         FROM booking_suppliers bs2
                         LEFT JOIN suppliers sup ON bs2.supplier_id = sup.supplier_id
@@ -827,15 +828,31 @@ class BookingModel
 
         $params = [];
 
-        if ($statusFilter && $statusFilter !== 'all') {
+        if ($statusFilter === 'pending_payment') {
+            $sql .= " AND b.status IN ('pending_payment', 'payment_submitted')";
+        } elseif ($statusFilter && $statusFilter !== 'all') {
             $sql .= " AND b.status = :status";
             $params[':status'] = $statusFilter;
         }
 
         if ($search && trim($search) !== '') {
-            $sql .= " AND (b.id LIKE :search OR u.name LIKE :search2)";
+            $sql .= " AND (
+                b.id LIKE :search
+                OR u.name LIKE :search2
+                OR u.email LIKE :search3
+                OR u.phone LIKE :search4
+                OR EXISTS (
+                    SELECT 1
+                    FROM booking_suppliers bs3
+                    LEFT JOIN suppliers sup3 ON bs3.supplier_id = sup3.supplier_id
+                    WHERE bs3.booking_id = b.id AND sup3.shop_name LIKE :search5
+                )
+            )";
             $params[':search'] = '%' . $search . '%';
             $params[':search2'] = '%' . $search . '%';
+            $params[':search3'] = '%' . $search . '%';
+            $params[':search4'] = '%' . $search . '%';
+            $params[':search5'] = '%' . $search . '%';
         }
 
         $sql .= " ORDER BY b.created_at DESC LIMIT 100";
@@ -944,6 +961,7 @@ class BookingModel
                 COUNT(*) AS total,
                 SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS draft_count,
                 SUM(CASE WHEN status = 'pending_payment' THEN 1 ELSE 0 END) AS pending_payment_count,
+                SUM(CASE WHEN status = 'payment_submitted' THEN 1 ELSE 0 END) AS payment_submitted_count,
                 SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) AS paid_count,
                 SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_count,
                 SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
@@ -1519,10 +1537,11 @@ class BookingModel
             return false;
         }
 
-        $columns = ['booking_id', 'type', 'method', 'status', 'transaction_ref', 'escrow_status'];
-        $values = [':bid', "'deposit'", ':method', "'pending'", ':ref', "'held'"];
+        $columns = ['booking_id', 'amount', 'type', 'method', 'status', 'transaction_ref', 'escrow_status'];
+        $values = [':bid', ':amount', "'deposit'", ':method', "'pending'", ':ref', "'held'"];
         $bindings = [
             ':bid' => [$bookingId, PDO::PARAM_INT],
+            ':amount' => [number_format($paidAmount, 2, '.', ''), PDO::PARAM_STR],
             ':method' => [$method, PDO::PARAM_STR],
             ':ref' => [$reference, PDO::PARAM_STR],
         ];
@@ -1562,9 +1581,13 @@ class BookingModel
      */
     public function getDepositPayment(int $bookingId): array|false
     {
+        $selects = ['method', 'transaction_ref', 'status', 'created_at'];
+        foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at', 'payment_slip_path', 'verified_note'] as $column) {
+            $selects[] = $this->paymentHasColumn($column) ? $column : 'NULL AS ' . $column;
+        }
+
         $this->db->dbquery(
-            "SELECT bank_name, account_name, mobile_number, paid_amount, paid_at,
-                    transaction_ref, payment_slip_path, status, verified_note
+            "SELECT " . implode(', ', $selects) . "
              FROM payments
              WHERE booking_id = :bid AND type = 'deposit'
              ORDER BY id DESC LIMIT 1"
@@ -1592,12 +1615,19 @@ class BookingModel
         }
 
         // Update payment record to success
+        $setParts = ["status = 'success'", 'verified_by = :admin', 'verified_at = NOW()'];
+        if ($this->paymentHasColumn('verified_note')) {
+            $setParts[] = 'verified_note = :note';
+        }
+
         $this->db->dbquery(
-            "UPDATE payments SET status = 'success', verified_by = :admin, verified_at = NOW(), verified_note = :note
+            "UPDATE payments SET " . implode(', ', $setParts) . "
              WHERE booking_id = :bid AND type = 'deposit' LIMIT 1"
         );
         $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
-        $this->db->dbbind(':note', $note, PDO::PARAM_STR);
+        if ($this->paymentHasColumn('verified_note')) {
+            $this->db->dbbind(':note', $note, PDO::PARAM_STR);
+        }
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
 
         if (!$this->db->dbexecute()) {
@@ -1605,8 +1635,11 @@ class BookingModel
         }
 
         // Sync paid_amount on the booking using what the customer actually transferred
+        $paidAmountExpr = $this->paymentHasColumn('paid_amount')
+            ? 'COALESCE(paid_amount, amount, 0)'
+            : 'COALESCE(amount, 0)';
         $this->db->dbquery(
-            "SELECT COALESCE(paid_amount, amount, 0) AS deposit_paid
+            "SELECT {$paidAmountExpr} AS deposit_paid
              FROM payments WHERE booking_id = :bid AND type = 'deposit' AND status = 'success'
              ORDER BY id DESC LIMIT 1"
         );

@@ -748,10 +748,17 @@ CREATE TABLE `payments` (
   `escrow_status` enum('held','released','refunded') DEFAULT NULL,
   `type` enum('deposit','remaining','full','supplier_fee') DEFAULT NULL,
   `method` varchar(50) DEFAULT NULL,
+  `bank_name` varchar(100) DEFAULT NULL,
+  `account_name` varchar(150) DEFAULT NULL,
+  `mobile_number` varchar(20) DEFAULT NULL,
+  `paid_amount` decimal(10,2) DEFAULT NULL,
+  `paid_at` datetime DEFAULT NULL,
+  `payment_slip_path` varchar(255) DEFAULT NULL,
   `status` enum('pending','success','failed') DEFAULT NULL,
   `transaction_ref` varchar(255) DEFAULT NULL,
   `verified_by` bigint(20) DEFAULT NULL,
   `verified_at` timestamp NULL DEFAULT NULL,
+  `verified_note` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
