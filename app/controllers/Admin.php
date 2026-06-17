@@ -414,9 +414,18 @@ class Admin extends Controller
         }
 
         $serviceIds = $_POST['service_ids'] ?? [];
+        $selectedServiceCount = 0;
+        $addedServiceCount = 0;
         if (is_array($serviceIds)) {
             foreach ($serviceIds as $serviceId) {
-                $packageModel->addPackageService($packageId, (int)$serviceId, (int)($_POST['guest_count'] ?? 100));
+                $serviceId = (int)$serviceId;
+                if ($serviceId <= 0) {
+                    continue;
+                }
+                $selectedServiceCount++;
+                if ($packageModel->addPackageService($packageId, $serviceId, (int)($_POST['guest_count'] ?? 100))) {
+                    $addedServiceCount++;
+                }
             }
         }
 
@@ -427,7 +436,9 @@ class Admin extends Controller
             ]);
         }
 
-        $_SESSION['admin_flash'] = 'Package type created successfully.';
+        $_SESSION['admin_flash'] = $selectedServiceCount > 0
+            ? 'Package type created successfully. Added ' . $addedServiceCount . ' of ' . $selectedServiceCount . ' selected services.'
+            : 'Package type created successfully.';
         redirect('admin/packageDetail/' . $packageId);
     }
 
@@ -554,7 +565,7 @@ class Admin extends Controller
 
         $_SESSION['admin_flash'] = $added
             ? 'Service added to package and base price updated.'
-            : 'That service is already included, its category is already represented, or it cannot be added.';
+            : 'That service is already included or it cannot be added.';
         redirect('admin/packageDetail/' . (int)$packageId);
     }
 
