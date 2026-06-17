@@ -1,5 +1,7 @@
 <?php
 $pendingPayments = $pendingPayments ?? [];
+$activeStatus = $activeStatus ?? 'pending';
+$isPending = $activeStatus === 'pending';
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $dateTime = static function ($value, string $fallback = '-') {
@@ -27,10 +29,18 @@ foreach ($pendingPayments as $payment) {
     }
 }
 
+// Per-tab copy.
+$tabCopy = [
+    'pending'  => ['title' => 'Payment Verification', 'subtitle' => 'Review submitted booking deposits before confirming payment.', 'card' => 'Verification Queue', 'note' => $pendingCount . ' proofs waiting'],
+    'verified' => ['title' => 'Verified Deposits',    'subtitle' => 'Deposits you have confirmed as received.',                  'card' => 'Verified deposits', 'note' => $pendingCount . ' verified'],
+    'rejected' => ['title' => 'Rejected Deposits',    'subtitle' => 'Deposit proofs that were rejected and returned to the customer.', 'card' => 'Rejected deposits', 'note' => $pendingCount . ' rejected'],
+];
+$copy = $tabCopy[$activeStatus] ?? $tabCopy['pending'];
+
 $dashboardTitle = 'Payments';
-$dashboardCrumb = 'Verification';
+$dashboardCrumb = ucfirst($activeStatus);
 $dashboardContentClass = 'admin-payment-outlet';
-$dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTotal, $expectedTotal, $missingCount, $h, $money, $dateTime) {
+$dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTotal, $expectedTotal, $missingCount, $h, $money, $dateTime, $activeStatus, $isPending, $copy) {
 ?>
 <style>
   .admin-payment-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
@@ -92,7 +102,11 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
 
   .badge{display:inline-flex;align-items:center;border-radius:20px;padding:3px 9px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
   .badge-pending{background:var(--warn-bg);color:var(--warn-text)}
+  .badge-success{background:var(--success-bg);color:var(--success-text)}
   .badge-failed{background:var(--danger-bg);color:var(--danger-text)}
+  .filter{cursor:pointer}
+  .review-meta{font-size:11px;color:var(--muted);white-space:nowrap}
+  .review-note{font-size:11px;color:var(--body);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .payment-verification-form{display:flex;align-items:center;justify-content:flex-end;gap:6px}
   .note-input{width:150px;height:30px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--text);font-size:11px;font-family:inherit;font-weight:600;padding:0 9px;outline:none}
@@ -127,51 +141,51 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   <div class="page-header">
     <div>
       <p class="eyebrow">Payments</p>
-      <h1>Payment Verification</h1>
-      <p class="page-subtitle">Review submitted booking deposits before confirming payment.</p>
+      <h1><?= $h($copy['title']) ?></h1>
+      <p class="page-subtitle"><?= $h($copy['subtitle']) ?></p>
     </div>
-    <a href="<?= URLROOT ?>/admin/payments" class="btn-ghost">
-      <i data-lucide="history" class="h-3.5 w-3.5" aria-hidden="true"></i>
-      Payment history
-    </a>
   </div>
 
   <div class="toolbar">
     <div class="filters">
-      <span class="filter active">Pending review</span>
+      <a href="<?= URLROOT ?>/admin/paymentVerification?status=pending" class="filter <?= $activeStatus === 'pending' ? 'active' : '' ?>">Pending review</a>
+      <a href="<?= URLROOT ?>/admin/paymentVerification?status=verified" class="filter <?= $activeStatus === 'verified' ? 'active' : '' ?>">Verified</a>
+      <a href="<?= URLROOT ?>/admin/paymentVerification?status=rejected" class="filter <?= $activeStatus === 'rejected' ? 'active' : '' ?>">Rejected</a>
     </div>
     <div class="divider"></div>
-    <span class="queue-note"><?= (int)$pendingCount ?> proofs waiting</span>
+    <span class="queue-note"><?= $h($copy['note']) ?></span>
   </div>
 
   <div class="summary-row">
     <div class="stat">
-      <div class="stat-label">Awaiting Review</div>
-      <div class="stat-value warn"><?= (int)$pendingCount ?></div>
+      <div class="stat-label"><?= $isPending ? 'Awaiting Review' : ($activeStatus === 'verified' ? 'Verified' : 'Rejected') ?></div>
+      <div class="stat-value <?= $isPending ? 'warn' : '' ?>"><?= (int)$pendingCount ?></div>
       <div class="stat-sub">Customer deposit proofs</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Submitted Amount</div>
+      <div class="stat-label"><?= $isPending ? 'Submitted Amount' : 'Total Amount' ?></div>
       <div class="stat-value"><?= $money($pendingTotal) ?></div>
-      <div class="stat-sub">From pending records</div>
+      <div class="stat-sub"><?= $isPending ? 'From pending records' : 'Across these deposits' ?></div>
     </div>
     <div class="stat">
       <div class="stat-label">Expected Deposit</div>
       <div class="stat-value"><?= $money($expectedTotal) ?></div>
       <div class="stat-sub">10% booking deposits</div>
     </div>
+    <?php if ($isPending): ?>
     <div class="stat">
       <div class="stat-label">Needs Fix</div>
       <div class="stat-value <?= $missingCount > 0 ? 'danger' : '' ?>"><?= (int)$missingCount ?></div>
       <div class="stat-sub">Missing payment records</div>
     </div>
+    <?php endif; ?>
   </div>
 
   <div class="card">
     <div class="card-head">
       <div class="card-head-left">
         <div class="card-head-icon"><i data-lucide="badge-check" class="h-4 w-4" aria-hidden="true"></i></div>
-        <span class="card-head-title">Verification Queue</span>
+        <span class="card-head-title"><?= $h($copy['card']) ?></span>
       </div>
       <span class="card-count"><?= (int)$pendingCount ?> records</span>
     </div>
@@ -194,7 +208,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
         <tbody>
           <?php if (empty($pendingPayments)): ?>
             <tr>
-              <td colspan="9" class="empty-row">All payment proofs are reviewed.</td>
+              <td colspan="9" class="empty-row"><?= $isPending ? 'All payment proofs are reviewed.' : ($activeStatus === 'verified' ? 'No verified deposits yet.' : 'No rejected deposits.') ?></td>
             </tr>
           <?php endif; ?>
 
@@ -216,6 +230,9 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               $slipPath = trim((string)($payment['payment_slip_path'] ?? ''));
               $hasSlip = $slipPath !== '' && preg_match('/\.(jpe?g|png|webp|gif|pdf)$/i', $slipPath) === 1;
               $submittedAt = $dateTime($payment['payment_created_at'] ?? $payment['paid_at'] ?? null);
+              $paymentStatus = (string)($payment['payment_status'] ?? ($isPending ? 'pending' : ''));
+              $reviewedAt = $dateTime($payment['verified_at'] ?? null);
+              $reviewNote = trim((string)($payment['verified_note'] ?? ''));
             ?>
             <tr>
               <td>
@@ -248,14 +265,18 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               </td>
               <td><span class="date-text"><?= $h($submittedAt) ?></span></td>
               <td>
-                <?php if ($paymentId > 0): ?>
+                <?php if ($paymentStatus === 'success'): ?>
+                  <span class="badge badge-success">Verified</span>
+                <?php elseif ($paymentStatus === 'failed'): ?>
+                  <span class="badge badge-failed">Rejected</span>
+                <?php elseif ($paymentId > 0): ?>
                   <span class="badge badge-pending">Pending</span>
                 <?php else: ?>
                   <span class="badge badge-failed">Missing</span>
                 <?php endif; ?>
               </td>
               <td>
-                <?php if ($paymentId > 0): ?>
+                <?php if ($isPending && $paymentId > 0): ?>
                   <form class="payment-verification-form" data-booking-id="<?= $bookingId ?>">
                     <input type="text" name="note" class="note-input" placeholder="Note">
                     <div class="payment-actions">
@@ -263,8 +284,13 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
                       <button type="button" class="action-btn action-reject reject-payment-btn">Reject</button>
                     </div>
                   </form>
-                <?php else: ?>
+                <?php elseif ($isPending): ?>
                   <a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>" class="btn-ghost">Open</a>
+                <?php else: ?>
+                  <div class="review-meta"><?= $h($reviewedAt) ?></div>
+                  <?php if ($reviewNote !== ''): ?>
+                    <div class="review-note" title="<?= $h($reviewNote) ?>"><?= $h($reviewNote) ?></div>
+                  <?php endif; ?>
                 <?php endif; ?>
               </td>
             </tr>
@@ -274,7 +300,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
     </div>
 
     <div class="pagination">
-      <span class="page-info">Showing <?= empty($pendingPayments) ? '0' : '1' ?>-<?= count($pendingPayments) ?> of <?= count($pendingPayments) ?> pending proofs</span>
+      <span class="page-info">Showing <?= empty($pendingPayments) ? '0' : '1' ?>-<?= count($pendingPayments) ?> of <?= count($pendingPayments) ?> <?= $isPending ? 'pending proofs' : ($activeStatus === 'verified' ? 'verified deposits' : 'rejected deposits') ?></span>
       <div class="page-btns">
         <button class="page-btn" disabled><i data-lucide="chevron-left" class="h-3 w-3" aria-hidden="true"></i></button>
         <button class="page-btn active">1</button>

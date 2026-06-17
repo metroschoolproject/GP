@@ -666,37 +666,50 @@ class Admin extends Controller
     public function paymentVerification(): void
     {
         $bookingModel = $this->model('BookingModel');
-        $db = new Database();
-        $manualPaymentSelects = [];
-        foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at', 'payment_slip_path'] as $column) {
-            $db->dbquery("SHOW COLUMNS FROM payments LIKE :column");
-            $db->dbbind(':column', $column);
-            $manualPaymentSelects[] = $db->getsingledata()
-                ? 'p.' . $column
-                : 'NULL AS ' . $column;
+
+        $status = $_GET['status'] ?? 'pending';
+        if (!in_array($status, ['pending', 'verified', 'rejected'], true)) {
+            $status = 'pending';
         }
 
-        // Get bookings with status='payment_submitted'
-        $db->dbquery(
-            "SELECT b.*, u.name, u.email, u.phone,
-                    p.id as payment_id, p.amount as payment_amount, p.transaction_ref, p.method,
-                    " . implode(', ', $manualPaymentSelects) . ",
-                    p.created_at as payment_created_at,
-                    (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) as item_count
-             FROM bookings b
-             LEFT JOIN users u ON b.user_id = u.user_id
-             LEFT JOIN payments p ON b.id = p.booking_id AND p.type = 'deposit' AND p.status = 'pending'
-             WHERE b.status = 'payment_submitted'
-             ORDER BY b.created_at DESC"
-        );
-        $pendingPayments = $db->getmultidata();
-        foreach ($pendingPayments as &$payment) {
-            $payment['booking_ref'] = $bookingModel->generateBookingRef((int)$payment['id']);
+        if ($status === 'pending') {
+            $db = new Database();
+            $manualPaymentSelects = [];
+            foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at', 'payment_slip_path'] as $column) {
+                $db->dbquery("SHOW COLUMNS FROM payments LIKE :column");
+                $db->dbbind(':column', $column);
+                $manualPaymentSelects[] = $db->getsingledata()
+                    ? 'p.' . $column
+                    : 'NULL AS ' . $column;
+            }
+
+            // Get bookings with status='payment_submitted'
+            $db->dbquery(
+                "SELECT b.*, u.name, u.email, u.phone,
+                        p.id as payment_id, p.amount as payment_amount, p.transaction_ref, p.method,
+                        " . implode(', ', $manualPaymentSelects) . ",
+                        p.created_at as payment_created_at,
+                        (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) as item_count
+                 FROM bookings b
+                 LEFT JOIN users u ON b.user_id = u.user_id
+                 LEFT JOIN payments p ON b.id = p.booking_id AND p.type = 'deposit' AND p.status = 'pending'
+                 WHERE b.status = 'payment_submitted'
+                 ORDER BY b.created_at DESC"
+            );
+            $records = $db->getmultidata();
+        } else {
+            // Verified / rejected deposit history (payment-centric).
+            $records = $this->paymentModel->getDepositReviewQueue($status);
         }
-        unset($payment);
+
+        foreach ($records as &$record) {
+            $record['booking_ref'] = $bookingModel->generateBookingRef((int)$record['id']);
+        }
+        unset($record);
 
         $this->view('admin/paymentVerification', [
-            'pendingPayments' => $pendingPayments,
+            'pendingPayments' => $records,
+            'activeStatus' => $status,
         ]);
     }
 

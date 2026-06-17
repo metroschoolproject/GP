@@ -183,6 +183,48 @@ class Payment
         return $this->db->getmultidata();
     }
 
+    /**
+     * Reviewed customer deposit payments for the verification history tabs.
+     * $status: 'verified' (=> success) or 'rejected' (=> failed).
+     * Returns payment-centric rows joined to their booking + customer, using
+     * the same field aliases the verification view already reads.
+     */
+    public function getDepositReviewQueue($status = 'verified')
+    {
+        $payStatus = $status === 'rejected' ? 'failed' : 'success';
+
+        $this->db->dbquery(
+            "SELECT b.id,
+                    b.total_amount,
+                    b.status AS booking_status,
+                    u.name,
+                    u.email,
+                    u.phone,
+                    p.id AS payment_id,
+                    p.amount AS payment_amount,
+                    p.transaction_ref,
+                    p.method,
+                    p.bank_name,
+                    p.account_name,
+                    p.mobile_number,
+                    p.paid_amount,
+                    p.paid_at,
+                    p.payment_slip_path,
+                    p.status AS payment_status,
+                    p.verified_at,
+                    p.verified_note,
+                    p.created_at AS payment_created_at
+             FROM payments p
+             JOIN bookings b ON b.id = p.booking_id
+             LEFT JOIN users u ON u.user_id = b.user_id
+             WHERE p.type = 'deposit' AND p.status = :pstatus
+             ORDER BY p.verified_at DESC, p.id DESC"
+        );
+        $this->db->dbbind(':pstatus', $payStatus);
+
+        return $this->db->getmultidata();
+    }
+
     public function getSupplierFeePaymentById($paymentId)
     {
         $this->db->dbquery(
