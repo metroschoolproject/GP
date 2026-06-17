@@ -38,7 +38,7 @@ define('MAIL_PORT', 587);
 define('PAYMENT_GATEWAY_SANDBOX', true); // Switch to false only with production credentials
 define('PAYMENT_GATEWAY_SECRET', '72B8F060B3B923E580411200068A764610F61034AE729AB9EF20CAFF93AFA1B9'); // Sandbox/production Secret Key
 define('MERCHANT_ID', 'JT02'); // Sandbox/production Merchant ID
-define('PAYMENT_GATEWAY_CURRENCY', '104'); // ISO 4217 numeric code for MMK (Myanmar Kyat)
+define('PAYMENT_GATEWAY_CURRENCY', 'MMK'); // ISO 4217 alpha code for Myanmar Kyat
 define('PAYMENT_GATEWAY_CARD_CHANNEL', 'CC');
 define('PAYMENT_GATEWAY_MMQR_CHANNEL', ''); // Fill this when 2C2P gives you the MMQR sandbox channel code
 // 2C2P sandbox card: 4111111111111111, CVV 123, OTP 123456, any future expiry date.

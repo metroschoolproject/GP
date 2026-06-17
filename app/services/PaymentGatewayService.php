@@ -46,7 +46,7 @@ class PaymentGatewayService
             'merchantID' => $this->merchantId,
             'invoiceNo' => $invoiceNo,
             'description' => 'Golden Promise Payment #' . $paymentId,
-            'amount' => number_format($amount, 2, '.', ''),
+            'amount' => round($amount, 2),
             'currencyCode' => $currency,
             'frontendReturnUrl' => $returnUrl,
             'backendReturnUrl' => $backendReturnUrl ?: URLROOT . '/webhook/paymentGatewayCallback?payment_id=' . $paymentId,
@@ -72,6 +72,15 @@ class PaymentGatewayService
                 'invoice_no' => $invoiceNo,
                 'payment_token' => $response['paymentToken'] ?? '',
                 'payment_url' => $response['webPaymentUrl'],
+                'response' => $response,
+            ];
+        }
+
+        $respCode = (string)($response['respCode'] ?? '');
+        if ($respCode === '9007') {
+            return [
+                'success' => false,
+                'error' => 'Payment gateway rejected the setup request. Please check the 2C2P merchant ID, secret key, enabled currency, and payment channel in config.php.',
                 'response' => $response,
             ];
         }

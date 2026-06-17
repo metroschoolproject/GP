@@ -221,6 +221,7 @@ a { color: inherit; text-decoration: none; }
         <form id="payment-form">
           <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
           <input type="hidden" name="payment_method" id="payment_method" value="">
+          <input type="hidden" name="suppress_method_token" value="1">
 
           <!-- MM QR Details -->
           <div id="mm-qr-details" class="gp-method-details">

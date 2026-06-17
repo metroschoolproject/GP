@@ -1198,11 +1198,11 @@ class BookingModel
 
     /**
      * Check if a booking's payment has been verified.
-     * Returns true if status is payment_verified or later.
+     * Returns true if payment has been accepted or the booking is later in the flow.
      */
     public function isPaymentVerified(int $bookingId): bool
     {
-        $allowedStatuses = ['payment_verified', 'suppliers_responding', 'confirmed', 'pending_final_payment', 'finalized', 'completed'];
+        $allowedStatuses = ['paid', 'payment_verified', 'suppliers_responding', 'confirmed', 'pending_final_payment', 'finalized', 'completed'];
 
         $this->db->dbquery("SELECT status FROM bookings WHERE id = :id LIMIT 1");
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
@@ -1240,14 +1240,14 @@ class BookingModel
     }
 
     /**
-     * Admin verifies payment and moves booking to 'payment_verified'.
+     * Admin verifies payment and moves booking to paid.
      * Notifies all suppliers that booking is ready for their review.
      */
     public function adminVerifyPayment(int $bookingId, int $adminId, string $note = ''): bool
     {
         // Update booking status
         $this->db->dbquery(
-            "UPDATE bookings SET status = 'payment_verified', payment_status = 'partial' WHERE id = :id LIMIT 1"
+            "UPDATE bookings SET status = 'paid', payment_status = 'partial' WHERE id = :id LIMIT 1"
         );
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
 
@@ -1269,13 +1269,13 @@ class BookingModel
 
     /**
      * Confirm instant payment (Visa/Card or MM QR).
-     * Sets booking status directly to 'payment_verified' and creates success payment record.
+     * Sets booking status directly to paid and creates success payment record.
      */
     public function confirmInstantPayment(int $bookingId, string $method, string $transactionId, float $amount = 0): bool
     {
-        // Update booking to payment_verified
+        // Update booking to paid.
         $this->db->dbquery(
-            "UPDATE bookings SET status = 'payment_verified', payment_status = 'partial' WHERE id = :id LIMIT 1"
+            "UPDATE bookings SET status = 'paid', payment_status = 'partial' WHERE id = :id LIMIT 1"
         );
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
 

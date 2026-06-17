@@ -479,13 +479,15 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $message
                     </div>
                     <div class="review-action-stack">
                         <?php if ($status === 'pending'): ?>
-                            <form method="POST" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>">
+                            <form method="post" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>">
+                                <input type="hidden" name="suppress_method_token" value="1">
                                 <button class="admin-action-primary" type="submit">
                                     <i data-lucide="check" class="h-4 w-4"></i>
                                     <span>Approve supplier</span>
                                 </button>
                             </form>
-                            <form method="POST" action="<?= URLROOT ?>/admin/rejectSupplier/<?= (int)$supplier['supplier_id'] ?>">
+                            <form method="post" action="<?= URLROOT ?>/admin/rejectSupplier/<?= (int)$supplier['supplier_id'] ?>">
+                                <input type="hidden" name="suppress_method_token" value="1">
                                 <button class="admin-action-danger" type="submit">
                                     <i data-lucide="x" class="h-4 w-4"></i>
                                     <span>Reject</span>
