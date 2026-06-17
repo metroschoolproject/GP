@@ -871,6 +871,12 @@ class Booking extends Controller
         $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
 
+        $reviewModel = $this->model('ReviewModel');
+        $isCompleted = ($booking['status'] ?? '') === 'completed';
+        $canReview = $isCompleted && $reviewModel->canReview($this->userId, $bookingId);
+        $existingReview = $isCompleted ? $reviewModel->getByBooking($bookingId) : null;
+        $canEditReview = $existingReview ? $reviewModel->isWithinEditWindow((int)$existingReview['id']) : false;
+
         $this->view('booking/detail', [
             'booking' => $booking,
             'items' => $items,
@@ -880,6 +886,9 @@ class Booking extends Controller
             'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
             'depositPercent' => self::DEPOSIT_PERCENT,
+            'canReview' => $canReview,
+            'existingReview' => $existingReview,
+            'canEditReview' => $canEditReview,
         ]);
     }
 

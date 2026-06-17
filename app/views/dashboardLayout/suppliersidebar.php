@@ -18,6 +18,7 @@ $bookingsPathActive = strpos($currentPath, 'supplier/bookings') !== false
     || strpos($currentPath, 'supplier/bookingDetail') !== false;
 $notificationsPathActive = strpos($currentPath, 'supplier/notifications') !== false
     || strpos($currentPath, 'supplier/notification') !== false;
+$reviewsPathActive = strpos($currentPath, 'supplier/reviews') !== false;
 $servicesPathActive = strpos($currentPath, 'supplier/services') !== false
     || strpos($currentPath, 'supplier/serviceDetail') !== false
     || strpos($currentPath, 'supplier/serviceCalendar') !== false;
@@ -375,8 +376,8 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                 <i data-lucide="image" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">Portfolio</span>
             </a>
-            <a href="#" title="Reviews" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
-                <i data-lucide="star" class="h-4 w-4 text-app-header-muted"></i>
+            <a href="<?= URLROOT ?>/supplier/reviews" title="Reviews" class="<?= $reviewsPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm' ?>">
+                <i data-lucide="star" class="h-4 w-4 <?= $reviewsPathActive ? '' : 'text-app-header-muted' ?>"></i>
                 <span class="supplier-sidebar-label flex-1">Reviews</span>
             </a>
         </nav>

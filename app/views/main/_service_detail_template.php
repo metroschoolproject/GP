@@ -160,9 +160,16 @@ $pricingUnitLabel = function ($service) {
 };
 
 $ratingBuckets = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
-foreach ($reviews as $review) {
-    $bucket = max(1, min(5, (int)round((float)($review['rating'] ?? 0))));
-    $ratingBuckets[$bucket]++;
+$reviewDistribution = $service['review_distribution'] ?? null;
+if ($reviewDistribution) {
+    foreach ([5,4,3,2,1] as $star) {
+        $ratingBuckets[$star] = (int)($reviewDistribution[$star] ?? 0);
+    }
+} else {
+    foreach ($reviews as $review) {
+        $bucket = max(1, min(5, (int)round((float)($review['rating'] ?? 0))));
+        $ratingBuckets[$bucket]++;
+    }
 }
 if (array_sum($ratingBuckets) === 0 && $reviewCount > 0 && $rating > 0) {
     $ratingBuckets[max(1, min(5, (int)round($rating)))] = $reviewCount;
@@ -2645,32 +2652,76 @@ button, input, select, textarea { font-family: var(--font-sans); }
         </div>
       </div>
 
-      <div class="review-list">
-        <?php foreach (array_slice($reviews, 0, 3) as $idx => $review): ?>
-          <article class="review-item" data-aos="fade-up" data-aos-delay="<?= min($idx * 80, 200) ?>">
-            <div class="review-avatar"><i data-lucide="user" size="14"></i></div>
-            <div class="review-text">
-              <strong>Customer</strong>
-              <span><?= $h(date('Y.m.d', strtotime($review['created_at'] ?? 'now'))) ?></span>
-              <p><?= $h($review['comment'] ?: 'The service is good!') ?></p>
-            </div>
-            <strong class="review-score">&#9733; <?= number_format((float)($review['rating'] ?? 0), 1) ?></strong>
-          </article>
-        <?php endforeach; ?>
+      <div>
+        <div class="review-sort-tabs" style="display:flex;gap:6px;margin-bottom:14px;">
+          <button class="review-sort-btn active" data-sort="recent" onclick="sortReviews('recent',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--plum);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Most Recent</button>
+          <button class="review-sort-btn" data-sort="highest" onclick="sortReviews('highest',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);">Highest Rated</button>
+          <button class="review-sort-btn" data-sort="lowest" onclick="sortReviews('lowest',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);">Lowest Rated</button>
+        </div>
 
-        <?php if (empty($reviews)): ?>
-          <article class="review-item">
-            <div class="review-avatar"><i data-lucide="message-square" size="14"></i></div>
-            <div class="review-text">
-              <strong>No reviews yet</strong>
-              <span>Be the first to share your experience</span>
-              <p>This supplier is currently available for booking. Book now and leave a review after your event!</p>
-            </div>
-          </article>
+        <div class="review-list" id="reviewList">
+          <?php foreach ($reviews as $idx => $review): ?>
+            <?php $rName = $review['customer_name'] ?? 'Customer'; $rInitial = mb_strtoupper(mb_substr($rName, 0, 1)); ?>
+            <article class="review-item" data-aos="fade-up" data-aos-delay="<?= min($idx * 80, 200) ?>">
+              <div class="review-avatar" style="background:var(--plum);color:#fff;font-weight:700;display:grid;place-items:center;"><?= $h($rInitial) ?></div>
+              <div class="review-text">
+                <strong><?= $h($rName) ?></strong>
+                <span><?= $h(date('Y.m.d', strtotime($review['created_at'] ?? 'now'))) ?></span>
+                <p><?= $h($review['comment'] ?: 'The service is good!') ?></p>
+              </div>
+              <strong class="review-score">&#9733; <?= number_format((float)($review['rating'] ?? 0), 1) ?></strong>
+            </article>
+          <?php endforeach; ?>
+
+          <?php if (empty($reviews)): ?>
+            <article class="review-item">
+              <div class="review-avatar"><i data-lucide="message-square" size="14"></i></div>
+              <div class="review-text">
+                <strong>No reviews yet</strong>
+                <span>Be the first to share your experience</span>
+                <p>This supplier is currently available for booking. Book now and leave a review after your event!</p>
+              </div>
+            </article>
+          <?php endif; ?>
+        </div>
+
+        <?php if (count($reviews) >= 4): ?>
+        <div style="margin-top:14px;text-align:center;">
+          <button id="loadMoreReviews" data-service-id="<?= (int)($service['id'] ?? 0) ?>" data-offset="4" data-sort="recent" onclick="loadMoreReviews(this)" style="padding:7px 20px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--plum);">Load more reviews</button>
+        </div>
         <?php endif; ?>
       </div>
     </div>
   </section>
+  <script>
+  function sortReviews(sort, btn) {
+    const serviceId = document.getElementById('loadMoreReviews')?.dataset?.serviceId
+      || <?= (int)($service['id'] ?? 0) ?>;
+    document.querySelectorAll('.review-sort-btn').forEach(b => {
+      b.style.background = 'none'; b.style.color = 'var(--text2)';
+      b.classList.remove('active');
+    });
+    btn.style.background = 'var(--plum)'; btn.style.color = '#fff';
+    btn.classList.add('active');
+    fetch('<?= URLROOT ?>/review/service/' + serviceId + '?sort=' + sort + '&offset=0&limit=4')
+      .then(r => r.json()).then(d => {
+        document.getElementById('reviewList').innerHTML = d.html || '<article class="review-item"><div class="review-avatar"><i data-lucide="message-square" size="14"></i></div><div class="review-text"><strong>No reviews yet</strong></div></article>';
+        const lm = document.getElementById('loadMoreReviews');
+        if (lm) { lm.dataset.offset = '4'; lm.dataset.sort = sort; lm.style.display = d.has_more ? '' : 'none'; }
+      });
+  }
+  function loadMoreReviews(btn) {
+    const serviceId = btn.dataset.serviceId;
+    const offset = parseInt(btn.dataset.offset) || 4;
+    const sort = btn.dataset.sort || 'recent';
+    fetch('<?= URLROOT ?>/review/service/' + serviceId + '?sort=' + sort + '&offset=' + offset + '&limit=4')
+      .then(r => r.json()).then(d => {
+        document.getElementById('reviewList').insertAdjacentHTML('beforeend', d.html || '');
+        btn.dataset.offset = offset + (d.count || 0);
+        if (!d.has_more) btn.style.display = 'none';
+      });
+  }
+  </script>
 
   <!-- SECTION: RELATED SERVICES -->
   <?php if (!empty($related)): ?>
