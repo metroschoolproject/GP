@@ -104,7 +104,7 @@ $bankIcons = [
             </div>
         </div>
         <div class="form-field">
-            <label for="transaction_ref">Transaction ID / Reference Number <span class="req">*</span></label>
+            <label for="transaction_ref">Payment Reference <span class="req">*</span></label>
             <input type="text" id="transaction_ref" name="transaction_ref" placeholder="e.g. TXN-12345678" required>
         </div>
         <div class="form-grid">

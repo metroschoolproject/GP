@@ -276,7 +276,7 @@ $dashboardContent = function () use (
               <div class="kv-sub"><?= $h($dateTime($reviewPayment['paid_at'] ?? null)) ?></div>
             </div>
             <div class="kv">
-              <div class="kv-label">Transaction ID</div>
+              <div class="kv-label">Payment reference</div>
               <div class="kv-value"><?= $h($transactionRef ?: '-') ?></div>
             </div>
             <div class="kv">

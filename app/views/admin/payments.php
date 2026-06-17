@@ -243,7 +243,7 @@ $dashboardContent = function () use (
             <th>Amount</th>
             <th>Bank</th>
             <th>Sender Name</th>
-            <th>Transaction ID</th>
+            <th>Payment reference</th>
             <th>Slip</th>
             <th>Status</th>
             <th>Date</th>

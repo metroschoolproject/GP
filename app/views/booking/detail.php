@@ -209,7 +209,7 @@ a{color:inherit;text-decoration:none}
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Bank / Method</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h($depositPayment['bank_name']) ?></div></div>
       <?php endif; ?>
       <?php if (!empty($depositPayment['transaction_ref'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transaction ID</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Payment reference</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
       <?php endif; ?>
       <?php if (!empty($depositPayment['paid_amount'])): ?>
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
