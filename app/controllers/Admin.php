@@ -778,6 +778,16 @@ class Admin extends Controller
             return;
         }
 
+        // Mark the pending payment record as failed
+        $this->db->dbquery(
+            "UPDATE payments SET status = 'failed', verified_by = :admin, verified_at = NOW(), verified_note = :reason
+             WHERE booking_id = :bid AND type = 'deposit' AND status = 'pending' LIMIT 1"
+        );
+        $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $this->db->dbbind(':reason', $reason, PDO::PARAM_STR);
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
         // Notify customer
         $notificationModel = $this->model('Notification');
         $notificationModel->notifyBookingCustomer(

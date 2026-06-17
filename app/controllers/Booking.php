@@ -653,6 +653,7 @@ class Booking extends Controller
         $logs = $this->bookingModel->getStatusLogs($bookingId);
         $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $depositPayment = $this->bookingModel->getDepositPayment($bookingId);
 
         $reviewModel = $this->model('ReviewModel');
         $isCompleted = ($booking['status'] ?? '') === 'completed';
@@ -669,6 +670,7 @@ class Booking extends Controller
             'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
             'depositPercent' => self::DEPOSIT_PERCENT,
+            'depositPayment' => $depositPayment ?: [],
             'canReview' => $canReview,
             'existingReview' => $existingReview,
             'canEditReview' => $canEditReview,

@@ -11,10 +11,11 @@ $canReview = $canReview ?? false;
 $existingReview = $existingReview ?? null;
 $canEditReview = $canEditReview ?? false;
 
-$statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled'];
+$statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled'];
 $money = fn($v) => 'RM '.number_format((float)$v,0);
 $plain = function($v){ $t=(string)$v; for($i=0;$i<10;$i++){$d=html_entity_decode($t,ENT_QUOTES|ENT_HTML5,'UTF-8');if($d===$t)break;$t=$d;}return $t; };
 $h = fn($v)=>htmlspecialchars($plain($v),ENT_QUOTES,'UTF-8');
+$depositPayment = $depositPayment ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="en"><head>
@@ -190,6 +191,34 @@ a{color:inherit;text-decoration:none}
       <div style="font-weight:700;font-size:13px;color:#166534;margin-bottom:2px;">Supplier accepted — please complete payment</div>
       <div style="font-size:12px;color:#15803d;">Your booking request was accepted! Please pay your 10% deposit below to lock in your booking.</div>
     </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($currentStatus === 'payment_submitted'): ?>
+  <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:16px 20px;margin-bottom:4px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:<?= !empty($depositPayment) ? '12px' : '0' ?>">
+      <svg style="flex-shrink:0;margin-top:2px;color:#d97706" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:2px;">Payment proof submitted — under review</div>
+        <div style="font-size:12px;color:#b45309;">Our team is reviewing your transfer details. We'll notify you once verified (usually within a few hours). No action needed from you right now.</div>
+      </div>
+    </div>
+    <?php if (!empty($depositPayment)): ?>
+    <div style="border-top:1px solid #fcd34d;padding-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px 16px;">
+      <?php if (!empty($depositPayment['bank_name'])): ?>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Bank / Method</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h($depositPayment['bank_name']) ?></div></div>
+      <?php endif; ?>
+      <?php if (!empty($depositPayment['transaction_ref'])): ?>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transaction ID</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
+      <?php endif; ?>
+      <?php if (!empty($depositPayment['paid_amount'])): ?>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
+      <?php endif; ?>
+      <?php if (!empty($depositPayment['paid_at'])): ?>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transfer Date</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 

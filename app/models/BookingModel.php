@@ -1558,6 +1558,22 @@ class BookingModel
     }
 
     /**
+     * Get the most recent deposit payment record for a booking.
+     */
+    public function getDepositPayment(int $bookingId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT bank_name, account_name, mobile_number, paid_amount, paid_at,
+                    transaction_ref, payment_slip_path, status, verified_note
+             FROM payments
+             WHERE booking_id = :bid AND type = 'deposit'
+             ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
      * Admin verifies payment and moves booking to paid.
      * Notifies all suppliers that booking is ready for their review.
      */
@@ -1584,7 +1600,38 @@ class BookingModel
         $this->db->dbbind(':note', $note, PDO::PARAM_STR);
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
 
-        return $this->db->dbexecute();
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Sync paid_amount on the booking using what the customer actually transferred
+        $this->db->dbquery(
+            "SELECT COALESCE(paid_amount, amount, 0) AS deposit_paid
+             FROM payments WHERE booking_id = :bid AND type = 'deposit' AND status = 'success'
+             ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $payRow = $this->db->getsingledata();
+        $depositPaid = (float)($payRow['deposit_paid'] ?? 0);
+        if ($depositPaid > 0) {
+            $this->updatePaidAmount($bookingId, $depositPaid);
+        }
+
+        // For package bookings: auto-confirm all suppliers and advance to confirmed
+        $this->db->dbquery("SELECT booking_type FROM bookings WHERE id = :id LIMIT 1");
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        $bk = $this->db->getsingledata();
+        if (($bk['booking_type'] ?? '') === 'package') {
+            $this->autoConfirmAllSuppliers($bookingId);
+            $confirmedStatus = $this->normalizeBookingStatus('confirmed');
+            $this->db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");
+            $this->db->dbbind(':status', $confirmedStatus);
+            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+            $this->generateVouchers($bookingId);
+        }
+
+        return true;
     }
 
     /**

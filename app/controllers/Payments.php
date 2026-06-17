@@ -6,11 +6,13 @@ class Payments extends Controller
 
     private $paymentModel;
     private $supplierProfileModel;
+    private $notificationModel;
 
     public function __construct()
     {
         $this->paymentModel = $this->model('Payment');
         $this->supplierProfileModel = $this->model('SupplierProfile');
+        $this->notificationModel = $this->model('Notification');
     }
 
     public function supplierFee()
@@ -91,6 +93,14 @@ class Payments extends Controller
                 $this->view('payments/supplier_fee', $data);
                 return;
             }
+
+            $this->notificationModel->notifyAdmins(
+                'New Supplier Fee Submitted',
+                ($supplier['shop_name'] ?? 'A supplier') . ' has submitted a supplier membership fee payment. Please review.',
+                'payment',
+                'supplier',
+                (int)$supplier['supplier_id']
+            );
 
             $_SESSION['payment_flash'] = 'Your payment proof has been submitted. Admin will verify and unlock your dashboard shortly.';
             redirect('supplier/dashboard');
