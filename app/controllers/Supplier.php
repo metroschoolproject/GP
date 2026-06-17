@@ -377,6 +377,23 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(Booking::class, 'supplierRespond', func_get_args());
     }
 
+    public function reviews()
+    {
+        $supplier = $this->authorizedSupplierForServicePage();
+        $supplierId = (int)$supplier['supplier_id'];
+
+        require_once APPROOT . '/models/ReviewModel.php';
+        $reviewModel = new ReviewModel();
+        $stats   = $reviewModel->getSupplierStats($supplierId);
+        $reviews = $reviewModel->getBySupplier($supplierId, 20, 0);
+
+        $this->view('supplier/reviews', [
+            'supplier' => $supplier,
+            'stats'    => $stats,
+            'reviews'  => $reviews,
+        ]);
+    }
+
     private function saveSupplierDocumentOrRespond($saved, array &$data, $field, $documentType, $label, $isAjax)
     {
         $fileUrl = $this->uploadService->storeSupplierDocument(
