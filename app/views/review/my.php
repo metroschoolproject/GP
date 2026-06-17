@@ -89,11 +89,6 @@ a{color:inherit;text-decoration:none}
             <div class="gp-pending-card">
               <div class="gp-pending-info">
                 <div class="gp-pending-ref">Booking #<?= (int)$p['booking_id'] ?></div>
-                <div class="gp-pending-date">
-                  <?php if (!empty($p['event_date'])): ?>
-                    Event: <?= $h(date('d M Y', strtotime($p['event_date']))) ?>
-                  <?php endif; ?>
-                </div>
               </div>
               <a class="gp-btn-sm primary" href="<?= URLROOT ?>/booking/detail/<?= (int)$p['booking_id'] ?>">Write a Review</a>
             </div>
@@ -120,9 +115,6 @@ a{color:inherit;text-decoration:none}
                 <div class="gp-review-comment" id="reviewComment_<?= (int)$r['id'] ?>"><?= $h($r['comment'] ?? '') ?></div>
                 <div class="gp-review-meta">
                   Booking #<?= (int)$r['booking_id'] ?>
-                  <?php if (!empty($r['event_date'])): ?> · Event: <?= $h(date('d M Y', strtotime($r['event_date']))) ?><?php endif; ?>
-                  · Submitted <?= $h(date('d M Y', strtotime($r['created_at'] ?? 'now'))) ?>
-                  <?php if (!empty($r['updated_at'])): ?> · Edited <?= $h(date('d M Y', strtotime($r['updated_at']))) ?><?php endif; ?>
                 </div>
               </div>
               <div class="gp-review-actions">

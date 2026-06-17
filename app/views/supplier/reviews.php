@@ -80,7 +80,6 @@ $dashboardContent = function () use ($supplier, $stats, $reviews, $total, $avg, 
             $rName    = $h((string)($r['customer_name'] ?? 'Customer'));
             $rInitial = mb_strtoupper(mb_substr($r['customer_name'] ?? 'C', 0, 1));
             $rRating  = (int)($r['rating'] ?? 0);
-            $rDate    = date('d M Y', strtotime($r['created_at'] ?? 'now'));
             $rService = $h((string)($r['service_name'] ?? ''));
           ?>
           <article style="border:1px solid #e7e5e4;border-radius:1rem;padding:14px;">
@@ -95,7 +94,6 @@ $dashboardContent = function () use ($supplier, $stats, $reviews, $total, $avg, 
                   <p style="font-size:11px;color:#673049;font-weight:600;margin-top:2px;"><?= $rService ?></p>
                 <?php endif; ?>
                 <p style="font-size:13px;color:#57534e;margin-top:6px;line-height:1.6;"><?= $h((string)($r['comment'] ?? '')) ?></p>
-                <p style="font-size:10px;color:#a8a29e;margin-top:6px;"><?= $h($rDate) ?></p>
               </div>
             </div>
           </article>

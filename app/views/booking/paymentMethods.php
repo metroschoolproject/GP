@@ -256,15 +256,9 @@ a{color:inherit;text-decoration:none}
             <label for="transaction_ref">Transaction ID / Reference Number <span class="req">*</span></label>
             <input type="text" id="transaction_ref" name="transaction_ref" placeholder="e.g. TXN-12345678" required>
           </div>
-          <div class="gp-field-row">
-            <div class="gp-field">
-              <label for="paid_amount">Amount Paid (MMK) <span class="req">*</span></label>
-              <input type="number" id="paid_amount" name="paid_amount" placeholder="<?= (int)$deposit ?>" min="1" step="1" required>
-            </div>
-            <div class="gp-field">
-              <label for="paid_at">Date &amp; Time of Transfer <span class="req">*</span></label>
-              <input type="datetime-local" id="paid_at" name="paid_at" required>
-            </div>
+          <div class="gp-field">
+            <label for="paid_amount">Amount Paid (MMK) <span class="req">*</span></label>
+            <input type="number" id="paid_amount" name="paid_amount" placeholder="<?= (int)$deposit ?>" min="1" step="1" required>
           </div>
           <div class="gp-field">
             <label for="remark">Remark <span class="opt">(optional)</span></label>

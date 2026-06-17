@@ -53,6 +53,20 @@ class Booking extends Controller
         return htmlspecialchars($this->plain($v), ENT_QUOTES, 'UTF-8');
     }
 
+    private function notifyAdminsOfDepositSubmission(int $bookingId, float $amount = 0): void
+    {
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $amountText = $amount > 0 ? ' for ' . $this->money($amount) : '';
+
+        $this->notificationModel->notifyAdmins(
+            'Deposit Proof Submitted',
+            'A customer submitted deposit payment proof' . $amountText . ' for booking ' . $bookingRef . '. Please verify it.',
+            'payment',
+            'booking',
+            $bookingId
+        );
+    }
+
     /* ─── Step 1: Confirm Booking (GET + POST) ──────────────────── */
 
     public function create(): void
@@ -330,7 +344,7 @@ class Booking extends Controller
         $accountName  = trim($_POST['account_name'] ?? '');
         $transactionRef = trim($_POST['transaction_ref'] ?? '');
         $paidAmount   = (float)str_replace(',', '', $_POST['paid_amount'] ?? '0');
-        $paidAt       = trim($_POST['paid_at'] ?? '');
+        $paidAt       = date('Y-m-d H:i:s'); // auto-set to now (field removed from UI)
         $mobileNumber = trim($_POST['mobile_number'] ?? '');
 
         $allowed = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / MasterCard'];
@@ -341,7 +355,6 @@ class Booking extends Controller
             || $accountName === ''
             || $transactionRef === ''
             || $paidAmount <= 0
-            || $paidAt === ''
             || $mobileNumber === ''
         ) {
             $_SESSION['booking_payment_flash'] = 'Please fill in all required fields.';
@@ -389,6 +402,8 @@ class Booking extends Controller
             'Your bank transfer details have been received. Our team will verify and confirm shortly.',
             'payment'
         );
+
+        $this->notifyAdminsOfDepositSubmission($bookingId, $paidAmount);
 
         $_SESSION['booking_payment_flash'] = 'Your payment proof has been submitted. We will verify and confirm your booking shortly.';
         redirect('booking/detail/' . $bookingId);
@@ -1256,6 +1271,8 @@ class Booking extends Controller
             'Your payment slip has been received. Admin will verify within 2 hours.',
             'payment'
         );
+
+        $this->notifyAdminsOfDepositSubmission($bookingId);
 
         $this->jsonResponse([
             'success' => true,

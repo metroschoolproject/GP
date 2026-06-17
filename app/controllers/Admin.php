@@ -104,6 +104,10 @@ class Admin extends Controller
             redirect('admin/supplier/' . $referenceId);
         }
 
+        if ($referenceType === 'booking' && $referenceId > 0) {
+            redirect('admin/bookingDetail/' . $referenceId);
+        }
+
         if ($referenceType === 'payment' && $referenceId > 0) {
             redirect('admin/payments?payment=' . $referenceId);
         }
@@ -656,12 +660,21 @@ class Admin extends Controller
     public function paymentVerification(): void
     {
         $bookingModel = $this->model('BookingModel');
+        $db = new Database();
+        $manualPaymentSelects = [];
+        foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at'] as $column) {
+            $db->dbquery("SHOW COLUMNS FROM payments LIKE :column");
+            $db->dbbind(':column', $column);
+            $manualPaymentSelects[] = $db->getsingledata()
+                ? 'p.' . $column
+                : 'NULL AS ' . $column;
+        }
 
         // Get bookings with status='payment_submitted'
-        $this->db->dbquery(
+        $db->dbquery(
             "SELECT b.*, u.name, u.email, u.phone,
                     p.id as payment_id, p.payment_slip_path, p.transaction_ref, p.method,
-                    p.bank_name, p.account_name, p.mobile_number, p.paid_amount, p.paid_at,
+                    " . implode(', ', $manualPaymentSelects) . ",
                     p.created_at as payment_created_at,
                     (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) as item_count
              FROM bookings b
@@ -670,7 +683,7 @@ class Admin extends Controller
              WHERE b.status = 'payment_submitted'
              ORDER BY b.created_at DESC"
         );
-        $pendingPayments = $this->db->getmultidata();
+        $pendingPayments = $db->getmultidata();
 
         $this->view('admin/paymentVerification', [
             'pendingPayments' => $pendingPayments,

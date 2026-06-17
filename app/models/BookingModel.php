@@ -9,6 +9,7 @@ class BookingModel
     private ?bool $bookingSourceColumn = null;
     private ?bool $bookingSupplierDeadlineColumn = null;
     private ?array $bookingStatusValues = null;
+    private array $paymentColumnCache = [];
 
     public function __construct()
     {
@@ -170,6 +171,19 @@ class BookingModel
         $this->bookingSupplierDeadlineColumn = (bool)$this->db->getsingledata();
 
         return $this->bookingSupplierDeadlineColumn;
+    }
+
+    private function paymentHasColumn(string $column): bool
+    {
+        if (array_key_exists($column, $this->paymentColumnCache)) {
+            return $this->paymentColumnCache[$column];
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM payments LIKE :column");
+        $this->db->dbbind(':column', $column);
+        $this->paymentColumnCache[$column] = (bool)$this->db->getsingledata();
+
+        return $this->paymentColumnCache[$column];
     }
 
     private function bookingStatusValues(): array
@@ -1505,22 +1519,40 @@ class BookingModel
             return false;
         }
 
+        $columns = ['booking_id', 'type', 'method', 'status', 'transaction_ref', 'escrow_status'];
+        $values = [':bid', "'deposit'", ':method', "'pending'", ':ref', "'held'"];
+        $bindings = [
+            ':bid' => [$bookingId, PDO::PARAM_INT],
+            ':method' => [$method, PDO::PARAM_STR],
+            ':ref' => [$reference, PDO::PARAM_STR],
+        ];
+
+        $optionalColumns = [
+            'bank_name' => [$method, PDO::PARAM_STR],
+            'account_name' => [$accountName !== '' ? $accountName : null, $accountName !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+            'mobile_number' => [$mobileNumber !== '' ? $mobileNumber : null, $mobileNumber !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+            'paid_amount' => [$paidAmount > 0 ? round($paidAmount, 2) : null, $paidAmount > 0 ? PDO::PARAM_STR : PDO::PARAM_NULL],
+            'paid_at' => [$paidAt !== '' ? $paidAt : null, $paidAt !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+            'payment_slip_path' => [$slipPath !== '' ? $slipPath : null, $slipPath !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+        ];
+
+        foreach ($optionalColumns as $column => [$value, $type]) {
+            if (!$this->paymentHasColumn($column)) {
+                continue;
+            }
+            $param = ':' . $column;
+            $columns[] = $column;
+            $values[] = $param;
+            $bindings[$param] = [$value, $type];
+        }
+
         $this->db->dbquery(
-            "INSERT INTO payments
-                (booking_id, type, method, bank_name, account_name, mobile_number, paid_amount, paid_at,
-                 status, payment_slip_path, transaction_ref, escrow_status)
-             VALUES
-                (:bid, 'deposit', :method, :method, :account_name, :mobile_number, :paid_amount, :paid_at,
-                 'pending', :slip, :ref, 'held')"
+            'INSERT INTO payments (' . implode(', ', $columns) . ')
+             VALUES (' . implode(', ', $values) . ')'
         );
-        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':method', $method, PDO::PARAM_STR);
-        $this->db->dbbind(':account_name', $accountName !== '' ? $accountName : null);
-        $this->db->dbbind(':mobile_number', $mobileNumber !== '' ? $mobileNumber : null);
-        $this->db->dbbind(':paid_amount', $paidAmount > 0 ? round($paidAmount, 2) : null);
-        $this->db->dbbind(':paid_at', $paidAt !== '' ? $paidAt : null);
-        $this->db->dbbind(':slip', $slipPath !== '' ? $slipPath : null);
-        $this->db->dbbind(':ref', $reference, PDO::PARAM_STR);
+        foreach ($bindings as $param => [$value, $type]) {
+            $this->db->dbbind($param, $value, $type);
+        }
 
         return $this->db->dbexecute();
     }

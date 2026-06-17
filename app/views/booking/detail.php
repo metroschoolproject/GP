@@ -329,7 +329,6 @@ a{color:inherit;text-decoration:none}
         <div class="gp-review-existing" id="reviewDisplay">
           <div class="gp-review-stars"><?= str_repeat('★', (int)($existingReview['rating'] ?? 0)) . str_repeat('☆', 5 - (int)($existingReview['rating'] ?? 0)) ?></div>
           <div class="gp-review-body" id="reviewCommentDisplay"><?= $h((string)($existingReview['comment'] ?? '')) ?></div>
-          <div class="gp-review-meta">Submitted <?= $h(date('d M Y', strtotime($existingReview['created_at'] ?? 'now'))) ?><?= $existingReview['updated_at'] ? ' · Edited ' . $h(date('d M Y', strtotime($existingReview['updated_at']))) : '' ?></div>
           <div class="gp-review-actions">
             <?php if ($canEditReview): ?>
               <button class="gp-btn-sm" type="button" onclick="toggleEditReview()">Edit</button>
