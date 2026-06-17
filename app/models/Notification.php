@@ -26,6 +26,15 @@ class Notification
         return true;
     }
 
+    public function notifyUser($userId, $title, $message, $type, $referenceType, $referenceId)
+    {
+        if (!$userId) {
+            return false;
+        }
+
+        return $this->create((int)$userId, $title, $message, $type, $referenceType, $referenceId);
+    }
+
     public function getUnreadCount($userId = null)
     {
         $query = 'SELECT COUNT(*) AS total FROM notifications WHERE is_read = 0';

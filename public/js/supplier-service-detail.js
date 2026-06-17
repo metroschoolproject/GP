@@ -1,10 +1,36 @@
 const serviceDetailConfig = window.serviceDetailConfig || { urls: {}, servicePayloadBase: {} };
 const urls = serviceDetailConfig.urls;
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[char]));
+}
+
 function showMessage(elementId, text, success = false) {
   const element = document.getElementById(elementId);
   if (!element) return;
-  element.textContent = text || '';
+
+  if (elementId === 'publishMessage' && text) {
+    element.innerHTML = `
+      <div class="sd-publish-toast-icon"><i class="ti ${success ? 'ti-send' : 'ti-alert-triangle'}"></i></div>
+      <div class="sd-publish-toast-copy">
+        <strong>${success ? 'Publish request sent' : 'Request needs attention'}</strong>
+        <p>${escapeHtml(text)}</p>
+      </div>
+      <button type="button" class="sd-publish-toast-close" aria-label="Dismiss notification">&times;</button>
+    `;
+    element.querySelector('.sd-publish-toast-close')?.addEventListener('click', () => {
+      showMessage(elementId, '');
+    }, { once: true });
+  } else {
+    element.textContent = text || '';
+  }
+
   element.style.display = text ? 'flex' : 'none';
   element.classList.toggle('success', Boolean(success));
   element.classList.toggle('error', !success);

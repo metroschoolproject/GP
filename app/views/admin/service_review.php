@@ -44,7 +44,6 @@ $dashboardContent = function () use ($service, $message, $readiness, $media, $ro
   .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
   .btn-ghost{background:var(--surface);color:var(--primary)}
   .btn:disabled{opacity:.55;cursor:not-allowed}
-  .flash{border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:12px 14px;margin-bottom:16px;color:var(--body);font-weight:700}
   .review-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
   .card{border:1px solid var(--border);border-radius:.75rem;background:var(--surface);box-shadow:0 1px 2px rgba(28,25,23,.04);overflow:hidden}
   .card-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding:14px 18px}
@@ -60,7 +59,17 @@ $dashboardContent = function () use ($service, $message, $readiness, $media, $ro
   .badge{display:inline-flex;border-radius:999px;padding:4px 10px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
   .badge-ready{background:var(--success-bg);color:var(--success)}
   .badge-warn{background:var(--warn-bg);color:var(--warn)}
-  .approved-callout{border:1px solid #a8d5bc;border-radius:.75rem;background:var(--success-bg);color:var(--success);padding:12px 14px;margin-bottom:16px;font-weight:800}
+  .review-toast-stack{position:fixed;right:24px;bottom:24px;z-index:90;display:grid;gap:10px;width:min(410px,calc(100vw - 32px))}
+  .review-toast{display:flex;align-items:flex-start;gap:12px;border-radius:14px;padding:15px 16px;background:#fff;box-shadow:0 22px 70px rgba(44,31,40,.18),0 2px 10px rgba(44,31,40,.08);animation:reviewToastIn .22s ease}
+  .review-toast.success{border:1px solid #a8d5bc;background:#f4fbf7;color:var(--success)}
+  .review-toast.info{border:1px solid var(--border);background:#fff;color:var(--body)}
+  .review-toast-icon{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;border-radius:10px;background:rgba(255,255,255,.72);font-weight:900}
+  .review-toast-copy{min-width:0;flex:1}
+  .review-toast-copy strong{display:block;margin-bottom:3px;color:var(--text);font-size:13px;font-weight:900}
+  .review-toast-copy p{margin:0;color:var(--body);font-size:12px;font-weight:700;line-height:1.5}
+  .review-toast-close{display:grid;width:24px;height:24px;flex:0 0 24px;place-items:center;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:20px;line-height:1;cursor:pointer}
+  .review-toast-close:hover{background:rgba(44,31,40,.08);color:var(--text)}
+  @keyframes reviewToastIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
   .missing{display:grid;gap:8px;margin:0;padding:0;list-style:none}
   .missing li{border:1px solid var(--border);border-radius:.65rem;background:var(--soft);padding:9px 11px;color:var(--body);font-weight:700}
   .thumbs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
@@ -69,6 +78,7 @@ $dashboardContent = function () use ($service, $message, $readiness, $media, $ro
   .table th,.table td{padding:9px;border-bottom:1px solid var(--border);text-align:left;font-size:12px}
   .table th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}
   @media(max-width:1000px){.review-grid{grid-template-columns:1fr}.thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:640px){.review-toast-stack{right:16px;bottom:16px}}
 </style>
 
 <div class="service-review-page">
@@ -86,12 +96,29 @@ $dashboardContent = function () use ($service, $message, $readiness, $media, $ro
     </div>
   </div>
 
-  <?php if ($isApproved): ?>
-    <div class="approved-callout">This service is already approved and live for customers.</div>
-  <?php endif; ?>
-
-  <?php if ($message !== ''): ?>
-    <div class="flash"><?= $h($message) ?></div>
+  <?php if ($isApproved || $message !== ''): ?>
+    <div class="review-toast-stack" role="status" aria-live="polite">
+      <?php if ($isApproved): ?>
+        <div class="review-toast success">
+          <div class="review-toast-icon">✓</div>
+          <div class="review-toast-copy">
+            <strong>Already approved</strong>
+            <p>This service is already approved and live for customers.</p>
+          </div>
+          <button type="button" class="review-toast-close" aria-label="Dismiss notification">&times;</button>
+        </div>
+      <?php endif; ?>
+      <?php if ($message !== ''): ?>
+        <div class="review-toast info">
+          <div class="review-toast-icon">i</div>
+          <div class="review-toast-copy">
+            <strong>Review update</strong>
+            <p><?= $h($message) ?></p>
+          </div>
+          <button type="button" class="review-toast-close" aria-label="Dismiss notification">&times;</button>
+        </div>
+      <?php endif; ?>
+    </div>
   <?php endif; ?>
 
   <div class="review-grid">
@@ -182,6 +209,11 @@ $dashboardContent = function () use ($service, $message, $readiness, $media, $ro
     </div>
   </div>
 </div>
+<script>
+  document.querySelectorAll('.review-toast-close').forEach(button => {
+    button.addEventListener('click', () => button.closest('.review-toast')?.remove());
+  });
+</script>
 <?php
 };
 ?>

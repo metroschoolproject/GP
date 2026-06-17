@@ -16,6 +16,8 @@ $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/')
 $calendarPathActive = strpos($currentPath, 'supplier/calendar') !== false || strpos($currentPath, 'supplier/serviceCalendar') !== false;
 $bookingsPathActive = strpos($currentPath, 'supplier/bookings') !== false
     || strpos($currentPath, 'supplier/bookingDetail') !== false;
+$notificationsPathActive = strpos($currentPath, 'supplier/notifications') !== false
+    || strpos($currentPath, 'supplier/notification') !== false;
 $servicesPathActive = strpos($currentPath, 'supplier/services') !== false
     || strpos($currentPath, 'supplier/serviceDetail') !== false
     || strpos($currentPath, 'supplier/serviceCalendar') !== false;
@@ -23,7 +25,7 @@ $servicesPackageTabActive = strpos($currentPath, 'supplier/services') !== false 
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, services...';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'supplier',
-    'reviewUrl' => URLROOT . '/supplier/dashboard',
+    'reviewUrl' => URLROOT . '/supplier/notifications',
     'defaultUrl' => URLROOT . '/supplier/dashboard',
     'referenceUrls' => [
         'supplier' => URLROOT . '/supplier/dashboard?supplier=',
@@ -336,6 +338,10 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                 <?php if ($pendingBookings > 0): ?>
                     <span class="supplier-sidebar-badge rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-warning"><?= $pendingBookings ?></span>
                 <?php endif; ?>
+            </a>
+            <a href="<?= URLROOT ?>/supplier/notifications" title="Notifications" class="<?= $notificationsPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm' ?>">
+                <i data-lucide="bell" class="h-4 w-4 <?= $notificationsPathActive ? '' : 'text-app-header-muted' ?>"></i>
+                <span class="supplier-sidebar-label flex-1">Notifications</span>
             </a>
             <div class="supplier-sidebar-group" data-open="<?= $servicesPathActive ? 'true' : 'false' ?>">
                 <button type="button"

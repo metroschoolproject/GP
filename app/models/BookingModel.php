@@ -1030,7 +1030,6 @@ class BookingModel
         $this->db->dbbind(':samount', number_format($amount - $platformFee, 2, '.', ''));
         $this->db->dbbind(':type', $type);
         $this->db->dbbind(':method', $method);
-        $this->db->dbbind(':status', 'pending');
 
         if (!$this->db->dbexecute()) {
             return false;
@@ -1049,6 +1048,18 @@ class BookingModel
              WHERE id = :id AND status = 'pending'"
         );
         $this->db->dbbind(':ref', $transactionRef);
+        $this->db->dbbind(':id', $paymentId, PDO::PARAM_INT);
+
+        return $this->db->dbexecute();
+    }
+
+    public function updatePaymentStatus(int $paymentId, string $status): bool
+    {
+        $this->db->dbquery(
+            "UPDATE payments SET status = :status, verified_at = NOW()
+             WHERE id = :id AND status = 'pending'"
+        );
+        $this->db->dbbind(':status', $status, PDO::PARAM_STR);
         $this->db->dbbind(':id', $paymentId, PDO::PARAM_INT);
 
         return $this->db->dbexecute();

@@ -123,7 +123,24 @@ async function apiRequest(url, payload = null) {
   try {
     data = responseText ? JSON.parse(responseText) : {};
   } catch (error) {
-    throw new Error('Server returned an invalid response. Please check the PHP error shown on the page or server log.');
+    const jsonStart = responseText.indexOf('{');
+    const jsonEnd = responseText.lastIndexOf('}');
+    if (jsonStart >= 0 && jsonEnd > jsonStart) {
+      try {
+        data = JSON.parse(responseText.slice(jsonStart, jsonEnd + 1));
+      } catch (nestedError) {
+        data = null;
+      }
+    }
+  }
+
+  if (!data) {
+    const detail = responseText
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 220);
+    throw new Error(detail || 'Server returned an invalid response. Please check the PHP error shown on the page or server log.');
   }
 
   if (!response.ok || data.status === 'error') {
@@ -884,9 +901,10 @@ async function updateService() {
   const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
   const minLeadDays = minLeadDaysValue === '' ? 0 : Math.max(0, Math.min(365, parseInt(minLeadDaysValue) || 0));
   const payload = {
-    ...item,
     name: document.getElementById('esName').value.trim()||item.name,
     desc: document.getElementById('esDesc').value.trim(),
+    category: item.category || 'Others',
+    status: item.status || 'inactive',
     ...priceRange,
     img: document.getElementById('esImgData').value,
     capacity: item.category === 'Venue' ? venueRoomMaxCapacity('es') : (parseInt(document.getElementById('esCapacity')?.value || item.capacity || '1') || 1),

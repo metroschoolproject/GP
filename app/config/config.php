@@ -34,15 +34,14 @@ define('MAIL_ENCRYPTION', 'tls');
 define('MAIL_PORT', 587);
 
 // Payment Gateway (2C2P - MM QR & Card Payments)
-// Sign up at: https://www.2c2p.com/
-// API Docs: https://developer.2c2p.com/
-define('PAYMENT_GATEWAY_SANDBOX', true); // Switch to false for production
-define('PAYMENT_GATEWAY_API_KEY', 'your_2c2p_api_key'); // From 2C2P dashboard
-define('PAYMENT_GATEWAY_SECRET', 'your_2c2p_api_secret'); // From 2C2P dashboard
-define('MERCHANT_ID', 'your_2c2p_merchant_id'); // From 2C2P dashboard
+// Sandbox docs: https://developer.2c2p.com/docs/sandbox-setup
+define('PAYMENT_GATEWAY_SANDBOX', true); // Switch to false only with production credentials
+define('PAYMENT_GATEWAY_SECRET', '72B8F060B3B923E580411200068A764610F61034AE729AB9EF20CAFF93AFA1B9'); // Sandbox/production Secret Key
+define('MERCHANT_ID', 'JT02'); // Sandbox/production Merchant ID
+define('PAYMENT_GATEWAY_CURRENCY', 'MMK');
+define('PAYMENT_GATEWAY_CARD_CHANNEL', 'CC');
+define('PAYMENT_GATEWAY_MMQR_CHANNEL', ''); // Fill this when 2C2P gives you the MMQR sandbox channel code
+// 2C2P sandbox card: 4111111111111111, CVV 123, OTP 123456, any future expiry date.
 
 // Cron Security
 define('CRON_TOKEN', 'your-secret-cron-token');
-
-
-?>

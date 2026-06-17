@@ -81,7 +81,7 @@
   </div>
 
   <!-- ═══════════════ PUBLISH MESSAGE ═══════════════ -->
-  <div id="publishMessage" class="sd-message error" style="display:none"></div>
+  <div id="publishMessage" class="sd-message sd-publish-toast error" style="display:none" role="status" aria-live="polite"></div>
 
   <!-- ═══════════════ ATTENTION BANNER ═══════════════ -->
   <div class="sd-attention <?= $isReady ? 'is-ready' : '' ?> sd-anim-card-1">

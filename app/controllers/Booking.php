@@ -10,6 +10,7 @@ class Booking extends Controller
     private CartModel $cartModel;
     private SupplierProfile $supplierProfileModel;
     private Notification $notificationModel;
+    private PaymentGatewayService $paymentGateway;
     private ?int $userId;
     private const DEPOSIT_PERCENT = 10;
 
@@ -19,6 +20,8 @@ class Booking extends Controller
         $this->cartModel = $this->model('CartModel');
         $this->supplierProfileModel = $this->model('SupplierProfile');
         $this->notificationModel = $this->model('Notification');
+        require_once APPROOT . '/services/PaymentGatewayService.php';
+        $this->paymentGateway = new PaymentGatewayService();
         $this->userId = $_SESSION['session_uid'] ?? null;
     }
 
@@ -34,7 +37,7 @@ class Booking extends Controller
 
     private function money($v): string
     {
-        return 'RM ' . number_format((float)$v, 0);
+        return number_format((float)$v, 0) . ' MMK';
     }
 
     private function plain($v): string
@@ -371,6 +374,122 @@ class Booking extends Controller
                 'error' => 'Payment processing error. Your card has not been charged. Please try again.',
             ], 500);
         }
+    }
+
+    public function startGatewayPayment(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $method = trim($_POST['payment_method'] ?? '');
+
+        if ($bookingId <= 0 || !in_array($method, ['mm-qr', 'visa-card'], true)) {
+            $this->jsonResponse(['error' => 'Please choose a valid payment method.'], 400);
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        if (!in_array($booking['status'] ?? '', ['draft', 'pending_payment'], true)) {
+            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
+        }
+
+        if (($booking['status'] ?? '') === 'draft') {
+            $this->bookingModel->updateStatus($bookingId, 'pending_payment');
+            $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
+        }
+
+        $deposit = (float)$booking['total_amount'] * (self::DEPOSIT_PERCENT / 100);
+        $gatewayMethod = $method === 'mm-qr' ? 'mm_qr' : 'credit_card';
+        $localMethod = $method === 'mm-qr' ? '2c2p_mmqr' : '2c2p_card';
+
+        $paymentId = $this->bookingModel->createPayment($bookingId, $deposit, 'deposit', $localMethod);
+        if (!$paymentId) {
+            $this->jsonResponse(['error' => 'Could not create payment record. Please try again.'], 500);
+        }
+
+        $returnUrl = URLROOT . '/booking/gatewayPaymentReturn/' . $bookingId . '?payment_id=' . $paymentId;
+        $backendReturnUrl = URLROOT . '/booking/gatewayPaymentReturn/' . $bookingId . '?payment_id=' . $paymentId;
+        $result = $this->paymentGateway->createPaymentIntent($paymentId, $deposit, $gatewayMethod, $returnUrl, $backendReturnUrl);
+
+        if (!($result['success'] ?? false)) {
+            $this->bookingModel->updatePaymentStatus($paymentId, 'failed');
+            $this->jsonResponse([
+                'error' => $result['error'] ?? '2C2P sandbox could not start payment.',
+            ], 502);
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'redirect' => $result['payment_url'],
+        ]);
+    }
+
+    public function gatewayPaymentReturn(int $bookingId): void
+    {
+        $this->ensureAuthenticated();
+
+        $paymentId = (int)($_GET['payment_id'] ?? 0);
+        $payload = trim($_POST['payload'] ?? $_GET['payload'] ?? '');
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId || $paymentId <= 0) {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        if ($payload === '') {
+            $_SESSION['booking_payment_flash'] = 'Payment is pending. If you completed sandbox payment, wait a moment and refresh.';
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
+
+        $gatewayResponse = $this->paymentGateway->decodeGatewayPayload($payload);
+        if (!$gatewayResponse) {
+            $_SESSION['booking_payment_flash'] = 'Could not verify payment gateway response.';
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
+
+        if (($gatewayResponse['respCode'] ?? '') !== '0000') {
+            $this->bookingModel->updatePaymentStatus($paymentId, 'failed');
+            $_SESSION['booking_payment_flash'] = 'Payment failed: ' . ($gatewayResponse['respDesc'] ?? 'Please try again.');
+            redirect('booking/pay/' . $bookingId);
+            return;
+        }
+
+        $transactionRef = $gatewayResponse['tranRef']
+            ?? $gatewayResponse['transactionID']
+            ?? $gatewayResponse['approvalCode']
+            ?? ($gatewayResponse['invoiceNo'] ?? '');
+
+        $deposit = (float)$booking['total_amount'] * (self::DEPOSIT_PERCENT / 100);
+        $this->bookingModel->confirmPayment($paymentId, (string)$transactionRef);
+        $this->bookingModel->updatePaidAmount($bookingId, $deposit);
+        $this->bookingModel->updateStatus($bookingId, 'payment_verified', 'partial');
+        $this->bookingModel->logStatusChange($bookingId, $booking['status'] ?? 'pending_payment', 'payment_verified', $this->userId);
+        $this->bookingModel->generateVouchers($bookingId);
+
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Payment Confirmed',
+            'Your deposit of ' . $this->money($deposit) . ' has been confirmed.',
+            'payment'
+        );
+        $this->notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'Deposit Paid',
+            'The customer has paid the deposit. Please review and confirm the booking.',
+            'booking'
+        );
+
+        redirect('booking/success/' . $bookingId);
     }
 
     /**

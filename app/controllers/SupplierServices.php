@@ -179,21 +179,21 @@ class SupplierServices extends SupplierControllerSupport
 
     public function serviceUpdate($serviceId = null)
     {
-        $supplier = $this->authorizedSupplierForServiceManagement();
-        $serviceId = (int)$serviceId;
-
-        if ($serviceId <= 0) {
-            $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
-        }
-
-        $data = $this->servicePayload((int)$supplier['supplier_id'], 'service');
-        $existingService = $this->serviceManagementModel->getServiceDetail((int)$supplier['supplier_id'], $serviceId);
-
-        if (($existingService['status'] ?? 'inactive') === 'inactive' && ($data['status'] ?? 'inactive') === 'active') {
-            $data['status'] = 'inactive';
-        }
-
         try {
+            $supplier = $this->authorizedSupplierForServiceManagement();
+            $serviceId = (int)$serviceId;
+
+            if ($serviceId <= 0) {
+                $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
+            }
+
+            $data = $this->servicePayload((int)$supplier['supplier_id'], 'service');
+            $existingService = $this->serviceManagementModel->getServiceDetail((int)$supplier['supplier_id'], $serviceId);
+
+            if (($existingService['status'] ?? 'inactive') === 'inactive' && ($data['status'] ?? 'inactive') === 'active') {
+                $data['status'] = 'inactive';
+            }
+
             $service = $this->serviceManagementModel->updateService((int)$supplier['supplier_id'], $serviceId, $data);
         } catch (Throwable $e) {
             $this->jsonResponse(['status' => 'error', 'message' => 'Could not update service. ' . $e->getMessage()], 500);
@@ -280,6 +280,14 @@ class SupplierServices extends SupplierControllerSupport
                 'service',
                 $serviceId
             );
+            $this->notificationModel->notifyUser(
+                $this->currentUserId(),
+                'Publish request sent',
+                'Your request to publish "' . $serviceName . '" was sent to admin.',
+                'approval',
+                'service',
+                $serviceId
+            );
         }
 
         $this->jsonResponse([
@@ -328,6 +336,14 @@ class SupplierServices extends SupplierControllerSupport
         $this->notificationModel->notifyAdmins(
             'Service publish request',
             $supplierName . ' requested publishing for "' . $serviceName . '".',
+            'approval',
+            'service',
+            $serviceId
+        );
+        $this->notificationModel->notifyUser(
+            $this->currentUserId(),
+            'Publish request sent',
+            'Your request to publish "' . $serviceName . '" was sent to admin.',
             'approval',
             'service',
             $serviceId

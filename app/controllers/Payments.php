@@ -75,13 +75,15 @@ class Payments extends Controller
             }
 
             $returnUrl = URLROOT . '/payments/supplierFeeCallback?payment_id=' . $paymentId;
+            $backendReturnUrl = URLROOT . '/webhook/paymentGatewayCallback?payment_id=' . $paymentId;
             $gatewayMethod = $this->mapPaymentMethod($method);
 
             $result = $this->paymentGateway->createPaymentIntent(
                 $paymentId,
                 self::SUPPLIER_MEMBERSHIP_FEE,
                 $gatewayMethod,
-                $returnUrl
+                $returnUrl,
+                $backendReturnUrl
             );
 
             if (!($result['success'] ?? false)) {
@@ -92,8 +94,8 @@ class Payments extends Controller
             }
 
             $_SESSION['payment_' . $paymentId] = [
-                'intent_id' => $result['intent_id'] ?? '',
-                'transaction_id' => $result['transaction_id'] ?? '',
+                'invoice_no' => $result['invoice_no'] ?? '',
+                'payment_token' => $result['payment_token'] ?? '',
             ];
 
             if (!empty($result['payment_url'] ?? false)) {
@@ -111,7 +113,7 @@ class Payments extends Controller
     public function supplierFeeCallback()
     {
         $paymentId = (int)($_GET['payment_id'] ?? 0);
-        $status = trim($_GET['status'] ?? 'pending');
+        $payload = trim($_POST['payload'] ?? $_GET['payload'] ?? '');
 
         if (!$paymentId) {
             redirect('supplier/dashboard');
@@ -130,8 +132,26 @@ class Payments extends Controller
             redirect('supplier/dashboard');
         }
 
-        if ($status === 'success') {
-            $this->paymentModel->updateSupplierFeeStatus($paymentId, 'success');
+        if ($payload === '') {
+            $_SESSION['payment_flash'] = 'Payment is still pending. If you completed sandbox payment, refresh the dashboard after the gateway callback arrives.';
+            redirect('supplier/dashboard');
+        }
+
+        $gatewayResponse = $this->paymentGateway->decodeGatewayPayload($payload);
+
+        if (!$gatewayResponse) {
+            $_SESSION['payment_flash'] = 'We could not verify the gateway response. Please try again.';
+            redirect('supplier/dashboard');
+        }
+
+        $isSuccess = ($gatewayResponse['respCode'] ?? '') === '0000';
+        $transactionRef = $gatewayResponse['tranRef']
+            ?? $gatewayResponse['transactionID']
+            ?? $gatewayResponse['approvalCode']
+            ?? ($gatewayResponse['invoiceNo'] ?? '');
+
+        if ($isSuccess) {
+            $this->paymentModel->updateSupplierFeeGatewaySuccess($paymentId, (string)$transactionRef);
             $this->supplierProfileModel->updatePaymentReview(
                 (int)$payment['supplier_id'],
                 'paid',
@@ -142,7 +162,7 @@ class Payments extends Controller
             $_SESSION['payment_flash'] = 'Payment successful! Your dashboard is now unlocked.';
         } else {
             $this->paymentModel->updateSupplierFeeStatus($paymentId, 'failed');
-            $_SESSION['payment_flash'] = 'Payment was not completed. Please try again.';
+            $_SESSION['payment_flash'] = 'Payment was not completed: ' . ($gatewayResponse['respDesc'] ?? 'Please try again.');
         }
 
         redirect('supplier/dashboard');

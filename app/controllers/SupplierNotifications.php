@@ -52,6 +52,10 @@ class SupplierNotifications extends SupplierControllerSupport
             redirect('supplier/bookingDetail/' . $referenceId);
         }
 
+        if ($referenceType === 'service' && $referenceId > 0) {
+            redirect('supplier/serviceDetail/' . $referenceId);
+        }
+
         redirect('supplier/dashboard');
     }
 }

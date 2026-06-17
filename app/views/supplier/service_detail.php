@@ -23,7 +23,7 @@ $h = function ($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 };
 $money = function ($value) {
-    return 'RM ' . number_format((float)$value, 0);
+    return number_format((float)$value, 0) . ' MMK';
 };
 $durationLabel = function ($minutes) {
     $minutes = max(0, (int)$minutes);

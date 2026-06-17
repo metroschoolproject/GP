@@ -225,35 +225,17 @@ a { color: inherit; text-decoration: none; }
           <!-- MM QR Details -->
           <div id="mm-qr-details" class="gp-method-details">
             <div class="gp-alert" style="background: #dbeafe; border-color: #93c5fd; color: #1e40af;">
-              Your payment will be processed instantly. Please do not close this page during processing.
+              You will be redirected to 2C2P sandbox to complete the <?= $money($deposit) ?> deposit.
             </div>
-            <div style="text-align: center; padding: 20px; background: var(--surface); border-radius: var(--r-md); margin-bottom: 12px;">
-              <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">Scan QR Code to Pay:</div>
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://mmqr.goldenpromise.com/pay" alt="MM QR Code" style="width: 160px; height: 160px;">
-            </div>
-            <button type="button" class="gp-pay-btn" onclick="processMMQRPayment(<?= (int)($booking['id'] ?? 0) ?>, <?= $deposit ?>)">
-              Open MM QR Paymet
+            <button type="button" class="gp-pay-btn" data-pay-gateway>
+              Open MM QR Payment
             </button>
           </div>
 
           <!-- Visa/Card Details -->
           <div id="visa-card-details" class="gp-method-details">
             <div class="gp-alert" style="background: #dbeafe; border-color: #93c5fd; color: #1e40af;">
-              Your card will be charged immediately for <?= $money($deposit) ?>
-            </div>
-            <div class="gp-field">
-              <label>Card Number</label>
-              <input type="text" name="card_number" placeholder="1234 5678 9012 3456" required>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-              <div class="gp-field">
-                <label>Expiry Date</label>
-                <input type="text" name="card_expiry" placeholder="MM/YY" required>
-              </div>
-              <div class="gp-field">
-                <label>CVV</label>
-                <input type="text" name="card_cvv" placeholder="123" required>
-              </div>
+              You will enter card details on the secure 2C2P sandbox page. This demo charges no real money.
             </div>
             <button type="submit" class="gp-pay-btn">Pay <?= $money($deposit) ?> Now</button>
           </div>
@@ -309,68 +291,56 @@ methodBtns.forEach(btn => {
 
 paymentForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+  startGatewayPayment();
+});
 
+document.querySelectorAll('[data-pay-gateway]').forEach((button) => {
+  button.addEventListener('click', startGatewayPayment);
+});
+
+async function startGatewayPayment() {
   const method = paymentMethodInput.value;
   if (!method) {
     showToast('Please select a payment method', 'error');
     return;
   }
 
-  const bookingId = document.querySelector('input[name="booking_id"]').value;
   const formData = new FormData(paymentForm);
+  const buttons = document.querySelectorAll('.gp-pay-btn');
 
-  const endpoint = '<?= URLROOT ?>/booking/confirmInstantPayment';
+  buttons.forEach((button) => {
+    button.disabled = true;
+    button.dataset.originalText = button.textContent;
+    button.innerHTML = '<span class="gp-spinner"></span> Connecting to 2C2P...';
+  });
 
   try {
-    const resp = await fetch(endpoint, { method: 'POST', body: formData });
+    const resp = await fetch('<?= URLROOT ?>/booking/startGatewayPayment', {
+      method: 'POST',
+      body: formData,
+      headers: { 'Accept': 'application/json' }
+    });
     const data = await resp.json();
 
     if (!resp.ok || data.error) {
-      showToast(data.error || 'Payment failed', 'error');
+      showToast(data.error || 'Payment gateway could not start.', 'error');
       return;
     }
 
-    showToast(data.message, 'success');
-    setTimeout(() => {
-      window.location.href = '<?= URLROOT ?>/booking/detail/' + bookingId;
-    }, 1500);
+    if (data.redirect) {
+      window.location.href = data.redirect;
+      return;
+    }
+
+    showToast('Payment gateway did not return a redirect URL.', 'error');
   } catch (err) {
     showToast('Connection error. Please try again.', 'error');
+  } finally {
+    buttons.forEach((button) => {
+      button.disabled = false;
+      button.textContent = button.dataset.originalText || button.textContent;
+    });
   }
-});
-
-function processMMQRPayment(bookingId, amount) {
-  // For now, mock the MM QR payment
-  // In production, this would redirect to MM QR gateway
-  showToast('Opening MM QR payment gateway...', 'success');
-  setTimeout(() => {
-    // Mock success - in real implementation, wait for callback from MM QR
-    handleInstantPaymentSuccess(bookingId, 'MM QR', 'TEST_TXN_' + Date.now(), amount);
-  }, 2000);
-}
-
-function handleInstantPaymentSuccess(bookingId, method, transactionId, amount) {
-  const formData = new FormData();
-  formData.append('booking_id', bookingId);
-  formData.append('method', method);
-  formData.append('transaction_id', transactionId);
-  formData.append('amount', amount);
-
-  fetch('<?= URLROOT ?>/booking/confirmInstantPayment', {
-    method: 'POST',
-    body: formData
-  }).then(r => r.json()).then(data => {
-    if (data.success) {
-      showToast(data.message, 'success');
-      setTimeout(() => {
-        window.location.href = '<?= URLROOT ?>/booking/detail/' + bookingId;
-      }, 1500);
-    } else {
-      showToast(data.error || 'Payment confirmation failed', 'error');
-    }
-  }).catch(err => {
-    showToast('Connection error. Please try again.', 'error');
-  });
 }
 </script>
 </body>

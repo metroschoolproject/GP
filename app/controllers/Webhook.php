@@ -19,22 +19,24 @@ class Webhook extends Controller
     {
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
+        $payload = trim((string)($data['payload'] ?? $_POST['payload'] ?? ''));
 
-        if (!$data) {
+        if ($payload === '') {
             http_response_code(400);
             exit('Invalid payload');
         }
 
-        $signature = $_SERVER['HTTP_X_2C2P_SIGNATURE'] ?? '';
-
-        if (!$this->paymentGateway->validateWebhookSignature($input, $signature)) {
+        $gatewayResponse = $this->paymentGateway->decodeGatewayPayload($payload);
+        if (!$gatewayResponse) {
             http_response_code(401);
             exit('Unauthorized');
         }
 
-        $paymentId = (int)str_replace('BOOKING_', '', $data['reference_id'] ?? '');
-        $status = strtolower($data['status'] ?? 'pending');
-        $transactionRef = $data['transaction_id'] ?? '';
+        $paymentId = (int)($_GET['payment_id'] ?? 0);
+        $transactionRef = $gatewayResponse['tranRef']
+            ?? $gatewayResponse['transactionID']
+            ?? $gatewayResponse['approvalCode']
+            ?? ($gatewayResponse['invoiceNo'] ?? '');
 
         if (!$paymentId) {
             http_response_code(400);
@@ -48,15 +50,13 @@ class Webhook extends Controller
             exit('Payment not found');
         }
 
-        $paymentStatus = match($status) {
-            'success', 'completed' => 'success',
-            'failed' => 'failed',
-            'cancelled' => 'failed',
-            'pending' => 'pending',
-            default => 'pending',
-        };
+        $paymentStatus = ($gatewayResponse['respCode'] ?? '') === '0000' ? 'success' : 'failed';
 
-        $this->paymentModel->updateSupplierFeeStatus($paymentId, $paymentStatus);
+        if ($paymentStatus === 'success') {
+            $this->paymentModel->updateSupplierFeeGatewaySuccess($paymentId, (string)$transactionRef);
+        } else {
+            $this->paymentModel->updateSupplierFeeStatus($paymentId, 'failed');
+        }
 
         if ($paymentStatus === 'success' && (int)($payment['supplier_id'] ?? 0) > 0) {
             $supplier = $this->supplierProfileModel->getById((int)$payment['supplier_id']);

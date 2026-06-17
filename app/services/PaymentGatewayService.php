@@ -1,5 +1,8 @@
 <?php
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
 /**
  * PaymentGatewayService
  * Abstraction layer for payment gateway integrations (2C2P, MPAY, etc.)
@@ -7,67 +10,86 @@
  */
 class PaymentGatewayService
 {
-    private $apiKey;
     private $apiSecret;
     private $merchantId;
-    private $apiUrl;
+    private $baseUrl;
     private $isSandbox;
 
     public function __construct()
     {
         $this->isSandbox = defined('PAYMENT_GATEWAY_SANDBOX') ? PAYMENT_GATEWAY_SANDBOX : true;
-        $this->apiKey = defined('PAYMENT_GATEWAY_API_KEY') ? PAYMENT_GATEWAY_API_KEY : '';
         $this->apiSecret = defined('PAYMENT_GATEWAY_SECRET') ? PAYMENT_GATEWAY_SECRET : '';
         $this->merchantId = defined('MERCHANT_ID') ? MERCHANT_ID : '';
-
-        if ($this->isSandbox) {
-            $this->apiUrl = 'https://sandbox.2c2p.com/api'; // Example sandbox
-        } else {
-            $this->apiUrl = 'https://api.2c2p.com/api'; // Example live
-        }
+        $this->baseUrl = $this->isSandbox
+            ? 'https://sandbox-pgw.2c2p.com'
+            : 'https://pgw.2c2p.com';
     }
 
     /**
-     * Create payment intent for instant methods (MM QR, Card, etc.)
-     * Returns array with intent_id, qr_code_url, or error
+     * Create a 2C2P hosted payment page token.
+     * Returns webPaymentUrl for redirect checkout when successful.
      */
-    public function createPaymentIntent(int $bookingId, float $amount, string $method, string $returnUrl): array
+    public function createPaymentIntent(int $paymentId, float $amount, string $method, string $returnUrl, ?string $backendReturnUrl = null): array
     {
+        if ($this->merchantId === '' || $this->apiSecret === '') {
+            return [
+                'success' => false,
+                'error' => '2C2P sandbox credentials are missing. Check MERCHANT_ID and PAYMENT_GATEWAY_SECRET.',
+            ];
+        }
+
+        $invoiceNo = $this->buildInvoiceNo($paymentId);
+        $currency = defined('PAYMENT_GATEWAY_CURRENCY') ? PAYMENT_GATEWAY_CURRENCY : 'MMK';
+        $paymentChannels = $this->paymentChannelsForMethod($method);
+
         $payload = [
-            'api_key' => $this->apiKey,
-            'merchant_id' => $this->merchantId,
-            'reference_id' => 'BOOKING_' . $bookingId,
-            'amount' => (int)round($amount), // Gateway expects integer amount
-            'currency' => 'MMK',
-            'method' => $method, // 'credit_card', 'mm_qr', etc.
-            'description' => 'Golden Promise Booking #' . $bookingId,
-            'return_url' => $returnUrl,
-            'cancel_url' => $returnUrl,
-            'notification_url' => url('/webhook/paymentGatewayCallback'),
+            'merchantID' => $this->merchantId,
+            'invoiceNo' => $invoiceNo,
+            'description' => 'Golden Promise Payment #' . $paymentId,
+            'amount' => round($amount, 2),
+            'currencyCode' => $currency,
+            'frontendReturnUrl' => $returnUrl,
+            'backendReturnUrl' => $backendReturnUrl ?: URLROOT . '/webhook/paymentGatewayCallback?payment_id=' . $paymentId,
+            'nonceStr' => bin2hex(random_bytes(16)),
         ];
 
-        $response = $this->httpPost('/payment/intent', $payload);
+        if (!empty($paymentChannels)) {
+            $payload['paymentChannel'] = $paymentChannels;
+        }
 
-        if (!$response || !isset($response['success'])) {
+        $response = $this->postJwt('/payment/4.3/paymentToken', $payload);
+
+        if (!$response) {
             return [
                 'success' => false,
                 'error' => 'Payment gateway unavailable. Please try again later.',
             ];
         }
 
-        if ($response['success']) {
+        if (($response['respCode'] ?? '') === '0000' && !empty($response['webPaymentUrl'])) {
             return [
                 'success' => true,
-                'intent_id' => $response['intent_id'] ?? '',
-                'qr_code_url' => $response['qr_code'] ?? '',
-                'transaction_id' => $response['transaction_id'] ?? '',
+                'invoice_no' => $invoiceNo,
+                'payment_token' => $response['paymentToken'] ?? '',
+                'payment_url' => $response['webPaymentUrl'],
+                'response' => $response,
             ];
         }
 
         return [
             'success' => false,
-            'error' => $response['message'] ?? 'Payment gateway error',
+            'error' => $response['respDesc'] ?? 'Payment gateway error',
+            'response' => $response,
         ];
+    }
+
+    public function decodeGatewayPayload(string $jwt): array|false
+    {
+        try {
+            return (array)JWT::decode($jwt, new Key($this->apiSecret, 'HS256'));
+        } catch (Throwable $e) {
+            return false;
+        }
     }
 
     /**
@@ -77,11 +99,11 @@ class PaymentGatewayService
     public function verifyTransaction(string $transactionId): array
     {
         $payload = [
-            'api_key' => $this->apiKey,
-            'transaction_id' => $transactionId,
+            'merchantID' => $this->merchantId,
+            'transactionID' => $transactionId,
         ];
 
-        $response = $this->httpPost('/payment/verify', $payload);
+        $response = $this->postJwt('/payment/4.3/paymentInquiry', $payload);
 
         if (!$response) {
             return ['success' => false, 'error' => 'Gateway verification failed'];
@@ -103,7 +125,6 @@ class PaymentGatewayService
     public function requestRefund(string $originalTransactionId, float $refundAmount): array
     {
         $payload = [
-            'api_key' => $this->apiKey,
             'original_transaction_id' => $originalTransactionId,
             'refund_amount' => (int)round($refundAmount),
             'reason' => 'Booking cancellation',
@@ -130,7 +151,6 @@ class PaymentGatewayService
     public function createSupplierPayout(int $supplierId, float $amount, string $bankAccount, string $bankCode): array
     {
         $payload = [
-            'api_key' => $this->apiKey,
             'supplier_id' => (string)$supplierId,
             'amount' => (int)round($amount),
             'currency' => 'MMK',
@@ -160,7 +180,7 @@ class PaymentGatewayService
     public function getTransactionHistory(int $limit = 100): array
     {
         $payload = [
-            'api_key' => $this->apiKey,
+            'merchantID' => $this->merchantId,
             'limit' => $limit,
         ];
 
@@ -176,22 +196,37 @@ class PaymentGatewayService
     /**
      * Make HTTP POST request to gateway API.
      */
+    private function postJwt(string $endpoint, array $data): array|false
+    {
+        $jwt = JWT::encode($data, $this->apiSecret, 'HS256');
+        $response = $this->httpPost($endpoint, ['payload' => $jwt]);
+
+        if (!$response) {
+            return false;
+        }
+
+        if (empty($response['payload'])) {
+            return $response;
+        }
+
+        return $this->decodeGatewayPayload((string)$response['payload']);
+    }
+
     private function httpPost(string $endpoint, array $data): array|false
     {
         if (!function_exists('curl_init')) {
             return false;
         }
 
-        $ch = curl_init($this->apiUrl . $endpoint);
+        $ch = curl_init($this->baseUrl . $endpoint);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json',
-            'Authorization: Bearer ' . $this->apiSecret,
         ]);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, !$this->isSandbox); // Skip SSL in sandbox
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -222,5 +257,21 @@ class PaymentGatewayService
     {
         // MMK typically doesn't use decimals, convert to integer
         return (int)round($amount);
+    }
+
+    private function buildInvoiceNo(int $paymentId): string
+    {
+        return 'GP' . str_pad((string)$paymentId, 10, '0', STR_PAD_LEFT);
+    }
+
+    private function paymentChannelsForMethod(string $method): array
+    {
+        if ($method === 'mm_qr') {
+            $channel = defined('PAYMENT_GATEWAY_MMQR_CHANNEL') ? trim((string)PAYMENT_GATEWAY_MMQR_CHANNEL) : '';
+            return $channel !== '' ? [$channel] : [];
+        }
+
+        $channel = defined('PAYMENT_GATEWAY_CARD_CHANNEL') ? trim((string)PAYMENT_GATEWAY_CARD_CHANNEL) : 'CC';
+        return $channel !== '' ? [$channel] : [];
     }
 }
