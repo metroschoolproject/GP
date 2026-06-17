@@ -96,6 +96,15 @@ abstract class SupplierControllerSupport extends Controller
             }
             unset($room);
         }
+        if (!empty($payload['decoration_styles']) && is_array($payload['decoration_styles'])) {
+            foreach ($payload['decoration_styles'] as &$style) {
+                if (!is_array($style)) {
+                    continue;
+                }
+                $style['photo_url'] = $this->uploadService->storeServiceImageFromPayload($style['photo_url'] ?? '', $supplierId, 'decoration-style');
+            }
+            unset($style);
+        }
 
         if (isset($payload['categories']) && is_array($payload['categories'])) {
             $payload['categories'] = array_values(array_filter(array_map(function ($category) {

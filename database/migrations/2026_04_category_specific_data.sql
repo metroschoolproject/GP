@@ -16,11 +16,15 @@ CREATE TABLE IF NOT EXISTS decoration_styles (
   service_id bigint(20) NOT NULL,
   name varchar(150) NOT NULL,
   price decimal(12,2) NOT NULL DEFAULT '0.00',
+  photo_url mediumtext DEFAULT NULL,
   sort_order int(11) NOT NULL DEFAULT '0',
   created_at timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (id),
   KEY idx_decoration_styles_service (service_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+ALTER TABLE decoration_styles
+ADD COLUMN IF NOT EXISTS photo_url mediumtext DEFAULT NULL AFTER price;
 
 -- 4. Rental pricing for Dress and Accessories (borrow or buy, both optional)
 CREATE TABLE IF NOT EXISTS service_rental_pricing (

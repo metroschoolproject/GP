@@ -8,6 +8,7 @@ class CustomerServiceCatalog
     private $hasVenueRoomPhotoColumn = null;
     private $hasServiceRentalPricingTable = null;
     private $hasRentalPriceMatrixColumns = null;
+    private $hasDecorationStylePhotoColumn = null;
 
     public function __construct()
     {
@@ -309,6 +310,7 @@ class CustomerServiceCatalog
         }
         $formatted['selected_date'] = $selectedDate ?: '';
         $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate, $formatted['min_lead_days']) : [];
+        $formatted['decoration_styles'] = strtolower((string)$formatted['category']) === 'decoration' ? $this->getDecorationStyles($serviceId) : [];
         $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted, $selectedDate);
         $formatted['reviews'] = $this->getServiceReviews($serviceId);
         $formatted['related'] = $this->getRelatedServices($serviceId, $formatted['category_slug']);
@@ -779,6 +781,27 @@ class CustomerServiceCatalog
         return $this->db->getmultidata();
     }
 
+    private function getDecorationStyles($serviceId): array
+    {
+        $photoSelect = $this->hasDecorationStylePhotoColumn() ? 'photo_url' : "'' AS photo_url";
+        $this->db->dbquery(
+            'SELECT id, name, price, ' . $photoSelect . '
+             FROM decoration_styles
+             WHERE service_id = :service_id
+             ORDER BY sort_order ASC, id ASC'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+
+        return array_map(function ($row) {
+            return [
+                'id' => (int)($row['id'] ?? 0),
+                'name' => $row['name'] ?? '',
+                'price' => (float)($row['price'] ?? 0),
+                'photo_url' => trim((string)($row['photo_url'] ?? '')),
+            ];
+        }, $this->db->getmultidata());
+    }
+
     private function getRelatedServices($serviceId, $categorySlug, $limit = 3)
     {
         if (!$categorySlug) {
@@ -1057,5 +1080,24 @@ class CustomerServiceCatalog
         $this->hasRentalPriceMatrixColumns = (int)($row['total'] ?? 0) >= 4;
 
         return $this->hasRentalPriceMatrixColumns;
+    }
+
+    private function hasDecorationStylePhotoColumn(): bool
+    {
+        if ($this->hasDecorationStylePhotoColumn !== null) {
+            return $this->hasDecorationStylePhotoColumn;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "decoration_styles"
+               AND COLUMN_NAME = "photo_url"'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasDecorationStylePhotoColumn = (int)($row['total'] ?? 0) > 0;
+
+        return $this->hasDecorationStylePhotoColumn;
     }
 }

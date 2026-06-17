@@ -8,6 +8,7 @@ class SupplierServiceManager
     private $hasVenueServiceColumn = null;
     private $hasRentalPriceMatrixColumns = null;
     private $rentalPricingColumns = null;
+    private $hasDecorationStylePhotoColumn = null;
 
     public function __construct()
     {
@@ -123,6 +124,7 @@ class SupplierServiceManager
     public function createService($supplierId, $data)
     {
         $data = $this->applyVenueRoomPriceRange($data);
+        $data = $this->applyDecorationStylePriceRange($data);
         $data = $this->applyRentalPriceRange($data);
         $categoryId = $this->findOrCreateCategory($data['category'] ?? 'Others');
         $priceRangeColumns = $this->hasServicePriceRangeColumns() ? ', price_min, price_max' : '';
@@ -165,6 +167,7 @@ class SupplierServiceManager
         }
 
         $data = $this->applyVenueRoomPriceRange($data);
+        $data = $this->applyDecorationStylePriceRange($data);
         $data = $this->applyRentalPriceRange($data);
         $categoryId = $this->findOrCreateCategory($data['category'] ?? $service['category'] ?? 'Others');
         $priceRangeUpdate = $this->hasServicePriceRangeColumns()
@@ -1142,6 +1145,36 @@ class SupplierServiceManager
         return $data;
     }
 
+    private function applyDecorationStylePriceRange($data)
+    {
+        if (strtolower((string)($data['category'] ?? '')) !== 'decoration') {
+            return $data;
+        }
+
+        $styles = is_array($data['decoration_styles'] ?? null) ? $data['decoration_styles'] : [];
+        $prices = [];
+        foreach ($styles as $style) {
+            if (!is_array($style) || trim((string)($style['name'] ?? '')) === '') {
+                continue;
+            }
+
+            $price = max(0, (float)($style['price'] ?? 0));
+            if ($price > 0) {
+                $prices[] = $price;
+            }
+        }
+
+        if (!empty($prices)) {
+            $data['price'] = min($prices);
+            $data['price_min'] = min($prices);
+            $data['price_max'] = max($prices);
+            $data['package_price'] = $data['price_min'];
+            $data['customize_price'] = $data['price_max'];
+        }
+
+        return $data;
+    }
+
     private function bindPackageFields($supplierId, $data, $categories)
     {
         $this->db->dbbind(':supplier_id', (int)$supplierId);
@@ -2006,6 +2039,7 @@ class SupplierServiceManager
         }
 
         $styles = is_array($data['decoration_styles'] ?? null) ? $data['decoration_styles'] : [];
+        $hasPhoto = $this->hasDecorationStylePhotoColumn();
 
         $this->db->dbquery('DELETE FROM decoration_styles WHERE service_id = :service_id');
         $this->db->dbbind(':service_id', $serviceId);
@@ -2018,13 +2052,19 @@ class SupplierServiceManager
             if ($name === '') {
                 continue;
             }
+            $photoUrl = trim((string)($style['photo_url'] ?? ''));
+            $photoColumn = $hasPhoto ? ', photo_url' : '';
+            $photoValue = $hasPhoto ? ', :photo_url' : '';
             $this->db->dbquery(
-                'INSERT INTO decoration_styles (service_id, name, price, sort_order)
-                 VALUES (:service_id, :name, :price, :sort_order)'
+                'INSERT INTO decoration_styles (service_id, name, price' . $photoColumn . ', sort_order)
+                 VALUES (:service_id, :name, :price' . $photoValue . ', :sort_order)'
             );
             $this->db->dbbind(':service_id', $serviceId);
             $this->db->dbbind(':name', $name);
             $this->db->dbbind(':price', number_format($price, 2, '.', ''), PDO::PARAM_STR);
+            if ($hasPhoto) {
+                $this->db->dbbind(':photo_url', $photoUrl !== '' ? $photoUrl : null);
+            }
             $this->db->dbbind(':sort_order', $sort++, PDO::PARAM_INT);
             $this->db->dbexecute();
         }
@@ -2032,8 +2072,9 @@ class SupplierServiceManager
 
     private function getDecorationStyles(int $serviceId): array
     {
+        $photoSelect = $this->hasDecorationStylePhotoColumn() ? 'photo_url' : "'' AS photo_url";
         $this->db->dbquery(
-            'SELECT id, name, price
+            'SELECT id, name, price, ' . $photoSelect . '
              FROM decoration_styles
              WHERE service_id = :service_id
              ORDER BY sort_order ASC, id ASC'
@@ -2045,8 +2086,25 @@ class SupplierServiceManager
                 'id' => (int)$row['id'],
                 'name' => $row['name'] ?? '',
                 'price' => (float)$row['price'],
+                'photo_url' => trim((string)($row['photo_url'] ?? '')),
             ];
         }, $this->db->getmultidata());
+    }
+
+    private function hasDecorationStylePhotoColumn(): bool
+    {
+        if ($this->hasDecorationStylePhotoColumn !== null) {
+            return $this->hasDecorationStylePhotoColumn;
+        }
+
+        try {
+            $this->db->dbquery("SHOW COLUMNS FROM decoration_styles LIKE 'photo_url'");
+            $this->hasDecorationStylePhotoColumn = (bool)$this->db->getsingledata();
+        } catch (Throwable $e) {
+            $this->hasDecorationStylePhotoColumn = false;
+        }
+
+        return $this->hasDecorationStylePhotoColumn;
     }
 
     private function saveRentalPricing(int $serviceId, array $data): void

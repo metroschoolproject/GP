@@ -204,6 +204,139 @@ async function deleteServiceMedia(mediaId) {
   }
 }
 
+let decorationStyleCounter = 0;
+
+function decorationStyleCardHtml(style = {}) {
+  const uid = ++decorationStyleCounter;
+  const photoUrl = style.photo_url || '';
+  const photoPreview = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" alt="Decoration style photo">`
+    : '<i class="ti ti-photo"></i><span>Style photo</span>';
+
+  return `
+    <div class="sd-decoration-style-card">
+      <input type="hidden" class="decoration-style-photo-url" value="${escapeHtml(photoUrl)}">
+      <div class="sd-decoration-style-photo">
+        <label class="sd-decoration-style-preview ${photoUrl ? '' : 'is-empty'}" for="decorationStylePhoto${uid}">
+          ${photoPreview}
+        </label>
+        <input id="decorationStylePhoto${uid}" type="file" accept="image/*" class="decoration-style-photo-input" style="display:none">
+      </div>
+      <div class="sd-decoration-style-fields">
+        <div class="sd-hall-fg full"><label>Style name</label><input class="sd-hall-input decoration-style-name" value="${escapeHtml(style.name || '')}" placeholder="e.g. Balloon arch"></div>
+        <div class="sd-hall-fg full"><label>Price</label><input type="number" min="0" step="0.01" class="sd-hall-input decoration-style-price" value="${style.price ?? ''}" placeholder="MMK"></div>
+      </div>
+      <button type="button" class="btn btn-icon btn-danger-ghost btn-sm sd-decoration-style-remove" title="Remove style"><i class="ti ti-trash" style="font-size:13px"></i></button>
+    </div>
+  `;
+}
+
+function updateDecorationStyleCount() {
+  const count = document.querySelectorAll('.sd-decoration-style-card').length;
+  const badge = document.getElementById('decorationStyleCount');
+  if (badge) badge.textContent = count + ' ' + (count === 1 ? 'style' : 'styles');
+}
+
+function renderDecorationStyles(styles = []) {
+  const grid = document.getElementById('decorationStyleGrid');
+  if (!grid) return;
+  const rows = styles.length ? styles : [{}];
+  grid.innerHTML = rows.map(style => decorationStyleCardHtml(style)).join('');
+  updateDecorationStyleCount();
+}
+
+function addDecorationStyle() {
+  const grid = document.getElementById('decorationStyleGrid');
+  if (!grid) return;
+  grid.insertAdjacentHTML('beforeend', decorationStyleCardHtml());
+  updateDecorationStyleCount();
+}
+
+function collectDecorationStyles() {
+  return Array.from(document.querySelectorAll('.sd-decoration-style-card')).map(card => ({
+    name: card.querySelector('.decoration-style-name')?.value.trim() || '',
+    price: parseFloat(card.querySelector('.decoration-style-price')?.value || '0') || 0,
+    photo_url: card.querySelector('.decoration-style-photo-url')?.value || null
+  })).filter(style => style.name !== '');
+}
+
+document.getElementById('addDecorationStyleBtn')?.addEventListener('click', addDecorationStyle);
+
+document.getElementById('decorationStyleGrid')?.addEventListener('click', event => {
+  const removeButton = event.target.closest('.sd-decoration-style-remove');
+  if (!removeButton) return;
+  const grid = document.getElementById('decorationStyleGrid');
+  const card = removeButton.closest('.sd-decoration-style-card');
+  if (!grid || !card) return;
+
+  if (grid.querySelectorAll('.sd-decoration-style-card').length <= 1) {
+    card.querySelectorAll('input').forEach(input => { input.value = ''; });
+    const preview = card.querySelector('.sd-decoration-style-preview');
+    if (preview) {
+      preview.classList.add('is-empty');
+      preview.innerHTML = '<i class="ti ti-photo"></i><span>Style photo</span>';
+    }
+  } else {
+    card.remove();
+  }
+
+  updateDecorationStyleCount();
+});
+
+document.getElementById('decorationStyleGrid')?.addEventListener('change', async event => {
+  const input = event.target.closest('.decoration-style-photo-input');
+  if (!input || !input.files?.[0]) return;
+
+  const card = input.closest('.sd-decoration-style-card');
+  const hidden = card?.querySelector('.decoration-style-photo-url');
+  const preview = card?.querySelector('.sd-decoration-style-preview');
+
+  try {
+    const dataUrl = await fileToDataUrl(input.files[0]);
+    if (hidden) hidden.value = dataUrl;
+    if (preview) {
+      preview.classList.remove('is-empty');
+      preview.innerHTML = `<img src="${dataUrl}" alt="Decoration style photo preview">`;
+    }
+  } catch (error) {
+    showMessage('decorationStyleMessage', 'Could not read style photo. Please try another image.');
+  } finally {
+    input.value = '';
+  }
+});
+
+document.getElementById('saveDecorationStylesBtn')?.addEventListener('click', async () => {
+  showMessage('decorationStyleMessage', '');
+  try {
+    const styles = collectDecorationStyles();
+    if (!styles.length) {
+      throw new Error('Add at least one decoration style with a name.');
+    }
+    if (styles.some(style => style.price <= 0)) {
+      throw new Error('Each decoration style needs a price greater than zero.');
+    }
+
+    const result = await jsonPost(urls.serviceUpdate, {
+      ...serviceDetailConfig.servicePayloadBase,
+      min_lead_days: currentServiceMinLeadDays(),
+      decoration_styles: styles
+    });
+    const savedService = result.item || {};
+    const savedStyles = Array.isArray(savedService.decoration_styles) ? savedService.decoration_styles : styles;
+    serviceDetailConfig.decorationStyles = savedStyles;
+    serviceDetailConfig.servicePayloadBase.price = savedService.price ?? serviceDetailConfig.servicePayloadBase.price;
+    serviceDetailConfig.servicePayloadBase.price_min = savedService.price_min ?? serviceDetailConfig.servicePayloadBase.price_min;
+    serviceDetailConfig.servicePayloadBase.price_max = savedService.price_max ?? serviceDetailConfig.servicePayloadBase.price_max;
+    renderDecorationStyles(savedStyles);
+    updateServiceInfoFromService(savedService);
+    showMessage('decorationStyleMessage', 'Decoration styles saved.', true);
+  } catch (error) {
+    showMessage('decorationStyleMessage', error.message);
+  }
+});
+
+renderDecorationStyles(Array.isArray(serviceDetailConfig.decorationStyles) ? serviceDetailConfig.decorationStyles : []);
+
 function toggleDay(checkbox) {
   const card = checkbox.closest('.sd-day-card');
   const closedEl = card.querySelector('.sd-day-closed');

@@ -6,6 +6,7 @@ $availability = is_array($service['availability'] ?? null) ? $service['availabil
 $weeklyRows = is_array($availability['weekly'] ?? null) ? $availability['weekly'] : [];
 $overrideRows = is_array($availability['overrides'] ?? null) ? $availability['overrides'] : [];
 $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'] : [];
+$decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
 
 $dashboardTitle = 'Supplier';
 $dashboardCrumb = 'Service Detail';
@@ -140,7 +141,7 @@ $overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $ser
 $overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
 $previewUrl = URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId;
 
-$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
+$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
 ?>
 <?php
 $serviceDetailCssVersion = file_exists(APPROOT . '/../public/css/supplier-service-detail.css') ? filemtime(APPROOT . '/../public/css/supplier-service-detail.css') : time();
@@ -171,6 +172,7 @@ $serviceDetailConfig = [
         'venue_location' => $service['venue_location'] ?? '',
         'rental_pricing' => $rentalPricing ?: null,
     ],
+    'decorationStyles' => $decorationStyles,
 ];
 ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/supplier-service-detail.css?v=<?= $serviceDetailCssVersion ?>">

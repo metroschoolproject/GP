@@ -448,10 +448,20 @@ function decorationStyleRowHtml(prefix, style = {}) {
   const uid = ++decorationStyleCounter;
   const name = escapeHtml(style.name || '');
   const price = style.price ?? '';
+  const photoUrl = style.photo_url || '';
+  const photoInputId = `stylePhotoInput_${uid}`;
+  const photoPreviewId = `stylePhotoPreview_${uid}`;
+  const photoDataId = `stylePhotoData_${uid}`;
+  const photoPreviewHtml = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`
+    : `<span style="font-size:11px;color:#aaa">Style photo</span>`;
   return `
-    <div class="${prefix}-style-row" style="display:flex;gap:8px;align-items:center">
-      <input type="text" value="${name}" placeholder="e.g. Balloon arch" class="fm-input style-name" style="flex:1;font-size:13px;padding:6px 8px"/>
-      <input type="number" min="0" step="0.01" value="${price}" placeholder="Price (MMK)" class="fm-input style-price" style="width:150px;font-size:13px;padding:6px 8px"/>
+    <div class="${prefix}-style-row" style="display:grid;grid-template-columns:88px minmax(0,1fr) 150px 28px;gap:8px;align-items:center">
+      <input type="hidden" class="style-photo-data" id="${photoDataId}" value="${escapeHtml(photoUrl)}">
+      <label for="${photoInputId}" id="${photoPreviewId}" style="display:flex;align-items:center;justify-content:center;width:88px;height:58px;border:1.5px dashed #d1c9c0;border-radius:6px;cursor:pointer;overflow:hidden;background:#faf8f5">${photoPreviewHtml}</label>
+      <input type="file" id="${photoInputId}" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="onDecorationStylePhotoChange(this,'${photoDataId}','${photoPreviewId}')"/>
+      <input type="text" value="${name}" placeholder="e.g. Balloon arch" class="fm-input style-name" style="font-size:13px;padding:6px 8px"/>
+      <input type="number" min="0" step="0.01" value="${price}" placeholder="Price (MMK)" class="fm-input style-price" style="font-size:13px;padding:6px 8px"/>
       <button type="button" onclick="removeDecorationStyle(this,'${prefix}')" class="room-row-remove" title="Remove">&times;</button>
     </div>
   `;
@@ -486,7 +496,22 @@ function collectDecorationStyles(prefix) {
   return rows.map(row => ({
     name: row.querySelector('.style-name')?.value.trim() || '',
     price: parseFloat(row.querySelector('.style-price')?.value || '0') || 0,
+    photo_url: row.querySelector('.style-photo-data')?.value || null,
   })).filter(s => s.name !== '');
+}
+
+function onDecorationStylePhotoChange(input, dataId, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const dataInput = document.getElementById(dataId);
+    if (dataInput) dataInput.value = dataUrl;
+    const preview = document.getElementById(previewId);
+    if (preview) preview.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`;
+  };
+  reader.readAsDataURL(file);
 }
 
 function validateDecorationStyles(prefix) {

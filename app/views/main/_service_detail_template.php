@@ -78,6 +78,9 @@ $moneyRange = function ($service) use ($money) {
 };
 $isRentalCategory = in_array(strtolower(trim((string)($service['category_slug'] ?? ''))), ['dress', 'accessories'], true)
     || in_array(strtolower(trim((string)($service['category'] ?? ''))), ['dress', 'accessories'], true);
+$decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
+$isDecorationCategory = strtolower(trim((string)($service['category_slug'] ?? ''))) === 'decoration'
+    || strtolower(trim((string)($service['category'] ?? ''))) === 'decoration';
 $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 $rentalOptions = [];
 if ($isRentalCategory) {
@@ -1303,6 +1306,53 @@ button, input, select, textarea { font-family: var(--font-sans); }
   color: rgba(118,90,70,0.45);
 }
 
+.style-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.style-card {
+  border: 1px solid rgba(118,90,70,0.14);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255,250,247,0.78);
+}
+
+.style-photo {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  color: rgba(118,90,70,0.45);
+  background:
+    linear-gradient(135deg, rgba(216,180,106,0.14), rgba(185,74,72,0.10)),
+    rgba(255,250,247,0.8);
+}
+
+.style-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.style-body {
+  padding: 12px 14px;
+}
+
+.style-body strong {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.style-body span {
+  display: block;
+  color: var(--wine);
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
 .radio-dot {
   width: 20px; height: 20px;
   border: 2px solid rgba(185,74,72,0.22);
@@ -2155,6 +2205,31 @@ button, input, select, textarea { font-family: var(--font-sans); }
           </div>
         <?php endif; ?>
       </div>
+
+      <?php if ($isDecorationCategory && !empty($decorationStyles)): ?>
+        <div class="section-card" style="margin-top:24px;">
+          <h2 class="card-title">Decoration styles</h2>
+          <p class="card-sub">Style options available for this service</p>
+          <div class="style-grid">
+            <?php foreach ($decorationStyles as $index => $style): ?>
+              <?php $stylePhoto = trim((string)($style['photo_url'] ?? '')); ?>
+              <div class="style-card" data-aos="fade-up" data-aos-delay="<?= min($index * 70, 280) ?>">
+                <div class="style-photo">
+                  <?php if ($stylePhoto !== ''): ?>
+                    <img src="<?= $h($stylePhoto) ?>" alt="<?= $h(($style['name'] ?? 'Decoration style') . ' photo') ?>" loading="lazy">
+                  <?php else: ?>
+                    <i data-lucide="image" size="22"></i>
+                  <?php endif; ?>
+                </div>
+                <div class="style-body">
+                  <strong><?= $h($style['name'] ?? 'Decoration style') ?></strong>
+                  <span><?= $money($style['price'] ?? 0) ?></span>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
     </div>
 
     <aside class="split-sidebar">

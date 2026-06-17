@@ -1153,7 +1153,7 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Booking not found'], 404);
         }
 
-        $isPendingSupplierResponse = ($booking['status'] ?? '') === 'pending_supplier_response';
+        $isPendingSupplierResponse = in_array(($booking['status'] ?? ''), ['pending_supplier_response', 'suppliers_responding'], true);
 
         // GATE: Custom-flow bookings can be responded to before payment; otherwise payment must be verified
         if (!$isPendingSupplierResponse && !$this->bookingModel->isPaymentVerified($bookingId)) {

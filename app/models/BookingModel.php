@@ -5,6 +5,10 @@ class BookingModel
     private $db;
     private ?bool $cartVenueRoomColumn = null;
     private ?bool $bookingVenueRoomColumn = null;
+    private ?bool $cartSourceColumn = null;
+    private ?bool $bookingSourceColumn = null;
+    private ?bool $bookingSupplierDeadlineColumn = null;
+    private ?array $bookingStatusValues = null;
 
     public function __construct()
     {
@@ -19,13 +23,16 @@ class BookingModel
      */
     public function createDraftFromCart(int $userId, int $cartId, float $totalAmount): int|false
     {
+        $status = $this->normalizeBookingStatus('draft');
+
         $this->db->dbquery(
             "INSERT INTO bookings (user_id, cart_id, total_amount, paid_amount, payment_status, status)
-             VALUES (:uid, :cid, :total, 0.00, 'unpaid', 'draft')"
+             VALUES (:uid, :cid, :total, 0.00, 'unpaid', :status)"
         );
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         $this->db->dbbind(':cid', $cartId, PDO::PARAM_INT);
         $this->db->dbbind(':total', number_format($totalAmount, 2, '.', ''));
+        $this->db->dbbind(':status', $status);
 
         if (!$this->db->dbexecute()) {
             return false;
@@ -41,13 +48,19 @@ class BookingModel
     {
         $hasCartVenueRoomColumn = $this->hasCartVenueRoomColumn();
         $hasBookingVenueRoomColumn = $this->hasBookingVenueRoomColumn();
+        $hasCartSourceColumn = $this->hasCartSourceColumn();
+        $hasBookingSourceColumn = $this->hasBookingSourceColumn();
         $cartVenueRoomValue = $hasCartVenueRoomColumn ? 'ci.venue_room_id' : 'NULL';
         $venueRoomInsertColumn = $hasBookingVenueRoomColumn ? ', venue_room_id' : '';
         $venueRoomSelectColumn = $hasBookingVenueRoomColumn ? ", COALESCE({$cartVenueRoomValue}, selected_vra.room_id)" : '';
+        $sourceInsertColumn = $hasBookingSourceColumn ? ', source' : '';
+        $sourceSelectColumn = $hasBookingSourceColumn
+            ? ', ' . ($hasCartSourceColumn ? "COALESCE(ci.source, 'custom')" : "'custom'")
+            : '';
 
         $this->db->dbquery(
-            "INSERT INTO booking_items (booking_id, item_type, source, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn})
-            SELECT :bid, ci.item_type, COALESCE(ci.source, 'custom'), ci.item_id,
+            "INSERT INTO booking_items (booking_id, item_type{$sourceInsertColumn}, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn})
+            SELECT :bid, ci.item_type{$sourceSelectColumn}, ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
                         WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
@@ -121,6 +134,105 @@ class BookingModel
         $this->bookingVenueRoomColumn = (bool)$this->db->getsingledata();
 
         return $this->bookingVenueRoomColumn;
+    }
+
+    private function hasCartSourceColumn(): bool
+    {
+        if ($this->cartSourceColumn !== null) {
+            return $this->cartSourceColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'source'");
+        $this->cartSourceColumn = (bool)$this->db->getsingledata();
+
+        return $this->cartSourceColumn;
+    }
+
+    private function hasBookingSourceColumn(): bool
+    {
+        if ($this->bookingSourceColumn !== null) {
+            return $this->bookingSourceColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM booking_items LIKE 'source'");
+        $this->bookingSourceColumn = (bool)$this->db->getsingledata();
+
+        return $this->bookingSourceColumn;
+    }
+
+    private function hasBookingSupplierDeadlineColumn(): bool
+    {
+        if ($this->bookingSupplierDeadlineColumn !== null) {
+            return $this->bookingSupplierDeadlineColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM bookings LIKE 'supplier_response_deadline'");
+        $this->bookingSupplierDeadlineColumn = (bool)$this->db->getsingledata();
+
+        return $this->bookingSupplierDeadlineColumn;
+    }
+
+    private function bookingStatusValues(): array
+    {
+        if ($this->bookingStatusValues !== null) {
+            return $this->bookingStatusValues;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM bookings LIKE 'status'");
+        $column = $this->db->getsingledata();
+        $type = (string)($column['Type'] ?? '');
+        preg_match_all("/'([^']+)'/", $type, $matches);
+        $this->bookingStatusValues = $matches[1] ?? [];
+
+        return $this->bookingStatusValues;
+    }
+
+    /**
+     * Hardcoded baseline of all possible status values.
+     * Used as a last resort when the ENUM cannot be read from the database.
+     */
+    private const KNOWN_BOOKING_STATUSES = [
+        'draft',
+        'pending_supplier_response',
+        'pending_payment',
+        'payment_submitted',
+        'payment_verified',
+        'paid',
+        'suppliers_responding',
+        'confirmed',
+        'pending_final_payment',
+        'finalized',
+        'completed',
+        'cancelled',
+    ];
+
+    private function normalizeBookingStatus(string $status): string
+    {
+        $allowed = $this->bookingStatusValues();
+
+        // If the DB query failed (empty result), fall back to the comprehensive known list.
+        // This prevents SQL truncation errors when the ENUM can't be read dynamically.
+        if (empty($allowed)) {
+            $allowed = self::KNOWN_BOOKING_STATUSES;
+        }
+
+        if (in_array($status, $allowed, true)) {
+            return $status;
+        }
+
+        // Map new/alternative status values to their equivalents in the current ENUM
+        $fallbacks = [
+            'pending_supplier_response' => 'suppliers_responding',
+            'paid' => 'payment_verified',
+        ];
+        $fallback = $fallbacks[$status] ?? '';
+
+        if ($fallback !== '' && in_array($fallback, $allowed, true)) {
+            return $fallback;
+        }
+
+        // Ultimate fallback: 'draft' should exist in every ENUM definition
+        return 'draft';
     }
 
     /**
@@ -273,6 +385,7 @@ class BookingModel
      */
     public function updateStatus(int $bookingId, string $status, ?string $paymentStatus = null): bool
     {
+        $status = $this->normalizeBookingStatus($status);
         $sql = "UPDATE bookings SET status = :status";
         $params = [':status' => $status, ':id' => $bookingId];
 
@@ -1205,6 +1318,10 @@ class BookingModel
      */
     public function isPackageBooking(int $bookingId): bool
     {
+        if (!$this->hasBookingSourceColumn()) {
+            return false;
+        }
+
         $this->db->dbquery(
             "SELECT COUNT(*) AS total,
                     SUM(CASE WHEN source = 'package' THEN 1 ELSE 0 END) AS package_count
@@ -1275,6 +1392,10 @@ class BookingModel
      */
     public function setSupplierResponseDeadline(int $bookingId, string $modifier): bool
     {
+        if (!$this->hasBookingSupplierDeadlineColumn()) {
+            return true;
+        }
+
         $deadline = date('Y-m-d H:i:s', strtotime($modifier));
         $this->db->dbquery(
             "UPDATE bookings SET supplier_response_deadline = :deadline WHERE id = :id LIMIT 1"
@@ -1303,6 +1424,10 @@ class BookingModel
      */
     public function expireOverdueBookingRequests(): int
     {
+        if (!$this->hasBookingSupplierDeadlineColumn()) {
+            return 0;
+        }
+
         $this->db->dbquery(
             "SELECT id FROM bookings
              WHERE status = 'pending_supplier_response'
@@ -1363,9 +1488,11 @@ class BookingModel
      */
     public function submitPaymentSlip(int $bookingId, string $slipPath, string $reference, string $method): bool
     {
+        $status = $this->normalizeBookingStatus('payment_submitted');
         $this->db->dbquery(
-            "UPDATE bookings SET status = 'payment_submitted' WHERE id = :id LIMIT 1"
+            "UPDATE bookings SET status = :status WHERE id = :id LIMIT 1"
         );
+        $this->db->dbbind(':status', $status);
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
 
         if (!$this->db->dbexecute()) {
@@ -1391,10 +1518,12 @@ class BookingModel
      */
     public function adminVerifyPayment(int $bookingId, int $adminId, string $note = ''): bool
     {
-        // Update booking status
+        // Update booking status (normalized so it works with old + new ENUMs)
+        $status = $this->normalizeBookingStatus('paid');
         $this->db->dbquery(
-            "UPDATE bookings SET status = 'paid', payment_status = 'partial' WHERE id = :id LIMIT 1"
+            "UPDATE bookings SET status = :status, payment_status = 'partial' WHERE id = :id LIMIT 1"
         );
+        $this->db->dbbind(':status', $status);
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
 
         if (!$this->db->dbexecute()) {
@@ -1419,10 +1548,12 @@ class BookingModel
      */
     public function confirmInstantPayment(int $bookingId, string $method, string $transactionId, float $amount = 0): bool
     {
-        // Update booking to paid.
+        // Update booking to paid (normalized to work with old + new ENUMs).
+        $status = $this->normalizeBookingStatus('paid');
         $this->db->dbquery(
-            "UPDATE bookings SET status = 'paid', payment_status = 'partial' WHERE id = :id LIMIT 1"
+            "UPDATE bookings SET status = :status, payment_status = 'partial' WHERE id = :id LIMIT 1"
         );
+        $this->db->dbbind(':status', $status);
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
 
         if (!$this->db->dbexecute()) {
