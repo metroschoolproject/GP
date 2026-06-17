@@ -802,23 +802,30 @@ $dashboardContent = function () use (
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a4 4 0 014 4v2l1 2H3l1-2V6a4 4 0 014-4zm-1 10h2a1 1 0 01-2 0z"/></svg>
         </div>
         <div>
-          <div class="ed-action-bar-title">Response required</div>
-          <div class="ed-action-bar-desc">Accept or decline this booking from your queue.</div>
+          <?php if ($bookingStatus === 'pending_supplier_response'): ?>
+            <div class="ed-action-bar-title">New booking request</div>
+            <div class="ed-action-bar-desc">The customer is requesting your services. Please accept or decline within 48 hours. No payment has been collected yet.</div>
+          <?php else: ?>
+            <div class="ed-action-bar-title">Response required</div>
+            <div class="ed-action-bar-desc">Accept or decline this booking from your queue.</div>
+          <?php endif; ?>
         </div>
       </div>
       <div class="ed-action-btns">
         <button type="button" class="booking-action ed-btn ed-btn--accept" data-action="accept">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-          Accept
+          <?= $bookingStatus === 'pending_supplier_response' ? 'Accept Request' : 'Accept' ?>
         </button>
         <button type="button" class="booking-action ed-btn ed-btn--decline" data-action="decline">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-          Decline
+          <?= $bookingStatus === 'pending_supplier_response' ? 'Decline Request' : 'Decline' ?>
         </button>
+        <?php if ($bookingStatus !== 'pending_supplier_response'): ?>
         <button type="button" id="reschedule-btn" class="ed-btn ed-btn--ghost">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 2v2M11 2v2M2 7h12"/></svg>
           Propose reschedule
         </button>
+        <?php endif; ?>
       </div>
     </div>
     <?php endif; ?>

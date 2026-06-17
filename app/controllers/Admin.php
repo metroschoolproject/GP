@@ -949,4 +949,56 @@ class Admin extends Controller
         exit;
     }
 
-}   
+    /**
+     * Auto-expire pending custom-service booking requests where the 48-hour supplier response deadline has passed.
+     * Call via: curl https://goldenpromise.com/admin/cronExpireBookingRequests?token=SECRET_CRON_TOKEN
+     *
+     * Add to crontab:
+     * 0 * * * * curl -s "https://goldenpromise.com/admin/cronExpireBookingRequests?token=..." > /dev/null
+     */
+    public function cronExpireBookingRequests(): void
+    {
+        $cronToken = $_GET['token'] ?? '';
+        $expectedToken = defined('CRON_TOKEN') ? CRON_TOKEN : '';
+
+        if ($cronToken !== $expectedToken || $expectedToken === '') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Unauthorized cron job']);
+            exit;
+        }
+
+        $bookingModel = $this->model('BookingModel');
+        $notificationModel = $this->model('Notification');
+        $expired = $bookingModel->expireOverdueBookingRequests();
+
+        if ($expired > 0) {
+            $this->db->dbquery(
+                "SELECT b.id
+                 FROM bookings b
+                 INNER JOIN booking_status_logs bsl ON bsl.booking_id = b.id
+                 WHERE b.status = 'cancelled'
+                   AND bsl.new_status = 'cancelled'
+                   AND bsl.note LIKE '%Auto-expired%'
+                   AND bsl.created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)"
+            );
+            $recentExpired = $this->db->getmultidata();
+            foreach ($recentExpired as $row) {
+                $notificationModel->notifyBookingCustomer(
+                    (int)$row['id'],
+                    'Booking Request Expired',
+                    'Your booking request expired because no supplier responded within 48 hours. Please try submitting a new request.',
+                    'booking'
+                );
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'expired' => $expired,
+            'timestamp' => date('Y-m-d H:i:s'),
+        ]);
+
+        exit;
+    }
+
+}

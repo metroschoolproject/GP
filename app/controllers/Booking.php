@@ -239,22 +239,38 @@ class Booking extends Controller
         $this->bookingModel->clearCart($this->userId);
         $this->bookingModel->logStatusChange($bookingId, null, 'draft', $this->userId);
 
-        // NOTIFY SUPPLIERS
         $customerName = $_SESSION['session_name'] ?? 'A customer';
         $itemList = array_map(fn($item) => $item['service_name'] ?? 'a service', $items);
         $serviceNames = implode(', ', $itemList);
-        $this->notificationModel->notifyBookingSuppliers(
-            $bookingId,
-            'New Booking',
-            $customerName . ' booked: ' . $serviceNames . '. Please review and confirm.',
-            'booking'
-        );
-        
-        $this->jsonResponse([
-            'success' => true,
-            'booking_id' => $bookingId,
-            'redirect' => URLROOT . '/booking/pay/' . $bookingId,
-        ]);
+
+        // FORK: package bookings go straight to payment; custom/mixed require supplier approval first
+        if ($this->bookingModel->isPackageBooking($bookingId)) {
+            $this->bookingModel->updateStatus($bookingId, 'pending_payment');
+            $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
+
+            $this->jsonResponse([
+                'success' => true,
+                'booking_id' => $bookingId,
+                'redirect' => URLROOT . '/booking/pay/' . $bookingId,
+            ]);
+        } else {
+            $this->bookingModel->updateStatus($bookingId, 'pending_supplier_response');
+            $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_supplier_response', $this->userId);
+            $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
+
+            $this->notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'New Booking Request',
+                $customerName . ' is requesting: ' . $serviceNames . '. Please accept or decline within 48 hours.',
+                'booking'
+            );
+
+            $this->jsonResponse([
+                'success' => true,
+                'booking_id' => $bookingId,
+                'redirect' => URLROOT . '/booking/detail/' . $bookingId,
+            ]);
+        }
         } catch (Throwable $e) {
             $this->jsonResponse([
                 'error' => 'Booking could not be created: ' . $e->getMessage(),
@@ -492,22 +508,36 @@ class Booking extends Controller
 
         $this->bookingModel->confirmPayment($paymentId, $transactionRef);
         $this->bookingModel->updatePaidAmount($bookingId, $deposit);
-        $this->bookingModel->updateStatus($bookingId, 'paid', 'partial');
-        $this->bookingModel->logStatusChange($bookingId, $booking['status'] ?? 'pending_payment', 'paid', $this->userId);
+
+        $isPackage = $this->bookingModel->isPackageBooking($bookingId);
+        if ($isPackage) {
+            $this->bookingModel->autoConfirmAllSuppliers($bookingId);
+        }
+        $this->bookingModel->updateStatus($bookingId, 'confirmed', 'partial');
+        $this->bookingModel->logStatusChange($bookingId, $booking['status'] ?? 'pending_payment', 'confirmed', $this->userId);
         $this->bookingModel->generateVouchers($bookingId);
 
-        $this->notificationModel->notifyBookingCustomer(
-            $bookingId,
-            'Payment Confirmed',
-            'Your deposit of ' . $this->money($deposit) . ' has been confirmed.',
-            'payment'
-        );
-        $this->notificationModel->notifyBookingSuppliers(
-            $bookingId,
-            'Deposit Paid',
-            'The customer has paid the deposit. Please review and confirm the booking.',
-            'booking'
-        );
+        if ($isPackage) {
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Booking Confirmed',
+                'Your deposit of ' . $this->money($deposit) . ' has been confirmed. Your booking is confirmed!',
+                'payment'
+            );
+        } else {
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Payment Confirmed',
+                'Your deposit of ' . $this->money($deposit) . ' has been confirmed.',
+                'payment'
+            );
+            $this->notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'Deposit Paid',
+                'The customer has paid the deposit. The booking is now confirmed.',
+                'booking'
+            );
+        }
     }
 
     /**
@@ -585,29 +615,37 @@ class Booking extends Controller
             $this->bookingModel->confirmPayment($paymentId, $transactionRef);
         }
 
-        // Update booking status
         $this->bookingModel->updatePaidAmount($bookingId, $amount);
-        $this->bookingModel->updateStatus($bookingId, 'paid', 'partial');
-        $this->bookingModel->logStatusChange($bookingId, $booking['status'] ?? 'pending_payment', 'paid', $this->userId);
 
-        // Generate vouchers
+        $isPackage = $this->bookingModel->isPackageBooking($bookingId);
+        if ($isPackage) {
+            $this->bookingModel->autoConfirmAllSuppliers($bookingId);
+        }
+        $this->bookingModel->updateStatus($bookingId, 'confirmed', 'partial');
+        $this->bookingModel->logStatusChange($bookingId, $booking['status'] ?? 'pending_payment', 'confirmed', $this->userId);
         $this->bookingModel->generateVouchers($bookingId);
 
-        // Notify customer
-        $this->notificationModel->notifyBookingCustomer(
-            $bookingId,
-            'Payment Received',
-            'Your deposit of ' . $this->money($amount) . ' has been received. The suppliers will now confirm your booking.',
-            'booking'
-        );
-
-        // Notify suppliers
-        $this->notificationModel->notifyBookingSuppliers(
-            $bookingId,
-            'Deposit Paid',
-            'The customer has paid the deposit. Please review and confirm the booking.',
-            'booking'
-        );
+        if ($isPackage) {
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Booking Confirmed',
+                'Your deposit has been received and your booking is confirmed!',
+                'booking'
+            );
+        } else {
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Payment Received',
+                'Your deposit of ' . $this->money($amount) . ' has been received. Your booking is confirmed!',
+                'booking'
+            );
+            $this->notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'Deposit Paid',
+                'The customer has paid the deposit. The booking is now confirmed.',
+                'booking'
+            );
+        }
 
         $this->jsonResponse([
             'success' => true,
@@ -1110,17 +1148,26 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Invalid request'], 400);
         }
 
-        // GATE: Verify payment before allowing response
-        if (!$this->bookingModel->isPaymentVerified($bookingId)) {
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking) {
+            $this->jsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        $isPendingSupplierResponse = ($booking['status'] ?? '') === 'pending_supplier_response';
+
+        // GATE: Custom-flow bookings can be responded to before payment; otherwise payment must be verified
+        if (!$isPendingSupplierResponse && !$this->bookingModel->isPaymentVerified($bookingId)) {
             $this->jsonResponse(['error' => 'Booking payment has not been verified yet. Supplier cannot respond.'], 403);
             return;
         }
 
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $rowId = 0;
+        $shopName = '';
         foreach ($suppliers as $s) {
             if ((int)$s['supplier_id'] === $supplierId) {
                 $rowId = (int)$s['id'];
+                $shopName = $s['shop_name'] ?? 'A supplier';
                 break;
             }
         }
@@ -1136,22 +1183,44 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Could not update status'], 500);
         }
 
-        // Update the booking items for this supplier
         $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus);
-
-        // Log
         $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, 'Supplier ' . $action . 'ed booking');
 
-        // Find supplier name for notifications
-        $shopName = '';
-        foreach ($suppliers as $s) {
-            if ((int)$s['supplier_id'] === $supplierId) {
-                $shopName = $s['shop_name'] ?? 'A supplier';
-                break;
+        // Custom-flow: handle booking-level status transition
+        if ($isPendingSupplierResponse) {
+            if ($action === 'accept') {
+                // Advance booking only once ALL suppliers have accepted
+                if ($this->bookingModel->allSuppliersAccepted($bookingId)) {
+                    $this->bookingModel->updateStatus($bookingId, 'pending_payment');
+                    $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'pending_payment', null, 'All suppliers accepted');
+                    $this->notificationModel->notifyBookingCustomer(
+                        $bookingId,
+                        'Supplier Accepted — Please Pay',
+                        $shopName . ' accepted your booking request. Please complete your 10% deposit to confirm.',
+                        'booking'
+                    );
+                }
+            } elseif ($action === 'decline') {
+                $this->bookingModel->updateStatus($bookingId, 'cancelled');
+                $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'cancelled', null, 'Supplier declined');
+                $this->bookingModel->cancelAllSuppliers($bookingId);
+                $this->notificationModel->notifyBookingCustomer(
+                    $bookingId,
+                    'Booking Request Declined',
+                    $shopName . ' is unavailable for your requested dates. Please search for another supplier.',
+                    'booking'
+                );
             }
+
+            $this->jsonResponse([
+                'success' => true,
+                'new_status' => $newStatus,
+                'message' => $action === 'accept' ? 'Booking accepted!' : 'Booking declined.',
+            ]);
+            return;
         }
 
-        // NOTIFY CUSTOMER
+        // Original post-payment flow: notify customer of supplier's decision
         if ($action === 'accept') {
             $this->notificationModel->notifyBookingCustomer(
                 $bookingId,
@@ -1159,7 +1228,7 @@ class Booking extends Controller
                 $shopName . ' has accepted your booking! Your service is confirmed.',
                 'booking'
             );
-        } elseif ($action === 'decline') {
+        } else {
             $this->notificationModel->notifyBookingCustomer(
                 $bookingId,
                 'Booking Declined',
@@ -1596,33 +1665,45 @@ class Booking extends Controller
             return;
         }
 
-        // Confirm instant payment.
+        // Confirm instant payment (creates payment record and sets booking to 'paid' transiently)
         if (!$this->bookingModel->confirmInstantPayment($bookingId, $method, $transactionId, $amount)) {
             $this->jsonResponse(['error' => 'Failed to confirm payment.'], 500);
             return;
         }
 
-        $this->bookingModel->logStatusChange($bookingId, 'pending_payment', 'paid', $this->userId);
+        $isPackage = $this->bookingModel->isPackageBooking($bookingId);
+        if ($isPackage) {
+            $this->bookingModel->autoConfirmAllSuppliers($bookingId);
+        }
+        $this->bookingModel->updateStatus($bookingId, 'confirmed', 'partial');
+        $this->bookingModel->logStatusChange($bookingId, 'pending_payment', 'confirmed', $this->userId);
+        $this->bookingModel->generateVouchers($bookingId);
 
-        // Notify customer
-        $this->notificationModel->notifyBookingCustomer(
-            $bookingId,
-            'Payment Confirmed',
-            'Your payment has been confirmed! Suppliers will now review your booking.',
-            'payment'
-        );
-
-        // Notify suppliers
-        $this->notificationModel->notifyBookingSuppliers(
-            $bookingId,
-            'New Booking — Payment Verified',
-            'A new booking with confirmed payment is ready for your review.',
-            'booking'
-        );
+        if ($isPackage) {
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Booking Confirmed',
+                'Your payment has been confirmed! Your booking is confirmed.',
+                'payment'
+            );
+        } else {
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Payment Confirmed',
+                'Your payment has been confirmed! Your booking is confirmed.',
+                'payment'
+            );
+            $this->notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'New Booking — Payment Confirmed',
+                'A new booking with confirmed payment is ready. The booking is confirmed.',
+                'booking'
+            );
+        }
 
         $this->jsonResponse([
             'success' => true,
-            'message' => 'Payment confirmed! Suppliers will review your booking shortly.',
+            'message' => 'Payment confirmed! Your booking is confirmed.',
         ]);
     }
 }

@@ -46,8 +46,8 @@ class BookingModel
         $venueRoomSelectColumn = $hasBookingVenueRoomColumn ? ", COALESCE({$cartVenueRoomValue}, selected_vra.room_id)" : '';
 
         $this->db->dbquery(
-            "INSERT INTO booking_items (booking_id, item_type, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn})
-            SELECT :bid, ci.item_type, ci.item_id,
+            "INSERT INTO booking_items (booking_id, item_type, source, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn})
+            SELECT :bid, ci.item_type, COALESCE(ci.source, 'custom'), ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
                         WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
@@ -1197,6 +1197,137 @@ class BookingModel
                   ))";
     }
 
+    /* ─── Dual-Flow Booking Helpers ────────────────────────────────── */
+
+    /**
+     * Returns true if ALL booking items have source='package' (no custom services).
+     * Package bookings auto-confirm on payment; custom bookings require supplier approval first.
+     */
+    public function isPackageBooking(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN source = 'package' THEN 1 ELSE 0 END) AS package_count
+             FROM booking_items WHERE booking_id = :bid"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        $total = (int)($result['total'] ?? 0);
+        $packageCount = (int)($result['package_count'] ?? 0);
+        return $total > 0 && $total === $packageCount;
+    }
+
+    /**
+     * Returns true if ANY booking item has source='custom' (mixed or all-custom).
+     * Mixed bookings are treated as custom: supplier must accept before customer pays.
+     */
+    public function isCustomServiceBooking(int $bookingId): bool
+    {
+        return !$this->isPackageBooking($bookingId);
+    }
+
+    /**
+     * Auto-confirm all pending suppliers and their booking items.
+     * Used for package bookings after payment — no manual supplier response needed.
+     * Caller is responsible for updating the booking's own status.
+     */
+    public function autoConfirmAllSuppliers(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE booking_suppliers
+             SET status = 'confirmed', confirmed_at = COALESCE(confirmed_at, NOW())
+             WHERE booking_id = :bid AND status NOT IN ('rejected', 'cancelled')"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        $this->db->dbquery(
+            "UPDATE booking_items SET status = 'accepted'
+             WHERE booking_id = :bid AND status = 'pending'"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Returns true if all booking_suppliers rows are 'confirmed'.
+     * Used in custom-service flow to decide when to advance to pending_payment.
+     */
+    public function allSuppliersAccepted(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_count
+             FROM booking_suppliers WHERE booking_id = :bid"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        $total = (int)($result['total'] ?? 0);
+        $confirmed = (int)($result['confirmed_count'] ?? 0);
+        return $total > 0 && $total === $confirmed;
+    }
+
+    /**
+     * Set the 48-hour window for supplier to respond to a custom booking.
+     * @param string $modifier A strtotime-compatible relative string, e.g. '+48 hours'
+     */
+    public function setSupplierResponseDeadline(int $bookingId, string $modifier): bool
+    {
+        $deadline = date('Y-m-d H:i:s', strtotime($modifier));
+        $this->db->dbquery(
+            "UPDATE bookings SET supplier_response_deadline = :deadline WHERE id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':deadline', $deadline);
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Cancel all booking_suppliers rows for a booking (used when a supplier declines).
+     */
+    public function cancelAllSuppliers(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE booking_suppliers SET status = 'cancelled'
+             WHERE booking_id = :bid AND status NOT IN ('completed')"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Auto-expire booking requests where the 48-hour supplier response window has passed.
+     * Returns the number of bookings cancelled, for cron job reporting.
+     */
+    public function expireOverdueBookingRequests(): int
+    {
+        $this->db->dbquery(
+            "SELECT id FROM bookings
+             WHERE status = 'pending_supplier_response'
+               AND supplier_response_deadline IS NOT NULL
+               AND supplier_response_deadline < NOW()"
+        );
+        $expired = $this->db->getmultidata();
+
+        $count = 0;
+        foreach ($expired as $row) {
+            $bookingId = (int)$row['id'];
+            $this->db->dbquery(
+                "UPDATE bookings SET status = 'cancelled' WHERE id = :id LIMIT 1"
+            );
+            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+            if ($this->db->dbexecute()) {
+                $this->logStatusChange($bookingId, 'pending_supplier_response', 'cancelled', null, 'Auto-expired: 48-hour supplier response deadline passed');
+                $this->cancelAllSuppliers($bookingId);
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
     /* ─── Payment Verification & Gating ────────────────────────────── */
 
     /**
@@ -1212,6 +1343,18 @@ class BookingModel
         $booking = $this->db->getsingledata();
 
         return $booking && in_array($booking['status'], $allowedStatuses, true);
+    }
+
+    /**
+     * Returns true if this booking is in the custom-service supplier-first flow
+     * (waiting for supplier to accept before payment is collected).
+     */
+    public function isPendingSupplierResponse(int $bookingId): bool
+    {
+        $this->db->dbquery("SELECT status FROM bookings WHERE id = :id LIMIT 1");
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+        return $booking && $booking['status'] === 'pending_supplier_response';
     }
 
     /**
