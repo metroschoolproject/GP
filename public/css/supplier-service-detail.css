@@ -1434,3 +1434,16 @@
   color: var(--text-3);
   margin-top: 1px;
 }
+
+/* ── Sticky card foot (save bars) ── */
+.sd-card {
+  position: relative;
+}
+.sd-card-foot {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface, #fff);
+  border-top: 1px solid var(--border-light, #eddecc);
+  z-index: 2;
+  margin-top: auto;
+}

@@ -22,14 +22,15 @@ class SupplierServiceManager
         $serviceOffset = max(0, (int)($options['service_offset'] ?? 0));
         $packageLimit = $this->normalizeLimit($options['package_limit'] ?? $options['limit'] ?? null);
         $packageOffset = max(0, (int)($options['package_offset'] ?? 0));
+        $search = trim((string)($options['search'] ?? ''));
 
         return [
-            'services' => $this->getServices($supplierId, $serviceLimit, $serviceOffset),
-            'packages' => $this->getPackages($supplierId, $packageLimit, $packageOffset),
+            'services' => $this->getServices($supplierId, $serviceLimit, $serviceOffset, $search),
+            'packages' => $this->getPackages($supplierId, $packageLimit, $packageOffset, $search),
             'categories' => $this->getCategories(),
             'meta' => [
-                'services' => $this->paginationMeta($serviceLimit, $serviceOffset, $this->countServices($supplierId)),
-                'packages' => $this->paginationMeta($packageLimit, $packageOffset, $this->countPackages($supplierId)),
+                'services' => $this->paginationMeta($serviceLimit, $serviceOffset, $this->countServices($supplierId, $search)),
+                'packages' => $this->paginationMeta($packageLimit, $packageOffset, $this->countPackages($supplierId, $search)),
             ],
         ];
     }
@@ -66,7 +67,7 @@ class SupplierServiceManager
         return (int)$this->db->lastinsertid();
     }
 
-    public function getServices($supplierId, $limit = null, $offset = 0)
+    public function getServices($supplierId, $limit = null, $offset = 0, string $search = '')
     {
         $priceRangeFields = $this->servicePriceRangeSelectFields();
         $defaultTimeFields = $this->serviceDefaultTimeSelectFields();
@@ -91,8 +92,11 @@ class SupplierServiceManager
                   FROM services
                   LEFT JOIN categories ON categories.id = services.category_id
                   ' . $venueJoin . '
-                  WHERE services.supplier_id = :supplier_id
-                  ORDER BY services.created_at DESC, services.id DESC';
+                  WHERE services.supplier_id = :supplier_id';
+        if ($search !== '') {
+            $query .= ' AND (services.name LIKE :search OR services.description LIKE :search2 OR categories.name LIKE :search3)';
+        }
+        $query .= ' ORDER BY services.created_at DESC, services.id DESC';
 
         if ($limit !== null) {
             $query .= ' LIMIT :limit OFFSET :offset';
@@ -100,18 +104,27 @@ class SupplierServiceManager
 
         $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $this->db->dbbind(':search', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search2', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search3', $like, PDO::PARAM_STR);
+        }
         $this->bindPagination($limit, $offset);
 
         return array_map([$this, 'formatService'], $this->db->getmultidata());
     }
 
-    public function getPackages($supplierId, $limit = null, $offset = 0)
+    public function getPackages($supplierId, $limit = null, $offset = 0, string $search = '')
     {
         $query = 'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
                   FROM supplier_packages
                   WHERE supplier_id = :supplier_id
-                    AND deleted_at IS NULL
-                  ORDER BY created_at DESC, id DESC';
+                    AND deleted_at IS NULL';
+        if ($search !== '') {
+            $query .= ' AND (name LIKE :search OR description LIKE :search2)';
+        }
+        $query .= ' ORDER BY created_at DESC, id DESC';
 
         if ($limit !== null) {
             $query .= ' LIMIT :limit OFFSET :offset';
@@ -119,6 +132,11 @@ class SupplierServiceManager
 
         $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $this->db->dbbind(':search', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search2', $like, PDO::PARAM_STR);
+        }
         $this->bindPagination($limit, $offset);
 
         return array_map([$this, 'formatPackage'], $this->db->getmultidata());
@@ -442,24 +460,36 @@ class SupplierServiceManager
         return $service ? $this->formatService($service) : null;
     }
 
-    private function countServices($supplierId)
+    private function countServices($supplierId, string $search = '')
     {
-        $this->db->dbquery('SELECT COUNT(*) AS total FROM services WHERE supplier_id = :supplier_id');
+        $query = 'SELECT COUNT(*) AS total FROM services WHERE supplier_id = :supplier_id';
+        if ($search !== '') {
+            $query .= ' AND (name LIKE :search OR description LIKE :search2)';
+        }
+        $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $this->db->dbbind(':search', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search2', $like, PDO::PARAM_STR);
+        }
         $row = $this->db->getsingledata();
-
         return (int)($row['total'] ?? 0);
     }
 
-    private function countPackages($supplierId)
+    private function countPackages($supplierId, string $search = '')
     {
-        $this->db->dbquery(
-            'SELECT COUNT(*) AS total
-             FROM supplier_packages
-             WHERE supplier_id = :supplier_id
-               AND deleted_at IS NULL'
-        );
+        $query = 'SELECT COUNT(*) AS total FROM supplier_packages WHERE supplier_id = :supplier_id AND deleted_at IS NULL';
+        if ($search !== '') {
+            $query .= ' AND (name LIKE :search OR description LIKE :search2)';
+        }
+        $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $this->db->dbbind(':search', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search2', $like, PDO::PARAM_STR);
+        }
         $row = $this->db->getsingledata();
 
         return (int)($row['total'] ?? 0);
@@ -1208,13 +1238,13 @@ class SupplierServiceManager
     {
         $priceMin = (float)($service['price_min'] ?? $service['price'] ?? 0);
         $priceMax = max($priceMin, (float)($service['price_max'] ?? $priceMin));
-        $venueName = trim((string)($service['venue_name'] ?? ''));
+        $venueName = html_entity_decode(trim((string)($service['venue_name'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         $category = strtolower((string)($service['category'] ?? ''));
 
         return [
             'id' => (int)$service['id'],
-            'name' => $service['name'] ?? '',
+            'name' => html_entity_decode($service['name'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'price' => (float)($service['price'] ?? $priceMin),
             'price_min' => $priceMin,
             'price_max' => $priceMax,
@@ -1222,7 +1252,7 @@ class SupplierServiceManager
             'customize_price' => $priceMax,
             'category' => $service['category'] ?: 'Others',
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
-            'desc' => $service['description'] ?? '',
+            'desc' => html_entity_decode($service['description'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'img' => $service['thumbnail_url'] ?? '',
             'capacity' => (int)($service['max_concurrent'] ?? 1),
             'duration_minutes' => (int)($service['duration_minutes'] ?? 60),
@@ -1232,7 +1262,7 @@ class SupplierServiceManager
             'venue_id' => isset($service['venue_id']) ? (int)$service['venue_id'] : null,
             'venue' => $venueName,
             'venue_name' => $venueName,
-            'venue_location' => $service['venue_location'] ?? '',
+            'venue_location' => html_entity_decode($service['venue_location'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'venue_rooms' => !empty($service['venue_id']) ? $this->getVenueRooms((int)$service['venue_id']) : [],
             'decoration_styles' => $category === 'decoration' ? $this->getDecorationStyles((int)$service['id']) : [],
             'rental_pricing' => in_array($category, ['dress', 'accessories'], true) ? $this->getRentalPricing((int)$service['id']) : null,
@@ -2091,21 +2121,30 @@ class SupplierServiceManager
 
         $sort = 0;
         foreach ($styles as $style) {
-            $name = trim((string)($style['name'] ?? ''));
+            $name = html_entity_decode(trim((string)($style['name'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $price = max(0, (float)($style['price'] ?? 0));
             if ($name === '') {
                 continue;
             }
+            $packagePrice = max(0, (float)($style['package_price'] ?? $style['price'] ?? 0));
+            $customizePrice = max($packagePrice, (float)($style['customize_price'] ?? $style['price'] ?? $packagePrice));
             $photoUrl = trim((string)($style['photo_url'] ?? ''));
+            $hasDualPrice = $this->hasDecorationStyleDualPriceColumn();
             $photoColumn = $hasPhoto ? ', photo_url' : '';
             $photoValue = $hasPhoto ? ', :photo_url' : '';
+            $dualCol = $hasDualPrice ? ', package_price, customize_price' : '';
+            $dualVal = $hasDualPrice ? ', :package_price, :customize_price' : '';
             $this->db->dbquery(
-                'INSERT INTO decoration_styles (service_id, name, price' . $photoColumn . ', sort_order)
-                 VALUES (:service_id, :name, :price' . $photoValue . ', :sort_order)'
+                'INSERT INTO decoration_styles (service_id, name, price' . $dualCol . $photoColumn . ', sort_order)
+                 VALUES (:service_id, :name, :price' . $dualVal . $photoValue . ', :sort_order)'
             );
             $this->db->dbbind(':service_id', $serviceId);
             $this->db->dbbind(':name', $name);
             $this->db->dbbind(':price', number_format($price, 2, '.', ''), PDO::PARAM_STR);
+            if ($hasDualPrice) {
+                $this->db->dbbind(':package_price', number_format($packagePrice, 2, '.', ''), PDO::PARAM_STR);
+                $this->db->dbbind(':customize_price', number_format($customizePrice, 2, '.', ''), PDO::PARAM_STR);
+            }
             if ($hasPhoto) {
                 $this->db->dbbind(':photo_url', $photoUrl !== '' ? $photoUrl : null);
             }
@@ -2117,8 +2156,11 @@ class SupplierServiceManager
     private function getDecorationStyles(int $serviceId): array
     {
         $photoSelect = $this->hasDecorationStylePhotoColumn() ? 'photo_url' : "'' AS photo_url";
+        $dualSelect = $this->hasDecorationStyleDualPriceColumn()
+            ? 'package_price, customize_price'
+            : "NULL AS package_price, NULL AS customize_price";
         $this->db->dbquery(
-            'SELECT id, name, price, ' . $photoSelect . '
+            'SELECT id, name, price, ' . $dualSelect . ', ' . $photoSelect . '
              FROM decoration_styles
              WHERE service_id = :service_id
              ORDER BY sort_order ASC, id ASC'
@@ -2128,8 +2170,10 @@ class SupplierServiceManager
         return array_map(function ($row) {
             return [
                 'id' => (int)$row['id'],
-                'name' => $row['name'] ?? '',
+                'name' => html_entity_decode($row['name'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'price' => (float)$row['price'],
+                'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
+                'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
                 'photo_url' => trim((string)($row['photo_url'] ?? '')),
             ];
         }, $this->db->getmultidata());
@@ -2149,6 +2193,21 @@ class SupplierServiceManager
         }
 
         return $this->hasDecorationStylePhotoColumn;
+    }
+
+    private $hasDecorationStyleDualPriceColumn = null;
+    private function hasDecorationStyleDualPriceColumn(): bool
+    {
+        if ($this->hasDecorationStyleDualPriceColumn !== null) {
+            return $this->hasDecorationStyleDualPriceColumn;
+        }
+        try {
+            $this->db->dbquery("SHOW COLUMNS FROM decoration_styles LIKE 'package_price'");
+            $this->hasDecorationStyleDualPriceColumn = (bool)$this->db->getsingledata();
+        } catch (Throwable $e) {
+            $this->hasDecorationStyleDualPriceColumn = false;
+        }
+        return $this->hasDecorationStyleDualPriceColumn;
     }
 
     private function saveRentalPricing(int $serviceId, array $data): void

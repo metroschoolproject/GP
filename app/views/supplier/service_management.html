@@ -291,9 +291,42 @@
 <main class="max-w-7xl mx-auto mt-10 px-8 pt-0 pb-8">
 
 
+  <!-- ── Header: search + action ── -->
+  <div class="flex items-center gap-3 mb-6">
+    <div class="flex-1 relative max-w-md">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="searchInput" type="text" placeholder="Search by name or category..." class="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#6e4e58] focus:ring-2 focus:ring-[#6e4e58]/10 transition" autocomplete="off"/>
+    </div>
+    <button id="headerCreateBtn" type="button" onclick="handleHeaderCreateClick()" class="inline-flex items-center gap-2 rounded-xl bg-[#6e4e58] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#593e46]">
+      <span id="headerCreateBtnLabel">Add Service</span>
+    </button>
+  </div>
+
+  <!-- ── Tabs + status filter ── -->
+  <div class="flex items-center justify-between mb-5">
+    <div class="flex items-center gap-1">
+      <button id="tab-services" type="button" onclick="switchTab('services')" class="tab-btn active text-gray-800 border-[#6e4e58] border-b-2 px-4 py-2 text-sm font-semibold text-gray-400 border-transparent transition">Services</button>
+      <button id="tab-packages" type="button" onclick="switchTab('packages')" class="tab-btn text-gray-400 border-transparent px-4 py-2 text-sm font-semibold transition">Packages</button>
+    </div>
+    <div class="flex items-center gap-1.5 rounded-xl bg-white p-1 shadow-sm border border-gray-100">
+      <button id="sf-all" type="button" onclick="setStatusFilter('all')" class="sf-btn bg-custom-primary text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition">All</button>
+      <button id="sf-active" type="button" onclick="setStatusFilter('active')" class="sf-btn bg-white text-gray-500 rounded-lg px-3 py-1.5 text-xs font-semibold transition">Active</button>
+      <button id="sf-inactive" type="button" onclick="setStatusFilter('inactive')" class="sf-btn bg-white text-gray-500 rounded-lg px-3 py-1.5 text-xs font-semibold transition">Inactive</button>
+    </div>
+  </div>
+
   
 
 
+
+  <!-- Sort bar -->
+  <div id="smSortWrap" class="flex items-center gap-2 mb-4">
+    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Sort by</span>
+    <button onclick="currentSort='newest';render();" class="sort-btn text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-[#6e4e58] transition" data-sort="newest" id="sort-newest">Newest</button>
+    <button onclick="currentSort='name_asc';render();" class="sort-btn text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-[#6e4e58] transition" data-sort="name_asc" id="sort-name-asc">Name</button>
+    <button onclick="currentSort='price_asc';render();" class="sort-btn text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-[#6e4e58] transition" data-sort="price_asc" id="sort-price-asc">Price ↑</button>
+    <button onclick="currentSort='price_desc';render();" class="sort-btn text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-[#6e4e58] transition" data-sort="price_desc" id="sort-price-desc">Price ↓</button>
+  </div>
 
   <div id="cardsGrid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
   <div id="emptyState" class="supplier-empty-state hidden" aria-live="polite">
@@ -326,203 +359,250 @@
       Load more
     </button>
   </div>
+  <div id="allLoadedMsg" class="hidden mt-8 text-center text-xs font-medium text-gray-400"></div>
 </main>
 
 
-<!-- ══════════════════ MODAL: CHOOSE SERVICE TYPE ══════════════════ -->
-<div id="serviceTypeModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-md relative flex flex-col" style="max-height:88vh">
-    <div class="modal-h">
-      <h2 class="modal-h-title">Choose service type</h2>
-      <button onclick="closeTypeModal()" class="modal-h-close" aria-label="Close">&times;</button>
-    </div>
-    <div class="modal-b modal-b-space">
-      <p style="font-size:13px;color:#9a8b82;margin-bottom:4px">What type of service would you like to create?</p>
-      <div id="serviceTypeOptions" class="grid grid-cols-2 gap-2.5"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════ MODAL: ADD VENUE ══════════════════ -->
-<div id="venueModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
-    <div class="modal-h">
-      <h2 class="modal-h-title">New venue service</h2>
-      <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
-    </div>
-    <div class="modal-b modal-b-space">
-      <!-- Image upload — clean dashed zone -->
-      <div id="venueImgBox" onclick="triggerBrowse(event,'venueImgInput')" class="img-zone" role="button" tabindex="0" style="min-height:130px">
-        <div class="img-zone-icon">+</div>
-        <span class="img-zone-label">Add a photo</span>
+<!-- ══════════════════ MODAL: CREATE SERVICE (UNIFIED) ══════════════════ -->
+<div id="createServiceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(28,22,20,0.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+  <div class="modal-box modal-box-wide create-service-dialog" role="dialog" aria-modal="true" aria-labelledby="createServiceTitle">
+    <div class="modal-h create-service-head">
+      <div>
+        <span class="create-service-kicker">Service management</span>
+        <h2 id="createServiceTitle" class="modal-h-title">Create a new service</h2>
+        <p id="createServiceSubtitle" class="modal-h-sub">Start by choosing what you provide.</p>
       </div>
-      <input id="venueImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('venueImgInput','venueImgBox','vImgData', 16/9)"/>
-      <input type="hidden" id="vImgData"/>
+      <button onclick="closeCreateServiceModal()" class="modal-h-close" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l10 10M13 3L3 13"/></svg>
+      </button>
+    </div>
 
+    <div class="create-service-progress" aria-label="Service creation progress">
+      <button type="button" class="create-progress-item is-active" data-create-step-button="1" onclick="goToCreateStep(1)">
+        <span>1</span><strong>Category</strong>
+      </button>
+      <i></i>
+      <button type="button" class="create-progress-item" data-create-step-button="2" onclick="goToCreateStep(2)">
+        <span>2</span><strong>Essentials</strong>
+      </button>
+      <i></i>
+      <button type="button" class="create-progress-item" data-create-step-button="3" onclick="goToCreateStep(3)">
+        <span>3</span><strong>Details</strong>
+      </button>
+    </div>
+
+    <div class="modal-b create-service-body">
+      <section class="create-step is-active" data-create-step="1">
+        <div class="create-step-intro">
+          <span class="create-step-number">01</span>
+          <div>
+            <h3>What kind of service is this?</h3>
+            <p>Your choice shapes the pricing and detail fields in the next steps.</p>
+          </div>
+        </div>
+        <div id="createCategoryCards" class="create-category-grid"></div>
+      </section>
+
+      <section class="create-step" data-create-step="2">
+        <div class="create-step-intro">
+          <span class="create-step-number">02</span>
+          <div>
+            <h3>Give customers the essentials</h3>
+            <p>Add a clear name, cover image, and the information they compare first.</p>
+          </div>
+        </div>
+        <div class="create-essentials-grid">
+      <!-- Section: Media -->
+      <div class="create-cover-column">
+        <label class="fm-label">Cover photo</label>
+        <div id="csImgBox" onclick="triggerBrowse(event,'csImgInput')" class="img-zone" role="button" tabindex="0">
+          <div class="img-zone-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          </div>
+          <span class="img-zone-label">Upload an image</span>
+          <span class="img-zone-hint">JPG, PNG or WebP — shown in listings</span>
+        </div>
+        <input id="csImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('csImgInput','csImgBox','csImgData', 16/9)"/>
+        <input type="hidden" id="csImgData"/>
+      </div>
+
+      <!-- Section: Basic info -->
+      <div class="create-main-fields">
       <div class="modal-grid-2">
         <div>
-          <label class="fm-label" for="vName">Service name</label>
-          <input id="vName" type="text" placeholder="e.g. Grand Ballroom" class="fm-input"/>
+          <label class="fm-label" for="csName">Service name <span class="fm-required">*</span></label>
+          <input id="csName" type="text" placeholder="e.g. Grand Ballroom" class="fm-input"/>
         </div>
         <div>
-          <label class="fm-label">Category</label>
-          <input type="text" value="Venue" readonly class="fm-input" style="color:#b5a79e;cursor:not-allowed"/>
+          <label class="fm-label" for="csCategory">Category <span class="fm-required">*</span></label>
+          <select id="csCategory" class="fm-select" onchange="onCreateCategoryChange(this.value)"></select>
         </div>
       </div>
-      <div>
-        <label class="fm-label" for="vDesc">Description</label>
-        <textarea id="vDesc" rows="2" placeholder="Describe the venue…" class="fm-textarea"></textarea>
-      </div>
-      <div class="modal-grid-2">
-        <div>
-          <label class="fm-label" for="vVenue">Venue name</label>
-          <input id="vVenue" type="text" placeholder="e.g. KL Convention Centre" class="fm-input"/>
-        </div>
-        <div>
-          <label class="fm-label" for="vLocation">Location</label>
-          <input id="vLocation" type="text" placeholder="e.g. Yangon, Myanmar" class="fm-input"/>
-        </div>
-      </div>
-      <div>
-        <label class="fm-label" for="vType">Venue type</label>
-        <select id="vType" class="fm-select" style="max-width:240px">
-          <option value="">Select type…</option>
-          <option value="Indoor">Indoor</option>
-          <option value="Outdoor">Outdoor</option>
-          <option value="Indoor+Outdoor">Indoor + Outdoor</option>
-        </select>
-      </div>
-      <div>
-        <label class="fm-label" for="vMinLeadDays">Minimum booking notice (days)</label>
-        <input id="vMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
-        <div style="font-size:12px;color:#666;margin-top:4px">Default notice period for this venue. Individual halls can override it.</div>
-      </div>
-      <div>
-        <div class="flex items-center justify-between" style="margin-bottom:10px">
-          <span class="fm-label" style="margin-bottom:0">Rooms / halls</span>
-          <button type="button" onclick="addVenueRoom('v')" class="room-add" type="button">+ Add room</button>
-        </div>
-        <div id="vRoomsList" class="space-y-3"></div>
-      </div>
-    </div>
-    <div class="modal-f">
-      <button onclick="closeAll()" class="btn-dull">Cancel</button>
-      <button onclick="saveVenue()" class="btn-save">Save</button>
-    </div>
-  </div>
-</div>
 
+      <div>
+        <label class="fm-label" for="csDesc">Description</label>
+        <textarea id="csDesc" rows="3" placeholder="Describe what makes this service special…" class="fm-textarea"></textarea>
+      </div>
+      </div>
+      </div>
 
-<!-- ══════════════════ MODAL: ADD OTHERS ══════════════════ -->
-<div id="othersModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
-    <div class="modal-h">
-      <h2 class="modal-h-title">New service</h2>
-      <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
-    </div>
-    <div class="modal-b modal-b-space">
-      <div id="othersImgBox" onclick="triggerBrowse(event,'othersImgInput')" class="img-zone" role="button" tabindex="0" style="min-height:130px">
-        <div class="img-zone-icon">+</div>
-        <span class="img-zone-label">Add a photo</span>
+      <!-- Section: Pricing (standard — hidden for Venue, Decoration, Dress, Accessories) -->
+      <div id="csStandardPriceFields" class="modal-grid-2" style="grid-template-columns:1fr 1fr 1fr">
+        <div>
+          <label class="fm-label" for="csPriceMin">Package price (MMK) <span class="fm-required">*</span></label>
+          <input id="csPriceMin" type="number" min="0" step="0.01" placeholder="e.g. 800" class="fm-input"/>
+        </div>
+        <div>
+          <label class="fm-label" for="csPriceMax">Customize price (MMK) <span class="fm-required">*</span></label>
+          <input id="csPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 1500" class="fm-input"/>
+        </div>
+        <div>
+          <label class="fm-label" for="csCapacity">Max concurrent</label>
+          <input id="csCapacity" type="number" min="1" step="1" placeholder="e.g. 50" class="fm-input"/>
+        </div>
       </div>
-      <input id="othersImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('othersImgInput','othersImgBox','oImgData', 16/9)"/>
-      <input type="hidden" id="oImgData"/>
+      </section>
 
-      <div class="modal-grid-2">
-        <div>
-          <label class="fm-label" for="oName">Service name</label>
-          <input id="oName" type="text" placeholder="e.g. Live Band" class="fm-input"/>
+      <section class="create-step" data-create-step="3">
+        <div class="create-step-intro">
+          <span class="create-step-number">03</span>
+          <div>
+            <h3>Finish the service setup</h3>
+            <p>Add the details specific to <strong id="createDetailCategory">your category</strong>, then set booking availability.</p>
+          </div>
         </div>
-        <div>
-          <label class="fm-label" for="oCategory">Category</label>
-          <select id="oCategory" class="fm-select" onchange="onOthersCategoryChange(this.value)"></select>
+      <!-- Section: Venue-specific -->
+      <div id="csVenueExtras" class="form-section-wrap hidden-section">
+        <div class="form-section-inner">
+          <div class="fm-section-label">Venue details</div>
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
+            <div>
+              <label class="fm-label" for="csVenue">Venue name</label>
+              <input id="csVenue" type="text" placeholder="e.g. KL Convention Centre" class="fm-input"/>
+            </div>
+            <div class="modal-grid-2">
+              <div>
+                <label class="fm-label" for="csLocation">Location</label>
+                <input id="csLocation" type="text" placeholder="e.g. Yangon, Myanmar" class="fm-input"/>
+              </div>
+              <div>
+                <label class="fm-label" for="csType">Venue type</label>
+                <select id="csType" class="fm-select">
+                  <option value="">Select type…</option>
+                  <option value="Indoor">Indoor</option>
+                  <option value="Outdoor">Outdoor</option>
+                  <option value="Indoor+Outdoor">Indoor + Outdoor</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between" style="margin-bottom:12px">
+                <span class="fm-label" style="margin-bottom:0">Rooms / halls</span>
+                <button type="button" onclick="addVenueRoom('cs')" class="room-add">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+                  Add room
+                </button>
+              </div>
+              <div id="csRoomsList" class="space-y-3"></div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- Section: Decoration-specific -->
+      <div id="csDecorationExtras" class="form-section-wrap hidden-section">
+        <div class="form-section-inner">
+          <div class="fm-section-label">Decoration styles</div>
+          <div style="margin-top:12px">
+            <div class="flex items-center justify-between" style="margin-bottom:12px">
+              <span class="fm-label" style="margin-bottom:0">Styles &amp; prices</span>
+              <button type="button" onclick="addDecorationStyle('cs')" class="room-add">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+                Add style
+              </button>
+            </div>
+            <div id="csStylesList" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Rental-specific (Dress / Accessories) -->
+      <div id="csRentalExtras" class="form-section-wrap hidden-section">
+        <div class="form-section-inner">
+          <div class="fm-section-label">Pricing options</div>
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
+            <div class="modal-grid-2">
+              <div>
+                <label class="fm-label" for="csBorrowPackagePrice">Borrow package price (MMK)</label>
+                <input id="csBorrowPackagePrice" type="number" min="0" step="0.01" placeholder="e.g. 150,000" class="fm-input"/>
+              </div>
+              <div>
+                <label class="fm-label" for="csBorrowCustomizePrice">Borrow customize price (MMK)</label>
+                <input id="csBorrowCustomizePrice" type="number" min="0" step="0.01" placeholder="e.g. 220,000" class="fm-input"/>
+              </div>
+            </div>
+            <div class="modal-grid-2">
+              <div>
+                <label class="fm-label" for="csBuyPackagePrice">Buy package price (MMK)</label>
+                <input id="csBuyPackagePrice" type="number" min="0" step="0.01" placeholder="e.g. 850,000" class="fm-input"/>
+              </div>
+              <div>
+                <label class="fm-label" for="csBuyCustomizePrice">Buy customize price (MMK)</label>
+                <input id="csBuyCustomizePrice" type="number" min="0" step="0.01" placeholder="e.g. 1,200,000" class="fm-input"/>
+              </div>
+            </div>
+            <div class="modal-grid-2">
+              <div>
+                <label class="fm-label" for="csReturnDays">Return within (days)</label>
+                <input id="csReturnDays" type="number" min="1" step="1" placeholder="e.g. 3" class="fm-input"/>
+              </div>
+            </div>
+            <p class="fm-hint">Fill in borrow, buy, or both. Leave blank to hide unavailable options.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Settings -->
       <div>
-        <label class="fm-label" for="oDesc">Description</label>
-        <textarea id="oDesc" rows="3" placeholder="Describe the service…" class="fm-textarea"></textarea>
-      </div>
-      <div id="oStandardPriceFields" class="modal-grid-2" style="grid-template-columns:1fr 1fr 1fr">
-        <div>
-          <label class="fm-label" for="oPriceMin">Package price (MMK)</label>
-          <input id="oPriceMin" type="number" min="0" step="0.01" placeholder="e.g. 800" class="fm-input"/>
-        </div>
-        <div>
-          <label class="fm-label" for="oPriceMax">Customize price (MMK)</label>
-          <input id="oPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 1500" class="fm-input"/>
-        </div>
-        <div>
-          <label class="fm-label" for="oCapacity">Max concurrent</label>
-          <input id="oCapacity" type="number" min="1" step="1" placeholder="e.g. 50" class="fm-input"/>
-        </div>
-      </div>
-      <!-- Decoration styles — shown only for Decoration category -->
-      <div id="oDecorationExtras" class="hidden space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="fm-label" style="margin-bottom:0">Decoration styles &amp; prices</span>
-          <button type="button" onclick="addDecorationStyle('o')" class="room-add">+ Add style</button>
-        </div>
-        <div id="oStylesList" class="space-y-2"></div>
-      </div>
-      <!-- Rental pricing — shown only for Dress / Accessories -->
-      <div id="oRentalExtras" class="hidden space-y-3">
-        <div class="fm-label" style="margin-bottom:4px">Pricing options</div>
-        <div class="modal-grid-2">
+        <div class="fm-section-label">Booking settings</div>
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
           <div>
-            <label class="fm-label" for="oBorrowPackagePrice">Borrow package price (MMK)</label>
-            <input id="oBorrowPackagePrice" type="number" min="0" step="0.01" placeholder="e.g. 150000" class="fm-input"/>
+            <label class="fm-label" for="csMinLeadDays">Minimum booking notice (days)</label>
+            <input id="csMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0" class="fm-input" style="max-width:160px"/>
+            <p class="fm-hint">How many days in advance customers must book. 0 = same day.</p>
           </div>
           <div>
-            <label class="fm-label" for="oBorrowCustomizePrice">Borrow customize price (MMK)</label>
-            <input id="oBorrowCustomizePrice" type="number" min="0" step="0.01" placeholder="e.g. 220000" class="fm-input"/>
+            <label class="fm-label">Default service hours <span style="font-weight:400;color:var(--fm-text-muted)">— optional</span></label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+              <input id="csDefaultStartTime" type="time" class="fm-input" style="max-width:150px"/>
+              <span style="color:var(--fm-text-soft);flex-shrink:0;font-size:13px">to</span>
+              <input id="csDefaultEndTime" type="time" class="fm-input" style="max-width:150px"/>
+            </div>
+            <p class="fm-hint">Leave blank to use category defaults. Used for full-day package bookings.</p>
           </div>
         </div>
-        <div class="modal-grid-2">
-          <div>
-            <label class="fm-label" for="oBuyPackagePrice">Buy package price (MMK)</label>
-            <input id="oBuyPackagePrice" type="number" min="0" step="0.01" placeholder="e.g. 850000" class="fm-input"/>
-          </div>
-          <div>
-            <label class="fm-label" for="oBuyCustomizePrice">Buy customize price (MMK)</label>
-            <input id="oBuyCustomizePrice" type="number" min="0" step="0.01" placeholder="e.g. 1200000" class="fm-input"/>
-          </div>
-        </div>
-        <div class="modal-grid-2">
-          <div>
-            <label class="fm-label" for="oReturnDays">Return within (days)</label>
-            <input id="oReturnDays" type="number" min="1" step="1" placeholder="e.g. 3" class="fm-input"/>
-          </div>
-        </div>
-        <div style="font-size:12px;color:#888">Fill in one or both. Leave blank to hide that option from customers.</div>
       </div>
-      <div>
-        <label class="fm-label" for="oMinLeadDays">Minimum booking notice (days)</label>
-        <input id="oMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
-        <div style="font-size:12px;color:#666;margin-top:4px">How many days in advance must customers book this service?</div>
-      </div>
-      <div>
-        <label class="fm-label">Default service hours <span style="font-weight:400;color:#9a8b82">(optional)</span></label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input id="oDefaultStartTime" type="time" class="fm-input" style="max-width:130px"/>
-          <span style="color:#9a8b82;flex-shrink:0">to</span>
-          <input id="oDefaultEndTime" type="time" class="fm-input" style="max-width:130px"/>
-        </div>
-        <div style="font-size:12px;color:#666;margin-top:4px">Leave blank to use category defaults. Used for full-day package bookings.</div>
-      </div>
+      </section>
     </div>
-    <div class="modal-f">
-      <button onclick="closeAll()" class="btn-dull">Cancel</button>
-      <button onclick="saveOthers()" class="btn-save">Save</button>
+    <div class="modal-f create-service-footer">
+      <button id="createCancelBtn" onclick="closeCreateServiceModal()" class="btn-dull">Cancel</button>
+      <span id="createStepSummary" class="create-step-summary">Choose one category to continue</span>
+      <button id="createBackBtn" type="button" onclick="previousCreateStep()" class="btn-dull hidden">Back</button>
+      <button id="createNextBtn" type="button" onclick="nextCreateStep()" class="btn-save" disabled>Continue</button>
+      <button id="createSaveBtn" type="button" onclick="saveCreateService()" class="btn-save hidden">Create service</button>
     </div>
   </div>
 </div>
 
 
 <!-- ══════════════════ MODAL: EDIT SERVICE ══════════════════ -->
-<div id="editServiceModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
+<div id="editServiceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(28,22,20,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)">
+  <div class="modal-box" style="max-width:580px">
     <div class="modal-h">
-      <h2 class="modal-h-title">Edit service</h2>
+      <div>
+        <h2 class="modal-h-title">Edit Service</h2>
+        <p class="modal-h-sub">Update service details</p>
+      </div>
       <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-b modal-b-space">
@@ -640,10 +720,13 @@
 </div>
 
 <!-- ══════════════════ MODAL: EDIT PACKAGE ══════════════════ -->
-<div id="editPackageModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
+<div id="editPackageModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(28,22,20,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)">
+  <div class="modal-box" style="max-width:580px">
     <div class="modal-h">
-      <h2 class="modal-h-title">Edit package</h2>
+      <div>
+        <h2 class="modal-h-title">Edit Package</h2>
+        <p class="modal-h-sub">Update package details</p>
+      </div>
       <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-b modal-b-space">
@@ -680,30 +763,43 @@
 
 
 <!-- ══════════════════ MODAL: DELETE CONFIRMATION ══════════════════ -->
-<div id="deleteConfirmModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-    <div class="px-6 pt-6 pb-4">
-      <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+<div id="deleteConfirmModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4" style="background:rgba(28,22,20,0.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" style="box-shadow:0 24px 80px rgba(28,22,20,0.16),0 0 0 1px rgba(28,22,20,0.04)">
+    <div class="px-8 pt-8 pb-6">
+      <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-full" style="background:#fef2f2;color:#dc4a4a">
         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>
         </svg>
       </div>
+      <h2 id="deleteConfirmTitle" class="text-lg font-semibold text-gray-900" style="font-family:'Playfair Display',Georgia,serif">Delete item?</h2>
+      <p id="deleteConfirmMessage" class="mt-2 text-sm leading-6 text-gray-600">This action cannot be undone.</p>
+      <div id="deleteConfirmTypeWrap" class="mt-3 hidden">
+        <input id="deleteConfirmTypeInput" type="text" class="fm-input w-full" placeholder="Type name to confirm" autocomplete="off"/>
+      </div>
+        </svg>
+      </div>
       <h2 id="deleteConfirmTitle" class="text-lg font-bold text-gray-900">Delete item?</h2>
       <p id="deleteConfirmMessage" class="mt-2 text-sm leading-6 text-gray-600">This action cannot be undone.</p>
+      <div id="deleteConfirmTypeWrap" class="mt-3 hidden">
+        <input id="deleteConfirmTypeInput" type="text" class="fm-input w-full" placeholder="Type name to confirm" autocomplete="off"/>
+      </div>
     </div>
-    <div class="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
-      <button type="button" id="deleteConfirmCancel" class="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-100 transition">Cancel</button>
-      <button type="button" id="deleteConfirmAction" class="px-5 py-2.5 rounded-xl bg-rose-600 text-sm font-semibold text-white hover:bg-rose-700 transition shadow-sm">Delete</button>
+    <div class="flex justify-end gap-3 px-8 py-5" style="background:var(--fm-surface-warm);border-top:1px solid var(--fm-border);border-radius:0 0 16px 16px">
+      <button type="button" id="deleteConfirmCancel" class="btn-dull">Cancel</button>
+      <button type="button" id="deleteConfirmAction" class="btn-save" style="background:#dc4a4a;box-shadow:0 2px 4px rgba(220,74,74,0.2),0 1px 2px rgba(220,74,74,0.15)">Delete</button>
     </div>
   </div>
 </div>
 
 
 <!-- ══════════════════ MODAL: CREATE PACKAGE ══════════════════ -->
-<div id="createPackageModal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="modal-box bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col" style="max-height:92vh">
+<div id="createPackageModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(28,22,20,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)">
+  <div class="modal-box" style="max-width:580px">
     <div class="modal-h">
-      <h2 class="modal-h-title">Create package</h2>
+      <div>
+        <h2 class="modal-h-title">Create Package</h2>
+        <p class="modal-h-sub">Bundle services into a package</p>
+      </div>
       <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-b modal-b-space">
@@ -714,7 +810,7 @@
       <input id="cpImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('cpImgInput','cpImgBox','cpImgData', 16/9)"/>
       <input type="hidden" id="cpImgData"/>
       <div>
-        <label class="fm-label" for="cpName">Package name</label>
+        <label class="fm-label" for="cpName">Package name <span style="color:#ef4444">*</span></label>
         <input id="cpName" type="text" placeholder="e.g. Dream Wedding" class="fm-input"/>
       </div>
       <div>
@@ -722,7 +818,7 @@
         <textarea id="cpDesc" rows="3" placeholder="Describe this package…" class="fm-textarea"></textarea>
       </div>
       <div>
-        <label class="fm-label" for="cpPrice">Price (MMK)</label>
+        <label class="fm-label" for="cpPrice">Price (MMK) <span style="color:#ef4444">*</span></label>
         <input id="cpPrice" type="number" min="0" step="0.01" placeholder="e.g. 9800" class="fm-input"/>
       </div>
       <div>

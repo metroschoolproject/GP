@@ -111,11 +111,17 @@ if ($isRentalCategory) {
 $activeServicePrice = (float)($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
 $isPackageContext = ($service['price_context'] ?? '') === 'package' && !empty($service['package_context']);
 $packageContext = $isPackageContext ? ($service['package_context'] ?? []) : [];
+$addonContext = is_array($service['addon_context'] ?? null) ? $service['addon_context'] : [];
+$isAddonContext = !$isPackageContext && !empty($addonContext['package_id']);
 $packageName = trim((string)($packageContext['package_name'] ?? 'Wedding package'));
 $packageSlug = trim((string)($packageContext['package_slug'] ?? ''));
+$addonPackageName = trim((string)($addonContext['package_name'] ?? 'Wedding package'));
+$addonPackageSlug = trim((string)($addonContext['package_slug'] ?? ''));
 $packageDetailUrl = $packageSlug !== ''
     ? URLROOT . '/customerServices/packageDetail/' . rawurlencode($packageSlug)
-    : URLROOT . '/customerServices/packages';
+    : ($addonPackageSlug !== ''
+        ? URLROOT . '/customerServices/packageDetail/' . rawurlencode($addonPackageSlug)
+        : URLROOT . '/customerServices/packages');
 $packageServicePrice = (float)($packageContext['package_price'] ?? $activeServicePrice);
 $standalonePrice = (float)($service['standalone_price'] ?? 0);
 if ($isPackageContext && $isVenue && (float)($packageContext['venue_room_price'] ?? 0) > 0) {
@@ -127,7 +133,7 @@ $packageQueryFields = $isPackageContext
         'package_id' => (int)($packageContext['package_id'] ?? 0),
         'package_item_id' => (int)($packageContext['package_item_id'] ?? 0),
     ]
-    : [];
+    : ($isAddonContext ? ['addon_package_id' => (int)$addonContext['package_id']] : []);
 
 $timeRange = function ($from, $to) {
     $from = trim((string)$from);
@@ -2585,6 +2591,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
             </a>
           </div>
           <?php elseif ($hasInitialBookOption): ?>
+          <?php if ($isAddonContext): ?>
+          <div class="gp-package-notice">
+            <span>Add this service as an extra for <strong><?= $h($addonPackageName) ?></strong>.</span>
+          </div>
+          <?php endif; ?>
           <form method="POST" action="<?= URLROOT ?>/cart/add" id="serviceCartForm" style="display:contents;">
             <input type="hidden" name="service_id" value="<?= (int)($service['id'] ?? 0) ?>">
             <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
@@ -2594,9 +2605,12 @@ button, input, select, textarea { font-family: var(--font-sans); }
             <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($isVenue ? ($firstVenueRoom['end_time'] ?? '') : ($firstSlot['end_time'] ?? '')) ?>">
             <input type="hidden" name="price" id="cartPrice" value="<?= $h($activeServicePrice) ?>">
             <input type="hidden" name="source" value="custom">
+            <?php if ($isAddonContext): ?>
+              <input type="hidden" name="addon_package_id" value="<?= (int)$addonContext['package_id'] ?>">
+            <?php endif; ?>
             <button class="btn-cart" id="addCartLink" type="submit">
               <i data-lucide="shopping-cart" size="16"></i>
-              Add to cart
+              <?= $isAddonContext ? 'Add to package' : 'Add to cart' ?>
             </button>
           </form>
           <?php else: ?>
@@ -2783,11 +2797,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
     <?php else: ?>
     <div>
       <div class="mobile-book-price"><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></div>
-      <div class="mobile-book-label"><?= $pricingUnitLabel($service) ?></div>
+      <div class="mobile-book-label"><?= $isAddonContext ? 'Package add-on' : $pricingUnitLabel($service) ?></div>
     </div>
     <a class="mobile-book-btn <?= $hasInitialBookOption ? '' : 'is-guidance' ?>" id="mobileBookBtn" href="<?= URLROOT ?>/cart">
       <i data-lucide="shopping-cart" size="16"></i>
-      Add to cart
+      <?= $isAddonContext ? 'Add to package' : 'Add to cart' ?>
     </a>
     <?php endif; ?>
   </div>

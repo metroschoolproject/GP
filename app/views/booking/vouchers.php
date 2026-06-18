@@ -86,6 +86,15 @@ a{color:inherit;text-decoration:none}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:640px){.gp-grid{grid-template-columns:1fr}.gp-header-nav{display:none}:root{--pad-x:16px}}
+
+/* Pagination */
+.gp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; margin-top: 20px; border-top: 1px solid rgba(178,143,110,0.22); }
+.gp-pagination-info { font-size: 12px; color: var(--muted, #a08878); }
+.gp-pagination-btns { display: flex; align-items: center; gap: 5px; }
+.gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid rgba(178,143,110,0.22); border-radius: 8px; background: #fff; color: #5c4a54; font-size: 12px; font-weight: 600; font-family: inherit; text-decoration: none; transition: all 0.15s; cursor: pointer; }
+.gp-pagination-btn:hover { background: #f2e4d4; color: #1a1118; border-color: #b8924a; }
+.gp-pagination-btn-cur { background: #6b4459; color: #fff; border-color: #6b4459; }
+.gp-pagination-btn-disabled { opacity: 0.3; pointer-events: none; }
 </style>
 </head><body>
 
@@ -186,6 +195,14 @@ a{color:inherit;text-decoration:none}
       </div>
       <?php endforeach; ?>
     <?php endif; ?>
+
+    <?php
+    if (isset($currentPage, $totalPages, $totalCount, $perPage) && $totalPages > 1) {
+        $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+        $classPrefix = 'customer';
+        require APPROOT . '/views/partials/_pagination.php';
+    }
+    ?>
   </div>
 </main>
 

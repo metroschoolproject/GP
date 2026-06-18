@@ -39,6 +39,392 @@ class Admin extends Controller
         $this->view('admin/admin_dashboard');
     }
 
+    /**
+     * JSON endpoint — returns all dashboard KPIs from real database data.
+     * Query params: filter (today|week|month|year), date (YYYY-MM-DD)
+     */
+    public function overviewData()
+    {
+        $filter = $_GET['filter'] ?? 'week';
+        if (!in_array($filter, ['today', 'week', 'month', 'year'], true)) {
+            $filter = 'week';
+        }
+        $dateParam = trim($_GET['date'] ?? '');
+        $targetDate = $dateParam !== '' ? $dateParam : date('Y-m-d');
+
+        $db = new Database();
+
+        // ── Escrow Wallet ─────────────────────────────────────────
+        $db->dbquery(
+            "SELECT COALESCE(SUM(CASE WHEN status = 'success' THEN COALESCE(paid_amount, amount, 0) ELSE 0 END), 0) AS total,
+                    COALESCE(SUM(CASE WHEN status = 'pending' THEN COALESCE(paid_amount, amount, 0) ELSE 0 END), 0) AS pending_release
+             FROM payments
+             WHERE escrow_status = 'held' AND type = 'deposit'"
+        );
+        $escrowRow = $db->getsingledata() ?: [];
+        $escrowTotal = (float)($escrowRow['total'] ?? 0);
+        $escrowPending = (float)($escrowRow['pending_release'] ?? 0);
+        $escrowAvailable = $escrowTotal - $escrowPending;
+
+        // ── Total Revenue (successful deposits) ───────────────────
+        $db->dbquery(
+            "SELECT COALESCE(SUM(COALESCE(paid_amount, amount, 0)), 0) AS total_revenue
+             FROM payments
+             WHERE type = 'deposit' AND status = 'success'"
+        );
+        $totalRevenue = (float)($db->getsingledata()['total_revenue'] ?? 0);
+
+        // ── Bookings stats ───────────────────────────────────────
+        $db->dbquery(
+            "SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed,
+                    SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,
+                    SUM(CASE WHEN status = 'payment_submitted' THEN 1 ELSE 0 END) AS payment_submitted,
+                    COALESCE(AVG(CASE WHEN status IN ('paid','payment_verified','confirmed','completed','pending_final_payment','finalized') THEN total_amount END), 0) AS avg_spend
+             FROM bookings
+             WHERE status != 'draft'"
+        );
+        $bookingStats = $db->getsingledata() ?: [];
+        $totalBookings = (int)($bookingStats['total'] ?? 0);
+        $confirmedBookings = (int)($bookingStats['confirmed'] ?? 0);
+        $cancelledBookings = (int)($bookingStats['cancelled'] ?? 0);
+        $pendingPaymentSubmissions = (int)($bookingStats['payment_submitted'] ?? 0);
+        $avgSpend = round((float)($bookingStats['avg_spend'] ?? 0), 2);
+
+        // ── Today & week booking counts ──────────────────────────
+        $db->dbquery(
+            "SELECT SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS today_count,
+                    SUM(CASE WHEN YEARWEEK(created_at, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END) AS week_count
+             FROM bookings
+             WHERE status != 'draft'"
+        );
+        $countsRow = $db->getsingledata() ?: [];
+        $todayBookings = (int)($countsRow['today_count'] ?? 0);
+        $weekBookings = (int)($countsRow['week_count'] ?? 0);
+
+        // ── Pending booking confirmations (supplier pending) ─────
+        $db->dbquery(
+            "SELECT COUNT(*) AS pending_confirm
+             FROM booking_suppliers bs
+             INNER JOIN bookings b ON bs.booking_id = b.id
+             WHERE bs.status = 'pending' AND b.status != 'draft'"
+        );
+        $pendingBookingConfirm = (int)(($db->getsingledata() ?: [])['pending_confirm'] ?? 0);
+
+        // ── Vendor approvals ─────────────────────────────────────
+        $db->dbquery(
+            "SELECT SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved,
+                    SUM(CASE WHEN status = 'verified' THEN 1 ELSE 0 END) AS verified,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+                    SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS rejected
+             FROM suppliers
+             WHERE deleted_at IS NULL"
+        );
+        $vendorStats = $db->getsingledata() ?: [];
+        $vendorApproved = (int)($vendorStats['approved'] ?? 0) + (int)($vendorStats['verified'] ?? 0);
+        $vendorPending = (int)($vendorStats['pending'] ?? 0);
+        $vendorRejected = (int)($vendorStats['rejected'] ?? 0);
+
+        // ── Community (customers & suppliers) ────────────────────
+        $db->dbquery(
+            "SELECT SUM(CASE WHEN ur.role_id = 1 THEN 1 ELSE 0 END) AS customers,
+                    SUM(CASE WHEN ur.role_id = 2 THEN 1 ELSE 0 END) AS suppliers,
+                    SUM(CASE WHEN ur.role_id IN (3,4) THEN 1 ELSE 0 END) AS staffs
+             FROM user_roles ur
+             INNER JOIN users u ON ur.user_id = u.user_id
+             WHERE u.status = 'active' AND u.deleted_at IS NULL"
+        );
+        $communityStats = $db->getsingledata() ?: [];
+        $totalCustomers = (int)($communityStats['customers'] ?? 0);
+        $totalSuppliers = (int)($communityStats['suppliers'] ?? 0);
+        $totalStaffs = (int)($communityStats['staffs'] ?? 0);
+
+        // ── Revenue Trend ────────────────────────────────────────
+        $revenueTrend = $this->buildRevenueTrend($db, $filter, $targetDate);
+
+        // ── Supplier Categories ──────────────────────────────────
+        $db->dbquery(
+            "SELECT c.name AS category_name, COUNT(sc.supplier_id) AS supplier_count
+             FROM categories c
+             INNER JOIN supplier_categories sc ON c.id = sc.category_id
+             GROUP BY c.id, c.name
+             ORDER BY supplier_count DESC, c.name ASC"
+        );
+        $categoryRows = $db->getmultidata();
+        $categoryLabels = [];
+        $categoryValues = [];
+        foreach ($categoryRows as $row) {
+            $categoryLabels[] = $row['category_name'];
+            $categoryValues[] = (int)$row['supplier_count'];
+        }
+        if (empty($categoryLabels)) {
+            $categoryLabels = ['No categories yet'];
+            $categoryValues = [1];
+        }
+
+        // ── Top Partners ─────────────────────────────────────────
+        $db->dbquery(
+            "SELECT s.shop_name, COUNT(bs.id) AS booking_count
+             FROM booking_suppliers bs
+             INNER JOIN suppliers s ON bs.supplier_id = s.supplier_id
+             INNER JOIN bookings b ON bs.booking_id = b.id AND b.status != 'draft'
+             WHERE bs.status IN ('confirmed', 'completed')
+             GROUP BY bs.supplier_id, s.shop_name
+             ORDER BY booking_count DESC, s.shop_name ASC
+             LIMIT 3"
+        );
+        $topSuppliers = $db->getmultidata();
+        if (empty($topSuppliers)) {
+            $topSuppliers = [['shop_name' => 'No data yet', 'booking_count' => 0]];
+        }
+
+        // ── Upcoming Events ──────────────────────────────────────
+        $db->dbquery(
+            "SELECT b.id, u.name AS customer_name, ed.event_date, ed.start_time, ed.location,
+                    b.status,
+                    (SELECT s.shop_name FROM booking_suppliers bs_s
+                     INNER JOIN suppliers s_s ON bs_s.supplier_id = s_s.supplier_id
+                     WHERE bs_s.booking_id = b.id ORDER BY bs_s.id ASC LIMIT 1) AS supplier_name
+             FROM bookings b
+             INNER JOIN event_details ed ON ed.booking_id = b.id
+             LEFT JOIN users u ON b.user_id = u.user_id
+             WHERE ed.event_date >= CURDATE()
+               AND b.status IN ('paid','payment_verified','confirmed','pending_final_payment','finalized','completed')
+             ORDER BY ed.event_date ASC, ed.start_time ASC
+             LIMIT 8"
+        );
+        $upcomingEvents = $db->getmultidata();
+
+        // ── Popular Packages ─────────────────────────────────────
+        $db->dbquery(
+            "SELECT p.name, p.image_url,
+                    COUNT(bi.id) AS booking_count,
+                    COALESCE(SUM(bi.price), 0) AS total_revenue,
+                    COALESCE(AVG(r.rating), 0) AS avg_rating
+             FROM booking_items bi
+             INNER JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
+             INNER JOIN bookings b ON bi.booking_id = b.id AND b.status != 'draft'
+             LEFT JOIN reviews r ON r.booking_id = bi.booking_id AND r.supplier_id IS NOT NULL
+             WHERE p.deleted_at IS NULL
+             GROUP BY p.package_id, p.name, p.image_url
+             ORDER BY booking_count DESC, total_revenue DESC
+             LIMIT 4"
+        );
+        $popularPackages = $db->getmultidata();
+        if (empty($popularPackages)) {
+            // Fallback: show active packages even without bookings
+            $db->dbquery(
+                "SELECT name, image_url, 0 AS booking_count, 0 AS total_revenue, 0 AS avg_rating
+                 FROM packages
+                 WHERE is_active = 1 AND deleted_at IS NULL
+                 ORDER BY sort_order ASC, created_at DESC
+                 LIMIT 4"
+            );
+            $popularPackages = $db->getmultidata();
+        }
+
+        // ── Assemble response ────────────────────────────────────
+        $this->jsonResponse([
+            'totalBookings' => $totalBookings,
+            'totalRevenue' => $totalRevenue,
+            'pendingBookings' => max(0, $totalBookings - $confirmedBookings - $cancelledBookings),
+            'confirmedBookings' => $confirmedBookings,
+            'cancelledBookings' => $cancelledBookings,
+            'avgSpend' => $avgSpend,
+            'todayBookings' => $todayBookings,
+            'weekBookings' => $weekBookings,
+            'totalCustomers' => $totalCustomers,
+            'totalSuppliers' => $totalSuppliers,
+            'totalStaffs' => $totalStaffs,
+            'vendorApproved' => $vendorApproved,
+            'vendorPending' => $vendorPending,
+            'vendorRejected' => $vendorRejected,
+            'pendingBookingConfirm' => $pendingBookingConfirm,
+            'pendingPayments' => $pendingPaymentSubmissions,
+            'pendingVendorApproval' => $vendorPending,
+            'topSuppliers' => array_map(function ($s) {
+                return [
+                    'name' => $s['shop_name'] ?? '—',
+                    'bookings' => (int)($s['booking_count'] ?? 0),
+                ];
+            }, $topSuppliers),
+            'upcomingEvents' => array_map(function ($e) {
+                $eventDate = $e['event_date'] ?? '';
+                $ts = strtotime($eventDate);
+                $dateFormatted = $ts ? date('M d', $ts) : '—';
+                $timeFormatted = !empty($e['start_time']) ? date('g:i A', strtotime($e['start_time'])) : '';
+                $isToday = $eventDate === date('Y-m-d');
+                $isTomorrow = $eventDate === date('Y-m-d', strtotime('+1 day'));
+                if ($isToday) {
+                    $dateLabel = 'Today';
+                } elseif ($isTomorrow) {
+                    $dateLabel = 'Tomorrow';
+                } else {
+                    $dateLabel = $dateFormatted;
+                }
+                $dateTime = trim($dateLabel . ($timeFormatted ? ', ' . $timeFormatted : ''));
+                $supplierName = $e['supplier_name'] ?? '—';
+
+                return [
+                    'event' => !empty($supplierName) ? $supplierName : 'Wedding',
+                    'customer' => $e['customer_name'] ?? '—',
+                    'dateTime' => $dateTime ?: '—',
+                    'location' => $e['location'] ?: '—',
+                    'package' => $supplierName,
+                    'status' => $e['status'] ?? 'confirmed',
+                ];
+            }, $upcomingEvents),
+            'revenueLabels' => $revenueTrend['labels'],
+            'revenueSales' => $revenueTrend['sales'],
+            'peakPeriod' => $revenueTrend['peak'],
+            'peakPeriodLabel' => $revenueTrend['peakLabel'],
+            'supplierCategories' => [
+                'labels' => $categoryLabels,
+                'values' => $categoryValues,
+            ],
+            'popularPackages' => array_map(function ($p) {
+                return [
+                    'name' => $p['name'] ?? '—',
+                    'image' => $p['image_url'] ?: '',
+                    'bookings' => (int)($p['booking_count'] ?? 0),
+                    'revenue' => round((float)($p['total_revenue'] ?? 0), 2),
+                    'rating' => round((float)($p['avg_rating'] ?? 0), 1) ?: 0,
+                ];
+            }, $popularPackages),
+            'escrow' => [
+                'total' => $escrowTotal,
+                'pendingRelease' => $escrowPending,
+                'available' => $escrowAvailable,
+            ],
+        ]);
+    }
+
+    /**
+     * Build revenue trend data: labels, sales values, peak label, peak period.
+     */
+    private function buildRevenueTrend(Database $db, string $filter, string $targetDate): array
+    {
+        $now = strtotime($targetDate);
+        $today = date('Y-m-d', $now);
+
+        switch ($filter) {
+            case 'today':
+                $labels = [];
+                for ($h = 1; $h <= 24; $h++) {
+                    $labels[] = sprintf('%dhr', $h);
+                }
+                $db->dbquery(
+                    "SELECT HOUR(created_at) AS period,
+                            COALESCE(SUM(total_amount), 0) AS revenue
+                     FROM bookings
+                     WHERE status NOT IN ('draft', 'cancelled')
+                       AND DATE(created_at) = :date
+                     GROUP BY HOUR(created_at)
+                     ORDER BY period ASC"
+                );
+                $db->dbbind(':date', $today);
+                $rows = $db->getmultidata();
+                $sales = $this->padSeries(24, $rows, 'period');
+                $peakLabel = 'PEAK HOUR:';
+                break;
+
+            case 'week':
+                $monday = date('Y-m-d', strtotime('monday this week', $now));
+                $labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                $db->dbquery(
+                    "SELECT WEEKDAY(created_at) AS period,
+                            COALESCE(SUM(total_amount), 0) AS revenue
+                     FROM bookings
+                     WHERE status NOT IN ('draft', 'cancelled')
+                       AND DATE(created_at) >= :monday
+                     GROUP BY WEEKDAY(created_at)
+                     ORDER BY period ASC"
+                );
+                $db->dbbind(':monday', $monday);
+                $rows = $db->getmultidata();
+                $sales = $this->padSeries(7, $rows, 'period');
+                $peakLabel = 'PEAK DAY:';
+                break;
+
+            case 'month':
+                $labels = [];
+                $startOfMonth = date('Y-m-01', $now);
+                for ($w = 1; $w <= 4; $w++) {
+                    $labels[] = 'Week-' . $w;
+                }
+                $db->dbquery(
+                    "SELECT (WEEK(created_at, 1) - WEEK(:month_start, 1)) AS period,
+                            COALESCE(SUM(total_amount), 0) AS revenue
+                     FROM bookings
+                     WHERE status NOT IN ('draft', 'cancelled')
+                       AND DATE_FORMAT(created_at, '%Y-%m') = :ym
+                     GROUP BY period
+                     ORDER BY period ASC"
+                );
+                $db->dbbind(':month_start', $startOfMonth);
+                $db->dbbind(':ym', date('Y-m', $now));
+                $rows = $db->getmultidata();
+                $sales = $this->padSeries(4, $rows, 'period');
+                $peakLabel = 'PEAK WEEK:';
+                break;
+
+            case 'year':
+                $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                $db->dbquery(
+                    "SELECT MONTH(created_at) - 1 AS period,
+                            COALESCE(SUM(total_amount), 0) AS revenue
+                     FROM bookings
+                     WHERE status NOT IN ('draft', 'cancelled')
+                       AND YEAR(created_at) = :year
+                     GROUP BY MONTH(created_at)
+                     ORDER BY period ASC"
+                );
+                $db->dbbind(':year', date('Y', $now));
+                $rows = $db->getmultidata();
+                $sales = $this->padSeries(12, $rows, 'period');
+                $peakLabel = 'PEAK MONTH:';
+                break;
+
+            default:
+                $labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                $sales = array_fill(0, 7, 0);
+                $peakLabel = 'PEAK DAY:';
+        }
+
+        $maxVal = !empty($sales) ? max($sales) : 0;
+        $peakIndex = $maxVal > 0 ? array_search($maxVal, $sales) : 0;
+        $peakPeriod = $labels[$peakIndex] ?? '—';
+        // Round sales for cleaner display
+        $sales = array_map(function ($v) { return round($v, 2); }, $sales);
+
+        return [
+            'labels' => $labels,
+            'sales' => $sales,
+            'peak' => $peakPeriod,
+            'peakLabel' => $peakLabel,
+        ];
+    }
+
+    /**
+     * Fill a series array of $length slots using DB rows keyed by $periodColumn.
+     * Indices beyond the last slot are folded into the final slot.
+     */
+    private function padSeries(int $length, array $rows, string $periodColumn): array
+    {
+        $series = array_fill(0, $length, 0);
+        foreach ($rows as $row) {
+            $idx = (int)($row[$periodColumn] ?? -1);
+            if ($idx < 0) {
+                continue;
+            }
+            if ($idx >= $length) {
+                $idx = $length - 1;
+            }
+            $series[$idx] = (float)($row['revenue'] ?? 0);
+        }
+        return $series;
+    }
+
     public function notificationsJson()
     {
         $this->jsonResponse([
@@ -59,10 +445,20 @@ class Admin extends Controller
 
     public function notifications()
     {
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
+        $totalCount = $this->notificationModel->getAllCount($this->currentUserId());
+
         $this->view('admin/notifications', [
-            'notifications' => $this->notificationModel->getAll($this->currentUserId(), 80),
+            'notifications' => $this->notificationModel->getAll($this->currentUserId(), $perPage, $offset),
             'unreadCount' => $this->notificationModel->getUnreadCount($this->currentUserId()),
             'message' => $_SESSION['admin_flash'] ?? '',
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
         ]);
         unset($_SESSION['admin_flash']);
     }
@@ -193,9 +589,22 @@ class Admin extends Controller
             $status = 'pending';
         }
 
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
+        $suppliers = $this->supplierProfileModel->getApplications($status, $perPage, $offset);
+        $totalCount = $this->supplierProfileModel->getApplicationsCount($status);
+
         $this->view('admin/suppliers', [
-            'suppliers' => $this->supplierProfileModel->getApplications($status),
+            'suppliers' => $suppliers,
             'status' => $status,
+            'stats' => $this->supplierProfileModel->getSupplierStats(),
+            'topSuppliers' => $status === 'all' ? $this->supplierProfileModel->getTopSuppliers(5) : [],
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -219,6 +628,7 @@ class Admin extends Controller
         $this->view('admin/supplier_review', [
             'supplier' => $supplier,
             'message' => $_SESSION['admin_flash'] ?? '',
+            'performance' => $this->supplierProfileModel->getSupplierPerformance((int)$supplierId),
         ]);
         unset($_SESSION['admin_flash']);
     }
@@ -240,8 +650,53 @@ class Admin extends Controller
             redirect('admin/suppliers');
         }
 
+        $reason = trim($_POST['reason'] ?? '');
         $this->supplierProfileModel->updateStatus((int)$supplierId, 'rejected', $this->currentUserId());
+        if ($reason !== '') {
+            $this->supplierProfileModel->warnSupplier((int)$supplierId, 0, 'Rejected: ' . $reason, $this->currentUserId());
+        }
         $_SESSION['admin_flash'] = 'Supplier application rejected.';
+        redirect('admin/supplier/' . (int)$supplierId);
+    }
+
+    public function banSupplier($supplierId = null)
+    {
+        if (!$supplierId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/suppliers');
+        }
+        $reason = trim($_POST['reason'] ?? '');
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to ban a supplier.';
+            redirect('admin/supplier/' . (int)$supplierId);
+        }
+        $this->supplierProfileModel->banSupplier((int)$supplierId, $reason, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Supplier has been banned. Reason: ' . $reason;
+        redirect('admin/supplier/' . (int)$supplierId);
+    }
+
+    public function unbanSupplier($supplierId = null)
+    {
+        if (!$supplierId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/suppliers');
+        }
+        $this->supplierProfileModel->unbanSupplier((int)$supplierId, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Supplier has been unbanned and restored to approved status.';
+        redirect('admin/supplier/' . (int)$supplierId);
+    }
+
+    public function warnSupplier($supplierId = null)
+    {
+        if (!$supplierId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/suppliers');
+        }
+        $level = min(2, max(1, (int)($_POST['warning_level'] ?? 1)));
+        $note = trim($_POST['warn_note'] ?? '');
+        if ($note === '') {
+            $_SESSION['admin_flash'] = 'A note is required when issuing a warning.';
+            redirect('admin/supplier/' . (int)$supplierId);
+        }
+        $this->supplierProfileModel->warnSupplier((int)$supplierId, $level, $note, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Warning level ' . $level . ' issued to supplier.';
         redirect('admin/supplier/' . (int)$supplierId);
     }
 
@@ -255,11 +710,19 @@ class Admin extends Controller
             $status = 'pending';
         }
 
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
         $this->view('admin/payments', [
-            'payments' => $this->paymentModel->getSupplierFeeQueue($status),
+            'payments' => $this->paymentModel->getAdminPaymentHistory($status, $perPage, $offset),
             'status' => $status,
             'selectedPaymentId' => isset($_GET['payment']) ? (int)$_GET['payment'] : null,
             'message' => $_SESSION['admin_flash'] ?? '',
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($this->paymentModel->getAdminPaymentHistoryCount($status) / $perPage)),
+            'totalCount' => $this->paymentModel->getAdminPaymentHistoryCount($status),
+            'perPage' => $perPage,
         ]);
         unset($_SESSION['admin_flash']);
     }
@@ -467,6 +930,12 @@ class Admin extends Controller
             redirect('admin/packages');
         }
 
+        // Guard: only drafts can be edited
+        if (($package['status'] ?? '') !== 'draft') {
+            $_SESSION['admin_flash'] = 'Cannot edit a published package directly. Use Edit mode to create a draft first.';
+            redirect('admin/packageDetail/' . (int)$packageId);
+        }
+
         $data = [];
 
         if (isset($_POST['name'])) {
@@ -515,11 +984,19 @@ class Admin extends Controller
         }
 
         $packageModel = $this->model('PlatformPackage');
+        $package = $packageModel->getPackageById((int)$packageId);
+
+        // Deletion of published packages is handled via publish flow (soft-delete on replace)
+        if ($package && ($package['status'] ?? '') === 'published') {
+            $_SESSION['admin_flash'] = 'Published packages cannot be deleted directly. Use the archive flow.';
+            redirect('admin/packageDetail/' . (int)$packageId);
+        }
+
         $deleted = $packageModel->deletePackageType((int)$packageId);
 
         $_SESSION['admin_flash'] = $deleted
-            ? 'Package type deleted from database.'
-            : 'Package type could not be deleted. It may be linked to existing records.';
+            ? 'Package deleted from database.'
+            : 'Package could not be deleted.';
         redirect('admin/packages');
     }
 
@@ -537,6 +1014,12 @@ class Admin extends Controller
             redirect('admin/packages');
         }
 
+        // Guard: only drafts can be edited
+        if (($package['status'] ?? '') !== 'draft') {
+            $_SESSION['admin_flash'] = 'Cannot modify a published package. Use Edit mode first.';
+            redirect('admin/packageDetail/' . (int)$packageId);
+        }
+
         $serviceTotal = (float)($package['included_total'] ?? 0);
         if ($serviceTotal <= 0) {
             $_SESSION['admin_flash'] = 'Add services before applying a suggested price.';
@@ -547,6 +1030,91 @@ class Admin extends Controller
 
         $_SESSION['admin_flash'] = 'Package base price updated from included services. Admin/customer price adds 5% agent fee.';
         redirect('admin/packageDetail/' . (int)$packageId);
+    }
+
+    /**
+     * Start editing a published package — clones it into a draft.
+     */
+    public function packageStartEdit($packageId = null)
+    {
+        if (!$packageId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/packages');
+        }
+
+        $packageModel = $this->model('PlatformPackage');
+        $package = $packageModel->getPackageById((int)$packageId);
+
+        if (!$package) {
+            $_SESSION['admin_flash'] = 'Package type not found.';
+            redirect('admin/packages');
+        }
+
+        if (($package['status'] ?? '') !== 'published') {
+            $_SESSION['admin_flash'] = 'Only published packages can enter edit mode.';
+            redirect('admin/packageDetail/' . (int)$packageId);
+        }
+
+        $draftId = $packageModel->clonePackageAsDraft((int)$packageId);
+        if (!$draftId) {
+            $_SESSION['admin_flash'] = 'Failed to create editing draft.';
+            redirect('admin/packageDetail/' . (int)$packageId);
+        }
+
+        $_SESSION['admin_flash'] = 'Editing draft created. Make your changes and publish when ready.';
+        redirect('admin/packageDetail/' . $draftId);
+    }
+
+    /**
+     * Publish a draft — replaces the original live package atomically.
+     */
+    public function packagePublishDraft($draftId = null)
+    {
+        if (!$draftId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/packages');
+        }
+
+        $packageModel = $this->model('PlatformPackage');
+        $draft = $packageModel->getPackageById((int)$draftId);
+
+        if (!$draft || ($draft['status'] ?? '') !== 'draft') {
+            $_SESSION['admin_flash'] = 'Draft package not found.';
+            redirect('admin/packages');
+        }
+
+        $publishedId = $packageModel->publishDraft((int)$draftId);
+        if (!$publishedId) {
+            $_SESSION['admin_flash'] = 'Failed to publish draft.';
+            redirect('admin/packageDetail/' . (int)$draftId);
+        }
+
+        $_SESSION['admin_flash'] = 'Package published successfully.';
+        redirect('admin/packageDetail/' . $publishedId);
+    }
+
+    /**
+     * Discard a draft — permanently deletes it.
+     */
+    public function packageDiscardDraft($draftId = null)
+    {
+        if (!$draftId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/packages');
+        }
+
+        $packageModel = $this->model('PlatformPackage');
+        $package = $packageModel->getPackageById((int)$draftId);
+
+        if (!$package || ($package['status'] ?? '') !== 'draft') {
+            $_SESSION['admin_flash'] = 'Draft package not found.';
+            redirect('admin/packages');
+        }
+
+        $originalId = (int)($package['replaces_package_id'] ?? 0);
+        $discarded = $packageModel->discardDraft((int)$draftId);
+
+        $_SESSION['admin_flash'] = $discarded
+            ? 'Draft discarded.'
+            : 'Failed to discard draft.';
+        redirect($originalId > 0 ? 'admin/packageDetail/' . $originalId : 'admin/packages');
     }
 
     public function packageAddItem($packageId = null)
@@ -562,9 +1130,16 @@ class Admin extends Controller
         }
 
         $packageModel = $this->model('PlatformPackage');
-        if (!$packageModel->getPackageById((int)$packageId)) {
+        $package = $packageModel->getPackageById((int)$packageId);
+        if (!$package) {
             $_SESSION['admin_flash'] = 'Package type not found.';
             redirect('admin/packages');
+        }
+
+        // Guard: only drafts can be mutated
+        if (($package['status'] ?? '') !== 'draft') {
+            $_SESSION['admin_flash'] = 'Cannot modify a published package. Use Edit mode first.';
+            redirect('admin/packageDetail/' . (int)$packageId);
         }
 
         $guestCount = max(1, (int)($_POST['guest_count'] ?? 100));
@@ -588,6 +1163,12 @@ class Admin extends Controller
 
         $packageModel = $this->model('PlatformPackage');
         $packageId = $packageModel->getPackageIdForItem((int)$itemId);
+
+        // Guard: only drafts can be mutated
+        if ($packageId > 0 && !$packageModel->isDraft($packageId)) {
+            $_SESSION['admin_flash'] = 'Cannot modify a published package. Use Edit mode first.';
+            redirect('admin/packageDetail/' . $packageId);
+        }
         $quantity = max(1, (int)($_POST['quantity'] ?? 1));
         $isHallUpdate = array_key_exists('hall_id', $_POST);
         $updated = false;
@@ -620,6 +1201,13 @@ class Admin extends Controller
 
         $packageModel = $this->model('PlatformPackage');
         $packageId = $packageModel->getPackageIdForItem((int)$itemId);
+
+        // Guard: only drafts can be mutated
+        if ($packageId > 0 && !$packageModel->isDraft($packageId)) {
+            $_SESSION['admin_flash'] = 'Cannot modify a published package. Use Edit mode first.';
+            redirect('admin/packageDetail/' . $packageId);
+        }
+
         $removed = $packageModel->removePackageItem((int)$itemId);
         if ($removed && $packageId > 0) {
             $this->refreshPackageBasePrice($packageModel, $packageId);
@@ -673,6 +1261,10 @@ class Admin extends Controller
             $status = 'pending';
         }
 
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
         if ($status === 'pending') {
             $db = new Database();
             $manualPaymentSelects = [];
@@ -683,6 +1275,14 @@ class Admin extends Controller
                     ? 'p.' . $column
                     : 'NULL AS ' . $column;
             }
+
+            // Count for pending tab
+            $db->dbquery(
+                "SELECT COUNT(*) AS total
+                 FROM bookings b
+                 WHERE b.status = 'payment_submitted'"
+            );
+            $totalCount = (int)($db->getsingledata()['total'] ?? 0);
 
             // Get bookings with status='payment_submitted'
             $db->dbquery(
@@ -695,12 +1295,15 @@ class Admin extends Controller
                  LEFT JOIN users u ON b.user_id = u.user_id
                  LEFT JOIN payments p ON b.id = p.booking_id AND p.type = 'deposit' AND p.status = 'pending'
                  WHERE b.status = 'payment_submitted'
-                 ORDER BY b.created_at DESC"
+                 ORDER BY b.created_at DESC
+                 LIMIT :limit OFFSET :offset"
             );
+            $db->dbbind(':limit', $perPage, PDO::PARAM_INT);
+            $db->dbbind(':offset', $offset, PDO::PARAM_INT);
             $records = $db->getmultidata();
         } else {
-            // Verified / rejected deposit history (payment-centric).
-            $records = $this->paymentModel->getDepositReviewQueue($status);
+            $records = $this->paymentModel->getDepositReviewQueue($status, $perPage, $offset);
+            $totalCount = $this->paymentModel->getDepositReviewQueueCount($status);
         }
 
         foreach ($records as &$record) {
@@ -711,6 +1314,10 @@ class Admin extends Controller
         $this->view('admin/paymentVerification', [
             'pendingPayments' => $records,
             'activeStatus' => $status,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -738,6 +1345,7 @@ class Admin extends Controller
         }
 
         $bookingModel = $this->model('BookingModel');
+        $beforeVerification = $bookingModel->getBookingById($bookingId);
 
         // Verify payment and update booking status
         if (!$bookingModel->adminVerifyPayment($bookingId, $adminId, $note)) {
@@ -762,23 +1370,50 @@ class Admin extends Controller
             'booking'
         );
 
-        // Send event-detail email to customer, suppliers, and admin
+        // Send the verified payment details to the customer, then notify suppliers.
         $booking   = $bookingModel->getBookingById($bookingId);
         $items     = $bookingModel->getBookingItems($bookingId);
+        $eventDetails = $bookingModel->getEventDetails($bookingId);
         $customer  = $bookingModel->getCustomerForBooking($bookingId);
         $suppliers = $bookingModel->getSupplierEmailsForBooking($bookingId);
-        $adminEmail = [
-            'email' => defined('MAIL_FROM') ? MAIL_FROM : 'admin@goldenpromise.com',
-            'name'  => 'Golden Promise Admin',
-        ];
+        $verifiedPayment = $bookingModel->getDepositPayment($bookingId) ?: [];
         if ($customer && $booking) {
             $emailService = new EmailService();
-            $emailService->sendPaymentVerifiedEvent($customer, $suppliers, $adminEmail, $booking, $items);
+            $emailSent = $emailService->sendAdminVerifiedPaymentToCustomer(
+                $customer,
+                $booking,
+                $verifiedPayment,
+                $items,
+                $eventDetails
+            );
+            $emailService->sendPaymentVerifiedEvent($customer, $suppliers, [], $booking, $items, false);
+        } else {
+            $emailSent = false;
         }
+
+        $paymentId = (int)($verifiedPayment['id'] ?? 0);
+        $newStatus = (string)($booking['status'] ?? 'paid');
+        $bookingModel->logStatusChange(
+            $bookingId,
+            (string)($beforeVerification['status'] ?? 'payment_submitted'),
+            $newStatus,
+            $adminId,
+            'Deposit verified by admin' . ($note !== '' ? ': ' . $note : '')
+        );
 
         $this->jsonResponse([
             'success' => true,
-            'message' => 'Payment verified successfully. Customer and suppliers have been notified.',
+            'email_sent' => $emailSent,
+            'email_to' => $customer['email'] ?? '',
+            'payment_id' => $paymentId,
+            'booking_status' => $newStatus,
+            'payment_status' => (string)($booking['payment_status'] ?? 'partial'),
+            'paid_amount' => (float)($booking['paid_amount'] ?? 0),
+            'total_amount' => (float)($booking['total_amount'] ?? 0),
+            'verified_at' => $verifiedPayment['verified_at'] ?? date('Y-m-d H:i:s'),
+            'message' => $emailSent
+                ? 'Payment verified and confirmation email sent to the customer.'
+                : 'Payment verified, but the confirmation email could not be sent. Check the mail configuration.',
         ]);
     }
 

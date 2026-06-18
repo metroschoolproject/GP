@@ -28,6 +28,9 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
         <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check' : 'ti-send' ?>" style="font-size:13px"></i>
         <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Published' : 'Request publish' ?></span>
       </button>
+      <a href="<?= URLROOT ?>/main/service/<?= (int)$serviceId ?>" target="_blank" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px">
+        <i class="ti ti-eye" style="font-size:13px"></i> Preview
+      </a>
     </div>
 
     <!-- Hero image -->

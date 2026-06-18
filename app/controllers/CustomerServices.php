@@ -60,6 +60,19 @@ class CustomerServices extends Controller
                     }));
                 }
             }
+        } else {
+            $addonPackageId = (int)($_GET['addon_package_id'] ?? 0);
+            if ($addonPackageId > 0) {
+                $packageModel = $this->model('PlatformPackage');
+                $addonPackage = $packageModel->getPackageById($addonPackageId);
+                if ($addonPackage && !empty($addonPackage['is_active']) && empty($addonPackage['deleted_at'])) {
+                    $service['addon_context'] = [
+                        'package_id' => (int)$addonPackage['package_id'],
+                        'package_name' => $addonPackage['name'] ?? 'Wedding package',
+                        'package_slug' => $addonPackage['slug'] ?? '',
+                    ];
+                }
+            }
         }
 
         $view = strtolower((string)($service['category'] ?? '')) === 'venue'
@@ -149,6 +162,7 @@ class CustomerServices extends Controller
         }
 
         $package['category_services'] = array_values($categoryServices);
+        $package['addon_services'] = $packageModel->getAddonServices((int)$package['package_id']);
 
         // Cart count
         $cartCount = 0;

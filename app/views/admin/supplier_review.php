@@ -1,506 +1,284 @@
 <?php
 $supplierName = htmlspecialchars($supplier['shop_name'] ?? 'Supplier', ENT_QUOTES, 'UTF-8');
 $status = strtolower($supplier['status'] ?? 'pending');
+$warnLevel = (int)($supplier['warning_level'] ?? 0);
+$adminNote = trim((string)($supplier['admin_note'] ?? ''));
 $dashboardTitle = 'Suppliers';
 $dashboardCrumb = 'Review';
 $dashboardContentClass = 'supplier-review-content';
-$dashboardContent = function () use ($supplier, $supplierName, $status, $message) {
+$money = fn($v) => 'MMK ' . number_format((float)$v, 0);
+$perf = $performance ?? [];
+$dashboardContent = function () use ($supplier, $supplierName, $status, $warnLevel, $adminNote, $message, $money, $perf) {
     $rows = [
         'Owner' => $supplier['owner_name'] ?? '-',
         'Email' => $supplier['owner_email'] ?? '-',
         'Phone' => $supplier['phone'] ?? '-',
         'Address' => $supplier['address'] ?? '-',
         'Categories' => $supplier['category_names'] ?? '-',
-        'Agreement accepted' => !empty($supplier['agreement_accepted']) ? 'Yes' : 'No',
-        'Payment status' => $supplier['payment_status'] ?? '-',
+        'Agreement' => !empty($supplier['agreement_accepted']) ? 'Accepted' : 'Not accepted',
+        'Payment' => $supplier['payment_status'] ?? '-',
     ];
+    $isApprovedOrVerified = in_array($status, ['approved', 'verified'], true);
+    $isPending = $status === 'pending';
+    $isBanned = $status === 'banned';
+    $revenueEarned = (float)($perf['revenue_earned'] ?? 0);
+    $totalBookings = (int)($perf['total_bookings'] ?? 0);
+    $completedBookings = (int)($perf['completed_bookings'] ?? 0);
+    $cancelledBookings = (int)($perf['cancelled_bookings'] ?? 0);
+    $avgRating = round((float)($perf['avg_rating'] ?? 0), 1);
+    $reviewCount = (int)($perf['review_count'] ?? 0);
 ?>
-    <style>
-        .supplier-review-shell {
-            --review-bg: #FBFBF9;
-            --review-surface: #ffffff;
-            --review-soft: #faf5ef;
-            --review-soft-hover: #eddecc;
-            --review-border: #ead8c7;
-            --review-border-light: #eddecc;
-            --review-primary: #6d4c5b;
-            --review-primary-hover: #7b5c69;
-            --review-primary-soft: #eddecc;
-            --review-text: #111827;
-            --review-muted: #b79c8b;
-            --review-body: #7b5c69;
-            --review-success-bg: #d1fae5;
-            --review-success-text: #065f46;
-            --review-warn-bg: #fef3c7;
-            --review-warn-text: #92400e;
-            --review-danger-bg: #fee2e2;
-            --review-danger-text: #991b1b;
-            --review-neutral-bg: #f3f4f6;
-            color: var(--review-text);
-            font-size: 13px;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
+<style>
+.supplier-review-content{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#111827;font-size:13px}
+.sr-shell{--s:#ffffff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--b-light:#eddecc;--p:#6d4c5b;--ph:#7b5c69;--ps:#eddecc;--t:#111827;--m:#b79c8b;--b:#7b5c69;--sb:#d1fae5;--st:#065f46;--wb:#fef3c7;--wt:#92400e;--db:#fee2e2;--dt:#991b1b;--nb:#f3f4f6;max-width:1600px;margin:0 auto}
+.sr-shell *{box-sizing:border-box}
+.sr-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+.sr-eyebrow,.sr-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m)}
+.sr-title{margin:0;color:var(--t);font-size:22px;font-weight:700;letter-spacing:-.3px}
+.sr-sub{margin-top:4px;color:var(--b);font-size:13px}
+.sr-flash{margin-bottom:18px;border-radius:.75rem;padding:12px 14px;color:var(--st);background:var(--sb);border:1px solid var(--sb);font-size:13px;font-weight:700}
+.sr-warn-banner{margin-bottom:18px;border-radius:.75rem;padding:12px 14px;background:var(--wb);color:var(--wt);font-size:13px;font-weight:600}
+.sr-warn-banner.l2{background:var(--db);color:var(--dt)}
+.sr-layout{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:20px;align-items:start}
+.sr-panel{background:var(--s);border:1px solid var(--border);border-radius:.75rem;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.04)}
+.sr-panel-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--b-light)}
+.sr-panel-h-left{display:flex;align-items:center;gap:8px}
+.sr-panel-icon{width:28px;height:28px;border-radius:.75rem;background:var(--ps);display:flex;align-items:center;justify-content:center;color:var(--p)}
+.sr-panel-title{font-size:13px;font-weight:700;color:var(--t)}
+.sr-panel-sub{font-size:11px;color:var(--m);margin-top:2px}
+.sr-section{padding:20px}
+.sr-section+.sr-section{border-top:1px solid var(--b-light)}
+.sr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sr-stat{border:1px solid var(--border);border-radius:.75rem;padding:14px 16px}
+.sr-stat-val{margin-top:4px;font-size:16px;font-weight:700;color:var(--t)}
+.sr-stat-val.success{color:var(--st)}
+.sr-stat-val.warn{color:var(--wt)}
+.sr-stat-val.danger{color:var(--dt)}
 
-        .supplier-review-content {
-            min-height: 100%;
-            background: var(--review-bg);
-            padding: 28px 32px;
-        }
+/* performance summary */
+.sr-perf{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.sr-perf-stat{text-align:center;padding:12px 8px;border:1px solid var(--b-light);border-radius:.75rem;background:var(--soft)}
+.sr-perf-num{font-size:20px;font-weight:700;color:var(--p)}
+.sr-perf-label{font-size:10px;color:var(--m);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
 
-        .review-page-header {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: 22px;
-        }
+.sr-detail-list{display:grid;gap:0}
+.sr-detail-row{display:grid;grid-template-columns:180px 1fr;gap:12px;padding:13px 0;border-bottom:1px solid var(--b-light);align-items:start}
+.sr-detail-row:first-child{padding-top:0}
+.sr-detail-row:last-child{border-bottom:0;padding-bottom:0}
+.sr-value{color:var(--t);font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.sr-desc{border:1px solid var(--b-light);border-radius:.75rem;background:var(--soft);padding:14px 16px}
+.sr-desc p{margin-top:8px;color:var(--b);line-height:1.75}
 
-        .review-eyebrow,
-        .review-label {
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--review-muted);
-        }
+.badge,.sr-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.badge-pending{background:var(--wb);color:var(--wt)}
+.badge-approved{background:var(--sb);color:var(--st)}
+.badge-verified{background:var(--sb);color:var(--st)}
+.badge-rejected{background:var(--db);color:var(--dt)}
+.badge-banned{background:var(--db);color:var(--dt)}
+.badge-muted{background:var(--nb);color:var(--b);border:1px solid var(--border)}
 
-        .review-title {
-            margin: 0;
-            color: var(--review-text);
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -0.3px;
-            line-height: 1.2;
-        }
+.sr-rail{display:grid;gap:14px;position:sticky;top:20px}
+.sr-file-link{display:flex;align-items:center;gap:10px;min-height:42px;border:1px solid var(--border);border-radius:.75rem;background:var(--s);padding:9px 12px;color:var(--p);font-size:13px;font-weight:700;text-decoration:none;transition:background .12s,border-color .12s}
+.sr-file-link:hover{border-color:var(--p);background:var(--hover)}
+.sr-empty{border:1px dashed var(--border);border-radius:.75rem;background:var(--soft);padding:18px;color:var(--m);text-align:center}
 
-        .review-subtitle {
-            margin-top: 4px;
-            max-width: 46rem;
-            color: var(--review-body);
-            font-size: 13px;
-            line-height: 1.5;
-        }
+.btn,.sr-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:38px;border:none;border-radius:.75rem;padding:0 14px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;transition:background .12s,transform .12s}
+.btn-primary,.sr-btn-primary{background:var(--p);color:#fff}
+.btn-primary:hover,.sr-btn-primary:hover{background:var(--ph);transform:translateY(-1px)}
+.btn-danger,.sr-btn-danger{background:var(--dt);color:#fff}
+.btn-danger:hover,.sr-btn-danger:hover{background:#7f1d1d;transform:translateY(-1px)}
+.btn-warn,.sr-btn-warn{background:var(--wt);color:#fff}
+.btn-warn:hover,.sr-btn-warn:hover{background:#78350f;transform:translateY(-1px)}
+.btn-outline,.sr-btn-outline{border:1px solid var(--border);background:var(--s);color:var(--t)}
+.btn-outline:hover,.sr-btn-outline:hover{background:var(--soft)}
 
-        .review-layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-            gap: 20px;
-            align-items: start;
-        }
+.sr-action-stack{display:grid;gap:10px;padding:14px}
+.sr-reviewed{border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:14px;color:var(--b);line-height:1.6}
+.sr-field{margin-bottom:14px}
+.sr-field label{display:block;font-size:11px;font-weight:700;color:var(--m);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.sr-field input,.sr-field textarea,.sr-field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:#fff;color:var(--t);font-size:13px;font-family:inherit;outline:none;resize:vertical}
+.sr-field input:focus,.sr-field textarea:focus,.sr-field select:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(109,76,91,.08)}
+.sr-field textarea{min-height:70px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:1rem;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
 
-        .review-panel {
-            background: var(--review-surface);
-            border: 1px solid var(--review-border);
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
-            overflow: hidden;
-        }
+@media(max-width:1100px){.sr-layout{grid-template-columns:1fr}.sr-rail{position:static;grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.supplier-review-content{padding:20px 16px}.sr-rail{grid-template-columns:1fr}.sr-stats,.sr-perf{grid-template-columns:1fr 1fr}.sr-detail-row{grid-template-columns:1fr}}
+</style>
 
-        .review-primary-panel {
-            min-height: 0;
-        }
-
-        .review-panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            border-bottom: 1px solid var(--review-border-light);
-            padding: 14px 20px;
-        }
-
-        .review-panel-title-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .review-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            flex: 0 0 auto;
-            border-radius: 0.75rem;
-            background: var(--review-primary-soft);
-            color: var(--review-primary);
-        }
-
-        .review-panel-title {
-            color: var(--review-text);
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0;
-        }
-
-        .review-panel-note {
-            margin-top: 2px;
-            color: var(--review-muted);
-            font-size: 11px;
-            line-height: 1.5;
-        }
-
-        .review-section {
-            padding: 20px;
-        }
-
-        .review-section + .review-section {
-            border-top: 1px solid var(--review-border-light);
-        }
-
-        .review-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .review-summary-item {
-            border: 1px solid var(--review-border);
-            border-radius: 0.75rem;
-            background: var(--review-surface);
-            padding: 14px 16px;
-        }
-
-        .review-summary-value {
-            margin-top: 4px;
-            color: var(--review-text);
-            font-size: 16px;
-            font-weight: 700;
-            line-height: 1.35;
-        }
-
-        .review-detail-list {
-            display: grid;
-            gap: 0;
-        }
-
-        .review-detail-row {
-            display: grid;
-            grid-template-columns: minmax(9rem, 0.34fr) minmax(0, 1fr);
-            gap: 1rem;
-            padding: 13px 0;
-            border-bottom: 1px solid var(--review-border-light);
-            align-items: start;
-        }
-
-        .review-detail-row:first-child {
-            padding-top: 0;
-        }
-
-        .review-detail-row:last-child {
-            border-bottom: 0;
-            padding-bottom: 0;
-        }
-
-        .review-value {
-            color: var(--review-text);
-            font-size: 13px;
-            font-weight: 600;
-            line-height: 1.55;
-            overflow-wrap: anywhere;
-        }
-
-        .review-description {
-            border: 1px solid var(--review-border-light);
-            border-radius: 0.75rem;
-            background: var(--review-soft);
-            padding: 14px 16px;
-        }
-
-        .review-description p {
-            margin-top: 0.55rem;
-            color: var(--review-body);
-            line-height: 1.75;
-        }
-
-        .admin-message {
-            margin-bottom: 1.25rem;
-            border: 1px solid var(--review-success-bg);
-            border-radius: 0.75rem;
-            background: var(--review-success-bg);
-            color: var(--review-success-text);
-            padding: 12px 14px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .admin-badge {
-            display: inline-flex;
-            align-items: center;
-            border-radius: 9999px;
-            padding: 0.15rem 0.55rem;
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        .admin-badge-pending { background: var(--review-warn-bg); color: var(--review-warn-text); }
-        .admin-badge-approved { background: var(--review-success-bg); color: var(--review-success-text); }
-        .admin-badge-rejected { background: var(--review-danger-bg); color: var(--review-danger-text); }
-        .admin-badge-muted { background: var(--review-neutral-bg); color: var(--review-body); border: 1px solid var(--review-border); }
-
-        .review-rail {
-            display: grid;
-            gap: 1rem;
-            position: sticky;
-            top: 20px;
-        }
-
-        .review-link-list,
-        .review-action-stack {
-            display: grid;
-            gap: 10px;
-            padding: 14px;
-        }
-
-        .review-file-link {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            min-height: 42px;
-            border: 1px solid var(--review-border);
-            border-radius: 0.75rem;
-            background: var(--review-surface);
-            padding: 9px 10px;
-            color: var(--review-primary);
-            font-size: 13px;
-            font-weight: 800;
-            text-decoration: none;
-            transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
-        }
-
-        .review-file-link:hover {
-            border-color: var(--review-border);
-            background: var(--review-soft-hover);
-            transform: translateY(-1px);
-        }
-
-        .review-empty {
-            border: 1px dashed var(--review-border);
-            border-radius: 0.75rem;
-            background: var(--review-soft);
-            padding: 1.2rem;
-            color: var(--review-muted);
-            text-align: center;
-            line-height: 1.6;
-        }
-
-        .admin-action-primary,
-        .admin-action-danger {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            width: 100%;
-            min-height: 34px;
-            border-radius: 0.75rem;
-            padding: 0 12px;
-            font-size: 12px;
-            font-weight: 800;
-            box-shadow: 0 1px 2px rgba(28, 25, 23, 0.05);
-            transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
-        }
-
-        .admin-action-primary {
-            background: var(--review-primary);
-            color: var(--review-surface);
-        }
-
-        .admin-action-primary:hover {
-            background: var(--review-primary-hover);
-            transform: translateY(-1px);
-        }
-
-        .admin-action-danger {
-            background: var(--review-danger-text);
-            color: var(--review-surface);
-        }
-
-        .admin-action-danger:hover {
-            background: var(--review-danger-text);
-            transform: translateY(-1px);
-        }
-
-        .review-reviewed {
-            border: 1px solid var(--review-border);
-            border-radius: 0.75rem;
-            background: var(--review-soft);
-            padding: 1rem;
-            color: var(--review-body);
-            line-height: 1.6;
-        }
-
-        @media (max-width: 1100px) {
-            .review-layout {
-                grid-template-columns: 1fr;
-            }
-
-            .review-rail {
-                position: static;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width: 760px) {
-            .supplier-review-content {
-                padding: 20px 16px;
-            }
-
-            .review-page-header,
-            .review-panel-header {
-                flex-direction: column;
-            }
-
-            .review-summary-grid,
-            .review-rail {
-                grid-template-columns: 1fr;
-            }
-
-            .review-detail-row {
-                grid-template-columns: 1fr;
-                gap: 0.35rem;
-            }
-        }
-    </style>
-    <div class="supplier-review-shell">
-        <div class="review-page-header mb-5">
-            <div>
-                <p class="review-eyebrow mb-3">Supplier Application</p>
-                <h1 class="review-title mt-3"><?= $supplierName ?></h1>
-                <!-- <p class="review-subtitle">Review the submitted business profile, verification links, uploaded documents, and decision status in one focused workspace.</p> -->
-            </div>
-            <?php $statusClass = 'admin-badge-' . ($status ?: 'muted'); ?>
-            <span class="admin-badge <?= htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8') ?>">
-                <?= htmlspecialchars($supplier['status'] ?? 'pending', ENT_QUOTES, 'UTF-8') ?>
-            </span>
-        </div>
-
-        <?php if (!empty($message)): ?>
-            <div class="admin-message">
-                <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
-            </div>
-        <?php endif; ?>
-
-        <div class="review-layout">
-            <section class="review-panel review-primary-panel">
-                <div class="review-panel-header">
-                    <div>
-                        <div class="review-panel-title-row">
-                            <span class="review-icon"><i data-lucide="store" class="h-4 w-4"></i></span>
-                            <h2 class="review-panel-title">Business Profile</h2>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="review-section">
-                    <div class="review-summary-grid">
-                        <div class="review-summary-item">
-                            <p class="review-label">Owner</p>
-                            <p class="review-summary-value"><?= htmlspecialchars($supplier['owner_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                        </div>
-                        <div class="review-summary-item">
-                            <p class="review-label">Categories</p>
-                            <p class="review-summary-value"><?= htmlspecialchars($supplier['category_names'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                        </div>
-                        <div class="review-summary-item">
-                            <p class="review-label">Payment</p>
-                            <p class="review-summary-value"><?= htmlspecialchars($supplier['payment_status'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="review-section">
-                    <div class="review-detail-list">
-                    <?php foreach ($rows as $label => $value): ?>
-                        <div class="review-detail-row">
-                            <span class="review-label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
-                            <strong class="review-value"><?= htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8') ?></strong>
-                        </div>
-                    <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <div class="review-section">
-                    <div class="review-description">
-                        <p class="review-label">Business description</p>
-                        <p><?= htmlspecialchars($supplier['description'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                    </div>
-                </div>
-            </section>
-
-            <aside class="review-rail">
-                <section class="review-panel">
-                    <div class="review-panel-header">
-                        <div>
-                            <div class="review-panel-title-row">
-                                <span class="review-icon"><i data-lucide="shield-check" class="h-4 w-4"></i></span>
-                                <h2 class="review-panel-title">Verification</h2>
-                            </div>
-                            <p class="review-panel-note">Open each submitted file or link before deciding.</p>
-                        </div>
-                    </div>
-                    <div class="review-link-list">
-                        <?php if (!empty($supplier['verify_url'])): ?>
-                            <a href="<?= htmlspecialchars($supplier['verify_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="review-file-link">
-                                <span class="review-icon"><i data-lucide="external-link" class="h-4 w-4"></i></span>
-                                <span>Open website / social link</span>
-                            </a>
-                        <?php endif; ?>
-                        <?php if (!empty($supplier['business_license_url'])): ?>
-                            <a href="<?= htmlspecialchars($supplier['business_license_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="review-file-link">
-                                <span class="review-icon"><i data-lucide="file-badge" class="h-4 w-4"></i></span>
-                                <span>Open business license</span>
-                            </a>
-                        <?php endif; ?>
-                        <?php if (!empty($supplier['cover_url'])): ?>
-                            <a href="<?= htmlspecialchars($supplier['cover_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="review-file-link">
-                                <span class="review-icon"><i data-lucide="image" class="h-4 w-4"></i></span>
-                                <span>Open cover image</span>
-                            </a>
-                        <?php endif; ?>
-                        <?php if (empty($supplier['verify_url']) && empty($supplier['business_license_url']) && empty($supplier['cover_url'])): ?>
-                            <p class="review-empty">No verification files found.</p>
-                        <?php endif; ?>
-                    </div>
-                </section>
-
-                <section class="review-panel">
-                    <div class="review-panel-header">
-                        <div>
-                            <div class="review-panel-title-row">
-                                <span class="review-icon"><i data-lucide="list-checks" class="h-4 w-4"></i></span>
-                                <h2 class="review-panel-title">Decision</h2>
-                            </div>
-                            <p class="review-panel-note">Approved suppliers can enter the locked dashboard and submit payment.</p>
-                        </div>
-                    </div>
-                    <div class="review-action-stack">
-                        <?php if ($status === 'pending'): ?>
-                            <form method="post" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>">
-                                <input type="hidden" name="suppress_method_token" value="1">
-                                <button class="admin-action-primary" type="submit">
-                                    <i data-lucide="check" class="h-4 w-4"></i>
-                                    <span>Approve supplier</span>
-                                </button>
-                            </form>
-                            <form method="post" action="<?= URLROOT ?>/admin/rejectSupplier/<?= (int)$supplier['supplier_id'] ?>">
-                                <input type="hidden" name="suppress_method_token" value="1">
-                                <button class="admin-action-danger" type="submit">
-                                    <i data-lucide="x" class="h-4 w-4"></i>
-                                    <span>Reject</span>
-                                </button>
-                            </form>
-                        <?php else: ?>
-                            <p class="review-reviewed">This supplier has already been reviewed.</p>
-                        <?php endif; ?>
-                    </div>
-                </section>
-            </aside>
-        </div>
+<div class="sr-shell">
+  <div class="sr-header">
+    <div>
+      <p class="sr-eyebrow">Supplier <?= $isApprovedOrVerified ? 'Management' : 'Application' ?></p>
+      <h1 class="sr-title"><?= $supplierName ?></h1>
+      <p class="sr-sub">Supplier ID #<?= (int)$supplier['supplier_id'] ?></p>
     </div>
+    <span class="sr-badge badge-<?= $status ?>"><?= htmlspecialchars(strtoupper($status), ENT_QUOTES, 'UTF-8') ?></span>
+  </div>
+
+  <?php if (!empty($message)): ?>
+    <div class="sr-flash"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
+  <?php endif; ?>
+
+  <?php if ($warnLevel > 0): ?>
+    <div class="sr-warn-banner <?= $warnLevel >= 2 ? 'l2' : '' ?>">
+      ⚠️ Warning Level <?= $warnLevel ?> — This supplier has <?= $warnLevel >= 2 ? 'received a final warning' : 'been issued a warning' ?>.
+    </div>
+  <?php endif; ?>
+
+  <!-- Performance stats (approved/verified only) -->
+  <?php if ($isApprovedOrVerified): ?>
+  <div class="sr-panel" style="margin-bottom:20px">
+    <div class="sr-panel-h">
+      <div class="sr-panel-h-left">
+        <span class="sr-panel-icon"><i data-lucide="bar-chart-3" class="h-4 w-4"></i></span>
+        <span class="sr-panel-title">Performance</span>
+      </div>
+    </div>
+    <div class="sr-section">
+      <div class="sr-perf">
+        <div class="sr-perf-stat"><div class="sr-perf-num"><?= (int)$totalBookings ?></div><div class="sr-perf-label">Total Bookings</div></div>
+        <div class="sr-perf-stat"><div class="sr-perf-num"><?= (int)$completedBookings ?></div><div class="sr-perf-label">Completed</div></div>
+        <div class="sr-perf-stat"><div class="sr-perf-num"><?= $money($revenueEarned) ?></div><div class="sr-perf-label">Revenue</div></div>
+        <div class="sr-perf-stat"><div class="sr-perf-num"><?= $avgRating > 0 ? number_format($avgRating, 1) . ' ★' : '—' ?></div><div class="sr-perf-label">Rating (<?= $reviewCount ?> reviews)</div></div>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <div class="sr-layout">
+    <!-- Left: Profile -->
+    <div>
+      <div class="sr-panel">
+        <div class="sr-panel-h">
+          <div class="sr-panel-h-left">
+            <span class="sr-panel-icon"><i data-lucide="store" class="h-4 w-4"></i></span>
+            <span class="sr-panel-title">Business Profile</span>
+          </div>
+        </div>
+        <div class="sr-section">
+          <div class="sr-detail-list">
+            <?php foreach ($rows as $label => $value): ?>
+              <div class="sr-detail-row">
+                <span class="sr-label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="sr-value"><?= is_string($value) ? $value : htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8') ?></span>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <div class="sr-section">
+          <div class="sr-desc">
+            <p class="sr-label">Business description</p>
+            <p><?= htmlspecialchars($supplier['description'] ?? 'No description provided.', ENT_QUOTES, 'UTF-8') ?></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Actions -->
+    <aside class="sr-rail">
+      <!-- Verification links -->
+      <div class="sr-panel">
+        <div class="sr-panel-h">
+          <div><span class="sr-panel-title">Verification</span></div>
+        </div>
+        <div style="padding:14px;display:grid;gap:8px">
+          <?php if (!empty($supplier['verify_url'])): ?>
+            <a href="<?= htmlspecialchars($supplier['verify_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="sr-file-link"><i data-lucide="external-link" class="h-4 w-4"></i> Website / social link</a>
+          <?php endif; ?>
+          <?php if (!empty($supplier['business_license_url'])): ?>
+            <a href="<?= htmlspecialchars($supplier['business_license_url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" class="sr-file-link"><i data-lucide="file-badge" class="h-4 w-4"></i> Business license</a>
+          <?php endif; ?>
+          <?php if (empty($supplier['verify_url']) && empty($supplier['business_license_url'])): ?>
+            <p class="sr-empty">No verification files found.</p>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <!-- Decision / Management -->
+      <div class="sr-panel">
+        <div class="sr-panel-h">
+          <div><span class="sr-panel-title"><?= $isPending ? 'Decision' : 'Management' ?></span></div>
+        </div>
+        <div class="sr-action-stack">
+          <?php if ($isPending): ?>
+            <form method="post" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>" onsubmit="return confirm('Approve this supplier?')">
+              <button class="sr-btn btn-primary" type="submit"><i data-lucide="check" class="h-4 w-4"></i> Approve supplier</button>
+            </form>
+            <form method="post" action="<?= URLROOT ?>/admin/rejectSupplier/<?= (int)$supplier['supplier_id'] ?>" onsubmit="return confirm('Reject this application?')">
+              <button class="sr-btn btn-danger" type="submit"><i data-lucide="x" class="h-4 w-4"></i> Reject</button>
+            </form>
+          <?php elseif ($isBanned): ?>
+            <p class="sr-reviewed" style="margin-bottom:8px">This supplier is <strong>banned</strong>.</p>
+            <form method="post" action="<?= URLROOT ?>/admin/unbanSupplier/<?= (int)$supplier['supplier_id'] ?>" onsubmit="return confirm('Unban this supplier?')">
+              <button class="sr-btn btn-primary" type="submit"><i data-lucide="refresh-cw" class="h-4 w-4"></i> Unban & restore</button>
+            </form>
+          <?php elseif ($isApprovedOrVerified): ?>
+            <!-- Ban -->
+            <button class="sr-btn btn-danger" type="button" onclick="openModal('ban')"><i data-lucide="ban" class="h-4 w-4"></i> Ban supplier</button>
+            <!-- Warn level 1 -->
+            <button class="sr-btn btn-warn" type="button" onclick="openModal('warn1')"><i data-lucide="alert-triangle" class="h-4 w-4"></i> Issue warning</button>
+            <?php if ($warnLevel >= 1): ?>
+              <!-- Escalate to final warning -->
+              <button class="sr-btn btn-danger" type="button" onclick="openModal('warn2')"><i data-lucide="alert-octagon" class="h-4 w-4"></i> Final warning</button>
+            <?php endif; ?>
+          <?php else: ?>
+            <p class="sr-reviewed">This supplier has already been reviewed (<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>).</p>
+          <?php endif; ?>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Modals for ban / warn -->
+<div class="modal-overlay" id="modalBan">
+  <div class="modal-box">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Ban Supplier</h3>
+    <form method="post" action="<?= URLROOT ?>/admin/banSupplier/<?= (int)$supplier['supplier_id'] ?>">
+      <div class="sr-field"><label>Reason for ban <span style="color:#ef4444">*</span></label><textarea name="reason" required placeholder="Explain why this supplier is being banned..."></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('ban')">Cancel</button>
+        <button type="submit" class="sr-btn btn-danger" style="width:auto">Confirm Ban</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalWarn1">
+  <div class="modal-box">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Issue Warning (Level 1)</h3>
+    <form method="post" action="<?= URLROOT ?>/admin/warnSupplier/<?= (int)$supplier['supplier_id'] ?>">
+      <input type="hidden" name="warning_level" value="1">
+      <div class="sr-field"><label>Warning note <span style="color:#ef4444">*</span></label><textarea name="warn_note" required placeholder="Describe the issue..."></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('warn1')">Cancel</button>
+        <button type="submit" class="sr-btn btn-warn" style="width:auto">Issue Warning</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalWarn2">
+  <div class="modal-box">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Final Warning (Level 2)</h3>
+    <form method="post" action="<?= URLROOT ?>/admin/warnSupplier/<?= (int)$supplier['supplier_id'] ?>">
+      <input type="hidden" name="warning_level" value="2">
+      <div class="sr-field"><label>Final warning note <span style="color:#ef4444">*</span></label><textarea name="warn_note" required placeholder="Describe the serious issue..."></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('warn2')">Cancel</button>
+        <button type="submit" class="sr-btn btn-danger" style="width:auto">Issue Final Warning</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openModal(id) { document.getElementById('modal'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal'+id.charAt(0).toUpperCase()+id.slice(1)).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(function(m){ m.addEventListener('click',function(e){ if(e.target===m) m.classList.remove('open'); }); });
+</script>
 <?php
 };
 ?>

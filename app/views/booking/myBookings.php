@@ -5,16 +5,16 @@ $activeFilter = $activeFilter ?? 'all';
 $statusLabels = [
     'draft' => 'Draft', 'pending_payment' => 'Pending Payment', 'payment_submitted' => 'Verifying Payment',
     'paid' => 'Paid', 'pending_admin' => 'Pending Admin', 'confirmed' => 'Confirmed',
-    'completed' => 'Completed', 'cancelled' => 'Cancelled',
+    'completed' => 'Completed', 'cancelled' => 'Cancelled', 'cancellation_requested' => 'Cancellation Requested',
 ];
 $statusColors = [
     'draft' => 'bg-gray-100 text-gray-600', 'pending_payment' => 'bg-amber-100 text-amber-700',
     'payment_submitted' => 'bg-yellow-100 text-yellow-800',
     'paid' => 'bg-blue-100 text-blue-700', 'pending_admin' => 'bg-amber-100 text-amber-700',
     'confirmed' => 'bg-green-100 text-green-700', 'completed' => 'bg-emerald-100 text-emerald-700',
-    'cancelled' => 'bg-red-100 text-red-700',
+    'cancelled' => 'bg-red-100 text-red-700', 'cancellation_requested' => 'bg-orange-100 text-orange-700',
 ];
-$filterLabels = ['all' => 'All', 'pending_payment' => 'Pending', 'paid' => 'Paid', 'confirmed' => 'Confirmed', 'completed' => 'Completed', 'cancelled' => 'Cancelled'];
+$filterLabels = ['all' => 'All', 'pending_payment' => 'Pending', 'paid' => 'Paid', 'confirmed' => 'Confirmed', 'completed' => 'Completed', 'cancelled' => 'Cancelled', 'cancellation_requested' => 'Cancellation Requested'];
 
 $money = fn($v) => 'RM ' . number_format((float)$v, 0);
 $plain = function ($v) {
@@ -127,6 +127,16 @@ button { font-family: var(--font-b); cursor: pointer; }
   :root { --pad-x: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .gp-card, .gp-page-head { animation: none; opacity: 1; transform: none; } .gp-orb { animation: none; } }
+
+/* Pagination */
+.gp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; margin-top: 20px; border-top: 1px solid var(--rule); }
+.gp-pagination-info { font-size: 12px; color: var(--muted); }
+.gp-pagination-btns { display: flex; align-items: center; gap: 5px; }
+.gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--rule); border-radius: var(--r-sm); background: var(--card); color: var(--text2); font-size: 12px; font-weight: 600; font-family: var(--font-b); text-decoration: none; transition: all 0.15s; cursor: pointer; }
+.gp-pagination-btn:hover { background: var(--bg); color: var(--text); border-color: var(--gold); }
+.gp-pagination-btn-cur { background: var(--plum); color: #fff; border-color: var(--plum); }
+.gp-pagination-btn-cur:hover { background: var(--plum-dk); }
+.gp-pagination-btn-disabled { opacity: 0.3; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -227,7 +237,7 @@ button { font-family: var(--font-b); cursor: pointer; }
           <?php if (in_array($b['status'], ['paid', 'confirmed'])): ?>
             <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/vouchers">View Voucher</a>
           <?php endif; ?>
-          <?php if (!in_array($b['status'], ['cancelled', 'completed'])): ?>
+          <?php if (!in_array($b['status'], ['cancelled', 'cancellation_requested', 'completed'])): ?>
             <a class="gp-btn-sm danger" href="<?= URLROOT ?>/booking/cancel/<?= (int)$b['id'] ?>">Request Cancellation</a>
           <?php endif; ?>
         </div>
@@ -235,6 +245,14 @@ button { font-family: var(--font-b); cursor: pointer; }
     </div>
     <?php endforeach; ?>
   <?php endif; ?>
+
+  <?php
+  if (isset($currentPage, $totalPages, $totalCount, $perPage) && $totalPages > 1) {
+      $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+      $classPrefix = 'customer';
+      require APPROOT . '/views/partials/_pagination.php';
+  }
+  ?>
 </main>
 
 <footer class="gp-footer">

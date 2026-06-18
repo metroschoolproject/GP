@@ -29,7 +29,6 @@ define('GEMINI_API_KEY', 'AQ.Ab8RN6K4xV4_5A_Gq4vIRxK4gH0hnTZgyseqwUjKbyCgXWqNlg'
 // Email Configuration
 define('MAIL_HOST', 'smtp.gmail.com');
 define('MAIL_USERNAME', 'hsumyatm7308@gmail.com');
-define('MAIL_PASSWORD', 'app-password-here');
 define('MAIL_ENCRYPTION', 'tls');
 define('MAIL_PORT', 587);
 

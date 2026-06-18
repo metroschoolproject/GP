@@ -248,14 +248,18 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
       </table>
     </div>
 
-    <div class="pagination">
-      <span class="page-info">Showing <?= empty($bookings) ? '0' : '1' ?>-<?= $shownCount ?> of <?= $totalCount ?> bookings</span>
-      <div class="page-btns">
-        <button class="page-btn" disabled><i data-lucide="chevron-left" class="h-3 w-3"></i></button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn" disabled><i data-lucide="chevron-right" class="h-3 w-3"></i></button>
-      </div>
-    </div>
+    <?php
+    if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
+        $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+        $filterParam = $activeFilter ?? 'all';
+        $searchParam = $search ?? '';
+        $baseParams = 'status=' . urlencode($filterParam);
+        if ($searchParam !== '') {
+            $baseParams .= '&search=' . urlencode($searchParam);
+        }
+        require APPROOT . '/views/partials/_pagination.php';
+    }
+    ?>
   </div>
 </div>
 <?php

@@ -184,12 +184,85 @@ class Payment
     }
 
     /**
+     * Unified admin payment history for supplier membership fees and customer
+     * booking payments.
+     */
+    public function getAdminPaymentHistory(string $status = 'all', int $limit = 20, int $offset = 0): array
+    {
+        $query = "SELECT p.id,
+                         p.booking_id,
+                         p.supplier_id,
+                         COALESCE(p.paid_amount, p.amount, 0) AS amount,
+                         p.method,
+                         p.bank_name,
+                         p.account_name,
+                         p.mobile_number,
+                         p.status,
+                         p.transaction_ref,
+                         p.payment_slip_path,
+                         p.verified_at,
+                         p.verified_note,
+                         p.created_at,
+                         p.type,
+                         CASE
+                             WHEN b.id IS NOT NULL
+                             THEN CONCAT('BK-', DATE_FORMAT(b.created_at, '%Y%m%d'), '-', LPAD(b.id, 3, '0'))
+                             ELSE NULL
+                         END AS booking_ref,
+                         s.shop_name,
+                         supplier_user.email AS owner_email,
+                         customer.name AS customer_name,
+                         customer.email AS customer_email
+                  FROM payments p
+                  LEFT JOIN suppliers s ON s.supplier_id = p.supplier_id
+                  LEFT JOIN users supplier_user ON supplier_user.user_id = s.user_id
+                  LEFT JOIN bookings b ON b.id = p.booking_id
+                  LEFT JOIN users customer ON customer.user_id = b.user_id
+                  WHERE 1 = 1";
+
+        if ($status !== 'all') {
+            $query .= ' AND p.status = :status';
+        }
+        $query .= ' ORDER BY COALESCE(p.verified_at, p.created_at) DESC, p.id DESC';
+        $query .= ' LIMIT :limit OFFSET :offset';
+
+        $this->db->dbquery($query);
+        if ($status !== 'all') {
+            $this->db->dbbind(':status', $status);
+        }
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    public function getAdminPaymentHistoryCount(string $status = 'all'): int
+    {
+        $query = "SELECT COUNT(*) AS total
+                  FROM payments p
+                  LEFT JOIN suppliers s ON s.supplier_id = p.supplier_id
+                  LEFT JOIN users supplier_user ON supplier_user.user_id = s.user_id
+                  LEFT JOIN bookings b ON b.id = p.booking_id
+                  LEFT JOIN users customer ON customer.user_id = b.user_id
+                  WHERE 1 = 1";
+
+        if ($status !== 'all') {
+            $query .= ' AND p.status = :status';
+        }
+
+        $this->db->dbquery($query);
+        if ($status !== 'all') {
+            $this->db->dbbind(':status', $status);
+        }
+        return (int)($this->db->getsingledata()['total'] ?? 0);
+    }
+
+    /**
      * Reviewed customer deposit payments for the verification history tabs.
      * $status: 'verified' (=> success) or 'rejected' (=> failed).
      * Returns payment-centric rows joined to their booking + customer, using
      * the same field aliases the verification view already reads.
      */
-    public function getDepositReviewQueue($status = 'verified')
+    public function getDepositReviewQueue($status = 'verified', int $limit = 15, int $offset = 0)
     {
         $payStatus = $status === 'rejected' ? 'failed' : 'success';
 
@@ -218,11 +291,28 @@ class Payment
              JOIN bookings b ON b.id = p.booking_id
              LEFT JOIN users u ON u.user_id = b.user_id
              WHERE p.type = 'deposit' AND p.status = :pstatus
-             ORDER BY p.verified_at DESC, p.id DESC"
+             ORDER BY p.verified_at DESC, p.id DESC
+             LIMIT :limit OFFSET :offset"
         );
         $this->db->dbbind(':pstatus', $payStatus);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    public function getDepositReviewQueueCount(string $status = 'verified'): int
+    {
+        $payStatus = $status === 'rejected' ? 'failed' : 'success';
+
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS total
+             FROM payments p
+             JOIN bookings b ON b.id = p.booking_id
+             WHERE p.type = 'deposit' AND p.status = :pstatus"
+        );
+        $this->db->dbbind(':pstatus', $payStatus);
+        return (int)($this->db->getsingledata()['total'] ?? 0);
     }
 
     public function getSupplierFeePaymentById($paymentId)

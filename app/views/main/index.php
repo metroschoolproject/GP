@@ -1,52 +1,27 @@
 <?php
-$serviceCategories = $serviceCategories ?? [];
-
-if (empty($serviceCategories)) {
-    $serviceCategories = [
-        ['name' => 'Planning', 'slug' => 'planning'],
-        ['name' => 'Florals', 'slug' => 'florals'],
-        ['name' => 'Photography', 'slug' => 'photography'],
-        ['name' => 'Catering', 'slug' => 'catering'],
-    ];
-}
-
-$serviceCategories = array_values(array_slice(array_filter($serviceCategories, function ($category) {
-    return trim((string)($category['name'] ?? '')) !== '';
-}), 0, 6));
-
+$serviceCategories = array_values(array_filter(
+    $serviceCategories ?? [],
+    static fn($category) => trim((string)($category['name'] ?? '')) !== ''
+));
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Log In';
-
-$plain = function ($value) {
-    $text = (string)$value;
-    for ($i = 0; $i < 10; $i++) {
-        $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        if ($decoded === $text) {
-            break;
-        }
-        $text = $decoded;
-    }
-
-    return $text;
-};
-$h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
+$homeImageRoot = URLROOT . '/public/images/home';
+$gpLogoPath = APPROOT . '/../public/images/home/gp_logo.png';
+$gpLogoUrl = $homeImageRoot . '/gp_logo.png?v=' . (is_file($gpLogoPath) ? filemtime($gpLogoPath) : time());
+$h = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= APPNAME ?></title>
-    <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
-    <?php $indexCssVersion = file_exists(APPROOT . '/../public/css/index.css') ? filemtime(APPROOT . '/../public/css/index.css') : time(); ?>
-    <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
-    <link rel="stylesheet" href="<?= URLROOT ?>/public/css/index.css?v=<?= $indexCssVersion ?>">
-</head>
-
-
-
-<style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><?= $h(APPNAME) ?></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
     @import url("https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;500;600;700&display=swap");
 
     @property --mask-width {
@@ -98,7 +73,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       height: 100vh;
       overflow-y: auto;
       overflow-x: hidden;
-      scroll-snap-type: y mandatory;
+      scroll-snap-type: y proximity;
       scroll-behavior: smooth;
       overscroll-behavior-y: contain;
       -webkit-overflow-scrolling: touch;
@@ -118,14 +93,14 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .scroll-spacer {
       height: 100vh;
       scroll-snap-align: start;
-      scroll-snap-stop: always;
+      scroll-snap-stop: normal;
       pointer-events: none;
     }
 
     .reveal-spacer {
       height: 100vh;
       scroll-snap-align: start;
-      scroll-snap-stop: always;
+      scroll-snap-stop: normal;
       pointer-events: none;
     }
 
@@ -151,7 +126,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
     .page-sections > section {
       scroll-snap-align: start;
-      scroll-snap-stop: always;
+      scroll-snap-stop: normal;
     }
 
     .hero {
@@ -160,7 +135,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       overflow: hidden;
       border-radius: 0;
       background:
-        url("images/hero-bg.png") center / cover no-repeat,
+        url("<?= $homeImageRoot ?>/hero-bg.png") center / cover no-repeat,
         radial-gradient(ellipse at 18% 18%, rgba(255,255,255,0.92), transparent 34%),
         linear-gradient(180deg, #fff6ec 0%, #f5e4d7 100%);
       isolation: isolate;
@@ -196,8 +171,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       inset: 0;
       z-index: 1;
       background:
-        linear-gradient(180deg, rgba(36, 25, 20, 0.08), rgba(36, 25, 20, 0.42)),
-        radial-gradient(ellipse at 50% 76%, rgba(35, 24, 20, 0.5), transparent 48%);
+        linear-gradient(180deg, rgba(36, 25, 20, 0.08), rgba(36, 25, 20, 0.42));
       pointer-events: none;
     }
 
@@ -225,6 +199,37 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       transform: translateX(-50%);
     }
 
+    .hero-bottom-prompt {
+      position: absolute;
+      left: 50%;
+      bottom: clamp(88px, 10vw, 132px);
+      z-index: 4;
+      display: grid;
+      gap: 4px;
+      color: rgba(255, 246, 236, 0.9);
+      font-family: "Playfair Display", Georgia, serif;
+      line-height: 0.95;
+      text-align: center;
+      text-decoration: none;
+      text-shadow: 0 8px 24px rgba(0, 0, 0, 0.44);
+      transform: translateX(-50%);
+    }
+
+    .hero-bottom-prompt span {
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+    }
+
+    .hero-bottom-prompt strong {
+      font-size: clamp(34px, 5vw, 62px);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
     @media (max-width: 760px) {
       .hero-content {
         padding: 0;
@@ -243,40 +248,61 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         width: min(86%, 320px);
         min-width: 0;
       }
+
+      .hero-bottom-prompt {
+        bottom: 84px;
+      }
     }
 
     .site-header {
-      position: fixed;
-      inset: 0 0 auto;
-      z-index: 80;
-      padding: 0;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(-100%);
-      transition: opacity 420ms ease, transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
-    }
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1000;
 
-    .site-header.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  opacity: 0;
+  transform: translateY(-100%);
+  transition:
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.6s ease;
+}
 
-    .navbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1000;
-      pointer-events: auto;
-      width: 100%;
-      max-width: none;
-      border-radius: 0 0 14px 14px;
-      background: rgba(0, 0, 0, 0.5);
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-    }
+.site-header.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+
+  background: rgba(255, 248, 239, 0.18);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+
+  border-radius: 0 0 24px 24px;
+
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+
+  box-shadow:
+    0 10px 30px rgba(74, 52, 47, 0.08),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.navbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,0.25),
+      rgba(255,255,255,0.05)
+    );
+
+  pointer-events: none;
+}
     .nav-left-spacer {
       width: 40px;
       height: 40px;
@@ -289,20 +315,77 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       top: 50%;
       z-index: 2;
       display: grid;
-      width: 84px;
-      height: 84px;
+      width: 82px;
+      height: 82px;
       place-items: center;
-      overflow: hidden;
-      border-radius: 50%;
       transform: translate(-50%, -50%);
     }
 
     .nav-center-logo img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 8px rgba(74, 52, 47, 0.22));
+    }
+    /* dropdown */
+    .service-item {
+      display: block;
+      padding: 14px 18px;
+      border-radius: 12px;
+
+      color: #4A342F;
+      text-decoration: none;
+      font-weight: 500;
+
+      transition: all 0.3s ease;
     }
 
+    .service-item:hover {
+      background: rgba(216, 180, 106, 0.12);
+      color: #8A6A58;
+      transform: translateX(4px);
+    }
+
+      .dock-dropdown {
+    position: relative;
+  }
+
+  .service-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-left: 6px;
+  font-size: 22px;
+  line-height: 1;
+
+  position: relative;
+  top: 4px;
+
+  transform: rotate(180deg);
+  transition: transform 0.25s ease;
+}
+  .dock-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-20%);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition: all 0.3s ease;
+  }
+
+.dock-dropdown:hover .dock-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.dock-dropdown:hover .service-arrow {
+  transform: rotate(0deg);
+}
     .dock-dropdown.open .dock-dropdown-menu {
       display: block;
     }
@@ -319,76 +402,22 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       background: rgba(17, 24, 39, 0.04);
       color: #000;
     }
+    .hero-brand-title {
+      margin: 0 0 18px;
+      color: #F3D9A4;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(16px, 1.4vw, 24px);
+      font-weight: 700;
+      letter-spacing: 0.45em;
+      text-transform: uppercase;
 
+      position: relative;
+      transform-origin: center;
+      will-change: transform, opacity;
+    }
     .mobile-menu.open {
       display: grid;
     }
-
-    /* ─── HOME PROFILE DROPDOWN ─────────────────────── */
-    .home-profile-btn {
-      display: flex; align-items: center; gap: 8px;
-      padding: 4px 12px 4px 4px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.08);
-      cursor: pointer;
-      transition: all 0.2s;
-      color: #FFF4E6;
-      font-family: 'Poppins', system-ui, -apple-system, sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .home-profile-btn:hover { background: rgba(255,255,255,0.15); }
-
-    .home-profile-avatar {
-      display: grid; place-items: center;
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      background: #D8B46A;
-      color: #3F2F24;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-    }
-
-    .home-profile-name { white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
-
-    .home-profile-chevron { opacity: 0.7; transition: transform 0.2s; }
-    .home-profile-btn[aria-expanded="true"] .home-profile-chevron { transform: rotate(180deg); }
-
-    .home-profile-menu {
-      position: absolute; top: calc(100% + 8px); right: 0; z-index: 1100;
-      min-width: 180px;
-      padding: 6px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: #765A46;
-      box-shadow: 0 12px 35px rgba(92,67,48,0.25);
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(-4px);
-      transition: all 0.15s ease;
-    }
-    .home-profile-btn[aria-expanded="true"] + .home-profile-menu,
-    .home-profile-menu.show {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-    }
-
-    .home-profile-menu-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #FFF4E6;
-      transition: all 0.15s;
-    }
-    .home-profile-menu-item:hover { background: rgba(216,180,106,0.16); color: #F3D9A4; }
-
-    .home-profile-menu-item--danger { color: #f5a0a0; }
-    .home-profile-menu-item--danger:hover { background: rgba(185,75,75,0.2); color: #ffcccc; }
 
     .floating-services {
       position: fixed;
@@ -414,6 +443,46 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
     .float-button:hover {
       cursor: none;
+    }
+
+    .float-button-shell {
+      --float-duration: 3.5s;
+      --icon-color: #7a4f54;
+      --icon-soft: rgba(122, 79, 84, 0.13);
+      --icon-second: #d8b46a;
+      display: inline-flex;
+      min-width: clamp(96px, 8vw, 132px);
+      min-height: clamp(42px, 4vw, 54px);
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      border-radius: 10px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(255, 241, 236, 0.9));
+      color: var(--icon-color);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        0 18px 38px rgba(92, 55, 72, 0.18);
+      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px);
+      animation: appIconFloat var(--float-duration) ease-in-out infinite;
+    }
+
+    .float-button-label {
+      position: static;
+      width: auto;
+      height: auto;
+      overflow: visible;
+      clip: auto;
+      white-space: nowrap;
+      font-family: Arial, sans-serif;
+      font-size: clamp(10px, 0.78vw, 12px);
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      line-height: 1;
+      text-transform: uppercase;
     }
 
     .service-slide-left,
@@ -474,6 +543,84 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       50% { transform: translateY(-9px); }
     }
 
+    @keyframes appIconFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .explore-badge {
+      width: 3.25rem;
+      min-width: 3.25rem;
+      height: 3.25rem;
+      overflow: hidden;
+      gap: 0.4rem;
+      padding: 0.25rem;
+      transition:
+        width 1450ms cubic-bezier(0.16, 1, 0.3, 1),
+        min-width 1450ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 300ms ease;
+      will-change: width, min-width;
+    }
+
+    .group:hover .explore-badge,
+    .group:focus-within .explore-badge {
+      width: 12.75rem;
+      min-width: 12.75rem;
+    }
+
+    .explore-badge-icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 2.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .explore-badge-label {
+      display: block;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+      max-width: 0;
+      opacity: 0;
+      transform: translateX(-28px);
+      background: rgba(255, 248, 239, 0.98);
+      border-radius: 999px;
+      box-shadow: 0 10px 22px rgba(74, 52, 47, 0.08);
+      padding: 0.7rem 1rem 0.68rem 1rem;
+      transition:
+        max-width 1600ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 1200ms ease 350ms,
+        transform 1600ms cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: max-width, opacity, transform;
+    }
+
+    .group:hover .explore-badge-label,
+    .group:focus-within .explore-badge-label {
+      max-width: 7.25rem;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    #gp-traveler{
+      position:fixed;
+      left:0;
+      top:0;
+      z-index:9999;
+
+      color:#F3D9A4;
+      font-family:"Playfair Display",serif;
+      font-weight:700;
+      letter-spacing:.45em;
+      text-transform:uppercase;
+
+      pointer-events:none;
+
+      opacity:0;
+      transform-origin:center center;
+    }
     #how-it-works {
       min-height: 260vh;
       overflow: visible;
@@ -485,6 +632,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       color: #4a342f;
       scroll-snap-align: start;
       scroll-snap-stop: normal;
+      contain: paint;
     }
 
     .hiw-sticky {
@@ -492,6 +640,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       top: 0;
       height: 100vh;
       overflow: hidden;
+      transform: translateZ(0);
     }
 
     .hiw-section-title {
@@ -528,6 +677,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       width: 3560px;
       height: 1000px;
       transform: translate3d(0, -50%, 0);
+      backface-visibility: hidden;
       will-change: transform;
     }
 
@@ -583,7 +733,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       width: 100%;
       overflow: hidden;
       border-radius: inherit;
-      background: #000;
+      background: #2A1710;
     }
 
     .hiw-card-media img {
@@ -612,12 +762,12 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       right: 0;
       bottom: 0;
       z-index: 3;
-      height: 56%;
+      height: 50%;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(154,126,112,0.44) 34%, rgba(74,62,59,0.72) 100%),
-        radial-gradient(ellipse at 18% 72%, rgba(210,132,96,0.34), transparent 56%);
-      -webkit-backdrop-filter: blur(18px) saturate(1.18);
-      backdrop-filter: blur(18px) saturate(1.18);
+        linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(154,126,112,0.28) 34%, rgba(74,62,59,0.48) 100%),
+        radial-gradient(ellipse at 18% 72%, rgba(210,132,96,0.18), transparent 56%);
+      -webkit-backdrop-filter: blur(12px) saturate(1.05);
+      backdrop-filter: blur(12px) saturate(1.05);
       mask-image: linear-gradient(180deg, transparent 0%, #000 34%, #000 100%);
       -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 34%, #000 100%);
     }
@@ -625,7 +775,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .hiw-card-title {
       position: absolute;
       left: 22px;
-      bottom: 76px;
+      top: 80%;
       z-index: 4;
       width: calc(100% - 44px);
       margin: 0;
@@ -637,15 +787,22 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       line-height: 1.05;
       text-align: left;
       text-shadow: 0 3px 12px rgba(0, 0, 0, 0.44);
+      transform: translateY(-50%);
+      transition: top 220ms ease, transform 220ms ease;
+    }
+
+    .hiw-card:hover .hiw-card-title,
+    .hiw-card:focus .hiw-card-title {
+      top: 34px;
+      transform: translateY(0);
     }
 
     .hiw-card-copy {
       position: absolute;
       left: 22px;
       right: 48px;
-      bottom: 20px;
+      bottom: 26px;
       z-index: 4;
-      display: block;
       height: auto;
       margin: 0;
       padding: 0;
@@ -659,8 +816,19 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       display: -webkit-box;
       max-height: 38px;
       -webkit-box-orient: vertical;
+      line-clamp: 2;
       -webkit-line-clamp: 2;
       white-space: normal;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 220ms ease, transform 220ms ease;
+      pointer-events: none;
+    }
+
+    .hiw-card:hover .hiw-card-copy,
+    .hiw-card:focus .hiw-card-copy {
+      opacity: 1;
+      transform: translateY(-4px);
     }
 
     .hiw-card-copy::after {
@@ -793,12 +961,43 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       display: grid;
       grid-column: 1 / -1;
       grid-row: 1 / -1;
+      z-index: 4;
       grid-template-columns: subgrid;
       grid-template-rows: subgrid;
       opacity: 0;
       transform: scale(0.82);
       transform-origin: center;
+      pointer-events: none;
       will-change: opacity, transform;
+    }
+
+    .gp-gallery-photo {
+      position: relative;
+      pointer-events: auto;
+    }
+
+    .gp-gallery-layer > .gp-gallery-photo {
+      --gallery-float-distance: 18px;
+      animation: galleryVerticalFloat 6.8s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    .gp-gallery-layer > .gp-gallery-photo:nth-child(2n) {
+      --gallery-float-distance: -22px;
+      animation-duration: 7.6s;
+      animation-delay: -1.8s;
+    }
+
+    .gp-gallery-layer > .gp-gallery-photo:nth-child(3n) {
+      --gallery-float-distance: 26px;
+      animation-duration: 8.4s;
+      animation-delay: -3.2s;
+    }
+
+    .gp-gallery-layer > .gp-gallery-photo:nth-child(4n) {
+      --gallery-float-distance: -16px;
+      animation-duration: 6.2s;
+      animation-delay: -4.4s;
     }
 
     .gp-gallery-layer:nth-of-type(1) div:nth-of-type(odd) {
@@ -828,11 +1027,42 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     }
 
     .gp-gallery-grid img {
+      position: relative;
       width: 100%;
       aspect-ratio: 4 / 5;
       object-fit: cover;
       border-radius: 1rem;
       box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+      filter: blur(0);
+      transform: translateZ(0) scale(1);
+      transition:
+        filter 420ms ease,
+        opacity 420ms ease,
+        transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: filter, transform;
+    }
+
+    .gp-gallery-grid.gallery-photo-hovering .gp-gallery-photo img,
+    .gp-gallery-grid:has(img:hover) img {
+      filter: blur(7px) saturate(0.78);
+      opacity: 0.56;
+    }
+
+    .gp-gallery-grid.gallery-photo-hovering .gp-gallery-photo.active img,
+    .gp-gallery-grid:has(img:hover) img:hover {
+      filter: blur(0) saturate(1.08);
+      opacity: 1;
+      z-index: 6;
+    }
+
+    .gp-gallery-layer .gp-gallery-photo.active,
+    .gp-gallery-layer .gp-gallery-photo:has(img:hover) {
+      z-index: 7;
+    }
+
+    .gp-gallery-layer .gp-gallery-photo.active img,
+    .gp-gallery-layer .gp-gallery-photo:has(img:hover) img {
+      transform: translateZ(0) scale(1.045);
     }
 
     .gp-gallery-scaler {
@@ -854,7 +1084,28 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       object-fit: cover;
       border-radius: 1rem;
       transform: translate(-50%, -50%);
-      will-change: width, height;
+      animation: galleryScalerFloat 7.2s ease-in-out infinite;
+      will-change: width, height, filter, transform;
+    }
+
+    @keyframes galleryVerticalFloat {
+      0%, 100% {
+        transform: translate3d(0, calc(var(--gallery-float-distance) * -0.5), 0);
+      }
+
+      50% {
+        transform: translate3d(0, calc(var(--gallery-float-distance) * 0.5), 0);
+      }
+    }
+
+    @keyframes galleryScalerFloat {
+      0%, 100% {
+        transform: translate(-50%, calc(-50% - 10px));
+      }
+
+      50% {
+        transform: translate(-50%, calc(-50% + 10px));
+      }
     }
 
     @media (max-width: 760px) {
@@ -901,6 +1152,13 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       }
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      .gp-gallery-layer > div,
+      .gp-gallery-scaler img {
+        animation: none;
+      }
+    }
+
     #reviews {
       position: relative;
       min-height: 100vh;
@@ -919,17 +1177,6 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       margin: 0 auto;
     }
 
-    .review-cloud::before {
-      content: "”";
-      position: absolute;
-      left: 25%;
-      top: -52px;
-      color: rgba(74, 52, 47, 0.34);
-      font-family: Georgia, serif;
-      font-size: 126px;
-      line-height: 1;
-    }
-
     .review-card {
       position: absolute;
       border: 1px solid rgba(118, 90, 70, 0.12);
@@ -937,6 +1184,21 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       box-shadow: 0 24px 58px rgba(74, 52, 47, 0.16);
       color: #5f514a;
       backdrop-filter: blur(14px);
+      opacity: 0;
+      transform:
+        translate3d(var(--review-enter-x, 0), var(--review-enter-y, 40px), 0)
+        rotate(var(--review-enter-rotate, 0deg))
+        scale(0.94);
+      transition:
+        opacity 720ms ease,
+        transform 920ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition-delay: var(--review-enter-delay, 0ms);
+      will-change: opacity, transform;
+    }
+
+    #reviews.reviews-visible .review-card {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
     }
 
     .review-card h3 {
@@ -968,7 +1230,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       height: 72px;
       border: 6px solid rgba(255, 248, 239, 0.92);
       border-radius: 999px;
-      background: #B94A48;
+      background: #8A6A58;
       color: #FFF8EF;
       font-family: "Playfair Display", serif;
       font-size: 22px;
@@ -1052,21 +1314,6 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .review-pos-7 { right: 4%; top: 408px; }
     .review-pos-8 { left: 57%; top: 458px; }
 
-    .review-like {
-      position: absolute;
-      right: -22px;
-      top: -26px;
-      display: grid;
-      place-items: center;
-      width: 56px;
-      height: 56px;
-      border-radius: 999px;
-      background: rgba(118, 90, 70, 0.78);
-      color: #FFF8EF;
-      font-size: 24px;
-      box-shadow: 0 18px 34px rgba(74, 52, 47, 0.18);
-    }
-
     @media (max-width: 980px) {
       #reviews {
         min-height: auto;
@@ -1076,10 +1323,6 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         display: grid;
         min-height: 0;
         gap: 22px;
-      }
-
-      .review-cloud::before {
-        display: none;
       }
 
       .review-card,
@@ -1096,6 +1339,14 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
       .review-card-feature {
         margin-top: 48px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .review-card {
+        opacity: 1;
+        transform: none;
+        transition: none;
       }
     }
 
@@ -1139,7 +1390,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       right: clamp(28px, 6vw, 76px);
       bottom: clamp(16px, 4vw, 44px);
       color: rgba(185, 74, 72, 0.08);
-      font-family: "Playfair Display", serif;
+      background: linear-gradient(180deg, rgba(255, 246, 236, 0) 0%, rgba(255, 246, 236, 0.08) 54%, rgba(245, 228, 215, 0.42) 82%, #f5e4d7 100%);
       font-size: clamp(110px, 19vw, 240px);
       font-weight: 700;
       line-height: 0.8;
@@ -1307,6 +1558,174 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       }
     }
 
+    .site-footer {
+      min-height: 28vh;
+      display: grid;
+      place-items: center;
+      padding: clamp(24px, 3vw, 40px) 24px 24px;
+      background: #2A1710;
+      color: #fff;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+    .footer-contact-card{
+    text-align:center;
+}
+
+#footerText{
+    font-size:clamp(2rem,5vw,4rem);
+    font-weight:700;
+    transition:.35s ease;
+}
+
+#footerLabel{
+    color:#888;
+    margin-top:8px;
+    transition:.35s ease;
+}
+
+.footer-icons{
+    display:flex;
+    justify-content:center;
+    gap:18px;
+    margin-top:30px;
+}
+
+.contact-btn{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    cursor: pointer;
+    color: #999;
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .3s ease, color .3s ease, border-color .3s ease;
+}
+
+.contact-btn svg{
+    width:22px;
+    height:22px;
+}
+
+.contact-btn:hover,
+.contact-btn.active{
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.4);
+    color: #ffffff;
+}
+
+.text-changing{
+    opacity:0;
+    transform:translateY(12px);
+}
+
+    .footer-inner {
+      width: min(100%, 980px);
+      display: grid;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .footer-brand {
+      margin: 0;
+      color: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: clamp(30px, 5.4vw, 76px);
+      font-weight: 800;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    .footer-nav {
+      display: flex;
+      justify-content: center;
+      gap: clamp(28px, 7vw, 92px);
+      margin-top: clamp(28px, 4vw, 44px);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .footer-nav a {
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: color 220ms ease, opacity 220ms ease;
+    }
+
+    .footer-nav a:hover,
+    .footer-nav a:focus-visible {
+      color: #fff;
+      opacity: 1;
+      outline: none;
+    }
+
+    .footer-socials {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin-top: clamp(24px, 3vw, 36px);
+    }
+
+    .footer-social {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 1px solid #fff;
+      border-radius: 50%;
+      background: #fff;
+      color: #2A1710;
+      text-decoration: none;
+      transition:
+        background-color 220ms ease,
+        color 220ms ease,
+        transform 220ms ease;
+    }
+
+    .footer-social:hover,
+    .footer-social:focus-visible {
+      background: #2A1710;
+      color: #fff;
+      transform: translateY(-3px);
+      outline: none;
+    }
+
+    .footer-social-mark {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .footer-copy {
+      margin: clamp(38px, 5vw, 62px) 0 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 640px) {
+      .site-footer {
+        min-height: 42vh;
+      }
+
+      .footer-nav {
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+
+      .footer-nav a {
+        font-size: 11px;
+      }
+    }
+
     .intro-sticky {
       position: sticky;
       top: 0;
@@ -1372,7 +1791,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         radial-gradient(circle at 74% 34%, rgba(255, 238, 242, 0.18), transparent 56%),
         radial-gradient(circle at 50% 72%, rgba(255, 250, 240, 0.26), transparent 62%),
         linear-gradient(135deg, rgba(255, 252, 247, 0.34), rgba(255, 249, 244, 0.3)),
-        url("images/hiddenIntro.png");
+        url("<?= $homeImageRoot ?>/hiddenIntro.png");
       background-position: center;
       background-size: cover;
       transform: scale(1.12);
@@ -1397,7 +1816,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       position: absolute;
       inset: 0;
       z-index: 1;
-      background-image: url("images/hiddenIntro.png");
+      background-image: url("<?= $homeImageRoot ?>/hiddenIntro.png");
       background-size: cover;
       background-position: center;
       opacity: 1;
@@ -1487,22 +1906,22 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
     <!-- CENTER LOGO -->
     <a class="nav-center-logo" href="#top" aria-label="Golden Promise home">
-      <img src="images/gp_logo.png" alt="Golden Promise logo">
+      <img src="<?= $h($gpLogoUrl) ?>" alt="Golden Promise logo">
     </a>
 
     <!-- NAV LINKS -->
     <div class="absolute left-12 top-1/2 flex -translate-y-1/2 items-center gap-[18px]">
-      <div class="flex items-center gap-7 text-sm font-semibold text-[#FFF4E6] max-[980px]:hidden">
+      <div class="flex items-center gap-7 text-sm font-semibold text-[#4A342F] max-[980px]:hidden">
 
-        <a class="transition duration-300 hover:text-[#F3D9A4]" href="#top">
+        <a class="transition duration-300 hover:text-[#5a4038]" href="#top">
           Home
         </a>
 
-        <a class="transition duration-300 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/packages">
+        <a class="transition duration-300 hover:text-[#5a4038]" href="<?= URLROOT ?>/customerServices/packages">
           Packages
         </a>
 
-        <a class="transition duration-300 hover:text-[#F3D9A4]" href="#gallery">
+        <a class="transition duration-300 hover:text-[#5a4038]" href="#gallery">
           Gallery
         </a>
 
@@ -1510,74 +1929,52 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         <div class="dock-dropdown relative inline-block" id="dockDropdown">
 
           <button
-            class="cursor-pointer border-0 bg-transparent px-2 py-1.5 font-bold text-[#FFF4E6] transition duration-300 hover:text-[#F3D9A4]"
-            id="dockDropdownBtn"
-            type="button"
-            aria-expanded="false">
+          class="cursor-pointer border-0 bg-transparent px-2 py-1.5 font-bold text-[#4A342F] transition duration-300 hover:text-[#5A4038]"
+          id="dockDropdownBtn"
+          type="button"
+          aria-expanded="false">
 
-            Services ▾
-          </button>
-
+          Services
+          <span class="service-arrow">^</span>
+        </button>
           <!-- DROPDOWN MENU -->
           <div
-            class="dock-dropdown-menu absolute right-0 top-full z-[80] hidden min-w-40 overflow-hidden rounded-xl border border-transparent bg-[#765A46] px-1 py-1.5 shadow-[0_12px_30px_rgba(92,67,48,0.18)]"
-            id="dockDropdownMenu"
-            aria-hidden="true">
+  class="dock-dropdown-menu absolute z-[80] min-w-52 overflow-hidden rounded-[20px] border border-white/30 bg-[rgba(255,248,239,0.85)] p-2 backdrop-blur-[20px]"
+  id="dockDropdownMenu">
 
-            <?php foreach ($serviceCategories as $category): ?>
+            <?php foreach (array_slice($serviceCategories, 0, 8) as $category): ?>
               <?php
-                $categoryName = (string)($category['name'] ?? '');
-                $categoryValue = (string)($category['slug'] ?? $categoryName);
+                $categoryName = trim((string)($category['name'] ?? 'Service'));
+                $categoryValue = trim((string)($category['slug'] ?? $categoryName));
               ?>
-              <a class="dock-link text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service?category=<?= urlencode($categoryValue) ?>">
+              <a class="service-item" href="<?= URLROOT ?>/customerServices/service?category=<?= rawurlencode($categoryValue) ?>">
                 <?= $h($categoryName) ?>
               </a>
             <?php endforeach; ?>
+            <?php if (empty($serviceCategories)): ?>
+              <a class="service-item" href="<?= URLROOT ?>/customerServices/service">Browse services</a>
+            <?php endif; ?>
 
           </div>
-        </div>
 
-        <a class="transition duration-300 hover:text-[#F3D9A4]" href="#contact">
-          Contact
-        </a>
+          </div>
 
       </div>
     </div>
 
     <!-- RIGHT BUTTONS -->
-    <div class="ml-auto flex items-center gap-3 max-[980px]:hidden">
+    <div class="ml-8 flex items-center gap-3 max-[980px]:hidden">
       <a
-        class="rounded-full bg-[#D8B46A] px-3.5 py-1.5 text-sm font-extrabold text-[#3F2F24] shadow-[0_10px_25px_rgba(92,67,48,0.18)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#F3D9A4]"
-        href="<?= URLROOT ?>/users/register?type=supplier">
-        Be a Partner
-      </a>
+  class="rounded-[12px] bg-[#8A6A58] px-4 py-2 text-sm font-semibold text-[#FFF8EF] shadow-[0_10px_25px_rgba(74,52,47,0.15)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#765A46]"
+  href="<?= URLROOT ?>/users/register?type=supplier">
+  Be a Partner
+</a>
 
-      <?php if ($isLoggedIn): ?>
-      <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
-      <div class="home-profile-dropdown relative">
-        <button class="home-profile-btn" type="button" aria-expanded="false">
-          <span class="home-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
-          <span class="home-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
-          <svg class="home-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="home-profile-menu" aria-hidden="true">
-          <a class="home-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            My Bookings
-          </a>
-          <a class="home-profile-menu-item home-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Logout
-          </a>
-        </div>
-      </div>
-      <?php else: ?>
       <a
-        class="rounded-full border border-transparent bg-white/10 px-2.5 py-1.5 text-sm font-bold text-[#FFF4E6] transition duration-300 hover:bg-white/15 hover:text-[#F3D9A4]"
-        href="<?= URLROOT ?>/users/auth">
-        Log In
-      </a>
-      <?php endif; ?>
+  class="rounded-[12px] border border-white/30 bg-white/8 px-4 py-2 text-sm font-semibold tracking-[0.04em] text-[#4A342F] backdrop-blur-md transition duration-300 hover:bg-white/20 hover:text-[#B94A48]"
+  href="<?= $h($authNavUrl) ?>">
+  <?= $h($authNavLabel) ?>
+</a>
     </div>
 
     <!-- MOBILE BUTTON -->
@@ -1614,29 +2011,19 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       Gallery
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#contact">
-      Contact
-    </a>
-
     <a class="rounded-[14px] bg-[#D8B46A] px-3.5 py-3 font-bold text-[#3F2F24] hover:bg-[#F3D9A4]" href="<?= URLROOT ?>/users/register?type=supplier">
       Be a Partner
     </a>
 
-    <?php if ($isLoggedIn): ?>
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/booking/myBookings">
-      My Bookings
+    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= $h($authNavUrl) ?>">
+      <?= $h($authNavLabel) ?>
     </a>
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/users/logout">
-      Logout
-    </a>
-    <?php else: ?>
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/users/auth">
-      Log In
-    </a>
-    <?php endif; ?>
 
   </div>
 </header> 
+
+  <!-- travelling text -->
+  <div id="gp-traveler">Golden Promise</div>
 
   <div class="floating-services" id="floatingServices" aria-hidden="true"></div>
 
@@ -1646,7 +2033,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         <img
           id="introImage"
           class="intro-image"
-          src="images/introImage.png"
+          src="<?= $homeImageRoot ?>/introImage.png"
           alt="Golden Promise intro"
         />
       </div>
@@ -1656,7 +2043,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       <div class="reveal-photo" aria-hidden="true"></div>
 
       <div class="brand-banner">
-        <img class="brand-name" src="images/gp_logo.png" alt="Golden Promise">
+        <img class="brand-name" src="<?= $h($gpLogoUrl) ?>" alt="Golden Promise">
         <p class="brand-tagline">Golden Promise</p>
         <p class="brand-subtitle">Designing Weddings as Unique as Your Love.</p>
       </div>
@@ -1669,6 +2056,10 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         <div class="hero-content">
           <div class="molded-hero-card animate-[liftIn_850ms_ease_both]">
             <div class="molded-hero-copy">
+              <p id="hero-gp" class="hero-brand-title">
+                Golden Promise
+              </p>
+
                <h1 class="cursive-font mx-auto max-w-[1050px] text-[clamp(72px,9vw,140px)] font-normal leading-[1.12] max-[640px]:max-w-full max-[640px]:text-[clamp(52px,14vw,90px)]">Hand in Hand, Promised</h1>
               <p class="mx-auto mt-7 max-w-[760px] text-[clamp(17px,2vw,20px)] leading-[1.7]">We design graceful wedding experiences filled with soft florals, warm candlelight, timeless details, and unforgettable emotion.</p>
             </div>
@@ -1676,6 +2067,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
             <div class="molded-hero-dock">
               <a href="#our-services" class="relative z-10 inline-flex min-h-[54px] items-center justify-center rounded-full border border-white/70 bg-[#fceade]/90 px-[30px] text-[13px] font-extrabold uppercase tracking-[0.18em] text-[#530B0A] shadow-[0_20px_42px_rgba(120,95,85,0.18)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_16px_30px_rgba(117,91,80,0.2)] max-[640px]:w-full max-[640px]:tracking-[0.14em]">Start your journey</a>
             </div>
+
           </div>
         </div>
       </section>
@@ -1684,16 +2076,16 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         <div class="mx-auto grid min-h-[calc(100vh-12rem)] w-[min(100%,1240px)] grid-cols-[1fr_1fr] items-center gap-6 max-[767px]:min-h-0 max-[767px]:grid-cols-1">
           <div class="-ml-6 max-[767px]:ml-0">
             <div class="service-slide-top relative z-10 mb-5 w-[138%] max-w-none max-[767px]:mb-5 max-[767px]:w-full">
-              <h2 class="font-serif mb-3 text-[clamp(34px,4.1vw,62px)] font-semibold leading-[1] text-[#211d1a]">Our Service</h2>
+             <h2 id="serviceTitle" class="font-serif mb-3 text-[clamp(34px,4.1vw,62px)] font-semibold leading-[1] text-[#211d1a]">Our Service</h2>
               <p class="max-w-[820px] text-base leading-[1.75] text-[#6f625a]">
-                At <span class="font-bold text-[#530B0A]">Golden Promise</span> we operates as a centralized hub designed to streamline the connection between customers and qualified wedding professionals, helping couples discover trusted planners, florists, photographers, caterers, stylists, entertainers, and detail-focused creative teams through one refined experience.
+                At <span id="service-gp" class="font-bold text-[#530B0A]">Golden Promise</span> we operates as a centralized hub designed to streamline the connection between customers and qualified wedding professionals, helping couples discover trusted planners, florists, photographers, caterers, stylists, entertainers, and detail-focused creative teams through one refined experience.
               </p>
             </div>
 
             <figure class="service-slide-left relative m-0 min-h-[520px] w-[98%] overflow-hidden rounded-[18px] bg-[#211d1a] shadow-[0_34px_82px_rgba(54,35,28,0.22)] max-[767px]:min-h-[430px] max-[767px]:w-full max-[767px]:rounded-[16px]">
               <img
                 class="absolute inset-0 h-full w-full object-cover"
-                src="images/serviceImg1.png"
+                src="<?= $homeImageRoot ?>/serviceImg1.png"
                 alt="Cinematic wedding reception with dramatic light"
               >
             </figure>
@@ -1703,7 +2095,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
             <figure class="service-slide-right relative ml-auto min-h-[165px] w-[56%] overflow-hidden rounded-[16px] bg-[#211d1a] shadow-[0_24px_54px_rgba(54,35,28,0.16)] max-[767px]:min-h-[260px] max-[767px]:w-full max-[767px]:rounded-[14px]">
               <img
                 class="h-full min-h-[165px] w-full object-cover max-[767px]:min-h-[260px]"
-                src="images/serviceImg2.png"
+                src="<?= $homeImageRoot ?>/serviceImg2.png"
                 alt="Dark romantic wedding floral detail"
               >
             </figure>
@@ -1718,7 +2110,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
             <figure class="service-slide-right relative ml-auto h-[285px] w-[92%] overflow-hidden rounded-[16px] bg-[#211d1a] shadow-[0_28px_64px_rgba(54,35,28,0.18)] max-[767px]:h-[280px] max-[767px]:w-full max-[767px]:rounded-[14px]">
               <img
                 class="h-full w-full object-cover"
-                src="images/serviceImg3.png"
+                src="<?= $homeImageRoot ?>/serviceImg3.png"
                 alt="Elegant wedding service detail"
 
 
@@ -1728,74 +2120,66 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         </div>
       </section>
 
-<section id="services" class="relative z-10 min-h-[620px] w-full bg-[#F5E8D9] px-4 py-14" aria-label="Most Popular Packages">
-  <div class="mx-auto mb-5 max-w-[1240px]">
-    <h2 class="font-serif text-center text-[clamp(34px,4.1vw,62px)] font-semibold leading-[1] text-[#211d1a]">Most Popular Packages</h2>
-  </div>
-  <div class="mx-auto mb-8 flex max-w-[1400px] justify-end">
-    <a href="<?= URLROOT ?>/customerServices/packages" class="inline-flex items-center justify-center rounded-full border border-[#765A46]/30 bg-[#765A46] px-7 py-3 text-[12px] font-extrabold uppercase tracking-[0.18em] text-white shadow-[0_14px_30px_rgba(92,67,48,0.2)] transition hover:-translate-y-0.5 hover:bg-[#5f4636]">
-      View All
-    </a>
-  </div>
-  <div class="mx-auto flex h-[72vh] min-h-[520px] w-full max-w-[1400px] flex-col overflow-hidden md:flex-row">
-    <?php $featuredPackages = $featuredPackages ?? []; ?>
-    <?php if (!empty($featuredPackages)): ?>
-      <?php foreach ($featuredPackages as $fpkgIndex => $fpkg):
-        $isFirst = $fpkgIndex === 0;
-        $borderClass = !$isFirst ? ' md:border-l' : '';
-        $images = ['images/serviceImg1.png', 'images/serviceImg2.png', 'images/serviceImg3.png'];
-        $image = $images[$fpkgIndex] ?? 'images/serviceImg1.png';
-      ?>
-      <a href="<?= URLROOT ?>/customerServices/packageDetail/<?= htmlspecialchars($fpkg['slug'] ?? '', ENT_QUOTES, 'UTF-8') ?>" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full<?= $borderClass ?> md:hover:flex-[4]">
-        <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= $image ?>');"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-        <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-          <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-          <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl"><?= htmlspecialchars($fpkg['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
-          <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80"><?= htmlspecialchars($fpkg['tagline'] ?? $fpkg['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
-          <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
+      <section id="services" class="relative z-10 min-h-[620px] w-full bg-[#F5E8D9] px-4 py-24" aria-label="Most Popular Packages">
+        <div class="mx-auto mb-5 max-w-[1240px]">
+          <h2 class="font-serif text-center text-[clamp(34px,4.1vw,62px)] font-semibold leading-[1] text-[#211d1a]">Most Popular Packages</h2>
         </div>
-        <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8"><?= htmlspecialchars($fpkg['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></h3>
-      </a>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <!-- Fallback hardcoded packages -->
-      <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:hover:flex-[4]">
-        <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg1.png');"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-        <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-          <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-          <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Golden Vow</h2>
-          <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A refined ceremony package with venue styling, florals, and graceful coordination.</p>
-          <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
+        <div class="mx-auto mb-8 flex max-w-[1400px] justify-end">
+
         </div>
-        <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Golden Vow</h3>
-      </a>
-      <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:border-l md:hover:flex-[4]">
-        <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg2.png');"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-        <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-          <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-          <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Classic Bloom</h2>
-          <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A romantic floral-focused package for couples who want soft, timeless detail.</p>
-          <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
+        <div class="mx-auto flex h-[72vh] min-h-[520px] w-full max-w-[1400px] flex-col overflow-hidden md:flex-row">
+          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:hover:flex-[4]">
+            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= $homeImageRoot ?>/serviceImg1.png');"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+            <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
+              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Golden Vow</h2>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A refined ceremony package with venue styling, florals, and graceful coordination.</p>
+              <span data-explore-button class="explore-badge mt-5 inline-flex items-center rounded-full bg-transparent px-0.5 py-0.5 text-[#4A342F] shadow-none">
+                <span class="explore-badge-icon grid rounded-full bg-[#8A6A58] text-white shadow-[0_12px_24px_rgba(74,52,47,0.18)]">
+                  <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                </span>
+                <span class="explore-badge-label ml-0 overflow-hidden whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.24em]">Explore</span>
+              </span>
+            </div>
+            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Golden Vow</h3>
+          </a>
+
+          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
+            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= $homeImageRoot ?>/serviceImg2.png');"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+            <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
+              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Classic Bloom</h2>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A romantic floral-focused package for couples who want soft, timeless detail.</p>
+              <span data-explore-button class="explore-badge mt-5 inline-flex items-center rounded-full bg-transparent px-0.5 py-0.5 text-[#4A342F] shadow-none">
+                <span class="explore-badge-icon grid rounded-full bg-[#8A6A58] text-white shadow-[0_12px_24px_rgba(74,52,47,0.18)]">
+                  <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                </span>
+                <span class="explore-badge-label ml-0 overflow-hidden whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.24em]">Explore</span>
+              </span>
+            </div>
+            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Classic Bloom</h3>
+          </a>
+
+          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
+            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= $homeImageRoot ?>/serviceImg3.png');"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+            <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
+              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Forever Suite</h2>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A complete planning package covering styling, vendors, timeline, and final details.</p>
+              <span data-explore-button class="explore-badge mt-5 inline-flex items-center rounded-full bg-transparent px-0.5 py-0.5 text-[#4A342F] shadow-none">
+                <span class="explore-badge-icon grid rounded-full bg-[#8A6A58] text-white shadow-[0_12px_24px_rgba(74,52,47,0.18)]">
+                  <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                </span>
+                <span class="explore-badge-label ml-0 overflow-hidden whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.24em]">Explore</span>
+              </span>
+            </div>
+            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Forever Suite</h3>
+          </a>
         </div>
-        <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Classic Bloom</h3>
-      </a>
-      <a href="#" class="group relative min-h-[170px] flex-1 overflow-hidden border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:border-l md:hover:flex-[4]">
-        <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('images/serviceImg3.png');"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-        <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-          <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-          <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Forever Suite</h2>
-          <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A complete planning package covering styling, vendors, timeline, and final details.</p>
-          <span class="mt-5 inline-flex w-full items-center justify-center rounded-full border border-white px-6 py-2 text-sm font-semibold">Explore <span class="ml-2">-&gt;</span></span>
-        </div>
-        <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Forever Suite</h3>
-      </a>
-    <?php endif; ?>
-  </div>
-</section>
+      </section>
 
       <section id="how-it-works" aria-label="How It Works">
         <div class="hiw-sticky">
@@ -1816,7 +2200,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
             <article class="hiw-card" style="left: 216px; top: 500px;" data-reveal-at="0" tabindex="0">
               <div class="hiw-card-media">
-                <img src="images/serviceImg1.png" alt="Wedding package">
+                <img src="<?= $homeImageRoot ?>/browse.png" alt="Browsing wedding packages">
                 <h3 class="hiw-card-title">Browse Packages</h3>
               </div>
               <p class="hiw-card-copy">Choose the ceremony, styling, and celebration experience that feels like you.</p>
@@ -1824,7 +2208,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
             <article class="hiw-card" style="left: 866px; top: 360px;" data-reveal-at="0.24" tabindex="0">
               <div class="hiw-card-media">
-                <img src="images/serviceImg2.png" alt="Choosing a wedding package">
+                <img src="<?= $homeImageRoot ?>/service2.png" alt="Couple details and bouquet">
                 <h3 class="hiw-card-title">Choosing Packages</h3>
               </div>
               <p class="hiw-card-copy">Select the package that fits your celebration style.</p>
@@ -1832,7 +2216,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
             <article class="hiw-card" style="left: 866px; top: 640px;" data-reveal-at="0.34" tabindex="0">
               <div class="hiw-card-media">
-                <img src="images/serviceImg3.png" alt="Choosing wedding services">
+                <img src="<?= $homeImageRoot ?>/service1.jpg" alt="Wedding professionals at work">
                 <h3 class="hiw-card-title">Choosing Services</h3>
               </div>
               <p class="hiw-card-copy">Add the services and details your wedding needs.</p>
@@ -1840,7 +2224,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
             <article class="hiw-card" style="left: 1536px; top: 500px;" data-reveal-at="0.58" tabindex="0">
               <div class="hiw-card-media">
-                <img src="images/introImage.png" alt="Wedding deposit">
+                <img src="<?= $homeImageRoot ?>/whyChooseUs2.png" alt="Hands joined with rings">
                 <h3 class="hiw-card-title">Deposit</h3>
               </div>
               <p class="hiw-card-copy">Secure your booking with the required deposit.</p>
@@ -1848,7 +2232,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
             <article class="hiw-card" style="left: 2176px; top: 500px;" data-reveal-at="0.72" tabindex="0">
               <div class="hiw-card-media">
-                <img src="images/hero-bg.png" alt="Final payment">
+                <img src="<?= $homeImageRoot ?>/deposit.jpg" alt="Payment cards being exchanged">
                 <h3 class="hiw-card-title">Final Payment</h3>
               </div>
               <p class="hiw-card-copy">Complete the remaining balance before the event.</p>
@@ -1856,7 +2240,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
             <article class="hiw-card" style="left: 2816px; top: 500px;" data-reveal-at="0.84" tabindex="0">
               <div class="hiw-card-media">
-                <img src="images/hiddenIntro.png" alt="Wedding day">
+                <img src="<?= $homeImageRoot ?>/hiddenIntro.png" alt="Wedding day celebration collage">
                 <h3 class="hiw-card-title">Wedding Day</h3>
               </div>
               <p class="hiw-card-copy">Enjoy your beautifully prepared wedding day.</p>
@@ -1874,30 +2258,30 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
           <div class="gp-gallery-grid" aria-hidden="true">
             <div class="gp-gallery-layer">
-              <div><img src="images/gallery1.png" alt=""></div>
-              <div><img src="images/gallery2.png" alt=""></div>
-              <div><img src="images/gallery3.png" alt=""></div>
-              <div><img src="images/gallery4.png" alt=""></div>
-              <div><img src="images/gallery5.png" alt=""></div>
-              <div><img src="images/galleryImg.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery1.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery2.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery3.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery4.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery5.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/galleryImg.png" alt=""></div>
             </div>
 
             <div class="gp-gallery-layer">
-              <div><img src="images/gallery2.png" alt=""></div>
-              <div><img src="images/gallery3.png" alt=""></div>
-              <div><img src="images/galleryImg.png" alt=""></div>
-              <div><img src="images/gallery1.png" alt=""></div>
-              <div><img src="images/gallery4.png" alt=""></div>
-              <div><img src="images/gallery5.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery2.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery3.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/galleryImg.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery1.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery4.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery5.png" alt=""></div>
             </div>
 
             <div class="gp-gallery-layer">
-              <div><img src="images/galleryImg.png" alt=""></div>
-              <div><img src="images/gallery5.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/garlleryMain.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery5.png" alt=""></div>
             </div>
 
-            <div class="gp-gallery-scaler">
-              <img src="images/galleryImg.png" alt="Golden Promise wedding gallery highlight">
+            <div class="gp-gallery-scaler gp-gallery-photo">
+              <img src="<?= $homeImageRoot ?>/garlleryMain.png" alt="Golden Promise wedding gallery highlight">
             </div>
           </div>
         </div>
@@ -1955,7 +2339,6 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
               <p>Venue styling, timing, and communication were all handled with care.</p>
               <div class="review-stars mt-2" aria-label="5 out of 5 stars">★★★★★</div>
             </div>
-            <span class="review-like" aria-hidden="true">♡</span>
           </article>
 
           <article class="review-card review-card-speech review-pos-7">
@@ -1971,62 +2354,62 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         </div>
       </section>
 
-      <section id="contact" aria-label="Contact Golden Promise">
-        <div class="contact-card">
-          <div class="contact-card-inner">
-            <div>
-              <p class="contact-kicker">Golden Promise Atelier</p>
-              <h2 class="contact-title">
-                Begin your
-                <span class="contact-script">promise</span>
-              </h2>
-              <p class="contact-copy">
-                Tell us the date, the feeling, and the details you are dreaming of. Our atelier will respond with next steps for your celebration.
-              </p>
+      <footer class="site-footer" aria-label="Website Footer">
+        <div class="footer-inner">
 
-              <div class="contact-details">
-                <div class="contact-detail">
-                  <span>Email</span>
-                  <a href="mailto:hello@goldenpromise.com">hello@goldenpromise.com</a>
-                </div>
-                <div class="contact-detail">
-                  <span>Phone</span>
-                  <a href="tel:+959123456789">+95 9 123 456 789</a>
-                </div>
-                <div class="contact-detail">
-                  <span>Studio</span>
-                  <p>Yangon, Myanmar</p>
-                </div>
-              </div>
+          <!-- Footer nav -->
+          <nav class="footer-nav" aria-label="Footer navigation">
+            <a href="#our-services">Services</a>
+            <a href="#services">Our Story</a>
+            <a href="#gallery">Gallery</a>
+            <a href="#reviewss">Review</a>
+            <a href="#contact">Contact</a>
+          </nav>
+
+          <!-- Social icons with hover animation -->
+          <div class="footer-contact-card" style="margin-top:clamp(28px,4vw,44px);">
+            <h2 id="footerText">GPromise Wedding</h2>
+            <p id="footerLabel">Facebook</p>
+            <div class="footer-icons">
+              <button class="contact-btn active"
+                      data-text="GPromise Wedding"
+                      data-label="Facebook">
+                <i class="fa-brands fa-facebook-f"></i>
+              </button>
+              <button class="contact-btn"
+                      data-text="@gpromise_wedding"
+                      data-label="Instagram">
+                <i class="fa-brands fa-instagram" style="font-size:18px;"></i>
+              </button>
+              <button class="contact-btn"
+                      data-text="GPromise.com"
+                      data-label="Website">
+                <i class="fa-solid fa-globe"></i>
+              </button>
             </div>
-
-            <form class="contact-form" action="#" method="post">
-              <label>
-                Your Name
-                <input type="text" name="name" autocomplete="name" placeholder="Couple name">
-              </label>
-              <label>
-                Email Address
-                <input type="email" name="email" autocomplete="email" placeholder="you@example.com">
-              </label>
-              <label>
-                Wedding Date
-                <input type="text" name="date" placeholder="Month / Day / Year">
-              </label>
-              <label>
-                Message
-                <textarea name="message" placeholder="Tell us about your celebration"></textarea>
-              </label>
-              <button class="contact-submit" type="submit">Send Inquiry</button>
-            </form>
           </div>
+
+          <!-- Copyright -->
+          <p class="footer-copy">
+            &copy; <span id="footer-year"></span> GPromise Wedding. All rights reserved.
+          </p>
+
         </div>
-      </section>
+      </footer>
 
     </div>
   </main>
 
   <script>
+    const header = document.querySelector(".site-header");
+
+      window.addEventListener("scroll", () => {
+          if (window.scrollY > 100) {
+              header.classList.add("visible");
+          } else {
+              header.classList.remove("visible");
+          }
+      });
     const introScroll = document.getElementById("introScroll");
     const introSection = document.getElementById("introSection");
     const introImage = document.getElementById("introImage");
@@ -2040,11 +2423,17 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     const howItWorksLines = document.querySelectorAll(".hiw-line-path");
     const howItWorksCards = document.querySelectorAll(".hiw-card");
     const gallerySection = document.getElementById("gallery");
+    const reviewsSection = document.getElementById("reviews");
     const navbar = document.querySelector(".navbar");
     const howItWorksMotion = {
       currentX: 0,
       targetX: 0,
-      frame: null
+      frame: null,
+      updateFrame: null,
+      layoutFrame: null,
+      sectionTop: 0,
+      scrollableDistance: 1,
+      canvasTravel: 0
     };
 
     function clamp(value, min, max) {
@@ -2079,6 +2468,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       introSection.style.display = progress >= 1 ? "none" : "";
       updateHeaderVisibility();
     }
+
 
     function updateHeaderVisibility() {
       const heroTop = getScrollPositionInIntro(heroSection);
@@ -2115,7 +2505,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     window.addEventListener("resize", updateOurServicesImages);
     updateOurServicesImages();
 
-    function updateHowItWorksFlow() {
+    function measureHowItWorksFlow() {
       if (!howItWorksCanvas || !howItWorksSection) return;
 
       if (window.matchMedia("(max-width: 767px)").matches) {
@@ -2139,11 +2529,35 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       howItWorksSection.style.minHeight = `${window.innerHeight + canvasTravel}px`;
       const sectionHeight = howItWorksSection.offsetHeight;
       const scrollableDistance = Math.max(sectionHeight - window.innerHeight, 1);
-      const start = sectionTop;
-      const end = sectionTop + scrollableDistance;
-      const progress = clamp((introScroll.scrollTop - start) / (end - start), 0, 1);
 
-      howItWorksMotion.targetX = -canvasTravel * progress;
+      howItWorksMotion.sectionTop = sectionTop;
+      howItWorksMotion.scrollableDistance = scrollableDistance;
+      howItWorksMotion.canvasTravel = canvasTravel;
+      updateHowItWorksFlow();
+    }
+
+    function scheduleHowItWorksMeasure() {
+      if (howItWorksMotion.layoutFrame) return;
+      howItWorksMotion.layoutFrame = requestAnimationFrame(() => {
+        howItWorksMotion.layoutFrame = null;
+        measureHowItWorksFlow();
+      });
+    }
+
+    function updateHowItWorksFlow() {
+      if (!howItWorksCanvas || !howItWorksSection) return;
+
+      if (window.matchMedia("(max-width: 767px)").matches) {
+        return;
+      }
+
+      const progress = clamp(
+        (introScroll.scrollTop - howItWorksMotion.sectionTop) / howItWorksMotion.scrollableDistance,
+        0,
+        1
+      );
+
+      howItWorksMotion.targetX = -howItWorksMotion.canvasTravel * progress;
       startHowItWorksMotion();
 
       howItWorksLines.forEach((path) => {
@@ -2158,7 +2572,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     }
 
     function renderHowItWorksMotion() {
-      howItWorksMotion.currentX = lerp(howItWorksMotion.currentX, howItWorksMotion.targetX, 0.12);
+      howItWorksMotion.currentX = lerp(howItWorksMotion.currentX, howItWorksMotion.targetX, 0.18);
 
       if (Math.abs(howItWorksMotion.targetX - howItWorksMotion.currentX) < 0.35) {
         howItWorksMotion.currentX = howItWorksMotion.targetX;
@@ -2180,18 +2594,26 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       }
     }
 
+    function scheduleHowItWorksFlow() {
+      if (howItWorksMotion.updateFrame) return;
+      howItWorksMotion.updateFrame = requestAnimationFrame(() => {
+        howItWorksMotion.updateFrame = null;
+        updateHowItWorksFlow();
+      });
+    }
+
     introScroll.addEventListener("scroll", () => {
-      requestAnimationFrame(updateHowItWorksFlow);
+      scheduleHowItWorksFlow();
     }, { passive: true });
 
-    window.addEventListener("resize", updateHowItWorksFlow);
+    window.addEventListener("resize", scheduleHowItWorksMeasure);
     howItWorksLines.forEach((path) => {
       const pathLength = path.getTotalLength();
       path.dataset.length = String(pathLength);
       path.style.strokeDasharray = String(pathLength);
       path.style.strokeDashoffset = String(pathLength);
     });
-    updateHowItWorksFlow();
+    measureHowItWorksFlow();
 
     function updateGalleryScroll() {
       if (!gallerySection) return;
@@ -2227,6 +2649,58 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
     window.addEventListener("resize", updateGalleryScroll);
     updateGalleryScroll();
+
+    const galleryGrid = gallerySection?.querySelector(".gp-gallery-grid");
+    const galleryPhotos = galleryGrid?.querySelectorAll(".gp-gallery-photo");
+
+    galleryPhotos?.forEach((photo) => {
+      photo.addEventListener("mouseenter", () => {
+        galleryGrid.classList.add("gallery-photo-hovering");
+        galleryPhotos.forEach((item) => item.classList.toggle("active", item === photo));
+      });
+
+      photo.addEventListener("mouseleave", () => {
+        galleryGrid.classList.remove("gallery-photo-hovering");
+        photo.classList.remove("active");
+      });
+    });
+
+    const reviewCards = reviewsSection?.querySelectorAll(".review-card");
+
+    function setupReviewReveal() {
+      if (!reviewsSection || !reviewCards?.length) return;
+
+      const revealOrder = Array.from(reviewCards)
+        .map((card) => ({ card, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort);
+
+      revealOrder.forEach(({ card }, index) => {
+        const enterX = `${Math.round((Math.random() - 0.5) * 150)}px`;
+        const enterY = `${Math.round(36 + Math.random() * 84)}px`;
+        const rotate = `${((Math.random() - 0.5) * 10).toFixed(2)}deg`;
+
+        card.style.setProperty("--review-enter-delay", `${index * 95}ms`);
+        card.style.setProperty("--review-enter-x", enterX);
+        card.style.setProperty("--review-enter-y", enterY);
+        card.style.setProperty("--review-enter-rotate", rotate);
+      });
+    }
+
+    function revealReviewsWhenReached() {
+      if (!reviewsSection || reviewsSection.classList.contains("reviews-visible")) return;
+
+      const rect = reviewsSection.getBoundingClientRect();
+      const triggerPoint = window.innerHeight * 0.72;
+
+      if (rect.top < triggerPoint && rect.bottom > window.innerHeight * 0.18) {
+        reviewsSection.classList.add("reviews-visible");
+      }
+    }
+
+    setupReviewReveal();
+    introScroll.addEventListener("scroll", revealReviewsWhenReached, { passive: true });
+    window.addEventListener("resize", revealReviewsWhenReached);
+    revealReviewsWhenReached();
 
     const revealMask = {
       x: window.innerWidth / 2,
@@ -2309,24 +2783,56 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       setRevealMaskSize(0, 0);
     });
 
-    const floatingServiceLabels = <?= json_encode(array_values(array_map(function ($category) use ($plain) {
-      return $plain($category['name'] ?? '');
-    }, $serviceCategories)), JSON_UNESCAPED_UNICODE) ?>;
-    const floatingServiceItems = floatingServiceLabels.map((label, index) => ({
-      label,
-      angle: 190 + (160 / Math.max(floatingServiceLabels.length - 1, 1)) * index
-    }));
+    const floatingServiceItems = [
+      {
+        label: "Venue",
+        color: "#7a4f3a",
+        soft: "rgba(122, 79, 58, 0.14)",
+        second: "#b58a62"
+      },
+      {
+        label: "Bridal",
+        color: "#8a5b42",
+        soft: "rgba(138, 91, 66, 0.14)",
+        second: "#c09a6b"
+      },
+      {
+        label: "Media",
+        color: "#6f4a36",
+        soft: "rgba(111, 74, 54, 0.14)",
+        second: "#ad8057"
+      },
+      {
+        label: "Catering",
+        color: "#9a6441",
+        soft: "rgba(154, 100, 65, 0.15)",
+        second: "#c89a62"
+      },
+      {
+        label: "Invites",
+        color: "#76513d",
+        soft: "rgba(118, 81, 61, 0.14)",
+        second: "#b98c64"
+      },
+
+    ];
 
     floatingServiceItems.forEach((service, index) => {
       const floatButton = document.createElement("div");
       floatButton.className = "float-button";
       floatButton.dataset.index = index;
-      floatButton.dataset.angle = service.angle;
       floatButton.innerHTML =
-        `<div class="flex animate-[smallFloat_var(--float-duration)_ease-in-out_infinite] items-center rounded-full border border-white/80 bg-white/60 px-5 py-3 shadow-[0_24px_60px_rgba(180,118,130,0.22)] backdrop-blur-[18px]" style="--float-duration:${3.5 + index * 0.25}s">` +
-        `<div class="inline-block transition-transform duration-150 [will-change:transform]"><span class="whitespace-nowrap font-serif text-xl">${service.label}</span></div></div>`;
+        `<div class="float-button-shell" style="--float-duration:${3.5 + index * 0.25}s; --icon-color:${service.color}; --icon-soft:${service.soft}; --icon-second:${service.second};" aria-label="${service.label}">` +
+        `<span class="float-button-label">${service.label}</span></div>`;
       floatingServices.appendChild(floatButton);
     });
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+    const footerYear = document.getElementById("footer-year");
+    if (footerYear) footerYear.textContent = new Date().getFullYear();
 
     const floatingButtons = Array.from(document.querySelectorAll(".float-button"));
     const floatingButtonStates = {};
@@ -2372,8 +2878,9 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
       floatingServices.classList.toggle("visible", isHeroActive && floatingProgress < 0.94);
 
-      const arcCenterX = window.innerWidth / 2;
-      const arcCenterY = clamp(window.innerHeight * 0.5, 260, 440);
+      const arcSideInset = clamp(window.innerWidth * 0.11, 42, 165);
+      const arcBaseY = clamp(window.innerHeight * 0.45, 295, 430);
+      const arcLift = clamp(window.innerHeight * 0.26, 150, 245);
       const servicesButton = document.getElementById("dockDropdownBtn");
       const navRect = navbar.getBoundingClientRect();
       const dockRect = servicesButton.getBoundingClientRect();
@@ -2381,9 +2888,11 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
       floatingButtons.forEach((button) => {
         const index = Number(button.dataset.index);
-        const angle = Number(button.dataset.angle) * Math.PI / 180;
-        const startX = arcCenterX + Math.cos(angle) * 470;
-        const startY = arcCenterY + Math.sin(angle) * 190;
+        const arcProgress = floatingButtons.length > 1
+          ? index / (floatingButtons.length - 1)
+          : 0.5;
+        const startX = arcSideInset + (window.innerWidth - arcSideInset * 2) * arcProgress;
+        const startY = arcBaseY - Math.sin(arcProgress * Math.PI) * arcLift;
         const fallbackStart = navRect.left + navRect.width * 0.22;
         const fallbackEnd = navRect.left + navRect.width * 0.46;
         const fallbackStep = (fallbackEnd - fallbackStart) / Math.max(floatingServiceItems.length - 1, 1);
@@ -2392,6 +2901,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
         let x = startX + (dockX - startX) * floatingProgress;
         let y = startY + (dockY - startY) * floatingProgress;
+        const state = floatingButtonStates[index];
 
         if (floatingMouse.x != null) {
           const dist = Math.hypot(floatingMouse.x - x, floatingMouse.y - y);
@@ -2399,21 +2909,20 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
           const influence = rawInfluence * rawInfluence * (3 - 2 * rawInfluence);
 
           if (influence > 0.001) {
-            const state = floatingButtonStates[index];
             const targetOffsetX = ((floatingMouse.x - x) / (dist || 1)) * influence * 22;
             const targetOffsetY = ((floatingMouse.y - y) / (dist || 1)) * influence * 16;
             state.smoothX += (targetOffsetX - state.smoothX) * 0.12;
             state.smoothY += (targetOffsetY - state.smoothY) * 0.12;
-            x += state.smoothX;
-            y += state.smoothY;
           }
         }
 
+        x += state.smoothX;
+        y += state.smoothY;
+
         const scale = clamp(1 - floatingProgress * 0.32, 0.18, 1);
         const opacity = floatingProgress > 0.9 ? 1 - (floatingProgress - 0.9) / 0.1 : 1;
-        const rotate = speed * 18 * floatingProgress;
 
-        button.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%) scale(${scale.toFixed(3)}) rotate(${rotate.toFixed(1)}deg)`;
+        button.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%) scale(${scale.toFixed(3)})`;
         button.style.opacity = clamp(opacity, 0, 1).toFixed(3);
       });
 
@@ -2481,18 +2990,74 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         scrollToHash(window.location.hash, "auto");
       });
     });
+    const heroBrandTitle = document.getElementById("hero-gp");
+const serviceGP = document.getElementById("service-gp");
 
-    // Profile dropdown toggle
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.home-profile-btn');
-      if (btn) {
-        const expanded = btn.getAttribute('aria-expanded') === 'true';
-        document.querySelectorAll('.home-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
-        btn.setAttribute('aria-expanded', String(!expanded));
-        return;
-      }
-      document.querySelectorAll('.home-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+function animateBrandTransition() {
+  if (!heroBrandTitle || !serviceGP) return;
+
+  const heroRect = heroBrandTitle.getBoundingClientRect();
+  const targetRect = serviceGP.getBoundingClientRect();
+
+  const triggerStart = window.innerHeight * 0.2;
+  const triggerEnd = window.innerHeight * 0.8;
+
+  const progress = Math.max(
+    0,
+    Math.min(
+      1,
+      (triggerEnd - targetRect.top) /
+      (triggerEnd - triggerStart)
+    )
+  );
+
+  const dx =
+    targetRect.left +
+    targetRect.width / 2 -
+    (heroRect.left + heroRect.width / 2);
+
+  const dy =
+    targetRect.top +
+    targetRect.height / 2 -
+    (heroRect.top + heroRect.height / 2);
+
+  heroBrandTitle.style.transform =
+    `translate(${dx * progress}px, ${dy * progress}px)
+     scale(${1 - progress * 0.4})`;
+
+  heroBrandTitle.style.opacity = 1 - progress;
+}
+
+introScroll.addEventListener(
+  "scroll",
+  () => requestAnimationFrame(animateBrandTransition),
+  { passive: true }
+);
+
+animateBrandTransition();
+
+const buttons = document.querySelectorAll(".contact-btn");
+const text = document.getElementById("footerText");
+const label = document.getElementById("footerLabel");
+
+buttons.forEach(btn => {
+    btn.addEventListener("mouseenter", () => {
+
+        buttons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        text.classList.add("text-changing");
+        label.classList.add("text-changing");
+
+        setTimeout(() => {
+            text.textContent = btn.dataset.text;
+            label.textContent = btn.dataset.label;
+
+            text.classList.remove("text-changing");
+            label.classList.remove("text-changing");
+        }, 180);
     });
+});
   </script>
 </body>
 </html>

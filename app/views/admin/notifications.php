@@ -155,6 +155,13 @@ $dashboardContent = function () use ($notifications, $unreadCount, $message, $no
             </a>
         <?php endforeach; ?>
     </div>
+
+    <?php
+    if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
+        $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+        require APPROOT . '/views/partials/_pagination.php';
+    }
+    ?>
 </div>
 <?php
 };

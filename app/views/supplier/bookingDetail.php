@@ -7,6 +7,7 @@ $bookingRef = $bookingRef ?? '';
 $supplierStatus = strtolower($supplierStatus ?? 'pending');
 $supplierId = (int)($supplierId ?? 0);
 $depositPercent = $depositPercent ?? 30;
+$packageSchedules = $packageSchedules ?? [];
 
 $money = fn($v) => 'RM ' . number_format((float)$v, 0);
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -21,14 +22,24 @@ $formatTime = function ($value) {
     return $time ? date('h:i A', $time) : (string)$value;
 };
 
-/* ── Match event_details to booking items by booking_item_id ── */
-$detailByItem = [];
-foreach ($eventDetails as $detail) {
-    $key = (int)($detail['booking_item_id'] ?? 0);
-    if ($key > 0) $detailByItem[$key] = $detail;
-}
+	/* ── Match event_details to booking items by booking_item_id ── */
+	$detailByItem = [];
+	foreach ($eventDetails as $detail) {
+	    $key = (int)($detail['booking_item_id'] ?? 0);
+	    if ($key > 0) $detailByItem[$key] = $detail;
+	}
+	// Resolve add-on items through to parent package event detail
+	foreach ($items as $item) {
+	    $itemId = (int)($item['id'] ?? 0);
+	    if (!isset($detailByItem[$itemId])) {
+	        $parentId = (int)($item['package_booking_item_id'] ?? 0);
+	        if ($parentId > 0 && isset($detailByItem[$parentId])) {
+	            $detailByItem[$itemId] = $detailByItem[$parentId];
+	        }
+	    }
+	}
 
-/* ── Aggregate per-item data ── */
+	/* ── Aggregate per-item data ── */
 $totalGuests = 0;
 $hasGuestData = false;
 $firstDate = '';
@@ -41,6 +52,8 @@ $allSpecialRequests = [];
 
 foreach ($items as $item) {
     $itemId = (int)($item['id'] ?? 0);
+	    $isAddon = !empty($item['package_booking_item_id']);
+	    if ($isAddon) continue; // add-ons inherit from parent
     $d = $detailByItem[$itemId] ?? [];
     $guests = (int)($d['guest_count'] ?? 0);
     if ($guests > 0) {
@@ -112,7 +125,8 @@ $dashboardContent = function () use (
     $firstLocation, $firstContactName, $firstContactPhone,
     $allSpecialRequests, $supplierTotal, $supplierPaid, $supplierRemaining,
     $paymentStatus, $daysUntil, $otherSuppliers, $bookingStatus,
-    $customerName, $customerEmail, $customerPhone, $customerInitial
+    $customerName, $customerEmail, $customerPhone, $customerInitial,
+    $packageSchedules
 ) {
     $eventTime = trim($formatTime($firstStart) . ($firstEnd ? ' – ' . $formatTime($firstEnd) : ''), ' –');
 ?>
@@ -907,6 +921,9 @@ $dashboardContent = function () use (
                     <?php endif; ?>
                     <div>
                       <div class="ed-svc-name"><?= $h($item['service_name'] ?? 'Service') ?></div>
+                      <?php if (!empty($item['addon_package_name'])): ?>
+                        <div class="ed-svc-sub">Add-on for <?= $h($item['addon_package_name']) ?></div>
+                      <?php endif; ?>
                       <div class="ed-svc-cat"><?= $h($item['category_name'] ?? $item['supplier_name'] ?? '') ?></div>
                       <?php if ($itemNotes !== ''): ?>
                         <div class="ed-svc-note"><?= $h($itemNotes) ?></div>
@@ -936,6 +953,43 @@ $dashboardContent = function () use (
         </div>
       <?php endif; ?>
     </div>
+
+    <!-- Package event timeline (per-service time slots) -->
+    <?php foreach ($items as $item): ?>
+      <?php $schedule = $packageSchedules[(int)($item['id'] ?? 0)] ?? []; if (empty($schedule)) continue; ?>
+      <div class="ed-services" style="margin-top:16px">
+        <div class="ed-panel-head">
+          <span class="ed-panel-title"><?= $h($item['service_name'] ?? 'Package') ?> — service schedule</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="ed-table">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Supplier</th>
+                <th style="width:100px">Start</th>
+                <th style="width:100px">End</th>
+                <th>Hall / Room</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($schedule as $event): ?>
+              <tr>
+                <td>
+                  <div class="ed-svc-name"><?= $h($event['service_name'] ?? 'Package service') ?></div>
+                  <div class="ed-svc-cat"><?= $h($event['category_name'] ?? 'Service') ?></div>
+                </td>
+                <td style="color:var(--color-app-secondary)"><?= $h($event['supplier_name'] ?? 'Golden Promise') ?></td>
+                <td style="font-weight:600"><?= $h(!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD') ?></td>
+                <td style="font-weight:600"><?= $h(!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '—') ?></td>
+                <td style="color:var(--color-app-muted);font-size:12px"><?= $h($event['venue_room_name'] ?? '—') ?></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <?php endforeach; ?>
 
     <!-- RIGHT: Sidebar -->
     <aside class="ed-sidebar">

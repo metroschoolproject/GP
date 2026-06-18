@@ -32,9 +32,11 @@ class PlatformPackage
 
         $status = $filters['status'] ?? '';
         if ($status === 'active') {
-            $conditions[] = 'p.is_active = 1';
+            $conditions[] = "p.is_active = 1 AND p.status = 'published'";
         } elseif ($status === 'inactive') {
-            $conditions[] = 'p.is_active = 0';
+            $conditions[] = "p.is_active = 0 AND p.status = 'published'";
+        } elseif ($status === 'draft') {
+            $conditions[] = "p.status = 'draft'";
         }
 
         $offset = max(0, ((int)$page - 1) * (int)$perPage);
@@ -57,6 +59,8 @@ class PlatformPackage
                        p.base_price,
                        p.image_url,
                        p.is_active,
+                       p.status,
+                       p.replaces_package_id,
                        p.sort_order,
                        p.created_at,
                        COUNT(pi.service_id) AS item_count,
@@ -155,6 +159,7 @@ class PlatformPackage
                     ' . $hallSelect . ',
                     ' . $this->packageUnitPriceSql() . ' AS unit_price,
                     ' . $this->packageLineTotalSql() . ' AS default_price,
+                    ' . $this->packageCustomizePriceSql() . ' AS customize_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
                     svc.name AS service_name,
@@ -199,8 +204,8 @@ class PlatformPackage
         $categoryValueSql = $categoryColumn ? ', :category_id' : '';
 
         $this->db->dbquery(
-            'INSERT INTO packages (name, slug, description, tagline, base_price, image_url, is_active, sort_order' . $categoryFieldSql . ')
-             VALUES (:name, :slug, :description, :tagline, :base_price, :image_url, :is_active, :sort_order' . $categoryValueSql . ')'
+            'INSERT INTO packages (name, slug, description, tagline, base_price, image_url, is_active, status, sort_order' . $categoryFieldSql . ')
+             VALUES (:name, :slug, :description, :tagline, :base_price, :image_url, 0, :status, :sort_order' . $categoryValueSql . ')'
         );
         $this->db->dbbind(':name', $name);
         $this->db->dbbind(':slug', $slug);
@@ -208,7 +213,7 @@ class PlatformPackage
         $this->db->dbbind(':tagline', trim((string)($data['tagline'] ?? '')));
         $this->db->dbbind(':base_price', (float)($data['base_price'] ?? 0));
         $this->db->dbbind(':image_url', trim((string)($data['image_url'] ?? '')));
-        $this->db->dbbind(':is_active', !empty($data['is_active']) ? 1 : 0);
+        $this->db->dbbind(':status', 'draft');
         $this->db->dbbind(':sort_order', (int)($data['sort_order'] ?? 0));
         if ($categoryColumn) {
             $categoryId = (int)($data['category_id'] ?? 0);
@@ -305,6 +310,171 @@ class PlatformPackage
     }
 
     /**
+     * ── Admin: Clone a published package into a draft for editing ──
+     * Returns the new draft package ID, or false on failure.
+     */
+    public function clonePackageAsDraft(int $packageId): int|false
+    {
+        $original = $this->getPackageById($packageId);
+        if (!$original) {
+            return false;
+        }
+
+        // Only clone published packages
+        if (($original['status'] ?? '') !== 'published') {
+            return false;
+        }
+
+        $draftSlug = $this->uniqueSlug($original['slug'] . '-draft-' . time());
+        $categoryColumn = $this->hasPackageCategoryColumn();
+
+        $fields = 'name, slug, description, tagline, base_price, image_url, is_active, status, replaces_package_id, sort_order';
+        if ($categoryColumn) {
+            $fields .= ', category_id';
+        }
+
+        $this->db->dbquery(
+            "INSERT INTO packages ({$fields})
+             SELECT name, :draft_slug, description, tagline, base_price, image_url, 0, 'draft', :original_id, sort_order"
+            . ($categoryColumn ? ', category_id' : '') . "
+             FROM packages
+             WHERE package_id = :original_package_id
+             LIMIT 1"
+        );
+        $this->db->dbbind(':draft_slug', $draftSlug);
+        $this->db->dbbind(':original_id', $packageId, PDO::PARAM_INT);
+        $this->db->dbbind(':original_package_id', $packageId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        $draftId = (int)$this->db->lastinsertid();
+        if ($draftId <= 0) {
+            return false;
+        }
+
+        // Clone package items
+        $this->clonePackageItems($packageId, $draftId);
+
+        return $draftId;
+    }
+
+    /**
+     * Copy package_items from source to target package.
+     */
+    private function clonePackageItems(int $sourcePackageId, int $targetPackageId): void
+    {
+        $this->db->dbquery(
+            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price,'
+            . ($this->hasPackagePriceColumn() ? ' customize_price,' : '')
+            . ($this->hasPackageQuantityColumns() ? ' quantity_type, quantity,' : '')
+            . ($this->hasPackageVenueRoomColumn() ? ' venue_room_id' : '')
+            . ')'
+            . ' SELECT :target_id, category_id, service_id, default_supplier_id, default_price,'
+            . ($this->hasPackagePriceColumn() ? ' customize_price,' : '')
+            . ($this->hasPackageQuantityColumns() ? ' quantity_type, quantity,' : '')
+            . ($this->hasPackageVenueRoomColumn() ? ' venue_room_id' : '')
+            . ' FROM package_items'
+            . ' WHERE package_id = :source_id'
+        );
+        $this->db->dbbind(':target_id', $targetPackageId, PDO::PARAM_INT);
+        $this->db->dbbind(':source_id', $sourcePackageId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+    }
+
+    /**
+     * ── Admin: Publish a draft packaged, replacing its original ──
+     * Returns the published package ID, or false on failure.
+     */
+    public function publishDraft(int $draftPackageId): int|false
+    {
+        $draft = $this->getPackageById($draftPackageId);
+        if (!$draft || ($draft['status'] ?? '') !== 'draft') {
+            return false;
+        }
+
+        $originalId = (int)($draft['replaces_package_id'] ?? 0);
+
+        // Soft-delete the original published package if replacing
+        if ($originalId > 0) {
+            $this->db->dbquery(
+                'UPDATE packages SET deleted_at = NOW() WHERE package_id = :id AND status = :status LIMIT 1'
+            );
+            $this->db->dbbind(':id', $originalId, PDO::PARAM_INT);
+            $this->db->dbbind(':status', 'published');
+            $this->db->dbexecute();
+        }
+
+        // Clean up the slug — remove draft timestamp suffix
+        $cleanSlug = $this->slugify(preg_replace('/-draft-\d+$/', '', $draft['slug'] ?? ''));
+        $cleanSlug = $this->uniqueSlug($cleanSlug, $draftPackageId);
+
+        // Publish the draft
+        $this->db->dbquery(
+            'UPDATE packages
+             SET status = :published, is_active = 1, replaces_package_id = NULL, slug = :slug
+             WHERE package_id = :id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':published', 'published');
+        $this->db->dbbind(':slug', $cleanSlug);
+        $this->db->dbbind(':id', $draftPackageId, PDO::PARAM_INT);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        return $draftPackageId;
+    }
+
+    /**
+     * ── Admin: Discard a draft (delete it permanently).
+     * Returns true on success, false on failure.
+     */
+    public function discardDraft(int $draftPackageId): bool
+    {
+        $draft = $this->getPackageById($draftPackageId);
+        if (!$draft || ($draft['status'] ?? '') !== 'draft') {
+            return false;
+        }
+
+        // Delete items first
+        $this->db->dbquery('DELETE FROM package_items WHERE package_id = :id');
+        $this->db->dbbind(':id', $draftPackageId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        // Delete the draft
+        $this->db->dbquery('DELETE FROM packages WHERE package_id = :id AND status = :draft LIMIT 1');
+        $this->db->dbbind(':id', $draftPackageId, PDO::PARAM_INT);
+        $this->db->dbbind(':draft', 'draft');
+
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Check if a package is a draft — guard for edit operations.
+     */
+    public function isDraft(int $packageId): bool
+    {
+        $this->db->dbquery('SELECT status FROM packages WHERE package_id = :id LIMIT 1');
+        $this->db->dbbind(':id', $packageId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return ($row['status'] ?? '') === 'draft';
+    }
+
+    /**
+     * Check if a package is published — guard for clone operations.
+     */
+    public function isPublished(int $packageId): bool
+    {
+        $this->db->dbquery('SELECT status FROM packages WHERE package_id = :id LIMIT 1');
+        $this->db->dbbind(':id', $packageId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return ($row['status'] ?? '') === 'published';
+    }
+
+    /**
      * ── Admin: Add category item to package ──
      */
     public function addPackageItem($packageId, $categoryId)
@@ -365,27 +535,36 @@ class PlatformPackage
             }
         }
 
-        $price = $room ? (float)($room['price'] ?? 0) : $this->servicePackagePrice($service);
+        $packagePrice = $this->servicePackagePrice($service);
+        $customizePrice = $this->serviceCustomizePrice($service);
+        $price = $room ? (float)($room['price'] ?? 0) : $packagePrice;
         $isGuestPriced = $this->isGuestPricedCategory($service['category_slug'] ?? '', $service['category_name'] ?? '');
         $itemQuantity = $isGuestPriced ? max(1, (int)($quantity ?: 100)) : 1;
         $quantityType = $isGuestPriced ? 'guests' : 'fixed';
         $quantityColumns = $this->hasPackageQuantityColumns();
         $hallColumn = $this->hasPackageVenueRoomColumn();
+        $priceColumn = $this->hasPackagePriceColumn();
 
         $quantityColumnsSql = $quantityColumns ? ', quantity_type, quantity' : '';
         $quantityValuesSql = $quantityColumns ? ', :quantity_type, :quantity' : '';
         $hallColumnSql = $hallColumn ? ', venue_room_id' : '';
         $hallValueSql = $hallColumn ? ', :venue_room_id' : '';
+        $priceSql = $priceColumn ? ', customize_price' : '';
+        $priceVal = $priceColumn ? ', :customize_price' : '';
 
         $this->db->dbquery(
-            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price' . $quantityColumnsSql . $hallColumnSql . ')
-             VALUES (:package_id, :category_id, :service_id, :supplier_id, :default_price' . $quantityValuesSql . $hallValueSql . ')'
+            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price' . $priceSql . $quantityColumnsSql . $hallColumnSql . ')
+             VALUES (:package_id, :category_id, :service_id, :supplier_id, :default_price' . $priceVal . $quantityValuesSql . $hallValueSql . ')'
         );
         $this->db->dbbind(':package_id', (int)$packageId);
         $this->db->dbbind(':category_id', (int)($service['category_id'] ?? 0));
         $this->db->dbbind(':service_id', (int)$serviceId);
         $this->db->dbbind(':supplier_id', (int)($service['supplier_id'] ?? 0));
         $this->db->dbbind(':default_price', $price);
+        if ($priceColumn) {
+            $this->db->dbbind(':customize_price', $customizePrice > $price ? $customizePrice : null,
+                $customizePrice > $price ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        }
         if ($quantityColumns) {
             $this->db->dbbind(':quantity_type', $quantityType);
             $this->db->dbbind(':quantity', $itemQuantity);
@@ -768,6 +947,7 @@ class PlatformPackage
                     ' . $hallSelect . ',
                     ' . $this->packageUnitPriceSql() . ' AS unit_price,
                     ' . $this->packageLineTotalSql() . ' AS default_price,
+                    ' . $this->packageCustomizePriceSql() . ' AS customize_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
                     svc.name AS service_name,
@@ -875,6 +1055,7 @@ class PlatformPackage
                     ' . $hallSelect . '
                     ' . $this->packageUnitPriceSql() . ' AS unit_price,
                     ' . $this->packageLineTotalSql() . ' AS package_price,
+                    ' . $this->packageCustomizePriceSql() . ' AS customize_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity
              FROM package_items pi
@@ -908,6 +1089,42 @@ class PlatformPackage
         $context['quantity'] = (int)($context['quantity'] ?? 1);
 
         return $context;
+    }
+
+    public function getAddonServices(int $packageId, int $limit = 6): array
+    {
+        $limit = max(1, min(12, $limit));
+        $this->db->dbquery(
+            'SELECT services.id,
+                    services.name,
+                    services.description,
+                    services.thumbnail_url AS image,
+                    COALESCE(services.price_max, services.price_min, services.price, 0) AS display_price,
+                    categories.name AS category_name,
+                    categories.slug AS category_slug,
+                    suppliers.shop_name AS supplier_name
+             FROM services
+             INNER JOIN suppliers ON suppliers.supplier_id = services.supplier_id
+             LEFT JOIN categories ON categories.id = services.category_id
+             WHERE services.is_active = 1
+               AND suppliers.deleted_at IS NULL
+               AND suppliers.is_available = 1
+               AND suppliers.status IN ("approved", "verified")
+               AND suppliers.payment_status = "paid"
+               AND NOT EXISTS (
+                   SELECT 1
+                   FROM package_items
+                   WHERE package_items.package_id = :package_id
+                     AND package_items.service_id = services.id
+                     AND package_items.deleted_at IS NULL
+               )
+             ORDER BY services.created_at DESC, services.id DESC
+             LIMIT :limit'
+        );
+        $this->db->dbbind(':package_id', $packageId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
     }
 
     /**
@@ -1127,6 +1344,14 @@ class PlatformPackage
         return "COALESCE(NULLIF({$piAlias}.quantity_type, ''), 'fixed')";
     }
 
+    private function packageCustomizePriceSql($piAlias = 'pi')
+    {
+        if (!$this->hasPackagePriceColumn()) {
+            return '0';
+        }
+        return 'COALESCE(NULLIF(' . $piAlias . '.customize_price, 0), COALESCE(NULLIF(' . $piAlias . '.default_price, 0), 0))';
+    }
+
     private function packageLineTotalSql($svcAlias = 'svc', $piAlias = 'pi')
     {
         return '(' . $this->packageUnitPriceSql($svcAlias, $piAlias) . ' * ' . $this->packageQuantitySql($piAlias) . ')';
@@ -1262,7 +1487,36 @@ class PlatformPackage
     private function isGuestPricedCategory($slug, $name)
     {
         $label = strtolower(trim((string)$slug . ' ' . (string)$name));
-        return strpos($label, 'food') !== false || strpos($label, 'cater') !== false;
+        // Food, catering, decoration, music, photography, makeup, dress, accessories — all guest-driven
+        return strpos($label, 'food') !== false
+            || strpos($label, 'cater') !== false
+            || strpos($label, 'decor') !== false
+            || strpos($label, 'music') !== false
+            || strpos($label, 'photo') !== false
+            || strpos($label, 'makeup') !== false
+            || strpos($label, 'dress') !== false
+            || strpos($label, 'accessor') !== false
+            || strpos($label, 'studio') !== false;
+    }
+
+    private function serviceCustomizePrice($service)
+    {
+        foreach (['price_max', 'price_min', 'price'] as $field) {
+            $price = (float)($service[$field] ?? 0);
+            if ($price > 0) {
+                return $price;
+            }
+        }
+        return 0.0;
+    }
+
+    private function hasPackagePriceColumn()
+    {
+        static $has = null;
+        if ($has !== null) return $has;
+        $this->db->dbquery("SHOW COLUMNS FROM package_items LIKE 'customize_price'");
+        $has = (bool)$this->db->getsingledata();
+        return $has;
     }
 
     private function slugify($text)

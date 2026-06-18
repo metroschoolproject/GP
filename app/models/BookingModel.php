@@ -7,6 +7,8 @@ class BookingModel
     private ?bool $bookingVenueRoomColumn = null;
     private ?bool $cartSourceColumn = null;
     private ?bool $bookingSourceColumn = null;
+    private ?bool $cartPackageParentColumn = null;
+    private ?bool $bookingPackageParentColumn = null;
     private ?bool $bookingSupplierDeadlineColumn = null;
     private ?array $bookingStatusValues = null;
     private array $paymentColumnCache = [];
@@ -51,6 +53,8 @@ class BookingModel
         $hasBookingVenueRoomColumn = $this->hasBookingVenueRoomColumn();
         $hasCartSourceColumn = $this->hasCartSourceColumn();
         $hasBookingSourceColumn = $this->hasBookingSourceColumn();
+        $hasCartPackageParentColumn = $this->hasCartPackageParentColumn();
+        $hasBookingPackageParentColumn = $this->hasBookingPackageParentColumn();
         $cartVenueRoomValue = $hasCartVenueRoomColumn ? 'ci.venue_room_id' : 'NULL';
         $venueRoomInsertColumn = $hasBookingVenueRoomColumn ? ', venue_room_id' : '';
         $venueRoomSelectColumn = $hasBookingVenueRoomColumn ? ", COALESCE({$cartVenueRoomValue}, selected_vra.room_id)" : '';
@@ -58,22 +62,33 @@ class BookingModel
         $sourceSelectColumn = $hasBookingSourceColumn
             ? ', ' . ($hasCartSourceColumn ? "COALESCE(ci.source, 'custom')" : "'custom'")
             : '';
+        $packageParentInsertColumn = $hasBookingPackageParentColumn ? ', package_booking_item_id' : '';
+        $packageParentSelectColumn = $hasBookingPackageParentColumn ? ', NULL' : '';
 
         $this->db->dbquery(
-            "INSERT INTO booking_items (booking_id, item_type{$sourceInsertColumn}, item_id, booking_date, price, status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn})
+            "INSERT INTO booking_items (booking_id, item_type{$sourceInsertColumn}, item_id, booking_date, price,
+                    item_name, supplier_name, category_name, thumbnail_url,
+                    status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn}{$packageParentInsertColumn})
             SELECT :bid, ci.item_type{$sourceSelectColumn}, ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
                         WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
                         ELSE COALESCE(ci.price, s.price_min, s.price, sp.total_price, 0)
                     END,
+                    COALESCE(s.name, p.name, sp.name),
+                    COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise'),
+                    cat.name,
+                    COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url),
                     'pending',
                     ci.slot_id, ci.start_time, ci.end_time,
-                    COALESCE(s.booking_type, 'fullday'){$venueRoomSelectColumn}
+                    COALESCE(s.booking_type, 'fullday'){$venueRoomSelectColumn}{$packageParentSelectColumn}
             FROM cart_items ci
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
+            LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
+            LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
+            LEFT JOIN categories cat ON s.category_id = cat.id
             LEFT JOIN venue_room_availability selected_vra ON selected_vra.id = ci.slot_id
             WHERE ci.user_id = :uid
             ORDER BY ci.id DESC"
@@ -90,6 +105,44 @@ class BookingModel
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $rows = $this->db->getmultidata();
         $ids = array_column($rows, 'id');
+
+        if ($hasCartPackageParentColumn && $hasBookingPackageParentColumn && !empty($ids)) {
+            $this->db->dbquery(
+                "SELECT id, package_cart_item_id
+                 FROM cart_items
+                 WHERE user_id = :uid
+                 ORDER BY id DESC"
+            );
+            $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+            $cartRows = $this->db->getmultidata();
+
+            $bookingIdByCartId = [];
+            foreach ($cartRows as $index => $cartRow) {
+                if (isset($ids[$index])) {
+                    $bookingIdByCartId[(int)$cartRow['id']] = (int)$ids[$index];
+                }
+            }
+
+            foreach ($cartRows as $index => $cartRow) {
+                $parentCartItemId = (int)($cartRow['package_cart_item_id'] ?? 0);
+                if ($parentCartItemId <= 0 || empty($ids[$index]) || empty($bookingIdByCartId[$parentCartItemId])) {
+                    continue;
+                }
+
+                $this->db->dbquery(
+                    "UPDATE booking_items
+                     SET package_booking_item_id = :parent_id
+                     WHERE id = :item_id AND booking_id = :booking_id
+                     LIMIT 1"
+                );
+                $this->db->dbbind(':parent_id', $bookingIdByCartId[$parentCartItemId], PDO::PARAM_INT);
+                $this->db->dbbind(':item_id', (int)$ids[$index], PDO::PARAM_INT);
+                $this->db->dbbind(':booking_id', $bookingId, PDO::PARAM_INT);
+                if (!$this->db->dbexecute()) {
+                    return false;
+                }
+            }
+        }
 
         foreach ($ids as $index => $bookingItemId) {
             if (!array_key_exists($index, $itemPrices)) {
@@ -159,6 +212,28 @@ class BookingModel
         $this->bookingSourceColumn = (bool)$this->db->getsingledata();
 
         return $this->bookingSourceColumn;
+    }
+
+    private function hasCartPackageParentColumn(): bool
+    {
+        if ($this->cartPackageParentColumn !== null) {
+            return $this->cartPackageParentColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'package_cart_item_id'");
+        $this->cartPackageParentColumn = (bool)$this->db->getsingledata();
+        return $this->cartPackageParentColumn;
+    }
+
+    private function hasBookingPackageParentColumn(): bool
+    {
+        if ($this->bookingPackageParentColumn !== null) {
+            return $this->bookingPackageParentColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM booking_items LIKE 'package_booking_item_id'");
+        $this->bookingPackageParentColumn = (bool)$this->db->getsingledata();
+        return $this->bookingPackageParentColumn;
     }
 
     private function hasBookingSupplierDeadlineColumn(): bool
@@ -320,6 +395,85 @@ class BookingModel
     }
 
     /**
+     * Reserve per-service time slots for every service inside a package.
+     * Creates service_time_slot entries for slot-type services and increments
+     * their confirmed_count so they're blocked from double booking.
+     *
+     * Returns the array of resolved per-service schedule rows
+     * (enriched with event_date, start_time, end_time, booking_type,
+     *  supplier_name, category_name etc.) suitable for display.
+     *
+     * @return array<int,array>  indexed by service_id
+     */
+    public function reservePackageServiceSlots(string $eventDate, array $packageSchedule): array
+    {
+        foreach ($packageSchedule as $event) {
+            if (($event['booking_type'] ?? '') === 'slot') {
+                $slotId = $this->findOrCreateServiceSlot(
+                    (int)($event['service_id'] ?? 0),
+                    $eventDate,
+                    (string)($event['start_time'] ?? '09:00:00'),
+                    (string)($event['end_time'] ?? '10:00:00'),
+                    1
+                );
+                if ($slotId) {
+                    $this->reserveServiceSlot($slotId);
+                }
+            }
+        }
+        return $packageSchedule;
+    }
+
+    /**
+     * Find an existing slot or insert a new one for a service on a given date/time.
+     * Returns the slot ID or null on failure.
+     */
+    private function findOrCreateServiceSlot(int $serviceId, string $date, string $startTime, string $endTime, int $maxConcurrent): ?int
+    {
+        $this->db->dbquery(
+            "SELECT id FROM service_time_slots
+             WHERE service_id = :sid AND date = :date AND start_time = :stime AND end_time = :etime
+             LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $this->db->dbbind(':date', $date);
+        $this->db->dbbind(':stime', $startTime);
+        $this->db->dbbind(':etime', $endTime);
+        $existing = $this->db->getsingledata();
+        if ($existing) {
+            return (int)$existing['id'];
+        }
+
+        $this->db->dbquery(
+            "INSERT INTO service_time_slots (service_id, date, start_time, end_time, confirmed_count, max_concurrent, status)
+             VALUES (:sid, :date, :stime, :etime, 0, :maxc, 'available')"
+        );
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $this->db->dbbind(':date', $date);
+        $this->db->dbbind(':stime', $startTime);
+        $this->db->dbbind(':etime', $endTime);
+        $this->db->dbbind(':maxc', $maxConcurrent, PDO::PARAM_INT);
+
+        return $this->db->dbexecute() ? (int)$this->db->lastInsertId() : null;
+    }
+
+    /**
+     * Increment confirmed_count on a service_time_slot.
+     */
+    private function reserveServiceSlot(int $slotId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE service_time_slots
+             SET confirmed_count = confirmed_count + 1,
+                 status = CASE WHEN confirmed_count + 1 >= max_concurrent THEN 'full' ELSE 'available' END
+             WHERE id = :id AND status = 'available'"
+        );
+        $this->db->dbbind(':id', $slotId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        return $this->db->rowcount() > 0;
+    }
+
+    /**
      * Link supplier(s) to the booking via booking_suppliers.
      */
     public function insertBookingSuppliers(int $bookingId): bool
@@ -467,18 +621,34 @@ class BookingModel
             ? 'LEFT JOIN venue_rooms bi_vr ON bi_vr.id = bi.venue_room_id
              LEFT JOIN venues bi_venue ON bi_venue.id = bi_vr.venue_id'
             : '';
+        $packageParentSelect = $this->hasBookingPackageParentColumn()
+            ? "bi.package_booking_item_id,
+                    parent_package.package_id AS addon_package_id,
+                    COALESCE(parent_bi.item_name, parent_package.name) AS addon_package_name,"
+            : "NULL AS package_booking_item_id,
+                    NULL AS addon_package_id,
+                    NULL AS addon_package_name,";
+        $packageParentJoin = $this->hasBookingPackageParentColumn()
+            ? "LEFT JOIN booking_items parent_bi
+                     ON parent_bi.id = bi.package_booking_item_id
+                    AND parent_bi.booking_id = bi.booking_id
+                    AND parent_bi.item_type = 'package'
+               LEFT JOIN packages parent_package ON parent_package.package_id = parent_bi.item_id"
+            : '';
 
         $this->db->dbquery(
             "SELECT bi.*,
-                    COALESCE(s.name, p.name, sp.name) AS service_name,
-                    COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
-                    COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
+                    {$packageParentSelect}
+                    COALESCE(bi.item_name, s.name, p.name, sp.name) AS service_name,
+                    COALESCE(bi.thumbnail_url, s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
+                    COALESCE(bi.supplier_name, sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
                     sup.supplier_id,
-                    cat.name AS category_name,
+                    COALESCE(bi.category_name, cat.name) AS category_name,
                     {$bookingVenueSelect}
              FROM booking_items bi
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
              LEFT JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
+             {$packageParentJoin}
              LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
              LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
              LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
@@ -511,18 +681,32 @@ class BookingModel
             ? 'LEFT JOIN venue_rooms bi_vr ON bi_vr.id = bi.venue_room_id
              LEFT JOIN venues bi_venue ON bi_venue.id = bi_vr.venue_id'
             : '';
+        $packageParentSelect = $this->hasBookingPackageParentColumn()
+            ? "bi.package_booking_item_id,
+                    COALESCE(parent_bi.item_name, parent_package.name) AS addon_package_name,"
+            : "NULL AS package_booking_item_id,
+                    NULL AS addon_package_name,";
+        $packageParentJoin = $this->hasBookingPackageParentColumn()
+            ? "LEFT JOIN booking_items parent_bi
+                     ON parent_bi.id = bi.package_booking_item_id
+                    AND parent_bi.booking_id = bi.booking_id
+                    AND parent_bi.item_type = 'package'
+               LEFT JOIN packages parent_package ON parent_package.package_id = parent_bi.item_id"
+            : '';
 
         $this->db->dbquery(
             "SELECT bi.*,
-                    COALESCE(s.name, p.name, sp.name) AS service_name,
-                    COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
-                    COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
+                    {$packageParentSelect}
+                    COALESCE(bi.item_name, s.name, p.name, sp.name) AS service_name,
+                    COALESCE(bi.thumbnail_url, s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
+                    COALESCE(bi.supplier_name, sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
                     COALESCE(sup.supplier_id, sp_sup.supplier_id) AS supplier_id,
-                    cat.name AS category_name,
+                    COALESCE(bi.category_name, cat.name) AS category_name,
                     {$bookingVenueSelect}
              FROM booking_items bi
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
              LEFT JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
+             {$packageParentJoin}
              LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
              LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
              LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
@@ -627,7 +811,7 @@ class BookingModel
     /**
      * Get all bookings for a user (customer).
      */
-    public function getCustomerBookings(int $userId, ?string $statusFilter = null): array
+    public function getCustomerBookings(int $userId, ?string $statusFilter = null, int $limit = 12, int $offset = 0): array
     {
         $sql = "SELECT b.*,
                        (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) AS item_count
@@ -638,15 +822,33 @@ class BookingModel
             $sql .= " AND b.status = :status";
         }
 
-        $sql .= " ORDER BY b.created_at DESC";
+        $sql .= " ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
 
         $this->db->dbquery($sql);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         if ($statusFilter && $statusFilter !== 'all') {
             $this->db->dbbind(':status', $statusFilter);
         }
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    public function getCustomerBookingsCount(int $userId, ?string $statusFilter = null): int
+    {
+        $sql = "SELECT COUNT(*) AS total FROM bookings b WHERE b.user_id = :uid";
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            $sql .= " AND b.status = :status";
+        }
+
+        $this->db->dbquery($sql);
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        if ($statusFilter && $statusFilter !== 'all') {
+            $this->db->dbbind(':status', $statusFilter);
+        }
+        return (int)($this->db->getsingledata()['total'] ?? 0);
     }
 
     /**
@@ -814,7 +1016,7 @@ class BookingModel
     /**
      * Get all bookings (admin view).
      */
-    public function getAllBookings(?string $statusFilter = null, ?string $search = null): array
+    public function getAllBookings(?string $statusFilter = null, ?string $search = null, int $limit = 15, int $offset = 0): array
     {
         $sql = "SELECT b.*, u.name AS customer_name, u.email AS customer_email, u.phone AS customer_phone,
                        (SELECT event_date FROM event_details ed WHERE ed.booking_id = b.id ORDER BY ed.event_date ASC LIMIT 1) AS event_date,
@@ -855,14 +1057,58 @@ class BookingModel
             $params[':search5'] = '%' . $search . '%';
         }
 
-        $sql .= " ORDER BY b.created_at DESC LIMIT 100";
+        $sql .= " ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
 
         $this->db->dbquery($sql);
         foreach ($params as $key => $val) {
             $this->db->dbbind($key, $val);
         }
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    public function getAllBookingsCount(?string $statusFilter = null, ?string $search = null): int
+    {
+        $sql = "SELECT COUNT(*) AS total FROM bookings b
+                LEFT JOIN users u ON b.user_id = u.user_id
+                WHERE 1=1";
+
+        $params = [];
+
+        if ($statusFilter === 'pending_payment') {
+            $sql .= " AND b.status IN ('pending_payment', 'payment_submitted')";
+        } elseif ($statusFilter && $statusFilter !== 'all') {
+            $sql .= " AND b.status = :status";
+            $params[':status'] = $statusFilter;
+        }
+
+        if ($search && trim($search) !== '') {
+            $sql .= " AND (
+                b.id LIKE :search
+                OR u.name LIKE :search2
+                OR u.email LIKE :search3
+                OR u.phone LIKE :search4
+                OR EXISTS (
+                    SELECT 1
+                    FROM booking_suppliers bs3
+                    LEFT JOIN suppliers sup3 ON bs3.supplier_id = sup3.supplier_id
+                    WHERE bs3.booking_id = b.id AND sup3.shop_name LIKE :search5
+                )
+            )";
+            $params[':search'] = '%' . $search . '%';
+            $params[':search2'] = '%' . $search . '%';
+            $params[':search3'] = '%' . $search . '%';
+            $params[':search4'] = '%' . $search . '%';
+            $params[':search5'] = '%' . $search . '%';
+        }
+
+        $this->db->dbquery($sql);
+        foreach ($params as $key => $val) {
+            $this->db->dbbind($key, $val);
+        }
+        return (int)($this->db->getsingledata()['total'] ?? 0);
     }
 
     /**
@@ -1068,7 +1314,7 @@ class BookingModel
              LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
              LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
              LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
-             LEFT JOIN package_items pi ON bi.item_id = pi.package_id AND bi.item_type = 'package'
+             LEFT JOIN (SELECT package_id, MIN(default_supplier_id) AS default_supplier_id FROM package_items GROUP BY package_id) pi ON bi.item_id = pi.package_id AND bi.item_type = 'package'
              LEFT JOIN categories cat ON s.category_id = cat.id
              LEFT JOIN event_details ed ON ed.booking_id = bi.booking_id AND ed.id = (
                 SELECT MIN(id) FROM event_details WHERE booking_id = bi.booking_id
@@ -1078,9 +1324,10 @@ class BookingModel
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $items = $this->db->getmultidata();
 
+        $idx = 0;
         foreach ($items as $item) {
             $prefix = $prefixes[$item['item_type']] ?? 'VCH';
-            $voucherNumber = $prefix . '-' . strtoupper(substr(md5($item['id'] . '-' . time()), 0, 8));
+            $voucherNumber = $prefix . '-' . strtoupper(substr(md5($item['id'] . '-' . $bookingId . '-' . (++$idx)), 0, 8));
 
             $this->db->dbquery(
                 "INSERT INTO booking_vouchers
@@ -1126,7 +1373,7 @@ class BookingModel
     /**
      * Get all vouchers for a user.
      */
-    public function getCustomerVouchers(int $userId, ?string $statusFilter = null): array
+    public function getCustomerVouchers(int $userId, ?string $statusFilter = null, int $limit = 12, int $offset = 0): array
     {
         $sql = "SELECT bv.*, b.user_id
                 FROM booking_vouchers bv
@@ -1137,15 +1384,36 @@ class BookingModel
             $sql .= " AND bv.status = :status";
         }
 
-        $sql .= " ORDER BY bv.issued_at DESC";
+        $sql .= " ORDER BY bv.issued_at DESC LIMIT :limit OFFSET :offset";
 
         $this->db->dbquery($sql);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         if ($statusFilter && $statusFilter !== 'all') {
             $this->db->dbbind(':status', $statusFilter);
         }
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    public function getCustomerVouchersCount(int $userId, ?string $statusFilter = null): int
+    {
+        $sql = "SELECT COUNT(*) AS total
+                FROM booking_vouchers bv
+                INNER JOIN bookings b ON bv.booking_id = b.id
+                WHERE b.user_id = :uid";
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            $sql .= " AND bv.status = :status";
+        }
+
+        $this->db->dbquery($sql);
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        if ($statusFilter && $statusFilter !== 'all') {
+            $this->db->dbbind(':status', $statusFilter);
+        }
+        return (int)($this->db->getsingledata()['total'] ?? 0);
     }
 
     /**
@@ -1230,14 +1498,22 @@ class BookingModel
      */
     public function requestCancellation(int $bookingId, string $reason): bool
     {
-        // Log the cancellation request
         $this->db->dbquery(
             "INSERT INTO booking_status_logs (booking_id, old_status, new_status, note)
-             SELECT status, 'cancellation_requested', :note
+             SELECT id, status, 'cancellation_requested', :note
              FROM bookings WHERE id = :bid"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':note', 'Cancellation requested: ' . $reason);
+
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        $this->db->dbquery(
+            "UPDATE bookings SET status = 'cancellation_requested' WHERE id = :bid LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
 
         return $this->db->dbexecute();
     }
@@ -1581,7 +1857,7 @@ class BookingModel
      */
     public function getDepositPayment(int $bookingId): array|false
     {
-        $selects = ['method', 'transaction_ref', 'status', 'created_at'];
+        $selects = ['id', 'amount', 'method', 'transaction_ref', 'status', 'verified_at', 'created_at'];
         foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at', 'payment_slip_path', 'verified_note'] as $column) {
             $selects[] = $this->paymentHasColumn($column) ? $column : 'NULL AS ' . $column;
         }
@@ -1602,35 +1878,57 @@ class BookingModel
      */
     public function adminVerifyPayment(int $bookingId, int $adminId, string $note = ''): bool
     {
-        // Update booking status (normalized so it works with old + new ENUMs)
-        $status = $this->normalizeBookingStatus('paid');
         $this->db->dbquery(
-            "UPDATE bookings SET status = :status, payment_status = 'partial' WHERE id = :id LIMIT 1"
+            "SELECT id
+             FROM payments
+             WHERE booking_id = :bid
+               AND type = 'deposit'
+               AND status = 'pending'
+             ORDER BY id DESC
+             LIMIT 1"
         );
-        $this->db->dbbind(':status', $status);
-        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
-
-        if (!$this->db->dbexecute()) {
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $pendingPayment = $this->db->getsingledata();
+        $paymentId = (int)($pendingPayment['id'] ?? 0);
+        if ($paymentId <= 0) {
             return false;
         }
 
-        // Update payment record to success
-        $setParts = ["status = 'success'", 'verified_by = :admin', 'verified_at = NOW()'];
-        if ($this->paymentHasColumn('verified_note')) {
-            $setParts[] = 'verified_note = :note';
-        }
+        $this->db->beginTransaction();
+        try {
+            // Update only the newest proof that is actually awaiting review.
+            $setParts = ["status = 'success'", 'verified_by = :admin', 'verified_at = NOW()'];
+            if ($this->paymentHasColumn('verified_note')) {
+                $setParts[] = 'verified_note = :note';
+            }
 
-        $this->db->dbquery(
-            "UPDATE payments SET " . implode(', ', $setParts) . "
-             WHERE booking_id = :bid AND type = 'deposit' LIMIT 1"
-        );
-        $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
-        if ($this->paymentHasColumn('verified_note')) {
-            $this->db->dbbind(':note', $note, PDO::PARAM_STR);
-        }
-        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbquery(
+                "UPDATE payments SET " . implode(', ', $setParts) . "
+                 WHERE id = :payment_id AND status = 'pending' LIMIT 1"
+            );
+            $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+            if ($this->paymentHasColumn('verified_note')) {
+                $this->db->dbbind(':note', $note, PDO::PARAM_STR);
+            }
+            $this->db->dbbind(':payment_id', $paymentId, PDO::PARAM_INT);
+            if (!$this->db->dbexecute() || $this->db->rowcount() !== 1) {
+                throw new RuntimeException('Pending deposit was already reviewed.');
+            }
 
-        if (!$this->db->dbexecute()) {
+            // Update booking status (normalized so it works with old + new ENUMs).
+            $status = $this->normalizeBookingStatus('paid');
+            $this->db->dbquery(
+                "UPDATE bookings SET status = :status, payment_status = 'partial' WHERE id = :id LIMIT 1"
+            );
+            $this->db->dbbind(':status', $status);
+            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+            if (!$this->db->dbexecute()) {
+                throw new RuntimeException('Booking status could not be updated.');
+            }
+            $this->db->commit();
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('Deposit verification failed: ' . $e->getMessage());
             return false;
         }
 
@@ -1650,11 +1948,10 @@ class BookingModel
             $this->updatePaidAmount($bookingId, $depositPaid);
         }
 
-        // For package bookings: auto-confirm all suppliers and advance to confirmed
-        $this->db->dbquery("SELECT booking_type FROM bookings WHERE id = :id LIMIT 1");
-        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
-        $bk = $this->db->getsingledata();
-        if (($bk['booking_type'] ?? '') === 'package') {
+        // For package bookings: auto-confirm all suppliers and advance to confirmed.
+        // Booking type is derived from booking_items; not every schema has a
+        // booking_type column on the bookings table.
+        if ($this->isPackageBooking($bookingId)) {
             $this->autoConfirmAllSuppliers($bookingId);
             $confirmedStatus = $this->normalizeBookingStatus('confirmed');
             $this->db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");

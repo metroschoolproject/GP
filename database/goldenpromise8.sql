@@ -117,12 +117,17 @@ CREATE TABLE `booking_items` (
   `item_id` bigint(20) NOT NULL,
   `booking_date` datetime DEFAULT current_timestamp(),
   `price` decimal(10,2) DEFAULT NULL,
+  `item_name` varchar(255) DEFAULT NULL,
+  `supplier_name` varchar(255) DEFAULT NULL,
+  `category_name` varchar(255) DEFAULT NULL,
+  `thumbnail_url` varchar(500) DEFAULT NULL,
   `status` enum('pending','accepted','completed','cancelled') DEFAULT NULL,
   `venue_room_id` bigint(20) DEFAULT NULL,
   `slot_id` bigint(20) DEFAULT NULL,
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,
-  `booking_type` enum('fullday','slot','flexible') DEFAULT NULL
+  `booking_type` enum('fullday','slot','flexible') DEFAULT NULL,
+  `package_booking_item_id` bigint(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -379,7 +384,8 @@ CREATE TABLE `cart_items` (
   `slot_id` bigint(20) DEFAULT NULL,
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,
-  `venue_room_id` bigint(20) DEFAULT NULL
+  `venue_room_id` bigint(20) DEFAULT NULL,
+  `package_cart_item_id` bigint(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -684,6 +690,8 @@ CREATE TABLE `packages` (
   `base_price` decimal(10,2) DEFAULT NULL,
   `image_url` varchar(255) DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT 1,
+  `status` varchar(20) NOT NULL DEFAULT 'published',
+  `replaces_package_id` bigint(20) DEFAULT NULL,
   `sort_order` int(11) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL
@@ -1666,7 +1674,8 @@ ALTER TABLE `booking_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `booking_id` (`booking_id`),
   ADD KEY `venue_room_id` (`venue_room_id`),
-  ADD KEY `bi_ibfk_slot` (`slot_id`);
+  ADD KEY `bi_ibfk_slot` (`slot_id`),
+  ADD KEY `idx_booking_package_addon` (`package_booking_item_id`);
 
 --
 -- Indexes for table `booking_status_logs`
@@ -1710,7 +1719,8 @@ ALTER TABLE `cart_items`
   ADD KEY `cart_id` (`cart_id`),
   ADD KEY `user_id` (`user_id`),
   ADD KEY `ci_ibfk_slot` (`slot_id`),
-  ADD KEY `cart_items_venue_room_id` (`venue_room_id`);
+  ADD KEY `cart_items_venue_room_id` (`venue_room_id`),
+  ADD KEY `idx_cart_package_addon` (`package_cart_item_id`);
 
 --
 -- Indexes for table `categories`
@@ -2381,7 +2391,8 @@ ALTER TABLE `bookings`
 ALTER TABLE `booking_items`
   ADD CONSTRAINT `bi_ibfk_slot` FOREIGN KEY (`slot_id`) REFERENCES `service_time_slots` (`id`),
   ADD CONSTRAINT `booking_items_ibfk_1` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `booking_items_ibfk_2` FOREIGN KEY (`venue_room_id`) REFERENCES `venue_rooms` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `booking_items_ibfk_2` FOREIGN KEY (`venue_room_id`) REFERENCES `venue_rooms` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `booking_items_package_addon_fk` FOREIGN KEY (`package_booking_item_id`) REFERENCES `booking_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `booking_status_logs`
@@ -2418,7 +2429,8 @@ ALTER TABLE `cart_items`
   ADD CONSTRAINT `cart_items_ibfk_1` FOREIGN KEY (`cart_id`) REFERENCES `carts` (`id`),
   ADD CONSTRAINT `cart_items_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
   ADD CONSTRAINT `cart_items_venue_room_fk` FOREIGN KEY (`venue_room_id`) REFERENCES `venue_rooms` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `ci_ibfk_slot` FOREIGN KEY (`slot_id`) REFERENCES `service_time_slots` (`id`);
+  ADD CONSTRAINT `ci_ibfk_slot` FOREIGN KEY (`slot_id`) REFERENCES `service_time_slots` (`id`),
+  ADD CONSTRAINT `cart_items_package_addon_fk` FOREIGN KEY (`package_cart_item_id`) REFERENCES `cart_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `email_verifications`

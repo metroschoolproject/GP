@@ -1377,10 +1377,11 @@ input[type="date"]:invalid {
           $isVenue = str_contains($categoryText, 'venue')
             || str_contains($serviceNameText, 'venue')
             || $venueRoomName !== '';
-          $isGuestPriced = str_contains($categoryText, 'makeup')
+	          $isGuestPriced = str_contains($categoryText, 'makeup')
             || str_contains($categoryText, 'make up')
             || str_contains($serviceNameText, 'makeup')
-            || str_contains($serviceNameText, 'make up');
+	            || str_contains($serviceNameText, 'make up');
+	          $addonPackageName = trim((string)($item['addon_package_name'] ?? ''));
         ?>
 
         <?php $itemBookingType = $item['booking_type'] ?? 'fullday'; ?>
@@ -1393,6 +1394,7 @@ input[type="date"]:invalid {
                  data-hall-capacity="<?= $venueRoomCapacity ?>"
                  data-min-lead-days="<?= $minLeadDays ?>"
                  data-earliest-date="<?= $h($earliestBookingDate) ?>"
+                 <?php if (($item['item_type'] ?? '') === 'package'): ?>data-package-id="<?= (int)($item['item_id'] ?? 0) ?>"<?php endif; ?>
                  <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
 
           <div class="gp-item-header">
@@ -1408,18 +1410,23 @@ input[type="date"]:invalid {
             </a>
 
             <div class="gp-item-info">
-              <h2 class="gp-item-name">
-                <?= $h($serviceDisplayName) ?>
-                <?php if ($isVenue): ?><span class="gp-tag gp-tag-venue" style="margin-left:8px;vertical-align:2px;">Venue</span><?php endif; ?>
-              </h2>
+	              <h2 class="gp-item-name">
+	                <?= $h($serviceDisplayName) ?>
+	                <?php if ($isVenue): ?><span class="gp-tag gp-tag-venue" style="margin-left:8px;vertical-align:2px;">Venue</span><?php endif; ?>
+	                <?php if ($addonPackageName !== ''): ?><span class="gp-tag" style="margin-left:8px;vertical-align:2px;">Add-on</span><?php endif; ?>
+	              </h2>
               <div class="gp-item-meta">
                 <span><?= $h($item['category_name'] ?? 'Service') ?></span>
                 <span class="gp-item-meta-sep">·</span>
                 <span><?= $h($item['supplier_name'] ?? 'Golden Promise') ?></span>
-                <?php if ($venueRoomName !== ''): ?>
+	                <?php if ($venueRoomName !== ''): ?>
                   <span class="gp-item-meta-sep">·</span>
                   <span><?= $h($venueRoomName . ($venueName !== '' ? ' · ' . $venueName : '')) ?></span>
-                <?php endif; ?>
+	                <?php endif; ?>
+	                <?php if ($addonPackageName !== ''): ?>
+	                  <span class="gp-item-meta-sep">·</span>
+	                  <span>Add-on for <?= $h($addonPackageName) ?></span>
+	                <?php endif; ?>
               </div>
             </div>
 
@@ -1537,6 +1544,11 @@ input[type="date"]:invalid {
                       Full-day booking — time is managed automatically
                     <?php endif; ?>
                   </div>
+                  <?php if (($item['item_type'] ?? '') === 'package'): ?>
+                    <div class="gp-package-schedule" id="package-schedule-<?= $i ?>" aria-live="polite">
+                      <p class="loading">Select the event date to build the package timeline.</p>
+                    </div>
+                  <?php endif; ?>
                 <?php else: ?>
                   <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
                   <div class="gp-slots-container" id="slots-<?= $i ?>">
@@ -2176,12 +2188,84 @@ async function loadSlots(serviceId, date, index) {
   }
 }
 
+function packageTime(value) {
+  if (!value) return '—';
+  const [hourText, minute = '00'] = String(value).split(':');
+  let hour = Number(hourText);
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12 || 12;
+  return `${hour}:${minute} ${suffix}`;
+}
+
+function packageEscapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[char]));
+}
+
+async function loadPackageSchedule(packageId, date, index) {
+  const container = document.getElementById('package-schedule-' + index);
+  if (!container) return;
+  if (!date) {
+    container.innerHTML = '<p class="loading">Select the event date to build the package timeline.</p>';
+    return;
+  }
+
+  container.innerHTML = '<p class="loading">Building your package timeline…</p>';
+  try {
+    const response = await fetch('<?= URLROOT ?>/booking/getPackageSchedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ package_id: packageId, date })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      container.innerHTML = '<p class="error">' + packageEscapeHtml(data.error || 'Could not build the package timeline') + '</p>';
+      return;
+    }
+
+    const card = container.closest('.gp-item-card');
+    const startField = card?.querySelector(`input[name="item_start_time[${index}]"]`);
+    const endField = card?.querySelector(`input[name="item_end_time[${index}]"]`);
+    if (startField) startField.value = data.start_time || '';
+    if (endField) endField.value = data.end_time || '';
+
+    container.innerHTML = `
+      <div class="gp-input-note"><strong>Automatically managed event timeline</strong></div>
+      ${data.schedule.map(item => `
+        <div class="gp-slot-box" style="margin-top:6px;">
+          <div class="slot-date">${packageEscapeHtml(item.service_name || 'Package service')}</div>
+          <div class="slot-time">${packageTime(item.start_time)} – ${packageTime(item.end_time)} · ${packageEscapeHtml(item.supplier_name || 'Golden Promise')}</div>
+        </div>
+      `).join('')}
+    `;
+  } catch (error) {
+    container.innerHTML = '<p class="error">Could not build the package timeline. Please try again.</p>';
+  }
+}
+
 document.querySelectorAll('[data-service-id]').forEach(input => {
   input.addEventListener('change', function() {
     loadSlots(this.dataset.serviceId, this.value, this.dataset.index);
   });
   if (input.value) {
     loadSlots(input.dataset.serviceId, input.value, input.dataset.index);
+  }
+});
+
+document.querySelectorAll('.gp-item-card[data-package-id]').forEach(card => {
+  const index = card.dataset.priceIndex;
+  const dateInput = card.querySelector(`input[name="item_date[${index}]"]`);
+  if (!dateInput) return;
+  dateInput.addEventListener('change', () => {
+    loadPackageSchedule(card.dataset.packageId, dateInput.value, index);
+  });
+  if (dateInput.value) {
+    loadPackageSchedule(card.dataset.packageId, dateInput.value, index);
   }
 });
 </script>

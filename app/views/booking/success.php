@@ -139,7 +139,12 @@ a { color: inherit; text-decoration: none; }
     ?>
     <div class="gp-item-row">
       <div>
-        <div style="font-weight:500;"><?= $h($item['service_name'] ?? 'Service') ?></div>
+        <div style="font-weight:500;">
+          <?= $h($item['service_name'] ?? 'Service') ?>
+          <?php if (!empty($item['addon_package_name'])): ?>
+            <small> · Add-on for <?= $h($item['addon_package_name']) ?></small>
+          <?php endif; ?>
+        </div>
         <?php if ($hallName !== ''): ?>
         <div style="font-size:11px;color:var(--muted);">Hall: <?= $h($hallName) ?></div>
         <?php endif; ?>

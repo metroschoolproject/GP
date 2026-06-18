@@ -11,11 +11,12 @@ $canReview = $canReview ?? false;
 $existingReview = $existingReview ?? null;
 $canEditReview = $canEditReview ?? false;
 
-$statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled'];
+$statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled','cancellation_requested'=>'Cancellation Requested'];
 $money = fn($v) => 'RM '.number_format((float)$v,0);
 $plain = function($v){ $t=(string)$v; for($i=0;$i<10;$i++){$d=html_entity_decode($t,ENT_QUOTES|ENT_HTML5,'UTF-8');if($d===$t)break;$t=$d;}return $t; };
 $h = fn($v)=>htmlspecialchars($plain($v),ENT_QUOTES,'UTF-8');
 $depositPayment = $depositPayment ?? [];
+$packageSchedules = $packageSchedules ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="en"><head>
@@ -79,6 +80,18 @@ a{color:inherit;text-decoration:none}
 .gp-field-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .gp-field-v{font-size:13px;color:var(--text)}
 .gp-field-v.quote{font-style:italic;color:var(--text2);padding:8px 12px;background:rgba(107,68,89,0.04);border-radius:var(--r-sm);border-left:3px solid var(--plum-lt)}
+.gp-package-plan{margin-top:8px;padding-top:12px;border-top:1px solid var(--rule)}
+.gp-package-plan-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.gp-package-plan-title{font-family:var(--font-d);font-size:16px;font-weight:600;color:var(--plum)}
+.gp-package-plan-copy{font-size:10px;color:var(--muted);margin-top:2px}
+.gp-package-plan-count{flex-shrink:0;padding:3px 8px;border-radius:999px;background:rgba(184,146,74,.12);color:#8a682d;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.gp-event-plan-list{display:flex;flex-direction:column}
+.gp-event-plan-item{display:grid;grid-template-columns:62px 1fr;gap:10px;position:relative;padding:8px 0}
+.gp-event-plan-item:not(:last-child)::after{content:'';position:absolute;left:30px;top:33px;bottom:-7px;width:1px;background:var(--rule-strong)}
+.gp-event-plan-time{position:relative;z-index:1;align-self:start;padding:4px 5px;border:1px solid rgba(107,68,89,.14);border-radius:8px;background:#fffaf7;color:var(--plum);font-size:9px;font-weight:800;text-align:center;white-space:nowrap}
+.gp-event-plan-service{font-size:11px;font-weight:700;color:var(--text);line-height:1.35}
+.gp-event-plan-meta{font-size:9px;color:var(--muted);line-height:1.45;margin-top:2px}
+.gp-event-plan-hall{display:inline-flex;margin-top:4px;padding:2px 6px;border-radius:999px;background:rgba(107,68,89,.06);color:var(--plum-lt);font-size:9px;font-weight:700}
 
 .gp-timeline{display:flex;flex-direction:column;gap:0}
 .gp-tl-item{display:flex;gap:12px;padding:10px 0;position:relative}
@@ -282,6 +295,45 @@ a{color:inherit;text-decoration:none}
           <?php if (empty($eventDetails)): ?>
           <div style="color:var(--muted);font-size:13px;">No event details provided</div>
           <?php endif; ?>
+
+          <?php foreach ($items as $item): ?>
+            <?php
+              $packagePlan = $packageSchedules[(int)($item['id'] ?? 0)] ?? [];
+              if (empty($packagePlan)) continue;
+            ?>
+            <section class="gp-package-plan" aria-label="<?= $h($item['service_name'] ?? 'Package') ?> event plan">
+              <div class="gp-package-plan-head">
+                <div>
+                  <div class="gp-package-plan-title"><?= $h($item['service_name'] ?? 'Package') ?></div>
+                  <div class="gp-package-plan-copy">Your included services are automatically arranged for the selected event date.</div>
+                </div>
+                <span class="gp-package-plan-count"><?= count($packagePlan) ?> service<?= count($packagePlan) === 1 ? '' : 's' ?></span>
+              </div>
+              <div class="gp-event-plan-list">
+                <?php foreach ($packagePlan as $event): ?>
+                  <?php
+                    $start = !empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD';
+                    $end = !empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '';
+                    $hall = trim((string)($event['venue_room_name'] ?? ''));
+                  ?>
+                  <div class="gp-event-plan-item">
+                    <div class="gp-event-plan-time"><?= $h($start) ?></div>
+                    <div>
+                      <div class="gp-event-plan-service"><?= $h($event['service_name'] ?? 'Package service') ?></div>
+                      <div class="gp-event-plan-meta">
+                        <?= $h($event['category_name'] ?? 'Service') ?>
+                        · <?= $h($event['supplier_name'] ?? 'Golden Promise') ?>
+                        <?php if ($end !== ''): ?> · Until <?= $h($end) ?><?php endif; ?>
+                      </div>
+                      <?php if ($hall !== ''): ?>
+                        <span class="gp-event-plan-hall"><?= $h($hall) ?></span>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            </section>
+          <?php endforeach; ?>
         </div>
       </div>
     </div>
@@ -301,6 +353,9 @@ a{color:inherit;text-decoration:none}
             <tr>
               <td>
                 <div class="gp-item-name"><?=$h($item['service_name']??'Service')?></div>
+                <?php if (!empty($item['addon_package_name'])): ?>
+                  <div class="gp-item-sub">Add-on for <?=$h($item['addon_package_name'])?></div>
+                <?php endif; ?>
                 <?php if ($hallName !== ''): ?>
                 <div class="gp-item-detail">Hall: <?=$h($hallName . ($venueName !== '' ? ' · ' . $venueName : ''))?></div>
                 <?php endif; ?>
@@ -420,7 +475,7 @@ a{color:inherit;text-decoration:none}
     <?php elseif (($booking['status']??'') === 'pending_supplier_response'): ?>
     <span class="gp-btn-sm" style="cursor:default;opacity:0.6;" title="Payment available after supplier confirms">Awaiting Supplier Response</span>
     <?php endif; ?>
-    <?php if (!in_array($booking['status']??'', ['cancelled','completed'])): ?>
+    <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
     <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
     <?php endif; ?>
   </div>

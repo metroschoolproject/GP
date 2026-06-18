@@ -5,11 +5,38 @@ const ICON  = { Venue:'🏛️', Accessories:'✨', Dress:'👗', Decoration:'�
 
 const serviceManagementConfig = window.serviceManagementConfig || {};
 const serviceManagementUrls = serviceManagementConfig.urls || {};
+const DATA_URLROOT = (serviceManagementConfig.urls?.data || '').replace(/\/supplierServices\/serviceManagementData$/, '');
 const PAGE_SIZE = Number(serviceManagementConfig.pageSize || 24);
 const INITIAL_TAB = serviceManagementConfig.initialTab === 'packages' ? 'packages' : 'services';
 
 let currentTab = INITIAL_TAB, currentFilter = 'All', statusFilter = 'all', nextId = 200;
 let editingSvcId = null, editingPkgId = null;
+let currentSort = 'newest'; // newest, name_asc, price_asc, price_desc
+
+function serviceDetailUrl(id) { return DATA_URLROOT + '/supplier/serviceDetail/' + id; }
+
+// ── TOAST ───────────────────────────────────────────────────────
+function showToast(message, type) {
+  type = type || 'error';
+  const toast = document.getElementById('smToast');
+  if (!toast) {
+    const div = document.createElement('div');
+    div.id = 'smToast';
+    div.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;max-width:420px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.18);transition:all 0.3s ease;pointer-events:none;opacity:0;';
+    document.body.appendChild(div);
+    return showToast(message, type);
+  }
+  toast.textContent = message;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateX(-50%) translateY(0)';
+  toast.style.background = type === 'success' ? '#166534' : type === 'info' ? '#1e40af' : '#991b1b';
+  toast.style.color = '#fff';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function(){
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(8px)';
+  }, 3500);
+}
 
 function normalizeServiceItem(item) {
   if (!item || typeof item !== 'object') return null;
@@ -83,22 +110,46 @@ function packageCheckboxHtml(category, className) {
 }
 
 function renderCategoryControls() {
-  const othersSelect = document.getElementById('oCategory');
-  const epCategoryList = document.getElementById('epCategoryList');
-  const cpCategoryList = document.getElementById('cpCategoryList');
-  const nonVenueCategories = serviceCategories.filter(category => category !== 'Venue');
-  const selectableCategories = nonVenueCategories.length ? nonVenueCategories : serviceCategories;
+  var csSelect = document.getElementById('csCategory');
+  var createCategoryCards = document.getElementById('createCategoryCards');
+  var epCategoryList = document.getElementById('epCategoryList');
+  var cpCategoryList = document.getElementById('cpCategoryList');
+  var nonVenueCategories = serviceCategories.filter(function(category){ return category !== 'Venue'; });
+  var selectableCategories = nonVenueCategories.length ? nonVenueCategories : serviceCategories;
 
-  if (othersSelect) {
-    othersSelect.innerHTML = selectableCategories.map(categoryOptionHtml).join('');
+  if (csSelect) {
+    csSelect.innerHTML = '<option value="">Choose category...</option>' + serviceCategories.map(categoryOptionHtml).join('');
+  }
+
+  if (createCategoryCards) {
+    var categoryMeta = {
+      Venue: ['⌂', 'Rooms, halls and event spaces'],
+      Decoration: ['✦', 'Themes, styling and décor'],
+      Dress: ['♢', 'Wedding and formal wear'],
+      Accessories: ['◌', 'Jewellery and finishing pieces'],
+      Food: ['◇', 'Catering, cakes and dining'],
+      Studio: ['□', 'Photo and video services'],
+      Package: ['▦', 'Bundled service offerings']
+    };
+    createCategoryCards.innerHTML = serviceCategories.map(function(category, index) {
+      var meta = categoryMeta[category] || ['＋', 'Specialist wedding service'];
+      return '<button type="button" class="create-category-card" data-create-category-index="' + index + '" data-create-category="' + escapeHtml(category) + '">' +
+        '<span class="create-category-icon" aria-hidden="true">' + meta[0] + '</span>' +
+        '<strong>' + escapeHtml(category) + '</strong><small>' + meta[1] + '</small></button>';
+    }).join('');
+    createCategoryCards.querySelectorAll('[data-create-category-index]').forEach(function(card) {
+      card.addEventListener('click', function() {
+        selectCreateCategory(serviceCategories[Number(card.dataset.createCategoryIndex)] || '');
+      });
+    });
   }
 
   if (epCategoryList) {
-    epCategoryList.innerHTML = serviceCategories.map(category => packageCheckboxHtml(category, 'ep-cb')).join('');
+    epCategoryList.innerHTML = serviceCategories.map(function(category){ return packageCheckboxHtml(category, 'ep-cb'); }).join('');
   }
 
   if (cpCategoryList) {
-    cpCategoryList.innerHTML = serviceCategories.map(category => packageCheckboxHtml(category, 'cp-cb')).join('');
+    cpCategoryList.innerHTML = serviceCategories.map(function(category){ return packageCheckboxHtml(category, 'cp-cb'); }).join('');
   }
 }
 
@@ -269,31 +320,31 @@ function venueRoomRowHtml(prefix, room = {}) {
       <div class="room-row-inner">
         <div>
           <label class="fm-label">Room name</label>
-          <input type="text" value="${name}" placeholder="e.g. Grand Hall" class="room-name fm-input" style="font-size:13px;padding:6px 0 4px"/>
+          <input type="text" value="${name}" placeholder="e.g. Grand Hall" class="room-name fm-input" style="font-size:12px;padding:7px 8px"/>
         </div>
         <div>
           <label class="fm-label">Capacity</label>
-          <input type="number" min="1" value="${capacity}" placeholder="300" class="room-capacity fm-input" style="font-size:13px;padding:6px 0 4px"/>
+          <input type="number" min="1" value="${capacity}" placeholder="300" class="room-capacity fm-input" style="font-size:12px;padding:7px 8px"/>
         </div>
         <div>
           <label class="fm-label">Package price</label>
-          <input type="number" min="0" step="0.01" value="${priceMin}" placeholder="3500" class="room-price room-price-min fm-input" style="font-size:13px;padding:6px 0 4px"/>
+          <input type="number" min="0" step="0.01" value="${priceMin}" placeholder="3500" class="room-price room-price-min fm-input" style="font-size:12px;padding:7px 8px"/>
         </div>
         <div>
           <label class="fm-label">Customize price</label>
-          <input type="number" min="0" step="0.01" value="${priceMax}" placeholder="6000" class="room-price-max fm-input" style="font-size:13px;padding:6px 0 4px"/>
+          <input type="number" min="0" step="0.01" value="${priceMax}" placeholder="6000" class="room-price-max fm-input" style="font-size:12px;padding:7px 8px"/>
         </div>
         <div>
           <label class="fm-label">Start time</label>
-          <input type="time" lang="en-GB" value="${startTime}" class="room-start-time fm-input" style="font-size:13px;padding:6px 0 4px"/>
+          <input type="time" lang="en-GB" value="${startTime}" class="room-start-time fm-input" style="font-size:12px;padding:7px 8px"/>
         </div>
         <div>
           <label class="fm-label">End time</label>
-          <input type="time" lang="en-GB" value="${endTime}" class="room-end-time fm-input" style="font-size:13px;padding:6px 0 4px"/>
+          <input type="time" lang="en-GB" value="${endTime}" class="room-end-time fm-input" style="font-size:12px;padding:7px 8px"/>
         </div>
         <div>
           <label class="fm-label">Min. notice (days)</label>
-          <input type="number" min="0" max="365" value="${minLeadDays}" placeholder="Leave blank to use service default" class="room-min-lead-days fm-input" style="font-size:13px;padding:6px 0 4px"/>
+          <input type="number" min="0" max="365" value="${minLeadDays}" placeholder="Leave blank to use service default" class="room-min-lead-days fm-input" style="font-size:12px;padding:7px 8px"/>
         </div>
         <div>
           <label class="fm-label">Hall photo</label>
@@ -411,7 +462,7 @@ function validateVenueRooms(prefix) {
   });
 
   if (invalidTimeRow) {
-    alert('Room end time must be later than the start time.');
+    showToast('Room end time must be later than the start time.', 'error');
     return false;
   }
 
@@ -422,19 +473,19 @@ function validateVenueRooms(prefix) {
   });
 
   if (invalidPriceRow) {
-    alert('Room customize price must be greater than or equal to package price.');
+    showToast('Room customize price must be greater than or equal to package price.', 'error');
     return false;
   }
 
   const rooms = collectVenueRooms(prefix);
   if (!rooms.length) {
-    alert('Please add at least one room or hall.');
+    showToast('Please add at least one room or hall.', 'error');
     return false;
   }
 
   const missingPriceRoom = rooms.find(room => room.price_min <= 0 || room.price_max <= 0);
   if (missingPriceRoom) {
-    alert('Please fill in package price and customize price for every room.');
+    showToast('Please fill in package price and customize price for every room.', 'error');
     return false;
   }
 
@@ -447,7 +498,8 @@ let decorationStyleCounter = 0;
 function decorationStyleRowHtml(prefix, style = {}) {
   const uid = ++decorationStyleCounter;
   const name = escapeHtml(style.name || '');
-  const price = style.price ?? '';
+  const packagePrice = style.package_price ?? style.price ?? '';
+  const customizePrice = style.customize_price ?? style.price ?? '';
   const photoUrl = style.photo_url || '';
   const photoInputId = `stylePhotoInput_${uid}`;
   const photoPreviewId = `stylePhotoPreview_${uid}`;
@@ -456,15 +508,27 @@ function decorationStyleRowHtml(prefix, style = {}) {
     ? `<img src="${escapeHtml(photoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`
     : `<span style="font-size:11px;color:#aaa">Style photo</span>`;
   return `
-    <div class="${prefix}-style-row" style="display:grid;grid-template-columns:88px minmax(0,1fr) 150px 28px;gap:8px;align-items:center">
+    <div class="${prefix}-style-row" style="display:grid;grid-template-columns:88px minmax(0,1fr) 130px 130px 28px;gap:8px;align-items:center">
       <input type="hidden" class="style-photo-data" id="${photoDataId}" value="${escapeHtml(photoUrl)}">
       <label for="${photoInputId}" id="${photoPreviewId}" style="display:flex;align-items:center;justify-content:center;width:88px;height:58px;border:1.5px dashed #d1c9c0;border-radius:6px;cursor:pointer;overflow:hidden;background:#faf8f5">${photoPreviewHtml}</label>
       <input type="file" id="${photoInputId}" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="onDecorationStylePhotoChange(this,'${photoDataId}','${photoPreviewId}')"/>
       <input type="text" value="${name}" placeholder="e.g. Balloon arch" class="fm-input style-name" style="font-size:13px;padding:6px 8px"/>
-      <input type="number" min="0" step="0.01" value="${price}" placeholder="Price (MMK)" class="fm-input style-price" style="font-size:13px;padding:6px 8px"/>
+      <input type="number" min="0" step="0.01" value="${packagePrice}" placeholder="Package price" class="fm-input style-package-price" style="font-size:12px;padding:6px 8px"/>
+      <input type="number" min="0" step="0.01" value="${customizePrice}" placeholder="Customize price" class="fm-input style-customize-price" style="font-size:12px;padding:6px 8px"/>
       <button type="button" onclick="removeDecorationStyle(this,'${prefix}')" class="room-row-remove" title="Remove">&times;</button>
     </div>
   `;
+}
+
+function collectDecorationStyles(prefix) {
+  const rows = Array.from(document.querySelectorAll('.' + prefix + '-style-row'));
+  return rows.map(row => ({
+    name: row.querySelector('.style-name')?.value.trim() || '',
+    price: parseFloat(row.querySelector('.style-package-price')?.value || row.querySelector('.style-price')?.value || '0') || 0,
+    package_price: parseFloat(row.querySelector('.style-package-price')?.value || row.querySelector('.style-price')?.value || '0') || 0,
+    customize_price: parseFloat(row.querySelector('.style-customize-price')?.value || row.querySelector('.style-price')?.value || '0') || 0,
+    photo_url: row.querySelector('.style-photo-data')?.value || null,
+  })).filter(s => s.name !== '');
 }
 
 function renderDecorationStyles(prefix, styles = []) {
@@ -491,11 +555,13 @@ function removeDecorationStyle(btn, prefix) {
   row.remove();
 }
 
-function collectDecorationStyles(prefix) {
+function collectDecorationStylesOld(prefix) {
   const rows = Array.from(document.querySelectorAll('.' + prefix + '-style-row'));
   return rows.map(row => ({
     name: row.querySelector('.style-name')?.value.trim() || '',
-    price: parseFloat(row.querySelector('.style-price')?.value || '0') || 0,
+    price: parseFloat(row.querySelector('.style-package-price')?.value || row.querySelector('.style-price')?.value || '0') || 0,
+    package_price: parseFloat(row.querySelector('.style-package-price')?.value || row.querySelector('.style-price')?.value || '0') || 0,
+    customize_price: parseFloat(row.querySelector('.style-customize-price')?.value || row.querySelector('.style-price')?.value || '0') || 0,
     photo_url: row.querySelector('.style-photo-data')?.value || null,
   })).filter(s => s.name !== '');
 }
@@ -516,9 +582,9 @@ function onDecorationStylePhotoChange(input, dataId, previewId) {
 
 function validateDecorationStyles(prefix) {
   const styles = collectDecorationStyles(prefix);
-  if (!styles.length) { alert('Add at least one decoration style with a name.'); return false; }
+  if (!styles.length) { showToast('Add at least one decoration style with a name.', 'error'); return false; }
   const missingPrice = styles.find(s => s.price <= 0);
-  if (missingPrice) { alert('Each decoration style needs a price greater than zero.'); return false; }
+  if (missingPrice) { showToast('Each decoration style needs a price greater than zero.', 'error'); return false; }
   return true;
 }
 
@@ -545,7 +611,7 @@ function collectRentalPricing(prefix) {
 function validateRentalPricing(prefix) {
   const rental = collectRentalPricing(prefix);
   if (!rental.borrow_package_price && !rental.buy_package_price) {
-    alert('Add a borrow package price, a buy package price, or both.');
+    showToast('Add a borrow package price, a buy package price, or both.', 'error');
     return false;
   }
   return true;
@@ -612,52 +678,171 @@ function serviceDetailUrl(id) {
   return (serviceManagementUrls.serviceDetail || '#') + encodeURIComponent(id);
 }
 
-// ── SERVICE TYPE SELECTOR ──────────────────────────────────────
-function openTypeSelector() {
-  const modal = document.getElementById('serviceTypeModal');
-  const container = document.getElementById('serviceTypeOptions');
+// ── UNIFIED CREATE SERVICE MODAL ─────────────────────────────
+let currentCreateCategory = '';
+let currentCreateStep = 1;
 
-  const TYPE_CHIPS = {
-    Venue:      { emoji: '🏛️', desc: 'Ballrooms, gardens, halls' },
-    Decoration: { emoji: '🌸', desc: 'Themes, florals, lighting, setup' },
-    Catering:   { emoji: '🍽️', desc: 'Food, beverages, service' },
-    Photography:{ emoji: '📸', desc: 'Photo, video, albums' },
-    Makeup:     { emoji: '💄', desc: 'Bridal, hair, styling' },
-    Decor:      { emoji: '🌸', desc: 'Florals, lighting, setup' },
-    Music:      { emoji: '🎵', desc: 'Band, DJ, playlist' },
-    Dress:      { emoji: '👗', desc: 'Gowns — borrow or buy' },
-    Accessories:{ emoji: '✨', desc: 'Jewelry, veils, tiaras' },
-    Studio:     { emoji: '📸', desc: 'Pre-wedding, portraits' },
-    Others:     { emoji: '✨', desc: 'Any other wedding service' },
+function selectCreateCategory(cat) {
+  currentCreateCategory = cat;
+  var select = document.getElementById('csCategory');
+  if (select) select.value = cat;
+  document.querySelectorAll('[data-create-category]').forEach(function(card) {
+    card.classList.toggle('is-selected', card.dataset.createCategory === cat);
+    card.setAttribute('aria-pressed', card.dataset.createCategory === cat ? 'true' : 'false');
+  });
+  var detailCategory = document.getElementById('createDetailCategory');
+  if (detailCategory) detailCategory.textContent = cat || 'your category';
+  toggleCategoryFields(cat);
+  updateCreateFlowControls();
+}
+
+function toggleCategoryFields(category) {
+  var isVenue = category === 'Venue';
+  var isDecoration = category === 'Decoration';
+  var isRental = category === 'Dress' || category === 'Accessories';
+
+  var standard = document.getElementById('csStandardPriceFields');
+  var venueExtras = document.getElementById('csVenueExtras');
+  var decoExtras = document.getElementById('csDecorationExtras');
+  var rentalExtras = document.getElementById('csRentalExtras');
+
+  if (standard) standard.classList.toggle('hidden-section', isVenue || isDecoration || isRental);
+  if (venueExtras) venueExtras.classList.toggle('hidden-section', !isVenue);
+  if (decoExtras) decoExtras.classList.toggle('hidden-section', !isDecoration);
+  if (rentalExtras) rentalExtras.classList.toggle('hidden-section', !isRental);
+
+  if (isDecoration && !document.querySelectorAll('.cs-style-row').length) renderDecorationStyles('cs');
+}
+
+function onCreateCategoryChange(value) {
+  selectCreateCategory(value);
+}
+function onOthersCategoryChange(value) { onCreateCategoryChange(value); }
+
+function openCreateServiceModal() {
+  resetCreateForm();
+  document.getElementById('createServiceModal').classList.remove('hidden');
+  renderCategoryControls();
+  currentCreateStep = 1;
+  selectCreateCategory('');
+  showCreateStep(1);
+}
+
+function closeCreateServiceModal() {
+  document.getElementById('createServiceModal').classList.add('hidden');
+}
+
+function resetCreateForm() {
+  ['csName','csDesc','csPriceMin','csPriceMax','csCapacity','csImgData','csVenue','csLocation',
+   'csBorrowPackagePrice','csBorrowCustomizePrice','csBuyPackagePrice','csBuyCustomizePrice','csReturnDays'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var typeEl = document.getElementById('csType'); if (typeEl) typeEl.value = '';
+  var leadEl = document.getElementById('csMinLeadDays'); if (leadEl) leadEl.value = '0';
+  var startEl = document.getElementById('csDefaultStartTime'); if (startEl) startEl.value = '';
+  var endEl = document.getElementById('csDefaultEndTime'); if (endEl) endEl.value = '';
+  resetImgBox('csImgBox', true);
+  renderVenueRooms('cs');
+  var stylesList = document.getElementById('csStylesList'); if (stylesList) stylesList.innerHTML = '';
+  currentCreateCategory = '';
+}
+
+function showCreateStep(step) {
+  currentCreateStep = Math.max(1, Math.min(3, Number(step) || 1));
+  document.querySelectorAll('[data-create-step]').forEach(function(panel) {
+    panel.classList.toggle('is-active', Number(panel.dataset.createStep) === currentCreateStep);
+  });
+  document.querySelectorAll('[data-create-step-button]').forEach(function(button) {
+    var buttonStep = Number(button.dataset.createStepButton);
+    button.classList.toggle('is-active', buttonStep === currentCreateStep);
+    button.classList.toggle('is-complete', buttonStep < currentCreateStep);
+  });
+
+  var subtitles = {
+    1: 'Start by choosing what you provide.',
+    2: 'Add the information customers need at a glance.',
+    3: 'Complete pricing, availability, and category details.'
   };
+  var subtitle = document.getElementById('createServiceSubtitle');
+  if (subtitle) subtitle.textContent = subtitles[currentCreateStep];
+  updateCreateFlowControls();
 
-  const categories = ['Venue', ...serviceCategories.filter(c => c !== 'Venue').sort()];
-
-  container.innerHTML = categories.map(cat => {
-    const chip = TYPE_CHIPS[cat] || { emoji: '✨', desc: '' };
-    return `
-    <div class="type-chip" data-cat="${cat}" onclick="handleTypeSelect(this)">
-      <span class="type-chip-emoji">${chip.emoji}</span>
-      <div>
-        <div class="type-chip-text">${cat}</div>
-        <div class="type-chip-desc">${chip.desc}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  modal.classList.remove('hidden');
+  var body = document.querySelector('#createServiceModal .create-service-body');
+  if (body) body.scrollTop = 0;
 }
 
-function handleTypeSelect(el) {
-  document.querySelectorAll('#serviceTypeOptions .type-chip').forEach(i => i.classList.remove('selected'));
-  el.classList.add('selected');
-
-  const cat = el.dataset.cat;
-  closeTypeModal();
-  cat === 'Venue' ? openAddVenue() : openAddOthers(cat);
+function updateCreateFlowControls() {
+  var back = document.getElementById('createBackBtn');
+  var next = document.getElementById('createNextBtn');
+  var save = document.getElementById('createSaveBtn');
+  var summary = document.getElementById('createStepSummary');
+  if (back) back.classList.toggle('hidden', currentCreateStep === 1);
+  if (next) {
+    next.classList.toggle('hidden', currentCreateStep === 3);
+    next.disabled = currentCreateStep === 1 && !currentCreateCategory;
+  }
+  if (save) save.classList.toggle('hidden', currentCreateStep !== 3);
+  if (summary) {
+    summary.textContent = currentCreateStep === 1
+      ? (currentCreateCategory ? currentCreateCategory + ' selected' : 'Choose one category to continue')
+      : currentCreateStep === 2
+        ? 'Step 2 of 3 · ' + currentCreateCategory
+        : 'Ready to create · ' + currentCreateCategory;
+  }
 }
-function closeTypeModal() {
-  document.getElementById('serviceTypeModal').classList.add('hidden');
+
+function validateCreateEssentials() {
+  var name = document.getElementById('csName');
+  if (!name || !name.value.trim()) {
+    showToast('Add a service name before continuing.', 'error');
+    if (name) name.focus();
+    return false;
+  }
+  return true;
+}
+
+function nextCreateStep() {
+  if (currentCreateStep === 1 && !currentCreateCategory) {
+    showToast('Choose a service category first.', 'error');
+    return;
+  }
+  if (currentCreateStep === 2 && !validateCreateEssentials()) return;
+  showCreateStep(currentCreateStep + 1);
+}
+
+function previousCreateStep() {
+  showCreateStep(currentCreateStep - 1);
+}
+
+function goToCreateStep(step) {
+  step = Number(step);
+  if (step >= currentCreateStep) return;
+  showCreateStep(step);
+}
+
+async function saveCreateService() {
+  var category = document.getElementById('csCategory').value || currentCreateCategory;
+  var name = document.getElementById('csName').value.trim();
+  if (!name) { showCreateStep(2); showToast('Please fill in the service name.', 'error'); return; }
+
+  if (category === 'Venue') {
+    if (!validateVenueRooms('cs')) return;
+  } else if (category === 'Decoration') {
+    if (!validateDecorationStyles('cs')) return;
+  } else if (category === 'Dress' || category === 'Accessories') {
+    if (!validateRentalPricing('cs')) return;
+  } else {
+    var priceMin = parseFloat(document.getElementById('csPriceMin').value);
+    var priceMax = parseFloat(document.getElementById('csPriceMax').value || document.getElementById('csPriceMin').value);
+    if (isNaN(priceMin) || isNaN(priceMax)) { showToast('Please fill in package price and customize price.', 'error'); return; }
+    if (priceMax < priceMin) { showToast('Customize price must be ≥ package price.', 'error'); return; }
+  }
+
+  try {
+    var result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('cs', category));
+    upsertItem(services, result.item);
+    closeCreateServiceModal(); currentTab = 'services'; switchTab('services');
+  } catch (error) { showToast(error.message, 'error'); }
 }
 
 // ── RENDER ────────────────────────────────────────────────────
@@ -667,6 +852,7 @@ function render() {
   const emptyMessage = document.getElementById('emptyStateMessage');
   const emptyActionLabel = document.getElementById('emptyStateActionLabel');
   let items = currentTab === 'services' ? services : packages;
+  const searchActive = searchQuery !== '';
 
   items = items.filter(Boolean).filter(i => {
     const catOk = currentTab === 'services'
@@ -676,35 +862,65 @@ function render() {
     return catOk && statusOk;
   });
 
+  // Client-side sort (server returns newest-first for searches)
+  if (!searchActive) {
+    if (currentSort === 'name_asc') items.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+    else if (currentSort === 'price_asc') items.sort((a,b) => (a.price||0) - (b.price||0));
+    else if (currentSort === 'price_desc') items.sort((a,b) => (b.price||0) - (a.price||0));
+    else items.sort((a,b) => (b.id||0) - (a.id||0));
+  }
+
   if (!grid || !empty) return;
 
   grid.innerHTML = '';
   empty.classList.add('hidden');
 
-  // Always render the plus add card at the start if on services tab
+  // Sort bar
+  const sortWrap = document.getElementById('smSortWrap');
+  if (sortWrap) sortWrap.classList.toggle('hidden', items.length === 0);
+  // Highlight active sort
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('bg-[#6e4e58]','text-white','border-[#6e4e58]'));
+  const activeSortBtn = document.getElementById('sort-'+currentSort.replace('_','-'));
+  if (activeSortBtn) {
+    activeSortBtn.classList.add('bg-[#6e4e58]','text-white','border-[#6e4e58]');
+    activeSortBtn.classList.remove('bg-white','text-gray-700');
+  }
+
   if (currentTab === 'services') {
     grid.insertAdjacentHTML('beforeend', plusCard());
   }
 
-  if (!items.length && currentTab === 'packages') {
-    if (emptyMessage) {
-      emptyMessage.textContent = 'How about creating a package right now?';
-    }
-    if (emptyActionLabel) {
-      emptyActionLabel.textContent = 'Create Package';
+  if (!items.length) {
+    if (searchActive) {
+      if (emptyMessage) emptyMessage.textContent = 'No results for “' + searchQuery + '”';
+      if (emptyActionLabel) {
+        emptyActionLabel.textContent = 'Clear search';
+        emptyActionLabel.onclick = function(){
+          var si = document.getElementById('searchInput');
+          if (si) si.value = '';
+          searchQuery = '';
+          services = []; packages = []; pagingMeta = {};
+          renderEmpty(); loadMoreCurrentTab();
+        };
+        emptyActionLabel.style.cursor = 'pointer';
+      }
+    } else if (currentTab === 'packages') {
+      if (emptyMessage) emptyMessage.textContent = 'How about creating a package right now?';
+      if (emptyActionLabel) emptyActionLabel.textContent = 'Create Package';
+    } else {
+      if (emptyMessage) emptyMessage.textContent = 'How about creating a service right now?';
+      if (emptyActionLabel) emptyActionLabel.textContent = 'Create Service';
     }
     empty.classList.remove('hidden');
-    updateLoadMoreControl();
-    return;
+  } else {
+    items.forEach(item => grid.insertAdjacentHTML('beforeend', currentTab === 'services' ? svcCard(item) : pkgCard(item)));
   }
-
-  items.forEach(item => grid.insertAdjacentHTML('beforeend', currentTab === 'services' ? svcCard(item) : pkgCard(item)));
   updateLoadMoreControl();
 }
 
 function plusCard() {
   return `
-  <div onclick="openTypeSelector()" class="service-card rounded-xl border-2 border-dashed border-gray-300 overflow-hidden cursor-pointer transition hover:border-[#6e4e58] hover:bg-[#fbf9f6] flex items-center justify-center" style="box-shadow:0 1px 4px rgba(74,59,50,0.05); background: rgba(255,255,255,0.5); min-height:300px;">
+  <div onclick="openCreateServiceModal()" class="service-card rounded-xl border-2 border-dashed border-gray-300 overflow-hidden cursor-pointer transition hover:border-[#6e4e58] hover:bg-[#fbf9f6] flex items-center justify-center" style="box-shadow:0 1px 4px rgba(74,59,50,0.05); background: rgba(255,255,255,0.5); min-height:300px;">
     <div class="flex flex-col items-center justify-center gap-3 p-6">
       <div class="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center transition group-hover:border-[#6e4e58]">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -722,23 +938,40 @@ document.getElementById('emptyStateAction')?.addEventListener('click', () => {
     openPackageModal();
     return;
   }
-
-  openTypeSelector();
+  openCreateServiceModal();
 });
 
 function updateLoadMoreControl() {
-  const wrap = document.getElementById('loadMoreWrap');
+  const wrap  = document.getElementById('loadMoreWrap');
   const button = document.getElementById('loadMoreBtn');
+  const allLoaded = document.getElementById('allLoadedMsg');
   if (!wrap || !button) return;
 
   const meta = pagingMeta[currentTab] || {};
   const currentCount = currentTab === 'services' ? services.length : packages.length;
   const hasMore = Boolean(meta.has_more) || (Number(meta.total || 0) > currentCount);
 
-  wrap.classList.toggle('hidden', !hasMore);
-  button.disabled = isLoadingMore;
-  button.textContent = isLoadingMore ? 'Loading...' : 'Load more';
+  if (currentCount === 0) {
+    wrap.classList.add('hidden');
+    if (allLoaded) allLoaded.classList.add('hidden');
+    return;
+  }
+
+  if (hasMore) {
+    wrap.classList.remove('hidden');
+    button.disabled = isLoadingMore;
+    button.textContent = isLoadingMore ? 'Loading…' : 'Load more';
+    if (allLoaded) allLoaded.classList.add('hidden');
+  } else {
+    wrap.classList.add('hidden');
+    if (allLoaded) {
+      allLoaded.classList.remove('hidden');
+      allLoaded.textContent = 'Showing all ' + currentCount + ' ' + (currentTab === 'services' ? 'services' : 'packages') + '.';
+    }
+  }
 }
+
+let searchQuery = '';
 
 async function loadMoreCurrentTab() {
   if (isLoadingMore) return;
@@ -751,7 +984,8 @@ async function loadMoreCurrentTab() {
     const result = await apiRequest(serviceManagementUrls.data, {
       tab: currentTab,
       limit: PAGE_SIZE,
-      offset: list.length
+      offset: list.length,
+      search: searchQuery
     });
     const data = result.data || {};
 
@@ -764,11 +998,39 @@ async function loadMoreCurrentTab() {
     pagingMeta[currentTab] = data.meta?.[currentTab] || pagingMeta[currentTab] || {};
     render();
   } catch (error) {
-    alert(error.message);
+    showToast(error.message, 'error');
   } finally {
     isLoadingMore = false;
     updateLoadMoreControl();
   }
+}
+
+// ── DEBOUNCED SEARCH ─────────────────────────────────────────────
+let searchDebounceTimer = null;
+function onSearchInput() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    const input = document.getElementById('searchInput');
+    searchQuery = (input?.value || '').trim();
+    // Reset lists and fetch fresh from server
+    services = [];
+    packages = [];
+    pagingMeta = {};
+    if (searchQuery === '') {
+      // Reload page to get initial server data without search
+      renderEmpty();
+      loadMoreCurrentTab();
+    } else {
+      renderEmpty();
+      loadMoreCurrentTab();
+    }
+  }, 300);
+}
+
+function renderEmpty() {
+  const grid = document.getElementById('cardsGrid');
+  if (grid) grid.innerHTML = '';
+  document.getElementById('emptyState')?.classList.add('hidden');
 }
 
 function svcCard(item) {
@@ -781,16 +1043,15 @@ function svcCard(item) {
     ? `<img src="${item.img}" alt="${item.name}"/>`
     : `<div class="card-icon"><span style="font-size:2.8rem;line-height:1">${icon}</span></div>`;
   return `
-  <div class="service-card rounded-xl border border-gray-100 overflow-hidden" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
+  <div onclick="window.location='${serviceDetailUrl(item.id)}'" class="service-card rounded-xl border border-gray-100 overflow-hidden cursor-pointer" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
     <div class="card-img-wrap bg-gradient-to-br ${grad}">
       ${imgInner}
     </div>
     <div class="card-img-overlay"></div>
-    <!-- Edit icon top-left -->
-    <button onclick='openEditService(${item.id})' class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
+    <button onclick="event.stopPropagation();openEditService(${item.id})" class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     </button>
-    <button onclick='deleteService(${item.id})' class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete service">
+    <button onclick="event.stopPropagation();deleteService(${item.id})" class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete service">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
     </button>
     <!-- Status pill top-right -->
@@ -829,16 +1090,15 @@ function pkgCard(item) {
     ? `<img src="${item.img}" alt="${item.name}"/>`
     : `<div class="card-icon"><span style="font-size:2.4rem;line-height:1;letter-spacing:0.1em">${icons||'🎀'}</span></div>`;
   return `
-  <div class="service-card rounded-xl border border-gray-100 overflow-hidden" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
+  <div onclick="event.preventDefault();" class="service-card rounded-xl border border-gray-100 overflow-hidden cursor-pointer" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
     <div class="card-img-wrap bg-gradient-to-br ${grad}">
       ${imgInner}
     </div>
     <div class="card-img-overlay"></div>
-    <!-- Edit icon top-left -->
-    <button onclick='openEditPackage(${item.id})' class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
+    <button onclick="event.stopPropagation();openEditPackage(${item.id})" class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     </button>
-    <button onclick='deletePackage(${item.id})' class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete package">
+    <button onclick="event.stopPropagation();deletePackage(${item.id})" class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete package">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
     </button>
     <!-- Status pill top-right -->
@@ -891,7 +1151,7 @@ function handleHeaderCreateClick() {
     openPackageModal();
     return;
   }
-  openServiceTypeModal();
+  openCreateServiceModal();
 }
 
 // ── STATUS FILTER ─────────────────────────────────────────────
@@ -912,36 +1172,22 @@ function setStatusFilter(f) {
 // ── CLOSE ALL MODALS ──────────────────────────────────────────
 function closeAll() {
   if(currentCropperInstance) { currentCropperInstance.destroy(); currentCropperInstance = null; }
-  ['venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal','serviceTypeModal']
+  ['createServiceModal','editServiceModal','editPackageModal','createPackageModal']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
 }
 
-function closeServiceTypeModal() {
-  document.getElementById('serviceTypeModal').classList.add('hidden');
-}
+function closeServiceTypeModal() { closeCreateServiceModal(); }
+function closeTypeModal() { closeCreateServiceModal(); }
+function openServiceTypeModal() { openCreateServiceModal(); }
 
-function openServiceTypeModal() {
-  document.getElementById('serviceTypeModal').classList.remove('hidden');
-}
-
-function openVenueTypeModal() {
-  document.getElementById('serviceTypeModal').classList.add('hidden');
-  clearFieldValues(['vName','vDesc','vPriceMin','vPriceMax','vCapacity','vVenue','vLocation','vType','vImgData']);
-  resetImgBox('venueImgBox', true);
-  document.getElementById('venueModal').classList.remove('hidden');
-}
-
-function openOtherTypeModal() {
-  document.getElementById('serviceTypeModal').classList.add('hidden');
-  openAddOthers();
-}
-
-function confirmDeleteModal({ title = 'Delete item?', message = 'This action cannot be undone.' } = {}) {
+function confirmDeleteModal({ title = 'Delete item?', message = 'This action cannot be undone.', requireType = null } = {}) {
   const modal = document.getElementById('deleteConfirmModal');
   const titleEl = document.getElementById('deleteConfirmTitle');
   const messageEl = document.getElementById('deleteConfirmMessage');
   const cancelBtn = document.getElementById('deleteConfirmCancel');
   const actionBtn = document.getElementById('deleteConfirmAction');
+  const typeInput = document.getElementById('deleteConfirmTypeInput');
+  const typeWrap = document.getElementById('deleteConfirmTypeWrap');
 
   if (!modal || !cancelBtn || !actionBtn) {
     return Promise.resolve(false);
@@ -949,7 +1195,20 @@ function confirmDeleteModal({ title = 'Delete item?', message = 'This action can
 
   if (titleEl) titleEl.textContent = title;
   if (messageEl) messageEl.textContent = message;
+  if (typeWrap) typeWrap.classList.toggle('hidden', !requireType);
+  if (typeInput) { typeInput.value = ''; typeInput.placeholder = requireType ? 'Type "' + requireType + '" to confirm' : ''; }
+  actionBtn.disabled = !!requireType;
+  actionBtn.classList.toggle('opacity-50', !!requireType);
   modal.classList.remove('hidden');
+
+  // Type-to-confirm handler
+  const onTypeInput = requireType ? function(){
+    actionBtn.disabled = typeInput.value.trim() !== requireType;
+    actionBtn.classList.toggle('opacity-50', actionBtn.disabled);
+  } : null;
+  if (onTypeInput && typeInput) {
+    typeInput.addEventListener('input', onTypeInput);
+  }
 
   return new Promise(resolve => {
     let resolved = false;
@@ -960,6 +1219,7 @@ function confirmDeleteModal({ title = 'Delete item?', message = 'This action can
       modal.classList.add('hidden');
       cancelBtn.removeEventListener('click', onCancel);
       actionBtn.removeEventListener('click', onConfirm);
+      if (typeInput) typeInput.removeEventListener('input', onTypeInput);
       modal.removeEventListener('click', onBackdrop);
       document.removeEventListener('keydown', onKeydown);
       resolve(value);
@@ -982,75 +1242,11 @@ function confirmDeleteModal({ title = 'Delete item?', message = 'This action can
   });
 }
 
-// ── ADD VENUE ─────────────────────────────────────────────────
-function openAddVenue() {
-  clearFieldValues(['vName','vDesc','vVenue','vLocation','vImgData']);
-  const minLeadField = document.getElementById('vMinLeadDays');
-  if (minLeadField) minLeadField.value = '0';
-  document.getElementById('vType').value='';
-  renderVenueRooms('v');
-  resetImgBox('venueImgBox', true);
-  document.getElementById('venueModal').classList.remove('hidden');
-}
-async function saveVenue() {
-  const name=document.getElementById('vName').value.trim();
-  if (!name) { alert('Please fill in service name.'); return; }
-  if (!validateVenueRooms('v')) return;
-  try {
-    const result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('v', 'Venue'));
-    upsertItem(services, result.item);
-    closeAll(); currentTab='services'; switchTab('services');
-  } catch (error) { alert(error.message); }
-}
-
-// ── ADD OTHERS ────────────────────────────────────────────────
-function openAddOthers(selectedCategory) {
-  clearFieldValues([
-    'oName',
-    'oDesc',
-    'oPriceMin',
-    'oPriceMax',
-    'oCapacity',
-    'oImgData',
-    'oBorrowPackagePrice',
-    'oBorrowCustomizePrice',
-    'oReturnDays',
-    'oBuyPackagePrice',
-    'oBuyCustomizePrice'
-  ]);
-  resetImgBox('othersImgBox', true);
-  const list = document.getElementById('oStylesList');
-  if (list) list.innerHTML = '';
-  if (selectedCategory) {
-    const select = document.getElementById('oCategory');
-    if (select) {
-      const option = Array.from(select.options).find(o => o.value === selectedCategory);
-      if (option) select.value = selectedCategory;
-    }
-  }
-  onOthersCategoryChange(document.getElementById('oCategory')?.value || '');
-  document.getElementById('othersModal').classList.remove('hidden');
-}
-async function saveOthers() {
-  const name = document.getElementById('oName').value.trim();
-  const category = document.getElementById('oCategory').value;
-  if (!name) { alert('Please fill in the service name.'); return; }
-  if (category === 'Decoration') {
-    if (!validateDecorationStyles('o')) return;
-  } else if (category === 'Dress' || category === 'Accessories') {
-    if (!validateRentalPricing('o')) return;
-  } else {
-    const priceMin = parseFloat(document.getElementById('oPriceMin').value);
-    const priceMax = parseFloat(document.getElementById('oPriceMax').value || document.getElementById('oPriceMin').value);
-    if (isNaN(priceMin) || isNaN(priceMax)) { alert('Please fill in package price and customize price.'); return; }
-    if (priceMax < priceMin) { alert('Customize price must be greater than or equal to package price.'); return; }
-  }
-  try {
-    const result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('o', category));
-    upsertItem(services, result.item);
-    closeAll(); currentTab='services'; switchTab('services');
-  } catch (error) { alert(error.message); }
-}
+// ── ADD VENUE / OTHERS — deprecated stubs for compat ──────────
+function openAddVenue() { openCreateServiceModal(); selectCreateCategory('Venue'); }
+function openAddOthers(selectedCategory) { openCreateServiceModal(); if (selectedCategory) selectCreateCategory(selectedCategory); }
+async function saveVenue() { await saveCreateService(); }
+async function saveOthers() { await saveCreateService(); }
 
 // ── EDIT SERVICE ──────────────────────────────────────────────
 function openEditService(id) {
@@ -1101,7 +1297,7 @@ async function updateService() {
   const isVenueUpd = item.category === 'Venue';
   const isDecoUpd = item.category === 'Decoration';
   const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories';
-  if (!isVenueUpd && !isDecoUpd && !isRentalUpd && !isPriceRangeValid('es')) { alert('Customize price must be greater than or equal to package price.'); return; }
+  if (!isVenueUpd && !isDecoUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
   if (isVenueUpd && !validateVenueRooms('es')) return;
   if (isDecoUpd && !validateDecorationStyles('es')) return;
   if (isRentalUpd && !validateRentalPricing('es')) return;
@@ -1132,21 +1328,22 @@ async function updateService() {
     const result = await apiRequest(serviceManagementUrls.serviceUpdate + editingSvcId, payload);
     upsertItem(services, result.item);
     closeAll(); render();
-  } catch (error) { alert(error.message); }
+  } catch (error) { showToast(error.message, 'error'); }
 }
 
 async function deleteService(id) {
   const item=services.find(s=>s.id===id); if (!item) return;
   const confirmed = await confirmDeleteModal({
     title: 'Delete service?',
-    message: `Delete "${item.name}"? This removes the service from your supplier list.`
+    message: `Delete "${item.name}"? This removes the service from your supplier list.`,
+    requireType: item.name
   });
   if (!confirmed) return;
   try {
     await apiRequest(serviceManagementUrls.serviceDelete + id);
     services=services.filter(s=>Number(s.id)!==Number(id));
     closeAll(); render();
-  } catch (error) { alert(error.message); }
+  } catch (error) { showToast(error.message, 'error'); }
 }
 
 function deleteCurrentService() {
@@ -1183,21 +1380,22 @@ async function updatePackage() {
     const result = await apiRequest(serviceManagementUrls.packageUpdate + editingPkgId, payload);
     upsertItem(packages, result.item);
     closeAll(); render();
-  } catch (error) { alert(error.message); }
+  } catch (error) { showToast(error.message, 'error'); }
 }
 
 async function deletePackage(id) {
   const item=packages.find(p=>p.id===id); if (!item) return;
   const confirmed = await confirmDeleteModal({
     title: 'Delete package?',
-    message: `Delete "${item.name}"? This removes the package from your supplier list.`
+    message: `Delete "${item.name}"? This removes the package from your supplier list.`,
+    requireType: item.name
   });
   if (!confirmed) return;
   try {
     await apiRequest(serviceManagementUrls.packageDelete + id);
     packages=packages.filter(p=>Number(p.id)!==Number(id));
     closeAll(); render();
-  } catch (error) { alert(error.message); }
+  } catch (error) { showToast(error.message, 'error'); }
 }
 
 function deleteCurrentPackage() {
@@ -1219,7 +1417,7 @@ function updateCpCount() {
 }
 async function savePackage() {
   const name=document.getElementById('cpName').value.trim(), price=parseFloat(document.getElementById('cpPrice').value);
-  if (!name||isNaN(price)) { alert('Please fill in package name and price.'); return; }
+  if (!name||isNaN(price)) { showToast('Please fill in package name and price.', 'error'); return; }
   try {
     const result = await apiRequest(serviceManagementUrls.packageCreate, {
       name,
@@ -1231,7 +1429,7 @@ async function savePackage() {
     });
     upsertItem(packages, result.item);
     closeAll(); currentTab='packages'; switchTab('packages');
-  } catch (error) { alert(error.message); }
+  } catch (error) { showToast(error.message, 'error'); }
 }
 
 // ── TOGGLE STATUS ────────────────────────────────────────────
@@ -1243,7 +1441,7 @@ async function toggleStatus(id, type) {
   try {
     if (type === 'service' && nextStatus === 'active') {
       const result = await apiRequest((serviceManagementUrls.servicePublishRequest || serviceManagementUrls.serviceStatus) + id, {});
-      alert(result.message || 'Publish request sent to admin.');
+      showToast(result.message || 'Done', 'success');
       upsertItem(list, { ...item, status: 'inactive' });
       render();
       return;
@@ -1253,7 +1451,7 @@ async function toggleStatus(id, type) {
     const result = await apiRequest(url + id, { status: nextStatus });
     upsertItem(list, result.item);
     render();
-  } catch (error) { alert(error.message); }
+  } catch (error) { showToast(error.message, 'error'); }
 }
 
 // ── PHOTO HANDLING EXTENSIONS ────────────────────────────────
@@ -1300,8 +1498,8 @@ function renderConfirmedImage(dataURL, sourceImageURL, inputId, boxId, dataId, a
 
   box.innerHTML = `
     <div class="img-upload-container w-full h-full relative group">
-      <img src="${dataURL}" class="w-full h-full object-cover rounded-xl"/>
-      <div class="edit-icon-btn absolute top-2 right-2 flex items-center gap-1.5 bg-black/70 backdrop-blur-md p-1 rounded-xl shadow-lg border border-white/10 transition-opacity duration-200 md:opacity-0" onclick="event.stopPropagation()">
+      <img src="${dataURL}" class="w-full h-full object-contain rounded-xl"/>
+      <div class="edit-icon-btn absolute top-2 right-2 flex items-center gap-1.5 bg-black/70 backdrop-blur-md p-1 rounded-xl shadow-lg border border-white/10" onclick="event.stopPropagation()">
         ${adjustButton}
         <button type="button" onclick="uploadDifferentPhoto('${inputId}')" class="p-1.5 hover:bg-white/20 rounded-lg text-white transition flex items-center justify-center">
           <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18"/></svg>
@@ -1349,7 +1547,21 @@ function initAdjustmentFramework(inputId, boxId, dataId, aspectRatio) {
 
     try {
       currentCropperInstance = new Cropper(document.getElementById(`${boxId}_cropTarget`), {
-        aspectRatio: aspectRatio, viewMode: 1, dragMode: 'move', autoCropArea: 1, restore: false, guides: false, center: true, highlight: false, cropBoxMovable: false, cropBoxResizable: false, toggleDragModeOnDblclick: false
+        aspectRatio: aspectRatio,
+        viewMode: 1,
+        dragMode: 'crop',
+        autoCropArea: 0.85,
+        restore: false,
+        guides: true,
+        center: true,
+        highlight: true,
+        cropBoxMovable: true,
+        cropBoxResizable: true,
+        toggleDragModeOnDblclick: true,
+        zoomable: true,
+        zoomOnWheel: true,
+        movable: true,
+        responsive: true
       });
     } catch (error) {
       destroyCurrentCropper();
@@ -1368,7 +1580,7 @@ function cropperAction(action) {
 
 function finalizeAdjustment(imgTargetId, dataId, boxId, inputId, aspectRatio) {
   if (!currentCropperInstance) return;
-  const canvas = currentCropperInstance.getCroppedCanvas({ width: 640, height: 360 });
+  const canvas = currentCropperInstance.getCroppedCanvas();
   if (!canvas) return;
   const dataURL = canvas.toDataURL('image/jpeg', 0.85);
   const masterSource = currentCropperInstance.element.src || dataURL;
@@ -1402,7 +1614,21 @@ function reopenAdjustmentFramework(sourceImageURL, inputId, boxId, dataId, aspec
 
   try {
     currentCropperInstance = new Cropper(document.getElementById(`${boxId}_cropTarget`), {
-      aspectRatio: aspectRatio, viewMode: 1, dragMode: 'move', autoCropArea: 1, restore: false, guides: false, center: true, highlight: false, cropBoxMovable: false, cropBoxResizable: false, toggleDragModeOnDblclick: false
+      aspectRatio: aspectRatio,
+      viewMode: 1,
+      dragMode: 'crop',
+      autoCropArea: 0.85,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: true,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: true,
+      zoomable: true,
+      zoomOnWheel: true,
+      movable: true,
+      responsive: true
     });
   } catch (error) {
     destroyCurrentCropper();
@@ -1422,7 +1648,7 @@ function resetImgBox(boxId, wide) {
   box.style.border = '';
   delete box.dataset.masterSource;
   box.dataset.mode = 'empty';
-  const inputMap = { venueImgBox: 'venueImgInput', othersImgBox: 'othersImgInput', esImgBox: 'esImgInput', epImgBox: 'epImgInput', cpImgBox: 'cpImgInput' };
+  const inputMap = { csImgBox: 'csImgInput', venueImgBox: 'venueImgInput', othersImgBox: 'othersImgInput', esImgBox: 'esImgInput', epImgBox: 'epImgInput', cpImgBox: 'cpImgInput' };
   box.setAttribute('for', inputMap[boxId]);
 
   if (wide) {
@@ -1438,9 +1664,27 @@ document.addEventListener('change', function(e) {
 });
 
 // Close when overlay is clicked
-['venueModal','othersModal','editServiceModal','editPackageModal','createPackageModal','serviceTypeModal'].forEach(id=>{
+['createServiceModal','editServiceModal','editPackageModal','createPackageModal'].forEach(function(id){
   document.getElementById(id).addEventListener('click', function(e){ if(e.target===this) closeAll(); });
 });
+
+// ── Search input binding ───────────────────────────────────────
+const searchEl = document.getElementById('searchInput');
+if (searchEl) {
+  searchEl.addEventListener('input', onSearchInput);
+  // Clear search on Escape
+  searchEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchEl.value = '';
+      searchQuery = '';
+      services = [];
+      packages = [];
+      pagingMeta = {};
+      renderEmpty();
+      loadMoreCurrentTab();
+    }
+  });
+}
 
 installNonNegativeNumberGuards();
 renderCategoryControls();

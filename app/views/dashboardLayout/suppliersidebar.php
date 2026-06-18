@@ -248,6 +248,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
             top: 0;
             height: 100vh;
             width: 280px;
+            overflow-y: auto;
             transition: width 180ms ease;
         }
 

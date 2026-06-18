@@ -179,7 +179,12 @@ a{color:inherit;text-decoration:none}
         <div class="gp-summary-items">
           <?php foreach ($items as $item): ?>
           <div class="gp-row">
-            <span><?= $h($item['service_name'] ?? 'Service') ?></span>
+            <span>
+              <?= $h($item['service_name'] ?? 'Service') ?>
+              <?php if (!empty($item['addon_package_name'])): ?>
+                <small> · Add-on for <?= $h($item['addon_package_name']) ?></small>
+              <?php endif; ?>
+            </span>
             <span><?= $money($item['price'] ?? 0) ?></span>
           </div>
           <?php endforeach; ?>

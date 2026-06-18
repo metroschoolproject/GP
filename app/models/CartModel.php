@@ -4,6 +4,7 @@ class CartModel
 {
     private $db;
     private ?bool $cartVenueRoomColumn = null;
+    private ?bool $cartPackageParentColumn = null;
     private ?bool $serviceDefaultTimeColumns = null;
 
     public function __construct()
@@ -45,7 +46,9 @@ class CartModel
         $venueRoomId = !empty($data['venue_room_id']) ? (int)$data['venue_room_id'] : null;
         $startTime = $data['start_time'] ?? null;
         $endTime   = $data['end_time'] ?? null;
+        $packageCartItemId = !empty($data['package_cart_item_id']) ? (int)$data['package_cart_item_id'] : null;
         $hasVenueRoomColumn = $this->hasCartVenueRoomColumn();
+        $hasPackageParentColumn = $this->hasCartPackageParentColumn();
 
         if ($itemId <= 0) {
             return false;
@@ -59,6 +62,8 @@ class CartModel
                AND (slot_id = :sid OR (slot_id IS NULL AND :sid IS NULL))"
                . ($hasVenueRoomColumn ? "
                AND (venue_room_id = :vrid OR (venue_room_id IS NULL AND :vrid IS NULL))" : "") . "
+               " . ($hasPackageParentColumn ? "
+               AND (package_cart_item_id = :package_cart_item_id OR (package_cart_item_id IS NULL AND :package_cart_item_id IS NULL))" : "") . "
              LIMIT 1"
         );
         $this->db->dbbind(':uid', $userId);
@@ -68,6 +73,13 @@ class CartModel
         $this->db->dbbind(':sid', $slotId, PDO::PARAM_INT);
         if ($hasVenueRoomColumn) {
             $this->db->dbbind(':vrid', $venueRoomId, $venueRoomId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
+        if ($hasPackageParentColumn) {
+            $this->db->dbbind(
+                ':package_cart_item_id',
+                $packageCartItemId,
+                $packageCartItemId ? PDO::PARAM_INT : PDO::PARAM_NULL
+            );
         }
         $existing = $this->db->getsingledata();
 
@@ -79,9 +91,11 @@ class CartModel
 
         $venueRoomColumnSql = $hasVenueRoomColumn ? ', venue_room_id' : '';
         $venueRoomValueSql = $hasVenueRoomColumn ? ', :vrid' : '';
+        $packageParentColumnSql = $hasPackageParentColumn ? ', package_cart_item_id' : '';
+        $packageParentValueSql = $hasPackageParentColumn ? ', :package_cart_item_id' : '';
         $this->db->dbquery(
-            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql})
-             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql})"
+            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql}{$packageParentColumnSql})
+             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql}{$packageParentValueSql})"
         );
         $this->db->dbbind(':cid', $cartId, PDO::PARAM_INT);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
@@ -95,6 +109,13 @@ class CartModel
         $this->db->dbbind(':etime', $endTime);
         if ($hasVenueRoomColumn) {
             $this->db->dbbind(':vrid', $venueRoomId, $venueRoomId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
+        if ($hasPackageParentColumn) {
+            $this->db->dbbind(
+                ':package_cart_item_id',
+                $packageCartItemId,
+                $packageCartItemId ? PDO::PARAM_INT : PDO::PARAM_NULL
+            );
         }
 
         if ($this->db->dbexecute()) {
@@ -124,6 +145,27 @@ class CartModel
         );
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+
+        return $this->db->getsingledata();
+    }
+
+    public function findPackageCartItem(int $userId, int $packageId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT ci.id AS cart_item_id,
+                    ci.item_id AS package_id,
+                    p.name AS package_name,
+                    p.slug AS package_slug
+             FROM cart_items ci
+             INNER JOIN packages p ON p.package_id = ci.item_id
+             WHERE ci.user_id = :uid
+               AND ci.item_type = 'package'
+               AND ci.item_id = :package_id
+             ORDER BY ci.id DESC
+             LIMIT 1"
+        );
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        $this->db->dbbind(':package_id', $packageId, PDO::PARAM_INT);
 
         return $this->db->getsingledata();
     }
@@ -453,6 +495,77 @@ class CartModel
     }
 
     /**
+     * Build the automatically managed service timeline for a platform package.
+     * Service weekly hours take priority, followed by supplier defaults and then
+     * the configured category fallback window.
+     */
+    public function getPackageEventSchedule(int $packageId, string $eventDate): array
+    {
+        if ($packageId <= 0 || !DateTimeImmutable::createFromFormat('!Y-m-d', $eventDate)) {
+            return [];
+        }
+
+        $defaultTimeSelect = $this->hasServiceDefaultTimeColumns()
+            ? 's.default_start_time, s.default_end_time,'
+            : 'NULL AS default_start_time, NULL AS default_end_time,';
+        $defaultStartOrder = $this->hasServiceDefaultTimeColumns()
+            ? 's.default_start_time'
+            : 'NULL';
+
+        $this->db->dbquery(
+            "SELECT pi.id AS package_item_id,
+                    pi.service_id,
+                    s.name AS service_name,
+                    s.booking_type,
+                    COALESCE(vr.min_lead_days, s.min_lead_days, 0) AS min_lead_days,
+                    c.id AS category_id,
+                    c.name AS category_name,
+                    COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name,
+                    ss.open_time AS schedule_start_time,
+                    ss.close_time AS schedule_end_time,
+                    {$defaultTimeSelect}
+                    vr.name AS venue_room_name
+             FROM package_items pi
+             INNER JOIN services s ON s.id = pi.service_id
+             LEFT JOIN categories c ON c.id = COALESCE(pi.category_id, s.category_id)
+             LEFT JOIN suppliers sup ON sup.supplier_id = COALESCE(pi.default_supplier_id, s.supplier_id)
+             LEFT JOIN service_schedules ss
+                    ON ss.service_id = s.id
+                   AND ss.day_of_week = DAYOFWEEK(:event_date)
+                   AND ss.is_available = 1
+             LEFT JOIN venue_rooms vr ON vr.id = pi.venue_room_id
+             WHERE pi.package_id = :package_id
+               AND pi.service_id IS NOT NULL
+               AND pi.deleted_at IS NULL
+             ORDER BY COALESCE(ss.open_time, {$defaultStartOrder}, '23:59:59') ASC,
+                      c.name ASC,
+                      s.name ASC"
+        );
+        $this->db->dbbind(':event_date', $eventDate);
+        $this->db->dbbind(':package_id', $packageId, PDO::PARAM_INT);
+        $rows = $this->db->getmultidata();
+
+        foreach ($rows as &$row) {
+            $categoryId = (int)($row['category_id'] ?? 0);
+            $categoryTimes = defined('CATEGORY_DEFAULT_TIMES')
+                ? (CATEGORY_DEFAULT_TIMES[$categoryId] ?? null)
+                : null;
+
+            $row['start_time'] = $row['schedule_start_time']
+                ?: ($row['default_start_time'] ?: ($categoryTimes['start'] ?? '09:00:00'));
+            $row['end_time'] = $row['schedule_end_time']
+                ?: ($row['default_end_time'] ?: ($categoryTimes['end'] ?? '17:00:00'));
+            $row['event_date'] = $eventDate;
+        }
+        unset($row);
+        usort($rows, static fn(array $a, array $b): int =>
+            strcmp((string)($a['start_time'] ?? ''), (string)($b['start_time'] ?? ''))
+        );
+
+        return $rows;
+    }
+
+    /**
      * Get all cart items for a user, joined with service details.
      */
     /**
@@ -493,9 +606,35 @@ class CartModel
             ? 'LEFT JOIN venue_rooms cart_vr ON cart_vr.id = ci.venue_room_id
             LEFT JOIN venues cart_venue ON cart_venue.id = cart_vr.venue_id'
             : '';
-        $minLeadSelect = $hasVenueRoomColumn
+        $serviceMinLeadSelect = $hasVenueRoomColumn
             ? 'COALESCE(cart_vr.min_lead_days, selected_vr.min_lead_days, s.min_lead_days, 0)'
             : 'COALESCE(selected_vr.min_lead_days, s.min_lead_days, 0)';
+        $minLeadSelect = "CASE
+            WHEN ci.item_type = 'package' THEN COALESCE(
+                (SELECT MAX(COALESCE(package_room.min_lead_days, package_service.min_lead_days, 0))
+                 FROM package_items package_item
+                 INNER JOIN services package_service ON package_service.id = package_item.service_id
+                 LEFT JOIN venue_rooms package_room ON package_room.id = package_item.venue_room_id
+                 WHERE package_item.package_id = ci.item_id
+                   AND package_item.deleted_at IS NULL),
+                0
+            )
+            ELSE {$serviceMinLeadSelect}
+        END";
+        $packageParentSelect = $this->hasCartPackageParentColumn()
+            ? "ci.package_cart_item_id,
+                    parent_package.package_id AS addon_package_id,
+                    parent_package.name AS addon_package_name,"
+            : "NULL AS package_cart_item_id,
+                    NULL AS addon_package_id,
+                    NULL AS addon_package_name,";
+        $packageParentJoin = $this->hasCartPackageParentColumn()
+            ? "LEFT JOIN cart_items parent_ci
+                     ON parent_ci.id = ci.package_cart_item_id
+                    AND parent_ci.user_id = ci.user_id
+                    AND parent_ci.item_type = 'package'
+               LEFT JOIN packages parent_package ON parent_package.package_id = parent_ci.item_id"
+            : '';
 
         $this->db->dbquery(
             "SELECT ci.id AS cart_item_id, 
@@ -509,6 +648,7 @@ class CartModel
                     ci.slot_id, 
                     ci.start_time, 
                     ci.end_time,
+                    {$packageParentSelect}
                     {$venueRoomSelect}
                     {$resolvedTimeSelect}
 
@@ -539,6 +679,7 @@ class CartModel
             LEFT JOIN venue_rooms selected_vr ON selected_vr.id = selected_vra.room_id
             LEFT JOIN venues selected_venue ON selected_venue.id = selected_vr.venue_id
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
+            {$packageParentJoin}
             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
             LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
@@ -550,6 +691,49 @@ class CartModel
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         return $this->db->getmultidata();
     }
+
+    /**
+     * Return the services included in every platform package currently in a
+     * customer's cart, keyed by the cart item id.
+     */
+    public function getCartPackageServices(int $userId): array
+    {
+        $this->db->dbquery(
+            "SELECT ci.id AS cart_item_id,
+                    pi.id AS package_item_id,
+                    pi.service_id,
+                    pi.quantity,
+                    s.name AS service_name,
+                    s.thumbnail_url,
+                    c.name AS category_name,
+                    COALESCE(default_supplier.shop_name, service_supplier.shop_name, 'Golden Promise') AS supplier_name,
+                    vr.name AS venue_room_name,
+                    v.name AS venue_name
+             FROM cart_items ci
+             INNER JOIN package_items pi
+                     ON pi.package_id = ci.item_id
+                    AND pi.deleted_at IS NULL
+             INNER JOIN services s ON s.id = pi.service_id
+             LEFT JOIN categories c ON c.id = COALESCE(pi.category_id, s.category_id)
+             LEFT JOIN suppliers default_supplier ON default_supplier.supplier_id = pi.default_supplier_id
+             LEFT JOIN suppliers service_supplier ON service_supplier.supplier_id = s.supplier_id
+             LEFT JOIN venue_rooms vr ON vr.id = pi.venue_room_id
+             LEFT JOIN venues v ON v.id = vr.venue_id
+             WHERE ci.user_id = :uid
+               AND ci.item_type = 'package'
+               AND pi.service_id IS NOT NULL
+             ORDER BY ci.id DESC, c.name ASC, s.name ASC"
+        );
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+
+        $grouped = [];
+        foreach ($this->db->getmultidata() as $service) {
+            $grouped[(int)$service['cart_item_id']][] = $service;
+        }
+
+        return $grouped;
+    }
+
     /**
      * Get the total number of items in the user's cart.
      */
@@ -584,6 +768,17 @@ class CartModel
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         $row = $this->db->getsingledata();
         return $row ? (float)$row['total'] : 0;
+    }
+
+    private function hasCartPackageParentColumn(): bool
+    {
+        if ($this->cartPackageParentColumn !== null) {
+            return $this->cartPackageParentColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'package_cart_item_id'");
+        $this->cartPackageParentColumn = (bool)$this->db->getsingledata();
+        return $this->cartPackageParentColumn;
     }
 
 }

@@ -234,7 +234,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               $reviewedAt = $dateTime($payment['verified_at'] ?? null);
               $reviewNote = trim((string)($payment['verified_note'] ?? ''));
             ?>
-            <tr>
+            <tr data-payment-row="<?= $bookingId ?>">
               <td>
                 <div class="biz-name">
                   <a class="booking-link" href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>"><?= $h($bookingRef) ?></a>
@@ -299,14 +299,13 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
       </table>
     </div>
 
-    <div class="pagination">
-      <span class="page-info">Showing <?= empty($pendingPayments) ? '0' : '1' ?>-<?= count($pendingPayments) ?> of <?= count($pendingPayments) ?> <?= $isPending ? 'pending proofs' : ($activeStatus === 'verified' ? 'verified deposits' : 'rejected deposits') ?></span>
-      <div class="page-btns">
-        <button class="page-btn" disabled><i data-lucide="chevron-left" class="h-3 w-3" aria-hidden="true"></i></button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn" disabled><i data-lucide="chevron-right" class="h-3 w-3" aria-hidden="true"></i></button>
-      </div>
-    </div>
+    <?php
+    if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
+        $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+        $baseParams = 'status=' . urlencode($activeStatus ?? 'pending');
+        require APPROOT . '/views/partials/_pagination.php';
+    }
+    ?>
   </div>
 </div>
 
@@ -355,19 +354,55 @@ async function handleVerification(form, approve) {
     formData.set('reason', reason);
   }
 
+  const actionButton = approve
+    ? form.querySelector('.verify-payment-btn')
+    : form.querySelector('.reject-payment-btn');
+  if (actionButton) {
+    actionButton.disabled = true;
+    actionButton.dataset.originalText = actionButton.textContent;
+    actionButton.textContent = approve ? 'Verifying...' : 'Rejecting...';
+  }
+
   try {
     const response = await fetch(endpoint, { method: 'POST', body: formData });
     const data = await response.json();
 
     if (data.success) {
-      showToast(data.message || 'Payment review saved.');
-      setTimeout(() => location.reload(), 1200);
+      showToast(data.message || 'Payment review saved.', data.email_sent === false ? 'error' : 'success');
+      if (approve) {
+        const row = form.closest('tr');
+        const statusBadge = row?.querySelector('.badge');
+        if (statusBadge) {
+          statusBadge.className = 'badge badge-success';
+          statusBadge.textContent = 'Verified';
+        }
+        const actionCell = form.closest('td');
+        if (actionCell) {
+          actionCell.innerHTML = `<div class="review-meta">Email ${data.email_sent ? 'sent to ' + escapeHtml(data.email_to || 'customer') : 'could not be sent'}</div>`;
+        }
+      } else {
+        window.location.reload();
+      }
     } else {
       showToast(data.error || 'Operation failed.', 'error');
+      if (actionButton) {
+        actionButton.disabled = false;
+        actionButton.textContent = actionButton.dataset.originalText || (approve ? 'Approve' : 'Reject');
+      }
     }
   } catch (error) {
     showToast('Connection error. Please try again.', 'error');
+    if (actionButton) {
+      actionButton.disabled = false;
+      actionButton.textContent = actionButton.dataset.originalText || (approve ? 'Approve' : 'Reject');
+    }
   }
+}
+
+function escapeHtml(value) {
+  const element = document.createElement('span');
+  element.textContent = String(value);
+  return element.innerHTML;
 }
 </script>
 <?php

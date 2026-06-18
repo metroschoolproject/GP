@@ -156,7 +156,7 @@ $dashboardContent = function () use (
 </style>
 
 <div class="admin-payment-page">
-  <h2 class="sr-only">Payment History - filterable log of all supplier payment transactions</h2>
+  <h2 class="sr-only">Payment History - customer deposits and supplier payment transactions</h2>
 
   <div class="page-header">
     <div>
@@ -239,7 +239,7 @@ $dashboardContent = function () use (
       <table class="payment-table">
         <thead>
           <tr>
-            <th>Business</th>
+            <th>Transaction</th>
             <th>Amount</th>
             <th>Bank</th>
             <th>Sender Name</th>
@@ -253,7 +253,7 @@ $dashboardContent = function () use (
         <tbody>
           <?php if (empty($payments)): ?>
             <tr>
-              <td colspan="9" class="empty-row">No supplier payment submissions found.</td>
+              <td colspan="9" class="empty-row">No payment transactions found.</td>
             </tr>
           <?php endif; ?>
 
@@ -263,17 +263,34 @@ $dashboardContent = function () use (
               $paymentStatus = strtolower($payment['status'] ?? 'pending');
               $statusLabel = $paymentStatus === 'success' ? 'Approved' : ($paymentStatus === 'failed' ? 'Rejected' : 'Pending');
               $badgeClass = $paymentStatus === 'success' ? 'badge-success' : ($paymentStatus === 'failed' ? 'badge-failed' : 'badge-pending');
-              $submittedAt = !empty($payment['created_at']) ? date('M j, Y', strtotime($payment['created_at'])) : '-';
+              $submittedAt = !empty($payment['verified_at'] ?? null)
+                ? date('M j, Y H:i', strtotime($payment['verified_at']))
+                : (!empty($payment['created_at']) ? date('M j, Y H:i', strtotime($payment['created_at'])) : '-');
               $bankDisplay = htmlspecialchars($payment['bank_name'] ?? $payment['method'] ?? '-', ENT_QUOTES, 'UTF-8');
               $senderName  = htmlspecialchars($payment['account_name'] ?? '-', ENT_QUOTES, 'UTF-8');
               $txnRef      = trim((string)($payment['transaction_ref'] ?? ''));
               $slipPath    = trim((string)($payment['payment_slip_path'] ?? ''));
               $hasSlip     = $slipPath !== '' && preg_match('/\.(jpe?g|png|webp|pdf)$/i', $slipPath) === 1;
+              $isCustomerPayment = !empty($payment['booking_id']);
+              $transactionName = $isCustomerPayment
+                ? 'Customer deposit · ' . ($payment['booking_ref'] ?? ('Booking #' . (int)$payment['booking_id']))
+                : ($payment['shop_name'] ?? 'Supplier membership');
+              $transactionEmail = $isCustomerPayment
+                ? ($payment['customer_email'] ?? '-')
+                : ($payment['owner_email'] ?? '-');
             ?>
             <tr class="<?= $selectedPaymentId === $paymentId ? 'is-selected' : '' ?>">
               <td>
-                <div class="biz-name"><?= htmlspecialchars($payment['shop_name'] ?? 'Supplier', ENT_QUOTES, 'UTF-8') ?></div>
-                <div class="biz-email"><?= htmlspecialchars($payment['owner_email'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="biz-name">
+                  <?php if ($isCustomerPayment): ?>
+                    <a href="<?= URLROOT ?>/admin/bookingDetail/<?= (int)$payment['booking_id'] ?>" style="color:var(--primary);text-decoration:none">
+                      <?= htmlspecialchars($transactionName, ENT_QUOTES, 'UTF-8') ?>
+                    </a>
+                  <?php else: ?>
+                    <?= htmlspecialchars($transactionName, ENT_QUOTES, 'UTF-8') ?>
+                  <?php endif; ?>
+                </div>
+                <div class="biz-email"><?= htmlspecialchars($transactionEmail, ENT_QUOTES, 'UTF-8') ?></div>
               </td>
               <td><span class="amount"><?= number_format((float)($payment['amount'] ?? 0)) ?> MMK</span></td>
               <td><span class="method-text"><?= $bankDisplay ?></span></td>
@@ -295,14 +312,18 @@ $dashboardContent = function () use (
               <td><span class="date-text"><?= htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8') ?></span></td>
               <td>
                 <?php if ($paymentStatus === 'pending'): ?>
-                  <div class="payment-actions">
-                    <form method="POST" action="<?= URLROOT ?>/admin/approvePayment/<?= $paymentId ?>">
-                      <button type="submit" class="action-btn action-approve">Approve</button>
-                    </form>
-                    <form method="POST" action="<?= URLROOT ?>/admin/rejectPayment/<?= $paymentId ?>">
-                      <button type="submit" class="action-btn action-reject">Reject</button>
-                    </form>
-                  </div>
+                  <?php if ($isCustomerPayment): ?>
+                    <a class="btn-ghost" href="<?= URLROOT ?>/admin/paymentVerification?status=pending">Review deposit</a>
+                  <?php else: ?>
+                    <div class="payment-actions">
+                      <form method="POST" action="<?= URLROOT ?>/admin/approvePayment/<?= $paymentId ?>">
+                        <button type="submit" class="action-btn action-approve">Approve</button>
+                      </form>
+                      <form method="POST" action="<?= URLROOT ?>/admin/rejectPayment/<?= $paymentId ?>">
+                        <button type="submit" class="action-btn action-reject">Reject</button>
+                      </form>
+                    </div>
+                  <?php endif; ?>
                 <?php else: ?>
                   <span class="reviewed-by">Reviewed</span>
                 <?php endif; ?>
@@ -313,14 +334,16 @@ $dashboardContent = function () use (
       </table>
     </div>
 
-    <div class="pagination">
-      <span class="page-info">Showing <?= empty($payments) ? '0' : '1' ?>-<?= count($payments) ?> of <?= count($payments) ?> results</span>
-      <div class="page-btns">
-        <button class="page-btn" disabled><i data-lucide="chevron-left" class="h-3 w-3"></i></button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn" disabled><i data-lucide="chevron-right" class="h-3 w-3"></i></button>
-      </div>
-    </div>
+    <?php
+    if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
+        $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+        $baseParams = 'status=' . urlencode($status ?? 'pending');
+        if (!empty($selectedPaymentId)) {
+            $baseParams .= '&payment=' . (int)$selectedPaymentId;
+        }
+        require APPROOT . '/views/partials/_pagination.php';
+    }
+    ?>
   </div>
 </div>
 

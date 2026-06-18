@@ -5,6 +5,7 @@ $suppliers = $suppliers ?? [];
 $eventDetails = $eventDetails ?? [];
 $logs = $logs ?? [];
 $payments = $payments ?? [];
+$packageSchedules = $packageSchedules ?? [];
 $bookingRef = $bookingRef ?? '';
 $depositPercent = (float)($depositPercent ?? 10);
 
@@ -46,6 +47,43 @@ $isImageSlip = $slipPath !== '' && in_array($slipExt, ['jpg', 'jpeg', 'png', 'we
 $isAwaitingReview = in_array(($booking['status'] ?? ''), ['payment_submitted'], true) || $paymentStatus === 'pending';
 
 $firstEvent = $eventDetails[0] ?? [];
+$eventDetailsByItem = [];
+foreach ($eventDetails as $eventDetail) {
+    $bookingItemId = (int)($eventDetail['booking_item_id'] ?? 0);
+    if ($bookingItemId > 0) {
+        $eventDetailsByItem[$bookingItemId] = $eventDetail;
+    }
+}
+// Resolve add-on items through to parent package event detail
+foreach ($items as $item) {
+    $itemId = (int)($item['id'] ?? 0);
+    if (!isset($eventDetailsByItem[$itemId])) {
+        $parentId = (int)($item['package_booking_item_id'] ?? 0);
+        if ($parentId > 0 && isset($eventDetailsByItem[$parentId])) {
+            $eventDetailsByItem[$itemId] = $eventDetailsByItem[$parentId];
+        }
+    }
+}
+// Items that are NOT add-ons (standalone packages, standalone services)
+$nonAddonItemIds = [];
+foreach ($items as $item) {
+    $itemId = (int)($item['id'] ?? 0);
+    if (empty($item['package_booking_item_id'])) {
+        $nonAddonItemIds[] = $itemId;
+    }
+}
+$managedPackageEvents = [];
+foreach ($packageSchedules as $schedule) {
+    foreach ($schedule as $event) {
+        $managedPackageEvents[] = $event;
+    }
+}
+$managedStarts = array_filter(array_column($managedPackageEvents, 'start_time'));
+$managedEnds = array_filter(array_column($managedPackageEvents, 'end_time'));
+sort($managedStarts);
+rsort($managedEnds);
+$displayEventStart = $managedStarts[0] ?? ($firstEvent['start_time'] ?? null);
+$displayEventEnd = $managedEnds[0] ?? ($firstEvent['end_time'] ?? null);
 $statusLabel = ucwords(str_replace('_', ' ', (string)($booking['status'] ?? 'draft')));
 $custName = (string)($booking['customer_name'] ?? 'Customer');
 $custInitials = strtoupper(mb_substr(trim($custName) !== '' ? $custName : 'C', 0, 1));
@@ -106,6 +144,12 @@ $dashboardContent = function () use (
     $isImageSlip,
     $isAwaitingReview,
     $firstEvent,
+    $eventDetailsByItem,
+    $displayEventStart,
+    $displayEventEnd,
+    $eventDetails,
+    $packageSchedules,
+    $nonAddonItemIds,
     $statusLabel,
     $depositPercent,
     $custName,
@@ -228,7 +272,7 @@ $dashboardContent = function () use (
   <div class="summary-row">
     <div class="stat">
       <div class="stat-label">Status</div>
-      <div class="stat-value primary"><?= $h($statusLabel) ?></div>
+      <div class="stat-value primary" id="booking-status-value"><?= $h($statusLabel) ?></div>
       <div class="stat-sub">Current booking state</div>
     </div>
     <div class="stat">
@@ -238,12 +282,12 @@ $dashboardContent = function () use (
     </div>
     <div class="stat">
       <div class="stat-label">Paid</div>
-      <div class="stat-value success"><?= $money($paidAmount) ?></div>
-      <div class="stat-sub"><?= $paidPercent ?>% collected</div>
+      <div class="stat-value success" id="booking-paid-value"><?= $money($paidAmount) ?></div>
+      <div class="stat-sub" id="booking-paid-percent"><?= $paidPercent ?>% collected</div>
     </div>
     <div class="stat">
       <div class="stat-label">Balance</div>
-      <div class="stat-value <?= $balanceDue > 0 ? 'danger' : 'success' ?>"><?= $money($balanceDue) ?></div>
+      <div class="stat-value <?= $balanceDue > 0 ? 'danger' : 'success' ?>" id="booking-balance-value"><?= $money($balanceDue) ?></div>
       <div class="stat-sub">Remaining payment</div>
     </div>
   </div>
@@ -256,7 +300,7 @@ $dashboardContent = function () use (
             <div class="card-head-icon"><i data-lucide="receipt" class="h-4 w-4"></i></div>
             <span class="card-head-title">Deposit payment</span>
           </div>
-          <span class="badge <?= $badgeClass($paymentStatus) ?>"><?= $h(ucwords(str_replace('_', ' ', $paymentStatus))) ?></span>
+          <span class="badge <?= $badgeClass($paymentStatus) ?>" id="payment-status-badge"><?= $h(ucwords(str_replace('_', ' ', $paymentStatus))) ?></span>
         </div>
         <div class="card-body">
           <div class="kv-grid">
@@ -288,7 +332,7 @@ $dashboardContent = function () use (
               <div class="kv-value"><?= $h($reviewPayment['mobile_number'] ?? '-') ?></div>
             </div>
           </div>
-          <div class="progress"><span style="width:<?= min(100, max(0, $paidPercent)) ?>%"></span></div>
+          <div class="progress"><span id="payment-progress-bar" style="width:<?= min(100, max(0, $paidPercent)) ?>%"></span></div>
         </div>
       </div>
 
@@ -307,12 +351,13 @@ $dashboardContent = function () use (
                 <th>Service</th>
                 <th>Supplier</th>
                 <th>Schedule</th>
+                <th>Guests</th>
                 <th>Price</th>
               </tr>
             </thead>
             <tbody>
               <?php if (empty($items)): ?>
-                <tr><td colspan="4" class="empty-proof">No services found for this booking.</td></tr>
+                <tr><td colspan="5" class="empty-proof">No services found for this booking.</td></tr>
               <?php endif; ?>
               <?php foreach ($items as $item): ?>
                 <?php
@@ -320,10 +365,14 @@ $dashboardContent = function () use (
                   $venueName = trim((string)($item['venue_name'] ?? ''));
                   $date = $dateOnly($item['booking_date'] ?? null);
                   $time = trim($timeOnly($item['start_time'] ?? null) . ' - ' . $timeOnly($item['end_time'] ?? null), ' -');
+                  $itemEvent = $eventDetailsByItem[(int)($item['id'] ?? 0)] ?? [];
                 ?>
                 <tr>
                   <td>
-                    <div class="main-text"><?= $h($item['service_name'] ?? 'Service') ?></div>
+	                    <div class="main-text"><?= $h($item['service_name'] ?? 'Service') ?></div>
+	                    <?php if (!empty($item['addon_package_name'])): ?>
+	                      <div class="sub-text">Add-on for <?= $h($item['addon_package_name']) ?></div>
+	                    <?php endif; ?>
                     <?php if ($hallName !== '' || $venueName !== ''): ?>
                       <div class="sub-text"><?= $h(trim($hallName . ($venueName !== '' ? ' · ' . $venueName : ''))) ?></div>
                     <?php endif; ?>
@@ -333,6 +382,7 @@ $dashboardContent = function () use (
                     <div class="main-text"><?= $h($date) ?></div>
                     <div class="sub-text"><?= $h($time !== '' ? $time : '-') ?></div>
                   </td>
+                  <td><span class="main-text"><?= $h($itemEvent['guest_count'] ?? '-') ?></span></td>
                   <td><span class="amount"><?= $money($item['price'] ?? 0) ?></span></td>
                 </tr>
               <?php endforeach; ?>
@@ -349,13 +399,63 @@ $dashboardContent = function () use (
           </div>
         </div>
         <div class="card-body">
-          <div class="kv-grid">
-            <div class="kv"><div class="kv-label">Date</div><div class="kv-value"><?= $h($dateOnly($firstEvent['event_date'] ?? null)) ?></div></div>
-            <div class="kv"><div class="kv-label">Time</div><div class="kv-value"><?= $h($timeOnly($firstEvent['start_time'] ?? null)) ?> - <?= $h($timeOnly($firstEvent['end_time'] ?? null)) ?></div></div>
-            <div class="kv"><div class="kv-label">Guests</div><div class="kv-value"><?= $h($firstEvent['guest_count'] ?? '-') ?></div></div>
-            <div class="kv"><div class="kv-label">Location</div><div class="kv-value"><?= $h($firstEvent['location'] ?? '-') ?></div></div>
-            <div class="kv"><div class="kv-label">Contact</div><div class="kv-value"><?= $h($firstEvent['contact_name'] ?? ($booking['customer_name'] ?? '-')) ?></div><div class="kv-sub"><?= $h($firstEvent['contact_phone'] ?? ($booking['customer_phone'] ?? '-')) ?></div></div>
-          </div>
+          <?php
+            // Show event info only for standalone (non-addon) items.
+            $hasStandaloneEvent = false;
+            foreach ($items as $item):
+              $itemId = (int)($item['id'] ?? 0);
+              if (!in_array($itemId, $nonAddonItemIds, true)) continue;
+              $itemEvent = $eventDetailsByItem[$itemId] ?? [];
+              if (empty($itemEvent)) continue;
+              $hasStandaloneEvent = true;
+          ?>
+            <div class="main-text" style="margin-bottom:10px;"><?= $h($item['service_name'] ?? 'Service') ?></div>
+            <div class="kv-grid" style="margin-bottom:18px;">
+              <div class="kv"><div class="kv-label">Date</div><div class="kv-value"><?= $h($dateOnly($itemEvent['event_date'] ?? null)) ?></div></div>
+              <div class="kv"><div class="kv-label">Time</div><div class="kv-value"><?= $h($timeOnly($itemEvent['start_time'] ?? null)) ?> - <?= $h($timeOnly($itemEvent['end_time'] ?? null)) ?></div></div>
+              <div class="kv"><div class="kv-label">Guests</div><div class="kv-value"><?= $h($itemEvent['guest_count'] ?? '-') ?></div></div>
+              <div class="kv"><div class="kv-label">Location</div><div class="kv-value"><?= $h($itemEvent['location'] ?? '-') ?></div></div>
+              <div class="kv"><div class="kv-label">Contact</div><div class="kv-value"><?= $h($itemEvent['contact_name'] ?? ($booking['customer_name'] ?? '-')) ?></div><div class="kv-sub"><?= $h($itemEvent['contact_phone'] ?? ($booking['customer_phone'] ?? '-')) ?></div></div>
+            </div>
+          <?php endforeach; ?>
+          <?php if (!$hasStandaloneEvent): ?>
+            <div class="kv-grid">
+              <div class="kv"><div class="kv-label">Date</div><div class="kv-value"><?= $h($dateOnly($firstEvent['event_date'] ?? null)) ?></div></div>
+              <div class="kv"><div class="kv-label">Time</div><div class="kv-value"><?= $h($timeOnly($displayEventStart)) ?> - <?= $h($timeOnly($displayEventEnd)) ?></div></div>
+              <div class="kv"><div class="kv-label">Guests</div><div class="kv-value"><?= $h($firstEvent['guest_count'] ?? '-') ?></div></div>
+              <div class="kv"><div class="kv-label">Location</div><div class="kv-value"><?= $h($firstEvent['location'] ?? '-') ?></div></div>
+              <div class="kv"><div class="kv-label">Contact</div><div class="kv-value"><?= $h($firstEvent['contact_name'] ?? ($booking['customer_name'] ?? '-')) ?></div><div class="kv-sub"><?= $h($firstEvent['contact_phone'] ?? ($booking['customer_phone'] ?? '-')) ?></div></div>
+            </div>
+          <?php endif; ?>
+          <?php foreach ($items as $item): ?>
+            <?php
+              $schedule = $packageSchedules[(int)($item['id'] ?? 0)] ?? [];
+              if (empty($schedule)) continue;
+            ?>
+            <div style="margin-top:16px">
+              <div class="card-head-title"><?= $h($item['service_name'] ?? 'Package') ?> event timeline</div>
+              <div class="detail-table-wrap" style="margin-top:8px;border:1px solid var(--border-light);border-radius:.75rem">
+                <table class="detail-table">
+                  <thead>
+                    <tr><th>Package service</th><th>Supplier</th><th>Event date</th><th>Managed time</th></tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($schedule as $event): ?>
+                      <tr>
+                        <td>
+                          <div class="main-text"><?= $h($event['service_name'] ?? 'Service') ?></div>
+                          <div class="sub-text"><?= $h($event['category_name'] ?? 'Package service') ?></div>
+                        </td>
+                        <td><span class="main-text"><?= $h($event['supplier_name'] ?? 'Golden Promise') ?></span></td>
+                        <td><span class="main-text"><?= $h($dateOnly($event['event_date'] ?? null)) ?></span></td>
+                        <td><span class="main-text"><?= $h($timeOnly($event['start_time'] ?? null)) ?> - <?= $h($timeOnly($event['end_time'] ?? null)) ?></span></td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          <?php endforeach; ?>
         </div>
       </div>
     </main>
@@ -381,14 +481,15 @@ $dashboardContent = function () use (
             <div class="empty-proof">No payment proof file was saved for this booking.</div>
           <?php endif; ?>
 
-          <?php if ($isAwaitingReview): ?>
-            <form id="payment-review-form" class="review-form" data-booking-id="<?= $bookingId ?>">
+	          <?php if ($isAwaitingReview): ?>
+	            <form id="payment-review-form" class="review-form" data-booking-id="<?= $bookingId ?>">
               <textarea name="note" placeholder="Admin note (optional)"></textarea>
               <div class="review-actions">
                 <button class="action-btn action-reject reject-payment-btn" type="button">Reject</button>
               </div>
-            </form>
-          <?php endif; ?>
+	            </form>
+	          <?php endif; ?>
+	          <div id="payment-email-result" class="sub-text" style="margin-top:10px;"></div>
         </div>
       </div>
 
@@ -583,18 +684,78 @@ async function handlePaymentReview(form, approve) {
     formData.set('reason', reason);
   }
 
+  const actionButton = approve
+    ? document.querySelector('.verify-payment-btn')
+    : form.querySelector('.reject-payment-btn');
+  if (actionButton) {
+    actionButton.disabled = true;
+    actionButton.dataset.originalText = actionButton.textContent;
+    actionButton.textContent = approve ? 'Verifying...' : 'Rejecting...';
+  }
+
   try {
     const response = await fetch(endpoint, { method: 'POST', body: formData });
     const data = await response.json();
     if (data.success) {
-      showToast(data.message || 'Payment review saved.');
-      setTimeout(() => window.location.reload(), 1200);
+      showToast(data.message || 'Payment review saved.', data.email_sent === false ? 'error' : 'success');
+      if (approve) {
+        updateVerifiedPaymentState(data, form);
+      } else {
+        setTimeout(() => window.location.reload(), 900);
+      }
     } else {
       showToast(data.error || 'Could not update payment.', 'error');
+      if (actionButton) {
+        actionButton.disabled = false;
+        actionButton.textContent = actionButton.dataset.originalText || (approve ? 'Approve payment + notify' : 'Reject');
+      }
     }
   } catch (error) {
     showToast('Connection error. Please try again.', 'error');
+    if (actionButton) {
+      actionButton.disabled = false;
+      actionButton.textContent = actionButton.dataset.originalText || (approve ? 'Approve payment + notify' : 'Reject');
+    }
   }
+}
+
+function updateVerifiedPaymentState(data, form) {
+  const formatMoney = value => new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 0
+  }).format(Number(value || 0)) + ' MMK';
+  const statusLabel = String(data.booking_status || 'paid')
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+  const paid = Number(data.paid_amount || 0);
+  const total = Number(data.total_amount || 0);
+  const percent = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+  const balance = Math.max(0, total - paid);
+
+  const statusValue = document.getElementById('booking-status-value');
+  const paidValue = document.getElementById('booking-paid-value');
+  const paidPercent = document.getElementById('booking-paid-percent');
+  const balanceValue = document.getElementById('booking-balance-value');
+  const paymentBadge = document.getElementById('payment-status-badge');
+  const progressBar = document.getElementById('payment-progress-bar');
+  const emailResult = document.getElementById('payment-email-result');
+
+  if (statusValue) statusValue.textContent = statusLabel;
+  if (paidValue) paidValue.textContent = formatMoney(paid);
+  if (paidPercent) paidPercent.textContent = percent + '% collected';
+  if (balanceValue) balanceValue.textContent = formatMoney(balance);
+  if (progressBar) progressBar.style.width = percent + '%';
+  if (paymentBadge) {
+    paymentBadge.textContent = 'Success';
+    paymentBadge.className = 'badge badge-success';
+  }
+  if (emailResult) {
+    emailResult.textContent = data.email_sent
+      ? 'Verification email sent to ' + (data.email_to || 'the customer') + '.'
+      : 'Payment was verified, but the customer email could not be sent.';
+  }
+
+  document.querySelector('.verify-payment-btn')?.remove();
+  form.remove();
 }
 
 const cancelForm = document.getElementById('admin-cancel-form');

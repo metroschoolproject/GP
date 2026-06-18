@@ -562,10 +562,6 @@ public function register()
             return 'admin/dashboard';
         }
 
-        if (in_array('staff', $roles, true)) {
-            return 'admin/dashboard';
-        }
-
         if (in_array('supplier', $roles, true)) {
             $supplierProfileModel = $this->model('SupplierProfile');
             $supplier = $supplierProfileModel->getByUserId($userId);

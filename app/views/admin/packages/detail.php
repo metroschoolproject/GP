@@ -50,6 +50,9 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   $pkgCategorySlug = strtolower(trim((string)($package['category_slug'] ?? $pkgCategoryName)));
   $isVenuePackage  = str_contains($pkgCategorySlug, 'venue') || str_contains($pkgCategorySlug, 'hall');
 
+  $isDraft = (($package['status'] ?? '') === 'draft');
+  $isPublished = (($package['status'] ?? '') === 'published');
+
   $addableServices = array_filter($serviceOptions, function ($svc) use ($includedServiceIds) {
     $svcId = (int)($svc['id'] ?? 0);
     if ($svcId > 0 && isset($includedServiceIds[$svcId])) {
@@ -101,6 +104,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
 .badge-active{background:#d1fae5;color:#065f46}
 .badge-inactive{background:#fee2e2;color:#991b1b}
+.badge-draft{background:#fffbeb;color:#92400e}
 
 .edit-form input,.edit-form textarea,.edit-form select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .12s}
 .edit-form input:focus,.edit-form textarea:focus,.edit-form select:focus{border-color:var(--primary)}
@@ -235,9 +239,18 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     <div class="stat">
       <div class="stat-label">Status</div>
       <div class="stat-value" style="font-size:14px;padding-top:4px">
-        <span class="badge <?= !empty($package['is_active']) ? 'badge-active' : 'badge-inactive' ?>">
-          <?= !empty($package['is_active']) ? '● Active' : '● Inactive' ?>
-        </span>
+        <?php if ($isDraft): ?>
+          <span class="badge badge-draft">● Draft</span>
+          <?php if (!empty($package['replaces_package_id'])): ?>
+            <span style="font-size:11px;color:var(--muted)">Editing copy</span>
+          <?php endif; ?>
+        <?php elseif ($isPublished): ?>
+          <span class="badge <?= !empty($package['is_active']) ? 'badge-active' : 'badge-inactive' ?>">
+            <?= !empty($package['is_active']) ? '● Published' : '● Inactive' ?>
+          </span>
+        <?php else: ?>
+          <span class="badge badge-inactive">● <?= $h($package['status'] ?? 'Unknown') ?></span>
+        <?php endif; ?>
       </div>
       <div class="stat-sub"><?= $pkgCategoryName ?: 'No category set' ?></div>
     </div>
@@ -263,107 +276,224 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
   <!-- ── Basic information ─────────────────────────────────────────────── -->
   <div class="card">
-    <div class="card-title">Package Information</div>
-    <form class="edit-form" id="packageDetailForm" method="POST"
-          action="<?= URLROOT ?>/admin/packageUpdate/<?= (int)$package['package_id'] ?>"
-          enctype="multipart/form-data">
+    <div class="card-title">
+      Package Information
+      <?php if ($isDraft): ?>
+        <span class="badge badge-draft" style="margin-left:8px">Draft</span>
+      <?php endif; ?>
+    </div>
 
+    <?php if ($isPublished): ?>
+      <!-- Read-only published view -->
+      <div class="field">
+        <label>Name</label>
+        <div class="value"><?= $h($package['name'] ?? '') ?></div>
+      </div>
       <div class="two-col">
-        <div class="field">
-          <label>Name</label>
-          <input type="text" name="name" value="<?= $h($package['name'] ?? '') ?>" required>
-        </div>
         <div class="field">
           <label>Slug</label>
-          <input type="text" name="slug" value="<?= $h($package['slug'] ?? '') ?>">
-        </div>
-      </div>
-
-      <div class="two-col">
-        <div class="field">
-          <label>Tagline</label>
-          <input type="text" name="tagline" value="<?= $h($package['tagline'] ?? '') ?>">
+          <div class="value muted"><?= $h($package['slug'] ?? '') ?></div>
         </div>
         <div class="field">
           <label>Category</label>
-          <?php if (!empty($categories)): ?>
-            <select name="category_id">
-              <option value="">— No category —</option>
-              <?php foreach ($categories as $cat): ?>
-                <option value="<?= (int)$cat['id'] ?>"
-                  <?= ((int)$cat['id'] === $pkgCategoryId) ? 'selected' : '' ?>>
-                  <?= $h($cat['name']) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          <?php else: ?>
-            <input type="text" value="<?= $h($pkgCategoryName) ?>" readonly style="background:var(--soft);color:var(--muted)">
-            <input type="hidden" name="category_id" value="<?= $pkgCategoryId ?>">
-          <?php endif; ?>
+          <div class="value muted"><?= $h($pkgCategoryName ?: '—') ?></div>
         </div>
       </div>
-
       <div class="field">
-        <label>Base Price (MMK)</label>
-        <input type="number" name="base_price" id="packagePriceInput" min="0" step="100"
-               value="<?= (float)$packageBasePrice ?>" placeholder="<?= (float)$includedTotal ?>">
-        <div class="stat-sub" style="margin-top:4px">Customer-facing price = base + 5% agent fee, calculated automatically.</div>
+        <label>Tagline</label>
+        <div class="value muted"><?= $h($package['tagline'] ?? '—') ?></div>
       </div>
-
+      <div class="field">
+        <label>Base Price</label>
+        <div class="value"><?= $money($packageBasePrice) ?></div>
+        <div class="stat-sub" style="margin-top:4px"><?= $h($package['slug'] ?? '') ?>ml + 5% agent fee = <?= $money($packagePrice) ?></div>
+      </div>
       <div class="field">
         <label>Description</label>
-        <textarea name="description"><?= $h($package['description'] ?? '') ?></textarea>
+        <div class="value muted" style="white-space:pre-wrap"><?= $h($package['description'] ?: 'No description') ?></div>
       </div>
-
+      <?php if (!empty($package['image_url'])): ?>
       <div class="field">
-        <label>Package Image</label>
-        <?php if (!empty($package['image_url'])): ?>
-          <div style="margin-bottom:10px">
-            <img src="<?= $h($package['image_url']) ?>" alt="<?= $h($package['name'] ?? 'Package') ?>"
-                 style="width:160px;height:90px;object-fit:cover;border-radius:.75rem;border:1px solid var(--border)">
-          </div>
-        <?php endif; ?>
-        <input type="file" name="package_image" accept="image/jpeg,image/png,image/webp">
-        <div class="service-meta" style="margin-top:5px">JPG, PNG or WebP. Leave empty to keep existing image.</div>
+        <label>Image</label>
+        <img src="<?= $h($package['image_url']) ?>" alt="<?= $h($package['name'] ?? 'Package') ?>"
+             style="width:160px;height:90px;object-fit:cover;border-radius:.75rem;border:1px solid var(--border)">
       </div>
-
-      <div class="field">
-        <div class="toggle-wrap" style="justify-content:space-between">
-          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Active</label>
-          <button type="button"
-                  class="toggle <?= !empty($package['is_active']) ? 'on' : 'off' ?>"
-                  onclick="this.classList.toggle('on');this.classList.toggle('off');document.getElementById('is_active_hidden').value=this.classList.contains('on')?1:0">
+      <?php endif; ?>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <form method="POST" action="<?= URLROOT ?>/admin/packageStartEdit/<?= (int)$package['package_id'] ?>"
+              onsubmit="return confirm('Enter edit mode? A draft copy will be created. The live package stays visible to customers while you edit.')">
+          <button class="btn-primary" type="submit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Package
           </button>
-          <input type="hidden" name="is_active" id="is_active_hidden" value="<?= !empty($package['is_active']) ? 1 : 0 ?>">
-        </div>
+        </form>
       </div>
 
-      <div style="margin-top:16px">
-        <button class="btn-primary" id="packageSaveButton" type="submit" disabled>Save Changes</button>
-      </div>
-    </form>
-  </div>
+    <?php else: ?>
+      <!-- Draft / editable form -->
+      <form class="edit-form" id="packageDetailForm" method="POST"
+            action="<?= URLROOT ?>/admin/packageUpdate/<?= (int)$package['package_id'] ?>"
+            enctype="multipart/form-data">
+
+        <div class="two-col">
+          <div class="field">
+            <label>Name</label>
+            <input type="text" name="name" value="<?= $h($package['name'] ?? '') ?>" required>
+          </div>
+          <div class="field">
+            <label>Slug</label>
+            <input type="text" name="slug" value="<?= $h($package['slug'] ?? '') ?>">
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label>Tagline</label>
+            <input type="text" name="tagline" value="<?= $h($package['tagline'] ?? '') ?>">
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <?php if (!empty($categories)): ?>
+              <select name="category_id">
+                <option value="">— No category —</option>
+                <?php foreach ($categories as $cat): ?>
+                  <option value="<?= (int)$cat['id'] ?>"
+                    <?= ((int)$cat['id'] === $pkgCategoryId) ? 'selected' : '' ?>>
+                    <?= $h($cat['name']) ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            <?php else: ?>
+              <input type="text" value="<?= $h($pkgCategoryName) ?>" readonly style="background:var(--soft);color:var(--muted)">
+              <input type="hidden" name="category_id" value="<?= $pkgCategoryId ?>">
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Base Price (MMK)</label>
+          <input type="number" name="base_price" id="packagePriceInput" min="0" step="100"
+                 value="<?= (float)$packageBasePrice ?>" placeholder="<?= (float)$includedTotal ?>">
+          <div class="stat-sub" style="margin-top:4px">Customer-facing price = base + 5% agent fee, calculated automatically.</div>
+        </div>
+
+        <div class="field">
+          <label>Description</label>
+          <textarea name="description"><?= $h($package['description'] ?? '') ?></textarea>
+        </div>
+
+        <div class="field">
+          <label>Package Image</label>
+          <?php if (!empty($package['image_url'])): ?>
+            <div style="margin-bottom:10px">
+              <img src="<?= $h($package['image_url']) ?>" alt="<?= $h($package['name'] ?? 'Package') ?>"
+                   style="width:160px;height:90px;object-fit:cover;border-radius:.75rem;border:1px solid var(--border)">
+            </div>
+          <?php endif; ?>
+          <input type="file" name="package_image" accept="image/jpeg,image/png,image/webp">
+          <div class="service-meta" style="margin-top:5px">JPG, PNG or WebP. Leave empty to keep existing image.</div>
+        </div>
+
+        <div class="field">
+          <div class="toggle-wrap" style="justify-content:space-between">
+            <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Active</label>
+            <button type="button"
+                    class="toggle <?= !empty($package['is_active']) ? 'on' : 'off' ?>"
+                    onclick="this.classList.toggle('on');this.classList.toggle('off');document.getElementById('is_active_hidden').value=this.classList.contains('on')?1:0">
+            </button>
+            <input type="hidden" name="is_active" id="is_active_hidden" value="<?= !empty($package['is_active']) ? 1 : 0 ?>">
+          </div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn-primary" id="packageSaveButton" type="submit" disabled>Save Changes</button>
+        </div>
+      </form>
+    <?php endif; ?>
+  </div><!-- /card -->
 
   <!-- ── Included services ─────────────────────────────────────────────── -->
   <div class="card">
     <div class="card-title">Included Services</div>
 
     <?php if (empty($package['items'])): ?>
-      <div class="service-empty">No services added yet. Use the form below to add services to this package.</div>
-    <?php else: ?>
+      <div class="service-empty">No services added yet.<?= $isDraft ? ' Use the form below to add services to this package.' : '' ?></div>
+    <?php elseif ($isPublished): ?>
+      <!-- Read-only published services table -->
       <table class="service-table">
         <thead>
           <tr>
             <th>Service</th>
             <th>Supplier</th>
             <?php if ($hasVenueItems): ?><th>Hall</th><?php endif; ?>
-            <th>Guests / Type</th>
+            <th>Guests</th>
             <th>Package Price</th>
+            <th>Customize Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach (($package['items'] ?? []) as $item):
+            $isGuestPriced = ($item['quantity_type'] ?? '') === 'guests';
+            $itemPkgPrice = (float)($item['default_price'] ?? 0);
+            $itemCustPrice = (float)($item['customize_price'] ?? $itemPkgPrice);
+          ?>
+            <tr>
+              <td>
+                <div class="service-name"><?= $h($item['service_name'] ?? 'Service') ?></div>
+                <div class="service-meta">#<?= (int)($item['service_id'] ?? 0) ?></div>
+              </td>
+              <td><?= $h($item['default_supplier_name'] ?? '—') ?></td>
+              <?php if ($hasVenueItems): ?>
+              <td>
+                <?php if (!empty($item['hall_name'])): ?>
+                  <div class="service-name" style="font-size:12px"><?= $h($item['hall_name']) ?></div>
+                  <?php if (!empty($item['hall_capacity'])): ?>
+                    <div class="service-meta">Up to <?= (int)$item['hall_capacity'] ?> guests</div>
+                  <?php endif; ?>
+                <?php else: ?>
+                  <span class="service-meta">—</span>
+                <?php endif; ?>
+              </td>
+              <?php endif; ?>
+              <td><?= $h($isGuestPriced ? max(1, (int)($item['quantity'] ?? 1)) . ' guests' : '—') ?></td>
+              <td>
+                <strong><?= $money($itemPkgPrice) ?></strong>
+                <?php if ($isGuestPriced): ?>
+                  <div class="service-meta"><?= $money($itemPkgPrice / max(1, (int)($item['quantity'] ?? 1))) ?> per guest</div>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if ($itemCustPrice > $itemPkgPrice): ?>
+                  <strong><?= $money($itemCustPrice) ?></strong>
+                <?php else: ?>
+                  <span class="service-meta">Same as package</span>
+                <?php endif; ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+
+    <?php else: ?>
+      <!-- Draft / editable services table -->
+      <table class="service-table">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Supplier</th>
+            <?php if ($hasVenueItems): ?><th>Hall</th><?php endif; ?>
+            <th>Guests</th>
+            <th>Package Price</th>
+            <th>Customize Price</th>
             <th style="text-align:right">Action</th>
           </tr>
         </thead>
         <tbody>
-          <?php foreach (($package['items'] ?? []) as $item): ?>
+          <?php foreach (($package['items'] ?? []) as $item):
+            $isGuestPriced = ($item['quantity_type'] ?? '') === 'guests';
+            $itemPkgPrice = (float)($item['default_price'] ?? 0);
+            $itemCustPrice = (float)($item['customize_price'] ?? $itemPkgPrice);
+          ?>
             <tr>
               <td>
                 <div class="service-name"><?= $h($item['service_name'] ?? 'Service') ?></div>
@@ -398,22 +528,28 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
                 <?php endif; ?>
               </td>
               <?php endif; ?>
+            <td>
+                <form class="guest-form" method="POST"
+                      action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>">
+                  <input class="guest-input" type="number" name="quantity" min="1" step="1"
+                         value="<?= max(1, (int)($item['quantity'] ?? 1)) ?>">
+                  <button class="btn-ghost btn-sm" type="submit">Update</button>
+                </form>
+              </td>
               <td>
-                <?php if (($item['quantity_type'] ?? 'fixed') === 'guests'): ?>
-                  <form class="guest-form" method="POST"
-                        action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>">
-                    <input class="guest-input" type="number" name="quantity" min="1" step="1"
-                           value="<?= max(1, (int)($item['quantity'] ?? 1)) ?>">
-                    <button class="btn-ghost btn-sm" type="submit">Update</button>
-                  </form>
-                <?php else: ?>
-                  <span class="service-meta">Fixed</span>
+                <strong><?= $money($itemPkgPrice) ?></strong>
+                <?php if ($isGuestPriced): ?>
+                  <div class="service-meta"><?= $money($itemPkgPrice / max(1, (int)($item['quantity'] ?? 1))) ?> per guest</div>
                 <?php endif; ?>
               </td>
               <td>
-                <strong><?= $money($item['default_price'] ?? 0) ?></strong>
-                <?php if (($item['quantity_type'] ?? 'fixed') === 'guests'): ?>
-                  <div class="service-meta"><?= $money($item['unit_price'] ?? 0) ?> per guest</div>
+                <?php if ($itemCustPrice > $itemPkgPrice): ?>
+                  <strong><?= $money($itemCustPrice) ?></strong>
+                  <?php if ($isGuestPriced): ?>
+                    <div class="service-meta"><?= $money($itemCustPrice / max(1, (int)($item['quantity'] ?? 1))) ?> per guest</div>
+                  <?php endif; ?>
+                <?php else: ?>
+                  <span class="service-meta">Same as package</span>
                 <?php endif; ?>
               </td>
               <td style="text-align:right">
@@ -430,8 +566,26 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       </table>
     <?php endif; ?>
 
+    <!-- ── Draft action buttons ──────────────────────────────────── -->
+    <?php if ($isDraft): ?>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <form method="POST" action="<?= URLROOT ?>/admin/packagePublishDraft/<?= (int)$package['package_id'] ?>"
+              onsubmit="return confirm('Publish this draft? It will replace the currently published version.')">
+          <button class="btn-primary" type="submit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Publish
+          </button>
+        </form>
+        <form method="POST" action="<?= URLROOT ?>/admin/packageDiscardDraft/<?= (int)$package['package_id'] ?>"
+              onsubmit="return confirm('Discard this draft? All unsaved changes will be lost.')">
+          <button class="btn-ghost btn-danger" type="submit">Discard Draft</button>
+        </form>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border-light);margin:20px 0">
+    <?php endif; ?>
+
     <!-- ── Add-service panel ──────────────────────────────────────────── -->
-    <?php if (!empty($addableServices)): ?>
+    <?php if ($isDraft && !empty($addableServices)): ?>
     <div class="add-svc-panel">
       <div class="add-svc-panel-title">Add a Service</div>
 
@@ -511,11 +665,11 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
           </div>
         </div><!-- /hallPicker -->
 
-        <!-- ── Step 2 for food/catering: guest count ──────────────────── -->
+        <!-- ── Step 2 for all services: guest count ──────────────────── -->
         <div id="guestCountRow" class="guest-count-row" style="display:none">
           <label for="guestCountInput">Guest count</label>
           <input id="guestCountInput" type="number" name="guest_count" min="1" step="1" value="100">
-          <span class="guest-count-note">Used to calculate total catering price.</span>
+          <span class="guest-count-note">Adjust quantity to control package quality and pricing. Higher guest counts increase the total.</span>
         </div>
         <input type="hidden" name="guest_count" id="guestCountHidden" value="100">
 
@@ -530,7 +684,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
       </form>
     </div>
-    <?php endif; ?><!-- /addableServices check -->
+    <?php endif; ?><!-- /addableServices + isDraft check -->
 
   </div><!-- /card -->
 
@@ -703,7 +857,6 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
     const roomCount = parseInt(opt.dataset.roomCount || '0', 10);
     const hasRooms = hasVal && roomCount > 0;
-    const isFood = hasVal && opt.dataset.food === '1';
 
     /* venue services: show hall picker when the selected service has halls */
     if (hallPicker) {
@@ -716,13 +869,13 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       }
     }
 
-    /* food/catering services: show guest count */
+    /* show guest count for all services (controls package quality/price) */
     if (guestCountRow) {
-      guestCountRow.style.display = hasVal && isFood ? 'flex' : 'none';
+      guestCountRow.style.display = hasVal ? 'flex' : 'none';
       if (guestCountInput && guestCountHidden) {
-        guestCountInput.name = isFood ? 'guest_count' : '';
-        guestCountHidden.name = isFood ? '' : 'guest_count';
-        guestCountHidden.value = isFood ? '' : '1';
+        guestCountInput.name = 'guest_count';
+        guestCountHidden.name = '';
+        guestCountHidden.value = '';
       }
     }
 

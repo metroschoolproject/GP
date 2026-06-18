@@ -1,62 +1,193 @@
-<?php
-$adminCardClass = 'rounded-card border border-app-border bg-app-input shadow-sm transition-shadow hover:shadow-card';
-$adminDarkCardClass = 'relative overflow-hidden rounded-card bg-app-text shadow-xl';
-$adminIconWrapClass = 'flex items-center justify-center rounded-lg shrink-0';
-$adminStatLabelClass = 'text-[10px] font-semibold uppercase tracking-widest text-app-muted';
-$adminSectionTitleClass = 'font-bold tracking-tight text-app-text';
-$adminQueueItemClass = 'flex items-center justify-between rounded-xl border border-transparent bg-app-soft px-3 py-2.5 transition-all hover:border-app-border hover:bg-app-surface';
-$adminBadgeBaseClass = 'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide';
-$adminBadgeSuccessClass = $adminBadgeBaseClass . ' bg-app-soft text-app-success';
-$adminBadgeWarningClass = $adminBadgeBaseClass . ' bg-app-surface text-app-warning';
-$adminBadgeAccentClass = $adminBadgeBaseClass . ' border border-app-panel-border bg-app-danger-soft text-app-primary';
-$adminBadgeMutedClass = $adminBadgeBaseClass . ' border border-app-border bg-app-soft text-app-secondary';
-$adminBadgeProcessingClass = $adminBadgeBaseClass . ' bg-app-ring text-app-accent';
-$adminControlClass = 'flex h-8 items-center gap-1.5 rounded-xl border border-app-border bg-app-input px-3 text-xs font-semibold text-app-primary shadow-sm focus:outline-none focus:ring-2 focus:ring-app-ring';
-$adminDropdownClass = 'invisible absolute right-0 top-[calc(100%+6px)] z-30 w-36 rounded-xl border border-app-border bg-app-input p-1.5 opacity-0 shadow-lg transition-all duration-150';
-$adminDropdownItemClass = 'flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-app-primary transition hover:bg-app-soft hover:text-app-accent';
-$adminDropdownItemActiveClass = 'flex w-full items-center rounded-lg bg-app-soft px-3 py-1.5 text-left text-xs font-semibold text-app-accent transition hover:bg-app-surface';
-$adminTableHeadClass = 'px-5 py-2.5 text-left text-[10px] font-semibold uppercase tracking-widest text-app-muted';
-$adminWideTableHeadClass = 'px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-app-muted';
-$adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time();
-?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Wedding Admin Dashboard | Premium</title>
-    <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $adminCssVersion ?>">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --dashboard-bg:             #FBFBF9;
+            --dashboard-border:         #e7e5e4;
+            --dashboard-text:           #1c1917;
+            --accent-color:             #673049;
+            --dashboard-primary-soft:   #fcefe8;
+            --dashboard-radius-control: 1rem;
+            --dashboard-shadow-sm:      0 1px 2px rgba(28, 25, 23, 0.05);
+            --dashboard-font:           'Inter', sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: var(--dashboard-font);
+            font-size: 13px;
+            background-color: var(--dashboard-bg);
+            color: var(--dashboard-text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        main { position: relative; }
+
+        /* ── Cards ── */
+        .card {
+            background: #ffffff;
+            border: 1px solid var(--dashboard-border);
+            border-radius: 1.2rem;
+            box-shadow: var(--dashboard-shadow-sm);
+            transition: box-shadow 0.18s ease;
+        }
+        .card:hover { box-shadow: 0 4px 12px rgba(28,25,23,0.08); }
+
+        /* ── Typography ── */
+        .section-title { font-weight: 700; letter-spacing: -0.01em; }
+
+        .stat-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #a8a29e;
+        }
+
+        /* ── Queue / list item ── */
+        .queue-item {
+            background: #f5f5f3;
+            border-radius: 0.75rem;
+            padding: 0.55rem 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid transparent;
+            transition: all 0.12s ease;
+        }
+        .queue-item:hover {
+            background: #eeece9;
+            border-color: var(--dashboard-border);
+        }
+
+        /* ── Progress bar ── */
+        .progress-track {
+            height: 6px;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.10);
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 9999px;
+            background: #818cf8;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* ── Tables ── */
+        tbody tr { transition: background 0.1s ease; }
+        tbody tr:hover { background: #f5f5f3; }
+
+        thead th {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #a8a29e;
+        }
+
+        /* ── Badge pill ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.15rem 0.55rem;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .badge-emerald   { background: #d1fae5; color: #065f46; }
+        .badge-amber     { background: #fef3c7; color: #92400e; }
+        .badge-accent    { background: #fde8ef; color: #673049; border: 1px solid #f9c0d2; }
+        .badge-muted     { background: #f3f4f6; color: #57534e; border: 1px solid #d1d5db; }
+        .badge-processing{ background: #dbeafe; color: #1e40af; }
+        .badge-sky       { background: #e0f2fe; color: #0369a1; }
+
+        /* ── Icon wrap ── */
+        .icon-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        /* ── Select control ── */
+        .filter-select {
+            appearance: none;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-family: var(--dashboard-font);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        /* ── Package cards ── */
         .pkg-card {
+            background: #ffffff;
+            border-radius: 1.2rem;
+            border: 1px solid var(--dashboard-border);
+            overflow: hidden;
+            box-shadow: var(--dashboard-shadow-sm);
             transition: box-shadow 0.28s ease, transform 0.28s ease;
+            position: relative;
         }
         .pkg-card:hover {
+            box-shadow: 0 12px 32px rgba(28,25,23,0.16);
             transform: translateY(-3px);
         }
         .pkg-card img {
+            display: block;
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
             transition: transform 0.5s ease;
         }
         .pkg-card:hover img { transform: scale(1.07); }
 
+        /* Slide-up overlay on hover */
         .pkg-card .pkg-overlay {
             position: absolute;
             bottom: 0; left: 0; right: 0;
             background: linear-gradient(to top, rgba(28,25,23,0.88) 0%, rgba(28,25,23,0.0) 100%);
+            padding: 2rem 1rem 1rem;
             transform: translateY(100%);
             transition: transform 0.35s cubic-bezier(0.34, 1.20, 0.64, 1);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
         }
         .pkg-card:hover .pkg-overlay { transform: translateY(0); }
 
+        /* Caption + rating always visible */
         .pkg-card .pkg-caption {
             position: absolute;
             bottom: 0; left: 0; right: 0;
+            padding: 0.625rem 0.875rem;
             background: linear-gradient(to top, rgba(28,25,23,0.60) 0%, transparent 100%);
             pointer-events: none;
         }
         .pkg-card:hover .pkg-caption { opacity: 0; transition: opacity 0.18s ease; }
 
+        /* ── Divider ── */
+        .divider { border: none; border-top: 1px solid var(--dashboard-border); }
+
+        /* ── Staggered fade-up ── */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(8px); }
             to   { opacity: 1; transform: translateY(0); }
@@ -66,129 +197,143 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
         /* ── Scrollbar ── */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #c8b1a1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+
+        /* ── Filter tab ── */
+        .filter-tab-btn {
+            padding: 0.3rem 0.875rem;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid var(--dashboard-border);
+            background: #f5f5f3;
+            color: #57534e;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .filter-tab-btn:hover { background: #fde8ef; color: var(--accent-color); }
+        .filter-tab-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
+
+        /* ── Dropdown menu ── */
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            z-index: 30;
+            width: 9rem;
+            background: #ffffff;
+            border: 1px solid var(--dashboard-border);
+            border-radius: 0.75rem;
+            padding: 0.375rem;
+            box-shadow: 0 8px 24px rgba(28,25,23,0.10);
+        }
+        .dropdown-item {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            border-radius: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent-color);
+            transition: background 0.1s;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+        .dropdown-item:hover { background: #fde8ef; color: #9b1c4a; }
+        .dropdown-item.active { background: #fde8ef; font-weight: 600; color: #9b1c4a; }
     </style>
 </head>
-<body class="bg-app-content font-ui text-[13px] text-app-text antialiased">
+<body class="antialiased">
     <main class="mx-auto max-w-[1600px] px-5 py-6">
         <div class="mb-4 flex flex-wrap justify-end gap-2">
-            <label class="<?= $adminControlClass ?>">
-                <i data-lucide="calendar-days" class="h-3 w-3 text-app-muted"></i>
-                <input id="eventDateFilter" type="date" class="bg-transparent text-xs font-semibold text-app-primary focus:outline-none">
+            <label class="flex h-8 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold shadow-sm"
+                style="color:var(--accent-color)">
+                <i data-lucide="calendar-days" class="h-3 w-3" style="color:#a8a29e"></i>
+                <input id="eventDateFilter" type="date" class="bg-transparent text-xs font-semibold focus:outline-none"
+                    style="color:var(--accent-color)">
             </label>
             <div class="relative">
                 <button id="eventFilterBtn" type="button" aria-expanded="false"
-                    class="<?= $adminControlClass ?>">
-                    <i data-lucide="calendar" class="h-3 w-3 text-app-muted"></i>
+                    class="flex h-8 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold shadow-sm focus:outline-none"
+                    style="color:var(--accent-color)">
+                    <i data-lucide="calendar" class="h-3 w-3" style="color:#a8a29e"></i>
                     <span id="eventFilterLabel">This week</span>
-                    <i data-lucide="chevron-down" class="h-3 w-3 text-app-muted transition-transform" id="eventFilterChevron"></i>
+                    <i data-lucide="chevron-down" class="h-3 w-3 transition-transform" id="eventFilterChevron" style="color:#a8a29e"></i>
                 </button>
-                <div id="eventFilterMenu" class="<?= $adminDropdownClass ?>">
-                    <button type="button" data-event-filter="today"  class="<?= $adminDropdownItemClass ?>">Today</button>
-                    <button type="button" data-event-filter="week"   class="<?= $adminDropdownItemActiveClass ?>">This week</button>
-                    <button type="button" data-event-filter="month"  class="<?= $adminDropdownItemClass ?>">This month</button>
-                    <button type="button" data-event-filter="year"   class="<?= $adminDropdownItemClass ?>">This year</button>
+                <div id="eventFilterMenu" class="invisible dropdown-menu opacity-0 transition-all duration-150">
+                    <button type="button" data-event-filter="today"  class="dropdown-item">Today</button>
+                    <button type="button" data-event-filter="week"   class="dropdown-item active">This week</button>
+                    <button type="button" data-event-filter="month"  class="dropdown-item">This month</button>
+                    <button type="button" data-event-filter="year"   class="dropdown-item">This year</button>
                 </div>
             </div>
         </div>
 
         <!-- ── ROW 1: KPI cards ── -->
-        <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
-
-            <!-- Escrow Wallet -->
-            <div class="<?= $adminDarkCardClass ?> p-5 text-app-white animate-up">
-                <div class="relative z-10">
-                    <div class="mb-4 flex items-center gap-2.5">
-                        <div class="<?= $adminIconWrapClass ?> h-8 w-8 bg-app-input/10">
-                            <i data-lucide="wallet" class="h-4 w-4 text-app-muted"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-app-white">Escrow Wallet</p>
-                            <p class="mt-0.5 text-[11px] text-app-muted">Protected wedding payments</p>
-                        </div>
-                    </div>
-                    <div class="mt-4 grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="<?= $adminStatLabelClass ?>">Total</p>
-                            <p id="escrowTotal" class="mt-1 text-xl font-bold tracking-tight">$38,482</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="<?= $adminStatLabelClass ?>">Pending</p>
-                            <p id="escrowPending" class="mt-1 text-xl font-bold tracking-tight text-app-muted">$13,260</p>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <div class="mb-1.5 flex justify-between text-[10px] font-semibold uppercase tracking-widest text-app-muted">
-                            <span><span id="escrowAvailable">$25,222</span> available</span>
-                            <span id="escrowProgressPercent">0%</span>
-                        </div>
-                        <div class="h-1.5 overflow-hidden rounded-full bg-app-input/10">
-                            <div id="escrowProgressFill" class="h-full w-0 rounded-full bg-app-accent transition-all duration-700"></div>
-                        </div>
-                    </div>
-                </div>
-                <i data-lucide="sparkles" class="absolute -right-6 -top-6 h-28 w-28 rotate-12 text-app-white/5"></i>
-            </div>
+        <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
 
             <!-- Total Revenue -->
-            <div class="<?= $adminCardClass ?> p-5 animate-up">
-                <div class="<?= $adminIconWrapClass ?> mb-3 h-8 w-8 bg-app-danger-soft">
-                    <i data-lucide="badge-dollar-sign" class="h-4 w-4 text-app-danger"></i>
+            <div class="card p-5 animate-up" style="animation-delay:0.07s">
+                <div class="icon-wrap mb-3 h-8 w-8" style="background:#fff1f2">
+                    <i data-lucide="badge-dollar-sign" class="h-4 w-4" style="color:#be123c"></i>
                 </div>
-                <p class="<?= $adminStatLabelClass ?>">Total Revenue</p>
-                <h2 id="totalRevenue" class="<?= $adminSectionTitleClass ?> mt-1.5 text-2xl">$63,400</h2>
-                <hr class="mb-3 mt-4 border-app-panel-border">
-                <p class="<?= $adminStatLabelClass ?>">Avg Customer Spend</p>
-                <p id="avgSpend" class="mt-1 text-base font-bold text-app-text">$200</p>
+                <p class="stat-label">Total Revenue</p>
+                <h2 id="totalRevenue" class="section-title mt-1.5 text-2xl tracking-tight" style="color:#1c1917">$63,400</h2>
+                <hr class="divider mt-4 mb-3">
+                <p class="stat-label">Avg Customer Spend</p>
+                <p id="avgSpend" class="mt-1 text-base font-bold" style="color:#1c1917">$200</p>
             </div>
 
             <!-- Total Bookings -->
-            <div class="<?= $adminCardClass ?> p-5 animate-up">
-                <div class="<?= $adminIconWrapClass ?> mb-3 h-8 w-8 bg-app-soft">
-                    <i data-lucide="calendar-check" class="h-4 w-4 text-app-accent"></i>
+            <div class="card p-5 animate-up" style="animation-delay:0.14s">
+                <div class="icon-wrap mb-3 h-8 w-8" style="background:#f0f9ff">
+                    <i data-lucide="calendar-check" class="h-4 w-4" style="color:#0284c7"></i>
                 </div>
-                <p class="<?= $adminStatLabelClass ?>">Total Bookings</p>
-                <h2 id="totalBookings" class="<?= $adminSectionTitleClass ?> mt-1.5 text-2xl">317</h2>
-                <hr class="mb-3 mt-4 border-app-panel-border">
+                <p class="stat-label">Total Bookings</p>
+                <h2 id="totalBookings" class="section-title mt-1.5 text-2xl tracking-tight" style="color:#1c1917">317</h2>
+                <hr class="divider mt-4 mb-3">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <p class="<?= $adminStatLabelClass ?>">Confirmed</p>
-                        <p id="confirmedBookings" class="mt-1 text-lg font-bold text-app-success">217</p>
+                        <p class="stat-label">Confirmed</p>
+                        <p id="confirmedBookings" class="mt-1 text-lg font-bold" style="color:#12bb8b">217</p>
                     </div>
                     <div>
-                        <p class="<?= $adminStatLabelClass ?>">Cancelled</p>
-                        <p id="cancelledBookings" class="mt-1 text-lg font-bold text-app-danger">33</p>
+                        <p class="stat-label">Cancelled</p>
+                        <p id="cancelledBookings" class="mt-1 text-lg font-bold" style="color:#e93e3e">33</p>
                     </div>
                 </div>
             </div>
 
             <!-- Operations Queue -->
-            <div class="<?= $adminCardClass ?> p-5 animate-up">
-                <h3 class="mb-4 flex items-center gap-2 text-[13px] font-bold text-app-text">
-                    <i data-lucide="list-checks" class="h-4 w-4 text-app-primary"></i>
+            <div class="card p-5 animate-up" style="animation-delay:0.21s">
+                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#1c1917">
+                    <i data-lucide="list-checks" class="h-4 w-4" style="color:#673049"></i>
                     Operations Queue
                 </h3>
                 <div class="space-y-2">
-                    <div class="<?= $adminQueueItemClass ?>">
+                    <div class="queue-item">
                         <div>
-                            <p class="text-[11px] font-semibold text-app-text">Booking Confirmations</p>
-                            <p class="<?= $adminStatLabelClass ?> mt-0.5">Pending review</p>
+                            <p style="font-size:11px;font-weight:600;color:#1c1917">Booking Confirmations</p>
+                            <p class="stat-label" style="margin-top:1px">Pending review</p>
                         </div>
-                        <span id="pendingBookingConfirm" class="<?= $adminBadgeWarningClass ?>">--</span>
+                        <span id="pendingBookingConfirm" class="badge badge-amber">--</span>
                     </div>
-                    <div class="<?= $adminQueueItemClass ?>">
+                    <div class="queue-item">
                         <div>
-                            <p class="text-[11px] font-semibold text-app-text">Payments</p>
-                            <p class="<?= $adminStatLabelClass ?> mt-0.5">Awaiting release</p>
+                            <p style="font-size:11px;font-weight:600;color:#1c1917">Payments</p>
+                            <p class="stat-label" style="margin-top:1px">Awaiting release</p>
                         </div>
-                        <span id="pendingPayments" class="<?= $adminBadgeProcessingClass ?>">--</span>
+                        <span id="pendingPayments" class="badge badge-processing">--</span>
                     </div>
-                    <div class="<?= $adminQueueItemClass ?>">
+                    <div class="queue-item">
                         <div>
-                            <p class="text-[11px] font-semibold text-app-text">Vendor Approvals</p>
-                            <p class="<?= $adminStatLabelClass ?> mt-0.5">Needs action</p>
+                            <p style="font-size:11px;font-weight:600;color:#1c1917">Vendor Approvals</p>
+                            <p class="stat-label" style="margin-top:1px">Needs action</p>
                         </div>
-                        <span id="pendingVendorApproval" class="<?= $adminBadgeAccentClass ?>">--</span>
+                        <span id="pendingVendorApproval" class="badge badge-accent">--</span>
                     </div>
                 </div>
             </div>
@@ -198,140 +343,119 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
         <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-12">
 
             <!-- Revenue Trend -->
-            <div class="<?= $adminCardClass ?> p-5 lg:col-span-8 animate-up">
+            <div class="card p-5 lg:col-span-8 animate-up" style="animation-delay:0.28s">
                 <div class="mb-4 flex items-center justify-between">
                     <div>
-                        <h2 class="<?= $adminSectionTitleClass ?> text-[13px]">Revenue Trend</h2>
-                        <p class="mt-0.5 text-[11px] text-app-muted">Performance across selected packages</p>
+                        <h2 class="section-title" style="font-size:13px;color:#1c1917">Revenue Trend</h2>
+                        <p class="mt-0.5" style="font-size:11px;color:#a8a29e">Performance across selected packages</p>
                     </div>
-                    <span class="inline-flex items-center gap-1 rounded-full border border-app-panel-border bg-app-danger-soft px-2.5 py-1 text-[10px] font-bold text-app-danger">
+                    <span class="inline-flex items-center gap-1 rounded-full border border-rose-100 bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-500">
                         <span id="peakPeriodLabel">PEAK DAY:</span> <span id="peakMonthTag" class="ml-1">--</span>
                     </span>
                 </div>
-                <div class="h-[260px]">
+                <div style="height:260px">
                     <canvas id="revenueChartCanvas"></canvas>
                 </div>
             </div>
 
             <!-- Supplier Categories -->
-            <div class="<?= $adminCardClass ?> p-5 lg:col-span-4 animate-up">
-                <h2 class="<?= $adminSectionTitleClass ?> text-[13px]">Supplier Categories</h2>
-                <p class="mb-7 mt-0.5 text-[11px] text-app-muted">Current market distribution</p>
-                <div class="mt-5 h-[320px]">
+            <div class="card p-5 lg:col-span-4 animate-up" style="animation-delay:0.35s">
+                <h2 class="section-title" style="font-size:13px;color:#1c1917">Supplier Categories</h2>
+                <p class="mt-0.5 mb-4" style="font-size:11px;color:#a8a29e; margin-bottom: 30px;">Current market distribution</p>
+                <div style="height:320px; margin-top:20px;">
                     <canvas id="supplierPieCanvas"></canvas>
                 </div>
             </div>
         </section>
 
-        <!-- ── ROW 3: Partners / Staff / Vendor / Community ── -->
-        <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-6">
+        <!-- ── ROW 3: Partners / Vendor / Community ── -->
+        <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
 
             <!-- Top Partners -->
-            <div class="<?= $adminCardClass ?> p-5 lg:col-span-2 animate-up">
-                <h3 class="mb-4 flex items-center gap-2 text-[13px] font-bold text-app-text">
-                    <i data-lucide="award" class="h-4 w-4 text-app-warning"></i> Top Partners
+            <div class="card p-5 lg:col-span-2 animate-up" style="animation-delay:0.42s">
+                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#1c1917">
+                    <i data-lucide="award" class="h-4 w-4" style="color:#b45309"></i> Top Partners
                 </h3>
                 <div id="topSuppliersList" class="space-y-2"></div>
             </div>
 
-            <!-- Staff Performance -->
-            <div class="<?= $adminCardClass ?> overflow-hidden lg:col-span-2 animate-up">
-                <div class="p-5 pb-3">
-                    <h3 class="flex items-center gap-2 text-[13px] font-bold text-app-text">
-                        <i data-lucide="user-round-check" class="h-4 w-4 text-app-secondary"></i> Staff Performance
-                    </h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left">
-                        <thead class="border-y border-app-panel-border bg-app-soft">
-                            <tr>
-                                <th class="<?= $adminTableHeadClass ?>">Member</th>
-                                <th class="<?= $adminTableHeadClass ?>">Bookings</th>
-                                <th class="<?= $adminTableHeadClass ?>">Success</th>
-                            </tr>
-                        </thead>
-                        <tbody id="staffTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
             <!-- Vendor Status -->
-            <div class="<?= $adminCardClass ?> p-5 animate-up">
-                <h3 class="mb-4 flex items-center gap-2 text-[13px] font-bold text-app-text">
-                    <i data-lucide="store" class="h-4 w-4 text-app-success"></i> Vendor Status
+            <div class="card p-5 animate-up" style="animation-delay:0.56s">
+                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#1c1917">
+                    <i data-lucide="store" class="h-4 w-4" style="color:#12bb8b"></i> Vendor Status
                 </h3>
                 <div class="space-y-2.5">
-                    <div class="flex items-center justify-between py-1 text-xs">
-                        <span class="text-app-secondary">Approved</span>
-                        <span id="vendorApproved" class="font-bold text-app-success">--</span>
+                    <div class="flex items-center justify-between py-1" style="font-size:12px">
+                        <span style="color:#57534e">Approved</span>
+                        <span id="vendorApproved" class="font-bold" style="color:#12bb8b">--</span>
                     </div>
-                    <div class="flex items-center justify-between py-1 text-xs">
-                        <span class="text-app-secondary">Pending Approval</span>
-                        <span id="vendorPending" class="font-bold text-app-warning">--</span>
+                    <div class="flex items-center justify-between py-1" style="font-size:12px">
+                        <span style="color:#57534e">Pending Approval</span>
+                        <span id="vendorPending" class="font-bold" style="color:#d4be50">--</span>
                     </div>
-                    <div class="flex items-center justify-between py-1 text-xs">
-                        <span class="text-app-secondary">Rejected</span>
-                        <span id="vendorRejected" class="font-bold text-app-danger">--</span>
+                    <div class="flex items-center justify-between py-1" style="font-size:12px">
+                        <span style="color:#57534e">Rejected</span>
+                        <span id="vendorRejected" class="font-bold" style="color:#e23535">--</span>
                     </div>
                 </div>
-                <hr class="my-4 border-app-panel-border">
-                <div class="<?= $adminQueueItemClass ?>">
-                    <span class="text-xs font-medium italic text-app-secondary">Actions Needed</span>
-                    <span id="pendingVendorApproval2" class="<?= $adminBadgeAccentClass ?>">--</span>
+                <hr class="divider my-4">
+                <div class="queue-item">
+                    <span class="font-medium italic" style="font-size:12px;color:#57534e">Actions Needed</span>
+                    <span id="pendingVendorApproval2" class="badge badge-accent">--</span>
                 </div>
             </div>
 
             <!-- Community -->
-            <div class="<?= $adminCardClass ?> p-5 animate-up">
-                <h3 class="mb-4 flex items-center gap-2 text-[13px] font-bold text-app-text">
-                    <i data-lucide="users" class="h-4 w-4 text-app-primary"></i> Community
+            <div class="card p-5 animate-up" style="animation-delay:0.63s">
+                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#1c1917">
+                    <i data-lucide="users" class="h-4 w-4" style="color:#673049"></i> Community
                 </h3>
                 <div class="space-y-2">
-                    <div class="<?= $adminQueueItemClass ?>">
-                        <span class="text-xs font-medium text-app-secondary">Customers</span>
-                        <span id="totalCustomers" class="font-bold text-app-text">--</span>
+                    <div class="queue-item">
+                        <span class="font-medium" style="font-size:12px;color:#57534e">Customers</span>
+                        <span id="totalCustomers" class="font-bold" style="color:#1c1917">--</span>
                     </div>
-                    <div class="<?= $adminQueueItemClass ?>">
-                        <span class="text-xs font-medium text-app-secondary">Suppliers</span>
-                        <span id="totalSuppliers" class="font-bold text-app-text">--</span>
+                    <div class="queue-item">
+                        <span class="font-medium" style="font-size:12px;color:#57534e">Suppliers</span>
+                        <span id="totalSuppliers" class="font-bold" style="color:#1c1917">--</span>
                     </div>
-                    <div class="<?= $adminQueueItemClass ?>">
-                        <span class="text-xs font-medium text-app-secondary">Staff Members</span>
-                        <span id="totalStaffs" class="font-bold text-app-text">--</span>
+                    <div class="queue-item">
+                        <span class="font-medium" style="font-size:12px;color:#57534e">Staff Members</span>
+                        <span id="totalStaffs" class="font-bold" style="color:#1c1917">--</span>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- ── Upcoming Events Table ── -->
-        <section class="mb-4 <?= $adminCardClass ?> overflow-hidden animate-up">
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-app-panel-border p-5">
+        <section class="mb-4 card overflow-hidden animate-up" style="animation-delay:0.70s">
+            <div class="p-5 flex flex-wrap items-center justify-between gap-3" style="border-bottom:1px solid var(--dashboard-border)">
                 <div>
-                    <h2 class="<?= $adminSectionTitleClass ?> text-sm">Upcoming Wedding Events</h2>
-                    <p class="mt-0.5 text-[11px] text-app-muted">Live schedule of ceremonies and receptions</p>
+                    <h2 class="section-title" style="font-size:14px;color:#1c1917">Upcoming Wedding Events</h2>
+                    <p class="mt-0.5" style="font-size:11px;color:#a8a29e">Live schedule of ceremonies and receptions</p>
                 </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left">
-                    <thead class="bg-app-soft">
+                    <thead style="background:#f9f8f6">
                         <tr>
-                            <th class="<?= $adminWideTableHeadClass ?>">Event Type</th>
-                            <th class="<?= $adminWideTableHeadClass ?>">Client</th>
-                            <th class="<?= $adminWideTableHeadClass ?>">Schedule</th>
-                            <th class="<?= $adminWideTableHeadClass ?>">Venue</th>
-                            <th class="<?= $adminWideTableHeadClass ?>">Status</th>
+                            <th class="px-6 py-3">Event Type</th>
+                            <th class="px-6 py-3">Client</th>
+                            <th class="px-6 py-3">Schedule</th>
+                            <th class="px-6 py-3">Venue</th>
+                            <th class="px-6 py-3">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="upcomingEventsBody" class="border-t border-app-panel-border"></tbody>
+                    <tbody id="upcomingEventsBody" style="border-top:1px solid var(--dashboard-border)"></tbody>
                 </table>
             </div>
         </section>
 
         <!-- ── Popular Wedding Packages ── -->
-        <section class="<?= $adminCardClass ?> p-5 animate-up">
+        <section class="card p-5 animate-up" style="animation-delay:0.77s">
             <div class="mb-5">
-                <h2 class="<?= $adminSectionTitleClass ?> text-sm">Popular Wedding Packages</h2>
-                <p class="mt-0.5 text-[11px] italic text-app-muted">"Sparkling Eve" is trending this week</p>
+                <h2 class="section-title" style="font-size:14px;color:#1c1917">Popular Wedding Packages</h2>
+                <p class="mt-0.5 italic" style="font-size:11px;color:#a8a29e">"Sparkling Eve" is trending this week</p>
             </div>
             <div id="popularGrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"></div>
         </section>
@@ -339,130 +463,21 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
     </main>
 
     <script>
-        const adminClasses = {
-            queueItem: <?= json_encode($adminQueueItemClass) ?>,
-            badgeSuccess: <?= json_encode($adminBadgeSuccessClass) ?>,
-            badgeWarning: <?= json_encode($adminBadgeWarningClass) ?>,
-            badgeAccent: <?= json_encode($adminBadgeAccentClass) ?>,
-            badgeMuted: <?= json_encode($adminBadgeMutedClass) ?>,
-            dropdownItem: <?= json_encode($adminDropdownItemClass) ?>,
-            dropdownItemActive: <?= json_encode($adminDropdownItemActiveClass) ?>,
-        };
-
         function refreshLucideIcons() {
             if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
         }
 
-        function readUtilityColor(className, property = "color") {
-            const probe = document.createElement("span");
-            probe.className = className;
-            document.body.appendChild(probe);
-            const color = getComputedStyle(probe)[property];
-            probe.remove();
-            return color;
-        }
-
-        function withAlpha(color, alpha) {
-            const rgb = color.match(/^rgb\((.+)\)$/);
-            if (rgb) return `rgba(${rgb[1]}, ${alpha})`;
-            return color;
-        }
-
-        function fetchDashboardData(filter = "week") {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
-                    const totalBookings = 317;
-                    const confirmedBookings = 217;
-                    const cancelledBookings = 33;
-                    const pendingBookings = Math.max(15, totalBookings - confirmedBookings - cancelledBookings);
-                    const totalRevenue = 63400;
-                    const avgSpend = 200;
-                    const todayBookings = rand(24, 44);
-                    const weekBookings = rand(82, 132);
-                    const totalCustomers = 1320 + rand(-50, 90);
-                    const totalSuppliers = 112 + rand(-14, 24);
-                    const totalStaffs = 38 + rand(-6, 9);
-                    const vendorApproved = 340 + rand(-20, 30);
-                    const vendorPending = rand(18, 50);
-                    const vendorRejected = rand(8, 28);
-                    const pendingBookingConfirm = rand(12, 34);
-                    const pendingPayments = rand(10, 30);
-                    const pendingVendorApproval = rand(14, 38);
-                    const escrowTotal = 38482;
-                    const escrowPending = 13260;
-                    const escrowAvailable = 25222;
-
-                    const topSuppliers = [
-                        { name: "Luxe Weddings Co.", bookings: rand(58, 80) },
-                        { name: "Golden Moments", bookings: rand(50, 72) },
-                        { name: "Elite Catering", bookings: rand(44, 64) }
-                    ];
-
-                    const staffPerformance = [
-                        { name: "Hsu Lin", totalBookings: rand(50, 74), confirmed: rand(42, 62), cancelled: rand(4, 14) },
-                        { name: "Michael K.", totalBookings: rand(46, 66), confirmed: rand(38, 56), cancelled: rand(5, 15) },
-                        { name: "Sophia R.", totalBookings: rand(56, 80), confirmed: rand(48, 68), cancelled: rand(3, 12) }
-                    ];
-
-                    const upcomingEvents = [
-                        { event: "Wedding", customer: "Yuyu", dateTime: "Today, 6:00 PM", location: "Sedona Hall", package: "Premium Bliss", status: "pending" },
-                        { event: "Reception", customer: "Zenith Ltd", dateTime: "Tomorrow, 2:00 PM", location: "Grand Plaza", package: "Executive", status: "confirmed" },
-                        { event: "Engagement", customer: "Emily Chen", dateTime: "May 23, 7:00 PM", location: "Sky Garden", package: "Celebration", status: "confirmed" }
-                    ];
-
-                    const revenueTrendConfig = {
-                        today: {
-                            labels: Array.from({ length: 24 }, (_, index) => `${index + 1}hr`),
-                            base: Array.from({ length: 24 }, (_, index) => 3200 + Math.sin(index / 2.2) * 900 + index * 90),
-                            peakLabel: "PEAK HOUR:"
-                        },
-                        week: {
-                            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                            base: [9200, 11800, 10400, 13700, 15600, 18900, 17100],
-                            peakLabel: "PEAK DAY:"
-                        },
-                        month: {
-                            labels: ["Week-1", "Week-2", "Week-3", "Week-4"],
-                            base: [28400, 34600, 32100, 39800],
-                            peakLabel: "PEAK WEEK:"
-                        },
-                        year: {
-                            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-                            base: [9400, 13100, 11900, 15400, 18100, 21200, 22600, 24700, 23800, 26500, 29100, 31800],
-                            peakLabel: "PEAK MONTH:"
-                        }
-                    };
-                    const revenueTrend = revenueTrendConfig[filter] || revenueTrendConfig.week;
-                    const revenueSales = revenueTrend.base.map((value) => Math.max(1800, Math.floor(value + rand(-900, 1200))));
-                    const peakPeriod = revenueTrend.labels[revenueSales.indexOf(Math.max(...revenueSales))];
-                    const supplierCategories = {
-                        labels: ["Venues", "Photo", "Catering", "Music"],
-                        values: [46 + rand(-5, 7), 28 + rand(-4, 6), 22 + rand(-3, 5), 17 + rand(-3, 5)]
-                    };
-
-                    const popularPackages = [
-                        { name: "Royal Wedding", image: "https://images.unsplash.com/photo-1519741497674-611481863552?w=900&h=650&fit=crop", bookings: rand(380, 620), revenue: rand(78000, 132000), rating: 4.9 },
-                        { name: "Sparkling Eve", image: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=900&h=650&fit=crop", bookings: rand(300, 540), revenue: rand(64000, 118000), rating: 4.7 },
-                        { name: "Bohemian Luxe", image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=900&h=650&fit=crop", bookings: rand(260, 480), revenue: rand(55000, 98000), rating: 4.8 },
-                        { name: "Garden Vows", image: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=900&h=650&fit=crop", bookings: rand(200, 440), revenue: rand(49000, 89000), rating: 4.6 }
-                    ];
-
-                    resolve({
-                        totalBookings, totalRevenue, pendingBookings, confirmedBookings, cancelledBookings,
-                        avgSpend, todayBookings, weekBookings, totalCustomers, totalSuppliers, totalStaffs,
-                        vendorApproved, vendorPending, vendorRejected,
-                        pendingBookingConfirm, pendingPayments, pendingVendorApproval,
-                        topSuppliers, staffPerformance, upcomingEvents,
-                        revenueLabels: revenueTrend.labels,
-                        revenueSales,
-                        peakPeriod,
-                        peakPeriodLabel: revenueTrend.peakLabel,
-                        supplierCategories, popularPackages,
-                        escrow: { total: escrowTotal, pendingRelease: escrowPending, available: escrowAvailable }
-                    });
-                }, 200);
-            });
+        async function fetchDashboardData(filter = "week") {
+            const params = new URLSearchParams({ filter: filter });
+            const dateEl = document.getElementById('eventDateFilter');
+            if (dateEl && dateEl.value) {
+                params.set('date', dateEl.value);
+            }
+            const response = await fetch('../admin/overviewData?' + params.toString());
+            if (!response.ok) {
+                throw new Error('Dashboard data failed to load (HTTP ' + response.status + ')');
+            }
+            return response.json();
         }
 
         let revenueChart;
@@ -483,7 +498,6 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
 
         function renderDashboard(data) {
             const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
-            const setWidth = (id, value) => { const el = document.getElementById(id); if (el) el.style.width = value; };
 
             setText("totalBookings", data.totalBookings.toLocaleString());
             setText("totalRevenue", currency(data.totalRevenue));
@@ -502,71 +516,56 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
             setText("pendingVendorApproval2", data.pendingVendorApproval);
             setText("peakPeriodLabel", data.peakPeriodLabel);
             setText("peakMonthTag", data.peakPeriod);
-            setText("escrowTotal", currency(data.escrow.total));
-            setText("escrowPending", currency(data.escrow.pendingRelease));
-            setText("escrowAvailable", currency(data.escrow.available));
-
-            const escrowProgress = data.escrow.total > 0 ? Math.round((data.escrow.available / data.escrow.total) * 100) : 0;
-            setWidth("escrowProgressFill", `${escrowProgress}%`);
-            setText("escrowProgressPercent", `${escrowProgress}%`);
 
             document.getElementById("topSuppliersList").innerHTML = data.topSuppliers.map((supplier, index) => `
-                <div class="${adminClasses.queueItem} gap-2.5">
+                <div class="queue-item" style="gap:0.625rem">
                     <div class="flex items-center gap-2.5">
-                        <span class="flex h-6 w-6 items-center justify-center rounded-lg flex-shrink-0 bg-app-accent text-[10px] font-bold text-app-white">${index + 1}</span>
-                        <span class="text-xs font-semibold text-app-text">${supplier.name}</span>
+                        <span class="flex h-6 w-6 items-center justify-center rounded-lg flex-shrink-0 font-bold text-white" style="font-size:10px;background:#d89aa0">${index + 1}</span>
+                        <span class="font-semibold" style="font-size:12px;color:#1c1917">${supplier.name}</span>
                     </div>
-                    <span class="whitespace-nowrap text-[11px] font-semibold text-app-muted">${supplier.bookings} events</span>
+                    <span class="font-semibold whitespace-nowrap" style="font-size:11px;color:#a8a29e">${supplier.bookings} events</span>
                 </div>
-            `).join("");
-
-            document.getElementById("staffTableBody").innerHTML = data.staffPerformance.map((staff) => `
-                <tr class="border-b border-app-panel-border transition-colors hover:bg-app-soft">
-                    <td class="px-5 py-2.5 font-semibold text-app-text">${staff.name}</td>
-                    <td class="px-5 py-2.5 text-app-secondary">${staff.totalBookings}</td>
-                    <td class="px-5 py-2.5 font-bold text-app-success">${staff.confirmed}</td>
-                </tr>
             `).join("");
 
             document.getElementById("upcomingEventsBody").innerHTML = data.upcomingEvents.map((event) => {
                 const isConfirmed = event.status === "confirmed";
-                const statusClass = isConfirmed ? adminClasses.badgeSuccess : adminClasses.badgeWarning;
+                const statusClass = isConfirmed ? "badge-emerald" : "badge-amber";
                 return `
-                    <tr class="border-b border-app-panel-border transition-colors hover:bg-app-soft">
-                        <td class="px-6 py-3"><span class="${adminClasses.badgeMuted}">${event.event}</span></td>
-                        <td class="px-6 py-3 font-semibold text-app-text">${event.customer}</td>
-                        <td class="px-6 py-3 text-app-secondary">${event.dateTime}</td>
-                        <td class="px-6 py-3 text-app-secondary">${event.location}</td>
-                        <td class="px-6 py-3"><span class="${statusClass}">${event.status}</span></td>
+                    <tr style="border-bottom:1px solid var(--dashboard-border)">
+                        <td class="px-6 py-3"><span class="badge badge-muted">${event.event}</span></td>
+                        <td class="px-6 py-3 font-semibold" style="color:#1c1917">${event.customer}</td>
+                        <td class="px-6 py-3" style="color:#57534e">${event.dateTime}</td>
+                        <td class="px-6 py-3" style="color:#57534e">${event.location}</td>
+                        <td class="px-6 py-3"><span class="badge ${statusClass}">${event.status}</span></td>
                     </tr>
                 `;
             }).join("");
 
             document.getElementById("popularGrid").innerHTML = data.popularPackages.map((pkg) => `
-                <article class="pkg-card relative overflow-hidden rounded-card border border-app-border bg-app-input shadow-sm hover:shadow-card">
+                <article class="pkg-card">
                     <!-- Full-height image -->
-                    <div class="relative overflow-hidden rounded-card">
-                        <img src="${pkg.image}" alt="${pkg.name}" class="block h-[220px] w-full object-cover">
+                    <div class="relative overflow-hidden" style="border-radius:1.2rem">
+                        <img src="${pkg.image}" alt="${pkg.name}">
 
                         <!-- Rating badge — always visible top-right -->
-                        <div class="absolute right-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-app-input/80 px-2 py-0.5 text-[10px] font-bold text-app-primary shadow-sm">
+                        <div class="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full px-2 py-0.5 font-bold" style="font-size:10px;background:rgba(255,255,255,0.95);color:#673049;box-shadow:0 2px 8px rgba(0,0,0,0.14);z-index:2">
                             ★ ${pkg.rating}
                         </div>
 
                         <!-- Caption — always visible bottom, fades on hover -->
-                        <div class="pkg-caption px-3.5 py-2.5">
-                            <p class="text-xs font-semibold text-app-white">${pkg.name}</p>
+                        <div class="pkg-caption">
+                            <p class="font-semibold" style="font-size:12px;color:#ffffff;text-shadow:0 1px 4px rgba(0,0,0,0.5)">${pkg.name}</p>
                         </div>
 
                         <!-- Hover overlay: slides up from bottom -->
-                        <div class="pkg-overlay flex items-end justify-between px-4 pb-4 pt-8">
+                        <div class="pkg-overlay">
                             <div>
-                                <p class="text-[10px] font-semibold uppercase tracking-widest text-app-white/60">Bookings</p>
-                                <p class="mt-0.5 text-[13px] font-bold text-app-white">${pkg.bookings.toLocaleString()}</p>
+                                <p class="stat-label" style="color:rgba(255,255,255,0.55)">Bookings</p>
+                                <p class="font-bold" style="font-size:13px;color:#ffffff;margin-top:2px">${pkg.bookings.toLocaleString()}</p>
                             </div>
                             <div class="text-right">
-                                <p class="text-[10px] font-semibold uppercase tracking-widest text-app-white/60">Revenue</p>
-                                <p class="mt-0.5 text-[13px] font-bold text-app-success">${currency(pkg.revenue)}</p>
+                                <p class="stat-label" style="color:rgba(255,255,255,0.55)">Revenue</p>
+                                <p class="font-bold" style="font-size:13px;color:#6ee7b7;margin-top:2px">${currency(pkg.revenue)}</p>
                             </div>
                         </div>
                     </div>
@@ -576,20 +575,6 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
             if (revenueChart) revenueChart.destroy();
             if (supplierChart) supplierChart.destroy();
 
-            const primaryColor = readUtilityColor("text-app-primary");
-            const textColor = readUtilityColor("text-app-text");
-            const secondaryColor = readUtilityColor("text-app-secondary");
-            const mutedColor = readUtilityColor("text-app-muted");
-            const gridColor = readUtilityColor("border-app-panel-border border", "borderTopColor");
-            const inputColor = readUtilityColor("bg-app-input", "backgroundColor");
-            const successColor = readUtilityColor("text-app-success");
-            const categoryColors = [
-                readUtilityColor("bg-app-ring", "backgroundColor"),
-                readUtilityColor("bg-app-accent", "backgroundColor"),
-                readUtilityColor("bg-app-surface", "backgroundColor"),
-                readUtilityColor("bg-app-success", "backgroundColor") || successColor
-            ];
-
             const revenueContext = document.getElementById("revenueChartCanvas").getContext("2d");
             const revenueXAxisTitle = getRevenueXAxisTitle(currentFilter);
             revenueChart = new Chart(revenueContext, {
@@ -598,14 +583,14 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
                     labels: data.revenueLabels,
                     datasets: [{
                         data: data.revenueSales,
-                        borderColor: primaryColor,
-                        backgroundColor: withAlpha(primaryColor, 0.08),
+                        borderColor: "#673049",
+                        backgroundColor: "rgba(103,48,73,0.08)",
                         fill: true,
                         tension: 0.4,
                         pointRadius: 3,
                         pointHoverRadius: 5,
-                        pointBackgroundColor: primaryColor,
-                        pointBorderColor: inputColor,
+                        pointBackgroundColor: "#673049",
+                        pointBorderColor: "#fff",
                         pointBorderWidth: 2,
                         borderWidth: 2
                     }]
@@ -627,25 +612,25 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
                             title: {
                                 display: true,
                                 text: revenueXAxisTitle,
-                                color: secondaryColor,
-                                font: { size: 11, weight: "700", family: "Poppins" },
+                                color: "#57534e",
+                                font: { size: 11, weight: "700", family: "Inter" },
                                 padding: { top: 8 }
                             },
-                            ticks: { color: mutedColor, font: { size: 10, weight: "600", family: "Poppins" } }
+                            ticks: { color: "#a8a29e", font: { size: 10, weight: "600", family: "Inter" } }
                         },
                         y: {
-                            grid: { color: gridColor },
+                            grid: { color: "#f5f5f4" },
                             border: { display: false },
                             title: {
                                 display: true,
                                 text: "Sales",
-                                color: secondaryColor,
-                                font: { size: 11, weight: "700", family: "Poppins" },
+                                color: "#57534e",
+                                font: { size: 11, weight: "700", family: "Inter" },
                                 padding: { bottom: 8 }
                             },
                             ticks: {
-                                color: mutedColor,
-                                font: { size: 10, family: "Poppins" },
+                                color: "#a8a29e",
+                                font: { size: 10, family: "Inter" },
                                 callback: (v) => `$${v / 1000}k`
                             }
                         }
@@ -668,12 +653,12 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
 
-                    ctx.fillStyle = textColor;
-                    ctx.font = "700 20px Poppins, sans-serif";
+                    ctx.fillStyle = "#1c1917";
+                    ctx.font = "700 20px Inter, sans-serif";
                     ctx.fillText(total.toLocaleString(), centerX, centerY - 8);
 
-                    ctx.fillStyle = mutedColor;
-                    ctx.font = "600 9px Poppins, sans-serif";
+                    ctx.fillStyle = "#a8a29e";
+                    ctx.font = "600 9px Inter, sans-serif";
                     ctx.fillText("suppliers", centerX, centerY + 10);
 
                     meta.data.forEach((arc, index) => {
@@ -684,8 +669,8 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
                         const x = arc.x + Math.cos(angle) * radius;
                         const y = arc.y + Math.sin(angle) * radius;
 
-                        ctx.fillStyle = inputColor;
-                        ctx.font = "700 10px Poppins, sans-serif";
+                        ctx.fillStyle = "#FFFFFF";
+                        ctx.font = "700 10px Inter, sans-serif";
                         ctx.fillText(`${percent}%`, x, y);
                     });
 
@@ -699,8 +684,8 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
                     labels: data.supplierCategories.labels,
                     datasets: [{
                         data: data.supplierCategories.values,
-                        backgroundColor: categoryColors,
-                        borderColor: inputColor,
+                        backgroundColor: ["#90bed7", "#d89aa0", "#e9ab91", "#8bca9d"],
+                        borderColor: "#FFFFFF",
                         borderRadius: 5,
                         borderWidth: 3,
                         hoverBorderWidth: 5,
@@ -728,8 +713,8 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
                                 usePointStyle: true,
                                 pointStyle: "circle",
                                 padding: 16,
-                                color: secondaryColor,
-                                font: { size: 11, weight: "600", family: "Poppins" }
+                                color: "#78716c",
+                                font: { size: 11, weight: "600", family: "Inter" }
                             }
                         },
                         tooltip: {
@@ -772,9 +757,7 @@ $adminCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(A
                 opt.addEventListener("click", () => {
                     currentFilter = opt.dataset.eventFilter;
                     evtLbl.innerText = labels[currentFilter];
-                    document.querySelectorAll("[data-event-filter]").forEach(o => {
-                        o.className = o === opt ? adminClasses.dropdownItemActive : adminClasses.dropdownItem;
-                    });
+                    document.querySelectorAll("[data-event-filter]").forEach(o => o.classList.toggle("active", o === opt));
                     closeEvtMenu();
                     loadDashboardData();
                 });

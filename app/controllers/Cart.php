@@ -25,6 +25,16 @@ class Cart extends Controller
         if ($this->userId && !empty($_SESSION['cart_pending'])) {
             $pending = $_SESSION['cart_pending'];
             unset($_SESSION['cart_pending']);
+            $addonPackageId = (int)($pending['addon_package_id'] ?? 0);
+            if ($addonPackageId > 0) {
+                $packageCartItem = $this->cartModel->findPackageCartItem($this->userId, $addonPackageId);
+                if (!$packageCartItem) {
+                    $_SESSION['cart_addon_error'] = 'Add the package to your cart before selecting its add-on services.';
+                    redirect('customerServices/packages');
+                    return;
+                }
+                $pending['package_cart_item_id'] = (int)$packageCartItem['cart_item_id'];
+            }
             if (
                 ($pending['item_type'] ?? '') === 'service'
                 && empty($pending['confirm_included_service'])
@@ -42,10 +52,16 @@ class Cart extends Controller
 
         $items = [];
         $total = 0;
+        $packageServices = [];
 
         if ($this->userId) {
             $items = $this->cartModel->getCartItems($this->userId);
             $total = $this->cartModel->getCartTotal($this->userId);
+            $packageServices = $this->cartModel->getCartPackageServices($this->userId);
+            foreach ($items as &$item) {
+                $item['included_services'] = $packageServices[(int)($item['cart_item_id'] ?? 0)] ?? [];
+            }
+            unset($item);
         }
 
         $this->view('cart/index', [
@@ -53,7 +69,9 @@ class Cart extends Controller
             'total' => $total,
             'cartCount' => count($items),
             'includedServiceWarning' => $_SESSION['cart_included_service_warning'] ?? null,
+            'addonError' => $_SESSION['cart_addon_error'] ?? null,
         ]);
+        unset($_SESSION['cart_addon_error']);
     }
 
     /**
@@ -85,6 +103,7 @@ class Cart extends Controller
             'venue_room_id' => !empty($_POST['venue_room_id']) ? (int)$_POST['venue_room_id'] : null,
             'start_time' => trim($_POST['start_time'] ?? '') ?: null,
             'end_time' => trim($_POST['end_time'] ?? '') ?: null,
+            'addon_package_id' => !empty($_POST['addon_package_id']) ? (int)$_POST['addon_package_id'] : null,
         ];
 
         if (
@@ -101,6 +120,16 @@ class Cart extends Controller
             $_SESSION['cart_redirect_after_login'] = 'cart';
             redirect('users/auth');
             return;
+        }
+
+        if (!empty($itemData['addon_package_id'])) {
+            $packageCartItem = $this->cartModel->findPackageCartItem($this->userId, (int)$itemData['addon_package_id']);
+            if (!$packageCartItem) {
+                $_SESSION['cart_addon_error'] = 'Add the package to your cart before selecting its add-on services.';
+                redirect('customerServices/packages');
+                return;
+            }
+            $itemData['package_cart_item_id'] = (int)$packageCartItem['cart_item_id'];
         }
 
         if (empty($_POST['confirm_included_service'])) {

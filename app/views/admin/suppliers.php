@@ -1,23 +1,17 @@
 <?php
 $dashboardTitle = 'Suppliers';
 $dashboardCrumb = 'Applications';
+$topSuppliers = $topSuppliers ?? [];
+$stats = $stats ?? [];
 $dashboardContentClass = 'supplier-admin-content px-6 py-6';
-$dashboardContent = function () use ($suppliers, $status) {
+$money = fn($v) => 'MMK ' . number_format((float)$v, 0);
+$dashboardContent = function () use ($suppliers, $status, $topSuppliers, $stats, $money) {
     $supplierTotal = count($suppliers ?? []);
-    $supplierPending = 0;
-    $supplierApproved = 0;
-    $supplierRejected = 0;
-
-    foreach (($suppliers ?? []) as $supplier) {
-        $supplierStatus = strtolower($supplier['status'] ?? 'pending');
-        if ($supplierStatus === 'approved') {
-            $supplierApproved++;
-        } elseif ($supplierStatus === 'rejected') {
-            $supplierRejected++;
-        } else {
-            $supplierPending++;
-        }
-    }
+    $supplierPending = (int)($stats['pending'] ?? 0);
+    $supplierApproved = (int)($stats['approved'] ?? 0);
+    $supplierRejected = (int)($stats['rejected'] ?? 0);
+    $supplierBanned = (int)($stats['banned'] ?? 0);
+    $hasTopSuppliers = ($status === 'all' && !empty($topSuppliers));
 ?>
     <style>
         .supplier-admin-content{min-height:100%;background:#FBFBF9;padding:28px 32px;color:#111827;font-size:13px}
@@ -32,7 +26,7 @@ $dashboardContent = function () use ($suppliers, $status) {
         .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;transition:all .12s;white-space:nowrap;text-decoration:none}
         .filter:hover{border-color:var(--border);background:var(--hover);color:var(--primary)}
         .filter.active{border-color:var(--primary);background:var(--primary);color:#fff}
-        .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+        .summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
         .stat{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:14px 16px}
         .stat-value{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.3px}
         .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
@@ -46,13 +40,6 @@ $dashboardContent = function () use ($suppliers, $status) {
         .card-head-title{font-size:13px;font-weight:700;color:var(--text)}
         .card-count{font-size:11px;color:var(--muted);font-weight:600}
         .supplier-table-wrap{overflow-x:auto}
-        .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-light)}
-        .page-info{font-size:12px;color:var(--muted)}
-        .page-btns{display:flex;gap:4px}
-        .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
-        .page-btn:hover{background:var(--soft)}
-        .page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-        .page-btn:disabled{opacity:.4;cursor:default}
         .supplier-table{width:100%;border-collapse:collapse;text-align:left;font-size:13px}
         .supplier-table thead tr{background:var(--soft)}
         .supplier-table th{padding:9px 20px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
@@ -71,20 +58,19 @@ $dashboardContent = function () use ($suppliers, $status) {
         .admin-badge-muted{background:var(--neutral-bg);color:var(--neutral-text)}
         .review-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;border:0;border-radius:.75rem;background:var(--primary);padding:0 10px;color:#fff;font-size:11px;font-weight:800;text-decoration:none;transition:background .12s}
         .review-btn:hover{background:var(--primary-hover)}
-        @media(max-width:1100px){.summary-row{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:1100px){.summary-row{grid-template-columns:repeat(3,1fr)}}
         @media(max-width:760px){.supplier-admin-content{padding:20px 16px}.summary-row{grid-template-columns:1fr}}
     </style>
     <div class="supplier-admin-shell">
         <div class="page-header flex justify-between">
             <div>
                 <p class="eyebrow">Suppliers</p>
-                <h1>Supplier Applications</h1>
-                <p class="page-sub">Review supplier profiles, license documents, and social verification links.</p>
+                <h1>Supplier Management</h1>
+                <p class="page-sub">Review, approve, warn, or ban suppliers. Monitor top performers.</p>
             </div>
-
             <div class="toolbar">
-                <div class="filters ">
-                    <?php foreach ( ['all', 'rejected', 'approved', 'pending'] as $filter): ?>
+                <div class="filters">
+                    <?php foreach (['all', 'pending', 'approved', 'verified', 'rejected', 'banned'] as $filter): ?>
                         <a href="<?= URLROOT ?>/admin/suppliers?status=<?= $filter ?>" class="filter <?= ($status ?? '') === $filter ? 'active' : '' ?>">
                             <?= ucfirst($filter) ?>
                         </a>
@@ -93,13 +79,11 @@ $dashboardContent = function () use ($suppliers, $status) {
             </div>
         </div>
 
-
-
         <div class="summary-row">
             <div class="stat">
-                <div class="stat-label">Visible</div>
+                <div class="stat-label">Total</div>
                 <div class="stat-value"><?= $supplierTotal ?></div>
-                <div class="stat-sub">Applications in this view</div>
+                <div class="stat-sub">All suppliers</div>
             </div>
             <div class="stat">
                 <div class="stat-label">Pending</div>
@@ -109,20 +93,64 @@ $dashboardContent = function () use ($suppliers, $status) {
             <div class="stat">
                 <div class="stat-label">Approved</div>
                 <div class="stat-value success"><?= $supplierApproved ?></div>
-                <div class="stat-sub">Accepted suppliers</div>
+                <div class="stat-sub">Active suppliers</div>
             </div>
             <div class="stat">
                 <div class="stat-label">Rejected</div>
                 <div class="stat-value danger"><?= $supplierRejected ?></div>
-                <div class="stat-sub">Declined applications</div>
+                <div class="stat-sub">Declined</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Banned</div>
+                <div class="stat-value danger"><?= $supplierBanned ?></div>
+                <div class="stat-sub">Restricted</div>
             </div>
         </div>
+
+        <?php if ($hasTopSuppliers): ?>
+        <section class="card" style="margin-bottom:20px">
+            <div class="card-head">
+                <div class="card-head-left">
+                    <span class="card-head-icon"><i data-lucide="trophy" class="h-4 w-4"></i></span>
+                    <span class="card-head-title">Top Performing Suppliers</span>
+                </div>
+                <span class="card-count">By revenue</span>
+            </div>
+            <div class="supplier-table-wrap">
+                <table class="supplier-table">
+                    <thead>
+                        <tr><th>Supplier</th><th>Bookings</th><th>Revenue</th><th>Rating</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($topSuppliers as $top): ?>
+                        <tr>
+                            <td>
+                                <p class="biz-name"><?= htmlspecialchars($top['shop_name'] ?? 'Supplier', ENT_QUOTES, 'UTF-8') ?></p>
+                            </td>
+                            <td class="body-text"><?= (int)($top['completed_bookings'] ?? 0) ?> completed</td>
+                            <td class="body-text" style="font-weight:700"><?= $money($top['revenue_earned'] ?? 0) ?></td>
+                            <td class="body-text"><?= round((float)($top['avg_rating'] ?? 0), 1) ?> ★ (<?= (int)($top['review_count'] ?? 0) ?>)</td>
+                            <td>
+                                <?php $ts = $top['status'] ?? ''; $tsClass = 'admin-badge-' . (strtolower($ts) ?: 'muted'); ?>
+                                <span class="badge <?= $tsClass ?>"><?= htmlspecialchars($ts, ENT_QUOTES, 'UTF-8') ?></span>
+                                <?php if ((int)($top['warning_level'] ?? 0) > 0): ?>
+                                    <span class="badge admin-badge-rejected" style="margin-left:4px">W<?= (int)$top['warning_level'] ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td><a href="<?= URLROOT ?>/admin/supplier/<?= (int)$top['supplier_id'] ?>" class="review-btn">Manage</a></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <?php endif; ?>
 
         <section class="card">
             <div class="card-head">
                 <div class="card-head-left">
                     <span class="card-head-icon"><i data-lucide="store" class="h-4 w-4"></i></span>
-                    <span class="card-head-title">Applications Queue</span>
+                    <span class="card-head-title"><?= $status === 'all' ? 'All Suppliers' : ucfirst($status) . ' Suppliers' ?></span>
                 </div>
                 <span class="card-count"><?= $supplierTotal ?> records</span>
             </div>
@@ -173,14 +201,14 @@ $dashboardContent = function () use ($suppliers, $status) {
                     </tbody>
                 </table>
             </div>
-            <div class="pagination">
-                <span class="page-info">Showing <?= empty($suppliers) ? '0' : '1' ?>-<?= $supplierTotal ?> of <?= $supplierTotal ?> results</span>
-                <div class="page-btns">
-                    <button class="page-btn" disabled><i data-lucide="chevron-left" class="h-3 w-3"></i></button>
-                    <button class="page-btn active">1</button>
-                    <button class="page-btn" disabled><i data-lucide="chevron-right" class="h-3 w-3"></i></button>
-                </div>
-            </div>
+
+            <?php
+            if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
+                $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+                $baseParams = 'status=' . urlencode($status ?? 'pending');
+                require APPROOT . '/views/partials/_pagination.php';
+            }
+            ?>
         </section>
     </div>
 <?php
