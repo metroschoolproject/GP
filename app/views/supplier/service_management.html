@@ -500,6 +500,15 @@
         <input id="oMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
         <div style="font-size:12px;color:#666;margin-top:4px">How many days in advance must customers book this service?</div>
       </div>
+      <div>
+        <label class="fm-label">Default service hours <span style="font-weight:400;color:#9a8b82">(optional)</span></label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="oDefaultStartTime" type="time" class="fm-input" style="max-width:130px"/>
+          <span style="color:#9a8b82;flex-shrink:0">to</span>
+          <input id="oDefaultEndTime" type="time" class="fm-input" style="max-width:130px"/>
+        </div>
+        <div style="font-size:12px;color:#666;margin-top:4px">Leave blank to use category defaults. Used for full-day package bookings.</div>
+      </div>
     </div>
     <div class="modal-f">
       <button onclick="closeAll()" class="btn-dull">Cancel</button>
@@ -545,6 +554,15 @@
         <label class="fm-label" for="esMinLeadDays">Minimum booking notice (days)</label>
         <input id="esMinLeadDays" type="number" min="0" max="365" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
         <div style="font-size:12px;color:#666;margin-top:4px">How many days in advance must customers book this service?</div>
+      </div>
+      <div id="esDefaultTimeRow">
+        <label class="fm-label">Default service hours <span style="font-weight:400;color:#9a8b82">(optional)</span></label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="esDefaultStartTime" type="time" class="fm-input" style="max-width:130px"/>
+          <span style="color:#9a8b82;flex-shrink:0">to</span>
+          <input id="esDefaultEndTime" type="time" class="fm-input" style="max-width:130px"/>
+        </div>
+        <div style="font-size:12px;color:#666;margin-top:4px">Leave blank to use category defaults. Used for full-day package bookings.</div>
       </div>
       <div id="esVenueExtras" class="hidden space-y-4">
         <div class="modal-grid-2">

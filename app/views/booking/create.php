@@ -1514,13 +1514,28 @@ input[type="date"]:invalid {
                   <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
                 <?php endif; ?>
 
-                <?php if ($isFulldayItem): ?>
-                  <!-- Full-day booking: time is managed automatically -->
-                  <input type="hidden" name="item_start_time[<?= $i ?>]" value="00:00:00">
-                  <input type="hidden" name="item_end_time[<?= $i ?>]" value="23:59:59">
+                <?php if ($isFulldayItem):
+                  // Three-layer time resolution for fullday items
+                  $categoryId = (int)($item['category_id'] ?? 0);
+                  $categoryTimes = defined('CATEGORY_DEFAULT_TIMES') ? (CATEGORY_DEFAULT_TIMES[$categoryId] ?? null) : null;
+                  $autoStart = $item['resolved_start_time']
+                      ?? ($categoryTimes['start'] ?? '00:00:00');
+                  $autoEnd   = $item['resolved_end_time']
+                      ?? ($categoryTimes['end'] ?? '23:59:59');
+                  $showTimeHint = ($autoStart !== '00:00:00' || $autoEnd !== '23:59:59');
+                  $fmtStart = $showTimeHint ? date('g:i A', strtotime($autoStart)) : '';
+                  $fmtEnd   = $showTimeHint ? date('g:i A', strtotime($autoEnd))   : '';
+                ?>
+                  <!-- Full-day booking: time resolved via schedule → service default → category fallback -->
+                  <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($autoStart) ?>">
+                  <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($autoEnd) ?>">
                   <div class="gp-input-note" style="margin-top:8px;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    Full-day booking — time is managed automatically
+                    <?php if ($showTimeHint): ?>
+                      Full-day booking — estimated service window: <?= $h($fmtStart) ?> – <?= $h($fmtEnd) ?>
+                    <?php else: ?>
+                      Full-day booking — time is managed automatically
+                    <?php endif; ?>
                   </div>
                 <?php else: ?>
                   <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>

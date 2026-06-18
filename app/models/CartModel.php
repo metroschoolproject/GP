@@ -4,6 +4,7 @@ class CartModel
 {
     private $db;
     private ?bool $cartVenueRoomColumn = null;
+    private ?bool $serviceDefaultTimeColumns = null;
 
     public function __construct()
     {
@@ -434,6 +435,23 @@ class CartModel
         return $this->cartVenueRoomColumn;
     }
 
+    private function hasServiceDefaultTimeColumns(): bool
+    {
+        if ($this->serviceDefaultTimeColumns !== null) {
+            return $this->serviceDefaultTimeColumns;
+        }
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "services"
+               AND COLUMN_NAME IN ("default_start_time", "default_end_time")'
+        );
+        $row = $this->db->getsingledata();
+        $this->serviceDefaultTimeColumns = (int)($row['total'] ?? 0) >= 2;
+        return $this->serviceDefaultTimeColumns;
+    }
+
     /**
      * Get all cart items for a user, joined with service details.
      */
@@ -444,6 +462,24 @@ class CartModel
     public function getCartItems(int $userId): array
     {
         $hasVenueRoomColumn = $this->hasCartVenueRoomColumn();
+        $hasDefaultTimeColumns = $this->hasServiceDefaultTimeColumns();
+        $resolvedTimeSelect = $hasDefaultTimeColumns
+            ? "COALESCE(
+                    (SELECT ss.open_time FROM service_schedules ss
+                     WHERE ss.service_id = s.id
+                     AND ss.day_of_week = DAYOFWEEK(ci.selected_date)
+                     AND ss.is_available = 1 LIMIT 1),
+                    s.default_start_time
+                ) AS resolved_start_time,
+                COALESCE(
+                    (SELECT ss.close_time FROM service_schedules ss
+                     WHERE ss.service_id = s.id
+                     AND ss.day_of_week = DAYOFWEEK(ci.selected_date)
+                     AND ss.is_available = 1 LIMIT 1),
+                    s.default_end_time
+                ) AS resolved_end_time,"
+            : "NULL AS resolved_start_time,
+                NULL AS resolved_end_time,";
         $venueRoomSelect = $hasVenueRoomColumn
             ? 'COALESCE(cart_vr.id, selected_vr.id) AS venue_room_id,
                     COALESCE(cart_vr.name, selected_vr.name) AS venue_room_name,
@@ -474,7 +510,8 @@ class CartModel
                     ci.start_time, 
                     ci.end_time,
                     {$venueRoomSelect}
-                    
+                    {$resolvedTimeSelect}
+
                     COALESCE(s.name, p.name, sp.name) AS service_name,
                     COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
                     COALESCE(s.price_min, p.base_price * 1.05, sp.total_price) AS price_min,

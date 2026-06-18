@@ -45,3 +45,19 @@ define('PLATFORM_BANK_ACCOUNTS', [
 
 // Cron Security
 define('CRON_TOKEN', 'your-secret-cron-token');
+
+// Default service time windows by category (used for fullday package bookings).
+// Priority: service_schedules open/close > services.default_start/end_time > this fallback.
+define('CATEGORY_DEFAULT_TIMES', [
+    10 => ['start' => '06:00:00', 'end' => '10:00:00'], // Make Up & Hair
+     2 => ['start' => '09:00:00', 'end' => '11:00:00'], // Dress
+     1 => ['start' => '09:00:00', 'end' => '11:00:00'], // Accessories
+     9 => ['start' => '09:00:00', 'end' => '11:00:00'], // Jewelry
+    12 => ['start' => '06:00:00', 'end' => '11:00:00'], // Decoration
+    11 => ['start' => '10:00:00', 'end' => '14:00:00'], // Car
+     5 => ['start' => '08:00:00', 'end' => '20:00:00'], // Studio / Photography
+     6 => ['start' => '10:00:00', 'end' => '22:00:00'], // Venue
+     3 => ['start' => '11:00:00', 'end' => '22:00:00'], // Food
+     8 => ['start' => '08:00:00', 'end' => '10:00:00'], // Invitation & Gifts
+     7 => ['start' => '10:00:00', 'end' => '18:00:00'], // Others (fallback)
+]);
