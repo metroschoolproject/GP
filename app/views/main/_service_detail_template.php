@@ -2576,7 +2576,15 @@ button, input, select, textarea { font-family: var(--font-sans); }
           </div>
         <?php endif; ?>
         <div class="summary-actions">
-          <?php if ($hasInitialBookOption): ?>
+          <?php if ($isPackageContext): ?>
+          <div class="gp-package-notice">
+            <span>This service is included in the <strong><?= $h($packageName) ?></strong> package.</span>
+            <a href="<?= $h($packageDetailUrl) ?>" class="btn-cart is-guidance" style="margin-top:10px;">
+              <i data-lucide="arrow-left" size="16"></i>
+              View Package
+            </a>
+          </div>
+          <?php elseif ($hasInitialBookOption): ?>
           <form method="POST" action="<?= URLROOT ?>/cart/add" id="serviceCartForm" style="display:contents;">
             <input type="hidden" name="service_id" value="<?= (int)($service['id'] ?? 0) ?>">
             <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
@@ -2584,16 +2592,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
             <input type="hidden" name="venue_room_id" id="cartVenueRoomId" value="<?= $h($isVenue ? ($firstVenueRoom['id'] ?? '') : '') ?>">
             <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($isVenue ? ($firstVenueRoom['start_time'] ?? '') : ($firstSlot['start_time'] ?? '')) ?>">
             <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($isVenue ? ($firstVenueRoom['end_time'] ?? '') : ($firstSlot['end_time'] ?? '')) ?>">
-            <input type="hidden" name="price" id="cartPrice" value="<?= $h($isPackageContext ? $packageServicePrice : ($isVenue && $firstVenueRoom ? ($firstVenueRoom['price'] ?? 0) : $activeServicePrice)) ?>">
-            <input type="hidden" name="source" value="<?= $isPackageContext ? 'package' : 'custom' ?>">
-            <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
-              <?php if ($fieldValue > 0): ?>
-                <input type="hidden" name="<?= $h($fieldName) ?>" value="<?= (int)$fieldValue ?>">
-              <?php endif; ?>
-            <?php endforeach; ?>
+            <input type="hidden" name="price" id="cartPrice" value="<?= $h($activeServicePrice) ?>">
+            <input type="hidden" name="source" value="custom">
             <button class="btn-cart" id="addCartLink" type="submit">
               <i data-lucide="shopping-cart" size="16"></i>
-              <?= $isPackageContext ? 'Add to package booking' : 'Add to cart' ?>
+              Add to cart
             </button>
           </form>
           <?php else: ?>
@@ -2768,14 +2771,25 @@ button, input, select, textarea { font-family: var(--font-sans); }
 <!-- Mobile bottom booking bar -->
 <div class="mobile-book-bar" id="mobileBookBar">
   <div class="mobile-book-row">
+    <?php if ($isPackageContext): ?>
     <div>
-      <div class="mobile-book-price"><?= $isPackageContext ? $money($packageServicePrice) : ($isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service)) ?></div>
-      <div class="mobile-book-label"><?= $isPackageContext ? 'Package service price' : $pricingUnitLabel($service) ?></div>
+      <div class="mobile-book-price"><?= $money($packageServicePrice) ?></div>
+      <div class="mobile-book-label">Package service price</div>
+    </div>
+    <a class="mobile-book-btn is-guidance" href="<?= $h($packageDetailUrl) ?>">
+      <i data-lucide="arrow-left" size="16"></i>
+      View Package
+    </a>
+    <?php else: ?>
+    <div>
+      <div class="mobile-book-price"><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></div>
+      <div class="mobile-book-label"><?= $pricingUnitLabel($service) ?></div>
     </div>
     <a class="mobile-book-btn <?= $hasInitialBookOption ? '' : 'is-guidance' ?>" id="mobileBookBtn" href="<?= URLROOT ?>/cart">
       <i data-lucide="shopping-cart" size="16"></i>
-      <?= $isPackageContext ? 'Add to package' : 'Add to cart' ?>
+      Add to cart
     </a>
+    <?php endif; ?>
   </div>
 </div>
 

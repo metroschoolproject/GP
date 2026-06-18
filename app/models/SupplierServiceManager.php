@@ -4,6 +4,7 @@ class SupplierServiceManager
 {
     private $db;
     private $hasServicePriceRangeColumns = null;
+    private $hasServiceDefaultTimeColumns = null;
     private $hasVenueRoomPriceRangeColumns = null;
     private $hasVenueServiceColumn = null;
     private $hasRentalPriceMatrixColumns = null;
@@ -68,6 +69,7 @@ class SupplierServiceManager
     public function getServices($supplierId, $limit = null, $offset = 0)
     {
         $priceRangeFields = $this->servicePriceRangeSelectFields();
+        $defaultTimeFields = $this->serviceDefaultTimeSelectFields();
         $venueSelectFields = $this->venueSelectFields();
         $venueJoin = $this->venueJoinClause();
         $query = 'SELECT services.id,
@@ -83,6 +85,7 @@ class SupplierServiceManager
                          services.pricing_unit,
                          services.max_concurrent,
                          services.min_lead_days,
+                         ' . $defaultTimeFields . '
                          ' . $venueSelectFields . '
                          categories.name AS category
                   FROM services
@@ -129,14 +132,16 @@ class SupplierServiceManager
         $categoryId = $this->findOrCreateCategory($data['category'] ?? 'Others');
         $priceRangeColumns = $this->hasServicePriceRangeColumns() ? ', price_min, price_max' : '';
         $priceRangeValues = $this->hasServicePriceRangeColumns() ? ', :price_min, :price_max' : '';
+        $defaultTimeColumns = $this->hasServiceDefaultTimeColumns() ? ', default_start_time, default_end_time' : '';
+        $defaultTimeValues  = $this->hasServiceDefaultTimeColumns() ? ', :default_start_time, :default_end_time' : '';
 
         $this->db->dbquery(
             'INSERT INTO services(
                 supplier_id, category_id, name, description, price' . $priceRangeColumns . ', thumbnail_url,
-                is_active, booking_type, duration_minutes, pricing_unit, max_concurrent, min_lead_days
+                is_active, booking_type, duration_minutes, pricing_unit, max_concurrent, min_lead_days' . $defaultTimeColumns . '
              ) VALUES(
                 :supplier_id, :category_id, :name, :description, :price' . $priceRangeValues . ', :thumbnail_url,
-                :is_active, :booking_type, :duration_minutes, :pricing_unit, :max_concurrent, :min_lead_days
+                :is_active, :booking_type, :duration_minutes, :pricing_unit, :max_concurrent, :min_lead_days' . $defaultTimeValues . '
              )'
         );
         $this->bindServiceFields($supplierId, $categoryId, $data);
@@ -175,6 +180,11 @@ class SupplierServiceManager
                  price_min = :price_min,
                  price_max = :price_max'
             : '';
+        $defaultTimeUpdate = $this->hasServiceDefaultTimeColumns()
+            ? ',
+                 default_start_time = :default_start_time,
+                 default_end_time = :default_end_time'
+            : '';
 
         $this->db->dbquery(
             'UPDATE services
@@ -188,7 +198,7 @@ class SupplierServiceManager
                  duration_minutes = :duration_minutes,
                  pricing_unit = :pricing_unit,
                  max_concurrent = :max_concurrent,
-                 min_lead_days = :min_lead_days
+                 min_lead_days = :min_lead_days' . $defaultTimeUpdate . '
              WHERE id = :id
                AND supplier_id = :supplier_id'
         );
@@ -398,6 +408,7 @@ class SupplierServiceManager
     private function getServiceById($serviceId, $supplierId)
     {
         $priceRangeFields = $this->servicePriceRangeSelectFields();
+        $defaultTimeFields = $this->serviceDefaultTimeSelectFields();
         $venueSelectFields = $this->venueSelectFields();
         $venueJoin = $this->venueJoinClause();
         $this->db->dbquery(
@@ -414,6 +425,7 @@ class SupplierServiceManager
                     services.pricing_unit,
                     services.max_concurrent,
                     services.min_lead_days,
+                    ' . $defaultTimeFields . '
                     ' . $venueSelectFields . '
                     categories.name AS category
              FROM services
@@ -1073,6 +1085,12 @@ class SupplierServiceManager
         $this->db->dbbind(':pricing_unit', $data['pricing_unit'] ?? 'per_session');
         $this->db->dbbind(':max_concurrent', max(1, min(65535, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1))));
         $this->db->dbbind(':min_lead_days', max(0, min(365, (int)($data['min_lead_days'] ?? 0))), PDO::PARAM_INT);
+        if ($this->hasServiceDefaultTimeColumns()) {
+            $startTime = !empty($data['default_start_time']) ? $data['default_start_time'] : null;
+            $endTime   = !empty($data['default_end_time'])   ? $data['default_end_time']   : null;
+            $this->db->dbbind(':default_start_time', $startTime);
+            $this->db->dbbind(':default_end_time',   $endTime);
+        }
     }
 
     private function applyVenueRoomPriceRange($data)
@@ -1620,6 +1638,13 @@ class SupplierServiceManager
             : 'services.price AS price_min, services.price AS price_max,';
     }
 
+    private function serviceDefaultTimeSelectFields()
+    {
+        return $this->hasServiceDefaultTimeColumns()
+            ? 'services.default_start_time, services.default_end_time,'
+            : 'NULL AS default_start_time, NULL AS default_end_time,';
+    }
+
     private function hasServicePriceRangeColumns()
     {
         if ($this->hasServicePriceRangeColumns !== null) {
@@ -1637,6 +1662,25 @@ class SupplierServiceManager
         $this->hasServicePriceRangeColumns = (int)($row['total'] ?? 0) >= 2;
 
         return $this->hasServicePriceRangeColumns;
+    }
+
+    private function hasServiceDefaultTimeColumns(): bool
+    {
+        if ($this->hasServiceDefaultTimeColumns !== null) {
+            return $this->hasServiceDefaultTimeColumns;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = "services"
+               AND COLUMN_NAME IN ("default_start_time", "default_end_time")'
+        );
+        $row = $this->db->getsingledata();
+        $this->hasServiceDefaultTimeColumns = (int)($row['total'] ?? 0) >= 2;
+
+        return $this->hasServiceDefaultTimeColumns;
     }
 
     private function hasVenueRoomPriceRangeColumns()

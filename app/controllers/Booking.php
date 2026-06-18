@@ -146,10 +146,13 @@ class Booking extends Controller
             $currentItemErrors = [];
             
             // For fullday items (packages and fullday services), time slots are not required.
+            // Three-layer resolution: resolved_start_time (from cart) → CATEGORY_DEFAULT_TIMES → 00:00/23:59
             $isFullday = ($item['booking_type'] ?? 'fullday') === 'fullday';
-            if ($isFullday) {
-                if (empty($itemStartTime)) $itemStartTime = '00:00:00';
-                if (empty($itemEndTime))   $itemEndTime   = '23:59:59';
+            if ($isFullday && empty($itemStartTime)) {
+                $categoryId = (int)($item['category_id'] ?? 0);
+                $categoryTimes = defined('CATEGORY_DEFAULT_TIMES') ? (CATEGORY_DEFAULT_TIMES[$categoryId] ?? null) : null;
+                $itemStartTime = $item['resolved_start_time'] ?? ($categoryTimes['start'] ?? '00:00:00');
+                $itemEndTime   = $item['resolved_end_time']   ?? ($categoryTimes['end']   ?? '23:59:59');
             }
 
             // Required details for suppliers before payment.

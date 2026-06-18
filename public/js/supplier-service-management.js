@@ -584,6 +584,8 @@ function serviceFormPayload(prefix, category) {
     venue: document.getElementById(prefix + 'Venue')?.value.trim() || '',
     venue_location: document.getElementById(prefix + 'Location')?.value.trim() || '',
     min_lead_days: minLeadDays,
+    default_start_time: document.getElementById(prefix + 'DefaultStartTime')?.value || null,
+    default_end_time: document.getElementById(prefix + 'DefaultEndTime')?.value || null,
     rooms,
     decoration_styles: isDecoration ? collectDecorationStyles(prefix) : [],
     rental_pricing: isRental ? collectRentalPricing(prefix) : null,
@@ -1059,6 +1061,8 @@ function openEditService(id) {
   document.getElementById('esPriceMin').value=item.price_min ?? item.price;
   document.getElementById('esPriceMax').value=item.price_max ?? item.price_min ?? item.price;
   document.getElementById('esMinLeadDays').value=item.min_lead_days ?? '';
+  document.getElementById('esDefaultStartTime').value=item.default_start_time ?? '';
+  document.getElementById('esDefaultEndTime').value=item.default_end_time ?? '';
   document.getElementById('esImgData').value=item.img||'';
   if (item.img) renderConfirmedImage(item.img, item.img, 'esImgInput', 'esImgBox', 'esImgData', 16/9);
   else resetImgBox('esImgBox', true);
@@ -1072,6 +1076,7 @@ function openEditService(id) {
   decoExtras?.classList.toggle('hidden', !isDecoEdit);
   rentalExtras?.classList.toggle('hidden', !isRentalEdit);
   document.getElementById('esServicePriceFields')?.classList.toggle('hidden', isVenueEdit || isDecoEdit || isRentalEdit);
+  document.getElementById('esDefaultTimeRow')?.classList.toggle('hidden', isVenueEdit);
   if (isVenueEdit) {
     document.getElementById('esType').value=item.type||'';
     document.getElementById('esVenue').value=item.venue||'';
@@ -1116,6 +1121,8 @@ async function updateService() {
     venue: document.getElementById('esVenue')?.value.trim() || item.venue || '',
     venue_location: document.getElementById('esLocation')?.value.trim() || item.venue_location || '',
     min_lead_days: minLeadDays,
+    default_start_time: document.getElementById('esDefaultStartTime')?.value || null,
+    default_end_time: document.getElementById('esDefaultEndTime')?.value || null,
     rooms: isVenueUpd ? collectVenueRooms('es') : [],
     rooms_replace: isVenueUpd,
     decoration_styles: isDecoUpd ? collectDecorationStyles('es') : [],
