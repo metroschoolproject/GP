@@ -675,6 +675,86 @@ HTML;
         }
     }
 
+    /**
+     * Send admin notification when customer requests cancellation.
+     */
+    public function sendAdminCancellationRequest(array $admin, array $customer, array $booking, string $reason): bool
+    {
+        if (empty($admin['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($admin['email'], $admin['name'] ?? 'Admin');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = '[Admin] Cancellation Request — Booking #' . $booking['id'];
+            $adminUrl = URLROOT . '/admin/bookings/detail/' . $booking['id'];
+            $customerName = htmlspecialchars($customer['name'], ENT_QUOTES);
+            $customerEmail = htmlspecialchars($customer['email'], ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#b94b4b;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Cancellation Request</h1>
+        <p style="margin:8px 0 0;opacity:.85;">Booking #{$booking['id']}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p><strong>Customer:</strong> {$customerName} ({$customerEmail})</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #b94b4b;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">CANCELLATION REASON</p>
+          <p style="margin:0;color:#8f2f2f;">{$reasonHtml}</p>
+        </div>
+        <p><a href="{$adminUrl}" style="display:inline-block;padding:12px 30px;background:#b94b4b;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Review Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "[Admin] Cancellation request for Booking #{$booking['id']} from {$customerName}. Reason: {$reason}. Review: {$adminUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (admin cancel): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send supplier notification when customer requests cancellation.
+     */
+    public function sendSupplierCancellationRequest(array $supplier, array $customer, array $booking, string $reason): bool
+    {
+        if (empty($supplier['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($supplier['email'], $supplier['name'] ?? $supplier['shop_name'] ?? 'Supplier');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Cancellation Request — Booking #' . $booking['id'];
+            $supplierUrl = URLROOT . '/supplier/bookingDetail/' . $booking['id'];
+            $supplierName = htmlspecialchars($supplier['shop_name'] ?? $supplier['name'] ?? 'Supplier', ENT_QUOTES);
+            $customerName = htmlspecialchars($customer['name'], ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#92400e;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Cancellation Request</h1>
+        <p style="margin:8px 0 0;opacity:.85;">Booking #{$booking['id']}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>Dear {$supplierName},</p>
+        <p><strong>{$customerName}</strong> has requested cancellation of this booking.</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #92400e;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">CANCELLATION REASON</p>
+          <p style="margin:0;color:#92400e;">{$reasonHtml}</p>
+        </div>
+        <p>Please stop any work in progress for this booking. The admin team will review and finalize the cancellation.</p>
+        <p><a href="{$supplierUrl}" style="display:inline-block;padding:12px 30px;background:#92400e;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">View Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "Cancellation request for Booking #{$booking['id']} from {$customerName}. Reason: {$reason}. Stop work for this booking. View: {$supplierUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (supplier cancel): ' . $e->getMessage());
+            return false;
+        }
+    }
+
     private function getPaymentUrl(int $bookingId): string
     {
         return URLROOT . '/booking/detail/' . $bookingId;

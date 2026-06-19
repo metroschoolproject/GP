@@ -69,6 +69,27 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   .toggle.off{background:var(--border)}
   .toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s}
   .toggle.on::after{transform:translateX(18px)}
+
+  .cover-uploader{position:relative;min-height:250px;border:1.5px dashed #d8d5d2;border-radius:14px;background:#fcfcfb;overflow:hidden;transition:border-color .18s,background .18s,box-shadow .18s}
+  .cover-uploader:hover,.cover-uploader.is-dragging{border-color:var(--primary);background:#fbf7f8;box-shadow:0 0 0 3px rgba(109,76,91,.07)}
+  .cover-uploader.has-image{border-style:solid;background:#161214}
+  .cover-uploader-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;padding:0!important}
+  .cover-uploader-label{display:flex!important;min-height:250px;margin:0!important;align-items:center;justify-content:center;cursor:pointer;text-transform:none!important;letter-spacing:normal!important;color:inherit!important}
+  .cover-uploader-empty{text-align:center;padding:34px 20px}
+  .cover-upload-icon{display:grid;place-items:center;width:58px;height:44px;margin:0 auto 18px;color:#d4d5d8}
+  .cover-upload-title{display:block;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px}
+  .cover-upload-title span{color:var(--primary)}
+  .cover-upload-help{display:block;font-size:12px;color:var(--muted);margin-bottom:18px}
+  .cover-upload-button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 16px;border:1px solid var(--border);border-radius:.65rem;background:#fff;color:var(--text);font-size:12px;font-weight:700;box-shadow:0 1px 2px rgba(17,24,39,.04)}
+  .cover-uploader-preview{position:absolute;inset:0;display:none}
+  .cover-uploader.has-image .cover-uploader-preview{display:block}
+  .cover-uploader.has-image .cover-uploader-empty{display:none}
+  .cover-uploader-preview img{width:100%;height:100%;object-fit:cover}
+  .cover-preview-shade{position:absolute;inset:auto 0 0;padding:54px 20px 18px;background:linear-gradient(transparent,rgba(18,13,15,.82));display:flex;align-items:flex-end;justify-content:space-between;gap:16px;color:#fff}
+  .cover-preview-name{min-width:0;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cover-preview-change{flex-shrink:0;border:1px solid rgba(255,255,255,.55);border-radius:.6rem;background:rgba(255,255,255,.14);color:#fff;padding:8px 12px;font-family:inherit;font-size:11px;font-weight:700;backdrop-filter:blur(8px);cursor:pointer}
+  .cover-upload-error{display:none;margin-top:7px;color:#b42318;font-size:12px;font-weight:600}
+  .cover-upload-error.is-visible{display:block}
 </style>
 <div class="admin-pkg-page">
   <a class="back-link" href="<?= URLROOT ?>/admin/packages">
@@ -122,9 +143,28 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
       </div>
 
       <div class="field">
-        <label>Package Image</label>
-        <input type="file" name="package_image" accept="image/jpeg,image/png,image/webp">
-        <p class="hint" style="margin-top:6px">Upload JPG, PNG, or WebP. Max size 6MB.</p>
+        <label>Package Cover</label>
+        <div class="cover-uploader" id="packageCoverUploader">
+          <input class="cover-uploader-input" id="packageCoverInput" type="file" name="package_image" accept="image/jpeg,image/png,image/webp">
+          <label class="cover-uploader-label" for="packageCoverInput">
+            <span class="cover-uploader-empty">
+              <span class="cover-upload-icon" aria-hidden="true">
+                <svg width="58" height="44" viewBox="0 0 58 44" fill="none"><path d="M46.5 19.2A14.5 14.5 0 0 0 18.7 14 10.5 10.5 0 0 0 20 35h25.5a8 8 0 0 0 1-15.8Z" fill="currentColor"/><path d="m29 14-7 8h4v8h6v-8h4l-7-8Z" fill="#fff"/></svg>
+              </span>
+              <span class="cover-upload-title">Choose an image or <span>drag &amp; drop it here</span></span>
+              <span class="cover-upload-help">JPG, PNG or WebP · Up to 6MB</span>
+              <span class="cover-upload-button">Browse files</span>
+            </span>
+          </label>
+          <div class="cover-uploader-preview">
+            <img id="packageCoverPreview" src="" alt="Selected package cover">
+            <div class="cover-preview-shade">
+              <span class="cover-preview-name" id="packageCoverName">Package cover</span>
+              <button class="cover-preview-change" type="button" id="packageCoverChange">Change cover</button>
+            </div>
+          </div>
+        </div>
+        <p class="cover-upload-error" id="packageCoverError" role="alert"></p>
       </div>
 
       <div class="field">
@@ -184,6 +224,66 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
 <script>
   const packageCreateForm = document.getElementById('packageCreateForm');
   const serviceCheckboxes = document.querySelectorAll('.cat-option input[type="checkbox"]');
+
+  function initPackageCoverUploader() {
+    const uploader = document.getElementById('packageCoverUploader');
+    const input = document.getElementById('packageCoverInput');
+    const preview = document.getElementById('packageCoverPreview');
+    const fileName = document.getElementById('packageCoverName');
+    const changeButton = document.getElementById('packageCoverChange');
+    const error = document.getElementById('packageCoverError');
+    if (!uploader || !input || !preview) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 6 * 1024 * 1024;
+
+    function showError(message) {
+      error.textContent = message;
+      error.classList.toggle('is-visible', Boolean(message));
+    }
+
+    function setFile(file) {
+      if (!file) return;
+      if (!allowedTypes.includes(file.type)) {
+        input.value = '';
+        showError('Choose a JPG, PNG, or WebP image.');
+        return;
+      }
+      if (file.size > maxSize) {
+        input.value = '';
+        showError('The cover image must be 6MB or smaller.');
+        return;
+      }
+      showError('');
+      preview.src = URL.createObjectURL(file);
+      fileName.textContent = file.name;
+      uploader.classList.add('has-image');
+    }
+
+    input.addEventListener('change', () => setFile(input.files[0]));
+    changeButton.addEventListener('click', event => {
+      event.preventDefault();
+      input.click();
+    });
+    ['dragenter', 'dragover'].forEach(type => uploader.addEventListener(type, event => {
+      event.preventDefault();
+      uploader.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach(type => uploader.addEventListener(type, event => {
+      event.preventDefault();
+      uploader.classList.remove('is-dragging');
+    }));
+    uploader.addEventListener('drop', event => {
+      const file = event.dataTransfer?.files?.[0];
+      if (!file) return;
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
+      setFile(file);
+    });
+  }
+
+  initPackageCoverUploader();
 
   serviceCheckboxes.forEach(input => {
     input.addEventListener('change', () => {

@@ -406,8 +406,7 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `name`, `slug`, `created_at`) VALUES
-(1, 'Accessories', 'accessories', '2026-05-24 05:07:27'),
-(2, 'Dress', 'dress', '2026-05-24 05:07:27'),
+(2, 'Attire', 'attire', '2026-05-24 05:07:27'),
 (3, 'Food', 'food', '2026-05-24 05:07:27'),
 (4, 'Package', 'package', '2026-05-24 05:07:27'),
 (5, 'Studio', 'studio', '2026-05-24 05:07:27'),
@@ -717,8 +716,11 @@ CREATE TABLE `package_items` (
   `category_id` bigint(20) DEFAULT NULL,
   `service_id` bigint(20) DEFAULT NULL,
   `venue_room_id` bigint(20) DEFAULT NULL,
+  `attire_item_id` bigint(20) DEFAULT NULL,
+  `decoration_style_id` bigint(20) DEFAULT NULL,
   `default_supplier_id` bigint(20) DEFAULT NULL,
   `default_price` decimal(10,2) DEFAULT NULL,
+  `customize_price` decimal(10,2) DEFAULT NULL,
   `quantity_type` varchar(20) NOT NULL DEFAULT 'fixed',
   `quantity` int(11) NOT NULL DEFAULT 1,
   `deleted_at` timestamp NULL DEFAULT NULL
@@ -1562,6 +1564,35 @@ INSERT INTO `venue_rooms` (`id`, `venue_id`, `name`, `capacity`, `price`, `creat
 (17, 17, 'Hall 1', 300, 2000000.00, '2026-06-15 18:15:07', 90, NULL),
 (18, 19, 'Royal Ball Room', 220, 600000.00, '2026-06-17 08:31:38', 60, 'http://localhost/GP/public/uploads/suppliers/20/service-management/hall/20260617110322-fa0d6af8.jpg'),
 (19, 19, 'Grand Hall', 500, 800000.00, '2026-06-17 09:03:22', 36, 'http://localhost/GP/public/uploads/suppliers/20/service-management/hall/20260617110322-881773ae.jpg');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attire_items`
+--
+
+CREATE TABLE `attire_items` (
+  `id` bigint(20) NOT NULL,
+  `service_id` bigint(20) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `photo_url` varchar(500) DEFAULT NULL,
+  `borrow_package_price` decimal(12,2) DEFAULT NULL,
+  `borrow_customize_price` decimal(12,2) DEFAULT NULL,
+  `buy_package_price` decimal(12,2) DEFAULT NULL,
+  `buy_customize_price` decimal(12,2) DEFAULT NULL,
+  `return_days` int(11) DEFAULT NULL,
+  `sort_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `attire_items`
+--
+
+INSERT INTO `attire_items` (`id`, `service_id`, `name`, `description`, `photo_url`, `borrow_package_price`, `borrow_customize_price`, `buy_package_price`, `buy_customize_price`, `return_days`, `sort_order`, `created_at`) VALUES
+(1, 47, 'Traditional Wedding Dress', 'မြန်မာရိုးရာ သတို့သမီးဝတ်စုံ', NULL, 250000.00, 350000.00, 850000.00, 1200000.00, 3, 0, '2026-06-18 16:00:00'),
+(2, 47, 'Groom Traditional Suit', 'သတို့သားရိုးရာဝတ်စုံ', NULL, 180000.00, 250000.00, 650000.00, 900000.00, 3, 1, '2026-06-18 16:00:00');
 
 -- --------------------------------------------------------
 

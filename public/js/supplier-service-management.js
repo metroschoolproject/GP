@@ -620,17 +620,132 @@ function validateRentalPricing(prefix) {
 // ── CATEGORY-SPECIFIC SECTION TOGGLE ─────────────────────────
 function onOthersCategoryChange(category) {
   const isDecoration = category === 'Decoration';
-  const isRental = category === 'Dress' || category === 'Accessories';
+  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire') || category === 'Attire';
   document.getElementById('oStandardPriceFields')?.classList.toggle('hidden', isDecoration || isRental);
   document.getElementById('oDecorationExtras')?.classList.toggle('hidden', !isDecoration);
   document.getElementById('oRentalExtras')?.classList.toggle('hidden', !isRental);
   if (isDecoration && !document.querySelectorAll('.o-style-row').length) renderDecorationStyles('o');
 }
 
+// ── ATTIRE ITEMS ────────────────────────────────────────────
+function addAttireItem(prefix) {
+  var list = document.getElementById(prefix + 'AttireItemsList');
+  if (!list) return;
+  list.insertAdjacentHTML('beforeend', attireItemRowHtml(prefix));
+}
+
+function removeAttireItem(button, prefix) {
+  var list = document.getElementById(prefix + 'AttireItemsList');
+  var row = button.closest('.' + prefix + '-attire-item');
+  if (!list || !row) return;
+  if (list.querySelectorAll('.' + prefix + '-attire-item').length <= 1) {
+    row.querySelectorAll('input').forEach(function(input) { input.value = ''; });
+    return;
+  }
+  row.remove();
+}
+
+function attireItemRowHtml(prefix) {
+  return '<div class="' + prefix + '-attire-item room-card" style="margin-bottom:10px">' +
+    '<input class="room-id" type="hidden" value="">' +
+    '<div class="modal-grid-2">' +
+    '<div><label class="fm-label">Name</label><input class="' + prefix + '-attire-name fm-input" type="text" placeholder="e.g. Traditional Wedding Dress"></div>' +
+    '<div><label class="fm-label">Photo <small>(optional)</small></label><input class="' + prefix + '-attire-photo fm-input" type="file" accept="image/*" onchange="onAttirePhotoChange(this,\'' + prefix + '\')"></div>' +
+    '</div>' +
+    '<div class="modal-grid-2" style="margin-top:8px">' +
+    '<div><label class="fm-label">Borrow Package Price</label><input class="' + prefix + '-attire-borrow-pkg fm-input" type="number" min="0" step="0.01" placeholder="e.g. 250,000"></div>' +
+    '<div><label class="fm-label">Borrow Customize Price</label><input class="' + prefix + '-attire-borrow-cust fm-input" type="number" min="0" step="0.01" placeholder="e.g. 350,000"></div>' +
+    '</div>' +
+    '<div class="modal-grid-2" style="margin-top:8px">' +
+    '<div><label class="fm-label">Buy Package Price</label><input class="' + prefix + '-attire-buy-pkg fm-input" type="number" min="0" step="0.01" placeholder="e.g. 850,000"></div>' +
+    '<div><label class="fm-label">Buy Customize Price</label><input class="' + prefix + '-attire-buy-cust fm-input" type="number" min="0" step="0.01" placeholder="e.g. 1,200,000"></div>' +
+    '</div>' +
+    '<div class="modal-grid-2" style="margin-top:8px">' +
+    '<div><label class="fm-label">Return days</label><input class="' + prefix + '-attire-return-days fm-input" type="number" min="1" step="1" placeholder="e.g. 3"></div>' +
+    '</div>' +
+    '<div class="attire-photo-data-wrap"><input class="' + prefix + '-attire-photo-data" type="hidden" value=""></div>' +
+    '<button type="button" onclick="removeAttireItem(this,\'' + prefix + '\')" class="btn-dull" style="margin-top:8px;font-size:11px">Remove</button>' +
+    '</div>';
+}
+
+function onAttirePhotoChange(input, prefix) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var row = input.closest('.' + prefix + '-attire-item');
+    if (row) {
+      var dataInput = row.querySelector('.' + prefix + '-attire-photo-data');
+      if (dataInput) dataInput.value = e.target.result;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function collectAttireItems(prefix) {
+  var rows = Array.from(document.querySelectorAll('.' + prefix + '-attire-item'));
+  return rows.map(function(row) {
+    var name = (row.querySelector('.' + prefix + '-attire-name')?.value || '').trim();
+    return {
+      id: row.querySelector('.room-id')?.value || null,
+      name: name,
+      photo_url: row.querySelector('.' + prefix + '-attire-photo-data')?.value || null,
+      borrow_package_price: parseFloat(row.querySelector('.' + prefix + '-attire-borrow-pkg')?.value || '0') || null,
+      borrow_customize_price: parseFloat(row.querySelector('.' + prefix + '-attire-borrow-cust')?.value || '0') || null,
+      buy_package_price: parseFloat(row.querySelector('.' + prefix + '-attire-buy-pkg')?.value || '0') || null,
+      buy_customize_price: parseFloat(row.querySelector('.' + prefix + '-attire-buy-cust')?.value || '0') || null,
+      return_days: parseInt(row.querySelector('.' + prefix + '-attire-return-days')?.value || '0', 10) || null,
+    };
+  }).filter(function(item) { return item.name; });
+}
+
+function validateAttireItems(prefix) {
+  var items = collectAttireItems(prefix);
+  if (!items.length) {
+    showToast('Please add at least one item (dress, suit, accessory) with a name.', 'error');
+    return false;
+  }
+  var hasPriced = items.some(function(item) {
+    var b = (Number(item.borrow_package_price) || 0) > 0 || (Number(item.borrow_customize_price) || 0) > 0;
+    var y = (Number(item.buy_package_price) || 0) > 0 || (Number(item.buy_customize_price) || 0) > 0;
+    return b || y;
+  });
+  if (!hasPriced) {
+    showToast('At least one item needs a borrow price, buy price, or both.', 'error');
+    return false;
+  }
+  return true;
+}
+
+function renderAttireItems(prefix, items) {
+  items = items || [];
+  var list = document.getElementById(prefix + 'AttireItemsList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!items.length) {
+    addAttireItem(prefix);
+    return;
+  }
+  items.forEach(function(item) {
+    addAttireItem(prefix);
+    var rows = list.querySelectorAll('.' + prefix + '-attire-item');
+    var row = rows[rows.length - 1];
+    if (!row) return;
+    row.querySelector('.room-id').value = item.id || '';
+    row.querySelector('.' + prefix + '-attire-name').value = item.name || '';
+    row.querySelector('.' + prefix + '-attire-photo-data').value = item.photo_url || '';
+    row.querySelector('.' + prefix + '-attire-borrow-pkg').value = item.borrow_package_price ?? '';
+    row.querySelector('.' + prefix + '-attire-borrow-cust').value = item.borrow_customize_price ?? '';
+    row.querySelector('.' + prefix + '-attire-buy-pkg').value = item.buy_package_price ?? '';
+    row.querySelector('.' + prefix + '-attire-buy-cust').value = item.buy_customize_price ?? '';
+    row.querySelector('.' + prefix + '-attire-return-days').value = item.return_days ?? '';
+  });
+}
+
 function serviceFormPayload(prefix, category) {
   const isVenue = category === 'Venue';
   const isDecoration = category === 'Decoration';
-  const isRental = category === 'Dress' || category === 'Accessories';
+  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire') || category === 'Attire';
   const rooms = isVenue ? collectVenueRooms(prefix) : [];
   const priceRange = isVenue ? venueRoomPriceRange(prefix) : (isDecoration || isRental ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload(prefix));
   const minLeadDaysEl = document.getElementById(prefix + 'MinLeadDays');
@@ -655,6 +770,8 @@ function serviceFormPayload(prefix, category) {
     rooms,
     decoration_styles: isDecoration ? collectDecorationStyles(prefix) : [],
     rental_pricing: isRental ? collectRentalPricing(prefix) : null,
+    attire_items: isRental ? collectAttireItems(prefix) : [],
+    attire_items_replace: isRental,
   };
 }
 
@@ -699,14 +816,20 @@ function selectCreateCategory(cat) {
 function toggleCategoryFields(category) {
   var isVenue = category === 'Venue';
   var isDecoration = category === 'Decoration';
-  var isRental = category === 'Dress' || category === 'Accessories';
+  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire') || category === 'Attire';
 
   var standard = document.getElementById('csStandardPriceFields');
   var venueExtras = document.getElementById('csVenueExtras');
   var decoExtras = document.getElementById('csDecorationExtras');
   var rentalExtras = document.getElementById('csRentalExtras');
+  var attireList = document.getElementById('csAttireItemsList');
 
   if (standard) standard.classList.toggle('hidden-section', isVenue || isDecoration || isRental);
+  if (attireList) {
+    if (isRental && !attireList.querySelectorAll('.cs-attire-item').length) {
+      addAttireItem('cs');
+    }
+  }
   if (venueExtras) venueExtras.classList.toggle('hidden-section', !isVenue);
   if (decoExtras) decoExtras.classList.toggle('hidden-section', !isDecoration);
   if (rentalExtras) rentalExtras.classList.toggle('hidden-section', !isRental);
@@ -829,8 +952,8 @@ async function saveCreateService() {
     if (!validateVenueRooms('cs')) return;
   } else if (category === 'Decoration') {
     if (!validateDecorationStyles('cs')) return;
-  } else if (category === 'Dress' || category === 'Accessories') {
-    if (!validateRentalPricing('cs')) return;
+  } else if (category === 'Dress' || category === 'Accessories' || category === 'Attire') {
+    if (!validateAttireItems('cs')) return;
   } else {
     var priceMin = parseFloat(document.getElementById('csPriceMin').value);
     var priceMax = parseFloat(document.getElementById('csPriceMax').value || document.getElementById('csPriceMin').value);
@@ -1289,6 +1412,7 @@ function openEditService(id) {
     document.getElementById('esReturnDays').value = rp.return_days ?? '';
     document.getElementById('esBuyPackagePrice').value = rp.buy_package_price ?? rp.buy_price ?? '';
     document.getElementById('esBuyCustomizePrice').value = rp.buy_customize_price ?? rp.buy_price ?? '';
+    renderAttireItems('es', item.attire_items || []);
   }
   document.getElementById('editServiceModal').classList.remove('hidden');
 }
@@ -1300,7 +1424,7 @@ async function updateService() {
   if (!isVenueUpd && !isDecoUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
   if (isVenueUpd && !validateVenueRooms('es')) return;
   if (isDecoUpd && !validateDecorationStyles('es')) return;
-  if (isRentalUpd && !validateRentalPricing('es')) return;
+  if (isRentalUpd && !validateAttireItems('es')) return;
   const priceRange = isVenueUpd ? venueRoomPriceRange('es') : (isDecoUpd || isRentalUpd ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload('es'));
   const minLeadDaysEl = document.getElementById('esMinLeadDays');
   const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
@@ -1323,6 +1447,8 @@ async function updateService() {
     rooms_replace: isVenueUpd,
     decoration_styles: isDecoUpd ? collectDecorationStyles('es') : [],
     rental_pricing: isRentalUpd ? collectRentalPricing('es') : null,
+    attire_items: isRentalUpd ? collectAttireItems('es') : [],
+    attire_items_replace: isRentalUpd,
   };
   try {
     const result = await apiRequest(serviceManagementUrls.serviceUpdate + editingSvcId, payload);

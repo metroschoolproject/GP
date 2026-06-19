@@ -38,41 +38,6 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
         <div class="flex flex-col gap-3 h-full">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
 
-            <!-- Escrow Wallet -->
-            <div class="relative overflow-hidden rounded-card bg-app-text p-4 text-app-white shadow-xl">
-                <div class="relative z-10">
-                    <div class="mb-3 flex items-center gap-2">
-                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-app-input/10 text-app-white">
-                            <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-app-white">Escrow Wallet</p>
-                            <p class="text-[11px] text-app-muted">Protected payments</p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <p class="text-[10px] uppercase tracking-widest text-app-muted">Total</p>
-                            <p id="escrowTotal" class="mt-1 text-xl font-bold tracking-tight">$38,482</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-[10px] uppercase tracking-widest text-app-muted">Pending</p>
-                            <p id="escrowPending" class="mt-1 text-xl font-bold tracking-tight">$13,260</p>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="mb-1.5 flex justify-between text-[10px] font-bold uppercase tracking-widest text-app-muted">
-                            <span><span id="escrowAvailable">$25,222</span> available</span>
-                            <span id="escrowProgressPercent">0%</span>
-                        </div>
-                        <div class="h-1.5 rounded-full bg-app-input/10">
-                            <div id="escrowProgressFill" class="h-full w-0 rounded-full bg-app-accent"></div>
-                        </div>
-                    </div>
-                </div>
-                <svg class="absolute -right-6 -top-6 h-24 w-24 text-app-white/5 rotate-12"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>
-            </div>
-
             <!-- Total Revenue -->
             <div class="<?= $dashboardCardClass ?>">
                 <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-danger-soft text-app-danger">
@@ -261,10 +226,8 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                                 <th class="<?= $dashboardTableHeadClass ?>">Customer Name</th>
                                 <th class="<?= $dashboardTableHeadClass ?>">Event Date</th>
                                 <th class="<?= $dashboardTableHeadClass ?>">Payment Method</th>
-                                <th class="<?= $dashboardTableHeadClass ?>">Payout Type</th>
                                 <th class="<?= $dashboardTableHeadClass ?>">Total</th>
                                 <th class="<?= $dashboardTableHeadClass ?>">Paid</th>
-                                <th class="<?= $dashboardTableHeadClass ?>">Escrow Status</th>
                             </tr>
                         </thead>
                         <tbody id="paymentTableBody">
@@ -328,7 +291,6 @@ window.supplierDashboardData = <?= json_encode([
     'services' => $dashboardData['services'] ?? [],
     'upcomingBookings' => $dashboardData['upcomingBookings'] ?? [],
     'recentReviews' => $dashboardData['recentReviews'] ?? [],
-    'wallet' => $dashboardData['wallet'] ?? [],
     'payments' => $dashboardData['payments'] ?? [],
     'chartData' => $dashboardData['chartData'] ?? [],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
@@ -345,14 +307,12 @@ window.supplierDashboardData = <?= json_encode([
       customer: p.customer_name || 'Customer',
       eventDate: p.event_date || '—',
       method: p.method || '—',
-      payout: p.payment_status || '—',
       total: parseFloat(p.total_amount || 0),
-      paid: parseFloat(p.paid_amount || 0),
-      escrow: p.escrow_status || '—'
+      paid: parseFloat(p.paid_amount || 0)
     };
   });
   if (paymentsList.length === 0) {
-    paymentsList = [{ id: '—', bookingId: '—', customer: 'No payment records yet', eventDate: '—', method: '—', payout: '—', total: 0, paid: 0, escrow: '—' }];
+    paymentsList = [{ id: '—', bookingId: '—', customer: 'No payment records yet', eventDate: '—', method: '—', total: 0, paid: 0 }];
   }
   var paymentData = paymentsList;
 
@@ -383,15 +343,15 @@ window.supplierDashboardData = <?= json_encode([
     }).join("");
   }
 
-  var paymentsWithPayout = paymentsList.filter(function(p) { return parseFloat(p.paid) > 0; });
-  var withdrawData = paymentsWithPayout.map(function(p, i) {
+  var paidPayments = paymentsList.filter(function(p) { return parseFloat(p.paid) > 0; });
+  var withdrawData = paidPayments.map(function(p, i) {
     return {
       id: "PAY-" + String(i + 1).padStart(4, '0'),
       date: p.eventDate,
       amount: p.paid,
       bank: p.method,
       account: "—",
-      status: p.payout === "Full Paid" ? "completed" : "processing"
+      status: p.paid >= p.total ? "completed" : "processing"
     };
   });
   if (withdrawData.length === 0) {
@@ -399,41 +359,10 @@ window.supplierDashboardData = <?= json_encode([
   }
 
   /* ── payment table ── */
-  let currentPaymentFilter = "all";
-
-  function payoutBadge(type) {
-    const t = type.toLowerCase();
-    if (t === "pending")   return `<span class="rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-warning">${type}</span>`;
-    if (t === "full paid") return `<span class="rounded-full bg-app-soft px-2 py-0.5 text-[10px] font-semibold text-app-success">${type}</span>`;
-    if (t === "half paid") return `<span class="rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-secondary">${type}</span>`;
-    return type;
-  }
-
-  function escrowBadge(status) {
-    const s = status.toLowerCase();
-    if (s === "released")             return `<span class="text-app-success font-medium">${status}</span>`;
-    if (s === "partially released")   return `<span class="text-app-warning font-medium">${status}</span>`;
-    return `<span class="text-app-secondary">${status}</span>`;
-  }
-
-  function filterPayments(status) {
-    currentPaymentFilter = status;
-    document.querySelectorAll(".filter-tab").forEach(btn => {
-      const isActive = btn.dataset.status === status;
-      btn.classList.toggle("bg-app-primary", isActive);
-      btn.classList.toggle("text-app-white", isActive);
-      btn.classList.toggle("text-app-secondary", !isActive);
-      btn.classList.toggle("bg-app-soft", !isActive);
-    });
-    renderPaymentTable();
-  }
-
   function renderPaymentTable() {
     const tbody = document.getElementById("paymentTableBody");
     const noRows = document.getElementById("noPaymentRows");
-    const rows = currentPaymentFilter === "all"
-      ? paymentData
-      : paymentData.filter(r => r.payout.toLowerCase() === currentPaymentFilter);
+    const rows = paymentData;
 
     if (rows.length === 0) {
       tbody.innerHTML = "";
@@ -448,10 +377,8 @@ window.supplierDashboardData = <?= json_encode([
         <td class="py-2.5 px-2 text-app-text whitespace-nowrap">${r.customer}</td>
         <td class="py-2.5 px-2 text-app-secondary whitespace-nowrap">${r.eventDate}</td>
         <td class="py-2.5 px-2 text-app-secondary">${r.method}</td>
-        <td class="py-2.5 px-2">${payoutBadge(r.payout)}</td>
         <td class="py-2.5 px-2 font-medium text-app-text">${currency(r.total)}</td>
         <td class="py-2.5 px-2 font-medium text-app-text">${currency(r.paid)}</td>
-        <td class="py-2.5 px-2">${escrowBadge(r.escrow)}</td>
       </tr>
     `).join("");
   }
@@ -674,7 +601,6 @@ window.supplierDashboardData = <?= json_encode([
       cancelledBookings: 0,
       totalRevenue: d.stats.total_revenue || 0,
       avgSpend: d.stats.total_bookings > 0 ? Math.round(d.stats.total_revenue / d.stats.total_bookings) : 0,
-      escrow: { total: d.stats.total_revenue || 0, pendingRelease: 0, available: d.stats.total_revenue || 0 }
     });
   }
 
@@ -685,13 +611,6 @@ window.supplierDashboardData = <?= json_encode([
     set("confirmedBookings", data.confirmedBookings);
     set("cancelledBookings", data.cancelledBookings);
     set("avgSpend", currency(data.avgSpend));
-    set("escrowTotal", currency(data.escrow.total));
-    set("escrowPending", currency(data.escrow.pendingRelease));
-    set("escrowAvailable", currency(data.escrow.available));
-    const pct = data.escrow.total > 0 ? Math.round((data.escrow.available / data.escrow.total) * 100) : 0;
-    const fill = document.getElementById("escrowProgressFill");
-    if (fill) fill.style.width = `${pct}%`;
-    set("escrowProgressPercent", `${pct}%`);
   }
 
   document.addEventListener("DOMContentLoaded", () => {

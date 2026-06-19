@@ -169,6 +169,7 @@ class SupplierServiceManager
         $this->saveVenueDetails($supplierId, $serviceId, $data);
         $this->saveDecorationStyles($serviceId, $data);
         $this->saveRentalPricing($serviceId, $data);
+        $this->saveAttireItems($serviceId, $data);
 
         return $this->getServiceById($serviceId, $supplierId);
     }
@@ -226,6 +227,7 @@ class SupplierServiceManager
         $this->saveVenueDetails($supplierId, $serviceId, $data);
         $this->saveDecorationStyles($serviceId, $data);
         $this->saveRentalPricing($serviceId, $data);
+        $this->saveAttireItems($serviceId, $data);
 
         return $this->getServiceById($serviceId, $supplierId);
     }
@@ -558,9 +560,10 @@ class SupplierServiceManager
         $category = strtolower((string)($service['category'] ?? ''));
         $isVenue = $category === 'venue';
         $isDecoration = $category === 'decoration';
-        $isRental = in_array($category, ['dress', 'accessories'], true);
+        $isRental = in_array($category, ['attire'], true);
         $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'] : [];
         $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
+        $attireItems = is_array($service['attire_items'] ?? null) ? $service['attire_items'] : [];
         $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 
         if ($name === '') {
@@ -591,12 +594,30 @@ class SupplierServiceManager
                 $missing[] = 'Add at least one decoration style with a name and price.';
             }
         } elseif ($isRental) {
-            $hasBorrow = ($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0) > 0
-                || ($rentalPricing['borrow_customize_price'] ?? 0) > 0;
-            $hasBuy = ($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0) > 0
-                || ($rentalPricing['buy_customize_price'] ?? 0) > 0;
-            if (!$hasBorrow && !$hasBuy) {
-                $missing[] = 'Add a borrow price, a buy price, or both.';
+            // Check attire items first; fall back to service-level rental pricing
+            if (!empty($attireItems)) {
+                $hasValidItem = false;
+                foreach ($attireItems as $ai) {
+                    $aiBorrow = ($ai['borrow_package_price'] ?? $ai['borrow_price'] ?? 0) > 0
+                        || ($ai['borrow_customize_price'] ?? 0) > 0;
+                    $aiBuy = ($ai['buy_package_price'] ?? $ai['buy_price'] ?? 0) > 0
+                        || ($ai['buy_customize_price'] ?? 0) > 0;
+                    if ($aiBorrow || $aiBuy) {
+                        $hasValidItem = true;
+                        break;
+                    }
+                }
+                if (!$hasValidItem) {
+                    $missing[] = 'At least one attire item needs a borrow price, buy price, or both.';
+                }
+            } else {
+                $hasBorrow = ($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0) > 0
+                    || ($rentalPricing['borrow_customize_price'] ?? 0) > 0;
+                $hasBuy = ($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0) > 0
+                    || ($rentalPricing['buy_customize_price'] ?? 0) > 0;
+                if (!$hasBorrow && !$hasBuy) {
+                    $missing[] = 'Add a borrow price, a buy price, or both.';
+                }
             }
         } elseif (!$this->hasOpenWeeklySchedule($weekly)) {
             $missing[] = 'Set at least one weekly available day with valid start and end time.';
@@ -1169,7 +1190,7 @@ class SupplierServiceManager
     private function applyRentalPriceRange($data)
     {
         $category = strtolower((string)($data['category'] ?? ''));
-        if (!in_array($category, ['dress', 'accessories'], true)) {
+        if (!in_array($category, ['attire'], true)) {
             return $data;
         }
 
@@ -1264,8 +1285,9 @@ class SupplierServiceManager
             'venue_name' => $venueName,
             'venue_location' => html_entity_decode($service['venue_location'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'venue_rooms' => !empty($service['venue_id']) ? $this->getVenueRooms((int)$service['venue_id']) : [],
+            'attire_items' => $category === 'attire' ? $this->getAttireItems((int)$service['id']) : [],
             'decoration_styles' => $category === 'decoration' ? $this->getDecorationStyles((int)$service['id']) : [],
-            'rental_pricing' => in_array($category, ['dress', 'accessories'], true) ? $this->getRentalPricing((int)$service['id']) : null,
+            'rental_pricing' => in_array($category, ['attire'], true) ? $this->getRentalPricing((int)$service['id']) : null,
         ];
     }
 
@@ -2213,7 +2235,7 @@ class SupplierServiceManager
     private function saveRentalPricing(int $serviceId, array $data): void
     {
         $category = strtolower((string)($data['category'] ?? ''));
-        if (!in_array($category, ['dress', 'accessories'], true)) {
+        if (!in_array($category, ['attire'], true)) {
             return;
         }
 
@@ -2314,5 +2336,113 @@ class SupplierServiceManager
             'buy_customize_price' => $buyCustomize !== null ? (float)$buyCustomize : null,
             'buy_price' => ($row['buy_price'] ?? $buyPackage) !== null ? (float)($row['buy_price'] ?? $buyPackage) : null,
         ];
+    }
+
+    // ─── Attire Items ──────────────────────────────────────────────
+
+    private function getAttireItems(int $serviceId): array
+    {
+        $this->db->dbquery(
+            'SELECT * FROM attire_items
+             WHERE service_id = :service_id
+             ORDER BY sort_order ASC, id ASC'
+        );
+        $this->db->dbbind(':service_id', $serviceId);
+        return $this->db->getmultidata();
+    }
+
+    private function saveAttireItems(int $serviceId, array $data): void
+    {
+        $category = strtolower((string)($data['category'] ?? ''));
+        if ($category !== 'attire') {
+            return;
+        }
+
+        $replaceItems = !empty($data['attire_items_replace']);
+        $items = $data['attire_items'] ?? [];
+
+        if ($replaceItems) {
+            $this->db->dbquery('DELETE FROM attire_items WHERE service_id = :service_id');
+            $this->db->dbbind(':service_id', $serviceId);
+            $this->db->dbexecute();
+        }
+
+        $sortOrder = 0;
+        foreach ($items as $item) {
+            if (!is_array($item) || empty(trim((string)($item['name'] ?? '')))) {
+                continue;
+            }
+
+            $itemId = (int)($item['id'] ?? 0);
+
+            if ($itemId > 0 && !$replaceItems) {
+                $this->db->dbquery(
+                    'UPDATE attire_items
+                     SET name = :name,
+                         description = :description,
+                         photo_url = :photo_url,
+                         borrow_package_price = :borrow_package_price,
+                         borrow_customize_price = :borrow_customize_price,
+                         buy_package_price = :buy_package_price,
+                         buy_customize_price = :buy_customize_price,
+                         return_days = :return_days,
+                         sort_order = :sort_order
+                     WHERE id = :id AND service_id = :service_id
+                     LIMIT 1'
+                );
+                $this->db->dbbind(':id', $itemId);
+            } else {
+                $this->db->dbquery(
+                    'INSERT INTO attire_items (service_id, name, description, photo_url,
+                     borrow_package_price, borrow_customize_price,
+                     buy_package_price, buy_customize_price,
+                     return_days, sort_order)
+                     VALUES (:service_id, :name, :description, :photo_url,
+                     :borrow_package_price, :borrow_customize_price,
+                     :buy_package_price, :buy_customize_price,
+                     :return_days, :sort_order)'
+                );
+            }
+
+            $this->db->dbbind(':service_id', $serviceId);
+            $this->db->dbbind(':name', trim((string)($item['name'] ?? '')));
+            $this->db->dbbind(':description', trim((string)($item['description'] ?? '')));
+            $this->db->dbbind(':photo_url', !empty($item['photo_url']) ? $item['photo_url'] : null,
+                !empty($item['photo_url']) ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $this->dbbindPrice(':borrow_package_price', $item['borrow_package_price'] ?? null);
+            $this->dbbindPrice(':borrow_customize_price', $item['borrow_customize_price'] ?? null);
+            $this->dbbindPrice(':buy_package_price', $item['buy_package_price'] ?? null);
+            $this->dbbindPrice(':buy_customize_price', $item['buy_customize_price'] ?? null);
+            $this->db->dbbind(':return_days', !empty($item['return_days']) ? (int)$item['return_days'] : null,
+                !empty($item['return_days']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $this->db->dbbind(':sort_order', $sortOrder, PDO::PARAM_INT);
+            $this->db->dbexecute();
+            $sortOrder++;
+        }
+
+        // Delete removed items (IDs present in current DB but not in submitted array)
+        if (!$replaceItems) {
+            $submittedIds = array_filter(array_map(fn($item) => (int)($item['id'] ?? 0), $items), fn($id) => $id > 0);
+            if (!empty($submittedIds)) {
+                $placeholders = implode(',', array_fill(0, count($submittedIds), '?'));
+                $this->db->dbquery(
+                    "DELETE FROM attire_items
+                     WHERE service_id = :service_id AND id NOT IN ({$placeholders})"
+                );
+                $this->db->dbbind(':service_id', $serviceId);
+                foreach ($submittedIds as $i => $id) {
+                    $this->db->dbbind(':delete_id_' . $i, $id, PDO::PARAM_INT);
+                }
+                // Use manual execute with array for simplicity
+            } else {
+                // If no IDs submitted (all new), nothing to delete
+            }
+        }
+    }
+
+    private function dbbindPrice(string $param, $value): void
+    {
+        $val = $value !== null && $value !== '' && (float)$value > 0 ? (float)$value : null;
+        $this->db->dbbind($param, $val, $val === null ? PDO::PARAM_NULL : null);
     }
 }

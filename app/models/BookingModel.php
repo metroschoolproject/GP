@@ -2302,4 +2302,20 @@ class BookingModel
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         return $this->db->getmultidata() ?: [];
     }
+
+    /**
+     * Get email addresses of all admin/staff users for notifications.
+     */
+    public function getAdminEmails(): array
+    {
+        $this->db->dbquery(
+            "SELECT u.name, u.email
+             FROM users u
+             JOIN user_roles ur ON u.user_id = ur.user_id
+             WHERE ur.role_id IN (3, 4)
+             AND u.status = 'active'
+             GROUP BY u.user_id"
+        );
+        return $this->db->getmultidata() ?: [];
+    }
 }

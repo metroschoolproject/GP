@@ -368,7 +368,7 @@ class SupplierProfile
             'services' => $this->getDashboardServices($supplierId),
             'upcomingBookings' => $this->getUpcomingSupplierBookings($supplierId),
             'recentReviews' => $this->getRecentSupplierReviews($supplierId),
-            'wallet' => $this->getSupplierWallet($supplierId),
+
             'payments' => $this->getDashboardPayments($supplierId),
             'chartData' => $this->getDashboardChartData($supplierId),
         ];
@@ -538,11 +538,6 @@ class SupplierProfile
         return $this->db->getmultidata();
     }
 
-    private function getSupplierWallet($supplierId)
-    {
-        // Escrow wallet is not used — manual transfers only.
-        return ['balance' => 0];
-    }
 
     private function getSupplierByUserId($userId)
     {

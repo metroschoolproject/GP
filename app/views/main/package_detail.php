@@ -24,8 +24,8 @@ $isRentalCategory = static function ($svc): bool {
     $slug = strtolower(trim((string)($svc['category_slug'] ?? '')));
     $name = strtolower(trim((string)($svc['category_name'] ?? '')));
 
-    return in_array($slug, ['dress', 'accessories'], true)
-        || in_array($name, ['dress', 'accessories'], true);
+    return in_array($slug, ['attire'], true)
+        || in_array($name, ['attire'], true);
 };
 $rentalRows = static function ($svc) use ($money, $isRentalCategory): array {
     if (!$isRentalCategory($svc)) {

@@ -820,10 +820,16 @@ class Admin extends Controller
         $categories = $packageModel->getAllCategories();
         $serviceOptions = $packageModel->getAdminServiceOptions();
         $hallOptionsByService = [];
+        $attireOptionsByService = [];
+        $decoOptionsByService = [];
         foreach ($serviceOptions as $serviceOption) {
             $label = strtolower((string)($serviceOption['category_slug'] ?? '') . ' ' . (string)($serviceOption['category_name'] ?? ''));
             if (strpos($label, 'venue') !== false || strpos($label, 'hall') !== false) {
                 $hallOptionsByService[(int)$serviceOption['id']] = $packageModel->getVenueRoomsForService((int)$serviceOption['id']);
+            } elseif (strpos($label, 'attire') !== false || strpos($label, 'dress') !== false) {
+                $attireOptionsByService[(int)$serviceOption['id']] = $packageModel->getAttireItemsForService((int)$serviceOption['id']);
+            } elseif (strpos($label, 'decor') !== false) {
+                $decoOptionsByService[(int)$serviceOption['id']] = $packageModel->getDecorationStylesForService((int)$serviceOption['id']);
             }
         }
 
@@ -832,6 +838,8 @@ class Admin extends Controller
             'categories' => $categories,
             'serviceOptions' => $serviceOptions,
             'hallOptionsByService' => $hallOptionsByService,
+            'attireOptionsByService' => $attireOptionsByService,
+            'decoOptionsByService' => $decoOptionsByService,
             'message' => $_SESSION['admin_flash'] ?? '',
         ]);
         unset($_SESSION['admin_flash']);
@@ -1144,7 +1152,9 @@ class Admin extends Controller
 
         $guestCount = max(1, (int)($_POST['guest_count'] ?? 100));
         $hallId = (int)($_POST['hall_id'] ?? 0);
-        $added = $packageModel->addPackageService((int)$packageId, $serviceId, $guestCount, $hallId > 0 ? $hallId : null);
+        $attireItemId = (int)($_POST['attire_item_id'] ?? 0);
+        $decoStyleId = (int)($_POST['decoration_style_id'] ?? 0);
+        $added = $packageModel->addPackageService((int)$packageId, $serviceId, $guestCount, $hallId > 0 ? $hallId : null, $attireItemId > 0 ? $attireItemId : null, $decoStyleId > 0 ? $decoStyleId : null);
         if ($added) {
             $this->refreshPackageBasePrice($packageModel, (int)$packageId);
         }

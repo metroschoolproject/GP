@@ -149,6 +149,36 @@ class PlatformPackage
                NULL AS venue_room_price';
         $hallJoin = $this->hasPackageVenueRoomColumn() ? 'LEFT JOIN venue_rooms vr ON vr.id = pi.venue_room_id' : '';
 
+        // Rental pricing fields (borrow/buy/return_days for attire)
+        if (!$this->hasServiceRentalPricingTable()) {
+            $rentalSelect = ', NULL AS borrow_package_price,
+               NULL AS borrow_customize_price,
+               NULL AS borrow_price,
+               NULL AS buy_package_price,
+               NULL AS buy_customize_price,
+               NULL AS buy_price,
+               NULL AS return_days';
+        } elseif ($this->hasRentalPriceMatrixColumns()) {
+            $rentalSelect = ', srp.borrow_package_price,
+               srp.borrow_customize_price,
+               srp.borrow_price,
+               srp.buy_package_price,
+               srp.buy_customize_price,
+               srp.buy_price,
+               srp.return_days';
+        } else {
+            $rentalSelect = ', srp.borrow_price AS borrow_package_price,
+               srp.borrow_price AS borrow_customize_price,
+               srp.borrow_price,
+               srp.buy_price AS buy_package_price,
+               srp.buy_price AS buy_customize_price,
+               srp.buy_price,
+               srp.return_days';
+        }
+        $rentalJoin = $this->hasServiceRentalPricingTable()
+            ? 'LEFT JOIN service_rental_pricing srp ON srp.service_id = svc.id'
+            : '';
+
         $this->db->dbquery(
             'SELECT pi.id,
                     pi.category_id,
@@ -156,6 +186,11 @@ class PlatformPackage
                     c.slug AS category_slug,
                     pi.service_id,
                     pi.default_supplier_id,
+                    pi.attire_item_id,
+                    ai.name AS attire_item_name,
+                    ai.photo_url AS attire_item_photo,
+                    pi.decoration_style_id,
+                    ds.name AS decoration_style_name,
                     ' . $hallSelect . ',
                     ' . $this->packageUnitPriceSql() . ' AS unit_price,
                     ' . $this->packageLineTotalSql() . ' AS default_price,
@@ -168,12 +203,15 @@ class PlatformPackage
                     svc.price,
                     svc.price_min,
                     svc.price_max,
-                    sup.shop_name AS default_supplier_name
+                    sup.shop_name AS default_supplier_name' . $rentalSelect . '
              FROM package_items pi
              LEFT JOIN categories c ON c.id = pi.category_id
              LEFT JOIN services svc ON svc.id = pi.service_id
              LEFT JOIN suppliers sup ON sup.supplier_id = pi.default_supplier_id
+             LEFT JOIN attire_items ai ON ai.id = pi.attire_item_id
+             LEFT JOIN decoration_styles ds ON ds.id = pi.decoration_style_id
              ' . $hallJoin . '
+             ' . $rentalJoin . '
              WHERE pi.package_id = :package_id
                AND pi.service_id IS NOT NULL
              ORDER BY c.name ASC, svc.name ASC'
@@ -500,7 +538,7 @@ class PlatformPackage
         return $this->db->dbexecute();
     }
 
-    public function addPackageService($packageId, $serviceId, $quantity = null, $hallId = null)
+    public function addPackageService($packageId, $serviceId, $quantity = null, $hallId = null, $attireItemId = null, $decorationStyleId = null)
     {
         $service = $this->getServiceForPackageItem($serviceId);
         if (!$service) {
@@ -535,9 +573,30 @@ class PlatformPackage
             }
         }
 
+        $attireItem = null;
+        $attireItemId = (int)($attireItemId ?? 0);
+        if ($attireItemId > 0) {
+            $attireItem = $this->getAttireItemById($attireItemId);
+            if (!$attireItem) {
+                return false;
+            }
+        }
+
+        $decorationStyle = null;
+        $decorationStyleId = (int)($decorationStyleId ?? 0);
+        if ($decorationStyleId > 0) {
+            $decorationStyle = $this->getDecorationStyleById($decorationStyleId);
+            if (!$decorationStyle) {
+                return false;
+            }
+        }
+
         $packagePrice = $this->servicePackagePrice($service);
         $customizePrice = $this->serviceCustomizePrice($service);
-        $price = $room ? (float)($room['price'] ?? 0) : $packagePrice;
+        $price = $room ? (float)($room['price'] ?? 0)
+            : ($attireItem ? ($attireItem['borrow_package_price'] ?? $attireItem['buy_package_price'] ?? 0)
+            : ($decorationStyle ? (float)($decorationStyle['package_price'] ?? $decorationStyle['price'] ?? 0)
+            : $packagePrice));
         $isGuestPriced = $this->isGuestPricedCategory($service['category_slug'] ?? '', $service['category_name'] ?? '');
         $itemQuantity = $isGuestPriced ? max(1, (int)($quantity ?: 100)) : 1;
         $quantityType = $isGuestPriced ? 'guests' : 'fixed';
@@ -549,12 +608,16 @@ class PlatformPackage
         $quantityValuesSql = $quantityColumns ? ', :quantity_type, :quantity' : '';
         $hallColumnSql = $hallColumn ? ', venue_room_id' : '';
         $hallValueSql = $hallColumn ? ', :venue_room_id' : '';
+        $attireColumnSql = ', attire_item_id';
+        $attireValueSql = ', :attire_item_id';
+        $decoColumnSql = ', decoration_style_id';
+        $decoValueSql = ', :decoration_style_id';
         $priceSql = $priceColumn ? ', customize_price' : '';
         $priceVal = $priceColumn ? ', :customize_price' : '';
 
         $this->db->dbquery(
-            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price' . $priceSql . $quantityColumnsSql . $hallColumnSql . ')
-             VALUES (:package_id, :category_id, :service_id, :supplier_id, :default_price' . $priceVal . $quantityValuesSql . $hallValueSql . ')'
+            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price' . $priceSql . $quantityColumnsSql . $hallColumnSql . $attireColumnSql . $decoColumnSql . ')
+             VALUES (:package_id, :category_id, :service_id, :supplier_id, :default_price' . $priceVal . $quantityValuesSql . $hallValueSql . $attireValueSql . $decoValueSql . ')'
         );
         $this->db->dbbind(':package_id', (int)$packageId);
         $this->db->dbbind(':category_id', (int)($service['category_id'] ?? 0));
@@ -572,8 +635,24 @@ class PlatformPackage
         if ($hallColumn) {
             $this->db->dbbind(':venue_room_id', $room ? (int)$room['id'] : null, $room ? PDO::PARAM_INT : PDO::PARAM_NULL);
         }
+        $this->db->dbbind(':attire_item_id', $attireItemId > 0 ? $attireItemId : null, $attireItemId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $this->db->dbbind(':decoration_style_id', $decorationStyleId > 0 ? $decorationStyleId : null, $decorationStyleId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
 
         return $this->db->dbexecute();
+    }
+
+    private function getAttireItemById(int $attireItemId): ?array
+    {
+        $this->db->dbquery('SELECT * FROM attire_items WHERE id = :id LIMIT 1');
+        $this->db->dbbind(':id', $attireItemId);
+        return $this->db->getsingledata();
+    }
+
+    private function getDecorationStyleById(int $styleId): ?array
+    {
+        $this->db->dbquery('SELECT * FROM decoration_styles WHERE id = :id LIMIT 1');
+        $this->db->dbbind(':id', $styleId);
+        return $this->db->getsingledata();
     }
 
     /**
@@ -663,6 +742,33 @@ class PlatformPackage
         $this->db->dbbind(':id', (int)$itemId);
 
         return $this->db->dbexecute();
+    }
+
+    public function getAttireItemsForService($serviceId)
+    {
+        $this->db->dbquery(
+            'SELECT id, name, description, photo_url,
+                    borrow_package_price, borrow_customize_price,
+                    buy_package_price, buy_customize_price,
+                    return_days
+             FROM attire_items
+             WHERE service_id = :service_id
+             ORDER BY sort_order ASC, name ASC'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        return $this->db->getmultidata();
+    }
+
+    public function getDecorationStylesForService($serviceId)
+    {
+        $this->db->dbquery(
+            'SELECT id, name, price, package_price, customize_price, photo_url
+             FROM decoration_styles
+             WHERE service_id = :service_id
+             ORDER BY sort_order ASC, name ASC'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        return $this->db->getmultidata();
     }
 
     public function getVenueRoomsForService($serviceId)
@@ -1487,15 +1593,14 @@ class PlatformPackage
     private function isGuestPricedCategory($slug, $name)
     {
         $label = strtolower(trim((string)$slug . ' ' . (string)$name));
-        // Food, catering, decoration, music, photography, makeup, dress, accessories — all guest-driven
+        // Food, catering, decoration, music, photography, makeup, attire, studio — all guest-driven
         return strpos($label, 'food') !== false
             || strpos($label, 'cater') !== false
             || strpos($label, 'decor') !== false
             || strpos($label, 'music') !== false
             || strpos($label, 'photo') !== false
             || strpos($label, 'makeup') !== false
-            || strpos($label, 'dress') !== false
-            || strpos($label, 'accessor') !== false
+            || strpos($label, 'attire') !== false
             || strpos($label, 'studio') !== false;
     }
 

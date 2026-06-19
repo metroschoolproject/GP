@@ -36,7 +36,9 @@ $availableVenueRooms = array_values(array_filter($venueRooms, function ($room) u
     return !array_key_exists('is_available_on_date', $room) || !empty($room['is_available_on_date']);
 }));
 $firstVenueRoom = $availableVenueRooms[0] ?? null;
-$hasInitialBookOption = $isVenue ? $firstVenueRoom !== null : $firstSlot !== null;
+$hasInitialBookOption = $isVenue
+    ? $firstVenueRoom !== null
+    : ($isSlotBooking ? $firstSlot !== null : $firstAvailable !== null);
 $initialBookingHref = $hasInitialBookOption ? URLROOT . '/users/auth' : '#detail-date';
 $initialBookingLabel = $hasInitialBookOption ? 'Add to cart' : (($isVenue || !$isSlotBooking) ? 'Choose date' : 'Choose slot');
 $venueCapacity = !empty($venueRooms) ? max(array_map(function ($room) {
@@ -76,8 +78,8 @@ $money = function ($value) {
 $moneyRange = function ($service) use ($money) {
     return $money($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
 };
-$isRentalCategory = in_array(strtolower(trim((string)($service['category_slug'] ?? ''))), ['dress', 'accessories'], true)
-    || in_array(strtolower(trim((string)($service['category'] ?? ''))), ['dress', 'accessories'], true);
+$isRentalCategory = in_array(strtolower(trim((string)($service['category_slug'] ?? ''))), ['attire'], true)
+    || in_array(strtolower(trim((string)($service['category'] ?? ''))), ['attire'], true);
 $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
 $isDecorationCategory = strtolower(trim((string)($service['category_slug'] ?? ''))) === 'decoration'
     || strtolower(trim((string)($service['category'] ?? ''))) === 'decoration';
@@ -2474,34 +2476,35 @@ button, input, select, textarea { font-family: var(--font-sans); }
               </div>
             </div>
             <?php else: ?>
-            <label class="availability-row <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?> <?= empty($slots) ? 'is-unavailable' : '' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
-              <?php if (!empty($firstDaySlot)): ?>
-                <?php $checked = !$hasSelectedSlot; if ($checked) { $hasSelectedSlot = true; } ?>
-                <input class="availability-radio-input" type="radio" name="service_slot"
-                  value="<?= $h(($day['date'] ?? '') . '|' . ($firstDaySlot['start_time'] ?? '') . '|' . ($firstDaySlot['end_time'] ?? '')) ?>"
-                  data-date="<?= $h($day['date'] ?? '') ?>"
-                  data-date-label="<?= $h($day['day_label'] ?? $day['date']) ?>"
-                  data-time-label="<?= $h($firstDaySlot['label'] ?? '') ?>"
-                  data-slot-id="<?= $h($firstDaySlot['slot_id'] ?? '') ?>"
-                  data-start-time="<?= $h($firstDaySlot['start_time'] ?? '') ?>"
-                  data-end-time="<?= $h($firstDaySlot['end_time'] ?? '') ?>"
-                  data-price-value="<?= $h($isPackageContext ? $packageServicePrice : $activeServicePrice) ?>"
-                  <?= $checked ? 'checked' : '' ?>>
-              <?php endif; ?>
-              <span class="radio-dot"></span>
-              <div>
-                <div class="availability-head">
-                  <span class="availability-name">
-                    <?= $h($dayLabel) ?>
-                    <span><?= empty($slots) ? $h($slotSummary) : 'Full-day availability' ?></span>
-                  </span>
-                  <span class="availability-status"><?= $h($day['status'] ?? (empty($slots) ? 'Booked' : 'Available')) ?></span>
+            <?php if (!empty($slots)): ?>
+              <?php $checked = !$hasSelectedSlot; if ($checked) { $hasSelectedSlot = true; } ?>
+              <div class="availability-row is-fullday <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?>" data-fullday-row data-date="<?= $h($day['date'] ?? '') ?>" data-date-label="<?= $h($day['day_label'] ?? $day['date']) ?>" data-price-value="<?= $h($isPackageContext ? $packageServicePrice : $activeServicePrice) ?>" data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
+                <span class="radio-dot"></span>
+                <div>
+                  <div class="availability-head">
+                    <span class="availability-name">
+                      <?= $h($dayLabel) ?>
+                      <span>Full day</span>
+                    </span>
+                    <span class="availability-status"><?= $h($day['status'] ?? 'Available') ?></span>
+                  </div>
+                  <span class="availability-range"><i data-lucide="calendar" size="14"></i>Full day</span>
                 </div>
-                <?php if (!empty($firstDaySlot)): ?>
-                  <span class="availability-range"><i data-lucide="clock" size="14"></i><?= $h($firstDaySlot['label'] ?? '') ?></span>
-                <?php endif; ?>
               </div>
-            </label>
+            <?php else: ?>
+              <div class="availability-row is-unavailable" data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
+                <span class="radio-dot"></span>
+                <div>
+                  <div class="availability-head">
+                    <span class="availability-name">
+                      <?= $h($dayLabel) ?>
+                      <span><?= $h($slotSummary) ?></span>
+                    </span>
+                    <span class="availability-status"><?= $h($day['status'] ?? 'Booked') ?></span>
+                  </div>
+                </div>
+              </div>
+            <?php endif; ?>
             <?php endif; ?>
           <?php endforeach; ?>
         <?php endif; ?>
@@ -2533,14 +2536,19 @@ button, input, select, textarea { font-family: var(--font-sans); }
               Capacity
               <span id="selectedTime"><?= $firstVenueRoom ? (int)($firstVenueRoom['capacity'] ?? 1) . ' guests' : 'Choose a hall' ?></span>
             </div>
-          <?php elseif ($firstSlot): ?>
+          <?php elseif ($isSlotBooking && $firstSlot): ?>
             <div class="summary-line">
-              <?= $isSlotBooking ? 'Time' : 'Available range' ?>
+              Time
               <span id="selectedTime"><?= $h($firstSlot['label'] ?? '') ?></span>
+            </div>
+          <?php elseif (!$isSlotBooking && $firstAvailable): ?>
+            <div class="summary-line">
+              Duration
+              <span id="selectedTime">Full day</span>
             </div>
           <?php else: ?>
             <div class="summary-line">
-              <?= $isSlotBooking ? 'Time' : 'Available range' ?>
+              <?= $isSlotBooking ? 'Time' : 'Duration' ?>
               <span id="selectedTime"><?= $isSlotBooking ? 'Choose a time slot' : 'Choose an available date' ?></span>
             </div>
           <?php endif; ?>
@@ -2598,11 +2606,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <?php endif; ?>
           <form method="POST" action="<?= URLROOT ?>/cart/add" id="serviceCartForm" style="display:contents;">
             <input type="hidden" name="service_id" value="<?= (int)($service['id'] ?? 0) ?>">
-            <input type="hidden" name="date" id="cartDate" value="<?= $h($selectedDate) ?>">
-            <input type="hidden" name="slot_id" id="cartSlotId" value="<?= $h($isVenue ? '' : ($firstSlot['slot_id'] ?? '')) ?>">
+            <input type="hidden" name="date" id="cartDate" value="<?= $h($isVenue ? '' : ($isSlotBooking ? ($firstSlot['date'] ?? $selectedDate) : ($firstAvailable['date'] ?? $selectedDate))) ?>">
+            <input type="hidden" name="slot_id" id="cartSlotId" value="<?= $h($isSlotBooking ? ($firstSlot['slot_id'] ?? '') : '') ?>">
             <input type="hidden" name="venue_room_id" id="cartVenueRoomId" value="<?= $h($isVenue ? ($firstVenueRoom['id'] ?? '') : '') ?>">
-            <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($isVenue ? ($firstVenueRoom['start_time'] ?? '') : ($firstSlot['start_time'] ?? '')) ?>">
-            <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($isVenue ? ($firstVenueRoom['end_time'] ?? '') : ($firstSlot['end_time'] ?? '')) ?>">
+            <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($isSlotBooking ? ($firstSlot['start_time'] ?? '') : ($isVenue ? ($firstVenueRoom['start_time'] ?? '') : '')) ?>">
+            <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($isSlotBooking ? ($firstSlot['end_time'] ?? '') : ($isVenue ? ($firstVenueRoom['end_time'] ?? '') : '')) ?>">
             <input type="hidden" name="price" id="cartPrice" value="<?= $h($activeServicePrice) ?>">
             <input type="hidden" name="source" value="custom">
             <?php if ($isAddonContext): ?>
@@ -2903,10 +2911,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function updateSelectedFulldayRow(row) {
+    if (!row) return;
+    document.querySelectorAll('[data-fullday-row]').forEach(r => r.classList.remove('is-selected'));
+    row.classList.add('is-selected');
+    if (selectedDate) selectedDate.textContent = row.dataset.dateLabel || 'Selected date';
+    if (selectedTime) selectedTime.textContent = 'Full day';
+    if (estimatedTotal && row.dataset.priceValue) estimatedTotal.textContent = row.dataset.priceValue;
+    if (mobileBookPrice && row.dataset.priceValue) mobileBookPrice.textContent = row.dataset.priceValue;
+
+    if (cartDate) cartDate.value = row.dataset.date || '';
+    if (cartSlotId) cartSlotId.value = '';
+    if (cartStartTime) cartStartTime.value = '';
+    if (cartEndTime) cartEndTime.value = '';
+    if (cartPrice) cartPrice.value = row.dataset.priceValue || '';
+  }
+
   document.querySelectorAll("input[name='service_slot']").forEach(input => {
     input.addEventListener('change', () => updateSelectedSlot(input));
   });
   updateSelectedSlot(document.querySelector("input[name='service_slot']:checked"));
+
+  document.querySelectorAll('[data-fullday-row]').forEach(row => {
+    row.addEventListener('click', () => updateSelectedFulldayRow(row));
+  });
+  const activeFulldayRow = document.querySelector('[data-fullday-row].is-selected');
+  if (activeFulldayRow) updateSelectedFulldayRow(activeFulldayRow);
 
   if (mobileBookBtn && addCartLink) {
     mobileBookBtn.addEventListener('click', (event) => {
@@ -2918,7 +2948,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (serviceCartForm && addCartLink) {
     serviceCartForm.addEventListener('submit', () => {
       const currentSelection = document.querySelector("input[name='service_slot']:checked");
-      updateSelectedSlot(currentSelection);
+      if (currentSelection) updateSelectedSlot(currentSelection);
+      const currentFullday = document.querySelector('[data-fullday-row].is-selected');
+      if (currentFullday) updateSelectedFulldayRow(currentFullday);
       addCartLink.classList.add('is-submitting');
       addCartLink.disabled = true;
       addCartLink.innerHTML = '<i data-lucide="check-circle" size="16"></i><?= $isPackageContext ? 'Adding...' : 'Adding...' ?>';

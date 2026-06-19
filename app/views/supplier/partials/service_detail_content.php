@@ -492,9 +492,6 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
                   <span><small>Package</small><strong><?= $rentBorrowPackagePrice > 0 ? $money($rentBorrowPackagePrice) : '—' ?></strong></span>
                   <span><small>Customize</small><strong><?= $rentBorrowCustomizePrice > 0 ? $money($rentBorrowCustomizePrice) : '—' ?></strong></span>
                 </div>
-                <?php if ($rentReturnDays > 0): ?>
-                <div class="sd-rental-sub">Return within <?= (int)$rentReturnDays ?> <?= $rentReturnDays === 1 ? 'day' : 'days' ?></div>
-                <?php endif; ?>
               </div>
             </div>
             <?php endif; ?>
@@ -507,6 +504,15 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
                   <span><small>Package</small><strong><?= $rentBuyPackagePrice > 0 ? $money($rentBuyPackagePrice) : '—' ?></strong></span>
                   <span><small>Customize</small><strong><?= $rentBuyCustomizePrice > 0 ? $money($rentBuyCustomizePrice) : '—' ?></strong></span>
                 </div>
+              </div>
+            </div>
+            <?php endif; ?>
+            <?php if ($rentReturnDays > 0): ?>
+            <div class="sd-rental-row">
+              <div class="sd-rental-icon"><i class="ti ti-calendar"></i></div>
+              <div class="sd-rental-body">
+                <div class="sd-rental-label">Return policy</div>
+                <div class="sd-rental-sub">Return within <?= (int)$rentReturnDays ?> <?= $rentReturnDays === 1 ? 'day' : 'days' ?></div>
               </div>
             </div>
             <?php endif; ?>

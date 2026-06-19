@@ -943,6 +943,22 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Could not submit cancellation request. Please try again.'], 500);
         }
 
+        $customer = $this->getUserData();
+
+        $emailService = new EmailService();
+
+        // Notify admins
+        $admins = $this->bookingModel->getAdminEmails();
+        foreach ($admins as $admin) {
+            $emailService->sendAdminCancellationRequest($admin, $customer, $booking, $reason);
+        }
+
+        // Notify each supplier on the booking
+        $suppliers = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
+        foreach ($suppliers as $supplier) {
+            $emailService->sendSupplierCancellationRequest($supplier, $customer, $booking, $reason);
+        }
+
         $this->jsonResponse([
             'success' => true,
             'message' => 'Your cancellation request has been submitted.',
