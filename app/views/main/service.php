@@ -62,6 +62,7 @@ $serviceUrl = function (array $overrides = []) use ($filters) {
         'date' => $filters['date'] ?? '',
         'price_min' => $filters['price_min'] ?? '',
         'price_max' => $filters['price_max'] ?? '',
+        'page' => $_GET['page'] ?? 1,
     ];
     foreach ($overrides as $key => $value) {
         if ($value === null) {
@@ -74,12 +75,20 @@ $serviceUrl = function (array $overrides = []) use ($filters) {
         if ($value === '' || $value === null) return false;
         if ($key === 'category' && $value === 'all') return false;
         if ($key === 'sort' && $value === 'featured') return false;
+        if ($key === 'page' && (int)$value <= 1) return false;
         return true;
     }, ARRAY_FILTER_USE_BOTH);
 
     $query = http_build_query($params);
     return URLROOT . '/customerServices/service' . ($query !== '' ? '?' . $query : '');
 };
+
+$servicesPerPage = 9;
+$totalServices   = count($services);
+$totalPages      = max(1, (int)ceil($totalServices / $servicesPerPage));
+$currentPage     = max(1, min($totalPages, (int)($_GET['page'] ?? 1)));
+$pageOffset      = ($currentPage - 1) * $servicesPerPage;
+$visibleServices = array_slice($services, $pageOffset, $servicesPerPage);
 
 $isLoggedIn   = !empty($_SESSION['session_uid']);
 $cartCount    = (int)($cartCount ?? 0);
@@ -149,225 +158,548 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-menu-item--danger{color:var(--c-red)}
 .gp-menu-item--danger:hover{background:rgba(185,74,72,.08)}
 
-/* ══ SCENE — fills viewport below header ═════════════════ */
+/* ══ SERVICES SEARCH + GRID ══════════════════════════════ */
 .gp-scene{
-  position:relative;
-  width:100%;
-  height:calc(100svh - var(--header-h));
-  min-height:580px;
-  overflow:hidden; /* clip blurred bg only — cards allowed to overflow via JS */
-  background:#1a1410;
+    position:relative;
+    padding:0;
+    background:#fff;
+}
+.hero-banner{
+    position:relative;
+    min-height:calc(100vh - var(--header-h) - 70px);
+    background:url('../public/uploads/serviceHero1.png');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+
+    /* Add this line below for a smooth crossfade effect */
+    transition: background-image 0.8s ease-in-out; 
+
+}
+.hero-banner::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.25);
 }
 
+.hero-overlay{
+    position:absolute;
+    inset:0;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    text-align:center;
+    color:white;
+    z-index:2;
+}
+.hero-banner::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:
+        linear-gradient(
+            rgba(0,0,0,.65),
+            rgba(0,0,0,.45)
+        );
+}
+
+.hero-overlay h1{
+    font-family:'Playfair Display', serif;
+    font-size:70px;
+    font-weight:500;
+    letter-spacing:6px;
+    margin-bottom:10px;
+}
+
+.hero-overlay p{
+    font-size:16px;
+    letter-spacing:2px;
+    margin-bottom:28px;
+}
+
+.hero-overlay .gp-float-bar{
+  margin-top:0;
+}
+
+.hero-overlay h1,
+.hero-overlay p,
+.hero-overlay .gp-float-bar,
+.hero-overlay .fb-search,
+.hero-overlay .fb-controls > *{
+  opacity:0;
+  transform:translateY(18px) scale(.94);
+}
+
+.hero-overlay.is-in h1{
+  animation:heroPopOut .72s var(--ease) .04s forwards;
+}
+.hero-overlay.is-in p{
+  animation:heroPopOut .66s var(--ease) .18s forwards;
+}
+.hero-overlay.is-in .gp-float-bar{
+  animation:heroPopOut .68s var(--ease) .30s forwards;
+}
+.hero-overlay.is-in .fb-search{
+  animation:heroPopOut .62s var(--ease) .42s forwards;
+}
+.hero-overlay.is-in .fb-controls > *{
+  animation:heroPopOut .52s var(--ease) forwards;
+}
+.hero-overlay.is-in .fb-controls > *:nth-child(1){animation-delay:.52s}
+.hero-overlay.is-in .fb-controls > *:nth-child(2){animation-delay:.58s}
+.hero-overlay.is-in .fb-controls > *:nth-child(3){animation-delay:.64s}
+.hero-overlay.is-in .fb-controls > *:nth-child(4){animation-delay:.70s}
+.hero-overlay.is-in .fb-controls > *:nth-child(5){animation-delay:.76s}
+.hero-overlay.is-in .fb-controls > *:nth-child(6){animation-delay:.82s}
+.hero-overlay.is-in .fb-controls > *:nth-child(7){animation-delay:.88s}
+.hero-overlay.is-in .fb-controls > *:nth-child(8){animation-delay:.94s}
+
+@keyframes heroPopOut{
+  0%{opacity:0;transform:translateY(18px) scale(.94)}
+  68%{opacity:1;transform:translateY(-4px) scale(1.035)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .hero-overlay h1,
+  .hero-overlay p,
+  .hero-overlay .gp-float-bar,
+  .hero-overlay .fb-search,
+  .hero-overlay .fb-controls > *{
+    opacity:1;
+    transform:none;
+    animation:none !important;
+  }
+}
 /* blurred background image layer */
 .gp-scene-bg{
-  position:absolute;inset:-48px;z-index:0;
-  background-image:var(--scene-img,none);
-  background-size:cover;background-position:center;
-  filter:blur(32px) saturate(.85) brightness(.55);
-  transform:scale(1.12);
-  transition:background-image .6s;
+  display:none;
 }
 /* colour vignette / depth overlay */
 .gp-scene-vignette{
-  position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:
-    radial-gradient(ellipse at 50% 105%,rgba(0,0,0,.72) 0%,transparent 58%),
-    radial-gradient(ellipse at 50% -5%,rgba(0,0,0,.42) 0%,transparent 52%),
-    linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.04) 32%,rgba(0,0,0,.04) 68%,rgba(0,0,0,.22));
+  display:none;
 }
 
-/* ── FLOATING FILTER BAR ── */
+/* ── SEARCH FILTER BAR ── */
 .gp-float-bar{
-  position:absolute;
-  left:50%;
-  bottom:46px;
-  transform:translateX(-50%);
+  position:relative;
+  order:1;
+  margin:0 auto;
   z-index:35;
-  display:flex;align-items:center;gap:5px;
-  background:rgba(14,9,4,.68);
-  border:0.5px solid rgba(255,255,255,.11);
-  border-radius:999px;
-  padding:5px 6px;
-  width:max-content;
-  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
-  max-width:calc(100vw - 32px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  background:transparent;
+  border:0;
+  border-radius:12px;
+  padding:10px;
+  width:min(760px,calc(100vw - 32px));
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  box-shadow:none;
+}
+.supplier-marquee{
+    height:70px;
+    display:flex;
+    align-items:center;
+    overflow:hidden;
+    background:#fff8ef;
+    border-top:1px solid rgba(118,90,70,.12);
+    border-bottom:1px solid rgba(118,90,70,.12);
+}
+
+.supplier-track{
+    display:flex;
+    width:max-content;
+    animation:supplierScroll 28s linear infinite;
+}
+
+.supplier-item{
+    flex-shrink:0;
+    margin:0 50px;
+    font-size:14px;
+    font-weight:600;
+    color:#765a46;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+
+.supplier-item::after{
+    content:"•";
+    margin-left:50px;
+    color:#d8b46a;
+}
+
+@keyframes supplierScroll{
+    from{
+        transform:translateX(0);
+    }
+    to{
+        transform:translateX(-50%);
+    }
+}
+
+.supplier-marquee:hover .supplier-track{
+    animation-play-state:paused;
+}
+.fb-search{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:min(560px,100%);
+    min-height:50px;
+    padding:0 8px 0 20px;
+    background:rgba(245,232,217,.88);
+    border:0.5px solid rgba(118,90,70,.24);
+    border-radius:14px;
+    overflow:hidden;
+}
+
+.fb-search svg{flex-shrink:0;opacity:.72;color:#765a46}
+.fb-search input{
+    flex:1;
+    min-width:0;
+    width:auto;
+}
+/* ရှာဖွေရေးသေတ္တာထဲ စာရိုက်လျှင် ညိုရင့်ရောင်ပြောင်းရန် */
+.fb-search input {
+    color: #4f382a !important;
+}
+.fb-search input::placeholder{color:rgba(118,90,70,.58)}
+.fb-search input:focus{outline:none}
+
+.fb-controls{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  width:100%;
+  min-width:0;
   white-space:nowrap;
   overflow-x:auto;
   scrollbar-width:none;
+  padding:0 2px;
 }
-.gp-float-bar::-webkit-scrollbar{display:none}
-
-.fb-search{
-  display:flex;align-items:center;gap:7px;
-  background:rgba(255,255,255,.08);
-  border:0.5px solid rgba(255,255,255,.10);
-  border-radius:999px;padding:7px 14px;min-width:0;
-}
-.fb-search svg{flex-shrink:0;opacity:.5}
-.fb-search input{
-  background:transparent;border:none;
-  color:#fff;font-size:12px;font-family:var(--font-body);
-  width:148px;
-}
-.fb-search input::placeholder{color:rgba(255,255,255,.38)}
-.fb-search input:focus{outline:none}
-
-.fb-div{width:1px;height:20px;background:rgba(255,255,255,.10);flex-shrink:0}
+.fb-controls::-webkit-scrollbar{display:none}
+.fb-div{display:none}
 
 .fb-chip{
   flex-shrink:0;
   display:flex;align-items:center;gap:5px;
-  background:rgba(255,255,255,.07);
-  border:0.5px solid rgba(255,255,255,.09);
+  background:rgba(245,232,217,.82);
+  border:0.5px solid rgba(118,90,70,.20);
   border-radius:999px;padding:7px 13px;
-  color:rgba(255,255,255,.62);font-size:11px;font-weight:600;
+  color:#765a46;font-size:11px;font-weight:600;
   cursor:pointer;transition:all .15s;
+  box-shadow:0 10px 24px rgba(43,31,24,.12);
 }
-.fb-chip:hover{background:rgba(255,255,255,.14);color:#fff}
-.fb-chip.on{background:rgba(216,180,106,.22);border-color:rgba(216,180,106,.42);color:#f3d9a4}
+.fb-chip:hover{background:rgba(255,248,239,.94);color:#4f382a}
+.fb-chip.on{background:rgba(216,180,106,.88);border-color:rgba(255,248,239,.58);color:#4f382a}
 .fb-budget{gap:6px}
 .fb-budget input{
   width:72px;
   border:none;
   background:transparent;
-  color:#fff;
+  color:#4f382a;
   font-size:11px;
   font-weight:600;
 }
-.fb-budget input::placeholder{color:rgba(255,255,255,.42)}
+.fb-budget input::placeholder{color:rgba(118,90,70,.58)}
 .fb-budget input:focus{outline:none}
-.fb-budget-sep{color:rgba(255,255,255,.32);font-size:10px}
+.fb-budget-sep{color:rgba(118,90,70,.54);font-size:10px}
 
 .fb-select{
   flex-shrink:0;
-  background:rgba(255,255,255,.07);
-  border:0.5px solid rgba(255,255,255,.09);
+  background:rgba(245,232,217,.82);
+  border:0.5px solid rgba(118,90,70,.20);
   border-radius:999px;
   padding:7px 28px 7px 14px;
-  color:rgba(255,255,255,.72);
+  color:#765a46;
   font-size:11px;font-weight:600;
   cursor:pointer;appearance:none;
   min-width:128px;max-width:172px;
+  box-shadow:0 10px 24px rgba(43,31,24,.12);
 }
 .fb-sort{min-width:108px;max-width:132px}
 .fb-find{
-  flex-shrink:0;
-  display:flex;align-items:center;gap:6px;
-  background:var(--c-red);border:none;border-radius:999px;
-  padding:8px 18px;color:#fff;font-size:12px;font-weight:700;
-  cursor:pointer;transition:background .15s;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    width:38px;
+    height:38px;
+    border:none;
+    border-radius:10px;
+    background:#765a46;
+    color:#fff;      /* SVG uses currentColor */
+    cursor:pointer;
+    flex-shrink:0;
 }
-.fb-find:hover{background:#8f2e2c}
+
+/* Filter chip တွေနဲ့ Select dropdown တွေကြားက Shadow ကို ဖျောက်ရန် */
+.fb-chip, 
+.fb-select {
+    box-shadow: none !important;
+}
+
+
+
+.fb-find:hover{
+    background:#4f382a;
+}
+.fb-find svg {
+    stroke: #ffffff !important;
+    display: block;
+}
+/* ဘယ်ဘက်အခြမ်းက search icon ကို ဖျောက်ရန် */
+.fb-search > svg:first-of-type {
+    display: none !important;
+}
+
 
 /* ── TRACK + CARDS ── */
 .gp-track-wrap{
-  position:absolute;
-  inset:0;
-  z-index:10;
-  display:flex;align-items:center;justify-content:center;
-  /* DO NOT overflow:hidden here — cards fan outside bounds */
+    position:relative;
+    width:100%;
+    padding:64px var(--pad-x);
+    z-index:1;
+
+    /* Theme gradient */
+    background:linear-gradient(
+        180deg,
+        #fff8ef 0%,
+        #f5e8d9 35%,
+        #eee0d0 70%,
+        #e7d5c1 100%
+    );
 }
 .gp-track{
-  position:relative;
-  width:100%;
-  height:var(--card-h,540px);
-  transform-style:preserve-3d;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:24px 20px;
+    align-items:start;
 }
+
 
 .gp-card{
-  position:absolute;
-  /* width & height set by JS via CSS vars */
-  width:var(--card-w,500px);
-  height:var(--card-h,540px);
-  border-radius:14px;
-  overflow:hidden;
-  cursor:pointer;
-  transform-origin:center bottom;
-  transition:transform .55s var(--ease), opacity .55s var(--ease), box-shadow .4s;
-  will-change:transform,opacity;
-  backface-visibility:hidden;
+    background:rgba(74,48,33,.84);
+    border-radius:18px;
+    padding:18px;
+    overflow:hidden;
+    cursor:pointer;
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+
+    display:flex;
+    flex-direction:column;
+
+    height:360px;
+    min-height:360px;
+
+    border:none;
+    box-shadow:
+        0 10px 30px rgba(0,0,0,.12);
+
+    transition:.35s ease;
 }
-.gp-card.center{
-  border-radius:16px;
-  box-shadow:0 48px 96px -16px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.07);
-  cursor:default;
-}
-.gp-card:not(.center){
-  box-shadow:0 24px 60px -12px rgba(0,0,0,.40);
+.gp-card:focus-visible{
+    outline:2px solid rgba(216,180,106,.78);
+    outline-offset:3px;
 }
 
-.gc-img{position:absolute;inset:0;background:#261e18}
-.gc-img img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
-.gp-card.center:hover .gc-img img{transform:scale(1.04)}
-.gc-img-ph{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.14)}
 
-/* gradient: stronger at bottom, fades cleanly */
-.gc-grad{
-  position:absolute;inset:0;
-  background:linear-gradient(to top,
-    rgba(0,0,0,.92) 0%,
-    rgba(0,0,0,.55) 28%,
-    rgba(0,0,0,.18) 52%,
-    rgba(0,0,0,.04) 72%,
-    transparent 100%);
+
+
+@keyframes cardFlyIn{
+    0%{opacity:0;transform:translate3d(0,34px,0) rotateX(9deg) scale(.96)}
+    65%{opacity:1;transform:translate3d(0,-5px,0) rotateX(-2deg) scale(1.01)}
+    100%{opacity:1;transform:translate3d(0,0,0) rotateX(0) scale(1)}
 }
-.gc-badge{
-  position:absolute;top:16px;left:16px;
-  background:rgba(255,255,255,.13);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:0.5px solid rgba(255,255,255,.20);
-  border-radius:999px;padding:4px 11px;
-  font-size:10px;font-weight:700;color:rgba(255,255,255,.90);
-  letter-spacing:.07em;text-transform:uppercase;
+.gp-card:nth-child(2){animation-delay:.05s}
+.gp-card:nth-child(3){animation-delay:.10s}
+.gp-card:nth-child(4){animation-delay:.15s}
+.gp-card:nth-child(5){animation-delay:.20s}
+.gp-card:nth-child(6){animation-delay:.25s}
+.gp-card:nth-child(7){animation-delay:.30s}
+.gp-card:nth-child(8){animation-delay:.35s}
+.gp-card:nth-child(9){animation-delay:.40s}
+
+
+
+
+@media(max-width:1000px){
+
+.gp-track{
+    grid-template-columns:repeat(2,1fr);
 }
+
+
+
+}
+@media(max-width:700px){
+
+.gp-track{
+    grid-template-columns:1fr;
+}
+
+
+
+}
+
+
+.gc-grad{display:none}
+.gc-badge{display:none}
 
 .gc-body{
-  position:absolute;bottom:0;left:0;right:0;
-  padding:24px 22px 26px;
+    display:flex;
+    flex-direction:column;
+    height:100%;
 }
-.gc-sup{font-size:10px;color:rgba(255,255,255,.44);margin-bottom:4px;letter-spacing:.02em}
+.gc-top{
+    margin-bottom:12px;
+}
+.gc-head{
+    display:block;
+}
+
+.gc-thumb{
+    display:none;
+}
+
+.gc-thumb img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.gc-head-text{
+    flex:1;
+    min-width:0;
+}
+.gc-sup{
+    color:#d7c7b8;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
 .gc-name{
-  font-family:var(--font-display);
-  font-size:clamp(20px,2.2vw,34px);
-  font-weight:600;color:#fff;
-  line-height:1.08;margin-bottom:14px;
+    font-family:'Playfair Display', serif;
+    font-size:24px;
+    line-height:1.1;
+    font-weight:600;
+    color:#f8efe5;
+    margin-bottom:6px;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
 }
-.gc-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
-.gc-price-wrap{}
-.gc-price{font-family:var(--font-display);font-size:18px;font-weight:600;color:#f3d9a4;line-height:1}
-.gc-unit{font-size:10px;color:rgba(255,255,255,.38);margin-top:2px;font-family:var(--font-body)}
-.gc-rating{display:flex;align-items:center;gap:4px;font-size:11px;color:rgba(255,255,255,.52);margin-top:6px}
+.gc-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:12px;
+}
+.gc-tag{
+    background:rgba(255,255,255,.08);
+    color:#efe4d7;
 
-/* View button — only prominent on center card */
-.gc-viewbtn{
-  display:inline-flex;align-items:center;gap:6px;
-  background:rgba(255,255,255,.14);
-  border:0.5px solid rgba(255,255,255,.22);
-  border-radius:999px;padding:8px 18px;
-  font-size:12px;font-weight:700;color:#fff;
-  text-decoration:none;
-  transition:background .15s,transform .2s;
-  white-space:nowrap;
-}
-.gp-card.center .gc-viewbtn:hover{background:rgba(255,255,255,.26);transform:translateX(3px)}
-.gp-card:not(.center) .gc-viewbtn{font-size:11px;padding:6px 13px}
+    padding:5px 9px;
+    border-radius:999px;
 
-/* ── NAV ARROWS ── */
-.gp-nav{
-  position:absolute;top:50%;transform:translateY(-50%);z-index:30;
-  width:50px;height:50px;border-radius:50%;
-  background:rgba(255,255,255,.12);
-  border:0.5px solid rgba(255,255,255,.18);
-  display:grid;place-items:center;
-  cursor:pointer;color:rgba(255,255,255,.82);
-  transition:all .2s;backdrop-filter:blur(10px);
-  -webkit-user-select:none;user-select:none;
-  flex-shrink:0;
+    font-size:10px;
+    font-weight:500;
+
+    border:1px solid rgba(255,255,255,.08);
 }
-.gp-nav:hover{background:rgba(255,255,255,.22);color:#fff;border-color:rgba(255,255,255,.32)}
-.gp-nav-l{left:clamp(16px,3.5vw,52px)}
-.gp-nav-r{right:clamp(16px,3.5vw,52px)}
+.gc-stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+
+    margin-bottom:12px;
+}
+.gc-stat{
+    background:transparent;
+    border-radius:0;
+    padding:4px 6px;
+
+    text-align:center;
+    border:none;
+}
+.gc-stat+.gc-stat{border-left:1px solid rgba(255,255,255,.20)}
+.gc-stat strong{
+    color:#fff5eb;
+    font-size:12px;
+    font-weight:600;
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    
+}
+.gc-stat span{
+    color:#cdbba8;
+    font-size:9px;
+}
+.gc-stat svg{flex:0 0 auto;color:#020304}
+.gc-image-frame{
+    margin-top:auto;
+
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:10px;
+    overflow:hidden;
+
+    height:170px;
+
+    padding:0;
+}
+
+.gc-image-frame img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+
+    border-radius:9px;
+}
+@media (prefers-reduced-motion:reduce){
+  .gp-card{
+    opacity:1;
+    animation:none !important;
+    transform:none !important;
+  }
+}
+
+.gp-pagination{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  padding:0 var(--pad-x) 76px;
+  flex-wrap:wrap;
+}
+.gp-page-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:38px;
+  height:38px;
+  padding:0 13px;
+  border-radius:12px;
+  border:1px solid rgba(118,90,70,.16);
+  background:rgba(255,248,239,.74);
+  color:#6f625a;
+  font-size:12px;
+  font-weight:700;
+  transition:transform .18s var(--ease), background .18s, color .18s, border-color .18s;
+}
+.gp-page-link:hover{transform:translateY(-2px);background:#fff;border-color:rgba(118,90,70,.28);color:#4f382a}
+.gp-page-link.is-active{background:#211d1a;border-color:#211d1a;color:#fff}
+.gp-page-link.is-edge{padding:0 16px}
+
 
 /* ── BOTTOM HUD: cats + dots ── */
 .gp-hud{
@@ -403,6 +735,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-cat-btn.on{background:rgba(216,180,106,.20);color:#f3d9a4;border:0.5px solid rgba(216,180,106,.36)}
 
 .gp-dots{
+  display:none;
   position:absolute;
   left:50%;
   bottom:18px;
@@ -432,8 +765,12 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-below-title{font-family:var(--font-display);font-size:clamp(28px,3vw,38px);font-weight:600;color:var(--c-text);line-height:1}
 .gp-below-count{font-size:13px;color:var(--c-pale);padding-bottom:4px}
 
-.gp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:20px}
-.gp-gc{min-width:0;background:var(--c-white);border:1px solid var(--c-rule);border-radius:20px;overflow:hidden;box-shadow:0 12px 28px -10px rgba(118,90,70,.10);transition:all .4s var(--ease);display:flex;flex-direction:column}
+.gp-grid{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:28px 22px;
+    align-items:start;
+}
 .gp-gc:hover{transform:translateY(-4px);box-shadow:0 24px 48px -12px rgba(118,90,70,.18)}
 .gp-gc-img{display:block;position:relative;aspect-ratio:4/3;overflow:hidden;background:linear-gradient(160deg,#ede0d0,#ddcebb);flex-shrink:0}
 .gp-gc-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
@@ -467,6 +804,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 /* active filter chips */
 .gp-chips{display:flex;gap:8px;flex-wrap:wrap;padding:20px var(--pad-x) 4px}
+.gp-track-wrap .gp-chips{padding:0 0 22px}
 .gp-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;background:rgba(216,180,106,.12);border:1px solid rgba(216,180,106,.26);font-size:12px;font-weight:600;color:#765a46}
 .gp-chip-x{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;border:none;background:rgba(216,180,106,.18);color:#765a46;cursor:pointer;font-size:10px;font-weight:700;transition:all .15s}
 .gp-chip-x:hover{background:var(--c-gold);color:#fff}
@@ -480,23 +818,63 @@ button,input,select{font-family:var(--font-body);outline:none}
 /* footer */
 .gp-footer{padding:28px var(--pad-x);border-top:1px solid var(--c-rule);display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;color:var(--c-pale)}
 
+
+
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
   .gp-header{grid-template-columns:auto auto;justify-content:space-between}
   .gp-header-nav{display:none}
-  .gp-scene{height:calc(100svh - 65px);min-height:520px}
+  .gp-scene{min-height:calc(100svh - 65px)}
 }
 @media(max-width:700px){
   .gp-header{padding:12px var(--pad-x)}
   .gp-brand-mark{width:34px;height:34px;font-size:12px}
   .gp-brand{font-size:15px}
-  .gp-scene{height:calc(100svh - 59px);min-height:500px}
-  .gp-float-bar{bottom:42px;border-radius:22px;max-width:calc(100vw - 24px)}
-  .fb-search input{width:90px}
+  .gp-scene{min-height:calc(100svh - 59px);padding:28px 12px 44px}
+  .gp-float-bar{border-radius:12px;width:100%;padding:8px}
+  .fb-search{min-height:46px;padding:0 16px}
+  .fb-search input{font-size:14px}
+  .fb-controls{justify-content:flex-start}
+  .gp-track{grid-template-columns:1fr;gap:16px}
+  .gp-card{height:330px;min-height:330px;padding:16px;border-radius:16px}
+  .gc-top{margin-bottom:10px}
+  .gc-name{font-size:23px}
+  .gc-tags{gap:6px;margin-bottom:10px}
+  .gc-tag{padding:5px 9px;font-size:10px}
+  .gc-stats{margin-bottom:10px}
+  .gc-stat{padding:4px 5px}
+  .gc-stat strong{font-size:12px}
+  .gc-stat span{font-size:9px}
+  .gc-image-frame{height:150px}
 }
 @media(max-width:480px){
   :root{--pad-x:16px}
   .gp-footer{flex-direction:column;align-items:flex-start}
+}
+/* Filter အသေးလေးများ (Date, Min-Max, Categories, Sort) ၏ ထောင့်ဝိုင်းနှုန်းကို လျှော့ချရန် */
+.fb-chip, 
+.fb-select {
+    border-radius: 8px !important;
+}
+
+
+@keyframes filterSettle{
+
+    from{
+        opacity:0;
+        transform:translateY(-18px) scale(.97);
+    }
+
+    60%{
+        opacity:1;
+        transform:translateY(4px) scale(1.01);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0) scale(1);
+    }
+
 }
 </style>
 </head>
@@ -521,7 +899,6 @@ button,input,select{font-family:var(--font-body);outline:none}
       <?php endif; ?>
     </a>
     <?php if ($isLoggedIn): ?>
-    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
     <div class="gp-profile-wrap">
       <button class="gp-profile-btn" type="button" aria-expanded="false">
         <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
@@ -547,149 +924,190 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 <main>
 
-<!-- ══ CAROUSEL SCENE ═══════════════════════════════════ -->
+<!-- ══ SEARCH + SERVICES GRID ═══════════════════════════ -->
 <section class="gp-scene" id="gpScene" aria-label="Service cards">
-
-  <div class="gp-scene-bg" id="sceneBg"></div>
-  <div class="gp-scene-vignette"></div>
-
-
-
-  <!-- Nav arrows -->
-  <button class="gp-nav gp-nav-l" id="navL" aria-label="Previous">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-  </button>
-  <button class="gp-nav gp-nav-r" id="navR" aria-label="Next">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-  </button>
-
-  <!-- Track -->
-  <div class="gp-track-wrap" id="trackWrap">
-    <div class="gp-track" id="gpTrack">
-      <?php foreach (array_slice($services, 0, 10) as $ci => $svc):
-        $dUrl = URLROOT . '/customerServices/detail/' . (int)$svc['id'] . $detailDateQuery;
-      ?>
-      <article class="gp-card" data-idx="<?= $ci ?>" data-url="<?= $h($dUrl) ?>"
-               data-img="<?= $h(trim((string)($svc['image'] ?? ''))) ?>">
-        <div class="gc-img">
-          <?php if (trim((string)($svc['image'] ?? '')) !== ''): ?>
-            <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="<?= $ci < 3 ? 'eager' : 'lazy' ?>">
-          <?php else: ?>
-            <div class="gc-img-ph">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-          <?php endif; ?>
+  <div class="hero-banner">
+    <div class="hero-overlay">
+      <h1>SPECIAL OCCASION</h1>
+      <p>Create unforgettable moments with Golden Promise</p>
+      <!-- Filter bar -->
+      <form class="gp-float-bar" method="GET" action="<?= URLROOT ?>/customerServices/service" role="search">
+        <div class="fb-search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="search" name="q" value="<?= $h($filters['search'] ?? '') ?>" placeholder="Search services…" aria-label="Search">
+          <button class="fb-find" type="submit" aria-label="Find services">
+    <svg width="13" height="13" viewBox="0 0 24 24"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="2.5"
+         stroke-linecap="round"
+         stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+    </svg>
+</button>
         </div>
-        <div class="gc-grad"></div>
-        <span class="gc-badge"><?= $h($svc['category'] ?? 'Service') ?></span>
+        <div class="fb-controls">
+          <label class="fb-chip <?= $activeDate !== '' ? 'on' : '' ?>">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span><?= $activeDate !== '' ? $h(date('M j', strtotime($activeDate))) : 'Date' ?></span>
+            <input type="date" name="date" value="<?= $h($activeDate) ?>" min="<?= date('Y-m-d') ?>" id="datePick" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px">
+          </label>
+          <label class="fb-chip fb-budget <?= ($activePriceMin !== '' || $activePriceMax !== '') ? 'on' : '' ?>">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <input type="number" name="price_min" value="<?= $h($activePriceMin) ?>" min="0" step="1000" placeholder="Min" aria-label="Minimum budget">
+            <span class="fb-budget-sep">–</span>
+            <input type="number" name="price_max" value="<?= $h($activePriceMax) ?>" min="0" step="1000" placeholder="Max" aria-label="Maximum budget">
+          </label>
+          <div class="fb-div"></div>
+          <?php if (!empty($categories)): ?>
+          <select class="fb-select" name="category">
+            <option value="all" <?= $activeCategory === 'all' ? 'selected' : '' ?>>All categories</option>
+            <?php foreach ($categories as $cat):
+              $slug = $cat['slug'] ?? strtolower($cat['name'] ?? '');
+            ?>
+              <option value="<?= $h($slug) ?>" <?= $activeCategory === $slug ? 'selected' : '' ?>><?= $h($cat['name'] ?? '') ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="fb-div"></div>
+          <?php endif; ?>
+          <select class="fb-select fb-sort" name="sort" aria-label="Sort services">
+            <option value="featured" <?= $activeSort === 'featured' ? 'selected' : '' ?>>Featured</option>
+            <option value="price_low" <?= $activeSort === 'price_low' ? 'selected' : '' ?>>Price low</option>
+            <option value="price_high" <?= $activeSort === 'price_high' ? 'selected' : '' ?>>Price high</option>
+            <option value="newest" <?= $activeSort === 'newest' ? 'selected' : '' ?>>Newest</option>
+            <option value="rating" <?= $activeSort === 'rating' ? 'selected' : '' ?>>Rating</option>
+          </select>
+          <div class="fb-div"></div>
+          
+        </div>
+      </form>
+    </div>
+
+  </div>
+  <section class="supplier-marquee">
+    <div class="supplier-track">
+        <?php
+        $supplierNames = [];
+        foreach ($services as $service) {
+            $name = trim($service['supplier_name'] ?? '');
+            if ($name !== '') {
+                $supplierNames[$name] = true;
+            }
+        }
+
+        $supplierNames = array_keys($supplierNames);
+        ?>
+
+        <?php for ($i = 0; $i < 2; $i++): ?>
+            <?php foreach ($supplierNames as $supplier): ?>
+                <span class="supplier-item">
+                    <?= $h($supplier) ?>
+                </span>
+            <?php endforeach; ?>
+        <?php endfor; ?>
+    </div>
+</section>
+<div id="filterHolder"></div>
+
+
+
+
+  <div class="gp-track-wrap" id="trackWrap">
+  <!-- Active filter chips -->
+  <?php if ($hasActiveFilters): ?>
+  <div class="gp-chips">
+    <?php if (trim((string)($filters['search'] ?? '')) !== ''): ?>
+    <span class="gp-chip">"<?= $h($filters['search']) ?>"
+      <a class="gp-chip-x" href="<?= $h($serviceUrl(['q' => null, 'page' => null])) ?>">✕</a>
+    </span>
+    <?php endif; ?>
+    <?php if ($activeDate !== ''): ?>
+    <span class="gp-chip"><?= $h(date('M j, Y', strtotime($activeDate))) ?>
+      <a class="gp-chip-x" href="<?= $h($serviceUrl(['date' => null, 'page' => null])) ?>">✕</a>
+    </span>
+    <?php endif; ?>
+    <?php if ($activeCategory !== 'all'): ?>
+    <span class="gp-chip"><?= $h($activeCategory) ?>
+      <a class="gp-chip-x" href="<?= $h($serviceUrl(['category' => 'all', 'page' => null])) ?>">✕</a>
+    </span>
+    <?php endif; ?>
+    <?php if ($activePriceMin !== '' || $activePriceMax !== ''): ?>
+    <span class="gp-chip">MMK <?= $h($activePriceMin ?: '0') ?> – <?= $activePriceMax !== '' ? 'MMK ' . $h($activePriceMax) : '∞' ?>
+      <a class="gp-chip-x" href="<?= $h($serviceUrl(['price_min' => null, 'price_max' => null, 'page' => null])) ?>">✕</a>
+    </span>
+    <?php endif; ?>
+    <?php if ($activeSort !== 'featured'): ?>
+    <span class="gp-chip"><?= $h(ucwords(str_replace('_', ' ', $activeSort))) ?>
+      <a class="gp-chip-x" href="<?= $h($serviceUrl(['sort' => 'featured', 'page' => null])) ?>">✕</a>
+    </span>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+  <div class="gp-track" id="gpTrack">
+    
+    <?php foreach ($visibleServices as $ci => $svc):
+      $dUrl = URLROOT . '/customerServices/detail/' . (int)$svc['id'] . $detailDateQuery;
+    ?>
+      <article class="gp-card" data-idx="<?= $ci ?>" data-url="<?= $h($dUrl) ?>" data-img="<?= $h(trim((string)($svc['image'] ?? ''))) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($svc['name'] ?? 'service') ?>">
         <div class="gc-body">
-          <div class="gc-sup"><?= $h($svc['supplier_name'] ?? '') ?></div>
-          <div class="gc-name"><?= $h($svc['name'] ?? '') ?></div>
-          <div class="gc-foot">
-            <div class="gc-price-wrap">
-              <div class="gc-price"><?= $moneyRange($svc) ?></div>
-              <div class="gc-unit"><?= $h($durationText($svc)) . ' ' . $pricingUnit($svc) ?></div>
-              <?php if ((float)($svc['rating'] ?? 0) > 0): ?>
-              <div class="gc-rating">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="#f3d9a4"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                <?= number_format((float)$svc['rating'], 1) ?>
-                <span style="opacity:.5;font-weight:400">(<?= (int)($svc['review_count'] ?? 0) ?>)</span>
+          <div class="gc-top">
+            <div class="gc-head">
+              <div class="gc-head-text">
+                <div class="gc-name"><?= $h($svc['name'] ?? '') ?></div>
+                <div class="gc-sup"><?= $h($svc['supplier_name'] ?? '') ?></div>
               </div>
-              <?php endif; ?>
             </div>
-            <a class="gc-viewbtn" href="<?= $h($dUrl) ?>">
-              View
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </a>
+          </div>
+
+          <div class="gc-tags">
+            <span class="gc-tag"><?= $h($svc['category'] ?? 'Service') ?></span>
+            <span class="gc-tag"><?= $h($durationText($svc)) ?></span>
+            <span class="gc-tag"><?= $pricingUnit($svc) === '/hr' ? 'Per Hour' : 'Per Session' ?></span>
+          </div>
+
+          <div class="gc-stats">
+            <div class="gc-stat">
+              <strong><?= (float)($svc['rating'] ?? 0) > 0 ? number_format((float)$svc['rating'],1) : 'New' ?></strong>
+              <span>Rating</span>
+            </div>
+            <div class="gc-stat">
+              <strong><?= $moneyRange($svc) ?></strong>
+              <span>Price</span>
+            </div>
+            <div class="gc-stat">
+              <strong><?= $pricingUnit($svc) === '/hr' ? '/hr' : 'Each' ?></strong>
+              <span>Rate</span>
+            </div>
+          </div>
+
+          <div class="gc-image-frame">
+            <?php if(trim((string)($svc['image'] ?? '')) !== ''): ?>
+              <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>">
+            <?php endif; ?>
           </div>
         </div>
       </article>
-      <?php endforeach; ?>
-    </div>
-  </div>
-
-  <div class="gp-dots" id="gpDots" aria-hidden="true"></div>
-
-<!-- Filter bar -->
-<form class="gp-float-bar" method="GET" action="<?= URLROOT ?>/customerServices/service" role="search">
-  <div class="fb-search">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input type="search" name="q" value="<?= $h($filters['search'] ?? '') ?>" placeholder="Search services…" aria-label="Search">
-  </div>
-  <div class="fb-div"></div>
-  <label class="fb-chip <?= $activeDate !== '' ? 'on' : '' ?>">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    <span><?= $activeDate !== '' ? $h(date('M j', strtotime($activeDate))) : 'Date' ?></span>
-    <input type="date" name="date" value="<?= $h($activeDate) ?>" min="<?= date('Y-m-d') ?>" id="datePick" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px">
-  </label>
-  <label class="fb-chip fb-budget <?= ($activePriceMin !== '' || $activePriceMax !== '') ? 'on' : '' ?>">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    <input type="number" name="price_min" value="<?= $h($activePriceMin) ?>" min="0" step="1000" placeholder="Min" aria-label="Minimum budget">
-    <span class="fb-budget-sep">–</span>
-    <input type="number" name="price_max" value="<?= $h($activePriceMax) ?>" min="0" step="1000" placeholder="Max" aria-label="Maximum budget">
-  </label>
-  <div class="fb-div"></div>
-  <?php if (!empty($categories)): ?>
-  <select class="fb-select" name="category">
-    <option value="all" <?= $activeCategory === 'all' ? 'selected' : '' ?>>All categories</option>
-    <?php foreach ($categories as $cat):
-      $slug = $cat['slug'] ?? strtolower($cat['name'] ?? '');
-    ?>
-      <option value="<?= $h($slug) ?>" <?= $activeCategory === $slug ? 'selected' : '' ?>><?= $h($cat['name'] ?? '') ?></option>
-    <?php endforeach; ?>
-  </select>
-  <div class="fb-div"></div>
+    <?php endforeach; ?> </div> </div> <?php if ($totalPages > 1): ?>
+<nav class="gp-pagination" aria-label="Service pages">
+  <?php if ($currentPage > 1): ?>
+    <a class="gp-page-link is-edge" href="<?= $h($serviceUrl(['page' => $currentPage - 1])) ?>">Previous</a>
   <?php endif; ?>
-  <select class="fb-select fb-sort" name="sort" aria-label="Sort services">
-    <option value="featured" <?= $activeSort === 'featured' ? 'selected' : '' ?>>Featured</option>
-    <option value="price_low" <?= $activeSort === 'price_low' ? 'selected' : '' ?>>Price low</option>
-    <option value="price_high" <?= $activeSort === 'price_high' ? 'selected' : '' ?>>Price high</option>
-    <option value="newest" <?= $activeSort === 'newest' ? 'selected' : '' ?>>Newest</option>
-    <option value="rating" <?= $activeSort === 'rating' ? 'selected' : '' ?>>Rating</option>
-  </select>
-  <div class="fb-div"></div>
-  <button class="fb-find" type="submit">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    Find
-  </button>
-</form>
-</section>
-
-
-
-<!-- Active filter chips -->
-<?php if ($hasActiveFilters): ?>
-<div class="gp-chips">
-  <?php if (trim((string)($filters['search'] ?? '')) !== ''): ?>
-  <span class="gp-chip">"<?= $h($filters['search']) ?>"
-    <a class="gp-chip-x" href="<?= $h($serviceUrl(['q' => null])) ?>">✕</a>
-  </span>
+  <?php for ($page = 1; $page <= $totalPages; $page++): ?>
+    <a class="gp-page-link <?= $page === $currentPage ? 'is-active' : '' ?>" href="<?= $h($serviceUrl(['page' => $page])) ?>" aria-label="Page <?= $page ?>" <?= $page === $currentPage ? 'aria-current="page"' : '' ?>><?= $page ?></a>
+  <?php endfor; ?>
+  <?php if ($currentPage < $totalPages): ?>
+    <a class="gp-page-link is-edge" href="<?= $h($serviceUrl(['page' => $currentPage + 1])) ?>">Next</a>
   <?php endif; ?>
-  <?php if ($activeDate !== ''): ?>
-  <span class="gp-chip"><?= $h(date('M j, Y', strtotime($activeDate))) ?>
-    <a class="gp-chip-x" href="<?= $h($serviceUrl(['date' => null])) ?>">✕</a>
-  </span>
-  <?php endif; ?>
-  <?php if ($activeCategory !== 'all'): ?>
-  <span class="gp-chip"><?= $h($activeCategory) ?>
-    <a class="gp-chip-x" href="<?= $h($serviceUrl(['category' => 'all'])) ?>">✕</a>
-  </span>
-  <?php endif; ?>
-  <?php if ($activePriceMin !== '' || $activePriceMax !== ''): ?>
-  <span class="gp-chip">MMK <?= $h($activePriceMin ?: '0') ?> – <?= $activePriceMax !== '' ? 'MMK ' . $h($activePriceMax) : '∞' ?>
-    <a class="gp-chip-x" href="<?= $h($serviceUrl(['price_min' => null, 'price_max' => null])) ?>">✕</a>
-  </span>
-  <?php endif; ?>
-  <?php if ($activeSort !== 'featured'): ?>
-  <span class="gp-chip"><?= $h(ucwords(str_replace('_', ' ', $activeSort))) ?>
-    <a class="gp-chip-x" href="<?= $h($serviceUrl(['sort' => 'featured'])) ?>">✕</a>
-  </span>
-  <?php endif; ?>
-</div>
+</nav>
 <?php endif; ?>
 
-<!-- Remaining grid -->
-<?php $remaining = array_slice($services, 10); ?>
+<div class="gp-dots" id="gpDots" aria-hidden="true"></div>
+
+
+
+<!-- Empty state -->
+<?php $remaining = []; ?>
 <?php if (!empty($remaining) || empty($services)): ?>
 <section class="gp-below" aria-label="More services">
   <?php if (!empty($remaining)): ?>
@@ -775,144 +1193,36 @@ document.querySelectorAll('.fb-select').forEach(select=>{
   select.addEventListener('change',()=>select.closest('form').submit());
 });
 
-/* ════════════════════════════════════════════
-   FAN CAROUSEL
-   ════════════════════════════════════════════ */
-const scene  = document.getElementById('gpScene');
-const bg     = document.getElementById('sceneBg');
-const track  = document.getElementById('gpTrack');
-const wrap   = document.getElementById('trackWrap');
-const dotsEl = document.getElementById('gpDots');
-const prog   = document.getElementById('gpProg');
-const navL   = document.getElementById('navL');
-const navR   = document.getElementById('navR');
-
-const cards  = Array.from(track ? track.querySelectorAll('.gp-card') : []);
-const N      = cards.length;
-if(!N) return;
-
-let cur=0, autoT=null;
-
-/* ── sizing ── */
-function cardSize(){
-  const sh = scene.clientHeight;
-  const sw = scene.clientWidth;
-  /* card fills ~70% of scene height, aspect 9:16 */
-  const h = Math.round(Math.min(sh * .76, sw * .55));
-  const w = Math.round(h * (9/16));
-  return {w,h};
-}
-
-function applySize(){
-  const {w,h}=cardSize();
-  track.style.cssText=`position:relative;width:100%;height:${h}px;transform-style:preserve-3d`;
-  cards.forEach(c=>{ c.style.width=w+'px'; c.style.height=h+'px'; });
-}
-
-/* ── layout positions ── */
-function layout(){
-  const {w,h}=cardSize();
-  const sw   = wrap.clientWidth;
-  const cx   = sw/2;
-
-  /* dynamic gap so side cards just peek in comfortably */
-  const sideGap = Math.min(w*0.68, sw*0.22);
-  const farGap  = Math.min(w*1.28, sw*0.44);
-
-  /* update bg */
-  const activeImg = cards[cur]?.dataset.img;
-  if(bg && activeImg) bg.style.backgroundImage=`url("${activeImg}")`;
-
-  cards.forEach((c,i)=>{
-    const rel=((i-cur)+N)%N;
-    const pos=rel<=N/2?rel:rel-N;
-    let tx,tz,ry,sc,op,zi;
-
-    if(pos===0){
-      tx=cx-w/2; tz=0; ry=0; sc=1; op=1; zi=10;
-      c.classList.add('center');
-    } else if(Math.abs(pos)===1){
-      const s=pos>0?1:-1;
-      tx=cx-w/2+s*sideGap; tz=-100; ry=s*14; sc=.88; op=.82; zi=8;
-      c.classList.remove('center');
-    } else if(Math.abs(pos)===2){
-      const s=pos>0?1:-1;
-      tx=cx-w/2+s*farGap; tz=-210; ry=s*24; sc=.74; op=.52; zi=6;
-      c.classList.remove('center');
-    } else {
-      const s=pos>0?1:-1;
-      tx=cx-w/2+s*(farGap*1.6); tz=-320; ry=s*36; sc=.58; op=0; zi=1;
-      c.classList.remove('center');
+/* ── service card navigation ───────────────── */
+document.querySelectorAll('.gp-card[data-url]').forEach(card=>{
+  const openCard=()=>{
+    const url=card.dataset.url;
+    if(url) window.location.href=url;
+  };
+  card.addEventListener('click',openCard);
+  card.addEventListener('keydown',event=>{
+    if(event.key==='Enter' || event.key===' '){
+      event.preventDefault();
+      openCard();
     }
-    c.style.transform=`translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg) scale(${sc})`;
-    c.style.opacity=op;
-    c.style.zIndex=zi;
-  });
-
-  dotsEl.querySelectorAll('.gp-dot').forEach((d,i)=>d.classList.toggle('on',i===cur));
-}
-
-/* ── build dots ── */
-cards.forEach((_,i)=>{
-  const d=document.createElement('button');
-  d.className='gp-dot'+(i===0?' on':'');
-  d.setAttribute('aria-label',`Card ${i+1}`);
-  d.addEventListener('click',()=>goTo(i));
-  dotsEl.appendChild(d);
-});
-
-function goTo(idx){
-  cur=((idx%N)+N)%N;
-  layout();
-  resetAuto();
-}
-
-/* side-card click → navigate to it */
-cards.forEach((c,i)=>{
-  c.addEventListener('click',e=>{
-    if(i!==cur){ e.preventDefault(); goTo(i); }
   });
 });
 
-navL.addEventListener('click',()=>goTo(cur-1));
-navR.addEventListener('click',()=>goTo(cur+1));
-
-/* keyboard */
-document.addEventListener('keydown',e=>{
-  if(e.key==='ArrowLeft') goTo(cur-1);
-  if(e.key==='ArrowRight') goTo(cur+1);
-});
-
-/* swipe */
-let tx0=0;
-track.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX},{passive:true});
-track.addEventListener('touchend',e=>{
-  const dx=e.changedTouches[0].clientX-tx0;
-  if(Math.abs(dx)>40) goTo(dx<0?cur+1:cur-1);
-},{passive:true});
-
-/* autoplay + progress bar */
-function startProg(){
-  if(!prog) return;
-  prog.style.transition='none'; prog.style.width='0%';
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    prog.style.transition='width 5s linear'; prog.style.width='100%';
-  }));
+/* ── hero pop-out reveal ──────────────────── */
+const heroOverlay=document.querySelector('.hero-overlay');
+if(heroOverlay){
+  if('IntersectionObserver' in window){
+    const heroIo=new IntersectionObserver(entries=>entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        heroOverlay.classList.add('is-in');
+        heroIo.disconnect();
+      }
+    }),{threshold:.35});
+    heroIo.observe(heroOverlay);
+  } else {
+    heroOverlay.classList.add('is-in');
+  }
 }
-function resetAuto(){
-  clearInterval(autoT); startProg();
-  autoT=setInterval(()=>goTo(cur+1),5000);
-}
-scene.addEventListener('mouseenter',()=>{ clearInterval(autoT); if(prog){ prog.style.transition='none'; } });
-scene.addEventListener('mouseleave',()=>resetAuto());
-
-/* init */
-applySize();
-layout();
-resetAuto();
-
-let rT;
-window.addEventListener('resize',()=>{ clearTimeout(rT); rT=setTimeout(()=>{ applySize(); layout(); },80); });
 
 /* ── scroll reveal ────────────────────────── */
 const revEls=document.querySelectorAll('.rev');
@@ -923,6 +1233,32 @@ if('IntersectionObserver' in window){
   revEls.forEach(el=>io.observe(el));
 } else revEls.forEach(el=>el.classList.add('in'));
 
+})();
+
+(function() {
+    const heroBanner = document.querySelector('.hero-banner');
+    if (!heroBanner) return;
+
+    // Array of your images
+    const images = [
+        "<?= URLROOT ?>/public/uploads/serviceHero1.png",
+        "<?= URLROOT ?>/public/uploads/serviceHero2.png",
+        "<?= URLROOT ?>/public/uploads/serviceHero3.png",
+        "<?= URLROOT ?>/public/uploads/serviceHero4.png"
+    ];
+
+    let currentIndex = 0;
+
+    function rotateHeroImage() {
+        // Increment index and loop back to 0 when hitting the end
+        currentIndex = (currentIndex + 1) % images.length;
+        
+        // Apply the new background image smoothly
+        heroBanner.style.backgroundImage = `url('${images[currentIndex]}')`;
+    }
+
+    // Change image every 5000 milliseconds (5 seconds)
+    setInterval(rotateHeroImage, 5000);
 })();
 </script>
 </body>
