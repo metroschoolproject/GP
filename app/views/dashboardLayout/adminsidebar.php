@@ -108,6 +108,10 @@ if (!function_exists('dashboard_admin_nav_class')) {
                             <i data-lucide="clock" class="h-3.5 w-3.5 text-app-header-muted"></i>
                             <span>Pending payment</span>
                         </a>
+                        <a href="<?= URLROOT ?>/admin/replacementQueue" class="<?= dashboard_admin_subnav_class('admin/replacementQueue', $currentPath) ?>">
+                            <i data-lucide="refresh-cw" class="h-3.5 w-3.5 text-app-header-muted"></i>
+                            <span>Replacements</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -200,10 +204,21 @@ if (!function_exists('dashboard_admin_nav_class')) {
                         <i data-lucide="bell" class="h-4 w-4 text-app-header-muted"></i>
                         <span class="flex-1">Notifications</span>
                     </a>
-                    <a href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
-                        <i data-lucide="settings" class="h-4 w-4 text-app-header-muted"></i>
-                        <span class="flex-1">Settings</span>
-                    </a>
+                    <div class="space-y-1">
+                        <button type="button" data-subnav-toggle="settings" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+                            <i data-lucide="settings" class="h-4 w-4 text-app-header-muted"></i>
+                            <span class="flex-1 text-left">Settings</span>
+                            <i data-chevron="settings" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
+                        </button>
+                        <div data-subnav-panel="settings" class="<?= strpos($currentPath, 'admin/logs') !== false ? '' : 'hidden' ?> pl-6">
+                            <div class="space-y-0.5 border-l border-app-panel-border py-1">
+                                <a href="<?= URLROOT ?>/admin/logs" class="<?= dashboard_admin_subnav_class('admin/logs', $currentPath) ?>">
+                                    <i data-lucide="scroll-text" class="h-3.5 w-3.5 text-app-header-muted"></i>
+                                    <span>System logs</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </nav>

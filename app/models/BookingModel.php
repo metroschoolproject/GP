@@ -397,7 +397,9 @@ class BookingModel
     /**
      * Reserve per-service time slots for every service inside a package.
      * Creates service_time_slot entries for slot-type services and increments
-     * their confirmed_count so they're blocked from double booking.
+     * their confirmed_count + confirmed_package_count so they're blocked from double booking.
+     *
+     * Each slot inherits the service's max_concurrent and pool limits.
      *
      * Returns the array of resolved per-service schedule rows
      * (enriched with event_date, start_time, end_time, booking_type,
@@ -409,15 +411,20 @@ class BookingModel
     {
         foreach ($packageSchedule as $event) {
             if (($event['booking_type'] ?? '') === 'slot') {
+                $svcId = (int)($event['service_id'] ?? 0);
+                $svcConcurrent = $this->getServiceConcurrent($svcId);
+
                 $slotId = $this->findOrCreateServiceSlot(
-                    (int)($event['service_id'] ?? 0),
+                    $svcId,
                     $eventDate,
                     (string)($event['start_time'] ?? '09:00:00'),
                     (string)($event['end_time'] ?? '10:00:00'),
-                    1
+                    $svcConcurrent['max_concurrent'] ?? 1,
+                    $svcConcurrent['max_concurrent_package'] ?? 0,
+                    $svcConcurrent['max_concurrent_customize'] ?? 0
                 );
                 if ($slotId) {
-                    $this->reserveServiceSlot($slotId);
+                    $this->reserveServiceSlot($slotId, 'package');
                 }
             }
         }
@@ -425,10 +432,39 @@ class BookingModel
     }
 
     /**
+     * Load service concurrency settings.
+     * @return array{max_concurrent:int, max_concurrent_package:int, max_concurrent_customize:int}
+     */
+    private function getServiceConcurrent(int $serviceId): array
+    {
+        $defaults = ['max_concurrent' => 1, 'max_concurrent_package' => 0, 'max_concurrent_customize' => 0];
+        if ($serviceId <= 0) {
+            return $defaults;
+        }
+        $this->db->dbquery(
+            'SELECT max_concurrent, max_concurrent_package, max_concurrent_customize
+             FROM services WHERE id = :id LIMIT 1'
+        );
+        $this->db->dbbind(':id', $serviceId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        if (!$row) {
+            return $defaults;
+        }
+        return [
+            'max_concurrent' => (int)($row['max_concurrent'] ?? 1),
+            'max_concurrent_package' => (int)($row['max_concurrent_package'] ?? 0),
+            'max_concurrent_customize' => (int)($row['max_concurrent_customize'] ?? 0),
+        ];
+    }
+
+    /**
      * Find an existing slot or insert a new one for a service on a given date/time.
      * Returns the slot ID or null on failure.
      */
-    private function findOrCreateServiceSlot(int $serviceId, string $date, string $startTime, string $endTime, int $maxConcurrent): ?int
+    private function findOrCreateServiceSlot(
+        int $serviceId, string $date, string $startTime, string $endTime,
+        int $maxConcurrent, int $maxConcurrentPackage = 0, int $maxConcurrentCustomize = 0
+    ): ?int
     {
         $this->db->dbquery(
             "SELECT id FROM service_time_slots
@@ -444,33 +480,79 @@ class BookingModel
             return (int)$existing['id'];
         }
 
+        // Use dynamic column detection for pool columns
+        $hasPools = $this->hasSlotPoolColumns();
+        $poolCols = $hasPools ? ', confirmed_package_count, confirmed_customize_count, max_concurrent_package, max_concurrent_customize' : '';
+        $poolVals = $hasPools ? ', 0, 0, :maxcp, :maxcc' : '';
+
         $this->db->dbquery(
-            "INSERT INTO service_time_slots (service_id, date, start_time, end_time, confirmed_count, max_concurrent, status)
-             VALUES (:sid, :date, :stime, :etime, 0, :maxc, 'available')"
+            "INSERT INTO service_time_slots (service_id, date, start_time, end_time, confirmed_count, max_concurrent, status{$poolCols})
+             VALUES (:sid, :date, :stime, :etime, 0, :maxc, 'available'{$poolVals})"
         );
         $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
         $this->db->dbbind(':date', $date);
         $this->db->dbbind(':stime', $startTime);
         $this->db->dbbind(':etime', $endTime);
         $this->db->dbbind(':maxc', $maxConcurrent, PDO::PARAM_INT);
+        if ($hasPools) {
+            $this->db->dbbind(':maxcp', $maxConcurrentPackage, PDO::PARAM_INT);
+            $this->db->dbbind(':maxcc', $maxConcurrentCustomize, PDO::PARAM_INT);
+        }
 
         return $this->db->dbexecute() ? (int)$this->db->lastInsertId() : null;
     }
 
     /**
-     * Increment confirmed_count on a service_time_slot.
+     * Increment the proper confirmed_count on a service_time_slot
+     * (total + pool-specific).
      */
-    private function reserveServiceSlot(int $slotId): bool
+    private function reserveServiceSlot(int $slotId, string $source = 'custom'): bool
     {
+        $poolCol = $source === 'package' ? 'confirmed_package_count' : 'confirmed_customize_count';
+        $poolCheck = $source === 'package'
+            ? 'AND (st.max_concurrent_package = 0 OR st.confirmed_package_count < st.max_concurrent_package)'
+            : 'AND (st.max_concurrent_customize = 0 OR st.confirmed_customize_count < st.max_concurrent_customize)';
+
+        $hasPools = $this->hasSlotPoolColumns();
+        $poolUpdate = $hasPools ? ", {$poolCol} = {$poolCol} + 1" : '';
+
         $this->db->dbquery(
             "UPDATE service_time_slots
-             SET confirmed_count = confirmed_count + 1,
+             SET confirmed_count = confirmed_count + 1{$poolUpdate},
                  status = CASE WHEN confirmed_count + 1 >= max_concurrent THEN 'full' ELSE 'available' END
-             WHERE id = :id AND status = 'available'"
+             WHERE id = (
+                SELECT id FROM (
+                    SELECT st.id
+                    FROM service_time_slots st
+                    WHERE st.id = :id
+                      AND st.status = 'available'
+                      AND st.confirmed_count < st.max_concurrent"
+                      . ($hasPools ? " {$poolCheck}" : '') . "
+                    LIMIT 1
+                ) AS target
+             )"
         );
         $this->db->dbbind(':id', $slotId, PDO::PARAM_INT);
         $this->db->dbexecute();
         return $this->db->rowcount() > 0;
+    }
+
+    /**
+     * Check if service_time_slots has pool concurrency columns.
+     */
+    private function hasSlotPoolColumns(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        try {
+            $this->db->dbquery("SHOW COLUMNS FROM service_time_slots LIKE 'max_concurrent_package'");
+            $has = (bool)$this->db->getsingledata();
+        } catch (Throwable $e) {
+            $has = false;
+        }
+        return $has;
     }
 
     /**
@@ -1242,6 +1324,512 @@ class BookingModel
     }
 
     /**
+     * Mark a supplier row as awaiting an admin-chosen replacement (decline on a
+     * confirmed package booking). Unlike a plain 'rejected', this keeps the
+     * booking alive so the platform can swap in another supplier.
+     */
+    public function markSupplierNeedsReplacement(int $bookingSupplierId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE booking_suppliers
+                SET status = 'needs_replacement', declined_at = NOW()
+              WHERE id = :id"
+        );
+        $this->db->dbbind(':id', $bookingSupplierId, PDO::PARAM_INT);
+
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Open a replacement request for a declined supplier on a package booking.
+     * Captures what the declined supplier covered (category/service/price) so
+     * the admin candidate search can match it. Returns the new replacement id.
+     *
+     * @param array $supplierRow A booking_suppliers row (bs.*) for the decliner.
+     */
+    public function createReplacementRequest(int $bookingId, array $supplierRow, ?string $reason = null): int
+    {
+        $this->db->dbquery(
+            "INSERT INTO booking_supplier_replacements
+                (booking_id, booking_supplier_id, category_id,
+                 old_supplier_id, old_service_id, old_price,
+                 status, decline_reason, created_at)
+             VALUES
+                (:bid, :bsid, :cat,
+                 :old_sup, :old_svc, :old_price,
+                 'pending_admin', :reason, NOW())"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':bsid', (int)($supplierRow['id'] ?? 0), PDO::PARAM_INT);
+        $this->db->dbbind(':cat', $supplierRow['category_id'] ?? null);
+        $this->db->dbbind(':old_sup', (int)($supplierRow['supplier_id'] ?? 0), PDO::PARAM_INT);
+        $this->db->dbbind(':old_svc', $supplierRow['service_id'] ?? null);
+        $this->db->dbbind(':old_price', $supplierRow['item_price'] ?? null);
+        $this->db->dbbind(':reason', $reason !== '' ? $reason : null);
+        $this->db->dbexecute();
+
+        return (int)$this->db->lastinsertid();
+    }
+
+    /* ════════════════════════════════════════════════════════════
+     *  SUPPLIER REPLACEMENT — candidate search, assign, swap
+     *  (see .claude/plans/admin-supplier-replacement-on-decline.md)
+     * ════════════════════════════════════════════════════════════ */
+
+    /**
+     * Decrement the confirmed counts on a service_time_slot when a reservation
+     * is released (mirror of reserveServiceSlot). Re-opens the slot if it drops
+     * below capacity.
+     */
+    private function releaseServiceSlot(int $slotId, string $source = 'custom'): bool
+    {
+        if ($slotId <= 0) {
+            return false;
+        }
+        $hasPools = $this->hasSlotPoolColumns();
+        $poolCol = $source === 'package' ? 'confirmed_package_count' : 'confirmed_customize_count';
+        $poolUpdate = $hasPools ? ", {$poolCol} = GREATEST({$poolCol} - 1, 0)" : '';
+
+        $this->db->dbquery(
+            "UPDATE service_time_slots
+                SET confirmed_count = GREATEST(confirmed_count - 1, 0){$poolUpdate},
+                    status = CASE WHEN GREATEST(confirmed_count - 1, 0) < max_concurrent AND status <> 'blocked'
+                                  THEN 'available' ELSE status END
+              WHERE id = :id"
+        );
+        $this->db->dbbind(':id', $slotId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        return $this->db->rowcount() > 0;
+    }
+
+    /**
+     * Fetch a single replacement request joined with the booking's wedding date
+     * and the original (declined) supplier name.
+     */
+    public function getReplacement(int $replacementId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT r.*,
+                    sup.shop_name AS old_shop_name,
+                    cat.name      AS category_name,
+                    (SELECT event_date FROM event_details ed
+                      WHERE ed.booking_id = r.booking_id ORDER BY ed.event_date ASC LIMIT 1) AS event_date
+               FROM booking_supplier_replacements r
+               LEFT JOIN suppliers  sup ON sup.supplier_id = r.old_supplier_id
+               LEFT JOIN categories cat ON cat.id = r.category_id
+              WHERE r.id = :id
+              LIMIT 1"
+        );
+        $this->db->dbbind(':id', $replacementId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
+     * Replacement requests awaiting an admin decision (queue view).
+     */
+    public function getPendingReplacements(): array
+    {
+        $this->db->dbquery(
+            "SELECT r.*,
+                    sup.shop_name AS old_shop_name,
+                    cat.name      AS category_name,
+                    b.status      AS booking_status,
+                    u.name        AS customer_name,
+                    (SELECT event_date FROM event_details ed
+                      WHERE ed.booking_id = r.booking_id ORDER BY ed.event_date ASC LIMIT 1) AS event_date
+               FROM booking_supplier_replacements r
+               LEFT JOIN suppliers  sup ON sup.supplier_id = r.old_supplier_id
+               LEFT JOIN categories cat ON cat.id = r.category_id
+               LEFT JOIN bookings   b   ON b.id = r.booking_id
+               LEFT JOIN users      u   ON u.user_id = b.user_id
+              WHERE r.status IN ('pending_admin','declined_again','rejected_by_customer')
+              ORDER BY r.created_at ASC"
+        );
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Find candidate replacement services: same category, available on the
+     * wedding date, valid/paid supplier, not the declined supplier, and priced
+     * at or below the +MAX_REPLACEMENT_UPCHARGE_PCT ceiling. Each candidate is
+     * tagged with whether it needs customer approval (price > original).
+     */
+    public function findReplacementCandidates(int $replacementId): array
+    {
+        $r = $this->getReplacement($replacementId);
+        if (!$r) {
+            return [];
+        }
+        $categoryId = (int)($r['category_id'] ?? 0);
+        $oldSupplier = (int)($r['old_supplier_id'] ?? 0);
+        $oldPrice = (float)($r['old_price'] ?? 0);
+        $eventDate = $r['event_date'] ?? null;
+
+        $cap = defined('MAX_REPLACEMENT_UPCHARGE_PCT') ? (float)MAX_REPLACEMENT_UPCHARGE_PCT : 25.0;
+        $ceiling = $oldPrice > 0 ? $oldPrice * (1 + $cap / 100) : null;
+
+        $dayOfWeek = ($eventDate && preg_match('/^\d{4}-\d{2}-\d{2}/', $eventDate))
+            ? (int)date('N', strtotime($eventDate)) : null;
+
+        $sql = "SELECT s.id AS service_id, s.name AS service_name, s.price,
+                       s.supplier_id, sup.shop_name,
+                       s.max_concurrent_package
+                  FROM services s
+                  INNER JOIN suppliers sup ON sup.supplier_id = s.supplier_id
+                 WHERE s.is_active = 1
+                   AND s.category_id = :cat
+                   AND s.supplier_id <> :old_sup
+                   AND sup.deleted_at IS NULL
+                   AND sup.is_available = 1
+                   AND sup.status IN ('approved','verified')
+                   AND sup.payment_status = 'paid'";
+        if ($ceiling !== null) {
+            $sql .= " AND s.price <= :ceiling";
+        }
+        // Schedule must allow this weekday (venue exempt, like the catalog).
+        if ($dayOfWeek !== null) {
+            $sql .= " AND EXISTS (
+                        SELECT 1 FROM service_schedules ss
+                         WHERE ss.service_id = s.id
+                           AND ss.day_of_week = :dow
+                           AND ss.is_available = 1
+                           AND ss.open_time < ss.close_time
+                      )";
+        }
+        // Exclude services whose package pool is already full on that date.
+        if ($eventDate) {
+            $sql .= " AND NOT EXISTS (
+                        SELECT 1 FROM service_time_slots st
+                         WHERE st.service_id = s.id
+                           AND st.date = :edate
+                           AND st.max_concurrent_package > 0
+                           AND st.confirmed_package_count >= st.max_concurrent_package
+                      )";
+        }
+        $sql .= " ORDER BY s.price ASC, s.id ASC LIMIT 50";
+
+        $this->db->dbquery($sql);
+        $this->db->dbbind(':cat', $categoryId, PDO::PARAM_INT);
+        $this->db->dbbind(':old_sup', $oldSupplier, PDO::PARAM_INT);
+        if ($ceiling !== null) {
+            $this->db->dbbind(':ceiling', $ceiling);
+        }
+        if ($dayOfWeek !== null) {
+            $this->db->dbbind(':dow', $dayOfWeek, PDO::PARAM_INT);
+        }
+        if ($eventDate) {
+            $this->db->dbbind(':edate', $eventDate);
+        }
+        $rows = $this->db->getmultidata();
+
+        foreach ($rows as &$row) {
+            $price = (float)($row['price'] ?? 0);
+            $row['price_delta'] = round($price - $oldPrice, 2);
+            $row['needs_customer_approval'] = $price > $oldPrice;
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /**
+     * Update a replacement row's lifecycle fields. $fields is a whitelist map.
+     */
+    public function updateReplacement(int $replacementId, array $fields): bool
+    {
+        $allowed = [
+            'new_supplier_id','new_service_id','new_price','price_delta',
+            'requires_customer_approval','customer_approved_at','delta_payment_id',
+            'status','chosen_by_admin_id','assigned_at','resolved_at',
+        ];
+        $sets = [];
+        foreach ($fields as $k => $v) {
+            if (in_array($k, $allowed, true)) {
+                $sets[] = "`{$k}` = :{$k}";
+            }
+        }
+        if (!$sets) {
+            return false;
+        }
+        $this->db->dbquery(
+            "UPDATE booking_supplier_replacements SET " . implode(', ', $sets) . " WHERE id = :id"
+        );
+        foreach ($fields as $k => $v) {
+            if (in_array($k, $allowed, true)) {
+                $this->db->dbbind(':' . $k, $v);
+            }
+        }
+        $this->db->dbbind(':id', $replacementId, PDO::PARAM_INT);
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Atomic swap: replace the declined supplier with the chosen one. Releases
+     * the old supplier's slot, reserves the new one, rewrites booking_suppliers
+     * and the booking_item display snapshot. Returns true on success.
+     *
+     * Customer-facing item price only changes when $applyNewPrice is true
+     * (i.e. the customer paid the delta for a pricier pick). For same/cheaper
+     * picks the platform absorbs the difference and price stays put.
+     */
+    public function performReplacementSwap(int $replacementId, bool $applyNewPrice = false): bool
+    {
+        $r = $this->getReplacement($replacementId);
+        if (!$r || (int)($r['new_service_id'] ?? 0) <= 0) {
+            return false;
+        }
+        $bookingId      = (int)$r['booking_id'];
+        $oldSupplierRow = (int)$r['booking_supplier_id'];
+        $oldServiceId   = (int)($r['old_service_id'] ?? 0);
+        $newServiceId   = (int)$r['new_service_id'];
+        $newPrice       = (float)($r['new_price'] ?? 0);
+        $oldPrice       = (float)($r['old_price'] ?? 0);
+        $categoryId     = $r['category_id'] ?? null;
+        $eventDate      = $r['event_date'] ?? null;
+
+        // Look up new supplier + display info before opening the transaction.
+        $this->db->dbquery(
+            "SELECT s.supplier_id, s.name AS service_name, sup.shop_name,
+                    (SELECT sd.file_url FROM supplier_documents sd
+                      WHERE sd.supplier_id = sup.supplier_id AND sd.type = 'cover_photo'
+                      ORDER BY sd.id DESC LIMIT 1) AS thumbnail_url
+               FROM services s
+               INNER JOIN suppliers sup ON sup.supplier_id = s.supplier_id
+              WHERE s.id = :sid LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $newServiceId, PDO::PARAM_INT);
+        $newSvc = $this->db->getsingledata();
+        if (!$newSvc) {
+            return false;
+        }
+        $newSupplierId = (int)$newSvc['supplier_id'];
+
+        $this->db->beginTransaction();
+        try {
+            // 1. Old supplier row -> replaced.
+            $this->db->dbquery(
+                "UPDATE booking_suppliers SET status = 'replaced' WHERE id = :id"
+            );
+            $this->db->dbbind(':id', $oldSupplierRow, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // 2. Release old supplier's package slot for the date (best-effort).
+            if ($oldServiceId > 0 && $eventDate) {
+                $this->db->dbquery(
+                    "SELECT id FROM service_time_slots
+                      WHERE service_id = :sid AND date = :d ORDER BY id ASC LIMIT 1"
+                );
+                $this->db->dbbind(':sid', $oldServiceId, PDO::PARAM_INT);
+                $this->db->dbbind(':d', $eventDate);
+                $oldSlot = $this->db->getsingledata();
+                if ($oldSlot) {
+                    $this->releaseServiceSlot((int)$oldSlot['id'], 'package');
+                }
+            }
+
+            // 3. Insert the new supplier row.
+            $finalPrice = $applyNewPrice ? $newPrice : $oldPrice;
+            $this->db->dbquery(
+                "INSERT INTO booking_suppliers
+                    (booking_id, supplier_id, service_id, category_id, item_price, status, created_at)
+                 VALUES (:bid, :sup, :svc, :cat, :price, 'pending', NOW())"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbbind(':sup', $newSupplierId, PDO::PARAM_INT);
+            $this->db->dbbind(':svc', $newServiceId, PDO::PARAM_INT);
+            $this->db->dbbind(':cat', $categoryId);
+            $this->db->dbbind(':price', $finalPrice);
+            $this->db->dbexecute();
+            $newRowId = (int)$this->db->lastinsertid();
+
+            // 4. Point the old row at its replacement.
+            $this->db->dbquery(
+                "UPDATE booking_suppliers SET replaced_by_id = :new WHERE id = :old"
+            );
+            $this->db->dbbind(':new', $newRowId, PDO::PARAM_INT);
+            $this->db->dbbind(':old', $oldSupplierRow, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // 5. Reserve the new supplier's package slot for the date.
+            if ($eventDate) {
+                $conc = $this->getServiceConcurrent($newServiceId);
+                $slotId = $this->findOrCreateServiceSlot(
+                    $newServiceId, $eventDate, '09:00:00', '10:00:00',
+                    $conc['max_concurrent'] ?? 1,
+                    $conc['max_concurrent_package'] ?? 0,
+                    $conc['max_concurrent_customize'] ?? 0
+                );
+                if ($slotId) {
+                    $this->reserveServiceSlot($slotId, 'package');
+                }
+            }
+
+            // 6. Refresh the booking_item display snapshot (price only if paid).
+            $priceSet = $applyNewPrice ? ", price = :price" : "";
+            $this->db->dbquery(
+                "UPDATE booking_items
+                    SET supplier_name = :sname, item_name = :iname, thumbnail_url = :thumb{$priceSet}
+                  WHERE booking_id = :bid AND item_type = 'package'"
+            );
+            $this->db->dbbind(':sname', $newSvc['shop_name'] ?? '');
+            $this->db->dbbind(':iname', $newSvc['service_name'] ?? '');
+            $this->db->dbbind(':thumb', $newSvc['thumbnail_url'] ?? null);
+            if ($applyNewPrice) {
+                $this->db->dbbind(':price', $finalPrice);
+            }
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // 7. If the customer paid a delta, bump the booking totals.
+            if ($applyNewPrice && $newPrice > $oldPrice) {
+                $delta = $newPrice - $oldPrice;
+                $this->db->dbquery(
+                    "UPDATE bookings
+                        SET total_amount = COALESCE(total_amount,0) + :d,
+                            paid_amount  = COALESCE(paid_amount,0) + :d2
+                      WHERE id = :bid"
+                );
+                $this->db->dbbind(':d', $delta);
+                $this->db->dbbind(':d2', $delta);
+                $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+                $this->db->dbexecute();
+            }
+
+            // 8. Replacement row -> assigned.
+            $this->db->dbquery(
+                "UPDATE booking_supplier_replacements
+                    SET status = 'assigned', assigned_at = NOW()
+                  WHERE id = :id"
+            );
+            $this->db->dbbind(':id', $replacementId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('performReplacementSwap failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Create a pending manual payment row for a replacement price delta. The
+     * customer pays this (slip upload) and admin verification finalizes the swap.
+     */
+    public function createReplacementDeltaPayment(int $bookingId, float $delta): int
+    {
+        $this->db->dbquery(
+            "INSERT INTO payments (booking_id, amount, type, status, created_at)
+             VALUES (:bid, :amt, 'replacement_delta', 'pending', NOW())"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':amt', $delta);
+        $this->db->dbexecute();
+        return (int)$this->db->lastinsertid();
+    }
+
+    /**
+     * Attach the customer's bank-transfer proof to a pending replacement-delta
+     * payment. Stays 'pending' until an admin verifies it (which finalizes the
+     * swap). Returns true on success.
+     */
+    public function recordReplacementDeltaSlip(
+        int $paymentId, string $slipPath, string $bankName, string $accountName,
+        string $mobileNumber, string $transactionRef, float $paidAmount
+    ): bool {
+        $this->db->dbquery(
+            "UPDATE payments
+                SET method = :method, bank_name = :bank, account_name = :acct,
+                    mobile_number = :mobile, transaction_ref = :ref,
+                    paid_amount = :paid, payment_slip_path = :slip, paid_at = NOW()
+              WHERE id = :pid AND type = 'replacement_delta' AND status = 'pending'"
+        );
+        $this->db->dbbind(':method', $bankName);
+        $this->db->dbbind(':bank', $bankName);
+        $this->db->dbbind(':acct', $accountName);
+        $this->db->dbbind(':mobile', $mobileNumber);
+        $this->db->dbbind(':ref', $transactionRef);
+        $this->db->dbbind(':paid', $paidAmount);
+        $this->db->dbbind(':slip', $slipPath !== '' ? $slipPath : null);
+        $this->db->dbbind(':pid', $paymentId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        return $this->db->rowcount() > 0;
+    }
+
+    /**
+     * Fetch a replacement together with the booking owner's user id — used to
+     * authorize the customer-facing delta-payment page.
+     */
+    public function getReplacementForCustomer(int $replacementId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT r.*, b.user_id, b.total_amount,
+                    sup.shop_name AS new_shop_name,
+                    s.name AS new_service_name
+               FROM booking_supplier_replacements r
+               INNER JOIN bookings b ON b.id = r.booking_id
+               LEFT JOIN suppliers sup ON sup.supplier_id = r.new_supplier_id
+               LEFT JOIN services  s   ON s.id = r.new_service_id
+              WHERE r.id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $replacementId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
+     * True once no open replacement work remains on the booking (no
+     * needs_replacement supplier rows and no unresolved replacement requests).
+     */
+    public function bookingReplacementsResolved(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "SELECT
+               (SELECT COUNT(*) FROM booking_suppliers
+                 WHERE booking_id = :bid AND status = 'needs_replacement') AS pending_rows,
+               (SELECT COUNT(*) FROM booking_supplier_replacements
+                 WHERE booking_id = :bid2
+                   AND status IN ('pending_admin','pending_customer','declined_again','rejected_by_customer')) AS open_reqs"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':bid2', $bookingId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return (int)($row['pending_rows'] ?? 0) === 0 && (int)($row['open_reqs'] ?? 0) === 0;
+    }
+
+    /**
+     * The replacement on a booking that is waiting for the customer to approve +
+     * pay the delta (drives the "Pay difference" banner on booking detail).
+     */
+    public function getPendingCustomerReplacement(int $bookingId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT r.*, sup.shop_name AS new_shop_name
+               FROM booking_supplier_replacements r
+               LEFT JOIN suppliers sup ON sup.supplier_id = r.new_supplier_id
+              WHERE r.booking_id = :bid AND r.status = 'pending_customer'
+              ORDER BY r.id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
+     * Find an open (assigned) replacement row for a given new supplier on a
+     * booking — used when that supplier accepts/declines via supplierRespond.
+     */
+    public function getActiveReplacementForSupplier(int $bookingId, int $newSupplierId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT * FROM booking_supplier_replacements
+              WHERE booking_id = :bid AND new_supplier_id = :sup AND status = 'assigned'
+              ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sup', $newSupplierId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
      * Update booking item status by supplier.
      */
     public function updateBookingItemsStatusBySupplier(int $bookingId, int $supplierId, string $status): bool
@@ -1535,13 +2123,32 @@ class BookingModel
         }
 
         if ($refundDeposit) {
-            // Get payments and mark as refunded
+            // Capture how much is being marked refunded (for the audit note)
+            $this->db->dbquery(
+                "SELECT COALESCE(SUM(COALESCE(paid_amount, amount)), 0) AS total
+                 FROM payments
+                 WHERE booking_id = :bid AND status = 'success'"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $refundedAmount = (float) ($this->db->getsingledata()['total'] ?? 0);
+
+            // Manual refund: admin processes the money outside the system,
+            // this only flips the bookkeeping flag.
             $this->db->dbquery(
                 "UPDATE payments SET escrow_status = 'refunded'
                  WHERE booking_id = :bid AND status = 'success'"
             );
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
             $this->db->dbexecute();
+
+            // Audit row so the manual refund is traceable (who/when/how much)
+            $this->logStatusChange(
+                $bookingId,
+                'cancelled',
+                'cancelled',
+                $adminId,
+                'Deposit marked as refunded by admin (manual): ' . number_format($refundedAmount, 0) . ' MMK'
+            );
         }
 
         // Update booking_suppliers
@@ -1759,6 +2366,98 @@ class BookingModel
         }
 
         return $count;
+    }
+
+    /**
+     * Expire stale supplier-replacement work (run alongside
+     * expireOverdueBookingRequests):
+     *   A) A replacement supplier (newly assigned, still 'pending') who blew the
+     *      48h response deadline -> auto-decline + re-queue for admin re-pick.
+     *   B) A pricier proposal sitting in 'pending_customer' for >3 days with no
+     *      payment -> revert to 'pending_admin' so the admin can pick cheaper.
+     * Returns the number of replacements re-queued.
+     *
+     * @return array{requeued:int, booking_ids:int[]}
+     */
+    public function expireOverdueReplacements(): array
+    {
+        $requeued = 0;
+        $bookingIds = [];
+
+        // A) Assigned replacement supplier missed the deadline.
+        $this->db->dbquery(
+            "SELECT r.id AS rid, r.booking_id, r.new_supplier_id
+               FROM booking_supplier_replacements r
+               INNER JOIN bookings b ON b.id = r.booking_id
+               INNER JOIN booking_suppliers bs
+                       ON bs.booking_id = r.booking_id
+                      AND bs.supplier_id = r.new_supplier_id
+                      AND bs.status = 'pending'
+              WHERE r.status = 'assigned'
+                AND b.supplier_response_deadline IS NOT NULL
+                AND b.supplier_response_deadline < NOW()"
+        );
+        $overdue = $this->db->getmultidata();
+        foreach ($overdue as $row) {
+            $rid = (int)$row['rid'];
+            $bookingId = (int)$row['booking_id'];
+            $newSupplier = (int)$row['new_supplier_id'];
+
+            // Reject the unresponsive new supplier row.
+            $this->db->dbquery(
+                "UPDATE booking_suppliers SET status = 'rejected'
+                  WHERE booking_id = :bid AND supplier_id = :sup AND status = 'pending'"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbbind(':sup', $newSupplier, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // Re-open the request for admin.
+            $this->updateReplacement($rid, [
+                'status' => 'declined_again',
+                'new_supplier_id' => null,
+                'new_service_id' => null,
+                'new_price' => null,
+                'price_delta' => null,
+            ]);
+            $this->logStatusChange($bookingId, null, 'replacement_expired', null, 'Replacement supplier did not respond in 48h; re-queued');
+            $requeued++;
+            $bookingIds[] = $bookingId;
+        }
+
+        // B) Customer never approved a pricier proposal within 3 days.
+        $this->db->dbquery(
+            "SELECT id AS rid, booking_id, delta_payment_id
+               FROM booking_supplier_replacements
+              WHERE status = 'pending_customer'
+                AND created_at < (NOW() - INTERVAL 3 DAY)"
+        );
+        $staleProposals = $this->db->getmultidata();
+        foreach ($staleProposals as $row) {
+            $rid = (int)$row['rid'];
+            $bookingId = (int)$row['booking_id'];
+            $paymentId = (int)($row['delta_payment_id'] ?? 0);
+
+            if ($paymentId > 0) {
+                $this->db->dbquery("UPDATE payments SET status = 'failed' WHERE id = :pid AND status = 'pending'");
+                $this->db->dbbind(':pid', $paymentId, PDO::PARAM_INT);
+                $this->db->dbexecute();
+            }
+            $this->updateReplacement($rid, [
+                'status' => 'pending_admin',
+                'new_supplier_id' => null,
+                'new_service_id' => null,
+                'new_price' => null,
+                'price_delta' => null,
+                'requires_customer_approval' => 0,
+                'delta_payment_id' => null,
+            ]);
+            $this->logStatusChange($bookingId, null, 'replacement_proposal_expired', null, 'Customer did not approve pricier replacement in 3 days; re-queued');
+            $requeued++;
+            $bookingIds[] = $bookingId;
+        }
+
+        return ['requeued' => $requeued, 'booking_ids' => array_values(array_unique($bookingIds))];
     }
 
     /* ─── Payment Verification & Gating ────────────────────────────── */
