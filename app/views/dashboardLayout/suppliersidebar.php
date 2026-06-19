@@ -22,6 +22,7 @@ $reviewsPathActive = strpos($currentPath, 'supplier/reviews') !== false;
 $servicesPathActive = strpos($currentPath, 'supplier/services') !== false
     || strpos($currentPath, 'supplier/serviceDetail') !== false
     || strpos($currentPath, 'supplier/serviceCalendar') !== false;
+$profilePathActive = strpos($currentPath, 'supplier/profile') !== false;
 $servicesPackageTabActive = strpos($currentPath, 'supplier/services') !== false && ($_GET['tab'] ?? '') === 'packages';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, services...';
 $notificationConfig = $notificationConfig ?? [
@@ -306,7 +307,14 @@ if (!function_exists('dashboard_supplier_path_matches')) {
     <div class="flex h-full flex-col">
         <div class="relative border-b border-b-app-panel-border bg-app-panel px-5 py-5">
             <div class="supplier-profile-shell flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-app-primary text-sm font-semibold text-app-white shadow-sm"><?= htmlspecialchars($supplierInitials, ENT_QUOTES, 'UTF-8') ?></div>
+                <?php $sidebarAvatar = $_SESSION['session_avatar'] ?? null; ?>
+                <?php if (!empty($sidebarAvatar)): ?>
+                    <img src="<?= htmlspecialchars($sidebarAvatar, ENT_QUOTES, 'UTF-8') ?>"
+                         alt="<?= $supplierName ?>"
+                         class="h-10 w-10 rounded-full object-cover shadow-sm">
+                <?php else: ?>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-app-primary text-sm font-semibold text-app-white shadow-sm"><?= htmlspecialchars($supplierInitials, ENT_QUOTES, 'UTF-8') ?></div>
+                <?php endif; ?>
                 <div class="min-w-0">
                     <p class="supplier-sidebar-name truncate text-sm font-semibold text-app-text"><?= $supplierName ?></p>
                     <p class="supplier-sidebar-email truncate text-xs text-app-muted"><?= $ownerEmail ?></p>
@@ -320,7 +328,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         </div>
 
         <nav class="px-4 py-3 space-y-1.5">
-            <a href="#" title="My Profile" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+            <a href="<?= URLROOT ?>/supplier/profile" title="My Profile" class="<?= $profilePathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm' ?>">
                 <i data-lucide="circle-user" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">My Profile</span>
                 <i data-lucide="chevron-right" class="supplier-sidebar-chevron h-4 w-4 text-app-header-muted"></i>

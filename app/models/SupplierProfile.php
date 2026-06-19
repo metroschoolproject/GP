@@ -41,6 +41,7 @@ class SupplierProfile
                     suppliers.agreement_version,
                     suppliers.payment_status,
                     suppliers.is_available,
+                    suppliers.created_at,
                     suppliers.verify_url AS business_url,
                     users.name AS owner_name,
                     users.email AS owner_email,
@@ -776,5 +777,71 @@ class SupplierProfile
         return [
             'supplier_id' => $supplierId,
         ];
+    }
+
+    /**
+     * Update supplier profile fields (not status/payment).
+     * $data may contain: name, email, phone, address (→ users table)
+     * and: shop_name, description, business_url (→ suppliers table).
+     */
+    public function updateProfile(int $userId, array $data): bool
+    {
+        // Update users table
+        $userSets = [];
+        $userParams = [];
+        if (array_key_exists('name', $data)) {
+            $userSets[] = 'name = :name';
+            $userParams[':name'] = trim((string)$data['name']);
+        }
+        if (array_key_exists('email', $data)) {
+            $userSets[] = 'email = :email';
+            $userParams[':email'] = trim((string)$data['email']);
+        }
+        if (array_key_exists('phone', $data)) {
+            $userSets[] = 'phone = :phone';
+            $userParams[':phone'] = trim((string)$data['phone']);
+        }
+        if (array_key_exists('address', $data)) {
+            $userSets[] = 'address = :address';
+            $userParams[':address'] = trim((string)$data['address']);
+        }
+
+        if (!empty($userSets)) {
+            $sql = 'UPDATE users SET ' . implode(', ', $userSets) . ' WHERE user_id = :id';
+            $this->db->dbquery($sql);
+            foreach ($userParams as $key => $val) {
+                $this->db->dbbind($key, $val);
+            }
+            $this->db->dbbind(':id', $userId);
+            $this->db->dbexecute();
+        }
+
+        // Update suppliers table
+        $supplierSets = [];
+        $supplierParams = [];
+        if (array_key_exists('shop_name', $data)) {
+            $supplierSets[] = 'shop_name = :shop_name';
+            $supplierParams[':shop_name'] = trim((string)$data['shop_name']);
+        }
+        if (array_key_exists('description', $data)) {
+            $supplierSets[] = 'description = :description';
+            $supplierParams[':description'] = trim((string)$data['description']);
+        }
+        if (array_key_exists('business_url', $data)) {
+            $supplierSets[] = 'verify_url = :verify_url';
+            $supplierParams[':verify_url'] = trim((string)$data['business_url']);
+        }
+
+        if (!empty($supplierSets)) {
+            $sql = 'UPDATE suppliers SET ' . implode(', ', $supplierSets) . ' WHERE user_id = :id';
+            $this->db->dbquery($sql);
+            foreach ($supplierParams as $key => $val) {
+                $this->db->dbbind($key, $val);
+            }
+            $this->db->dbbind(':id', $userId);
+            $this->db->dbexecute();
+        }
+
+        return true;
     }
 }

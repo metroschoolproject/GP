@@ -267,4 +267,64 @@ class UploadService
 
         return $relativeDir . '/' . $filename;
     }
+
+    /**
+     * Store a profile photo.
+     * Accepts JPEG / PNG / WebP, max 5 MB.
+     * $subDirectory: relative path from public/uploads/, e.g. 'admin/avatars' or 'supplier/avatars'.
+     * Returns full IMG_ROOT URL on success, empty string on failure.
+     */
+    public function storeProfilePhoto($file, int $userId, string $subDirectory = 'admin/avatars'): string
+    {
+        if (!$this->isValidFile($file, ['image/jpeg', 'image/png', 'image/webp'], 5 * 1024 * 1024)) {
+            return '';
+        }
+
+        $mimeType  = $this->mimeType($file);
+        $extension = $this->extensionForMime($mimeType);
+
+        if (!$extension) {
+            return '';
+        }
+
+        $relativeDir = 'uploads/' . $subDirectory;
+        $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
+
+        if (!$this->ensureDirectory($absoluteDir) || !is_writable($absoluteDir)) {
+            return '';
+        }
+
+        $basename    = 'avatar-' . $userId . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename    = $basename . '.' . $extension;
+        $absolutePath = $absoluteDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
+            return '';
+        }
+
+        // Create an optimized square-cropped variant for avatars (400×400)
+        $optimizedFilename = $this->createOptimizedImageVariant(
+            $absolutePath, $absoluteDir, $basename, $mimeType, 400, 400
+        );
+
+        return IMG_ROOT . '/' . $relativeDir . '/' . ($optimizedFilename ?: $filename);
+    }
+
+    /**
+     * Remove old avatar files for a user (called before saving a new one).
+     * $subDirectory: relative path from public/uploads/, e.g. 'admin/avatars' or 'supplier/avatars'.
+     */
+    public function removeOldProfilePhotos(int $userId, string $keepUrl = '', string $subDirectory = 'admin/avatars'): void
+    {
+        $dir = dirname(APPROOT) . '/public/uploads/' . $subDirectory . '/';
+        if (!is_dir($dir)) return;
+
+        $pattern = 'avatar-' . $userId . '-';
+        $keepBasename = $keepUrl ? basename(parse_url($keepUrl, PHP_URL_PATH) ?: '') : '';
+
+        foreach (glob($dir . $pattern . '*') as $file) {
+            if ($keepBasename && basename($file) === $keepBasename) continue;
+            @unlink($file);
+        }
+    }
 }

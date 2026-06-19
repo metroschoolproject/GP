@@ -633,6 +633,17 @@ img { display: block; max-width: 100%; }
     <a class="active" href="<?= URLROOT ?>/customerServices/packages">Packages</a>
   </nav>
   <div class="gp-header-actions">
+    <?php $wishlistCount = $wishlistCount ?? 0; ?>
+    <?php if ($isLoggedIn && $wishlistCount > 0): ?>
+    <a class="gp-cart-badge" href="<?= URLROOT ?>/main/wishlist" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18);background:rgba(229,91,91,.04)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span class="gp-cart-badge-count" style="background:#e55b5b"><?= $wishlistCount ?></span>
+    </a>
+    <?php elseif ($isLoggedIn): ?>
+    <a class="gp-cart-badge" href="<?= URLROOT ?>/main/wishlist" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </a>
+    <?php endif; ?>
     <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       <?php if ($cartCount > 0): ?>
@@ -648,6 +659,10 @@ img { display: block; max-width: 100%; }
         <svg class="gp-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="gp-profile-menu" aria-hidden="true">
+        <a class="gp-profile-menu-item" href="<?= URLROOT ?>/main/wishlist">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          My Wishlist<?php if ($wishlistCount > 0): ?> · <?= $wishlistCount ?><?php endif; ?>
+        </a>
         <a class="gp-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           My Bookings

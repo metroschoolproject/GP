@@ -2,6 +2,7 @@
 
 require_once APPROOT . '/services/UploadService.php';
 require_once APPROOT . '/services/PaymentGatewayService.php';
+require_once APPROOT . '/services/EmailService.php';
 require_once APPROOT . '/controllers/Booking.php';
 require_once APPROOT . '/services/EmailService.php';
 
@@ -1716,6 +1717,208 @@ class Admin extends Controller
         ]);
 
         exit;
+    }
+
+    public function profile()
+    {
+        $userModel = $this->model('User');
+        $email = $_SESSION['session_email'] ?? '';
+        $user = $userModel->getuserinfo($email);
+
+        // Split full name into first/last for the form fields
+        $fullName = trim($user['name'] ?? $_SESSION['session_name'] ?? '');
+        $nameParts = explode(' ', $fullName, 2);
+        $firstName = $nameParts[0] ?? '';
+        $lastName  = $nameParts[1] ?? '';
+
+        $data = [
+            'user_id'    => (int)($_SESSION['session_uid'] ?? 0),
+            'name'       => $fullName,
+            'first_name' => $firstName,
+            'last_name'  => $lastName,
+            'email'      => $email,
+            'role'       => 'Administrator',
+            'phone'      => $user['phone'] ?? '',
+            'avatar'     => $_SESSION['session_avatar'] ?? $user['avatar'] ?? null,
+            'joined'     => !empty($user['created_at']) ? date('Y-m-d', strtotime($user['created_at'])) : '-',
+            'lastLogin'  => !empty($user['last_login']) ? date('Y-m-d h:i A', strtotime($user['last_login'])) : '-',
+            'timezone'   => 'Asia/Yangon',
+        ];
+
+        $this->view('admin/profile/profile', $data);
+    }
+
+    /**
+     * JSON endpoint — upload profile photo (POST multipart).
+     * Expects: $_FILES['profile_photo']
+     * Returns JSON: { ok: true, url: "..." } or { ok: false, error: "..." }
+     */
+    public function uploadProfilePhoto()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        if (!$this->uploadService->hasUploaded('profile_photo')) {
+            echo json_encode(['ok' => false, 'error' => 'No file uploaded.']);
+            return;
+        }
+
+        $file = $_FILES['profile_photo'];
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['ok' => false, 'error' => 'Upload error code ' . $file['error']]);
+            return;
+        }
+
+        $url = $this->uploadService->storeProfilePhoto($file, (int)$userId);
+        if ($url === '') {
+            echo json_encode(['ok' => false, 'error' => 'Invalid file. Accepted: JPEG, PNG, WebP (max 5MB).']);
+            return;
+        }
+
+        // Clean up old photos
+        $this->uploadService->removeOldProfilePhotos((int)$userId, $url);
+
+        // Persist to DB
+        $userModel = $this->model('User');
+        $userModel->updateAvatar((int)$userId, $url);
+
+        // Update session for sidebar
+        $_SESSION['session_avatar'] = $url;
+
+        echo json_encode(['ok' => true, 'url' => $url]);
+    }
+
+    /**
+     * JSON endpoint — remove profile photo.
+     */
+    public function removeProfilePhoto()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        // Remove files from disk
+        $this->uploadService->removeOldProfilePhotos((int)$userId);
+
+        // Clear from DB
+        $userModel = $this->model('User');
+        $userModel->updateAvatar((int)$userId, '');
+
+        // Clear session
+        $_SESSION['session_avatar'] = null;
+
+        echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * JSON endpoint — update personal information.
+     * Expects JSON body: { name, email, phone }
+     */
+    public function updateProfile()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+            return;
+        }
+
+        $name  = trim((string)($payload['name'] ?? ''));
+        $email = trim((string)($payload['email'] ?? ''));
+        $phone = trim((string)($payload['phone'] ?? ''));
+
+        if ($name === '' || $email === '') {
+            echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
+            return;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
+            return;
+        }
+
+        $userModel = $this->model('User');
+        $userModel->updateProfile($userId, [
+            'name'  => $name,
+            'email' => $email,
+            'phone' => $phone,
+        ]);
+
+        // Update session
+        $_SESSION['session_name'] = $name;
+        $_SESSION['session_email'] = $email;
+
+        echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * JSON endpoint — change password.
+     * Expects JSON body: { current_password, new_password, device? }
+     */
+    public function updatePassword()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+            return;
+        }
+
+        $current = $payload['current_password'] ?? '';
+        $newPass = $payload['new_password'] ?? '';
+        $device  = trim((string)($payload['device'] ?? ''));
+
+        if ($current === '' || $newPass === '') {
+            echo json_encode(['ok' => false, 'error' => 'Both password fields are required.']);
+            return;
+        }
+
+        if (strlen($newPass) < 8) {
+            echo json_encode(['ok' => false, 'error' => 'New password must be at least 8 characters.']);
+            return;
+        }
+
+        $userModel = $this->model('User');
+
+        if (!$userModel->verifyPassword($userId, $current)) {
+            echo json_encode(['ok' => false, 'error' => 'Current password is incorrect.']);
+            return;
+        }
+
+        $userModel->updatePassword($userId, $newPass);
+
+        // Send email notification
+        $deviceInfo = $device ?: ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown device');
+        $emailService = new EmailService();
+        $emailService->sendPasswordChangedEmail([
+            'name'  => $_SESSION['session_name'] ?? 'Admin',
+            'email' => $_SESSION['session_email'] ?? '',
+        ], $deviceInfo);
+
+        echo json_encode(['ok' => true]);
     }
 
 }

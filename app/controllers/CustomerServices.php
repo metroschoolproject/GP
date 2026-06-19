@@ -9,16 +9,24 @@ class CustomerServices extends Controller
 
         // Cart count for header badge
         $cartCount = 0;
+        $wishlistCount = 0;
+        $wishlistServiceIds = [];
         $userId = $_SESSION['session_uid'] ?? null;
         if ($userId) {
             $cartModel = $this->model('CartModel');
             $cartCount = $cartModel->getCartCount($userId);
+
+            $wishlistModel = $this->model('WishlistModel');
+            $wishlistServiceIds = $wishlistModel->getFavoritedServiceIds((int)$userId);
+            $wishlistCount = $wishlistModel->getWishlistCount((int)$userId);
         }
 
         $this->view('main/service', [
             'catalog' => $catalogModel->getServicePageData($filters),
             'filters' => $filters,
             'cartCount' => $cartCount,
+            'wishlistServiceIds' => $wishlistServiceIds,
+            'wishlistCount' => $wishlistCount,
         ]);
     }
 
@@ -75,6 +83,16 @@ class CustomerServices extends Controller
             }
         }
 
+        // Wishlist state for the detail page
+        $isWishlisted = false;
+        $wishlistCount = 0;
+        $userId = $_SESSION['session_uid'] ?? null;
+        if ($userId) {
+            $wishlistModel = $this->model('WishlistModel');
+            $isWishlisted = $wishlistModel->isFavorited((int)$userId, 'service', $serviceId);
+            $wishlistCount = $wishlistModel->getWishlistCount((int)$userId);
+        }
+
         $view = strtolower((string)($service['category'] ?? '')) === 'venue'
             ? 'main/venue_detail'
             : 'main/other_service_detail';
@@ -82,6 +100,8 @@ class CustomerServices extends Controller
         $this->view($view, [
             'service' => $service,
             'selectedDate' => $service['selected_date'] ?? '',
+            'isWishlisted' => $isWishlisted,
+            'wishlistCount' => $wishlistCount,
         ]);
     }
 
@@ -110,15 +130,20 @@ class CustomerServices extends Controller
 
         // Cart count for header badge
         $cartCount = 0;
+        $wishlistCount = 0;
         $userId = $_SESSION['session_uid'] ?? null;
         if ($userId) {
             $cartModel = $this->model('CartModel');
             $cartCount = $cartModel->getCartCount($userId);
+
+            $wishlistModel = $this->model('WishlistModel');
+            $wishlistCount = $wishlistModel->getWishlistCount((int)$userId);
         }
 
         $this->view('main/packages', [
             'packages' => $packageTypes,
             'cartCount' => $cartCount,
+            'wishlistCount' => $wishlistCount,
             'filters' => $filters,
             'categories' => $categories,
             'hasActiveFilters' => $hasActiveFilters,

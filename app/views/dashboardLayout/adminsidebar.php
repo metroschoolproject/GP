@@ -55,7 +55,14 @@ if (!function_exists('dashboard_admin_nav_class')) {
     <div class="flex h-full flex-col">
         <div class="border-b border-b-app-panel-border bg-app-panel px-5 py-5">
             <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-app-primary text-sm font-semibold text-app-white shadow-sm"><?= htmlspecialchars($adminInitials, ENT_QUOTES, 'UTF-8') ?></div>
+                <?php $sidebarAvatar = $_SESSION['session_avatar'] ?? null; ?>
+                <?php if (!empty($sidebarAvatar)): ?>
+                    <img src="<?= htmlspecialchars($sidebarAvatar, ENT_QUOTES, 'UTF-8') ?>"
+                         alt="<?= $adminName ?>"
+                         class="h-10 w-10 rounded-full object-cover shadow-sm">
+                <?php else: ?>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-app-primary text-sm font-semibold text-app-white shadow-sm"><?= htmlspecialchars($adminInitials, ENT_QUOTES, 'UTF-8') ?></div>
+                <?php endif; ?>
                 <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-app-text"><?= $adminName ?></p>
                     <p class="truncate text-xs text-app-muted"><?= $adminEmail ?></p>
@@ -68,7 +75,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
         </div>
 
         <nav class="px-4 py-3 space-y-1.5">
-            <a href="#" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+            <a href="<?= URLROOT ?>/admin/profile" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
                 <i data-lucide="circle-user" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="flex-1">My Profile</span>
                 <i data-lucide="chevron-right" class="h-4 w-4 text-app-header-muted"></i>

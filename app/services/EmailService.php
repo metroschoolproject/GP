@@ -755,6 +755,60 @@ HTML;
         }
     }
 
+    /**
+     * Send password change notification email.
+     */
+    public function sendPasswordChangedEmail(array $user, string $deviceInfo): bool
+    {
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($user['email'], $user['name'] ?? 'User');
+
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Your Password Was Changed — Golden Promise';
+
+            $userName  = htmlspecialchars($user['name'] ?? 'User', ENT_QUOTES);
+            $userEmail = htmlspecialchars($user['email'], ENT_QUOTES);
+            $deviceHtml = htmlspecialchars($deviceInfo, ENT_QUOTES);
+            $changedAt  = date('M j, Y \a\t g:i A');
+            $accountUrl = URLROOT . '/main/profile';
+
+            $htmlBody = <<<HTML
+<div style="font-family:Poppins,Arial,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+  <div style="background:linear-gradient(135deg,#6b4459 0%,#c4a882 100%);padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+    <h1 style="margin:0;font-size:22px;">Password Changed</h1>
+    <p style="margin:8px 0 0;opacity:.85;">Security notification</p>
+  </div>
+  <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+    <p>Hi {$userName},</p>
+    <p>The password for your Golden Promise account (<strong>{$userEmail}</strong>) was changed on <strong>{$changedAt}</strong>.</p>
+    <div style="background:#fff;padding:16px;border-radius:6px;border-left:4px solid #6b4459;margin:20px 0;">
+      <p style="margin:0 0 6px;font-size:12px;color:#999;">DEVICE / BROWSER</p>
+      <p style="margin:0;font-size:13px;color:#555;">{$deviceHtml}</p>
+    </div>
+    <p style="color:#888;">If this was you, no further action is needed.</p>
+    <div style="background:#fff3cd;padding:14px;border-radius:4px;margin-top:16px;border:1px solid #ffc107;">
+      <p style="margin:0;font-size:13px;color:#856404;"><strong>⚠️ Didn't do this?</strong> Someone may have accessed your account. Please reset your password immediately or contact support.</p>
+    </div>
+    <p style="margin-top:24px;">
+      <a href="{$accountUrl}" style="display:inline-block;padding:10px 24px;background:#6b4459;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Go to My Account</a>
+    </p>
+    <p style="margin-top:28px;color:#aaa;font-size:12px;border-top:1px solid #ead8c7;padding-top:18px;">
+      Golden Promise — Support: support@goldenpromise.com
+    </p>
+  </div>
+</div>
+HTML;
+            $this->mailer->Body = $htmlBody;
+            $this->mailer->AltBody = "Your Golden Promise password was changed on {$changedAt}. Device: {$deviceInfo}. If this wasn't you, contact support immediately.";
+
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Password change email error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     private function getPaymentUrl(int $bookingId): string
     {
         return URLROOT . '/booking/detail/' . $bookingId;

@@ -944,16 +944,36 @@ class Booking extends Controller
         }
 
         $customer = $this->getUserData();
+        $customerName = $customer['name'] ?? 'A customer';
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+
+        // In-app notification to all admins
+        $this->notificationModel->notifyAdmins(
+            'Cancellation Request — ' . $bookingRef,
+            $customerName . ' has requested cancellation of booking ' . $bookingRef . '. Reason: ' . $reason,
+            'booking',
+            'booking',
+            $bookingId
+        );
+
+        // In-app notification to all suppliers linked to this booking
+        // (includes package service suppliers and add-on suppliers)
+        $this->notificationModel->notifyBookingSuppliers(
+            $bookingId,
+            'Cancellation Request — ' . $bookingRef,
+            $customerName . ' has requested cancellation of booking ' . $bookingRef . '. Reason: ' . $reason . '. Please stop any work in progress. Admin will review and finalize.',
+            'booking'
+        );
 
         $emailService = new EmailService();
 
-        // Notify admins
+        // Email admins
         $admins = $this->bookingModel->getAdminEmails();
         foreach ($admins as $admin) {
             $emailService->sendAdminCancellationRequest($admin, $customer, $booking, $reason);
         }
 
-        // Notify each supplier on the booking
+        // Email each supplier on the booking
         $suppliers = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
         foreach ($suppliers as $supplier) {
             $emailService->sendSupplierCancellationRequest($supplier, $customer, $booking, $reason);

@@ -90,8 +90,11 @@ $currentPage     = max(1, min($totalPages, (int)($_GET['page'] ?? 1)));
 $pageOffset      = ($currentPage - 1) * $servicesPerPage;
 $visibleServices = array_slice($services, $pageOffset, $servicesPerPage);
 
-$isLoggedIn   = !empty($_SESSION['session_uid']);
-$cartCount    = (int)($cartCount ?? 0);
+$isLoggedIn       = !empty($_SESSION['session_uid']);
+$cartCount        = (int)($cartCount ?? 0);
+$wishlistCount    = (int)($wishlistCount ?? 0);
+$wishlistServiceIds = $wishlistServiceIds ?? [];
+$wishlistPageUrl    = URLROOT . '/main/wishlist';
 $resetUrl = URLROOT . '/customerServices/service';
 ?>
 <!DOCTYPE html>
@@ -876,6 +879,33 @@ button,input,select{font-family:var(--font-body);outline:none}
     }
 
 }
+
+/* ── WISHLIST HEART ── */
+.gp-heart{
+  position:absolute;top:14px;right:14px;z-index:10;
+  display:grid;place-items:center;width:34px;height:34px;
+  border-radius:50%;border:none;
+  background:rgba(0,0,0,.32);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  color:rgba(255,255,255,.72);cursor:pointer;
+  font-size:15px;transition:all .2s var(--ease);
+}
+.gp-heart:hover{transform:scale(1.14);color:#fff;background:rgba(0,0,0,.46)}
+.gp-heart.is-saved{color:#e55b5b;background:rgba(0,0,0,.52)}
+.gp-heart.is-saved:hover{color:#ff6b6b}
+.gp-heart.is-loading{pointer-events:none;opacity:.55;animation:heartPulse .8s ease infinite}
+@keyframes heartPulse{0%,100%{transform:scale(1)}50%{transform:scale(.9)}}
+
+.gp-heart-light{
+  position:absolute;top:10px;right:10px;z-index:10;
+  display:grid;place-items:center;width:30px;height:30px;
+  border-radius:50%;border:none;
+  background:rgba(250,245,239,.84);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  color:var(--c-pale);cursor:pointer;
+  font-size:13px;transition:all .2s var(--ease);
+}
+.gp-heart-light:hover{transform:scale(1.12);color:var(--c-red)}
+.gp-heart-light.is-saved{color:#e55b5b;background:rgba(250,240,240,.88)}
+.gp-heart-light.is-loading{pointer-events:none;opacity:.55;animation:heartPulse .8s ease infinite}
 </style>
 </head>
 <body>
@@ -892,6 +922,16 @@ button,input,select{font-family:var(--font-body);outline:none}
     <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
   </nav>
   <div class="gp-header-actions">
+    <?php if ($isLoggedIn && $wishlistCount > 0): ?>
+    <a class="gp-cart-badge" href="<?= $wishlistPageUrl ?>" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18);background:rgba(229,91,91,.04)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span class="gp-cart-count" style="background:#e55b5b"><?= $wishlistCount ?></span>
+    </a>
+    <?php elseif ($isLoggedIn): ?>
+    <a class="gp-cart-badge" href="<?= $wishlistPageUrl ?>" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </a>
+    <?php endif; ?>
     <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       <?php if ($cartCount > 0): ?>
@@ -906,6 +946,10 @@ button,input,select{font-family:var(--font-body);outline:none}
         <svg class="gp-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="gp-profile-menu">
+        <a class="gp-menu-item" href="<?= URLROOT ?>/main/wishlist">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          My Wishlist<?php if ($wishlistCount > 0): ?> · <?= $wishlistCount ?><?php endif; ?>
+        </a>
         <a class="gp-menu-item" href="<?= URLROOT ?>/booking/myBookings">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           My Bookings
@@ -1048,8 +1092,11 @@ button,input,select{font-family:var(--font-body);outline:none}
     
     <?php foreach ($visibleServices as $ci => $svc):
       $dUrl = URLROOT . '/customerServices/detail/' . (int)$svc['id'] . $detailDateQuery;
+      $svcId   = (int)$svc['id'];
+      $isSaved = in_array($svcId, $wishlistServiceIds, true);
     ?>
       <article class="gp-card" data-idx="<?= $ci ?>" data-url="<?= $h($dUrl) ?>" data-img="<?= $h(trim((string)($svc['image'] ?? ''))) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($svc['name'] ?? 'service') ?>">
+        <button class="gp-heart <?= $isSaved ? 'is-saved' : '' ?>" aria-label="<?= $isSaved ? 'Remove from wishlist' : 'Add to wishlist' ?>" data-item-type="service" data-item-id="<?= $svcId ?>" data-saved="<?= $isSaved ? '1' : '0' ?>"><?= $isSaved ? '♥' : '♡' ?></button>
         <div class="gc-body">
           <div class="gc-top">
             <div class="gc-head">
@@ -1115,8 +1162,11 @@ button,input,select{font-family:var(--font-body);outline:none}
   <div class="gp-grid">
     <?php foreach ($remaining as $ri => $svc):
       $rUrl = URLROOT . '/customerServices/detail/' . (int)$svc['id'] . $detailDateQuery;
+      $rsvcId   = (int)$svc['id'];
+      $risSaved = in_array($rsvcId, $wishlistServiceIds, true);
     ?>
     <article class="gp-gc rev rev-d<?= min(($ri % 5) + 1, 5) ?>">
+      <button class="gp-heart-light <?= $risSaved ? 'is-saved' : '' ?>" aria-label="<?= $risSaved ? 'Remove from wishlist' : 'Add to wishlist' ?>" data-item-type="service" data-item-id="<?= $rsvcId ?>"><?= $risSaved ? '♥' : '♡' ?></button>
       <a class="gp-gc-img" href="<?= $h($rUrl) ?>" tabindex="-1" aria-hidden="true">
         <?php if (trim((string)($svc['image'] ?? '')) !== ''): ?>
           <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
@@ -1259,6 +1309,60 @@ if('IntersectionObserver' in window){
 
     // Change image every 5000 milliseconds (5 seconds)
     setInterval(rotateHeroImage, 5000);
+})();
+
+/* ── wishlist heart toggle ── */
+(function(){
+  'use strict';
+  var wishlistPageUrl = '<?= URLROOT ?>/main/wishlist';
+  var authUrl = '<?= URLROOT ?>/users/auth';
+
+  document.querySelectorAll('.gp-heart, .gp-heart-light').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+
+      var isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
+      if (!isLoggedIn) {
+        window.location.href = authUrl + '?redirect=' + encodeURIComponent('customerServices/service');
+        return;
+      }
+
+      var itemType = btn.dataset.itemType || 'service';
+      var itemId   = parseInt(btn.dataset.itemId, 10);
+      var isSaved  = btn.dataset.saved === '1' || btn.classList.contains('is-saved');
+
+      btn.classList.add('is-loading');
+
+      fetch('<?= URLROOT ?>/main/toggleWishlist', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({item_type: itemType, item_id: itemId, collection_id: null})
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        btn.classList.remove('is-loading');
+        if (d.ok) {
+          if (d.action === 'added') {
+            btn.classList.add('is-saved');
+            btn.innerHTML = '♥';
+            btn.dataset.saved = '1';
+          } else {
+            btn.classList.remove('is-saved');
+            btn.innerHTML = '♡';
+            btn.dataset.saved = '0';
+          }
+          // Update badge count
+          var badge = document.querySelector('.gp-header-actions .gp-cart-count');
+          if (badge && d.count !== undefined) {
+            badge.textContent = d.count > 0 ? d.count : '';
+            badge.style.display = d.count > 0 ? '' : 'none';
+          }
+        }
+      })
+      .catch(function(){ btn.classList.remove('is-loading'); });
+    });
+  });
 })();
 </script>
 </body>
