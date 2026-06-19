@@ -84,7 +84,7 @@ class SupplierProfile
         return $this->db->getmultidata();
     }
 
-    public function getApplications($status = 'pending')
+    public function getApplications($status = 'pending', int $limit = 15, int $offset = 0)
     {
         $query = 'SELECT suppliers.supplier_id,
                          suppliers.shop_name,
@@ -92,6 +92,8 @@ class SupplierProfile
                          suppliers.status,
                          suppliers.verify_url,
                          suppliers.payment_status,
+                         suppliers.warning_level,
+                         suppliers.admin_note,
                          suppliers.created_at,
                          users.name AS owner_name,
                          users.email AS owner_email,
@@ -124,14 +126,30 @@ class SupplierProfile
         }
 
         $query .= ' ORDER BY suppliers.created_at DESC, suppliers.supplier_id DESC';
+        $query .= ' LIMIT :limit OFFSET :offset';
 
         $this->db->dbquery($query);
 
         if ($status !== 'all') {
             $this->db->dbbind(':status', $status);
         }
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    public function getApplicationsCount(string $status = 'pending'): int
+    {
+        $query = 'SELECT COUNT(*) AS total FROM suppliers';
+        if ($status !== 'all') {
+            $query .= ' WHERE suppliers.status = :status';
+        }
+        $this->db->dbquery($query);
+        if ($status !== 'all') {
+            $this->db->dbbind(':status', $status);
+        }
+        return (int)($this->db->getsingledata()['total'] ?? 0);
     }
 
     public function getApplicationById($supplierId)
@@ -147,6 +165,8 @@ class SupplierProfile
                     suppliers.agreement_accepted_at,
                     suppliers.agreement_version,
                     suppliers.payment_status,
+                    suppliers.warning_level,
+                    suppliers.admin_note,
                     suppliers.created_at,
                     users.name AS owner_name,
                     users.email AS owner_email,
@@ -201,6 +221,111 @@ class SupplierProfile
         return $this->db->dbexecute();
     }
 
+    public function banSupplier(int $supplierId, string $reason, int $adminId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE suppliers
+             SET status = 'banned',
+                 admin_note = :note,
+                 approved_by = :admin_id
+             WHERE supplier_id = :id"
+        );
+        $this->db->dbbind(':note', 'BANNED: ' . $reason);
+        $this->db->dbbind(':admin_id', $adminId);
+        $this->db->dbbind(':id', $supplierId);
+        return $this->db->dbexecute();
+    }
+
+    public function unbanSupplier(int $supplierId, int $adminId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE suppliers
+             SET status = 'approved',
+                 admin_note = CONCAT(COALESCE(admin_note, ''), '\nUnbanned by admin #', :admin_id, ' at ', NOW()),
+                 approved_by = :admin_id2
+             WHERE supplier_id = :id AND status = 'banned'"
+        );
+        $this->db->dbbind(':admin_id', $adminId);
+        $this->db->dbbind(':admin_id2', $adminId);
+        $this->db->dbbind(':id', $supplierId);
+        return $this->db->dbexecute();
+    }
+
+    public function warnSupplier(int $supplierId, int $level, string $note, int $adminId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE suppliers
+             SET warning_level = :level,
+                 admin_note = CONCAT(COALESCE(admin_note, ''), '\nWARN L', :level2, ' (admin #', :admin_id, '): ', :note, ' — ', NOW())
+             WHERE supplier_id = :id"
+        );
+        $this->db->dbbind(':level', $level);
+        $this->db->dbbind(':level2', $level);
+        $this->db->dbbind(':note', $note);
+        $this->db->dbbind(':admin_id', $adminId);
+        $this->db->dbbind(':id', $supplierId);
+        return $this->db->dbexecute();
+    }
+
+    public function getTopSuppliers(int $limit = 5): array
+    {
+        $this->db->dbquery(
+            "SELECT s.supplier_id, s.shop_name, s.status, s.warning_level,
+                    COUNT(DISTINCT bs.id) AS completed_bookings,
+                    COALESCE(SUM(CASE WHEN bi.status IN ('confirmed','completed','accepted')
+                        THEN COALESCE(bi.price, 0) ELSE 0 END), 0) AS revenue_earned,
+                    COALESCE(AVG(r.rating), 0) AS avg_rating,
+                    COUNT(DISTINCT r.id) AS review_count
+             FROM suppliers s
+             LEFT JOIN booking_suppliers bs ON bs.supplier_id = s.supplier_id
+             LEFT JOIN booking_items bi ON bi.booking_id = bs.booking_id AND bi.status IN ('confirmed','completed','accepted')
+             LEFT JOIN reviews r ON r.supplier_id = s.supplier_id
+             WHERE s.status IN ('approved', 'verified')
+               AND s.deleted_at IS NULL
+             GROUP BY s.supplier_id
+             ORDER BY revenue_earned DESC, completed_bookings DESC
+             LIMIT :limit"
+        );
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    public function getSupplierStats(): array
+    {
+        $this->db->dbquery(
+            "SELECT
+                SUM(s.status = 'pending') AS pending,
+                SUM(s.status = 'approved' OR s.status = 'verified') AS approved,
+                SUM(s.status = 'rejected') AS rejected,
+                SUM(s.status = 'banned') AS banned,
+                COUNT(*) AS total
+             FROM suppliers s
+             WHERE s.deleted_at IS NULL"
+        );
+        return $this->db->getsingledata() ?: ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'banned' => 0, 'total' => 0];
+    }
+
+    public function getSupplierPerformance(int $supplierId): array
+    {
+        $this->db->dbquery(
+            "SELECT
+                COUNT(DISTINCT bs.id) AS total_bookings,
+                SUM(CASE WHEN bs.status IN ('confirmed','accepted') THEN 1 ELSE 0 END) AS active_bookings,
+                SUM(CASE WHEN bs.status = 'completed' THEN 1 ELSE 0 END) AS completed_bookings,
+                SUM(CASE WHEN bs.status = 'cancelled' OR bs.status = 'rejected' THEN 1 ELSE 0 END) AS cancelled_bookings,
+                COALESCE(SUM(CASE WHEN bi.status IN ('confirmed','completed','accepted')
+                    THEN COALESCE(bi.price, 0) ELSE 0 END), 0) AS revenue_earned,
+                COALESCE(AVG(r.rating), 0) AS avg_rating,
+                COUNT(DISTINCT r.id) AS review_count
+             FROM booking_suppliers bs
+             LEFT JOIN booking_items bi ON bi.booking_id = bs.booking_id
+             LEFT JOIN reviews r ON r.supplier_id = bs.supplier_id
+             WHERE bs.supplier_id = :sid"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        return $this->db->getsingledata() ?: ['total_bookings' => 0, 'active_bookings' => 0, 'completed_bookings' => 0, 'cancelled_bookings' => 0, 'revenue_earned' => 0, 'avg_rating' => 0, 'review_count' => 0];
+    }
+
     public function updatePaymentReview($supplierId, $paymentStatus, $supplierStatus = null, $isAvailable = null, $adminId = null)
     {
         $query = 'UPDATE suppliers
@@ -243,8 +368,76 @@ class SupplierProfile
             'services' => $this->getDashboardServices($supplierId),
             'upcomingBookings' => $this->getUpcomingSupplierBookings($supplierId),
             'recentReviews' => $this->getRecentSupplierReviews($supplierId),
-            'wallet' => $this->getSupplierWallet($supplierId),
+
+            'payments' => $this->getDashboardPayments($supplierId),
+            'chartData' => $this->getDashboardChartData($supplierId),
         ];
+    }
+
+    private function getDashboardPayments(int $supplierId): array
+    {
+        $this->db->dbquery(
+            "SELECT b.id AS booking_id,
+                    u.name AS customer_name,
+                    ed.event_date,
+                    p.method,
+                    p.escrow_status,
+                    b.payment_status,
+                    b.total_amount,
+                    b.paid_amount
+             FROM booking_suppliers bs
+             INNER JOIN bookings b ON b.id = bs.booking_id
+             INNER JOIN users u ON u.user_id = b.user_id
+             INNER JOIN event_details ed ON ed.booking_id = b.id
+             LEFT JOIN payments p ON p.booking_id = b.id AND p.type = 'deposit'
+             WHERE bs.supplier_id = :sid
+             ORDER BY b.created_at DESC
+             LIMIT 10"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $rows = $this->db->getmultidata();
+
+        // Add booking_ref
+        foreach ($rows as &$row) {
+            $row['booking_ref'] = $this->generateBookingRefForPayment((int)($row['booking_id'] ?? 0));
+        }
+        return $rows;
+    }
+
+    private function generateBookingRefForPayment(int $bookingId): string
+    {
+        return 'BK-' . str_pad((string)$bookingId, 3, '0', STR_PAD_LEFT);
+    }
+
+    private function getDashboardChartData(int $supplierId): array
+    {
+        $months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        $revenue = array_fill(0, 12, 0);
+        $bookings = array_fill(0, 12, 0);
+
+        $this->db->dbquery(
+            "SELECT MONTH(ed.event_date) AS m,
+                    COALESCE(SUM(COALESCE(bi.price, 0)), 0) AS revenue,
+                    COUNT(DISTINCT bs.booking_id) AS cnt
+             FROM booking_suppliers bs
+             INNER JOIN bookings b ON b.id = bs.booking_id
+             INNER JOIN event_details ed ON ed.booking_id = b.id
+             INNER JOIN booking_items bi ON bi.booking_id = b.id
+             WHERE bs.supplier_id = :sid
+               AND YEAR(ed.event_date) = YEAR(CURDATE())
+               AND bs.status IN ('confirmed', 'completed', 'in_progress')
+             GROUP BY MONTH(ed.event_date)"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        foreach ($this->db->getmultidata() as $row) {
+            $idx = (int)($row['m'] ?? 0) - 1;
+            if ($idx >= 0 && $idx < 12) {
+                $revenue[$idx] = (float)($row['revenue'] ?? 0);
+                $bookings[$idx] = (int)($row['cnt'] ?? 0);
+            }
+        }
+
+        return ['months' => $months, 'revenue' => $revenue, 'bookings' => $bookings];
     }
 
     private function getDashboardStats($supplierId)
@@ -345,18 +538,6 @@ class SupplierProfile
         return $this->db->getmultidata();
     }
 
-    private function getSupplierWallet($supplierId)
-    {
-        $this->db->dbquery(
-            'SELECT id, balance
-             FROM wallets
-             WHERE supplier_id = :supplier_id
-             LIMIT 1'
-        );
-        $this->db->dbbind(':supplier_id', (int)$supplierId);
-
-        return $this->db->getsingledata() ?: ['balance' => 0];
-    }
 
     private function getSupplierByUserId($userId)
     {

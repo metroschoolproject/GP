@@ -22,14 +22,15 @@ class SupplierServiceManager
         $serviceOffset = max(0, (int)($options['service_offset'] ?? 0));
         $packageLimit = $this->normalizeLimit($options['package_limit'] ?? $options['limit'] ?? null);
         $packageOffset = max(0, (int)($options['package_offset'] ?? 0));
+        $search = trim((string)($options['search'] ?? ''));
 
         return [
-            'services' => $this->getServices($supplierId, $serviceLimit, $serviceOffset),
-            'packages' => $this->getPackages($supplierId, $packageLimit, $packageOffset),
+            'services' => $this->getServices($supplierId, $serviceLimit, $serviceOffset, $search),
+            'packages' => $this->getPackages($supplierId, $packageLimit, $packageOffset, $search),
             'categories' => $this->getCategories(),
             'meta' => [
-                'services' => $this->paginationMeta($serviceLimit, $serviceOffset, $this->countServices($supplierId)),
-                'packages' => $this->paginationMeta($packageLimit, $packageOffset, $this->countPackages($supplierId)),
+                'services' => $this->paginationMeta($serviceLimit, $serviceOffset, $this->countServices($supplierId, $search)),
+                'packages' => $this->paginationMeta($packageLimit, $packageOffset, $this->countPackages($supplierId, $search)),
             ],
         ];
     }
@@ -66,7 +67,7 @@ class SupplierServiceManager
         return (int)$this->db->lastinsertid();
     }
 
-    public function getServices($supplierId, $limit = null, $offset = 0)
+    public function getServices($supplierId, $limit = null, $offset = 0, string $search = '')
     {
         $priceRangeFields = $this->servicePriceRangeSelectFields();
         $defaultTimeFields = $this->serviceDefaultTimeSelectFields();
@@ -91,8 +92,11 @@ class SupplierServiceManager
                   FROM services
                   LEFT JOIN categories ON categories.id = services.category_id
                   ' . $venueJoin . '
-                  WHERE services.supplier_id = :supplier_id
-                  ORDER BY services.created_at DESC, services.id DESC';
+                  WHERE services.supplier_id = :supplier_id';
+        if ($search !== '') {
+            $query .= ' AND (services.name LIKE :search OR services.description LIKE :search2 OR categories.name LIKE :search3)';
+        }
+        $query .= ' ORDER BY services.created_at DESC, services.id DESC';
 
         if ($limit !== null) {
             $query .= ' LIMIT :limit OFFSET :offset';
@@ -100,18 +104,27 @@ class SupplierServiceManager
 
         $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $this->db->dbbind(':search', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search2', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search3', $like, PDO::PARAM_STR);
+        }
         $this->bindPagination($limit, $offset);
 
         return array_map([$this, 'formatService'], $this->db->getmultidata());
     }
 
-    public function getPackages($supplierId, $limit = null, $offset = 0)
+    public function getPackages($supplierId, $limit = null, $offset = 0, string $search = '')
     {
         $query = 'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
                   FROM supplier_packages
                   WHERE supplier_id = :supplier_id
-                    AND deleted_at IS NULL
-                  ORDER BY created_at DESC, id DESC';
+                    AND deleted_at IS NULL';
+        if ($search !== '') {
+            $query .= ' AND (name LIKE :search OR description LIKE :search2)';
+        }
+        $query .= ' ORDER BY created_at DESC, id DESC';
 
         if ($limit !== null) {
             $query .= ' LIMIT :limit OFFSET :offset';
@@ -119,6 +132,11 @@ class SupplierServiceManager
 
         $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $this->db->dbbind(':search', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search2', $like, PDO::PARAM_STR);
+        }
         $this->bindPagination($limit, $offset);
 
         return array_map([$this, 'formatPackage'], $this->db->getmultidata());
@@ -151,6 +169,7 @@ class SupplierServiceManager
         $this->saveVenueDetails($supplierId, $serviceId, $data);
         $this->saveDecorationStyles($serviceId, $data);
         $this->saveRentalPricing($serviceId, $data);
+        $this->saveAttireItems($serviceId, $data);
 
         return $this->getServiceById($serviceId, $supplierId);
     }
@@ -208,6 +227,7 @@ class SupplierServiceManager
         $this->saveVenueDetails($supplierId, $serviceId, $data);
         $this->saveDecorationStyles($serviceId, $data);
         $this->saveRentalPricing($serviceId, $data);
+        $this->saveAttireItems($serviceId, $data);
 
         return $this->getServiceById($serviceId, $supplierId);
     }
@@ -442,24 +462,36 @@ class SupplierServiceManager
         return $service ? $this->formatService($service) : null;
     }
 
-    private function countServices($supplierId)
+    private function countServices($supplierId, string $search = '')
     {
-        $this->db->dbquery('SELECT COUNT(*) AS total FROM services WHERE supplier_id = :supplier_id');
+        $query = 'SELECT COUNT(*) AS total FROM services WHERE supplier_id = :supplier_id';
+        if ($search !== '') {
+            $query .= ' AND (name LIKE :search OR description LIKE :search2)';
+        }
+        $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $this->db->dbbind(':search', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search2', $like, PDO::PARAM_STR);
+        }
         $row = $this->db->getsingledata();
-
         return (int)($row['total'] ?? 0);
     }
 
-    private function countPackages($supplierId)
+    private function countPackages($supplierId, string $search = '')
     {
-        $this->db->dbquery(
-            'SELECT COUNT(*) AS total
-             FROM supplier_packages
-             WHERE supplier_id = :supplier_id
-               AND deleted_at IS NULL'
-        );
+        $query = 'SELECT COUNT(*) AS total FROM supplier_packages WHERE supplier_id = :supplier_id AND deleted_at IS NULL';
+        if ($search !== '') {
+            $query .= ' AND (name LIKE :search OR description LIKE :search2)';
+        }
+        $this->db->dbquery($query);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $this->db->dbbind(':search', $like, PDO::PARAM_STR);
+            $this->db->dbbind(':search2', $like, PDO::PARAM_STR);
+        }
         $row = $this->db->getsingledata();
 
         return (int)($row['total'] ?? 0);
@@ -528,9 +560,10 @@ class SupplierServiceManager
         $category = strtolower((string)($service['category'] ?? ''));
         $isVenue = $category === 'venue';
         $isDecoration = $category === 'decoration';
-        $isRental = in_array($category, ['dress', 'accessories'], true);
+        $isRental = in_array($category, ['attire'], true);
         $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'] : [];
         $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
+        $attireItems = is_array($service['attire_items'] ?? null) ? $service['attire_items'] : [];
         $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 
         if ($name === '') {
@@ -561,12 +594,30 @@ class SupplierServiceManager
                 $missing[] = 'Add at least one decoration style with a name and price.';
             }
         } elseif ($isRental) {
-            $hasBorrow = ($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0) > 0
-                || ($rentalPricing['borrow_customize_price'] ?? 0) > 0;
-            $hasBuy = ($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0) > 0
-                || ($rentalPricing['buy_customize_price'] ?? 0) > 0;
-            if (!$hasBorrow && !$hasBuy) {
-                $missing[] = 'Add a borrow price, a buy price, or both.';
+            // Check attire items first; fall back to service-level rental pricing
+            if (!empty($attireItems)) {
+                $hasValidItem = false;
+                foreach ($attireItems as $ai) {
+                    $aiBorrow = ($ai['borrow_package_price'] ?? $ai['borrow_price'] ?? 0) > 0
+                        || ($ai['borrow_customize_price'] ?? 0) > 0;
+                    $aiBuy = ($ai['buy_package_price'] ?? $ai['buy_price'] ?? 0) > 0
+                        || ($ai['buy_customize_price'] ?? 0) > 0;
+                    if ($aiBorrow || $aiBuy) {
+                        $hasValidItem = true;
+                        break;
+                    }
+                }
+                if (!$hasValidItem) {
+                    $missing[] = 'At least one attire item needs a borrow price, buy price, or both.';
+                }
+            } else {
+                $hasBorrow = ($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0) > 0
+                    || ($rentalPricing['borrow_customize_price'] ?? 0) > 0;
+                $hasBuy = ($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0) > 0
+                    || ($rentalPricing['buy_customize_price'] ?? 0) > 0;
+                if (!$hasBorrow && !$hasBuy) {
+                    $missing[] = 'Add a borrow price, a buy price, or both.';
+                }
             }
         } elseif (!$this->hasOpenWeeklySchedule($weekly)) {
             $missing[] = 'Set at least one weekly available day with valid start and end time.';
@@ -1139,7 +1190,7 @@ class SupplierServiceManager
     private function applyRentalPriceRange($data)
     {
         $category = strtolower((string)($data['category'] ?? ''));
-        if (!in_array($category, ['dress', 'accessories'], true)) {
+        if (!in_array($category, ['attire'], true)) {
             return $data;
         }
 
@@ -1208,13 +1259,13 @@ class SupplierServiceManager
     {
         $priceMin = (float)($service['price_min'] ?? $service['price'] ?? 0);
         $priceMax = max($priceMin, (float)($service['price_max'] ?? $priceMin));
-        $venueName = trim((string)($service['venue_name'] ?? ''));
+        $venueName = html_entity_decode(trim((string)($service['venue_name'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         $category = strtolower((string)($service['category'] ?? ''));
 
         return [
             'id' => (int)$service['id'],
-            'name' => $service['name'] ?? '',
+            'name' => html_entity_decode($service['name'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'price' => (float)($service['price'] ?? $priceMin),
             'price_min' => $priceMin,
             'price_max' => $priceMax,
@@ -1222,7 +1273,7 @@ class SupplierServiceManager
             'customize_price' => $priceMax,
             'category' => $service['category'] ?: 'Others',
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
-            'desc' => $service['description'] ?? '',
+            'desc' => html_entity_decode($service['description'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'img' => $service['thumbnail_url'] ?? '',
             'capacity' => (int)($service['max_concurrent'] ?? 1),
             'duration_minutes' => (int)($service['duration_minutes'] ?? 60),
@@ -1232,10 +1283,11 @@ class SupplierServiceManager
             'venue_id' => isset($service['venue_id']) ? (int)$service['venue_id'] : null,
             'venue' => $venueName,
             'venue_name' => $venueName,
-            'venue_location' => $service['venue_location'] ?? '',
+            'venue_location' => html_entity_decode($service['venue_location'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'venue_rooms' => !empty($service['venue_id']) ? $this->getVenueRooms((int)$service['venue_id']) : [],
+            'attire_items' => $category === 'attire' ? $this->getAttireItems((int)$service['id']) : [],
             'decoration_styles' => $category === 'decoration' ? $this->getDecorationStyles((int)$service['id']) : [],
-            'rental_pricing' => in_array($category, ['dress', 'accessories'], true) ? $this->getRentalPricing((int)$service['id']) : null,
+            'rental_pricing' => in_array($category, ['attire'], true) ? $this->getRentalPricing((int)$service['id']) : null,
         ];
     }
 
@@ -2091,21 +2143,30 @@ class SupplierServiceManager
 
         $sort = 0;
         foreach ($styles as $style) {
-            $name = trim((string)($style['name'] ?? ''));
+            $name = html_entity_decode(trim((string)($style['name'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $price = max(0, (float)($style['price'] ?? 0));
             if ($name === '') {
                 continue;
             }
+            $packagePrice = max(0, (float)($style['package_price'] ?? $style['price'] ?? 0));
+            $customizePrice = max($packagePrice, (float)($style['customize_price'] ?? $style['price'] ?? $packagePrice));
             $photoUrl = trim((string)($style['photo_url'] ?? ''));
+            $hasDualPrice = $this->hasDecorationStyleDualPriceColumn();
             $photoColumn = $hasPhoto ? ', photo_url' : '';
             $photoValue = $hasPhoto ? ', :photo_url' : '';
+            $dualCol = $hasDualPrice ? ', package_price, customize_price' : '';
+            $dualVal = $hasDualPrice ? ', :package_price, :customize_price' : '';
             $this->db->dbquery(
-                'INSERT INTO decoration_styles (service_id, name, price' . $photoColumn . ', sort_order)
-                 VALUES (:service_id, :name, :price' . $photoValue . ', :sort_order)'
+                'INSERT INTO decoration_styles (service_id, name, price' . $dualCol . $photoColumn . ', sort_order)
+                 VALUES (:service_id, :name, :price' . $dualVal . $photoValue . ', :sort_order)'
             );
             $this->db->dbbind(':service_id', $serviceId);
             $this->db->dbbind(':name', $name);
             $this->db->dbbind(':price', number_format($price, 2, '.', ''), PDO::PARAM_STR);
+            if ($hasDualPrice) {
+                $this->db->dbbind(':package_price', number_format($packagePrice, 2, '.', ''), PDO::PARAM_STR);
+                $this->db->dbbind(':customize_price', number_format($customizePrice, 2, '.', ''), PDO::PARAM_STR);
+            }
             if ($hasPhoto) {
                 $this->db->dbbind(':photo_url', $photoUrl !== '' ? $photoUrl : null);
             }
@@ -2117,8 +2178,11 @@ class SupplierServiceManager
     private function getDecorationStyles(int $serviceId): array
     {
         $photoSelect = $this->hasDecorationStylePhotoColumn() ? 'photo_url' : "'' AS photo_url";
+        $dualSelect = $this->hasDecorationStyleDualPriceColumn()
+            ? 'package_price, customize_price'
+            : "NULL AS package_price, NULL AS customize_price";
         $this->db->dbquery(
-            'SELECT id, name, price, ' . $photoSelect . '
+            'SELECT id, name, price, ' . $dualSelect . ', ' . $photoSelect . '
              FROM decoration_styles
              WHERE service_id = :service_id
              ORDER BY sort_order ASC, id ASC'
@@ -2128,8 +2192,10 @@ class SupplierServiceManager
         return array_map(function ($row) {
             return [
                 'id' => (int)$row['id'],
-                'name' => $row['name'] ?? '',
+                'name' => html_entity_decode($row['name'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'price' => (float)$row['price'],
+                'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
+                'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
                 'photo_url' => trim((string)($row['photo_url'] ?? '')),
             ];
         }, $this->db->getmultidata());
@@ -2151,10 +2217,25 @@ class SupplierServiceManager
         return $this->hasDecorationStylePhotoColumn;
     }
 
+    private $hasDecorationStyleDualPriceColumn = null;
+    private function hasDecorationStyleDualPriceColumn(): bool
+    {
+        if ($this->hasDecorationStyleDualPriceColumn !== null) {
+            return $this->hasDecorationStyleDualPriceColumn;
+        }
+        try {
+            $this->db->dbquery("SHOW COLUMNS FROM decoration_styles LIKE 'package_price'");
+            $this->hasDecorationStyleDualPriceColumn = (bool)$this->db->getsingledata();
+        } catch (Throwable $e) {
+            $this->hasDecorationStyleDualPriceColumn = false;
+        }
+        return $this->hasDecorationStyleDualPriceColumn;
+    }
+
     private function saveRentalPricing(int $serviceId, array $data): void
     {
         $category = strtolower((string)($data['category'] ?? ''));
-        if (!in_array($category, ['dress', 'accessories'], true)) {
+        if (!in_array($category, ['attire'], true)) {
             return;
         }
 
@@ -2255,5 +2336,113 @@ class SupplierServiceManager
             'buy_customize_price' => $buyCustomize !== null ? (float)$buyCustomize : null,
             'buy_price' => ($row['buy_price'] ?? $buyPackage) !== null ? (float)($row['buy_price'] ?? $buyPackage) : null,
         ];
+    }
+
+    // ─── Attire Items ──────────────────────────────────────────────
+
+    private function getAttireItems(int $serviceId): array
+    {
+        $this->db->dbquery(
+            'SELECT * FROM attire_items
+             WHERE service_id = :service_id
+             ORDER BY sort_order ASC, id ASC'
+        );
+        $this->db->dbbind(':service_id', $serviceId);
+        return $this->db->getmultidata();
+    }
+
+    private function saveAttireItems(int $serviceId, array $data): void
+    {
+        $category = strtolower((string)($data['category'] ?? ''));
+        if ($category !== 'attire') {
+            return;
+        }
+
+        $replaceItems = !empty($data['attire_items_replace']);
+        $items = $data['attire_items'] ?? [];
+
+        if ($replaceItems) {
+            $this->db->dbquery('DELETE FROM attire_items WHERE service_id = :service_id');
+            $this->db->dbbind(':service_id', $serviceId);
+            $this->db->dbexecute();
+        }
+
+        $sortOrder = 0;
+        foreach ($items as $item) {
+            if (!is_array($item) || empty(trim((string)($item['name'] ?? '')))) {
+                continue;
+            }
+
+            $itemId = (int)($item['id'] ?? 0);
+
+            if ($itemId > 0 && !$replaceItems) {
+                $this->db->dbquery(
+                    'UPDATE attire_items
+                     SET name = :name,
+                         description = :description,
+                         photo_url = :photo_url,
+                         borrow_package_price = :borrow_package_price,
+                         borrow_customize_price = :borrow_customize_price,
+                         buy_package_price = :buy_package_price,
+                         buy_customize_price = :buy_customize_price,
+                         return_days = :return_days,
+                         sort_order = :sort_order
+                     WHERE id = :id AND service_id = :service_id
+                     LIMIT 1'
+                );
+                $this->db->dbbind(':id', $itemId);
+            } else {
+                $this->db->dbquery(
+                    'INSERT INTO attire_items (service_id, name, description, photo_url,
+                     borrow_package_price, borrow_customize_price,
+                     buy_package_price, buy_customize_price,
+                     return_days, sort_order)
+                     VALUES (:service_id, :name, :description, :photo_url,
+                     :borrow_package_price, :borrow_customize_price,
+                     :buy_package_price, :buy_customize_price,
+                     :return_days, :sort_order)'
+                );
+            }
+
+            $this->db->dbbind(':service_id', $serviceId);
+            $this->db->dbbind(':name', trim((string)($item['name'] ?? '')));
+            $this->db->dbbind(':description', trim((string)($item['description'] ?? '')));
+            $this->db->dbbind(':photo_url', !empty($item['photo_url']) ? $item['photo_url'] : null,
+                !empty($item['photo_url']) ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $this->dbbindPrice(':borrow_package_price', $item['borrow_package_price'] ?? null);
+            $this->dbbindPrice(':borrow_customize_price', $item['borrow_customize_price'] ?? null);
+            $this->dbbindPrice(':buy_package_price', $item['buy_package_price'] ?? null);
+            $this->dbbindPrice(':buy_customize_price', $item['buy_customize_price'] ?? null);
+            $this->db->dbbind(':return_days', !empty($item['return_days']) ? (int)$item['return_days'] : null,
+                !empty($item['return_days']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $this->db->dbbind(':sort_order', $sortOrder, PDO::PARAM_INT);
+            $this->db->dbexecute();
+            $sortOrder++;
+        }
+
+        // Delete removed items (IDs present in current DB but not in submitted array)
+        if (!$replaceItems) {
+            $submittedIds = array_filter(array_map(fn($item) => (int)($item['id'] ?? 0), $items), fn($id) => $id > 0);
+            if (!empty($submittedIds)) {
+                $placeholders = implode(',', array_fill(0, count($submittedIds), '?'));
+                $this->db->dbquery(
+                    "DELETE FROM attire_items
+                     WHERE service_id = :service_id AND id NOT IN ({$placeholders})"
+                );
+                $this->db->dbbind(':service_id', $serviceId);
+                foreach ($submittedIds as $i => $id) {
+                    $this->db->dbbind(':delete_id_' . $i, $id, PDO::PARAM_INT);
+                }
+                // Use manual execute with array for simplicity
+            } else {
+                // If no IDs submitted (all new), nothing to delete
+            }
+        }
+    }
+
+    private function dbbindPrice(string $param, $value): void
+    {
+        $val = $value !== null && $value !== '' && (float)$value > 0 ? (float)$value : null;
+        $this->db->dbbind($param, $val, $val === null ? PDO::PARAM_NULL : null);
     }
 }

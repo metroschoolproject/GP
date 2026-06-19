@@ -52,6 +52,7 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
   .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
   .badge-active{background:#d1fae5;color:#065f46}
   .badge-inactive{background:#fee2e2;color:#991b1b}
+  .badge-draft{background:#fffbeb;color:#92400e}
   .badge-neutral{background:#f3f4f6;color:#57534e}
 
   .pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px}
@@ -89,6 +90,7 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
         <a class="filter <?= ($filters['status'] ?? '') === '' ? 'active' : '' ?>" href="<?= URLROOT ?>/admin/packages<?= $filters['search'] ? '?search=' . urlencode($filters['search']) : '' ?>">All</a>
         <a class="filter <?= ($filters['status'] ?? '') === 'active' ? 'active' : '' ?>" href="<?= URLROOT ?>/admin/packages?status=active<?= $filters['search'] ? '&search=' . urlencode($filters['search']) : '' ?>">Active</a>
         <a class="filter <?= ($filters['status'] ?? '') === 'inactive' ? 'active' : '' ?>" href="<?= URLROOT ?>/admin/packages?status=inactive<?= $filters['search'] ? '&search=' . urlencode($filters['search']) : '' ?>">Inactive</a>
+        <a class="filter <?= ($filters['status'] ?? '') === 'draft' ? 'active' : '' ?>" href="<?= URLROOT ?>/admin/packages?status=draft<?= $filters['search'] ? '&search=' . urlencode($filters['search']) : '' ?>">Drafts</a>
       </div>
       <?php if ($filters['search'] !== ''): ?>
         <a class="btn-ghost btn-sm" href="<?= URLROOT ?>/admin/packages">Clear</a>
@@ -125,8 +127,10 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
             <td><strong>MMK <?= number_format((float)($pkg['base_price'] ?? 0) * (1 + $agentFeeRate), 0) ?></strong></td>
             <td><span class="badge badge-neutral"><?= (int)($pkg['item_count'] ?? 0) ?> svc.</span></td>
             <td>
-              <?php if (!empty($pkg['is_active'])): ?>
-                <span class="badge badge-active">● Active</span>
+              <?php if (($pkg['status'] ?? '') === 'draft'): ?>
+                <span class="badge badge-draft">● Draft</span>
+              <?php elseif (!empty($pkg['is_active'])): ?>
+                <span class="badge badge-active">● Published</span>
               <?php else: ?>
                 <span class="badge badge-inactive">● Inactive</span>
               <?php endif; ?>

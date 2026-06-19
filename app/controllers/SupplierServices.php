@@ -70,15 +70,17 @@ class SupplierServices extends SupplierControllerSupport
         $tab = ($payload['tab'] ?? 'all') === 'packages' ? 'packages' : (($payload['tab'] ?? 'all') === 'services' ? 'services' : 'all');
         $limit = max(1, min(100, (int)($payload['limit'] ?? self::SERVICE_MANAGEMENT_PAGE_SIZE)));
         $offset = max(0, (int)($payload['offset'] ?? 0));
+        $search = trim((string)($payload['search'] ?? ''));
         $options = [
             'service_limit' => $tab === 'packages' ? 0 : $limit,
             'package_limit' => $tab === 'services' ? 0 : $limit,
             'service_offset' => $tab === 'services' ? $offset : 0,
             'package_offset' => $tab === 'packages' ? $offset : 0,
+            'search' => $search,
         ];
 
         if ($tab === 'all') {
-            $options = ['limit' => $limit];
+            $options = ['limit' => $limit, 'search' => $search];
         }
 
         $this->jsonResponse([

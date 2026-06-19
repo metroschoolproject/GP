@@ -758,7 +758,7 @@ img { display: block; max-width: 100%; }
           'catering' => '🍽️',
           'cake' => '🍰',
           'dress' => '👗',
-          'attire' => '👔',
+          'attire' => '👗',
           'jewelry' => '💍',
           'jewellery' => '💍',
           'decor' => '🏵️',

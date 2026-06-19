@@ -76,7 +76,7 @@ class Notification
         return $this->db->getmultidata();
     }
 
-    public function getAll($userId = null, $limit = 50)
+    public function getAll($userId = null, $limit = 50, $offset = 0)
     {
         $query = 'SELECT id, title, message, type, reference_type, reference_id, is_read, created_at
                   FROM notifications';
@@ -85,7 +85,7 @@ class Notification
             $query .= ' WHERE user_id = :user_id OR user_id IS NULL';
         }
 
-        $query .= ' ORDER BY id DESC LIMIT :limit';
+        $query .= ' ORDER BY id DESC LIMIT :limit OFFSET :offset';
 
         $this->db->dbquery($query);
 
@@ -94,8 +94,26 @@ class Notification
         }
 
         $this->db->dbbind(':limit', max(1, min(100, (int)$limit)), PDO::PARAM_INT);
+        $this->db->dbbind(':offset', max(0, (int)$offset), PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    public function getAllCount($userId = null): int
+    {
+        $query = 'SELECT COUNT(*) AS total FROM notifications';
+
+        if ($userId) {
+            $query .= ' WHERE user_id = :user_id OR user_id IS NULL';
+        }
+
+        $this->db->dbquery($query);
+
+        if ($userId) {
+            $this->db->dbbind(':user_id', (int)$userId);
+        }
+
+        return (int)($this->db->getsingledata()['total'] ?? 0);
     }
 
     public function getById($notificationId, $userId = null)
@@ -180,7 +198,7 @@ class Notification
              FROM users
              INNER JOIN user_roles ON user_roles.user_id = users.user_id
              INNER JOIN roles ON roles.id = user_roles.role_id
-             WHERE roles.name IN ('admin', 'staff')
+             WHERE roles.name = 'admin'
                AND users.deleted_at IS NULL"
         );
 

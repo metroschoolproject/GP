@@ -2,6 +2,7 @@
 $package = $package ?? [];
 $cartCount = (int)($cartCount ?? 0);
 $categoryServices = $package['category_services'] ?? [];
+$addonServices = $package['addon_services'] ?? [];
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
@@ -23,8 +24,8 @@ $isRentalCategory = static function ($svc): bool {
     $slug = strtolower(trim((string)($svc['category_slug'] ?? '')));
     $name = strtolower(trim((string)($svc['category_name'] ?? '')));
 
-    return in_array($slug, ['dress', 'accessories'], true)
-        || in_array($name, ['dress', 'accessories'], true);
+    return in_array($slug, ['attire'], true)
+        || in_array($name, ['attire'], true);
 };
 $rentalRows = static function ($svc) use ($money, $isRentalCategory): array {
     if (!$isRentalCategory($svc)) {
@@ -63,6 +64,10 @@ $serviceDetailUrl = function ($svc) use ($package) {
         'package_item_id' => (int)($svc['package_item_id'] ?? 0),
     ];
     return $url . '?' . http_build_query($params);
+};
+$addonDetailUrl = function ($svc) use ($package) {
+    return URLROOT . '/customerServices/detail/' . (int)($svc['id'] ?? 0)
+        . '?' . http_build_query(['addon_package_id' => (int)($package['package_id'] ?? 0)]);
 };
 ?>
 <!DOCTYPE html>
@@ -712,6 +717,41 @@ img { display: block; max-width: 100%; }
       <?php endif; ?>
     </section>
     <?php endforeach; ?>
+  <?php endif; ?>
+
+  <?php if (!empty($addonServices)): ?>
+    <section class="gp-cat-section gp-reveal" aria-label="Optional package add-ons">
+      <div class="gp-cat-header">
+        <h2>Optional add-ons</h2>
+        <span class="gp-cat-count">Extra services priced separately</span>
+      </div>
+      <div class="gp-svc-grid">
+        <?php foreach ($addonServices as $si => $svc): ?>
+          <?php $addonUrl = $addonDetailUrl($svc); ?>
+          <article class="gp-svc-card gp-reveal gp-reveal-d<?= min($si % 4, 3) ?>">
+            <a class="gp-svc-img" href="<?= $h($addonUrl) ?>" tabindex="-1" aria-hidden="true">
+              <?php if (!empty($svc['image'])): ?>
+                <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
+              <?php else: ?>
+                <div class="gp-svc-img-placeholder"><i data-lucide="plus" style="width:24px;height:24px"></i></div>
+              <?php endif; ?>
+            </a>
+            <div class="gp-svc-body">
+              <span class="gp-svc-supplier"><?= $h($svc['supplier_name'] ?? 'Golden Promise') ?></span>
+              <h3 class="gp-svc-name"><?= $h($svc['name'] ?? 'Add-on service') ?></h3>
+              <p class="gp-svc-desc"><?= $h($svc['description'] ?? '') ?></p>
+              <div class="gp-svc-foot">
+                <span class="gp-svc-price"><?= $money($svc['display_price'] ?? 0) ?></span>
+                <a class="gp-svc-add-btn" href="<?= $h($addonUrl) ?>">
+                  Add
+                  <i data-lucide="plus" style="width:12px;height:12px"></i>
+                </a>
+              </div>
+            </div>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    </section>
   <?php endif; ?>
 </main>
 

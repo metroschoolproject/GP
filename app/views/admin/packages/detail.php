@@ -4,6 +4,8 @@ $message = $message ?? '';
 $categories = $categories ?? [];
 $serviceOptions = $serviceOptions ?? [];
 $hallOptionsByService = $hallOptionsByService ?? [];
+$attireOptionsByService = $attireOptionsByService ?? [];
+$decoOptionsByService = $decoOptionsByService ?? [];
 
 $dashboardTitle = 'Packages';
 $dashboardCrumb = htmlspecialchars($package['name'] ?? 'Package Detail', ENT_QUOTES, 'UTF-8');
@@ -14,7 +16,7 @@ $dashboardBreadcrumbs = [
 ];
 $dashboardContentClass = 'admin-pkg-detail';
 
-$dashboardContent = function () use ($package, $message, $categories, $serviceOptions, $hallOptionsByService) {
+$dashboardContent = function () use ($package, $message, $categories, $serviceOptions, $hallOptionsByService, $attireOptionsByService, $decoOptionsByService) {
   $h = fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
   $money = fn($value) => 'MMK ' . number_format((float)$value, 0);
 
@@ -23,6 +25,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   $includedServiceIds = [];
   $includedCategoryNames = [];
   $hasVenueItems = false;
+  $hasRentalItems = false;
   foreach (($package['items'] ?? []) as $item) {
     $includedTotal += (float)($item['default_price'] ?? $item['price_min'] ?? $item['price'] ?? 0);
     if (!empty($item['service_id'])) {
@@ -33,6 +36,12 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     }
     if (!empty($item['venue_room_id']) || !empty($item['hall_name']) || !empty($hallOptionsByService[(int)($item['service_id'] ?? 0)])) {
       $hasVenueItems = true;
+    }
+    // Check for attire (rental pricing)
+    $catSlug = strtolower(trim((string)($item['category_slug'] ?? '')));
+    $catName = strtolower(trim((string)($item['category_name'] ?? '')));
+    if (in_array($catSlug, ['attire'], true) || in_array($catName, ['attire'], true)) {
+      $hasRentalItems = true;
     }
   }
   $agentFeeRate    = 0.05;
@@ -49,6 +58,37 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   $pkgCategoryName = trim((string)($package['category_name'] ?? ''));
   $pkgCategorySlug = strtolower(trim((string)($package['category_slug'] ?? $pkgCategoryName)));
   $isVenuePackage  = str_contains($pkgCategorySlug, 'venue') || str_contains($pkgCategorySlug, 'hall');
+
+  $isDraft = (($package['status'] ?? '') === 'draft');
+  $isPublished = (($package['status'] ?? '') === 'published');
+
+  // Helper: build rental pricing display for attire items
+  $rentalPricingHtml = function ($item) use ($money, $h) {
+    $borrowPkg = (float)($item['borrow_package_price'] ?? $item['borrow_price'] ?? 0);
+    $borrowCust = (float)($item['borrow_customize_price'] ?? $item['borrow_price'] ?? $borrowPkg);
+    $buyPkg = (float)($item['buy_package_price'] ?? $item['buy_price'] ?? 0);
+    $buyCust = (float)($item['buy_customize_price'] ?? $item['buy_price'] ?? $buyPkg);
+    $returnDays = (int)($item['return_days'] ?? 0);
+    $html = '';
+    if ($borrowPkg > 0 || $borrowCust > 0) {
+      $html .= '<div class="rental-option">'
+            . '<div class="rental-option-head"><strong>Borrow</strong>'
+            . ($returnDays > 0 ? '<span>Return in ' . $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . '</span>' : '')
+            . '</div><div class="rental-price-row">'
+            . '<span>Package <b>' . ($borrowPkg > 0 ? $money($borrowPkg) : '—') . '</b></span>'
+            . '<span>Custom <b>' . ($borrowCust > 0 ? $money(max($borrowPkg, $borrowCust)) : '—') . '</b></span>'
+            . '</div></div>';
+    }
+    if ($buyPkg > 0 || $buyCust > 0) {
+      $html .= '<div class="rental-option buy">'
+            . '<div class="rental-option-head"><strong>Buy</strong></div>'
+            . '<div class="rental-price-row">'
+            . '<span>Package <b>' . ($buyPkg > 0 ? $money($buyPkg) : '—') . '</b></span>'
+            . '<span>Custom <b>' . ($buyCust > 0 ? $money(max($buyPkg, $buyCust)) : '—') . '</b></span>'
+            . '</div></div>';
+    }
+    return $html !== '' ? $html : '<span class="service-meta">—</span>';
+  };
 
   $addableServices = array_filter($serviceOptions, function ($svc) use ($includedServiceIds) {
     $svcId = (int)($svc['id'] ?? 0);
@@ -101,6 +141,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
 .badge-active{background:#d1fae5;color:#065f46}
 .badge-inactive{background:#fee2e2;color:#991b1b}
+.badge-draft{background:#fffbeb;color:#92400e}
 
 .edit-form input,.edit-form textarea,.edit-form select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .12s}
 .edit-form input:focus,.edit-form textarea:focus,.edit-form select:focus{border-color:var(--primary)}
@@ -130,6 +171,79 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .guest-input{width:100px!important;padding:8px 10px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;outline:none}
 .guest-form{display:flex;align-items:center;gap:8px}
 
+/* ── Included service cards ───────────────────────────────────────────── */
+.included-card{padding:0;overflow:hidden}
+.included-card-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 24px;border-bottom:1px solid var(--border-light)}
+.included-card-title{margin:0;color:var(--text);font-size:15px;font-weight:800}
+.included-card-sub{margin-top:3px;color:var(--muted);font-size:11px}
+.included-card-total{text-align:right}
+.included-card-total span{display:block;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.included-card-total strong{display:block;margin-top:3px;color:var(--primary);font-size:16px}
+.included-list{display:flex;flex-direction:column}
+.included-item{padding:22px 24px;border-bottom:1px solid var(--border-light);background:#fff}
+.included-item:last-child{border-bottom:0}
+.included-item:hover{background:#fffdfb}
+.included-item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}
+.included-identity{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.included-number{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:var(--primary-soft);color:var(--primary);font-size:11px;font-weight:800}
+.included-service-name{color:var(--text);font-size:15px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
+.included-service-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;color:var(--muted);font-size:11px}
+.included-dot{width:3px;height:3px;border-radius:50%;background:var(--border)}
+.included-category{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:var(--soft);color:var(--body);font-size:10px;font-weight:800}
+.included-remove{flex-shrink:0}
+.included-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(150px,.65fr) minmax(240px,1fr);gap:14px}
+.included-panel{min-width:0;padding:14px;border:1px solid var(--border-light);border-radius:10px;background:var(--bg)}
+.included-panel-label{display:flex;align-items:center;gap:6px;margin-bottom:9px;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.included-panel-label svg{color:var(--primary)}
+.included-panel-value{color:var(--text);font-size:12px;font-weight:700}
+.included-panel-note{margin-top:3px;color:var(--muted);font-size:10px;line-height:1.45}
+.included-panel .guest-form{align-items:stretch;margin-top:10px}
+.included-panel .guest-input{width:100%!important;min-width:0;background:#fff}
+.included-panel .guest-form .btn-ghost{flex-shrink:0}
+.included-hall-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}
+.included-hall-form .guest-input{width:100%!important;background:#fff}
+.included-rental{margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light)}
+.rental-option+.rental-option{margin-top:9px;padding-top:9px;border-top:1px solid var(--border-light)}
+.rental-option-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.rental-option-head strong{color:var(--primary);font-size:11px}
+.rental-option.buy .rental-option-head strong{color:#067647}
+.rental-option-head span{color:var(--muted);font-size:9px}
+.rental-price-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rental-price-row span{color:var(--muted);font-size:9px}
+.rental-price-row b{display:block;margin-top:2px;color:var(--text);font-size:11px}
+.included-prices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.included-price{padding:13px;border-radius:9px;background:#fff;border:1px solid var(--border-light)}
+.included-price span{display:block;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.included-price strong{display:block;margin-top:5px;color:var(--text);font-size:14px;line-height:1.25}
+.included-price small{display:block;margin-top:4px;color:var(--muted);font-size:10px;line-height:1.4}
+.included-price.is-primary{background:#faf6f7;border-color:#decdd4}
+.included-price.is-primary strong{color:var(--primary)}
+.draft-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;border-top:1px solid var(--border-light);background:var(--soft)}
+.draft-actions-copy strong{display:block;color:var(--text);font-size:12px}
+.draft-actions-copy span{display:block;margin-top:2px;color:var(--muted);font-size:10px}
+.draft-actions-buttons{display:flex;gap:8px}
+
+.cover-uploader{position:relative;min-height:250px;border:1.5px dashed #d8d5d2;border-radius:14px;background:#fcfcfb;overflow:hidden;transition:border-color .18s,background .18s,box-shadow .18s}
+.cover-uploader:hover,.cover-uploader.is-dragging{border-color:var(--primary);background:#fbf7f8;box-shadow:0 0 0 3px rgba(109,76,91,.07)}
+.cover-uploader.has-image{border-style:solid;background:#161214}
+.cover-uploader-input{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;padding:0!important}
+.cover-uploader-label{display:flex!important;min-height:250px;margin:0!important;align-items:center;justify-content:center;cursor:pointer;text-transform:none!important;letter-spacing:normal!important;color:inherit!important}
+.cover-uploader-empty{text-align:center;padding:34px 20px}
+.cover-upload-icon{display:grid;place-items:center;width:58px;height:44px;margin:0 auto 18px;color:#d4d5d8}
+.cover-upload-title{display:block;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px}
+.cover-upload-title span{color:var(--primary)}
+.cover-upload-help{display:block;font-size:12px;color:var(--muted);margin-bottom:18px}
+.cover-upload-button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 16px;border:1px solid var(--border);border-radius:.65rem;background:#fff;color:var(--text);font-size:12px;font-weight:700;box-shadow:0 1px 2px rgba(17,24,39,.04)}
+.cover-uploader-preview{position:absolute;inset:0;display:none}
+.cover-uploader.has-image .cover-uploader-preview{display:block}
+.cover-uploader.has-image .cover-uploader-empty{display:none}
+.cover-uploader-preview img{width:100%;height:100%;object-fit:cover}
+.cover-preview-shade{position:absolute;inset:auto 0 0;padding:54px 20px 18px;background:linear-gradient(transparent,rgba(18,13,15,.82));display:flex;align-items:flex-end;justify-content:space-between;gap:16px;color:#fff}
+.cover-preview-name{min-width:0;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cover-preview-change{flex-shrink:0;border:1px solid rgba(255,255,255,.55);border-radius:.6rem;background:rgba(255,255,255,.14);color:#fff;padding:8px 12px;font-family:inherit;font-size:11px;font-weight:700;backdrop-filter:blur(8px);cursor:pointer}
+.cover-upload-error{display:none;margin-top:7px;color:#b42318;font-size:12px;font-weight:600}
+.cover-upload-error.is-visible{display:block}
+
 /* ── Category badge strip ─────────────────────────────────────────────── */
 .pkg-category-strip{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:12px 16px;background:var(--soft);border:1px solid var(--border-light);border-radius:.75rem}
 .pkg-category-icon{width:32px;height:32px;border-radius:50%;background:var(--primary);display:grid;place-items:center;flex-shrink:0}
@@ -140,6 +254,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
 /* ── Add-service panel ────────────────────────────────────────────────── */
 .add-svc-panel{margin-top:18px;padding-top:18px;border-top:1px solid var(--border-light)}
+.included-card .add-svc-panel{margin:0;padding:24px;border-top:1px solid var(--border-light);background:#fff}
 .add-svc-panel-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px}
 
 /* Step indicator */
@@ -202,10 +317,17 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   .svc-select-row{flex-direction:column;align-items:stretch}
   .hall-grid{grid-template-columns:1fr 1fr}
   .add-svc-steps{font-size:11px}
+  .included-grid{grid-template-columns:1fr}
+  .included-card-head,.included-item{padding-left:18px;padding-right:18px}
+  .draft-actions{align-items:flex-start;flex-direction:column}
 }
 @media(max-width:480px){
   .hall-grid{grid-template-columns:1fr}
   .admin-pkg-detail{padding:16px}
+  .included-item-top{flex-direction:column}
+  .included-prices{grid-template-columns:1fr}
+  .draft-actions-buttons{width:100%;flex-direction:column}
+  .draft-actions-buttons form,.draft-actions-buttons button{width:100%}
 }
 </style>
 
@@ -235,9 +357,18 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     <div class="stat">
       <div class="stat-label">Status</div>
       <div class="stat-value" style="font-size:14px;padding-top:4px">
-        <span class="badge <?= !empty($package['is_active']) ? 'badge-active' : 'badge-inactive' ?>">
-          <?= !empty($package['is_active']) ? '● Active' : '● Inactive' ?>
-        </span>
+        <?php if ($isDraft): ?>
+          <span class="badge badge-draft">● Draft</span>
+          <?php if (!empty($package['replaces_package_id'])): ?>
+            <span style="font-size:11px;color:var(--muted)">Editing copy</span>
+          <?php endif; ?>
+        <?php elseif ($isPublished): ?>
+          <span class="badge <?= !empty($package['is_active']) ? 'badge-active' : 'badge-inactive' ?>">
+            <?= !empty($package['is_active']) ? '● Published' : '● Inactive' ?>
+          </span>
+        <?php else: ?>
+          <span class="badge badge-inactive">● <?= $h($package['status'] ?? 'Unknown') ?></span>
+        <?php endif; ?>
       </div>
       <div class="stat-sub"><?= $pkgCategoryName ?: 'No category set' ?></div>
     </div>
@@ -263,129 +394,236 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
   <!-- ── Basic information ─────────────────────────────────────────────── -->
   <div class="card">
-    <div class="card-title">Package Information</div>
-    <form class="edit-form" id="packageDetailForm" method="POST"
-          action="<?= URLROOT ?>/admin/packageUpdate/<?= (int)$package['package_id'] ?>"
-          enctype="multipart/form-data">
+    <div class="card-title">
+      Package Information
+      <?php if ($isDraft): ?>
+        <span class="badge badge-draft" style="margin-left:8px">Draft</span>
+      <?php endif; ?>
+    </div>
 
+    <?php if ($isPublished): ?>
+      <!-- Read-only published view -->
+      <div class="field">
+        <label>Name</label>
+        <div class="value"><?= $h($package['name'] ?? '') ?></div>
+      </div>
       <div class="two-col">
-        <div class="field">
-          <label>Name</label>
-          <input type="text" name="name" value="<?= $h($package['name'] ?? '') ?>" required>
-        </div>
         <div class="field">
           <label>Slug</label>
-          <input type="text" name="slug" value="<?= $h($package['slug'] ?? '') ?>">
-        </div>
-      </div>
-
-      <div class="two-col">
-        <div class="field">
-          <label>Tagline</label>
-          <input type="text" name="tagline" value="<?= $h($package['tagline'] ?? '') ?>">
+          <div class="value muted"><?= $h($package['slug'] ?? '') ?></div>
         </div>
         <div class="field">
           <label>Category</label>
-          <?php if (!empty($categories)): ?>
-            <select name="category_id">
-              <option value="">— No category —</option>
-              <?php foreach ($categories as $cat): ?>
-                <option value="<?= (int)$cat['id'] ?>"
-                  <?= ((int)$cat['id'] === $pkgCategoryId) ? 'selected' : '' ?>>
-                  <?= $h($cat['name']) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          <?php else: ?>
-            <input type="text" value="<?= $h($pkgCategoryName) ?>" readonly style="background:var(--soft);color:var(--muted)">
-            <input type="hidden" name="category_id" value="<?= $pkgCategoryId ?>">
-          <?php endif; ?>
+          <div class="value muted"><?= $h($pkgCategoryName ?: '—') ?></div>
         </div>
       </div>
-
       <div class="field">
-        <label>Base Price (MMK)</label>
-        <input type="number" name="base_price" id="packagePriceInput" min="0" step="100"
-               value="<?= (float)$packageBasePrice ?>" placeholder="<?= (float)$includedTotal ?>">
-        <div class="stat-sub" style="margin-top:4px">Customer-facing price = base + 5% agent fee, calculated automatically.</div>
+        <label>Tagline</label>
+        <div class="value muted"><?= $h($package['tagline'] ?? '—') ?></div>
       </div>
-
+      <div class="field">
+        <label>Base Price</label>
+        <div class="value"><?= $money($packageBasePrice) ?></div>
+        <div class="stat-sub" style="margin-top:4px"><?= $h($package['slug'] ?? '') ?>ml + 5% agent fee = <?= $money($packagePrice) ?></div>
+      </div>
       <div class="field">
         <label>Description</label>
-        <textarea name="description"><?= $h($package['description'] ?? '') ?></textarea>
+        <div class="value muted" style="white-space:pre-wrap"><?= $h($package['description'] ?: 'No description') ?></div>
       </div>
-
+      <?php if (!empty($package['image_url'])): ?>
       <div class="field">
-        <label>Package Image</label>
-        <?php if (!empty($package['image_url'])): ?>
-          <div style="margin-bottom:10px">
-            <img src="<?= $h($package['image_url']) ?>" alt="<?= $h($package['name'] ?? 'Package') ?>"
-                 style="width:160px;height:90px;object-fit:cover;border-radius:.75rem;border:1px solid var(--border)">
-          </div>
-        <?php endif; ?>
-        <input type="file" name="package_image" accept="image/jpeg,image/png,image/webp">
-        <div class="service-meta" style="margin-top:5px">JPG, PNG or WebP. Leave empty to keep existing image.</div>
+        <label>Image</label>
+        <img src="<?= $h($package['image_url']) ?>" alt="<?= $h($package['name'] ?? 'Package') ?>"
+             style="width:160px;height:90px;object-fit:cover;border-radius:.75rem;border:1px solid var(--border)">
       </div>
-
-      <div class="field">
-        <div class="toggle-wrap" style="justify-content:space-between">
-          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Active</label>
-          <button type="button"
-                  class="toggle <?= !empty($package['is_active']) ? 'on' : 'off' ?>"
-                  onclick="this.classList.toggle('on');this.classList.toggle('off');document.getElementById('is_active_hidden').value=this.classList.contains('on')?1:0">
+      <?php endif; ?>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <form method="POST" action="<?= URLROOT ?>/admin/packageStartEdit/<?= (int)$package['package_id'] ?>"
+              onsubmit="return confirm('Enter edit mode? A draft copy will be created. The live package stays visible to customers while you edit.')">
+          <button class="btn-primary" type="submit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Package
           </button>
-          <input type="hidden" name="is_active" id="is_active_hidden" value="<?= !empty($package['is_active']) ? 1 : 0 ?>">
-        </div>
+        </form>
       </div>
 
-      <div style="margin-top:16px">
-        <button class="btn-primary" id="packageSaveButton" type="submit" disabled>Save Changes</button>
-      </div>
-    </form>
-  </div>
+    <?php else: ?>
+      <!-- Draft / editable form -->
+      <form class="edit-form" id="packageDetailForm" method="POST"
+            action="<?= URLROOT ?>/admin/packageUpdate/<?= (int)$package['package_id'] ?>"
+            enctype="multipart/form-data">
+
+        <div class="two-col">
+          <div class="field">
+            <label>Name</label>
+            <input type="text" name="name" value="<?= $h($package['name'] ?? '') ?>" required>
+          </div>
+          <div class="field">
+            <label>Slug</label>
+            <input type="text" name="slug" value="<?= $h($package['slug'] ?? '') ?>">
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label>Tagline</label>
+            <input type="text" name="tagline" value="<?= $h($package['tagline'] ?? '') ?>">
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <?php if (!empty($categories)): ?>
+              <select name="category_id">
+                <option value="">— No category —</option>
+                <?php foreach ($categories as $cat): ?>
+                  <option value="<?= (int)$cat['id'] ?>"
+                    <?= ((int)$cat['id'] === $pkgCategoryId) ? 'selected' : '' ?>>
+                    <?= $h($cat['name']) ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            <?php else: ?>
+              <input type="text" value="<?= $h($pkgCategoryName) ?>" readonly style="background:var(--soft);color:var(--muted)">
+              <input type="hidden" name="category_id" value="<?= $pkgCategoryId ?>">
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Base Price (MMK)</label>
+          <input type="number" name="base_price" id="packagePriceInput" min="0" step="100"
+                 value="<?= (float)$packageBasePrice ?>" placeholder="<?= (float)$includedTotal ?>">
+          <div class="stat-sub" style="margin-top:4px">Customer-facing price = base + 5% agent fee, calculated automatically.</div>
+        </div>
+
+        <div class="field">
+          <label>Description</label>
+          <textarea name="description"><?= $h($package['description'] ?? '') ?></textarea>
+        </div>
+
+        <div class="field">
+          <label>Package Cover</label>
+          <div class="cover-uploader <?= !empty($package['image_url']) ? 'has-image' : '' ?>" id="packageCoverUploader" data-existing-image="<?= $h($package['image_url'] ?? '') ?>">
+            <input class="cover-uploader-input" id="packageCoverInput" type="file" name="package_image" accept="image/jpeg,image/png,image/webp">
+            <label class="cover-uploader-label" for="packageCoverInput">
+              <span class="cover-uploader-empty">
+                <span class="cover-upload-icon" aria-hidden="true">
+                  <svg width="58" height="44" viewBox="0 0 58 44" fill="none"><path d="M46.5 19.2A14.5 14.5 0 0 0 18.7 14 10.5 10.5 0 0 0 20 35h25.5a8 8 0 0 0 1-15.8Z" fill="currentColor"/><path d="m29 14-7 8h4v8h6v-8h4l-7-8Z" fill="#fff"/></svg>
+                </span>
+                <span class="cover-upload-title">Choose an image or <span>drag &amp; drop it here</span></span>
+                <span class="cover-upload-help">JPG, PNG or WebP · Up to 6MB</span>
+                <span class="cover-upload-button">Browse files</span>
+              </span>
+            </label>
+            <div class="cover-uploader-preview">
+              <img id="packageCoverPreview" src="<?= $h($package['image_url'] ?? '') ?>" alt="<?= $h($package['name'] ?? 'Package') ?> cover">
+              <div class="cover-preview-shade">
+                <span class="cover-preview-name" id="packageCoverName"><?= !empty($package['image_url']) ? 'Current package cover' : 'Package cover' ?></span>
+                <button class="cover-preview-change" type="button" id="packageCoverChange">Change cover</button>
+              </div>
+            </div>
+          </div>
+          <p class="cover-upload-error" id="packageCoverError" role="alert"></p>
+          <div class="service-meta" style="margin-top:5px">Selecting a new image replaces the current cover after you save.</div>
+        </div>
+
+        <div class="field">
+          <div class="toggle-wrap" style="justify-content:space-between">
+            <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Active</label>
+            <button type="button"
+                    class="toggle <?= !empty($package['is_active']) ? 'on' : 'off' ?>"
+                    onclick="this.classList.toggle('on');this.classList.toggle('off');document.getElementById('is_active_hidden').value=this.classList.contains('on')?1:0">
+            </button>
+            <input type="hidden" name="is_active" id="is_active_hidden" value="<?= !empty($package['is_active']) ? 1 : 0 ?>">
+          </div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn-primary" id="packageSaveButton" type="submit" disabled>Save Changes</button>
+        </div>
+      </form>
+    <?php endif; ?>
+  </div><!-- /card -->
 
   <!-- ── Included services ─────────────────────────────────────────────── -->
-  <div class="card">
-    <div class="card-title">Included Services</div>
+  <div class="card included-card">
+    <div class="included-card-head">
+      <div>
+        <h2 class="included-card-title">Included Services</h2>
+        <div class="included-card-sub">Review suppliers, selected options, quantities, and pricing.</div>
+      </div>
+      <?php if (!empty($package['items'])): ?>
+        <div class="included-card-total">
+          <span><?= count($package['items']) ?> services · Package cost</span>
+          <strong><?= $money($includedTotal) ?></strong>
+        </div>
+      <?php endif; ?>
+    </div>
 
     <?php if (empty($package['items'])): ?>
-      <div class="service-empty">No services added yet. Use the form below to add services to this package.</div>
+      <div class="service-empty" style="margin:24px">No services added yet.<?= $isDraft ? ' Use the form below to add services to this package.' : '' ?></div>
     <?php else: ?>
-      <table class="service-table">
-        <thead>
-          <tr>
-            <th>Service</th>
-            <th>Supplier</th>
-            <?php if ($hasVenueItems): ?><th>Hall</th><?php endif; ?>
-            <th>Guests / Type</th>
-            <th>Package Price</th>
-            <th style="text-align:right">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach (($package['items'] ?? []) as $item): ?>
-            <tr>
-              <td>
-                <div class="service-name"><?= $h($item['service_name'] ?? 'Service') ?></div>
-                <div class="service-meta">#<?= (int)($item['service_id'] ?? 0) ?></div>
-              </td>
-              <td><?= $h($item['default_supplier_name'] ?? '—') ?></td>
-              <?php if ($hasVenueItems): ?>
-              <td>
-                <?php $itemHallOptions = $hallOptionsByService[(int)($item['service_id'] ?? 0)] ?? []; ?>
+      <div class="included-list">
+        <?php foreach (($package['items'] ?? []) as $itemIndex => $item):
+          $isGuestPriced = ($item['quantity_type'] ?? '') === 'guests';
+          $itemPkgPrice = (float)($item['default_price'] ?? 0);
+          $itemCustPrice = (float)($item['customize_price'] ?? $itemPkgPrice);
+          $isRentalSvc = in_array(strtolower(trim((string)($item['category_slug'] ?? ''))), ['attire'], true)
+                      || in_array(strtolower(trim((string)($item['category_name'] ?? ''))), ['attire'], true);
+          $itemHallOptions = $hallOptionsByService[(int)($item['service_id'] ?? 0)] ?? [];
+          $quantity = max(1, (int)($item['quantity'] ?? 1));
+        ?>
+          <article class="included-item">
+            <div class="included-item-top">
+              <div class="included-identity">
+                <span class="included-number"><?= str_pad((string)($itemIndex + 1), 2, '0', STR_PAD_LEFT) ?></span>
+                <div>
+                  <div class="included-service-name"><?= $h($item['service_name'] ?? 'Service') ?></div>
+                  <div class="included-service-meta">
+                    <span><?= $h($item['default_supplier_name'] ?? 'Supplier not assigned') ?></span>
+                    <span class="included-dot"></span>
+                    <span>Service #<?= (int)($item['service_id'] ?? 0) ?></span>
+                    <?php if (!empty($item['category_name'])): ?>
+                      <span class="included-category"><?= $h($item['category_name']) ?></span>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              </div>
+              <?php if ($isDraft): ?>
+                <form class="included-remove" method="POST"
+                      action="<?= URLROOT ?>/admin/packageRemoveItem/<?= (int)$item['id'] ?>"
+                      onsubmit="return confirm('Remove this service from the package?')">
+                  <button class="btn-ghost btn-sm btn-danger" type="submit">Remove</button>
+                </form>
+              <?php endif; ?>
+            </div>
+
+            <div class="included-grid">
+              <div class="included-panel">
+                <div class="included-panel-label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/></svg>
+                  Service details
+                </div>
                 <?php if (!empty($item['hall_name'])): ?>
-                  <div class="service-name" style="font-size:12px"><?= $h($item['hall_name']) ?></div>
-                  <?php if (!empty($item['hall_capacity'])): ?>
-                    <div class="service-meta">Up to <?= (int)$item['hall_capacity'] ?> guests</div>
-                  <?php endif; ?>
+                  <div class="included-panel-value"><?= $h($item['hall_name']) ?></div>
+                  <div class="included-panel-note"><?= !empty($item['hall_capacity']) ? 'Up to ' . (int)$item['hall_capacity'] . ' guests' : 'Selected venue hall' ?></div>
+                <?php elseif (!empty($item['attire_item_name'])): ?>
+                  <div class="included-panel-value"><?= $h($item['attire_item_name']) ?></div>
+                  <div class="included-panel-note">Selected attire item</div>
+                <?php elseif (!empty($item['decoration_style_name'])): ?>
+                  <div class="included-panel-value"><?= $h($item['decoration_style_name']) ?></div>
+                  <div class="included-panel-note">Selected decoration style</div>
+                <?php elseif (!empty($itemHallOptions)): ?>
+                  <div class="included-panel-value">No specific hall selected</div>
+                  <div class="included-panel-note">Choose which hall this package includes.</div>
                 <?php else: ?>
-                  <span class="service-meta">—</span>
+                  <div class="included-panel-value"><?= $isGuestPriced ? 'Guest-based service' : 'Fixed service' ?></div>
+                  <div class="included-panel-note"><?= $isGuestPriced ? 'Price adjusts with guest count.' : 'Included once in this package.' ?></div>
                 <?php endif; ?>
-                <?php if (!empty($itemHallOptions)): ?>
-                  <form class="guest-form" method="POST"
-                        action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>"
-                        style="margin-top:8px">
-                    <select name="hall_id" class="guest-input" style="width:180px!important">
+
+                <?php if ($isDraft && !empty($itemHallOptions)): ?>
+                  <form class="included-hall-form" method="POST"
+                        action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>">
+                    <select name="hall_id" class="guest-input" aria-label="Choose hall">
                       <option value="">No specific hall</option>
                       <?php foreach ($itemHallOptions as $hall): ?>
                         <option value="<?= (int)$hall['id'] ?>" <?= (int)($item['venue_room_id'] ?? 0) === (int)$hall['id'] ? 'selected' : '' ?>>
@@ -396,42 +634,77 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
                     <button class="btn-ghost btn-sm" type="submit">Update</button>
                   </form>
                 <?php endif; ?>
-              </td>
-              <?php endif; ?>
-              <td>
-                <?php if (($item['quantity_type'] ?? 'fixed') === 'guests'): ?>
+
+                <?php if ($isRentalSvc): ?>
+                  <div class="included-rental"><?= $rentalPricingHtml($item) ?></div>
+                <?php endif; ?>
+              </div>
+
+              <div class="included-panel">
+                <div class="included-panel-label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  <?= $isGuestPriced ? 'Guests' : 'Quantity' ?>
+                </div>
+                <?php if ($isDraft): ?>
                   <form class="guest-form" method="POST"
                         action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>">
                     <input class="guest-input" type="number" name="quantity" min="1" step="1"
-                           value="<?= max(1, (int)($item['quantity'] ?? 1)) ?>">
+                           value="<?= $quantity ?>" aria-label="<?= $isGuestPriced ? 'Guest count' : 'Quantity' ?>">
                     <button class="btn-ghost btn-sm" type="submit">Update</button>
                   </form>
                 <?php else: ?>
-                  <span class="service-meta">Fixed</span>
+                  <div class="included-panel-value"><?= $isGuestPriced ? number_format($quantity) . ' guests' : number_format($quantity) ?></div>
+                  <div class="included-panel-note"><?= $isGuestPriced ? 'Used for per-guest pricing.' : 'Included quantity.' ?></div>
                 <?php endif; ?>
-              </td>
-              <td>
-                <strong><?= $money($item['default_price'] ?? 0) ?></strong>
-                <?php if (($item['quantity_type'] ?? 'fixed') === 'guests'): ?>
-                  <div class="service-meta"><?= $money($item['unit_price'] ?? 0) ?> per guest</div>
-                <?php endif; ?>
-              </td>
-              <td style="text-align:right">
-                <form method="POST"
-                      action="<?= URLROOT ?>/admin/packageRemoveItem/<?= (int)$item['id'] ?>"
-                      style="display:inline"
-                      onsubmit="return confirm('Remove this service from the package?')">
-                  <button class="btn-ghost btn-sm btn-danger" type="submit">Remove</button>
-                </form>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+              </div>
+
+              <div class="included-prices">
+                <div class="included-price is-primary">
+                  <span>Package price</span>
+                  <strong><?= $money($itemPkgPrice) ?></strong>
+                  <small><?= $isGuestPriced ? $money($itemPkgPrice / $quantity) . ' per guest' : 'Included package rate' ?></small>
+                </div>
+                <div class="included-price">
+                  <span>Customize price</span>
+                  <?php if ($itemCustPrice > $itemPkgPrice): ?>
+                    <strong><?= $money($itemCustPrice) ?></strong>
+                    <small><?= $isGuestPriced ? $money($itemCustPrice / $quantity) . ' per guest' : 'Customer custom rate' ?></small>
+                  <?php else: ?>
+                    <strong>Same rate</strong>
+                    <small>Matches package price</small>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </div>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if ($isDraft): ?>
+      <div class="draft-actions">
+        <div class="draft-actions-copy">
+          <strong>Ready to make these services live?</strong>
+          <span>Publishing replaces the current package version.</span>
+        </div>
+        <div class="draft-actions-buttons">
+          <form method="POST" action="<?= URLROOT ?>/admin/packagePublishDraft/<?= (int)$package['package_id'] ?>"
+                onsubmit="return confirm('Publish this draft? It will replace the currently published version.')">
+            <button class="btn-primary" type="submit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Publish package
+            </button>
+          </form>
+          <form method="POST" action="<?= URLROOT ?>/admin/packageDiscardDraft/<?= (int)$package['package_id'] ?>"
+                onsubmit="return confirm('Discard this draft? All unsaved changes will be lost.')">
+            <button class="btn-ghost btn-danger" type="submit">Discard draft</button>
+          </form>
+        </div>
+      </div>
     <?php endif; ?>
 
     <!-- ── Add-service panel ──────────────────────────────────────────── -->
-    <?php if (!empty($addableServices)): ?>
+    <?php if ($isDraft && !empty($addableServices)): ?>
     <div class="add-svc-panel">
       <div class="add-svc-panel-title">Add a Service</div>
 
@@ -473,7 +746,9 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
                       data-category-id="<?= (int)($svc['category_id'] ?? 0) ?>"
                       data-category-name="<?= $h($svc['category_name'] ?? 'this category') ?>"
                       data-food="<?= $isFoodSvc ? '1' : '0' ?>"
-                      data-room-count="<?= count($hallOptionsByService[$svcId] ?? []) ?>">
+                      data-room-count="<?= count($hallOptionsByService[$svcId] ?? []) ?>"
+                      data-attire-count="<?= count($attireOptionsByService[$svcId] ?? []) ?>"
+                      data-deco-count="<?= count($decoOptionsByService[$svcId] ?? []) ?>">
                 <?= $h(($svc['category_name'] ?? 'Service') . ' — ' . ($svc['name'] ?? '') . ' — ' . ($svc['supplier_name'] ?? '') . ' — ' . $priceLabel) ?>
               </option>
             <?php endforeach; ?>
@@ -511,11 +786,31 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
           </div>
         </div><!-- /hallPicker -->
 
-        <!-- ── Step 2 for food/catering: guest count ──────────────────── -->
+        <!-- ── Step 2 for ATTIRE: Item picker ────────────────────────── -->
+        <div class="hall-picker" id="attirePicker">
+          <div class="hall-picker-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="1"/><path d="M6 10h2l1 4h6l1-4h2"/></svg>
+            Select an attire item
+          </div>
+          <div class="hall-grid" id="attireCards"></div>
+          <input type="hidden" name="attire_item_id" id="attireItemIdHidden" value="">
+        </div><!-- /attirePicker -->
+
+        <!-- ── Step 2 for DECORATION: Style picker ───────────────────── -->
+        <div class="hall-picker" id="decoPicker">
+          <div class="hall-picker-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            Select a decoration style
+          </div>
+          <div class="hall-grid" id="decoCards"></div>
+          <input type="hidden" name="decoration_style_id" id="decoStyleIdHidden" value="">
+        </div><!-- /decoPicker -->
+
+        <!-- ── Step 2 for all services: guest count ──────────────────── -->
         <div id="guestCountRow" class="guest-count-row" style="display:none">
           <label for="guestCountInput">Guest count</label>
           <input id="guestCountInput" type="number" name="guest_count" min="1" step="1" value="100">
-          <span class="guest-count-note">Used to calculate total catering price.</span>
+          <span class="guest-count-note">Adjust quantity to control package quality and pricing. Higher guest counts increase the total.</span>
         </div>
         <input type="hidden" name="guest_count" id="guestCountHidden" value="100">
 
@@ -530,7 +825,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
       </form>
     </div>
-    <?php endif; ?><!-- /addableServices check -->
+    <?php endif; ?><!-- /addableServices + isDraft check -->
 
   </div><!-- /card -->
 
@@ -543,6 +838,67 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   const priceCardVal = document.getElementById('packagePriceCardValue');
   const priceCardSub = document.getElementById('packagePriceCardSub');
   const agentFeeRate = 0.05;
+
+  function initPackageCoverUploader() {
+    const uploader = document.getElementById('packageCoverUploader');
+    const input = document.getElementById('packageCoverInput');
+    const preview = document.getElementById('packageCoverPreview');
+    const fileName = document.getElementById('packageCoverName');
+    const changeButton = document.getElementById('packageCoverChange');
+    const error = document.getElementById('packageCoverError');
+    if (!uploader || !input || !preview) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 6 * 1024 * 1024;
+
+    function showError(message) {
+      error.textContent = message;
+      error.classList.toggle('is-visible', Boolean(message));
+    }
+
+    function setFile(file) {
+      if (!file) return;
+      if (!allowedTypes.includes(file.type)) {
+        input.value = '';
+        showError('Choose a JPG, PNG, or WebP image.');
+        return;
+      }
+      if (file.size > maxSize) {
+        input.value = '';
+        showError('The cover image must be 6MB or smaller.');
+        return;
+      }
+      showError('');
+      preview.src = URL.createObjectURL(file);
+      fileName.textContent = file.name;
+      uploader.classList.add('has-image');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    input.addEventListener('change', () => setFile(input.files[0]));
+    changeButton.addEventListener('click', event => {
+      event.preventDefault();
+      input.click();
+    });
+    ['dragenter', 'dragover'].forEach(type => uploader.addEventListener(type, event => {
+      event.preventDefault();
+      uploader.classList.add('is-dragging');
+    }));
+    ['dragleave', 'drop'].forEach(type => uploader.addEventListener(type, event => {
+      event.preventDefault();
+      uploader.classList.remove('is-dragging');
+    }));
+    uploader.addEventListener('drop', event => {
+      const file = event.dataTransfer?.files?.[0];
+      if (!file) return;
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
+      setFile(file);
+    });
+  }
+
+  initPackageCoverUploader();
 
   function fmtMoney(v) {
     const n = Math.max(0, isFinite(+v) ? +v : 0);
@@ -586,6 +942,8 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   const guestCountInput  = document.getElementById('guestCountInput');
   const addServiceForm = document.getElementById('addServiceForm');
   const hallOptionsByService = <?= json_encode($hallOptionsByService, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+  const attireOptionsByService = <?= json_encode($attireOptionsByService, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+  const decoOptionsByService = <?= json_encode($decoOptionsByService, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
   const includedCategoryNames = <?= json_encode($includedCategoryNames, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
   const stepEl = (n) => document.getElementById('stepIndicator' + n);
@@ -703,7 +1061,6 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
     const roomCount = parseInt(opt.dataset.roomCount || '0', 10);
     const hasRooms = hasVal && roomCount > 0;
-    const isFood = hasVal && opt.dataset.food === '1';
 
     /* venue services: show hall picker when the selected service has halls */
     if (hallPicker) {
@@ -716,13 +1073,39 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       }
     }
 
-    /* food/catering services: show guest count */
+    /* attire services: show attire picker */
+    const attireCount = parseInt(opt.dataset.attireCount || '0', 10);
+    const hasAttire = hasVal && attireCount > 0;
+    if (attirePicker) {
+      if (hasAttire) {
+        attirePicker.classList.add('visible');
+        renderAttireOptions(sel.value);
+      } else {
+        attirePicker.classList.remove('visible');
+        selectAttireItem(null);
+      }
+    }
+
+    /* decoration services: show style picker */
+    const decoCount = parseInt(opt.dataset.decoCount || '0', 10);
+    const hasDeco = hasVal && decoCount > 0;
+    if (decoPicker) {
+      if (hasDeco) {
+        decoPicker.classList.add('visible');
+        renderDecoOptions(sel.value);
+      } else {
+        decoPicker.classList.remove('visible');
+        selectDecoStyle(null);
+      }
+    }
+
+    /* show guest count for all services (controls package quality/price) */
     if (guestCountRow) {
-      guestCountRow.style.display = hasVal && isFood ? 'flex' : 'none';
+      guestCountRow.style.display = hasVal ? 'flex' : 'none';
       if (guestCountInput && guestCountHidden) {
-        guestCountInput.name = isFood ? 'guest_count' : '';
-        guestCountHidden.name = isFood ? '' : 'guest_count';
-        guestCountHidden.value = isFood ? '' : '1';
+        guestCountInput.name = 'guest_count';
+        guestCountHidden.name = '';
+        guestCountHidden.value = '';
       }
     }
 
@@ -765,6 +1148,115 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       setStep(3);
       addSvcBtn.disabled = false;
       addSvcHint.textContent = hallId ? 'Hall selected. Click Add to Package.' : 'No hall assigned. Click Add to Package.';
+    }
+  };
+
+  /* Attire item picker */
+  const attirePicker = document.getElementById('attirePicker');
+  const attireCards = document.getElementById('attireCards');
+  const attireItemHidden = document.getElementById('attireItemIdHidden');
+
+  function renderAttireOptions(serviceId) {
+    if (!attireCards) return;
+    attireCards.innerHTML = '';
+    const items = attireOptionsByService[String(serviceId)] || attireOptionsByService[serviceId] || [];
+    if (!items.length) {
+      attireCards.innerHTML = '<div class="service-meta" style="grid-column:1/-1;padding:16px 0;color:var(--muted)">No individual items set up for this attire service yet.</div>';
+      selectAttireItem(null);
+      return;
+    }
+    items.forEach(item => {
+      const id = parseInt(item.id || 0, 10);
+      const card = document.createElement('label');
+      card.className = 'hall-card';
+      card.dataset.attireId = String(id);
+      card.addEventListener('click', () => selectAttireItem(id));
+      const borrow = Number(item.borrow_package_price || 0) > 0 ? 'MMK ' + Number(item.borrow_package_price).toLocaleString() : '';
+      const buy = Number(item.buy_package_price || 0) > 0 ? 'MMK ' + Number(item.buy_package_price).toLocaleString() : '';
+      const priceText = [borrow ? 'Borrow ' + borrow : '', buy ? 'Buy ' + buy : ''].filter(Boolean).join(' · ');
+      card.innerHTML = '<input type="radio" name="attire_radio" value="' + id + '" style="position:absolute;opacity:0;pointer-events:none">' +
+        '<div class="hall-card-img"><div class="hall-card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="1"/><path d="M5 8h14M5 12h14"/></svg></div><div class="hall-card-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div></div>' +
+        '<div class="hall-card-body"><div class="hall-card-name">' + (item.name || 'Item') + '</div>' +
+        '<div class="hall-card-meta">' + (priceText ? '<div class="hall-card-meta-row">' + priceText + '</div>' : '') +
+        (item.return_days ? '<div class="hall-card-meta-row">Return: ' + item.return_days + (item.return_days === 1 ? ' day' : ' days') + '</div>' : '') +
+        '</div></div>';
+      attireCards.appendChild(card);
+    });
+    // "No specific item" option
+    const noneOpt = document.createElement('label');
+    noneOpt.className = 'hall-none-option selected';
+    noneOpt.id = 'attireNoneOption';
+    noneOpt.addEventListener('click', () => selectAttireItem(null));
+    noneOpt.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> No specific item assigned';
+    noneOpt.style.gridColumn = '1 / -1';
+    attireCards.appendChild(noneOpt);
+    selectAttireItem(null);
+  }
+
+  window.selectAttireItem = function (itemId) {
+    document.querySelectorAll('#attireCards .hall-card').forEach(c => c.classList.remove('selected'));
+    const noneOpt = document.getElementById('attireNoneOption');
+    if (itemId === null) {
+      if (noneOpt) noneOpt.classList.add('selected');
+      if (attireItemHidden) attireItemHidden.value = '';
+    } else {
+      if (noneOpt) noneOpt.classList.remove('selected');
+      const card = document.querySelector('#attireCards .hall-card[data-attire-id="' + itemId + '"]');
+      if (card) { card.classList.add('selected'); }
+      if (attireItemHidden) attireItemHidden.value = itemId;
+    }
+  };
+
+  /* Decoration style picker */
+  const decoPicker = document.getElementById('decoPicker');
+  const decoCards = document.getElementById('decoCards');
+  const decoStyleHidden = document.getElementById('decoStyleIdHidden');
+
+  function renderDecoOptions(serviceId) {
+    if (!decoCards) return;
+    decoCards.innerHTML = '';
+    const styles = decoOptionsByService[String(serviceId)] || decoOptionsByService[serviceId] || [];
+    if (!styles.length) {
+      decoCards.innerHTML = '<div class="service-meta" style="grid-column:1/-1;padding:16px 0;color:var(--muted)">No decoration styles set up for this service yet.</div>';
+      selectDecoStyle(null);
+      return;
+    }
+    styles.forEach(function(style) {
+      var id = parseInt(style.id || 0, 10);
+      var price = Number(style.package_price || style.price || 0);
+      var priceText = price > 0 ? 'MMK ' + price.toLocaleString() : '';
+      var card = document.createElement('label');
+      card.className = 'hall-card';
+      card.dataset.decoId = String(id);
+      card.addEventListener('click', function() { selectDecoStyle(id); });
+      card.innerHTML = '<input type="radio" name="deco_radio" value="' + id + '" style="position:absolute;opacity:0;pointer-events:none">' +
+        '<div class="hall-card-img"><div class="hall-card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></div><div class="hall-card-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div></div>' +
+        '<div class="hall-card-body"><div class="hall-card-name">' + (style.name || 'Style') + '</div>' +
+        (priceText ? '<div class="hall-card-price">' + priceText + '</div>' : '') +
+        '</div>';
+      decoCards.appendChild(card);
+    });
+    var noneOpt = document.createElement('label');
+    noneOpt.className = 'hall-none-option selected';
+    noneOpt.id = 'decoNoneOption';
+    noneOpt.addEventListener('click', function() { selectDecoStyle(null); });
+    noneOpt.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> No specific style assigned';
+    noneOpt.style.gridColumn = '1 / -1';
+    decoCards.appendChild(noneOpt);
+    selectDecoStyle(null);
+  }
+
+  window.selectDecoStyle = function (styleId) {
+    document.querySelectorAll('#decoCards .hall-card').forEach(function(c) { c.classList.remove('selected'); });
+    var noneOpt = document.getElementById('decoNoneOption');
+    if (styleId === null) {
+      if (noneOpt) noneOpt.classList.add('selected');
+      if (decoStyleHidden) decoStyleHidden.value = '';
+    } else {
+      if (noneOpt) noneOpt.classList.remove('selected');
+      var card = document.querySelector('#decoCards .hall-card[data-deco-id="' + styleId + '"]');
+      if (card) { card.classList.add('selected'); }
+      if (decoStyleHidden) decoStyleHidden.value = styleId;
     }
   };
 

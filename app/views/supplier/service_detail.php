@@ -96,7 +96,7 @@ foreach ($weeklyRows as $row) {
 
 $serviceCategoryRaw = $service['category'] ?? 'Others';
 $isVenue = strtolower((string)$serviceCategoryRaw) === 'venue';
-$isRental = in_array(strtolower((string)$serviceCategoryRaw), ['dress', 'accessories'], true);
+$isRental = in_array(strtolower((string)$serviceCategoryRaw), ['attire'], true);
 $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 $serviceDescriptionRaw = trim((string)($service['desc'] ?? $service['description'] ?? ''));
 $servicePackagePrice = (float)($service['price_min'] ?? $service['package_price'] ?? $service['price'] ?? 0);

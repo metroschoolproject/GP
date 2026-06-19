@@ -3,6 +3,7 @@ $items = $items ?? [];
 $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
 $includedServiceWarning = $includedServiceWarning ?? null;
+$addonError = trim((string)($addonError ?? ''));
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
@@ -411,6 +412,68 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   border: 1px solid rgba(107,68,89,0.12);
 }
 
+.gp-package-includes {
+  margin-top: 12px;
+  padding: 11px 12px 12px;
+  border: 1px solid rgba(184,146,74,0.24);
+  border-radius: 13px;
+  background: linear-gradient(135deg, rgba(250,246,241,0.96), rgba(232,200,130,0.10));
+}
+.gp-package-includes-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 8px;
+}
+.gp-package-includes-title {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--plum);
+  font-size: 10px; font-weight: 800; letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.gp-package-includes-count {
+  color: var(--muted);
+  font-size: 10px; font-weight: 700;
+}
+.gp-package-service-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.gp-package-service {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid rgba(107,68,89,0.09);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.72);
+}
+.gp-package-service-thumb {
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: rgba(107,68,89,0.08);
+  color: var(--plum-lt);
+}
+.gp-package-service-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.gp-package-service-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px; font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.gp-package-service-meta {
+  overflow: hidden;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 9px; font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+
 .gp-edit-form {
   margin-top: 10px;
   border-top: 1px solid rgba(178,143,110,0.18);
@@ -775,6 +838,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   .gp-item-right { display: none; }
   .gp-item-body { padding: 12px; }
   .gp-item-name { white-space: normal; }
+  .gp-package-service-list { grid-template-columns: 1fr; }
   .gp-edit-fields { grid-template-columns: 1fr; }
   .gp-header-nav { display: none; }
   .gp-included-reminder { grid-template-columns: 1fr; }
@@ -849,6 +913,16 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
     <h1 class="gp-page-title">My <em>Cart</em></h1>
   </div>
 
+  <?php if ($addonError !== ''): ?>
+  <section class="gp-included-reminder" aria-live="polite">
+    <div class="gp-included-icon" aria-hidden="true"><i data-lucide="circle-alert"></i></div>
+    <div>
+      <div class="gp-included-title">Add-on could not be linked</div>
+      <p class="gp-included-copy"><?= $h($addonError) ?></p>
+    </div>
+  </section>
+  <?php endif; ?>
+
   <?php if (!empty($includedServiceWarning['item']) && !empty($includedServiceWarning['conflict'])):
     $warningItem = $includedServiceWarning['item'];
     $warningConflict = $includedServiceWarning['conflict'];
@@ -874,6 +948,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         <input type="hidden" name="slot_id" value="<?= $h($warningItem['slot_id'] ?? '') ?>">
         <input type="hidden" name="start_time" value="<?= $h($warningItem['start_time'] ?? '') ?>">
         <input type="hidden" name="end_time" value="<?= $h($warningItem['end_time'] ?? '') ?>">
+        <input type="hidden" name="addon_package_id" value="<?= $h($warningItem['addon_package_id'] ?? '') ?>">
         <input type="hidden" name="confirm_included_service" value="1">
         <button class="gp-included-btn primary" type="submit">Add anyway</button>
       </form>
@@ -916,6 +991,8 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         $endTime     = $item['end_time'] ?? '';
         $timeRange   = $formatTimeRange($startTime, $endTime);
         $itemType    = $item['item_type'] ?? 'service';
+        $includedServices = $item['included_services'] ?? [];
+        $addonPackageName = trim((string)($item['addon_package_name'] ?? ''));
         $venueRoomName = trim((string)($item['venue_room_name'] ?? ''));
         $venueName = trim((string)($item['venue_name'] ?? ''));
         $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
@@ -948,6 +1025,14 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <?= $h($supplier) ?>
           </div>
+          <?php if ($addonPackageName !== ''): ?>
+          <div class="gp-item-meta">
+            <span class="gp-item-pill">
+              <i data-lucide="plus-circle" style="width:11px;height:11px"></i>
+              Add-on for <?= $h($addonPackageName) ?>
+            </span>
+          </div>
+          <?php endif; ?>
           <?php if ($venueRoomName !== ''): ?>
           <div class="gp-item-meta">
             <span class="gp-item-pill">
@@ -971,6 +1056,49 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             </span>
             <?php endif; ?>
           </div>
+          <?php endif; ?>
+
+          <?php if ($itemType === 'package'): ?>
+          <section class="gp-package-includes" aria-label="Services included in <?= $h($name) ?>">
+            <div class="gp-package-includes-head">
+              <div class="gp-package-includes-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M3 12h18"/><path d="m5 5 14 14"/><path d="m19 5-14 14"/></svg>
+                Services included
+              </div>
+              <span class="gp-package-includes-count"><?= count($includedServices) ?> service<?= count($includedServices) === 1 ? '' : 's' ?></span>
+            </div>
+            <?php if (!empty($includedServices)): ?>
+            <div class="gp-package-service-list">
+              <?php foreach ($includedServices as $service): ?>
+                <?php
+                  $serviceImage = trim((string)($service['thumbnail_url'] ?? ''));
+                  $serviceHall = trim((string)($service['venue_room_name'] ?? ''));
+                  $serviceVenue = trim((string)($service['venue_name'] ?? ''));
+                  $serviceMeta = array_filter([
+                      $service['category_name'] ?? 'Service',
+                      $service['supplier_name'] ?? 'Golden Promise',
+                      $serviceHall !== '' ? $serviceHall . ($serviceVenue !== '' ? ' · ' . $serviceVenue : '') : '',
+                  ]);
+                ?>
+                <div class="gp-package-service">
+                  <div class="gp-package-service-thumb">
+                    <?php if ($serviceImage !== ''): ?>
+                      <img src="<?= $h($serviceImage) ?>" alt="" loading="lazy">
+                    <?php else: ?>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/></svg>
+                    <?php endif; ?>
+                  </div>
+                  <div>
+                    <div class="gp-package-service-name"><?= $h($service['service_name'] ?? 'Service') ?></div>
+                    <div class="gp-package-service-meta"><?= $h(implode(' · ', $serviceMeta)) ?></div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+            <?php else: ?>
+              <div class="gp-edit-slot-note">Package service details are not available.</div>
+            <?php endif; ?>
+          </section>
           <?php endif; ?>
 
           <?php if ($itemType === 'service'): ?>

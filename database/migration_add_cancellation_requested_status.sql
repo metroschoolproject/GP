@@ -1,0 +1,1 @@
+ALTER TABLE `bookings` MODIFY `status` enum('draft','pending_supplier_response','pending_payment','payment_submitted','payment_verified','paid','suppliers_responding','confirmed','pending_final_payment','finalized','completed','cancelled','cancellation_requested') NOT NULL DEFAULT 'draft';

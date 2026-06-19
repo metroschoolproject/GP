@@ -28,6 +28,9 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
         <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check' : 'ti-send' ?>" style="font-size:13px"></i>
         <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Published' : 'Request publish' ?></span>
       </button>
+      <a href="<?= URLROOT ?>/main/service/<?= (int)$serviceId ?>" target="_blank" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px">
+        <i class="ti ti-eye" style="font-size:13px"></i> Preview
+      </a>
     </div>
 
     <!-- Hero image -->
@@ -489,9 +492,6 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
                   <span><small>Package</small><strong><?= $rentBorrowPackagePrice > 0 ? $money($rentBorrowPackagePrice) : '—' ?></strong></span>
                   <span><small>Customize</small><strong><?= $rentBorrowCustomizePrice > 0 ? $money($rentBorrowCustomizePrice) : '—' ?></strong></span>
                 </div>
-                <?php if ($rentReturnDays > 0): ?>
-                <div class="sd-rental-sub">Return within <?= (int)$rentReturnDays ?> <?= $rentReturnDays === 1 ? 'day' : 'days' ?></div>
-                <?php endif; ?>
               </div>
             </div>
             <?php endif; ?>
@@ -504,6 +504,15 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
                   <span><small>Package</small><strong><?= $rentBuyPackagePrice > 0 ? $money($rentBuyPackagePrice) : '—' ?></strong></span>
                   <span><small>Customize</small><strong><?= $rentBuyCustomizePrice > 0 ? $money($rentBuyCustomizePrice) : '—' ?></strong></span>
                 </div>
+              </div>
+            </div>
+            <?php endif; ?>
+            <?php if ($rentReturnDays > 0): ?>
+            <div class="sd-rental-row">
+              <div class="sd-rental-icon"><i class="ti ti-calendar"></i></div>
+              <div class="sd-rental-body">
+                <div class="sd-rental-label">Return policy</div>
+                <div class="sd-rental-sub">Return within <?= (int)$rentReturnDays ?> <?= $rentReturnDays === 1 ? 'day' : 'days' ?></div>
               </div>
             </div>
             <?php endif; ?>

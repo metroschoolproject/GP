@@ -1382,8 +1382,7 @@
     function suggestCategoriesLocal() {
         const text = (categoryPrompt?.value || '').toLowerCase();
         const keywordMap = {
-            accessories: ['accessory','accessories','jewelry','jewellery','ring','rings','earring','necklace','tiara','veil','bouquet','shoe','shoes','လက်ဝတ်','လက်ဝတ်ရတနာ','ရတနာ','လက်စွပ်','နားကပ်','လည်ဆွဲ','သရဖူ','ပန်းစည်း','ဖိနပ်','ဆက်စပ်ပစ္စည်း'],
-            dress: ['dress','dresses','gown','bridal','bride','suit','tuxedo','outfit','attire','rental','rent','ဝတ်စုံ','မင်္ဂလာဝတ်စုံ','သတို့သမီးဝတ်စုံ','ဂါဝန်','အငှား','ငှား','ဝတ်စုံအငှား','သတို့သားဝတ်စုံ'],
+            attire: ['dress','dresses','gown','bridal','bride','suit','tuxedo','outfit','attire','rental','rent','accessory','accessories','jewelry','jewellery','ring','rings','earring','necklace','tiara','veil','bouquet','shoe','shoes','ဝတ်စုံ','မင်္ဂလာဝတ်စုံ','သတို့သမီးဝတ်စုံ','ဂါဝန်','အငှား','ငှား','ဝတ်စုံအငှား','သတို့သားဝတ်စုံ','လက်ဝတ်','လက်ဝတ်ရတနာ','ရတနာ','လက်စွပ်','နားကပ်','လည်ဆွဲ','သရဖူ','ပန်းစည်း','ဖိနပ်','ဆက်စပ်ပစ္စည်း'],
             food: ['food','catering','cater','buffet','meal','menu','cake','dessert','snack','drink','beverage','အစားအစာ','အစားအသောက်','ကိတ်','မုန့်','ဘူဖေး','ကျွေးမွေး','အချိုပွဲ','သောက်စရာ','အဖျော်ယမကာ'],
             package: ['package','bundle','full service','all in one','complete','combo','planning','coordination','ပက်ကေ့ချ်','package','အစုံလိုက်','အပြီးအစီး','စီစဉ်','စီစဉ်ပေး','မင်္ဂလာအစီအစဉ်'],
             studio: ['studio','photo','photography','photographer','video','portrait','pre-wedding','pre wedding','shoot','camera','album','စတူဒီယို','ဓာတ်ပုံ','ဓါတ်ပုံ','ဗီဒီယို','ရိုက်ကူး','ပုံရိုက်','မင်္ဂလာဓာတ်ပုံ','prewedding','အယ်လ်ဘမ်'],

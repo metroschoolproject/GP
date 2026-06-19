@@ -13,20 +13,13 @@ class EmailService
 
     public function __construct()
     {
-        $this->mailer = new PHPMailer(true);
-        $this->configureMailer();
+        $this->mailer = (new Mailserver())->createMailer();
     }
 
     private function configureMailer(): void
     {
-        $this->mailer->isSMTP();
-        $this->mailer->Host = defined('MAIL_HOST') ? MAIL_HOST : 'smtp.gmail.com';
-        $this->mailer->SMTPAuth = true;
-        $this->mailer->Username = defined('MAIL_USERNAME') ? MAIL_USERNAME : '';
-        $this->mailer->Password = defined('MAIL_PASSWORD') ? MAIL_PASSWORD : '';
-        $this->mailer->SMTPSecure = defined('MAIL_ENCRYPTION') ? MAIL_ENCRYPTION : 'tls';
-        $this->mailer->Port = defined('MAIL_PORT') ? MAIL_PORT : 587;
-        $this->mailer->setFrom(defined('MAIL_FROM') ? MAIL_FROM : 'noreply@goldenpromise.com', 'Golden Promise');
+        // Mail transport is configured by the same Mailserver used for OTP,
+        // email verification, and password-reset messages.
     }
 
     /**
@@ -329,7 +322,14 @@ HTML;
     /**
      * Send event-detail email to customer, each supplier, and admin after payment is verified.
      */
-    public function sendPaymentVerifiedEvent(array $customer, array $suppliers, array $admin, array $booking, array $items): bool
+    public function sendPaymentVerifiedEvent(
+        array $customer,
+        array $suppliers,
+        array $admin,
+        array $booking,
+        array $items,
+        bool $sendCustomer = true
+    ): bool
     {
         $bookingId  = $booking['id'];
         $total      = number_format((float)$booking['total_amount'], 0) . ' MMK';
@@ -348,12 +348,13 @@ HTML;
         $sent = true;
 
         // Email to customer
-        try {
-            $this->mailer->clearAddresses();
-            $this->mailer->addAddress($customer['email'], $customer['name']);
-            $this->mailer->isHTML(true);
-            $this->mailer->Subject = 'Payment Verified — Your Event is Confirmed! Booking #' . $bookingId;
-            $this->mailer->Body = <<<HTML
+        if ($sendCustomer) {
+            try {
+                $this->mailer->clearAddresses();
+                $this->mailer->addAddress($customer['email'], $customer['name']);
+                $this->mailer->isHTML(true);
+                $this->mailer->Subject = 'Payment Verified — Your Event is Confirmed! Booking #' . $bookingId;
+                $this->mailer->Body = <<<HTML
 <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
   <div style="background:linear-gradient(135deg,#166534 0%,#4ade80 100%);padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
     <h1 style="margin:0;font-size:24px;">✓ Payment Verified</h1>
@@ -377,11 +378,12 @@ HTML;
   </div>
 </div>
 HTML;
-            $this->mailer->AltBody = "Payment verified for Booking #{$bookingId}. View details at: {$customerUrl}";
-            if (!$this->mailer->send()) $sent = false;
-        } catch (Exception $e) {
-            error_log('Email send error (customer): ' . $e->getMessage());
-            $sent = false;
+                $this->mailer->AltBody = "Payment verified for Booking #{$bookingId}. View details at: {$customerUrl}";
+                if (!$this->mailer->send()) $sent = false;
+            } catch (Exception $e) {
+                error_log('Email send error (customer): ' . $e->getMessage());
+                $sent = false;
+            }
         }
 
         // Email to each supplier
@@ -461,6 +463,99 @@ HTML;
         }
 
         return $sent;
+    }
+
+    public function sendAdminVerifiedPaymentToCustomer(
+        array $customer,
+        array $booking,
+        array $payment,
+        array $items,
+        array $eventDetails
+    ): bool {
+        if (empty($customer['email'])) {
+            return false;
+        }
+
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($customer['email'], $customer['name'] ?? 'Customer');
+            $this->mailer->isHTML(true);
+
+            $bookingId = (int)($booking['id'] ?? 0);
+            $customerName = htmlspecialchars((string)($customer['name'] ?? 'Customer'), ENT_QUOTES);
+            $amount = (float)($payment['paid_amount'] ?? $payment['amount'] ?? $booking['paid_amount'] ?? 0);
+            $amountText = number_format($amount, 0) . ' MMK';
+            $method = htmlspecialchars((string)($payment['bank_name'] ?? $payment['method'] ?? 'Manual payment'), ENT_QUOTES);
+            $reference = htmlspecialchars((string)($payment['transaction_ref'] ?? '-'), ENT_QUOTES);
+            $verifiedAt = !empty($payment['verified_at'])
+                ? date('M j, Y g:i A', strtotime((string)$payment['verified_at']))
+                : date('M j, Y g:i A');
+            $bookingUrl = URLROOT . '/booking/detail/' . $bookingId;
+
+            $eventsByItem = [];
+            foreach ($eventDetails as $event) {
+                $itemId = (int)($event['booking_item_id'] ?? 0);
+                if ($itemId > 0) {
+                    $eventsByItem[$itemId] = $event;
+                }
+            }
+
+            $itemRows = '';
+            foreach ($items as $item) {
+                $event = $eventsByItem[(int)($item['id'] ?? 0)] ?? [];
+                $name = htmlspecialchars((string)($item['service_name'] ?? 'Service'), ENT_QUOTES);
+                $date = !empty($event['event_date'])
+                    ? date('M j, Y', strtotime((string)$event['event_date']))
+                    : (!empty($item['booking_date']) ? date('M j, Y', strtotime((string)$item['booking_date'])) : 'TBD');
+                $start = $event['start_time'] ?? $item['start_time'] ?? null;
+                $end = $event['end_time'] ?? $item['end_time'] ?? null;
+                $time = $start
+                    ? date('g:i A', strtotime((string)$start)) . ($end ? ' - ' . date('g:i A', strtotime((string)$end)) : '')
+                    : 'Full day';
+                $guests = !empty($event['guest_count']) ? (int)$event['guest_count'] : '-';
+                $itemRows .= "<tr>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$name}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$date}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$time}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;text-align:right;'>{$guests}</td>
+                </tr>";
+            }
+
+            $this->mailer->Subject = 'Payment Verified - Booking #' . $bookingId;
+            $this->mailer->Body = <<<HTML
+<div style="font-family:Poppins,Arial,sans-serif;max-width:640px;margin:0 auto;color:#2d2530;">
+  <div style="background:#6d4c5b;padding:28px;color:#fff;text-align:center;">
+    <h1 style="margin:0;font-size:24px;">Payment Verified</h1>
+    <p style="margin:8px 0 0;">Golden Promise has approved your deposit.</p>
+  </div>
+  <div style="padding:28px;background:#faf5ef;">
+    <p>Dear {$customerName},</p>
+    <p>Your payment for booking <strong>#{$bookingId}</strong> was verified on {$verifiedAt}.</p>
+    <div style="background:#fff;padding:16px;border:1px solid #ead8c7;margin:20px 0;">
+      <p style="margin:0 0 7px;"><strong>Verified amount:</strong> {$amountText}</p>
+      <p style="margin:0 0 7px;"><strong>Payment method:</strong> {$method}</p>
+      <p style="margin:0;"><strong>Reference:</strong> {$reference}</p>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;padding-bottom:7px;">Service</th>
+        <th style="text-align:left;padding-bottom:7px;">Date</th>
+        <th style="text-align:left;padding-bottom:7px;">Time</th>
+        <th style="text-align:right;padding-bottom:7px;">Guests</th>
+      </tr></thead>
+      <tbody>{$itemRows}</tbody>
+    </table>
+    <p style="margin-top:24px;"><a href="{$bookingUrl}" style="display:inline-block;padding:12px 24px;background:#6d4c5b;color:#fff;text-decoration:none;">View booking details</a></p>
+  </div>
+</div>
+HTML;
+            $this->mailer->AltBody = "Your payment of {$amountText} for booking #{$bookingId} has been verified. View details: {$bookingUrl}";
+
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (verified payment customer): ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -576,6 +671,86 @@ HTML;
             return $this->mailer->send();
         } catch (Exception $e) {
             error_log('Email send error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send admin notification when customer requests cancellation.
+     */
+    public function sendAdminCancellationRequest(array $admin, array $customer, array $booking, string $reason): bool
+    {
+        if (empty($admin['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($admin['email'], $admin['name'] ?? 'Admin');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = '[Admin] Cancellation Request — Booking #' . $booking['id'];
+            $adminUrl = URLROOT . '/admin/bookings/detail/' . $booking['id'];
+            $customerName = htmlspecialchars($customer['name'], ENT_QUOTES);
+            $customerEmail = htmlspecialchars($customer['email'], ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#b94b4b;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Cancellation Request</h1>
+        <p style="margin:8px 0 0;opacity:.85;">Booking #{$booking['id']}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p><strong>Customer:</strong> {$customerName} ({$customerEmail})</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #b94b4b;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">CANCELLATION REASON</p>
+          <p style="margin:0;color:#8f2f2f;">{$reasonHtml}</p>
+        </div>
+        <p><a href="{$adminUrl}" style="display:inline-block;padding:12px 30px;background:#b94b4b;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Review Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "[Admin] Cancellation request for Booking #{$booking['id']} from {$customerName}. Reason: {$reason}. Review: {$adminUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (admin cancel): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send supplier notification when customer requests cancellation.
+     */
+    public function sendSupplierCancellationRequest(array $supplier, array $customer, array $booking, string $reason): bool
+    {
+        if (empty($supplier['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($supplier['email'], $supplier['name'] ?? $supplier['shop_name'] ?? 'Supplier');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Cancellation Request — Booking #' . $booking['id'];
+            $supplierUrl = URLROOT . '/supplier/bookingDetail/' . $booking['id'];
+            $supplierName = htmlspecialchars($supplier['shop_name'] ?? $supplier['name'] ?? 'Supplier', ENT_QUOTES);
+            $customerName = htmlspecialchars($customer['name'], ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#92400e;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Cancellation Request</h1>
+        <p style="margin:8px 0 0;opacity:.85;">Booking #{$booking['id']}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>Dear {$supplierName},</p>
+        <p><strong>{$customerName}</strong> has requested cancellation of this booking.</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #92400e;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">CANCELLATION REASON</p>
+          <p style="margin:0;color:#92400e;">{$reasonHtml}</p>
+        </div>
+        <p>Please stop any work in progress for this booking. The admin team will review and finalize the cancellation.</p>
+        <p><a href="{$supplierUrl}" style="display:inline-block;padding:12px 30px;background:#92400e;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">View Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "Cancellation request for Booking #{$booking['id']} from {$customerName}. Reason: {$reason}. Stop work for this booking. View: {$supplierUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (supplier cancel): ' . $e->getMessage());
             return false;
         }
     }

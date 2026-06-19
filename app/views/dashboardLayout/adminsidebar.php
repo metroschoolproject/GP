@@ -185,26 +185,6 @@ if (!function_exists('dashboard_admin_nav_class')) {
 
 
 
-            <div class="space-y-1">
-                <button type="button" data-subnav-toggle="staff" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
-                    <i data-lucide="briefcase-business" class="h-4 w-4 text-app-header-muted"></i>
-                    <span class="flex-1 text-left">Staff</span>
-                    <i data-chevron="staff" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
-                </button>
-                <div data-subnav-panel="staff" class="hidden pl-6">
-                    <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                        <a href="#" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
-                            <i data-lucide="building-2" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Staff list</span>
-                        </a>
-                        <a href="#" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
-                            <i data-lucide="badge-dollar-sign" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Payroll</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
             <div>
                 <p class="mb-1 mt-8 px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-app-header-muted">System</p>
                 <div class="space-y-1">

@@ -38,41 +38,6 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
         <div class="flex flex-col gap-3 h-full">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
 
-            <!-- Escrow Wallet -->
-            <div class="relative overflow-hidden rounded-card bg-app-text p-4 text-app-white shadow-xl">
-                <div class="relative z-10">
-                    <div class="mb-3 flex items-center gap-2">
-                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-app-input/10 text-app-white">
-                            <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-app-white">Escrow Wallet</p>
-                            <p class="text-[11px] text-app-muted">Protected payments</p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <p class="text-[10px] uppercase tracking-widest text-app-muted">Total</p>
-                            <p id="escrowTotal" class="mt-1 text-xl font-bold tracking-tight">$38,482</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-[10px] uppercase tracking-widest text-app-muted">Pending</p>
-                            <p id="escrowPending" class="mt-1 text-xl font-bold tracking-tight">$13,260</p>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="mb-1.5 flex justify-between text-[10px] font-bold uppercase tracking-widest text-app-muted">
-                            <span><span id="escrowAvailable">$25,222</span> available</span>
-                            <span id="escrowProgressPercent">0%</span>
-                        </div>
-                        <div class="h-1.5 rounded-full bg-app-input/10">
-                            <div id="escrowProgressFill" class="h-full w-0 rounded-full bg-app-accent"></div>
-                        </div>
-                    </div>
-                </div>
-                <svg class="absolute -right-6 -top-6 h-24 w-24 text-app-white/5 rotate-12"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>
-            </div>
-
             <!-- Total Revenue -->
             <div class="<?= $dashboardCardClass ?>">
                 <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-danger-soft text-app-danger">
@@ -261,10 +226,8 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                                 <th class="<?= $dashboardTableHeadClass ?>">Customer Name</th>
                                 <th class="<?= $dashboardTableHeadClass ?>">Event Date</th>
                                 <th class="<?= $dashboardTableHeadClass ?>">Payment Method</th>
-                                <th class="<?= $dashboardTableHeadClass ?>">Payout Type</th>
                                 <th class="<?= $dashboardTableHeadClass ?>">Total</th>
                                 <th class="<?= $dashboardTableHeadClass ?>">Paid</th>
-                                <th class="<?= $dashboardTableHeadClass ?>">Escrow Status</th>
                             </tr>
                         </thead>
                         <tbody id="paymentTableBody">
@@ -323,89 +286,83 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     </div>
 
 <script>
+window.supplierDashboardData = <?= json_encode([
+    'stats' => $dashboardData['stats'] ?? [],
+    'services' => $dashboardData['services'] ?? [],
+    'upcomingBookings' => $dashboardData['upcomingBookings'] ?? [],
+    'recentReviews' => $dashboardData['recentReviews'] ?? [],
+    'payments' => $dashboardData['payments'] ?? [],
+    'chartData' => $dashboardData['chartData'] ?? [],
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
   /* ── helpers ── */
-  function currency(v) { return `$${Number(v).toLocaleString()}`; }
+  function currency(v) { return 'MMK ' + Number(v).toLocaleString(); }
 
   /* ── mock data ── */
-  const paymentData = [
-    { id: 1, bookingId: "BK-001", customer: "Aye Aye Chan", eventDate: "May 25, 2026", method: "KBZ Pay",  payout: "Full Paid",  total: 2400, paid: 2400, escrow: "Held in Escrow" },
-    { id: 2, bookingId: "BK-002", customer: "Zin Mar Aung", eventDate: "Jun 3, 2026",  method: "CB Pay",   payout: "Half Paid",  total: 3200, paid: 1600, escrow: "Partially Released" },
-    { id: 3, bookingId: "BK-003", customer: "Mya Sandar",   eventDate: "Jun 15, 2026", method: "Wave Pay", payout: "Pending",    total: 1800, paid: 0,    escrow: "Held in Escrow" },
-    { id: 4, bookingId: "BK-004", customer: "Su Su Hlaing",  eventDate: "Jul 2, 2026",  method: "KBZ Pay",  payout: "Full Paid",  total: 4100, paid: 4100, escrow: "Released" },
-    { id: 5, bookingId: "BK-005", customer: "Nan Ei Phyo",   eventDate: "Jul 8, 2026",  method: "AYA Pay",  payout: "Half Paid",  total: 2750, paid: 1375, escrow: "Partially Released" },
-  ];
+  var d = window.supplierDashboardData || {};
+  var paymentsList = (d.payments || []).map(function(p, i) {
+    return {
+      id: i + 1,
+      bookingId: p.booking_ref || 'BK-' + String(p.booking_id).padStart(3, '0'),
+      customer: p.customer_name || 'Customer',
+      eventDate: p.event_date || '—',
+      method: p.method || '—',
+      total: parseFloat(p.total_amount || 0),
+      paid: parseFloat(p.paid_amount || 0)
+    };
+  });
+  if (paymentsList.length === 0) {
+    paymentsList = [{ id: '—', bookingId: '—', customer: 'No payment records yet', eventDate: '—', method: '—', total: 0, paid: 0 }];
+  }
+  var paymentData = paymentsList;
 
   /* ── wedding bookings list ── */
   function renderWeddingBookings() {
-    const el = document.getElementById("weddingBookingsList");
+    var el = document.getElementById("weddingBookingsList");
     if (!el) return;
-    // Filter only booked (rose/confirmed) wedding-type entries from paymentData
-    const weddings = paymentData.filter(r => r.payout === "Full Paid" || r.payout === "Half Paid");
-    if (weddings.length === 0) {
-      el.innerHTML = `<p class="text-[10px] text-app-muted text-center py-4">No wedding bookings.</p>`;
+    var bookings = (window.supplierDashboardData || {}).upcomingBookings || [];
+    if (bookings.length === 0) {
+      el.innerHTML = '<p class="text-[10px] text-app-muted text-center py-4">No upcoming bookings.</p>';
       return;
     }
-    el.innerHTML = weddings.map(r => {
-      const statusColor = r.payout === "Full Paid" ? "bg-app-soft text-app-success" : "bg-app-surface text-app-warning";
-      const statusLabel = r.payout === "Full Paid" ? "Confirmed" : "Pending";
-      return `
-        <div class="flex items-center gap-2.5 rounded-xl bg-app-soft p-2.5">
-          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-app-danger-soft text-app-danger shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-app-text truncate">${r.customer}</p>
-            <p class="text-[10px] text-app-secondary">${r.eventDate}</p>
-          </div>
-          <span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusColor}">${statusLabel}</span>
-        </div>`;
+    el.innerHTML = bookings.map(function(r) {
+      var status = r.supplier_status || 'pending';
+      var statusColor = status === 'confirmed' ? 'bg-app-soft text-app-success' : status === 'completed' ? 'bg-app-soft text-app-success' : 'bg-app-surface text-app-warning';
+      var statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+      var dateStr = r.booking_date || '—';
+      return '<div class="flex items-center gap-2.5 rounded-xl bg-app-soft p-2.5">' +
+        '<div class="flex h-7 w-7 items-center justify-center rounded-lg bg-app-danger-soft text-app-danger shrink-0">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>' +
+        '</div>' +
+        '<div class="flex-1 min-w-0">' +
+          '<p class="text-xs font-semibold text-app-text truncate">' + (r.customer_name || 'Customer').replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</p>' +
+          '<p class="text-[10px] text-app-secondary">' + dateStr + '</p>' +
+        '</div>' +
+        '<span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ' + statusColor + '">' + statusLabel + '</span>' +
+      '</div>';
     }).join("");
   }
 
-  const withdrawData = [
-    { id: "WD-0021", date: "May 10, 2026", amount: 5000,  bank: "KBZ Bank",  account: "**** 4892", status: "completed"  },
-    { id: "WD-0020", date: "Apr 28, 2026", amount: 3200,  bank: "CB Bank",   account: "**** 7741", status: "completed"  },
-    { id: "WD-0019", date: "Apr 14, 2026", amount: 8500,  bank: "AYA Bank",  account: "**** 3310", status: "processing" },
-    { id: "WD-0018", date: "Mar 30, 2026", amount: 1200,  bank: "KBZ Bank",  account: "**** 4892", status: "failed"     },
-    { id: "WD-0017", date: "Mar 12, 2026", amount: 6000,  bank: "CB Bank",   account: "**** 7741", status: "completed"  },
-  ];
+  var paidPayments = paymentsList.filter(function(p) { return parseFloat(p.paid) > 0; });
+  var withdrawData = paidPayments.map(function(p, i) {
+    return {
+      id: "PAY-" + String(i + 1).padStart(4, '0'),
+      date: p.eventDate,
+      amount: p.paid,
+      bank: p.method,
+      account: "—",
+      status: p.paid >= p.total ? "completed" : "processing"
+    };
+  });
+  if (withdrawData.length === 0) {
+    withdrawData = [{ id: '—', date: '—', amount: 0, bank: '—', account: '—', status: 'completed' }];
+  }
 
   /* ── payment table ── */
-  let currentPaymentFilter = "all";
-
-  function payoutBadge(type) {
-    const t = type.toLowerCase();
-    if (t === "pending")   return `<span class="rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-warning">${type}</span>`;
-    if (t === "full paid") return `<span class="rounded-full bg-app-soft px-2 py-0.5 text-[10px] font-semibold text-app-success">${type}</span>`;
-    if (t === "half paid") return `<span class="rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-secondary">${type}</span>`;
-    return type;
-  }
-
-  function escrowBadge(status) {
-    const s = status.toLowerCase();
-    if (s === "released")             return `<span class="text-app-success font-medium">${status}</span>`;
-    if (s === "partially released")   return `<span class="text-app-warning font-medium">${status}</span>`;
-    return `<span class="text-app-secondary">${status}</span>`;
-  }
-
-  function filterPayments(status) {
-    currentPaymentFilter = status;
-    document.querySelectorAll(".filter-tab").forEach(btn => {
-      const isActive = btn.dataset.status === status;
-      btn.classList.toggle("bg-app-primary", isActive);
-      btn.classList.toggle("text-app-white", isActive);
-      btn.classList.toggle("text-app-secondary", !isActive);
-      btn.classList.toggle("bg-app-soft", !isActive);
-    });
-    renderPaymentTable();
-  }
-
   function renderPaymentTable() {
     const tbody = document.getElementById("paymentTableBody");
     const noRows = document.getElementById("noPaymentRows");
-    const rows = currentPaymentFilter === "all"
-      ? paymentData
-      : paymentData.filter(r => r.payout.toLowerCase() === currentPaymentFilter);
+    const rows = paymentData;
 
     if (rows.length === 0) {
       tbody.innerHTML = "";
@@ -420,10 +377,8 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
         <td class="py-2.5 px-2 text-app-text whitespace-nowrap">${r.customer}</td>
         <td class="py-2.5 px-2 text-app-secondary whitespace-nowrap">${r.eventDate}</td>
         <td class="py-2.5 px-2 text-app-secondary">${r.method}</td>
-        <td class="py-2.5 px-2">${payoutBadge(r.payout)}</td>
         <td class="py-2.5 px-2 font-medium text-app-text">${currency(r.total)}</td>
         <td class="py-2.5 px-2 font-medium text-app-text">${currency(r.paid)}</td>
-        <td class="py-2.5 px-2">${escrowBadge(r.escrow)}</td>
       </tr>
     `).join("");
   }
@@ -469,8 +424,9 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   /* ── charts ── */
   function initCharts() {
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const revenueVals = [4200, 6800, 5100, 4700, 5500, 3200, 4900, 5800, 4100, 3800, 4600, 5200];
-    const bookingVals = [28, 45, 34, 29, 38, 21, 32, 41, 27, 24, 31, 36];
+    var ch = (window.supplierDashboardData || {}).chartData || {};
+    var revenueVals = ch.revenue || [0,0,0,0,0,0,0,0,0,0,0,0];
+    var bookingVals = ch.bookings || [0,0,0,0,0,0,0,0,0,0,0,0];
     const primaryColor = readUtilityColor("text-app-primary");
     const mutedColor = readUtilityColor("text-app-muted");
     const gridColor = readUtilityColor("border-app-panel-border border", "borderTopColor");
@@ -513,9 +469,9 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
             ticks: {
               font: { size: 10 },
               color: mutedColor,
-              callback: (value) => `$${Number(value).toLocaleString()}`
+              callback: (value) => 'MMK ' + Number(value).toLocaleString()
             },
-            title: { display: true, text: "Revenue (USD)", color: mutedColor, font: { size: 10, weight: "600" } }
+            title: { display: true, text: "Revenue (MMK)", color: mutedColor, font: { size: 10, weight: "600" } }
           }
         }
       }
@@ -560,18 +516,26 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   let calYear = today.getFullYear();
   let calMonth = today.getMonth();
 
-  // Booked/pending data keyed by "YYYY-M-D"
-  const bookedMap = {
-    [`${today.getFullYear()}-${today.getMonth()}-2`]: "Wedding: Aye Aye Chan",
-    [`${today.getFullYear()}-${today.getMonth()}-9`]: "Wedding: Zin Mar Aung",
-    [`${today.getFullYear()}-${today.getMonth()}-16`]: "Venue: Grand Palace Hall",
-    [`${today.getFullYear()}-${today.getMonth()}-23`]: "Wedding: Su Su Hlaing",
-  };
-  const pendingMap = {
-    [`${today.getFullYear()}-${today.getMonth()}-5`]: "Pending: Mya Sandar",
-    [`${today.getFullYear()}-${today.getMonth()}-12`]: "Pending: Nan Ei Phyo",
-    [`${today.getFullYear()}-${today.getMonth()}-19`]: "Pending: Review session",
-  };
+  // Build booked/pending maps from real upcoming bookings
+  function buildCalendarMaps() {
+    var bookedMap = {};
+    var pendingMap = {};
+    var bookings = (window.supplierDashboardData || {}).upcomingBookings || [];
+    bookings.forEach(function(bk) {
+      var date = bk.booking_date || bk.event_date || '';
+      if (!date) return;
+      var d = new Date(date);
+      if (isNaN(d.getTime())) return;
+      var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+      var label = (bk.customer_name || 'Booking') + ': ' + (bk.booking_ref || '');
+      if (bk.supplier_status === 'confirmed' || bk.supplier_status === 'completed') {
+        bookedMap[key] = label;
+      } else {
+        pendingMap[key] = label;
+      }
+    });
+    return { booked: bookedMap, pending: pendingMap };
+  }
 
   function renderAvailabilityCalendar() {
     const grid = document.getElementById("availabilityCalendarGrid");
@@ -579,6 +543,9 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     const tooltip = document.getElementById("calTooltip");
     const tooltipText = document.getElementById("calTooltipText");
     if (!grid) return;
+    var maps = buildCalendarMaps();
+    var bookedMap = maps.booked;
+    var pendingMap = maps.pending;
 
     if (label) label.textContent = monthNames[calMonth] + " " + calYear;
     const firstDay = new Date(calYear, calMonth, 1);
@@ -627,11 +594,14 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
 
   /* ── dashboard data ── */
   function fetchDashboardData() {
-    return new Promise(resolve => setTimeout(() => resolve({
-      totalBookings: 317, confirmedBookings: 217, cancelledBookings: 33,
-      totalRevenue: 63400, avgSpend: 200,
-      escrow: { total: 38482, pendingRelease: 13260, available: 25222 }
-    }), 200));
+    var d = window.supplierDashboardData || {};
+    return Promise.resolve({
+      totalBookings: d.stats.total_bookings || 0,
+      confirmedBookings: d.stats.completed_bookings || 0,
+      cancelledBookings: 0,
+      totalRevenue: d.stats.total_revenue || 0,
+      avgSpend: d.stats.total_bookings > 0 ? Math.round(d.stats.total_revenue / d.stats.total_bookings) : 0,
+    });
   }
 
   function renderDashboard(data) {
@@ -641,13 +611,6 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     set("confirmedBookings", data.confirmedBookings);
     set("cancelledBookings", data.cancelledBookings);
     set("avgSpend", currency(data.avgSpend));
-    set("escrowTotal", currency(data.escrow.total));
-    set("escrowPending", currency(data.escrow.pendingRelease));
-    set("escrowAvailable", currency(data.escrow.available));
-    const pct = data.escrow.total > 0 ? Math.round((data.escrow.available / data.escrow.total) * 100) : 0;
-    const fill = document.getElementById("escrowProgressFill");
-    if (fill) fill.style.width = `${pct}%`;
-    set("escrowProgressPercent", `${pct}%`);
   }
 
   document.addEventListener("DOMContentLoaded", () => {

@@ -12,7 +12,7 @@ class Booking extends Controller
     private SupplierProfile $supplierProfileModel;
     private Notification $notificationModel;
     private ?int $userId;
-    private const DEPOSIT_PERCENT = 10;
+    private const DEPOSIT_PERCENT = 20;
 
     public function __construct()
     {
@@ -52,6 +52,38 @@ class Booking extends Controller
     private function h($v): string
     {
         return htmlspecialchars($this->plain($v), ENT_QUOTES, 'UTF-8');
+    }
+
+    private function buildPackageSchedules(array $items, array $eventDetails): array
+    {
+        $packageSchedules = [];
+
+        foreach ($items as $item) {
+            if (($item['item_type'] ?? '') !== 'package') {
+                continue;
+            }
+
+            $event = null;
+            foreach ($eventDetails as $detail) {
+                if ((int)($detail['booking_item_id'] ?? 0) === (int)($item['id'] ?? 0)) {
+                    $event = $detail;
+                    break;
+                }
+            }
+
+            $event ??= $eventDetails[0] ?? null;
+            $eventDate = trim((string)($event['event_date'] ?? ''));
+            if ($eventDate === '') {
+                continue;
+            }
+
+            $packageSchedules[(int)($item['id'] ?? 0)] = $this->cartModel->getPackageEventSchedule(
+                (int)($item['item_id'] ?? 0),
+                $eventDate
+            );
+        }
+
+        return $packageSchedules;
     }
 
     private function notifyAdminsOfDepositSubmission(int $bookingId, float $amount = 0): void
@@ -132,7 +164,9 @@ class Booking extends Controller
         $itemPrices = [];
         $adjustedTotal = 0.0;
         $itemErrors = [];
-        
+        // Track which itemsData entries are add-ons (inherit parent's event_detail)
+        $isAddonItem = [];
+
         foreach ($items as $i => $item) {
             $itemDate = trim($_POST['item_date'][$i] ?? '') ?: trim((string)($item['selected_date'] ?? ''));
             $itemStartTime = trim($_POST['item_start_time'][$i] ?? '') ?: trim((string)($item['start_time'] ?? ''));
@@ -144,10 +178,25 @@ class Booking extends Controller
             $itemName = $item['service_name'] ?? 'Service';
             $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
             $currentItemErrors = [];
-            
+            $isAddon = !empty($item['package_cart_item_id']);
+
             // For fullday items (packages and fullday services), time slots are not required.
             // Three-layer resolution: resolved_start_time (from cart) → CATEGORY_DEFAULT_TIMES → 00:00/23:59
             $isFullday = ($item['booking_type'] ?? 'fullday') === 'fullday';
+            if (($item['item_type'] ?? '') === 'package' && $itemDate !== '') {
+                $packageSchedule = $this->cartModel->getPackageEventSchedule(
+                    (int)($item['item_id'] ?? 0),
+                    $itemDate
+                );
+                if (!empty($packageSchedule)) {
+                    $starts = array_column($packageSchedule, 'start_time');
+                    $ends = array_column($packageSchedule, 'end_time');
+                    sort($starts);
+                    rsort($ends);
+                    $itemStartTime = (string)($starts[0] ?? $itemStartTime);
+                    $itemEndTime = (string)($ends[0] ?? $itemEndTime);
+                }
+            }
             if ($isFullday && empty($itemStartTime)) {
                 $categoryId = (int)($item['category_id'] ?? 0);
                 $categoryTimes = defined('CATEGORY_DEFAULT_TIMES') ? (CATEGORY_DEFAULT_TIMES[$categoryId] ?? null) : null;
@@ -155,31 +204,34 @@ class Booking extends Controller
                 $itemEndTime   = $item['resolved_end_time']   ?? ($categoryTimes['end']   ?? '23:59:59');
             }
 
-            // Required details for suppliers before payment.
-            if (empty($itemDate)) {
-                $currentItemErrors[] = 'Date is required';
-            } elseif (!$this->isDateAllowedByLeadTime($itemDate, $minLeadDays)) {
-                $currentItemErrors[] = $this->leadTimeMessage($minLeadDays);
+            // Add-on items inherit event details from their parent package.
+            // Skip independent validation — only validate for standalone items.
+            if (!$isAddon) {
+                if (empty($itemDate)) {
+                    $currentItemErrors[] = 'Date is required';
+                } elseif (!$this->isDateAllowedByLeadTime($itemDate, $minLeadDays)) {
+                    $currentItemErrors[] = $this->leadTimeMessage($minLeadDays);
+                }
+                if (!$isFullday && empty($itemStartTime)) {
+                    $currentItemErrors[] = 'Time slot is required';
+                }
+                if (!$isFullday && empty($itemEndTime)) {
+                    $currentItemErrors[] = 'Time slot end time is required';
+                }
+                if (empty($itemContactName)) {
+                    $currentItemErrors[] = 'Contact name is required';
+                }
+                if (empty($itemPhone)) {
+                    $currentItemErrors[] = 'Contact phone is required';
+                }
+                if (empty($itemLocation)) {
+                    $currentItemErrors[] = 'Location is required';
+                }
+                if ($itemGuests <= 0) {
+                    $currentItemErrors[] = 'Guest count is required';
+                }
             }
-            if (!$isFullday && empty($itemStartTime)) {
-                $currentItemErrors[] = 'Time slot is required';
-            }
-            if (!$isFullday && empty($itemEndTime)) {
-                $currentItemErrors[] = 'Time slot end time is required';
-            }
-            if (empty($itemContactName)) {
-                $currentItemErrors[] = 'Contact name is required';
-            }
-            if (empty($itemPhone)) {
-                $currentItemErrors[] = 'Contact phone is required';
-            }
-            if (empty($itemLocation)) {
-                $currentItemErrors[] = 'Location is required';
-            }
-            if ($itemGuests <= 0) {
-                $currentItemErrors[] = 'Guest count is required';
-            }
-            
+
             if (!empty($currentItemErrors)) {
                 $itemErrors[] = $itemName . ': ' . implode(', ', $currentItemErrors);
                 continue;
@@ -188,8 +240,10 @@ class Booking extends Controller
             $basePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
             $isGuestPriced = $this->isGuestPricedService($item);
             $itemPrice = $isGuestPriced ? $basePrice * $itemGuests : $basePrice;
-            
-            // Collect per-item details (with fallback to shared defaults)
+
+            // Collect per-item details (with fallback to shared defaults).
+            // Add-on items do NOT get their own event_details row — they inherit
+            // from the parent package at display time.
             $itemsData[] = [
                 'event_date' => $itemDate,
                 'start_time' => $itemStartTime,
@@ -200,6 +254,7 @@ class Booking extends Controller
                 'contact_name' => $itemContactName,
                 'notes' => trim($_POST['item_notes'][$i] ?? ''),
             ];
+            $isAddonItem[] = $isAddon;
             $itemPrices[] = $itemPrice;
             $adjustedTotal += $itemPrice;
         }
@@ -247,11 +302,44 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Could not save booking items'], 500);
         }
         
-        // INSERT EVENT DETAILS (with booking_item_id)
-        if (!$this->bookingModel->insertEventDetails($bookingId, $itemsData, $bookingItemIds)) {
-            $this->jsonResponse(['error' => 'Could not save event details'], 500);
+        // INSERT EVENT DETAILS — only for non-addon items.
+        // Add-ons inherit event details from their parent package.
+        $nonAddonItemsData = [];
+        $nonAddonBookingItemIds = [];
+        foreach ($itemsData as $idx => $data) {
+            if (empty($isAddonItem[$idx])) {
+                $nonAddonItemsData[] = $data;
+                $nonAddonBookingItemIds[] = $bookingItemIds[$idx] ?? null;
+            }
         }
-        
+        if (!empty($nonAddonItemsData)) {
+            if (!$this->bookingModel->insertEventDetails($bookingId, $nonAddonItemsData, $nonAddonBookingItemIds)) {
+                $this->jsonResponse(['error' => 'Could not save event details'], 500);
+            }
+        }
+
+        // RESERVE PER-SERVICE TIME SLOTS for every service inside each package.
+        // Slot-type services get dedicated service_time_slot rows so their
+        // calendar availability is tracked independently.
+        foreach ($items as $i => $item) {
+            if (($item['item_type'] ?? '') !== 'package') {
+                continue;
+            }
+            if (!empty($item['package_cart_item_id'])) {
+                continue;
+            }
+            $pkgDate = trim($_POST['item_date'][$i] ?? '') ?: trim((string)($item['selected_date'] ?? ''));
+            if ($pkgDate !== '') {
+                $packageSchedule = $this->cartModel->getPackageEventSchedule(
+                    (int)($item['item_id'] ?? 0),
+                    $pkgDate
+                );
+                if (!empty($packageSchedule)) {
+                    $this->bookingModel->reservePackageServiceSlots($pkgDate, $packageSchedule);
+                }
+            }
+        }
+
         // LINK SUPPLIERS
         if (!$this->bookingModel->insertBookingSuppliers($bookingId)) {
             $this->jsonResponse(['error' => 'Could not assign suppliers'], 500);
@@ -296,6 +384,13 @@ class Booking extends Controller
                 'New Booking Request',
                 $customerName . ' is requesting: ' . $serviceNames . '. Please accept or decline within 48 hours.',
                 'booking'
+            );
+            $this->notificationModel->notifyAdmins(
+                'New Custom Booking Request',
+                $customerName . ' created a custom or mixed booking for: ' . $serviceNames . '. Supplier responses are pending.',
+                'booking',
+                'booking',
+                $bookingId
             );
 
             // Email each supplier about the new booking request
@@ -543,6 +638,55 @@ class Booking extends Controller
         ]);
     }
 
+    public function getPackageSchedule(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $packageId = (int)($input['package_id'] ?? 0);
+        $date = trim((string)($input['date'] ?? ''));
+        $selectedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+        if ($packageId <= 0 || !$selectedDate) {
+            $this->jsonResponse(['error' => 'Invalid package or event date'], 400);
+        }
+
+        $schedule = $this->cartModel->getPackageEventSchedule($packageId, $date);
+        if (empty($schedule)) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'No package services are available to schedule.',
+            ], 404);
+        }
+
+        $requiredLeadDays = 0;
+        foreach ($schedule as $service) {
+            $requiredLeadDays = max($requiredLeadDays, (int)($service['min_lead_days'] ?? 0));
+        }
+        $earliestDate = (new DateTimeImmutable('today'))->add(new DateInterval('P' . $requiredLeadDays . 'D'));
+        if ($selectedDate < $earliestDate) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => 'This package requires ' . $requiredLeadDays . ' days advance notice. Earliest available: ' . $earliestDate->format('M j, Y'),
+                'earliest_date' => $earliestDate->format('Y-m-d'),
+            ], 422);
+        }
+
+        $starts = array_column($schedule, 'start_time');
+        $ends = array_column($schedule, 'end_time');
+        sort($starts);
+        rsort($ends);
+
+        $this->jsonResponse([
+            'success' => true,
+            'schedule' => $schedule,
+            'start_time' => $starts[0] ?? null,
+            'end_time' => $ends[0] ?? null,
+        ]);
+    }
+
     private function isGuestPricedService(array $item): bool
     {
         $category = strtolower((string)($item['category_name'] ?? ''));
@@ -626,7 +770,12 @@ class Booking extends Controller
         $this->ensureAuthenticated();
 
         $filter = trim($_GET['status'] ?? 'all');
-        $bookings = $this->bookingModel->getCustomerBookings($this->userId, $filter);
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 12;
+        $offset = ($page - 1) * $perPage;
+
+        $bookings = $this->bookingModel->getCustomerBookings($this->userId, $filter, $perPage, $offset);
+        $totalCount = $this->bookingModel->getCustomerBookingsCount($this->userId, $filter);
 
         // Enrich each booking with items count and booking ref
         $enriched = [];
@@ -641,6 +790,10 @@ class Booking extends Controller
         $this->view('booking/myBookings', [
             'bookings' => $enriched,
             'activeFilter' => $filter,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -685,6 +838,7 @@ class Booking extends Controller
         $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
         $depositPayment = $this->bookingModel->getDepositPayment($bookingId);
+        $packageSchedules = $this->buildPackageSchedules($items, $eventDetails);
 
         $reviewModel = $this->model('ReviewModel');
         $isCompleted = ($booking['status'] ?? '') === 'completed';
@@ -702,6 +856,7 @@ class Booking extends Controller
             'bookingRef' => $bookingRef,
             'depositPercent' => self::DEPOSIT_PERCENT,
             'depositPayment' => $depositPayment ?: [],
+            'packageSchedules' => $packageSchedules,
             'canReview' => $canReview,
             'existingReview' => $existingReview,
             'canEditReview' => $canEditReview,
@@ -715,11 +870,20 @@ class Booking extends Controller
         $this->ensureAuthenticated();
 
         $filter = trim($_GET['status'] ?? 'all');
-        $vouchers = $this->bookingModel->getCustomerVouchers($this->userId, $filter);
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 12;
+        $offset = ($page - 1) * $perPage;
+
+        $vouchers = $this->bookingModel->getCustomerVouchers($this->userId, $filter, $perPage, $offset);
+        $totalCount = $this->bookingModel->getCustomerVouchersCount($this->userId, $filter);
 
         $this->view('booking/vouchers', [
             'vouchers' => $vouchers,
             'activeFilter' => $filter,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -735,7 +899,7 @@ class Booking extends Controller
             return;
         }
 
-        if (in_array($booking['status'], ['cancelled', 'completed'], true)) {
+        if (in_array($booking['status'], ['cancelled', 'cancellation_requested', 'completed'], true)) {
             redirect('booking/detail/' . $bookingId);
             return;
         }
@@ -771,12 +935,28 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Booking not found'], 404);
         }
 
-        if (in_array($booking['status'] ?? '', ['cancelled', 'completed'], true)) {
+        if (in_array($booking['status'] ?? '', ['cancelled', 'cancellation_requested', 'completed'], true)) {
             $this->jsonResponse(['error' => 'This booking can no longer be cancelled.'], 400);
         }
 
         if (!$this->bookingModel->requestCancellation($bookingId, $reason)) {
             $this->jsonResponse(['error' => 'Could not submit cancellation request. Please try again.'], 500);
+        }
+
+        $customer = $this->getUserData();
+
+        $emailService = new EmailService();
+
+        // Notify admins
+        $admins = $this->bookingModel->getAdminEmails();
+        foreach ($admins as $admin) {
+            $emailService->sendAdminCancellationRequest($admin, $customer, $booking, $reason);
+        }
+
+        // Notify each supplier on the booking
+        $suppliers = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
+        foreach ($suppliers as $supplier) {
+            $emailService->sendSupplierCancellationRequest($supplier, $customer, $booking, $reason);
         }
 
         $this->jsonResponse([
@@ -924,6 +1104,11 @@ class Booking extends Controller
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
 
+        // Pass per-service time schedules for any package items so suppliers
+        // can see the time windows assigned to their services.
+        $allItems = $this->bookingModel->getBookingItems($bookingId);
+        $packageSchedules = $this->buildPackageSchedules($allItems, $eventDetails);
+
         $this->view('supplier/bookingDetail', [
             'booking' => $booking,
             'items' => $items,
@@ -934,6 +1119,7 @@ class Booking extends Controller
             'supplierRowId' => $currentSupplierRowId ?? 0,
             'supplierId' => $supplierId,
             'depositPercent' => self::DEPOSIT_PERCENT,
+            'packageSchedules' => $packageSchedules,
         ]);
     }
 
@@ -1166,7 +1352,12 @@ class Booking extends Controller
     {
         $filter = trim($_GET['status'] ?? 'all');
         $search = trim($_GET['search'] ?? '');
-        $bookings = $this->bookingModel->getAllBookings($filter, $search);
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
+        $bookings = $this->bookingModel->getAllBookings($filter, $search, $perPage, $offset);
+        $totalCount = $this->bookingModel->getAllBookingsCount($filter, $search);
         $stats = $this->bookingModel->getAdminStats();
 
         $enriched = [];
@@ -1182,6 +1373,10 @@ class Booking extends Controller
             'stats' => $stats,
             'activeFilter' => $filter,
             'search' => $search,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
         ]);
     }
 
@@ -1203,6 +1398,7 @@ class Booking extends Controller
         $payments = $this->bookingModel->getBookingPayments($bookingId);
         $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $packageSchedules = $this->buildPackageSchedules($items, $eventDetails);
 
         $this->view('admin/bookingDetail', [
             'booking' => $booking,
@@ -1213,6 +1409,7 @@ class Booking extends Controller
             'payments' => $payments,
             'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
+            'packageSchedules' => $packageSchedules,
             'depositPercent' => self::DEPOSIT_PERCENT,
         ]);
     }

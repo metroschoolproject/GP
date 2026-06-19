@@ -117,6 +117,21 @@ class Database
     {
         return $this->conn->lastInsertId();
     }
+
+    public function beginTransaction(): bool
+    {
+        return $this->conn->beginTransaction();
+    }
+
+    public function commit(): bool
+    {
+        return $this->conn->commit();
+    }
+
+    public function rollBack(): bool
+    {
+        return $this->conn->inTransaction() ? $this->conn->rollBack() : false;
+    }
 }
 
 // new Database();
