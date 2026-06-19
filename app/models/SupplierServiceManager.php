@@ -85,6 +85,8 @@ class SupplierServiceManager
                          services.buffer_minutes,
                          services.pricing_unit,
                          services.max_concurrent,
+                         services.max_concurrent_package,
+                         services.max_concurrent_customize,
                          services.min_lead_days,
                          ' . $defaultTimeFields . '
                          ' . $venueSelectFields . '
@@ -156,10 +158,10 @@ class SupplierServiceManager
         $this->db->dbquery(
             'INSERT INTO services(
                 supplier_id, category_id, name, description, price' . $priceRangeColumns . ', thumbnail_url,
-                is_active, booking_type, duration_minutes, pricing_unit, max_concurrent, min_lead_days' . $defaultTimeColumns . '
+                is_active, booking_type, duration_minutes, pricing_unit, max_concurrent, max_concurrent_package, max_concurrent_customize, min_lead_days' . $defaultTimeColumns . '
              ) VALUES(
                 :supplier_id, :category_id, :name, :description, :price' . $priceRangeValues . ', :thumbnail_url,
-                :is_active, :booking_type, :duration_minutes, :pricing_unit, :max_concurrent, :min_lead_days' . $defaultTimeValues . '
+                :is_active, :booking_type, :duration_minutes, :pricing_unit, :max_concurrent, :max_concurrent_package, :max_concurrent_customize, :min_lead_days' . $defaultTimeValues . '
              )'
         );
         $this->bindServiceFields($supplierId, $categoryId, $data);
@@ -217,6 +219,8 @@ class SupplierServiceManager
                  duration_minutes = :duration_minutes,
                  pricing_unit = :pricing_unit,
                  max_concurrent = :max_concurrent,
+                 max_concurrent_package = :max_concurrent_package,
+                 max_concurrent_customize = :max_concurrent_customize,
                  min_lead_days = :min_lead_days' . $defaultTimeUpdate . '
              WHERE id = :id
                AND supplier_id = :supplier_id'
@@ -341,6 +345,8 @@ class SupplierServiceManager
                     services.buffer_minutes,
                     services.pricing_unit,
                     services.max_concurrent,
+                    services.max_concurrent_package,
+                    services.max_concurrent_customize,
                     services.min_lead_days,
                     ' . $venueSelectFields . '
                     categories.name AS category,
@@ -491,6 +497,8 @@ class SupplierServiceManager
                     services.buffer_minutes,
                     services.pricing_unit,
                     services.max_concurrent,
+                    services.max_concurrent_package,
+                    services.max_concurrent_customize,
                     services.min_lead_days,
                     ' . $defaultTimeFields . '
                     ' . $venueSelectFields . '
@@ -708,6 +716,8 @@ class SupplierServiceManager
             'duration_minutes' => (int)($service['duration_minutes'] ?? 60),
             'buffer_minutes' => (int)($service['buffer_minutes'] ?? 0),
             'max_concurrent' => (int)($service['capacity'] ?? 1),
+            'max_concurrent_package' => (int)($service['max_concurrent_package'] ?? 0),
+            'max_concurrent_customize' => (int)($service['max_concurrent_customize'] ?? 0),
             'weekly' => $schedules,
             'overrides' => $overrides,
         ];
@@ -725,11 +735,16 @@ class SupplierServiceManager
         $minLeadDays = max(0, min(365, (int)($data['min_lead_days'] ?? 0)));
         $weekly = is_array($data['weekly'] ?? null) ? $data['weekly'] : [];
 
+        $maxConcurrentPackage = max(0, min(20, (int)($data['max_concurrent_package'] ?? 0)));
+        $maxConcurrentCustomize = max(0, min(20, (int)($data['max_concurrent_customize'] ?? 0)));
+
         $this->db->dbquery(
             'UPDATE services
                  SET duration_minutes = :duration_minutes,
                      buffer_minutes = :buffer_minutes,
                      max_concurrent = :max_concurrent,
+                     max_concurrent_package = :max_concurrent_package,
+                     max_concurrent_customize = :max_concurrent_customize,
                      min_lead_days = :min_lead_days,
                      booking_type = :booking_type
              WHERE id = :id
@@ -738,6 +753,8 @@ class SupplierServiceManager
         $this->db->dbbind(':duration_minutes', $duration);
         $this->db->dbbind(':buffer_minutes', $buffer);
         $this->db->dbbind(':max_concurrent', $maxConcurrent);
+        $this->db->dbbind(':max_concurrent_package', $maxConcurrentPackage);
+        $this->db->dbbind(':max_concurrent_customize', $maxConcurrentCustomize);
         $this->db->dbbind(':min_lead_days', $minLeadDays);
         $this->db->dbbind(':booking_type', 'slot');
         $this->db->dbbind(':id', (int)$serviceId);
@@ -981,18 +998,36 @@ class SupplierServiceManager
         return ['date' => $date, 'status' => empty($slots) ? 'closed' : 'open', 'slots' => $slots];
     }
 
-    public function reserveServiceSlot($slotId)
+    /**
+     * Reserve a slot for a booking.
+     * @param string $source 'package' or 'custom'
+     */
+    public function reserveServiceSlot($slotId, string $source = 'custom')
     {
+        $poolColumn = $source === 'package' ? 'confirmed_package_count' : 'confirmed_customize_count';
+        $poolCondition = $source === 'package'
+            ? 'AND (st.max_concurrent_package = 0 OR st.confirmed_package_count < st.max_concurrent_package)'
+            : 'AND (st.max_concurrent_customize = 0 OR st.confirmed_customize_count < st.max_concurrent_customize)';
+
         $this->db->dbquery(
             "UPDATE service_time_slots
              SET confirmed_count = confirmed_count + 1,
+                 {$poolColumn} = {$poolColumn} + 1,
                  status = CASE
                     WHEN confirmed_count + 1 >= max_concurrent THEN 'full'
                     ELSE 'available'
                  END
-             WHERE id = :id
-               AND status = 'available'
-               AND confirmed_count < max_concurrent"
+             WHERE id = (
+                SELECT id FROM (
+                    SELECT st.id
+                    FROM service_time_slots st
+                    WHERE st.id = :id
+                      AND st.status = 'available'
+                      AND st.confirmed_count < st.max_concurrent
+                      {$poolCondition}
+                    LIMIT 1
+                ) AS target
+             )"
         );
         $this->db->dbbind(':id', (int)$slotId);
         $this->db->dbexecute();
@@ -1000,11 +1035,18 @@ class SupplierServiceManager
         return $this->db->rowcount() > 0;
     }
 
-    public function releaseServiceSlot($slotId)
+    /**
+     * Release a reserved slot.
+     * @param string $source 'package' or 'custom'
+     */
+    public function releaseServiceSlot($slotId, string $source = 'custom')
     {
+        $poolColumn = $source === 'package' ? 'confirmed_package_count' : 'confirmed_customize_count';
+
         $this->db->dbquery(
             "UPDATE service_time_slots
              SET confirmed_count = GREATEST(confirmed_count - 1, 0),
+                 {$poolColumn} = GREATEST({$poolColumn} - 1, 0),
                  status = CASE
                     WHEN GREATEST(confirmed_count - 1, 0) >= max_concurrent THEN 'full'
                     ELSE 'available'
@@ -1019,24 +1061,38 @@ class SupplierServiceManager
 
     public function reserveBookingItemSlot($bookingItemId)
     {
+        $source = $this->getBookingItemSource($bookingItemId);
         $slotId = $this->getBookingItemSlotId($bookingItemId);
 
         if (!$slotId) {
             return false;
         }
 
-        return $this->reserveServiceSlot($slotId);
+        return $this->reserveServiceSlot($slotId, $source);
     }
 
     public function releaseBookingItemSlot($bookingItemId)
     {
+        $source = $this->getBookingItemSource($bookingItemId);
         $slotId = $this->getBookingItemSlotId($bookingItemId);
 
         if (!$slotId) {
             return false;
         }
 
-        return $this->releaseServiceSlot($slotId);
+        return $this->releaseServiceSlot($slotId, $source);
+    }
+
+    /**
+     * Determine the booking source ('package' or 'custom') for a booking item.
+     */
+    private function getBookingItemSource($bookingItemId): string
+    {
+        $this->db->dbquery('SELECT source FROM booking_items WHERE id = :id LIMIT 1');
+        $this->db->dbbind(':id', (int)$bookingItemId);
+        $item = $this->db->getsingledata();
+
+        return ($item['source'] ?? 'custom') === 'package' ? 'package' : 'custom';
     }
 
     private function getBookingItemSlotId($bookingItemId)
@@ -1182,6 +1238,8 @@ class SupplierServiceManager
         $this->db->dbbind(':duration_minutes', !empty($data['duration_minutes']) ? (int)$data['duration_minutes'] : null);
         $this->db->dbbind(':pricing_unit', $data['pricing_unit'] ?? 'per_session');
         $this->db->dbbind(':max_concurrent', max(1, min(65535, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1))));
+        $this->db->dbbind(':max_concurrent_package', max(0, min(65535, (int)($data['max_concurrent_package'] ?? 0))));
+        $this->db->dbbind(':max_concurrent_customize', max(0, min(65535, (int)($data['max_concurrent_customize'] ?? 0))));
         $this->db->dbbind(':min_lead_days', max(0, min(365, (int)($data['min_lead_days'] ?? 0))), PDO::PARAM_INT);
         if ($this->hasServiceDefaultTimeColumns()) {
             $startTime = !empty($data['default_start_time']) ? $data['default_start_time'] : null;
@@ -1354,6 +1412,8 @@ class SupplierServiceManager
             'desc' => html_entity_decode($service['description'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'img' => $service['thumbnail_url'] ?? '',
             'capacity' => (int)($service['max_concurrent'] ?? 1),
+            'max_concurrent_package' => (int)($service['max_concurrent_package'] ?? 0),
+            'max_concurrent_customize' => (int)($service['max_concurrent_customize'] ?? 0),
             'duration_minutes' => (int)($service['duration_minutes'] ?? 60),
             'buffer_minutes' => (int)($service['buffer_minutes'] ?? 0),
             'timeslot' => ($service['booking_type'] ?? '') === 'slot' ? 'Custom slot' : '',
@@ -2084,14 +2144,17 @@ class SupplierServiceManager
         return $slots;
     }
 
-    private function ensureServiceTimeSlot($serviceId, $date, $startTime, $endTime, $maxConcurrent)
+    private function ensureServiceTimeSlot($serviceId, $date, $startTime, $endTime, $maxConcurrent, $maxConcurrentPackage = 0, $maxConcurrentCustomize = 0)
     {
         $startTime = strlen($startTime) === 5 ? $startTime . ':00' : $startTime;
         $endTime = strlen($endTime) === 5 ? $endTime . ':00' : $endTime;
         $maxConcurrent = max(1, (int)$maxConcurrent);
+        $maxConcurrentPackage = max(0, (int)$maxConcurrentPackage);
+        $maxConcurrentCustomize = max(0, (int)$maxConcurrentCustomize);
 
         $this->db->dbquery(
-            'SELECT id, confirmed_count, max_concurrent, status
+            'SELECT id, confirmed_count, confirmed_package_count, confirmed_customize_count,
+                    max_concurrent, max_concurrent_package, max_concurrent_customize, status
              FROM service_time_slots
              WHERE service_id = :service_id
                AND date = :date
@@ -2106,21 +2169,38 @@ class SupplierServiceManager
         $slot = $this->db->getsingledata();
 
         if ($slot) {
-            if ((int)$slot['max_concurrent'] !== $maxConcurrent) {
+            $needsUpdate = (int)$slot['max_concurrent'] !== $maxConcurrent
+                || ($this->hasSlotPoolColumns($slot) && (
+                    (int)($slot['max_concurrent_package'] ?? 0) !== $maxConcurrentPackage
+                    || (int)($slot['max_concurrent_customize'] ?? 0) !== $maxConcurrentCustomize
+                ));
+
+            if ($needsUpdate) {
                 $status = (int)$slot['confirmed_count'] >= $maxConcurrent ? 'full' : 'available';
+                $poolSets = $this->hasSlotPoolColumns($slot)
+                    ? ', max_concurrent_package = :max_concurrent_package, max_concurrent_customize = :max_concurrent_customize'
+                    : '';
                 $this->db->dbquery(
                     'UPDATE service_time_slots
                      SET max_concurrent = :max_concurrent,
-                         status = :status
+                         status = :status' . $poolSets . '
                      WHERE id = :id'
                 );
                 $this->db->dbbind(':max_concurrent', $maxConcurrent);
                 $this->db->dbbind(':status', $status);
+                if ($this->hasSlotPoolColumns($slot)) {
+                    $this->db->dbbind(':max_concurrent_package', $maxConcurrentPackage);
+                    $this->db->dbbind(':max_concurrent_customize', $maxConcurrentCustomize);
+                }
                 $this->db->dbbind(':id', (int)$slot['id']);
                 $this->db->dbexecute();
 
                 $slot['max_concurrent'] = $maxConcurrent;
                 $slot['status'] = $status;
+                if ($this->hasSlotPoolColumns($slot)) {
+                    $slot['max_concurrent_package'] = $maxConcurrentPackage;
+                    $slot['max_concurrent_customize'] = $maxConcurrentCustomize;
+                }
             }
 
             return [
@@ -2128,14 +2208,24 @@ class SupplierServiceManager
                 'start_time' => substr($startTime, 0, 5),
                 'end_time' => substr($endTime, 0, 5),
                 'confirmed_count' => (int)$slot['confirmed_count'],
+                'confirmed_package_count' => (int)($slot['confirmed_package_count'] ?? 0),
+                'confirmed_customize_count' => (int)($slot['confirmed_customize_count'] ?? 0),
                 'max_concurrent' => (int)$slot['max_concurrent'],
+                'max_concurrent_package' => (int)($slot['max_concurrent_package'] ?? 0),
+                'max_concurrent_customize' => (int)($slot['max_concurrent_customize'] ?? 0),
                 'status' => $slot['status'],
             ];
         }
 
+        $poolInsertColumns = $this->hasSlotPoolColumns()
+            ? ', confirmed_package_count, confirmed_customize_count, max_concurrent_package, max_concurrent_customize'
+            : '';
+        $poolInsertValues = $this->hasSlotPoolColumns()
+            ? ', 0, 0, :max_concurrent_package, :max_concurrent_customize'
+            : '';
         $this->db->dbquery(
-            'INSERT INTO service_time_slots(service_id, date, start_time, end_time, confirmed_count, max_concurrent, status)
-             VALUES(:service_id, :date, :start_time, :end_time, :confirmed_count, :max_concurrent, :status)'
+            'INSERT INTO service_time_slots(service_id, date, start_time, end_time, confirmed_count, max_concurrent, status' . $poolInsertColumns . ')
+             VALUES(:service_id, :date, :start_time, :end_time, :confirmed_count, :max_concurrent, :status' . $poolInsertValues . ')'
         );
         $this->db->dbbind(':service_id', (int)$serviceId);
         $this->db->dbbind(':date', $date);
@@ -2144,6 +2234,10 @@ class SupplierServiceManager
         $this->db->dbbind(':confirmed_count', 0);
         $this->db->dbbind(':max_concurrent', $maxConcurrent);
         $this->db->dbbind(':status', 'available');
+        if ($this->hasSlotPoolColumns()) {
+            $this->db->dbbind(':max_concurrent_package', $maxConcurrentPackage);
+            $this->db->dbbind(':max_concurrent_customize', $maxConcurrentCustomize);
+        }
         $this->db->dbexecute();
 
         return [
@@ -2151,9 +2245,36 @@ class SupplierServiceManager
             'start_time' => substr($startTime, 0, 5),
             'end_time' => substr($endTime, 0, 5),
             'confirmed_count' => 0,
+            'confirmed_package_count' => 0,
+            'confirmed_customize_count' => 0,
             'max_concurrent' => $maxConcurrent,
+            'max_concurrent_package' => $maxConcurrentPackage,
+            'max_concurrent_customize' => $maxConcurrentCustomize,
             'status' => 'available',
         ];
+    }
+
+    /**
+     * Check whether service_time_slots has the dual concurrency pool columns.
+     */
+    private function hasSlotPoolColumns($slotRow = null): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        // If we got a row, inspect it directly.
+        if (is_array($slotRow)) {
+            $has = array_key_exists('max_concurrent_package', $slotRow);
+            return $has;
+        }
+        try {
+            $this->db->dbquery("SHOW COLUMNS FROM service_time_slots LIKE 'max_concurrent_package'");
+            $has = (bool)$this->db->getsingledata();
+        } catch (Throwable $e) {
+            $has = false;
+        }
+        return $has;
     }
 
     private function formatPackage($package)

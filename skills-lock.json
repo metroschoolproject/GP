@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "senior-fullstack": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/senior-fullstack/SKILL.md",
+      "computedHash": "337a526661c4ab6916cf399209bc41628605b6299cb080cd5cddf9c587939af9"
+    },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",

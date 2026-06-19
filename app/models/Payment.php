@@ -198,6 +198,7 @@ class Payment
                          p.account_name,
                          p.mobile_number,
                          p.status,
+                         p.escrow_status,
                          p.transaction_ref,
                          p.payment_slip_path,
                          p.verified_at,

@@ -260,6 +260,8 @@ class CustomerServiceCatalog
                     services.duration_minutes,
                     services.buffer_minutes,
                     services.max_concurrent,
+                    services.max_concurrent_package,
+                    services.max_concurrent_customize,
                     services.min_lead_days,
                     services.pricing_unit,
                     ' . $rentalSelect . '
@@ -300,6 +302,8 @@ class CustomerServiceCatalog
         $formatted = $this->formatService($service);
         $formatted['buffer_minutes'] = (int)($service['buffer_minutes'] ?? 0);
         $formatted['max_concurrent'] = (int)($service['max_concurrent'] ?? 1);
+        $formatted['max_concurrent_package'] = (int)($service['max_concurrent_package'] ?? 0);
+        $formatted['max_concurrent_customize'] = (int)($service['max_concurrent_customize'] ?? 0);
         $formatted['min_lead_days'] = max(0, (int)($service['min_lead_days'] ?? 0));
         $formatted['earliest_booking_date'] = $this->earliestBookingDate($formatted['min_lead_days']);
         $formatted['supplier_url'] = $service['supplier_url'] ?? '';
@@ -741,6 +745,14 @@ class CustomerServiceCatalog
             $status = $storedSlot['status'] ?? 'available';
             $remaining = max(0, $capacity - $confirmed);
 
+            // Per-pool remaining
+            $pkgCapacity = $storedSlot ? (int)($storedSlot['max_concurrent_package'] ?? 0) : 0;
+            $pkgConfirmed = $storedSlot ? (int)($storedSlot['confirmed_package_count'] ?? 0) : 0;
+            $customCapacity = $storedSlot ? (int)($storedSlot['max_concurrent_customize'] ?? 0) : 0;
+            $customConfirmed = $storedSlot ? (int)($storedSlot['confirmed_customize_count'] ?? 0) : 0;
+            $remainingPackage = $pkgCapacity > 0 ? max(0, $pkgCapacity - $pkgConfirmed) : $remaining;
+            $remainingCustomize = $customCapacity > 0 ? max(0, $customCapacity - $customConfirmed) : $remaining;
+
             if ($status !== 'available' || $remaining <= 0 || !$this->isFutureSlot($date, $slot['start_time'])) {
                 return null;
             }
@@ -751,6 +763,8 @@ class CustomerServiceCatalog
                 'end_time' => $slot['end_time'],
                 'label' => $this->formatTimeRange($slot['start_time'], $slot['end_time']),
                 'remaining' => $remaining,
+                'remaining_package' => $remainingPackage,
+                'remaining_customize' => $remainingCustomize,
             ];
         }, $slots)));
     }
@@ -758,7 +772,10 @@ class CustomerServiceCatalog
     private function storedSlotsForDate($serviceId, $date)
     {
         $this->db->dbquery(
-            'SELECT id, start_time, end_time, confirmed_count, max_concurrent, status
+            'SELECT id, start_time, end_time,
+                    confirmed_count, confirmed_package_count, confirmed_customize_count,
+                    max_concurrent, max_concurrent_package, max_concurrent_customize,
+                    status
              FROM service_time_slots
              WHERE service_id = :service_id
                AND date = :date'
@@ -1107,5 +1124,118 @@ class CustomerServiceCatalog
         $this->hasDecorationStylePhotoColumn = (int)($row['total'] ?? 0) > 0;
 
         return $this->hasDecorationStylePhotoColumn;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  TOWNSHIP / LOCATION HELPERS
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Extract potential township keywords from a free-text address.
+     * Handles both English ("X Township") and Myanmar ("X မြို့နယ်") patterns.
+     * Returns an array of extracted township name strings.
+     */
+    private function extractTownshipKeywords(string $address): array
+    {
+        $address = trim($address);
+        if ($address === '') {
+            return [];
+        }
+
+        $keywords = [];
+
+        // English pattern: "X Township" (case-insensitive)
+        if (preg_match_all('/([A-Za-z0-9\s]+?)\s+Township/i', $address, $matches)) {
+            foreach ($matches[1] as $match) {
+                $kw = trim($match);
+                if ($kw !== '') {
+                    $keywords[] = $kw;
+                }
+            }
+        }
+
+        // Myanmar pattern: "Xမြို့နယ်" or "X မြို့နယ်"
+        if (preg_match_all('/([\x{1000}-\x{109F}\x{AA60}-\x{AA7F}\s]+?)\s*မြို့နယ်/u', $address, $matches)) {
+            foreach ($matches[1] as $match) {
+                $kw = trim($match);
+                if ($kw !== '') {
+                    $keywords[] = $kw;
+                }
+            }
+        }
+
+        // Fallback: if no explicit township marker found, split on commas
+        // and use segments that look like location names
+        if (empty($keywords)) {
+            $parts = preg_split('/[,၊]/u', $address);
+            foreach ($parts as $part) {
+                $part = trim($part);
+                // Skip very short segments or segments starting with a number
+                if (mb_strlen($part) >= 3 && !preg_match('/^\d/', $part)) {
+                    $keywords[] = $part;
+                }
+            }
+        }
+
+        return $keywords;
+    }
+
+    /**
+     * Fetch the logged-in customer's primary township (extracted from their address).
+     * Returns null if not logged in, no address, or no township could be parsed.
+     */
+    public function getCustomerTownship(?int $userId): ?string
+    {
+        if (!$userId) {
+            return null;
+        }
+
+        $this->db->dbquery('SELECT address FROM users WHERE user_id = :user_id LIMIT 1');
+        $this->db->dbbind(':user_id', $userId);
+        $user = $this->db->getsingledata();
+
+        $address = trim((string)($user['address'] ?? ''));
+        if ($address === '') {
+            return null;
+        }
+
+        $keywords = $this->extractTownshipKeywords($address);
+        return !empty($keywords) ? $keywords[0] : null;
+    }
+
+    /**
+     * Get a list of service IDs that are "near" the customer (same township area).
+     * Returns an empty array if customer has no township or isn't logged in.
+     */
+    public function getNearbyServiceIds(?int $userId): array
+    {
+        $township = $this->getCustomerTownship($userId);
+        if (!$township) {
+            return [];
+        }
+
+        $this->db->dbquery(
+            'SELECT DISTINCT services.id
+             FROM services
+             INNER JOIN suppliers ON suppliers.supplier_id = services.supplier_id
+             LEFT JOIN venues ON venues.service_id = services.id
+             LEFT JOIN users ON users.user_id = suppliers.user_id
+             WHERE services.is_active = 1
+               AND suppliers.deleted_at IS NULL
+               AND suppliers.is_available = 1
+               AND suppliers.status IN ("approved", "verified")
+               AND suppliers.payment_status = "paid"
+               AND ' . $this->publishedServiceReadyCondition() . '
+               AND (
+                   venues.location LIKE :township_like
+                   OR users.address LIKE :township_like2
+               )
+             LIMIT 60'
+        );
+        $townshipLike = '%' . $township . '%';
+        $this->db->dbbind(':township_like', $townshipLike);
+        $this->db->dbbind(':township_like2', $townshipLike);
+
+        return array_map(fn($row) => (int)$row['id'], $this->db->getmultidata());
     }
 }

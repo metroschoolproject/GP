@@ -311,8 +311,18 @@ if ($isRental && !empty($attireItems)) {
             </div>
             <?php if (!$isVenue): ?>
             <div class="sd-avail-field">
-              <label>Max concurrent</label>
+              <label>Max concurrent (total)</label>
               <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
+            </div>
+            <div class="sd-avail-field">
+              <label>Max concurrent — package bookings</label>
+              <input id="availabilityConcurrentPackage" type="number" min="0" value="<?= (int)$maxConcurrentPackage ?>">
+              <span class="sd-field-hint">Cap for bookings made through admin packages. 0 = no separate cap.</span>
+            </div>
+            <div class="sd-avail-field">
+              <label>Max concurrent — custom bookings</label>
+              <input id="availabilityConcurrentCustomize" type="number" min="0" value="<?= (int)$maxConcurrentCustomize ?>">
+              <span class="sd-field-hint">Cap for direct/customized bookings. 0 = no separate cap.</span>
             </div>
             <?php endif; ?>
             <div class="sd-avail-field">

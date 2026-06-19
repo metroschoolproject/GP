@@ -228,7 +228,8 @@ class CartModel
         }
 
         $this->db->dbquery(
-            "SELECT booking_type, duration_minutes, buffer_minutes, max_concurrent, min_lead_days
+            "SELECT booking_type, duration_minutes, buffer_minutes,
+                    max_concurrent, max_concurrent_package, max_concurrent_customize, min_lead_days
              FROM services
              WHERE id = :sid AND is_active = 1
              LIMIT 1"
@@ -261,6 +262,8 @@ class CartModel
                 'end_time' => $hours['close_time'],
                 'display' => $this->formatTimeRange($hours['open_time'], $hours['close_time']),
                 'available' => max(1, (int)($service['max_concurrent'] ?? 1)),
+                'available_package' => (int)($service['max_concurrent_package'] ?? 0) > 0 ? (int)($service['max_concurrent_package'] ?? 0) : max(1, (int)($service['max_concurrent'] ?? 1)),
+                'available_customize' => (int)($service['max_concurrent_customize'] ?? 0) > 0 ? (int)($service['max_concurrent_customize'] ?? 0) : max(1, (int)($service['max_concurrent'] ?? 1)),
             ]];
         }
 
@@ -282,6 +285,14 @@ class CartModel
             $status = $stored['status'] ?? 'available';
             $available = max(0, $capacity - $confirmed);
 
+            // Per-pool remaining
+            $pkgCap = $stored ? (int)($stored['max_concurrent_package'] ?? 0) : 0;
+            $pkgConfirmed = $stored ? (int)($stored['confirmed_package_count'] ?? 0) : 0;
+            $customCap = $stored ? (int)($stored['max_concurrent_customize'] ?? 0) : 0;
+            $customConfirmed = $stored ? (int)($stored['confirmed_customize_count'] ?? 0) : 0;
+            $availPackage = $pkgCap > 0 ? max(0, $pkgCap - $pkgConfirmed) : $available;
+            $availCustomize = $customCap > 0 ? max(0, $customCap - $customConfirmed) : $available;
+
             if ($status !== 'available' || $available <= 0) {
                 continue;
             }
@@ -292,6 +303,8 @@ class CartModel
                 'end_time' => $slot['end_time'],
                 'display' => $this->formatTimeRange($slot['start_time'], $slot['end_time']),
                 'available' => $available,
+                'available_package' => $availPackage,
+                'available_customize' => $availCustomize,
             ];
         }
 
@@ -404,7 +417,10 @@ class CartModel
     private function storedSlotsForDate(int $serviceId, string $date): array
     {
         $this->db->dbquery(
-            "SELECT id, start_time, end_time, confirmed_count, max_concurrent, status
+            "SELECT id, start_time, end_time,
+                    confirmed_count, confirmed_package_count, confirmed_customize_count,
+                    max_concurrent, max_concurrent_package, max_concurrent_customize,
+                    status
              FROM service_time_slots
              WHERE service_id = :sid AND date = :sdate"
         );
