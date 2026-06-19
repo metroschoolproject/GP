@@ -114,6 +114,185 @@ class Log{
         return $this->db->getsingledata();
     }
 
+    public function getAdminLedger(array $filters, int $limit = 20, int $offset = 0): array
+    {
+        [$systemWhere, $systemBindings] = $this->buildLedgerWhere($filters, 'system', 's');
+        [$lockWhere, $lockBindings] = $this->buildLedgerWhere($filters, 'lockout', 'l');
+
+        $sql = $this->ledgerUnionSql($systemWhere, $lockWhere)
+            . " ORDER BY created_at DESC, source_id DESC LIMIT :ledger_limit OFFSET :ledger_offset";
+
+        $this->db->dbquery($sql);
+        $this->bindLedgerValues(array_merge($systemBindings, $lockBindings));
+        $this->db->dbbind(':ledger_limit', max(1, $limit), PDO::PARAM_INT);
+        $this->db->dbbind(':ledger_offset', max(0, $offset), PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
+    }
+
+    public function getAdminLedgerCount(array $filters): int
+    {
+        [$systemWhere, $systemBindings] = $this->buildLedgerWhere($filters, 'system', 'cs');
+        [$lockWhere, $lockBindings] = $this->buildLedgerWhere($filters, 'lockout', 'cl');
+
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS total FROM (" .
+            $this->ledgerUnionSql($systemWhere, $lockWhere) .
+            ") ledger_count"
+        );
+        $this->bindLedgerValues(array_merge($systemBindings, $lockBindings));
+        $row = $this->db->getsingledata();
+
+        return (int)($row['total'] ?? 0);
+    }
+
+    public function getAdminLedgerStats(): array
+    {
+        $this->db->dbquery("
+            SELECT
+                (SELECT COUNT(*) FROM system_logs) + (SELECT COUNT(*) FROM account_lockout_logs) AS total,
+                (SELECT COUNT(*) FROM system_logs WHERE LOWER(action) LIKE '%fail%') AS warnings,
+                (SELECT COUNT(*) FROM system_logs WHERE LOWER(action) LIKE '%login%' AND LOWER(action) LIKE '%fail%') AS failed_logins,
+                (SELECT COUNT(*) FROM account_lockout_logs WHERE event = 'locked') AS critical
+        ");
+        $row = $this->db->getsingledata() ?: [];
+
+        return [
+            'total' => (int)($row['total'] ?? 0),
+            'warnings' => (int)($row['warnings'] ?? 0),
+            'failed_logins' => (int)($row['failed_logins'] ?? 0),
+            'critical' => (int)($row['critical'] ?? 0),
+        ];
+    }
+
+    private function ledgerUnionSql(string $systemWhere, string $lockWhere): string
+    {
+        return "
+            SELECT
+                'system' AS source_type,
+                sl.id AS source_id,
+                sl.action,
+                CASE
+                    WHEN LOWER(sl.action) LIKE '%fail%' THEN 'warning'
+                    ELSE 'success'
+                END AS severity,
+                sl.user_id,
+                COALESCE(u.name, 'Unknown user') AS user_name,
+                COALESCE(u.email, '—') AS user_email,
+                sl.ip_address,
+                sl.user_agent,
+                sl.created_at,
+                NULL AS reason,
+                NULL AS attempt_count,
+                sl.logout_time,
+                NULL AS locked_until
+            FROM system_logs sl
+            LEFT JOIN users u ON u.user_id = sl.user_id
+            WHERE {$systemWhere}
+
+            UNION ALL
+
+            SELECT
+                'lockout' AS source_type,
+                al.id AS source_id,
+                CONCAT('account_', al.event) AS action,
+                CASE WHEN al.event = 'locked' THEN 'critical' ELSE 'success' END AS severity,
+                al.user_id,
+                COALESCE(u.name, 'Unknown user') AS user_name,
+                COALESCE(u.email, '—') AS user_email,
+                al.ip_address,
+                NULL AS user_agent,
+                al.created_at,
+                al.reason,
+                al.attempt_count,
+                NULL AS logout_time,
+                al.locked_until
+            FROM account_lockout_logs al
+            LEFT JOIN users u ON u.user_id = al.user_id
+            WHERE {$lockWhere}
+        ";
+    }
+
+    private function buildLedgerWhere(array $filters, string $source, string $prefix): array
+    {
+        $alias = $source === 'system' ? 'sl' : 'al';
+        $conditions = ['1 = 1'];
+        $bindings = [];
+        $search = trim((string)($filters['search'] ?? ''));
+        $event = (string)($filters['event'] ?? 'all');
+        $status = (string)($filters['status'] ?? 'all');
+        $dateFrom = trim((string)($filters['date_from'] ?? ''));
+        $dateTo = trim((string)($filters['date_to'] ?? ''));
+
+        if ($search !== '') {
+            $searchValue = '%' . $search . '%';
+            $nameParam = ':' . $prefix . '_search_name';
+            $emailParam = ':' . $prefix . '_search_email';
+            $ipParam = ':' . $prefix . '_search_ip';
+            $eventParam = ':' . $prefix . '_search_event';
+            $conditions[] = "(u.name LIKE {$nameParam} OR u.email LIKE {$emailParam} OR {$alias}.ip_address LIKE {$ipParam}"
+                . ($source === 'system' ? " OR {$alias}.action LIKE {$eventParam}" : " OR {$alias}.event LIKE {$eventParam}")
+                . ')';
+            $bindings[$nameParam] = $searchValue;
+            $bindings[$emailParam] = $searchValue;
+            $bindings[$ipParam] = $searchValue;
+            $bindings[$eventParam] = $searchValue;
+        }
+
+        if ($source === 'system') {
+            if ($event === 'login') {
+                $conditions[] = "LOWER(sl.action) LIKE '%login%'";
+            } elseif ($event === 'otp') {
+                $conditions[] = "LOWER(sl.action) LIKE '%otp%'";
+            } elseif ($event === 'logout') {
+                $conditions[] = "LOWER(sl.action) LIKE '%logout%'";
+            } elseif ($event === 'lockout') {
+                $conditions[] = '1 = 0';
+            }
+
+            if ($status === 'success') {
+                $conditions[] = "LOWER(sl.action) NOT LIKE '%fail%'";
+            } elseif ($status === 'warning') {
+                $conditions[] = "LOWER(sl.action) LIKE '%fail%'";
+            } elseif ($status === 'critical') {
+                $conditions[] = '1 = 0';
+            }
+        } else {
+            if (in_array($event, ['login', 'otp', 'logout'], true)) {
+                $conditions[] = '1 = 0';
+            }
+
+            if ($status === 'success') {
+                $conditions[] = "al.event = 'unlocked'";
+            } elseif ($status === 'warning') {
+                $conditions[] = '1 = 0';
+            } elseif ($status === 'critical') {
+                $conditions[] = "al.event = 'locked'";
+            }
+        }
+
+        if ($dateFrom !== '') {
+            $fromParam = ':' . $prefix . '_from';
+            $conditions[] = "{$alias}.created_at >= {$fromParam}";
+            $bindings[$fromParam] = $dateFrom . ' 00:00:00';
+        }
+
+        if ($dateTo !== '') {
+            $toParam = ':' . $prefix . '_to';
+            $conditions[] = "{$alias}.created_at <= {$toParam}";
+            $bindings[$toParam] = $dateTo . ' 23:59:59';
+        }
+
+        return [implode(' AND ', $conditions), $bindings];
+    }
+
+    private function bindLedgerValues(array $bindings): void
+    {
+        foreach ($bindings as $param => $value) {
+            $this->db->dbbind($param, $value);
+        }
+    }
+
     public function detect_otpfail($email){
         $this->db->dbquery("
             SELECT COUNT(*) AS otpfails

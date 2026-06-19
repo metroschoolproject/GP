@@ -67,11 +67,26 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-header-nav a{padding:8px 18px;border-radius:999px;font-size:13px;font-weight:700;color:#51483f;transition:all .2s}
 .gp-header-nav a:hover,.gp-header-nav a.active{color:var(--c-red);background:rgba(185,74,72,.08)}
 .gp-header-actions{display:flex;align-items:center;gap:12px;justify-content:flex-end}
+.gp-cart-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 14px 8px 10px;border-radius:999px;border:1px solid var(--c-rule);background:var(--c-white);color:var(--c-strong);font-size:13px;font-weight:700;transition:all .2s}
+.gp-cart-badge:hover{border-color:var(--c-red);color:var(--c-red)}
+.gp-cart-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--c-strong);color:#fff;font-size:10px;font-weight:700}
 .gp-header-cta{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 20px;border-radius:999px;border:none;background:var(--c-strong);color:#fffaf3;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(118,90,70,.22);transition:all .2s}
 .gp-header-cta:hover{background:var(--c-red);transform:translateY(-1px)}
+.gp-profile-wrap{position:relative}
+.gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--c-rule);background:var(--c-white);cursor:pointer;color:var(--c-strong);font-size:13px;font-weight:600;transition:all .2s}
+.gp-profile-btn:hover{border-color:var(--c-red);color:var(--c-red)}
+.gp-profile-avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--c-strong);color:#fff4e6;font-size:12px;font-weight:800}
+.gp-chevron{opacity:.6;transition:transform .2s}
+.gp-profile-btn[aria-expanded="true"] .gp-chevron{transform:rotate(180deg)}
+.gp-profile-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:200px;padding:6px;border-radius:12px;border:1px solid var(--c-rule);background:var(--c-white);box-shadow:0 12px 35px rgba(15,23,42,.10);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s var(--ease);z-index:200}
+.gp-profile-btn[aria-expanded="true"]+.gp-profile-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.gp-menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--c-text);transition:background .15s;text-decoration:none}
+.gp-menu-item:hover{background:rgba(185,74,72,.06)}
+.gp-menu-item--danger{color:var(--c-red)}
+.gp-menu-item--danger:hover{background:rgba(185,74,72,.08)}
 
 /* ── PAGE LAYOUT ── */
-.wl-page{padding:40px var(--pad-x) 80px;min-height:80vh}
+.wl-page{padding:40px var(--pad-x) 80px;min-height:80vh;max-width:1200px;margin:0 auto}
 .wl-page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}
 .wl-page-title{font-family:var(--font-display);font-size:clamp(28px,3.5vw,42px);font-weight:600;color:var(--c-text);line-height:1}
 .wl-page-count{font-size:13px;color:var(--c-pale);font-weight:500}
@@ -85,7 +100,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   padding:10px 14px;border-radius:10px;
   font-size:13px;font-weight:600;
   color:var(--c-accent);cursor:pointer;
-  transition:all .15s;border:none;background:transparent;width:100%;text-align:left;
+  transition:all .15s;border:none;background:transparent;width:100%;text-align:left;text-decoration:none;
 }
 .wl-col-item:hover{background:rgba(118,90,70,.06);color:var(--c-strong)}
 .wl-col-item.is-active{background:rgba(185,74,72,.08);color:var(--c-red)}
@@ -197,10 +212,11 @@ button,input,select{font-family:var(--font-body);outline:none}
 /* Move-to & notes bar */
 .wl-card-tools{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--c-rule)}
 .wl-card-select{
-  flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--c-rule);
+  flex:1;padding:6px 28px 6px 10px;border-radius:8px;border:1px solid var(--c-rule);
   font-size:11px;color:var(--c-accent);background:var(--c-white);cursor:pointer;
-  background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239b7d6b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 10px center;appearance:none;padding-right:28px;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239b7d6b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
 }
 .wl-card-note-btn{
   display:grid;place-items:center;width:30px;height:30px;border-radius:8px;
@@ -263,14 +279,16 @@ button,input,select{font-family:var(--font-body);outline:none}
     <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
   </nav>
   <div class="gp-header-actions">
-    <!-- Wishlist badge -->
-    <a href="<?= $wishlistPageUrl ?>" class="gp-cart-badge" aria-label="Wishlist" style="border-color:rgba(229,91,91,.2);background:rgba(229,91,91,.04)">
+    <?php if ($isLoggedIn && $wishlistCount > 0): ?>
+    <a class="gp-cart-badge" href="<?= $wishlistPageUrl ?>" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18);background:rgba(229,91,91,.04)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      <?php if ($wishlistCount > 0): ?>
-        <span class="gp-cart-count" style="background:var(--c-heart)"><?= $wishlistCount ?></span>
-      <?php endif; ?>
+      <span class="gp-cart-count" style="background:var(--c-heart)"><?= $wishlistCount ?></span>
     </a>
-    <!-- Cart badge -->
+    <?php elseif ($isLoggedIn): ?>
+    <a class="gp-cart-badge" href="<?= $wishlistPageUrl ?>" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </a>
+    <?php endif; ?>
     <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       <?php if ($cartCount > 0): ?>
@@ -279,15 +297,15 @@ button,input,select{font-family:var(--font-body);outline:none}
     </a>
     <?php if ($isLoggedIn): ?>
     <div class="gp-profile-wrap">
-      <button class="gp-profile-btn" type="button" aria-expanded="false" style="display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid #ead8c7;background:#fff;cursor:pointer;color:#765a46;font-family:Poppins,sans-serif;font-size:13px;font-weight:600;transition:all .2s">
-        <span class="gp-profile-avatar" style="display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#765a46;color:#fff4e6;font-size:12px;font-weight:800"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
+      <button class="gp-profile-btn" type="button" aria-expanded="false">
+        <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
         <span style="white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis"><?= $h(explode(' ', $_SESSION['session_name'] ?? 'User')[0]) ?></span>
         <svg class="gp-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <div class="gp-profile-menu" style="position:absolute;top:calc(100% + 8px);right:0;min-width:200px;padding:6px;border-radius:12px;border:1px solid #ead8c7;background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.10);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s cubic-bezier(.19,1,.22,1);z-index:200">
+      <div class="gp-profile-menu">
         <a class="gp-menu-item" href="<?= URLROOT ?>/main/wishlist">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          My Wishlist
+          My Wishlist<?php if ($wishlistCount > 0): ?> · <?= $wishlistCount ?><?php endif; ?>
         </a>
         <a class="gp-menu-item" href="<?= URLROOT ?>/booking/myBookings">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -330,32 +348,29 @@ button,input,select{font-family:var(--font-body);outline:none}
           $isDefault = !empty($col['is_default']);
           $colUrl = $wishlistPageUrl . ($colId !== null ? '?collection=' . (int)$colId : '');
           ?>
-          <div class="wl-col-row" data-collection-id="<?= $colId ?? '' ?>">
-            <a class="wl-col-item <?= $isActive ? 'is-active' : '' ?>" href="<?= $h($colUrl) ?>" data-collection-id="<?= $colId ?? '' ?>">
-              <span class="wl-col-icon">
-                <?= $isDefault ? '📋' : '📁' ?>
-              </span>
-              <span class="wl-col-name"><?= $h($colName) ?></span>
+          <div style="position:relative">
+            <a class="wl-col-item <?= $isActive ? 'is-active' : '' ?>" href="<?= $h($colUrl) ?>">
+              <span class="wl-col-icon"><?= $isDefault ? '📋' : '📁' ?></span>
+              <span><?= $h($colName) ?></span>
               <span class="wl-col-count"><?= $colCount ?></span>
               <?php if (!$isDefault): ?>
               <span class="wl-col-actions" onclick="event.preventDefault();event.stopPropagation()">
-                <button title="Rename" onclick="startRename(<?= (int)$colId ?>, '<?= $h($colName) ?>')">✎</button>
-                <button title="Delete" onclick="deleteCollection(<?= (int)$colId ?>)">🗑</button>
+                <button title="Rename" onclick="startRename(<?= (int)$colId ?>,'<?= $h($colName) ?>')">✎</button>
+                <button title="Delete" onclick="deleteCollection(<?= (int)$colId ?>)">×</button>
               </span>
               <?php endif; ?>
             </a>
+            <?php if (!$isDefault): ?>
             <div class="wl-col-rename-form" id="renameForm-<?= (int)$colId ?>">
               <input type="text" id="renameInput-<?= (int)$colId ?>" value="<?= $h($colName) ?>" maxlength="100">
               <button onclick="renameCollection(<?= (int)$colId ?>)">Save</button>
             </div>
+            <?php endif; ?>
           </div>
         <?php endforeach; ?>
       </div>
 
-      <!-- Create new collection -->
-      <button class="wl-col-add" id="wlAddColBtn" onclick="showAddCollection()">
-        + New collection
-      </button>
+      <button class="wl-col-add" id="wlAddColBtn" onclick="showAddCollection()">+ New collection</button>
       <div class="wl-col-add-form" id="wlAddColForm">
         <input type="text" id="wlNewColName" placeholder="Collection name…" maxlength="100">
         <div class="wl-col-add-btns">
@@ -395,21 +410,19 @@ button,input,select{font-family:var(--font-body);outline:none}
           $isActive = (bool)($item['is_active'] ?? true);
           $hasImage = $svcImg !== '';
           $colId = $item['collection_id'] ?? null;
-          ?>
+          $ratingVal = (float)($item['rating'] ?? 0);
+          $reviewCnt = (int)($item['review_count'] ?? 0);
+          $bookingLabel = ($item['booking_type'] ?? 'fullday') === 'slot' ? 'Per session' : (($item['booking_type'] ?? '') === 'flexible' ? 'Flexible' : 'Full day');
+        ?>
           <article class="wl-card" id="wlCard-<?= $favId ?>">
-            <!-- Heart button -->
-            <button class="wl-card-heart is-saved" data-favorite-id="<?= $favId ?>" data-item-type="service" data-item-id="<?= $svcId ?>" aria-label="Remove from wishlist" onclick="toggleWishlist(this, <?= $favId ?>, 'service', <?= $svcId ?>, null)">
-              ❤️
-            </button>
+            <button class="wl-card-heart is-saved" data-favorite-id="<?= $favId ?>" data-item-type="service" data-item-id="<?= $svcId ?>" aria-label="Remove from wishlist" onclick="toggleWishlist(this, <?= $favId ?>, 'service', <?= $svcId ?>)">♥</button>
 
-            <!-- Badge: unavailable/available -->
             <?php if (!$isActive): ?>
               <span class="wl-card-badge wl-card-badge--unavailable">Currently unavailable</span>
             <?php else: ?>
               <span class="wl-card-badge"><?= $h($svcCat) ?></span>
             <?php endif; ?>
 
-            <!-- Image -->
             <a class="wl-card-img" href="<?= $h($detailUrl($svcId)) ?>" tabindex="-1" aria-hidden="true">
               <?php if ($hasImage): ?>
                 <img src="<?= $h($svcImg) ?>" alt="<?= $h($svcName) ?>" loading="lazy">
@@ -419,19 +432,19 @@ button,input,select{font-family:var(--font-body);outline:none}
             </a>
 
             <div class="wl-card-body">
-              <div class="wl-card-sup">
-                <span><?= $h($svcSup) ?></span>
-              </div>
+              <div class="wl-card-sup"><?= $h($svcSup) ?></div>
               <h3 class="wl-card-name"><?= $h($svcName) ?></h3>
               <div class="wl-card-meta">
-                <span>⭐ <?= number_format((float)($item['rating'] ?? 0), 1) ?></span>
-                <span>💬 <?= (int)($item['review_count'] ?? 0) ?></span>
+                <span>⭐ <?= $ratingVal > 0 ? number_format($ratingVal, 1) : 'New' ?></span>
+                <span>💬 <?= $reviewCnt ?></span>
+                <span>·</span>
+                <span><?= $h($bookingLabel) ?></span>
               </div>
 
               <div class="wl-card-foot">
                 <div>
                   <span class="wl-card-price"><?= $moneyRange($item) ?></span>
-                  <span class="wl-card-unit"><?= $h(($item['booking_type'] ?? 'fullday') === 'slot' ? 'Per session' : (($item['booking_type'] ?? '') === 'flexible' ? 'Flexible' : 'Full day')) ?></span>
+                  <span class="wl-card-unit"><?= $h($bookingLabel) ?></span>
                 </div>
                 <a class="wl-card-btn" href="<?= $h($detailUrl($svcId)) ?>">View</a>
               </div>
@@ -450,9 +463,7 @@ button,input,select{font-family:var(--font-body);outline:none}
                     </option>
                   <?php endforeach; ?>
                 </select>
-                <button class="wl-card-note-btn <?= $svcNote !== '' ? 'has-note' : '' ?>" title="<?= $svcNote !== '' ? $h($svcNote) : 'Add note' ?>" onclick="toggleNote(<?= $favId ?>)" data-fav-id="<?= $favId ?>">
-                  💬
-                </button>
+                <button class="wl-card-note-btn <?= $svcNote !== '' ? 'has-note' : '' ?>" title="<?= $svcNote !== '' ? $h($svcNote) : 'Add note' ?>" onclick="toggleNote(<?= $favId ?>)" data-fav-id="<?= $favId ?>">💬</button>
               </div>
               <div class="wl-card-note-inline" id="noteInline-<?= $favId ?>">
                 <input type="text" id="noteInput-<?= $favId ?>" value="<?= $h($svcNote) ?>" placeholder="Add a note…" maxlength="500">
@@ -475,57 +486,51 @@ button,input,select{font-family:var(--font-body);outline:none}
 'use strict';
 
 /* ── profile dropdown ── */
-document.querySelectorAll('.gp-profile-btn').forEach(btn=>{
-  btn.addEventListener('click',e=>{
+document.querySelectorAll('.gp-profile-btn').forEach(function(btn){
+  btn.addEventListener('click', function(e){
     e.stopPropagation();
-    const was=btn.getAttribute('aria-expanded')==='true';
-    document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
-    btn.setAttribute('aria-expanded',String(!was));
+    var was = btn.getAttribute('aria-expanded') === 'true';
+    document.querySelectorAll('.gp-profile-btn').forEach(function(b){ b.setAttribute('aria-expanded', 'false'); });
+    btn.setAttribute('aria-expanded', String(!was));
   });
 });
-document.addEventListener('click',()=>document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false')));
+document.addEventListener('click', function(){
+  document.querySelectorAll('.gp-profile-btn').forEach(function(b){ b.setAttribute('aria-expanded', 'false'); });
+});
 
 /* ── toast ── */
-let toastTimer;
+var toastTimer;
 function showToast(msg, link){
   var t = document.getElementById('gpToast');
-  t.innerHTML = link ? msg + ' <a href="'+link+'">View →</a>' : msg;
+  t.innerHTML = link ? msg + ' <a href="' + link + '">View →</a>' : msg;
   t.classList.add('is-shown');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ t.classList.remove('is-shown'); }, 3500);
 }
 
 /* ── wishlist toggle ── */
-window.toggleWishlist = function(btn, favoriteId, itemType, itemId, collectionId){
+window.toggleWishlist = function(btn, favoriteId, itemType, itemId){
   btn.classList.add('is-loading');
   fetch('<?= URLROOT ?>/main/toggleWishlist', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({item_type: itemType, item_id: itemId, collection_id: collectionId})
+    body: JSON.stringify({item_type: itemType, item_id: itemId, collection_id: null})
   })
   .then(function(r){ return r.json(); })
   .then(function(d){
     btn.classList.remove('is-loading');
-    if (d.ok) {
-      if (d.action === 'removed') {
-        // Remove the card with animation
-        var card = document.getElementById('wlCard-' + favoriteId);
-        if (card) {
-          card.style.opacity = '0';
-          card.style.transform = 'scale(.95)';
-          card.style.transition = 'all .25s ease';
-          setTimeout(function(){
-            card.remove();
-            // Reload if no cards left
-            if (!document.querySelector('.wl-card')) {
-              location.reload();
-            }
-          }, 260);
-        }
-        showToast('Removed from wishlist');
+    if (d.ok && d.action === 'removed') {
+      var card = document.getElementById('wlCard-' + favoriteId);
+      if (card) {
+        card.style.opacity = '0';
+        card.style.transform = 'scale(.95)';
+        card.style.transition = 'all .25s ease';
+        setTimeout(function(){
+          card.remove();
+          if (!document.querySelector('.wl-card')) { location.reload(); }
+        }, 260);
       }
-    } else {
-      showToast(d.error || 'Something went wrong');
+      showToast('Removed from wishlist');
     }
   })
   .catch(function(){ btn.classList.remove('is-loading'); });
@@ -536,12 +541,10 @@ window.showAddCollection = function(){
   document.getElementById('wlAddColForm').classList.add('is-open');
   document.getElementById('wlNewColName').focus();
 };
-
 window.hideAddCollection = function(){
   document.getElementById('wlAddColForm').classList.remove('is-open');
   document.getElementById('wlNewColName').value = '';
 };
-
 window.createCollection = function(){
   var name = document.getElementById('wlNewColName').value.trim();
   if (!name) return;
@@ -552,12 +555,8 @@ window.createCollection = function(){
   })
   .then(function(r){ return r.json(); })
   .then(function(d){
-    if (d.ok) {
-      showToast('Collection "' + d.name + '" created');
-      setTimeout(function(){ location.reload(); }, 600);
-    } else {
-      showToast(d.error || 'Failed to create collection');
-    }
+    if (d.ok) { location.reload(); }
+    else { showToast(d.error || 'Failed to create collection'); }
   })
   .catch(function(){});
 };
@@ -566,13 +565,8 @@ window.startRename = function(colId, currentName){
   var form = document.getElementById('renameForm-' + colId);
   var input = document.getElementById('renameInput-' + colId);
   form.classList.toggle('is-open');
-  if (form.classList.contains('is-open')) {
-    input.value = currentName;
-    input.focus();
-    input.select();
-  }
+  if (form.classList.contains('is-open')) { input.value = currentName; input.focus(); input.select(); }
 };
-
 window.renameCollection = function(colId){
   var name = document.getElementById('renameInput-' + colId).value.trim();
   if (!name) return;
@@ -601,9 +595,7 @@ window.deleteCollection = function(colId){
     if (d.ok) {
       showToast('Collection deleted');
       setTimeout(function(){ location.href = '<?= $wishlistPageUrl ?>'; }, 500);
-    } else {
-      showToast(d.error || 'Failed to delete');
-    }
+    } else { showToast(d.error || 'Failed to delete'); }
   })
   .catch(function(){});
 };
@@ -616,11 +608,7 @@ window.moveToCollection = function(favId, collectionId){
     body: JSON.stringify({favorite_id: favId, collection_id: collectionId === '' ? null : parseInt(collectionId)})
   })
   .then(function(r){ return r.json(); })
-  .then(function(d){
-    if (d.ok) {
-      showToast('Moved to collection');
-    }
-  })
+  .then(function(d){ if (d.ok) { showToast('Moved to collection'); } })
   .catch(function(){});
 };
 
@@ -628,11 +616,8 @@ window.moveToCollection = function(favId, collectionId){
 window.toggleNote = function(favId){
   var inline = document.getElementById('noteInline-' + favId);
   inline.classList.toggle('is-open');
-  if (inline.classList.contains('is-open')) {
-    document.getElementById('noteInput-' + favId).focus();
-  }
+  if (inline.classList.contains('is-open')) { document.getElementById('noteInput-' + favId).focus(); }
 };
-
 window.saveNote = function(favId){
   var note = document.getElementById('noteInput-' + favId).value;
   fetch('<?= URLROOT ?>/main/addNote', {
@@ -643,16 +628,10 @@ window.saveNote = function(favId){
   .then(function(r){ return r.json(); })
   .then(function(d){
     if (d.ok) {
-      var inline = document.getElementById('noteInline-' + favId);
+      document.getElementById('noteInline-' + favId).classList.remove('is-open');
       var btn = document.querySelector('.wl-card-note-btn[data-fav-id="' + favId + '"]');
-      inline.classList.remove('is-open');
-      if (note.trim() !== '') {
-        btn.classList.add('has-note');
-        btn.title = note;
-      } else {
-        btn.classList.remove('has-note');
-        btn.title = 'Add note';
-      }
+      if (note.trim() !== '') { btn.classList.add('has-note'); btn.title = note; }
+      else { btn.classList.remove('has-note'); btn.title = 'Add note'; }
       showToast('Note saved');
     }
   })

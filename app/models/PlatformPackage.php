@@ -57,6 +57,7 @@ class PlatformPackage
                        p.description,
                        p.tagline,
                        p.base_price,
+                       p.max_concurrent,
                        p.image_url,
                        p.is_active,
                        p.status,
@@ -197,6 +198,7 @@ class PlatformPackage
                     ' . $this->packageCustomizePriceSql() . ' AS customize_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
+                    pi.max_concurrent AS item_max_concurrent,
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,
@@ -242,14 +244,15 @@ class PlatformPackage
         $categoryValueSql = $categoryColumn ? ', :category_id' : '';
 
         $this->db->dbquery(
-            'INSERT INTO packages (name, slug, description, tagline, base_price, image_url, is_active, status, sort_order' . $categoryFieldSql . ')
-             VALUES (:name, :slug, :description, :tagline, :base_price, :image_url, 0, :status, :sort_order' . $categoryValueSql . ')'
+            'INSERT INTO packages (name, slug, description, tagline, base_price, max_concurrent, image_url, is_active, status, sort_order' . $categoryFieldSql . ')
+             VALUES (:name, :slug, :description, :tagline, :base_price, :max_concurrent, :image_url, 0, :status, :sort_order' . $categoryValueSql . ')'
         );
         $this->db->dbbind(':name', $name);
         $this->db->dbbind(':slug', $slug);
         $this->db->dbbind(':description', trim((string)($data['description'] ?? '')));
         $this->db->dbbind(':tagline', trim((string)($data['tagline'] ?? '')));
         $this->db->dbbind(':base_price', (float)($data['base_price'] ?? 0));
+        $this->db->dbbind(':max_concurrent', max(0, min(65535, (int)($data['max_concurrent'] ?? 0))), PDO::PARAM_INT);
         $this->db->dbbind(':image_url', trim((string)($data['image_url'] ?? '')));
         $this->db->dbbind(':status', 'draft');
         $this->db->dbbind(':sort_order', (int)($data['sort_order'] ?? 0));
@@ -294,6 +297,11 @@ class PlatformPackage
         if (array_key_exists('base_price', $data)) {
             $fields[] = 'base_price = :base_price';
             $bindings[':base_price'] = (float)$data['base_price'];
+        }
+
+        if (array_key_exists('max_concurrent', $data)) {
+            $fields[] = 'max_concurrent = :max_concurrent';
+            $bindings[':max_concurrent'] = max(0, min(65535, (int)$data['max_concurrent']));
         }
 
         if (array_key_exists('is_active', $data)) {
@@ -366,14 +374,14 @@ class PlatformPackage
         $draftSlug = $this->uniqueSlug($original['slug'] . '-draft-' . time());
         $categoryColumn = $this->hasPackageCategoryColumn();
 
-        $fields = 'name, slug, description, tagline, base_price, image_url, is_active, status, replaces_package_id, sort_order';
+        $fields = 'name, slug, description, tagline, base_price, max_concurrent, image_url, is_active, status, replaces_package_id, sort_order';
         if ($categoryColumn) {
             $fields .= ', category_id';
         }
 
         $this->db->dbquery(
             "INSERT INTO packages ({$fields})
-             SELECT name, :draft_slug, description, tagline, base_price, image_url, 0, 'draft', :original_id, sort_order"
+             SELECT name, :draft_slug, description, tagline, base_price, max_concurrent, image_url, 0, 'draft', :original_id, sort_order"
             . ($categoryColumn ? ', category_id' : '') . "
              FROM packages
              WHERE package_id = :original_package_id
@@ -408,11 +416,13 @@ class PlatformPackage
             . ($this->hasPackagePriceColumn() ? ' customize_price,' : '')
             . ($this->hasPackageQuantityColumns() ? ' quantity_type, quantity,' : '')
             . ($this->hasPackageVenueRoomColumn() ? ' venue_room_id' : '')
+            . ($this->hasPackageItemConcurrentColumn() ? ' max_concurrent' : '')
             . ')'
             . ' SELECT :target_id, category_id, service_id, default_supplier_id, default_price,'
             . ($this->hasPackagePriceColumn() ? ' customize_price,' : '')
             . ($this->hasPackageQuantityColumns() ? ' quantity_type, quantity,' : '')
             . ($this->hasPackageVenueRoomColumn() ? ' venue_room_id' : '')
+            . ($this->hasPackageItemConcurrentColumn() ? ' max_concurrent' : '')
             . ' FROM package_items'
             . ' WHERE package_id = :source_id'
         );
@@ -538,7 +548,7 @@ class PlatformPackage
         return $this->db->dbexecute();
     }
 
-    public function addPackageService($packageId, $serviceId, $quantity = null, $hallId = null, $attireItemId = null, $decorationStyleId = null)
+    public function addPackageService($packageId, $serviceId, $quantity = null, $hallId = null, $attireItemId = null, $decorationStyleId = null, $itemMaxConcurrent = null)
     {
         $service = $this->getServiceForPackageItem($serviceId);
         if (!$service) {
@@ -603,6 +613,7 @@ class PlatformPackage
         $quantityColumns = $this->hasPackageQuantityColumns();
         $hallColumn = $this->hasPackageVenueRoomColumn();
         $priceColumn = $this->hasPackagePriceColumn();
+        $itemConcurrentColumn = $this->hasPackageItemConcurrentColumn();
 
         $quantityColumnsSql = $quantityColumns ? ', quantity_type, quantity' : '';
         $quantityValuesSql = $quantityColumns ? ', :quantity_type, :quantity' : '';
@@ -614,10 +625,12 @@ class PlatformPackage
         $decoValueSql = ', :decoration_style_id';
         $priceSql = $priceColumn ? ', customize_price' : '';
         $priceVal = $priceColumn ? ', :customize_price' : '';
+        $concurrentCol = $itemConcurrentColumn ? ', max_concurrent' : '';
+        $concurrentVal = $itemConcurrentColumn ? ', :item_max_concurrent' : '';
 
         $this->db->dbquery(
-            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price' . $priceSql . $quantityColumnsSql . $hallColumnSql . $attireColumnSql . $decoColumnSql . ')
-             VALUES (:package_id, :category_id, :service_id, :supplier_id, :default_price' . $priceVal . $quantityValuesSql . $hallValueSql . $attireValueSql . $decoValueSql . ')'
+            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price' . $priceSql . $quantityColumnsSql . $hallColumnSql . $attireColumnSql . $decoColumnSql . $concurrentCol . ')
+             VALUES (:package_id, :category_id, :service_id, :supplier_id, :default_price' . $priceVal . $quantityValuesSql . $hallValueSql . $attireValueSql . $decoValueSql . $concurrentVal . ')'
         );
         $this->db->dbbind(':package_id', (int)$packageId);
         $this->db->dbbind(':category_id', (int)($service['category_id'] ?? 0));
@@ -637,6 +650,12 @@ class PlatformPackage
         }
         $this->db->dbbind(':attire_item_id', $attireItemId > 0 ? $attireItemId : null, $attireItemId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $this->db->dbbind(':decoration_style_id', $decorationStyleId > 0 ? $decorationStyleId : null, $decorationStyleId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        if ($itemConcurrentColumn) {
+            $itemMaxConcurrent = $itemMaxConcurrent !== null
+                ? max(0, min(65535, (int)$itemMaxConcurrent))
+                : null;
+            $this->db->dbbind(':item_max_concurrent', $itemMaxConcurrent, $itemMaxConcurrent !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
 
         return $this->db->dbexecute();
     }
@@ -877,6 +896,7 @@ class PlatformPackage
                        p.description,
                        p.tagline,
                        p.base_price,
+                       p.max_concurrent,
                        p.image_url,
                        p.sort_order,
                        COUNT(pi.service_id) AS item_count,
@@ -1056,6 +1076,7 @@ class PlatformPackage
                     ' . $this->packageCustomizePriceSql() . ' AS customize_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
+                    pi.max_concurrent AS item_max_concurrent,
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,
@@ -1163,7 +1184,8 @@ class PlatformPackage
                     ' . $this->packageLineTotalSql() . ' AS package_price,
                     ' . $this->packageCustomizePriceSql() . ' AS customize_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
-                    ' . $this->packageQuantitySql() . ' AS quantity
+                    ' . $this->packageQuantitySql() . ' AS quantity,
+                    pi.max_concurrent AS item_max_concurrent
              FROM package_items pi
              INNER JOIN packages p ON p.package_id = pi.package_id
              LEFT JOIN services svc ON svc.id = pi.service_id
@@ -1299,6 +1321,7 @@ class PlatformPackage
                     p.description,
                     p.tagline,
                     p.base_price,
+                    p.max_concurrent,
                     p.image_url,
                     COUNT(pi.service_id) AS item_count,
                     COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total
@@ -1620,6 +1643,15 @@ class PlatformPackage
         static $has = null;
         if ($has !== null) return $has;
         $this->db->dbquery("SHOW COLUMNS FROM package_items LIKE 'customize_price'");
+        $has = (bool)$this->db->getsingledata();
+        return $has;
+    }
+
+    private function hasPackageItemConcurrentColumn()
+    {
+        static $has = null;
+        if ($has !== null) return $has;
+        $this->db->dbquery("SHOW COLUMNS FROM package_items LIKE 'max_concurrent'");
         $has = (bool)$this->db->getsingledata();
         return $has;
     }

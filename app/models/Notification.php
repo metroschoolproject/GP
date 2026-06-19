@@ -116,6 +116,123 @@ class Notification
         return (int)($this->db->getsingledata()['total'] ?? 0);
     }
 
+    public function getAdminInbox($userId, array $filters, int $limit = 20, int $offset = 0): array
+    {
+        [$where, $bindings] = $this->buildInboxWhere($userId, $filters, 'inbox');
+        $this->db->dbquery(
+            "SELECT id, title, message, type, reference_type, reference_id, is_read, created_at
+             FROM notifications
+             WHERE {$where}
+             ORDER BY created_at DESC, id DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $this->bindInboxValues($bindings);
+        $this->db->dbbind(':limit', max(1, min(100, $limit)), PDO::PARAM_INT);
+        $this->db->dbbind(':offset', max(0, $offset), PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
+    }
+
+    public function getAdminInboxCount($userId, array $filters): int
+    {
+        [$where, $bindings] = $this->buildInboxWhere($userId, $filters, 'count');
+        $this->db->dbquery("SELECT COUNT(*) AS total FROM notifications WHERE {$where}");
+        $this->bindInboxValues($bindings);
+
+        return (int)($this->db->getsingledata()['total'] ?? 0);
+    }
+
+    public function getAdminInboxStats($userId): array
+    {
+        $where = $userId ? '(user_id = :stats_user_id OR user_id IS NULL)' : '1 = 1';
+        $this->db->dbquery(
+            "SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS unread,
+                SUM(CASE WHEN type = 'booking' THEN 1 ELSE 0 END) AS booking,
+                SUM(CASE WHEN type = 'payment' THEN 1 ELSE 0 END) AS payment,
+                SUM(CASE WHEN type = 'approval' THEN 1 ELSE 0 END) AS approval,
+                SUM(CASE WHEN type = 'system' THEN 1 ELSE 0 END) AS system
+             FROM notifications
+             WHERE {$where}"
+        );
+        if ($userId) {
+            $this->db->dbbind(':stats_user_id', (int)$userId, PDO::PARAM_INT);
+        }
+        $row = $this->db->getsingledata() ?: [];
+
+        return [
+            'total' => (int)($row['total'] ?? 0),
+            'unread' => (int)($row['unread'] ?? 0),
+            'booking' => (int)($row['booking'] ?? 0),
+            'payment' => (int)($row['payment'] ?? 0),
+            'approval' => (int)($row['approval'] ?? 0),
+            'system' => (int)($row['system'] ?? 0),
+        ];
+    }
+
+    public function markAllRead($userId = null): bool
+    {
+        $query = 'UPDATE notifications SET is_read = 1 WHERE is_read = 0';
+        if ($userId) {
+            $query .= ' AND (user_id = :mark_all_user_id OR user_id IS NULL)';
+        }
+
+        $this->db->dbquery($query);
+        if ($userId) {
+            $this->db->dbbind(':mark_all_user_id', (int)$userId, PDO::PARAM_INT);
+        }
+
+        return $this->db->dbexecute();
+    }
+
+    private function buildInboxWhere($userId, array $filters, string $prefix): array
+    {
+        $conditions = [];
+        $bindings = [];
+        $type = (string)($filters['type'] ?? 'all');
+        $state = (string)($filters['state'] ?? 'all');
+        $search = trim((string)($filters['search'] ?? ''));
+
+        if ($userId) {
+            $userParam = ':' . $prefix . '_user_id';
+            $conditions[] = "(user_id = {$userParam} OR user_id IS NULL)";
+            $bindings[$userParam] = (int)$userId;
+        } else {
+            $conditions[] = '1 = 1';
+        }
+
+        if (in_array($type, ['booking', 'payment', 'approval', 'system'], true)) {
+            $typeParam = ':' . $prefix . '_type';
+            $conditions[] = "type = {$typeParam}";
+            $bindings[$typeParam] = $type;
+        }
+
+        if ($state === 'unread') {
+            $conditions[] = 'is_read = 0';
+        }
+
+        if ($search !== '') {
+            $titleParam = ':' . $prefix . '_title';
+            $messageParam = ':' . $prefix . '_message';
+            $referenceParam = ':' . $prefix . '_reference';
+            $searchValue = '%' . $search . '%';
+            $conditions[] = "(title LIKE {$titleParam} OR message LIKE {$messageParam} OR reference_type LIKE {$referenceParam})";
+            $bindings[$titleParam] = $searchValue;
+            $bindings[$messageParam] = $searchValue;
+            $bindings[$referenceParam] = $searchValue;
+        }
+
+        return [implode(' AND ', $conditions), $bindings];
+    }
+
+    private function bindInboxValues(array $bindings): void
+    {
+        foreach ($bindings as $param => $value) {
+            $this->db->dbbind($param, $value);
+        }
+    }
+
     public function getById($notificationId, $userId = null)
     {
         $query = 'SELECT id, title, message, type, reference_type, reference_id, is_read, created_at

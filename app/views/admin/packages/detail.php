@@ -496,6 +496,13 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         </div>
 
         <div class="field">
+          <label>Max Concurrent Bookings (per date)</label>
+          <input type="number" name="max_concurrent" min="0" step="1"
+                 value="<?= (int)($package['max_concurrent'] ?? 0) ?>">
+          <div class="stat-sub" style="margin-top:4px">How many of this package can be booked for the same wedding date. 0 = unlimited.</div>
+        </div>
+
+        <div class="field">
           <label>Description</label>
           <textarea name="description"><?= $h($package['description'] ?? '') ?></textarea>
         </div>
@@ -814,6 +821,13 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         </div>
         <input type="hidden" name="guest_count" id="guestCountHidden" value="100">
 
+        <!-- ── Per-item concurrency override ─────────────────────────── -->
+        <div id="itemConcurrentRow" class="guest-count-row" style="display:none">
+          <label for="itemConcurrentInput">Max concurrent (per date)</label>
+          <input id="itemConcurrentInput" type="number" name="max_concurrent" min="0" step="1" value="0">
+          <span class="guest-count-note">How many bookings of this service inside this package can share one wedding date. 0 = use the service default.</span>
+        </div>
+
         <!-- Confirm / Add button -->
         <div class="add-svc-actions">
           <button class="btn-primary" type="submit" id="addSvcBtn" disabled>
@@ -1107,6 +1121,12 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         guestCountHidden.name = '';
         guestCountHidden.value = '';
       }
+    }
+
+    /* show per-item concurrency override for all services */
+    const itemConcurrentRow = document.getElementById('itemConcurrentRow');
+    if (itemConcurrentRow) {
+      itemConcurrentRow.style.display = hasVal ? 'flex' : 'none';
     }
 
     if (hasVal) {
