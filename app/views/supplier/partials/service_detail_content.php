@@ -9,6 +9,18 @@ $rentBuyPackagePrice = (float)($rentalPricing['buy_package_price'] ?? $rentalPri
 $rentBuyCustomizePrice = (float)($rentalPricing['buy_customize_price'] ?? $rentalPricing['buy_price'] ?? $rentBuyPackagePrice);
 $hasRentalPricing = $rentBorrowPackagePrice > 0 || $rentBorrowCustomizePrice > 0 || $rentBuyPackagePrice > 0 || $rentBuyCustomizePrice > 0;
 $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
+if ($isRental && !empty($attireItems)) {
+  $borrowPrices = [];
+  $buyPrices = [];
+  foreach ($attireItems as $attireItem) {
+    $borrow = (float)($attireItem['borrow_package_price'] ?? 0);
+    $buy = (float)($attireItem['buy_package_price'] ?? 0);
+    if ($borrow > 0) $borrowPrices[] = $borrow;
+    if ($buy > 0) $buyPrices[] = $buy;
+  }
+  $rentBorrowPackagePrice = $borrowPrices ? min($borrowPrices) : 0;
+  $rentBuyPackagePrice = $buyPrices ? min($buyPrices) : 0;
+}
 ?>
 
   <!-- ═══════════════ HERO ═══════════════ -->
@@ -467,62 +479,25 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
         </div>
       </div>
 
-      <!-- === RENTAL PRICING (Dress / Accessories) === -->
+      <!-- === ATTIRE ITEMS (Attire only) === -->
       <?php if ($isRental): ?>
       <div class="sd-card sd-anim-card-3">
         <div class="sd-card-head">
           <div>
-            <div class="sd-card-title">Rental pricing</div>
-            <div class="sd-card-sub">Borrow or buy options for this item</div>
+            <div class="sd-card-title">Dresses &amp; attire</div>
+            <div class="sd-card-sub">Set borrowing, buying, and return details for each individual item.</div>
           </div>
-          <?php if ($hasRentalPricing): ?>
-          <span class="sd-badge" style="background:var(--success-bg, #dcfce7);color:var(--success, #166534)">Set</span>
-          <?php else: ?>
-          <span class="sd-badge" style="background:var(--warning-bg, #fef3c7);color:var(--warning, #92400e)">Not set</span>
-          <?php endif; ?>
+          <div class="sd-head-actions">
+            <span id="attireItemCount" class="sd-badge"><?= count($attireItems) ?> <?= count($attireItems) === 1 ? 'dress' : 'items' ?></span>
+            <button type="button" class="btn btn-primary btn-sm" id="addAttireItemBtn"><i class="ti ti-plus" style="font-size:13px"></i> Add dress</button>
+          </div>
         </div>
         <div class="sd-card-body">
-          <?php if ($hasRentalPricing): ?>
-            <?php if ($rentBorrowPackagePrice > 0 || $rentBorrowCustomizePrice > 0): ?>
-            <div class="sd-rental-row">
-              <div class="sd-rental-icon"><i class="ti ti-clock"></i></div>
-              <div class="sd-rental-body">
-                <div class="sd-rental-label">Borrow price</div>
-                <div class="sd-rental-matrix">
-                  <span><small>Package</small><strong><?= $rentBorrowPackagePrice > 0 ? $money($rentBorrowPackagePrice) : '—' ?></strong></span>
-                  <span><small>Customize</small><strong><?= $rentBorrowCustomizePrice > 0 ? $money($rentBorrowCustomizePrice) : '—' ?></strong></span>
-                </div>
-              </div>
-            </div>
-            <?php endif; ?>
-            <?php if ($rentBuyPackagePrice > 0 || $rentBuyCustomizePrice > 0): ?>
-            <div class="sd-rental-row">
-              <div class="sd-rental-icon"><i class="ti ti-shopping-bag"></i></div>
-              <div class="sd-rental-body">
-                <div class="sd-rental-label">Buy price</div>
-                <div class="sd-rental-matrix">
-                  <span><small>Package</small><strong><?= $rentBuyPackagePrice > 0 ? $money($rentBuyPackagePrice) : '—' ?></strong></span>
-                  <span><small>Customize</small><strong><?= $rentBuyCustomizePrice > 0 ? $money($rentBuyCustomizePrice) : '—' ?></strong></span>
-                </div>
-              </div>
-            </div>
-            <?php endif; ?>
-            <?php if ($rentReturnDays > 0): ?>
-            <div class="sd-rental-row">
-              <div class="sd-rental-icon"><i class="ti ti-calendar"></i></div>
-              <div class="sd-rental-body">
-                <div class="sd-rental-label">Return policy</div>
-                <div class="sd-rental-sub">Return within <?= (int)$rentReturnDays ?> <?= $rentReturnDays === 1 ? 'day' : 'days' ?></div>
-              </div>
-            </div>
-            <?php endif; ?>
-          <?php else: ?>
-            <div class="sd-empty">
-              <i class="ti ti-tag"></i>
-              <p>No rental pricing set</p>
-              <small>Add borrow or buy pricing from the service edit form.</small>
-            </div>
-          <?php endif; ?>
+          <div id="attireItemMessage" class="sd-message error" style="display:none"></div>
+          <div id="attireItemGrid" class="sd-attire-items"></div>
+        </div>
+        <div class="sd-card-foot">
+          <button type="button" class="btn btn-primary btn-sm" id="saveAttireItemsBtn"><i class="ti ti-check" style="font-size:12px"></i> Save dresses</button>
         </div>
       </div>
       <?php endif; ?>
@@ -565,26 +540,20 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
           </div>
           <?php if ($isRental): ?>
           <div class="sd-info-row">
-            <span class="sd-info-key">Borrow package</span>
+            <span class="sd-info-key">Attire items</span>
+            <span class="sd-info-val" id="serviceInfoAttireCount"><?= count($attireItems) ?></span>
+          </div>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Starting borrow</span>
             <span class="sd-info-val" id="serviceInfoBorrowPackagePrice"><?= $rentBorrowPackagePrice > 0 ? $money($rentBorrowPackagePrice) : '—' ?></span>
           </div>
           <div class="sd-info-row">
-            <span class="sd-info-key">Borrow customize</span>
-            <span class="sd-info-val" id="serviceInfoBorrowCustomizePrice"><?= $rentBorrowCustomizePrice > 0 ? $money($rentBorrowCustomizePrice) : '—' ?></span>
-          </div>
-          <?php if (($rentBorrowPackagePrice > 0 || $rentBorrowCustomizePrice > 0) && $rentReturnDays > 0): ?>
-          <div class="sd-info-row">
-            <span class="sd-info-key">Return within</span>
-            <span class="sd-info-val"><?= (int)$rentReturnDays ?> <?= $rentReturnDays === 1 ? 'day' : 'days' ?></span>
-          </div>
-          <?php endif; ?>
-          <div class="sd-info-row">
-            <span class="sd-info-key">Buy package</span>
+            <span class="sd-info-key">Starting buy</span>
             <span class="sd-info-val" id="serviceInfoBuyPackagePrice"><?= $rentBuyPackagePrice > 0 ? $money($rentBuyPackagePrice) : '—' ?></span>
           </div>
           <div class="sd-info-row">
-            <span class="sd-info-key">Buy customize</span>
-            <span class="sd-info-val" id="serviceInfoBuyCustomizePrice"><?= $rentBuyCustomizePrice > 0 ? $money($rentBuyCustomizePrice) : '—' ?></span>
+            <span class="sd-info-key">Pricing</span>
+            <span class="sd-info-val">Set per dress</span>
           </div>
           <?php else: ?>
           <div class="sd-info-row">

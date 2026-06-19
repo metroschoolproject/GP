@@ -223,11 +223,18 @@ class SupplierServices extends SupplierControllerSupport
 
         try {
             $deleted = $this->serviceManagementModel->deleteService((int)$supplier['supplier_id'], $serviceId);
+        } catch (DomainException $e) {
+            $this->jsonResponse(['status' => 'error', 'message' => $e->getMessage()], 409);
         } catch (Throwable $e) {
-            $this->jsonResponse(['status' => 'error', 'message' => 'This service is already used by bookings and cannot be deleted.'], 409);
+            error_log('Supplier service delete failed: ' . $e->getMessage());
+            $this->jsonResponse(['status' => 'error', 'message' => 'Could not delete the service. Please try again.'], 500);
         }
 
-        $this->jsonResponse(['status' => $deleted ? 'success' : 'error']);
+        if (!$deleted) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
+        }
+
+        $this->jsonResponse(['status' => 'success']);
     }
 
     public function serviceStatus($serviceId = null)

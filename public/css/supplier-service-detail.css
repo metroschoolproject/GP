@@ -781,6 +781,134 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* ═══════════════════ ATTIRE ITEMS ═══════════════════ */
+
+.sd-attire-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.sd-attire-item-card {
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: box-shadow 0.18s;
+}
+
+.sd-attire-item-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.sd-attire-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.sd-attire-card-title {
+  display: block;
+  max-width: 210px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-attire-card-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-3);
+  font-size: 10px;
+}
+
+.sd-attire-photo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sd-attire-preview {
+  position: relative;
+  width: 100%;
+  height: 130px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.sd-attire-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sd-attire-preview.is-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  border-style: dashed;
+  color: var(--text-3);
+}
+
+.sd-attire-preview.is-empty i {
+  font-size: 22px;
+}
+
+.sd-attire-preview.is-empty span {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sd-attire-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sd-attire-fields .full { grid-column: 1 / -1; }
+
+.sd-attire-price-group {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.sd-attire-group-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sd-attire-group-head.buy { color: #067647; }
+.sd-attire-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.sd-attire-return { grid-column: 1 / -1; max-width: 180px; }
+.sd-attire-return-input { position: relative; }
+.sd-attire-return-input .sd-hall-input { padding-right: 42px; }
+.sd-attire-return-input span {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  font-size: 10px;
+  pointer-events: none;
+}
+
 /* ═══════════════════ DAY CARDS (was table) ═══════════════════ */
 
 .sd-avail-controls {
@@ -1344,6 +1472,7 @@
   .sd-days { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
   .sd-gallery { grid-template-columns: repeat(2, 1fr); }
   .sd-decoration-styles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sd-attire-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sd-halls { grid-template-columns: 1fr; }
   .sd-side { grid-template-columns: 1fr; }
   .sd-stats { grid-template-columns: 1fr; }
@@ -1356,6 +1485,13 @@
   .sd-hero-img-placeholder { height: 200px; }
   .sd-gallery { grid-template-columns: 1fr 1fr; gap: 8px; }
   .sd-decoration-styles { grid-template-columns: 1fr; }
+  .sd-attire-items { grid-template-columns: 1fr; }
+  .sd-attire-fields { grid-template-columns: 1fr; }
+  .sd-attire-fields .full,
+  .sd-attire-return { grid-column: 1; }
+  .sd-attire-pair { grid-template-columns: 1fr; }
+  .sd-attire-photo { grid-template-columns: 1fr; }
+  .sd-attire-photo .sd-hall-photo-btn { width: 100%; }
   .sd-card-head { flex-direction: column; }
   .sd-head-actions { justify-content: flex-start; }
 }

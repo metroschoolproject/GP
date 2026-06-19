@@ -337,6 +337,186 @@ document.getElementById('saveDecorationStylesBtn')?.addEventListener('click', as
 
 renderDecorationStyles(Array.isArray(serviceDetailConfig.decorationStyles) ? serviceDetailConfig.decorationStyles : []);
 
+// ── ATTIRE ITEMS ────────────────────────────────────────────────
+let attireItemCounter = 0;
+
+function attireItemCardHtml(item = {}) {
+  const uid = ++attireItemCounter;
+  const photoUrl = item.photo_url || '';
+  const itemName = item.name || '';
+  const photoPreview = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(itemName || 'Dress')} photo">`
+    : '<i class="ti ti-photo"></i><span>Add dress photo</span>';
+
+  return `
+    <div class="sd-attire-item-card">
+      <input type="hidden" class="attire-item-photo-url" value="${escapeHtml(photoUrl)}">
+      <div class="sd-attire-head">
+        <div class="sd-hall-head-left">
+          <div class="sd-hall-icon"><i class="ti ti-hanger"></i></div>
+          <div>
+            <strong class="sd-attire-card-title">${escapeHtml(itemName || 'New attire item')}</strong>
+            <span class="sd-attire-card-sub">Individual pricing</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-icon btn-danger-ghost btn-sm sd-attire-remove" title="Remove item"><i class="ti ti-trash" style="font-size:13px"></i></button>
+      </div>
+      <div class="sd-attire-photo">
+        <div class="sd-attire-preview ${photoUrl ? '' : 'is-empty'}">${photoPreview}</div>
+        <label class="sd-hall-photo-btn" for="attireItemPhoto${uid}">
+          <i class="ti ti-upload"></i><span>${photoUrl ? 'Change photo' : 'Add photo'}</span>
+          <input id="attireItemPhoto${uid}" type="file" accept="image/*" class="attire-item-photo-input" style="display:none">
+        </label>
+      </div>
+      <div class="sd-attire-fields">
+        <div class="sd-hall-fg full"><label>Dress / item name</label><input class="sd-hall-input attire-item-name" value="${escapeHtml(itemName)}" placeholder="e.g. Long Sleeve Bridal Gown"></div>
+        <div class="sd-attire-price-group">
+          <div class="sd-attire-group-head"><i class="ti ti-clock"></i><span>Borrow</span></div>
+          <div class="sd-attire-pair">
+            <div class="sd-hall-fg"><label>Package price</label><input type="number" min="0" step="0.01" class="sd-hall-input attire-item-borrow-pkg" value="${item.borrow_package_price ?? ''}" placeholder="MMK"></div>
+            <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input attire-item-borrow-cust" value="${item.borrow_customize_price ?? ''}" placeholder="MMK"></div>
+          </div>
+        </div>
+        <div class="sd-attire-price-group">
+          <div class="sd-attire-group-head buy"><i class="ti ti-shopping-bag"></i><span>Buy</span></div>
+          <div class="sd-attire-pair">
+            <div class="sd-hall-fg"><label>Package price</label><input type="number" min="0" step="0.01" class="sd-hall-input attire-item-buy-pkg" value="${item.buy_package_price ?? ''}" placeholder="MMK"></div>
+            <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input attire-item-buy-cust" value="${item.buy_customize_price ?? ''}" placeholder="MMK"></div>
+          </div>
+        </div>
+        <div class="sd-hall-fg sd-attire-return"><label>Return within</label><div class="sd-attire-return-input"><input type="number" min="1" step="1" class="sd-hall-input attire-item-return-days" value="${item.return_days ?? ''}" placeholder="3"><span>days</span></div></div>
+      </div>
+    </div>
+  `;
+}
+
+function updateAttireItemCount() {
+  const count = document.querySelectorAll('.sd-attire-item-card').length;
+  const badge = document.getElementById('attireItemCount');
+  if (badge) badge.textContent = count + ' ' + (count === 1 ? 'dress' : 'items');
+}
+
+function renderAttireItems(items = []) {
+  const grid = document.getElementById('attireItemGrid');
+  if (!grid) return;
+  const rows = items.length ? items : [{}];
+  grid.innerHTML = rows.map(item => attireItemCardHtml(item)).join('');
+  updateAttireItemCount();
+}
+
+function addAttireItem() {
+  const grid = document.getElementById('attireItemGrid');
+  if (!grid) return;
+  grid.insertAdjacentHTML('beforeend', attireItemCardHtml());
+  updateAttireItemCount();
+}
+
+function collectAttireItems() {
+  return Array.from(document.querySelectorAll('.sd-attire-item-card')).map(card => ({
+    name: card.querySelector('.attire-item-name')?.value.trim() || '',
+    photo_url: card.querySelector('.attire-item-photo-url')?.value || null,
+    borrow_package_price: parseFloat(card.querySelector('.attire-item-borrow-pkg')?.value || '0') || null,
+    borrow_customize_price: parseFloat(card.querySelector('.attire-item-borrow-cust')?.value || '0') || null,
+    buy_package_price: parseFloat(card.querySelector('.attire-item-buy-pkg')?.value || '0') || null,
+    buy_customize_price: parseFloat(card.querySelector('.attire-item-buy-cust')?.value || '0') || null,
+    return_days: parseInt(card.querySelector('.attire-item-return-days')?.value || '0', 10) || null,
+  })).filter(item => item.name !== '');
+}
+
+document.getElementById('addAttireItemBtn')?.addEventListener('click', addAttireItem);
+
+document.getElementById('attireItemGrid')?.addEventListener('input', event => {
+  const nameInput = event.target.closest('.attire-item-name');
+  if (!nameInput) return;
+  const title = nameInput.closest('.sd-attire-item-card')?.querySelector('.sd-attire-card-title');
+  if (title) title.textContent = nameInput.value.trim() || 'New attire item';
+});
+
+document.getElementById('attireItemGrid')?.addEventListener('click', event => {
+  const removeButton = event.target.closest('.sd-attire-remove');
+  if (!removeButton) return;
+  const grid = document.getElementById('attireItemGrid');
+  const card = removeButton.closest('.sd-attire-item-card');
+  if (!grid || !card) return;
+
+  if (grid.querySelectorAll('.sd-attire-item-card').length <= 1) {
+    card.querySelectorAll('input').forEach(input => { input.value = ''; });
+    const preview = card.querySelector('.sd-attire-preview');
+    if (preview) {
+      preview.classList.add('is-empty');
+      preview.innerHTML = '<i class="ti ti-photo"></i><span>Add dress photo</span>';
+    }
+  } else {
+    card.remove();
+  }
+  updateAttireItemCount();
+});
+
+document.getElementById('attireItemGrid')?.addEventListener('change', async event => {
+  const input = event.target.closest('.attire-item-photo-input');
+  if (!input || !input.files?.[0]) return;
+
+  const card = input.closest('.sd-attire-item-card');
+  const hidden = card?.querySelector('.attire-item-photo-url');
+  const preview = card?.querySelector('.sd-attire-preview');
+
+  try {
+    const dataUrl = await fileToDataUrl(input.files[0]);
+    if (hidden) hidden.value = dataUrl;
+    if (preview) {
+      preview.classList.remove('is-empty');
+      preview.innerHTML = `<img src="${dataUrl}" alt="Attire item photo preview">`;
+    }
+    const label = card?.querySelector('.sd-hall-photo-btn span');
+    if (label) label.textContent = 'Change photo';
+  } catch (error) {
+    showMessage('attireItemMessage', 'Could not read item photo. Please try another image.');
+  } finally {
+    input.value = '';
+  }
+});
+
+document.getElementById('saveAttireItemsBtn')?.addEventListener('click', async () => {
+  showMessage('attireItemMessage', '');
+  try {
+    const items = collectAttireItems();
+    if (!items.length) {
+      throw new Error('Add at least one attire item with a name.');
+    }
+    const hasNoPrice = items.some(item =>
+      (!item.borrow_package_price || item.borrow_package_price <= 0) &&
+      (!item.borrow_customize_price || item.borrow_customize_price <= 0) &&
+      (!item.buy_package_price || item.buy_package_price <= 0) &&
+      (!item.buy_customize_price || item.buy_customize_price <= 0)
+    );
+    if (hasNoPrice) {
+      throw new Error('Each attire item needs at least one price greater than zero.');
+    }
+
+    const result = await jsonPost(urls.serviceUpdate, {
+      ...serviceDetailConfig.servicePayloadBase,
+      min_lead_days: currentServiceMinLeadDays(),
+      attire_items: items,
+      attire_items_replace: true
+    });
+    const savedService = result.item || {};
+    const savedItems = Array.isArray(savedService.attire_items) ? savedService.attire_items : items;
+    serviceDetailConfig.attireItems = savedItems;
+    serviceDetailConfig.servicePayloadBase.price = savedService.price ?? serviceDetailConfig.servicePayloadBase.price;
+    serviceDetailConfig.servicePayloadBase.price_min = savedService.price_min ?? serviceDetailConfig.servicePayloadBase.price_min;
+    serviceDetailConfig.servicePayloadBase.price_max = savedService.price_max ?? serviceDetailConfig.servicePayloadBase.price_max;
+    renderAttireItems(savedItems);
+    const attireCount = document.getElementById('serviceInfoAttireCount');
+    if (attireCount) attireCount.textContent = String(savedItems.length);
+    updateServiceInfoFromService(savedService);
+    showMessage('attireItemMessage', 'Dress pricing saved.', true);
+  } catch (error) {
+    showMessage('attireItemMessage', error.message);
+  }
+});
+
+renderAttireItems(Array.isArray(serviceDetailConfig.attireItems) ? serviceDetailConfig.attireItems : []);
+
 function toggleDay(checkbox) {
   const card = checkbox.closest('.sd-day-card');
   const closedEl = card.querySelector('.sd-day-closed');
@@ -462,7 +642,7 @@ function updateHallCount() {
 
 function formatMoney(value) {
   const amount = Number(value || 0);
-  return 'RM ' + amount.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return amount.toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' MMK';
 }
 
 function normalizeTimeValue(value) {

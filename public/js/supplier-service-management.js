@@ -1318,6 +1318,7 @@ function confirmDeleteModal({ title = 'Delete item?', message = 'This action can
 
   if (titleEl) titleEl.textContent = title;
   if (messageEl) messageEl.textContent = message;
+  actionBtn.textContent = title.toLowerCase().includes('package') ? 'Delete package' : 'Delete service';
   if (typeWrap) typeWrap.classList.toggle('hidden', !requireType);
   if (typeInput) { typeInput.value = ''; typeInput.placeholder = requireType ? 'Type "' + requireType + '" to confirm' : ''; }
   actionBtn.disabled = !!requireType;
@@ -1390,7 +1391,7 @@ function openEditService(id) {
   const rentalExtras = document.getElementById('esRentalExtras');
   const isVenueEdit = item.category === 'Venue';
   const isDecoEdit = item.category === 'Decoration';
-  const isRentalEdit = item.category === 'Dress' || item.category === 'Accessories';
+  const isRentalEdit = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
   venueExtras?.classList.toggle('hidden', !isVenueEdit);
   decoExtras?.classList.toggle('hidden', !isDecoEdit);
   rentalExtras?.classList.toggle('hidden', !isRentalEdit);
@@ -1420,7 +1421,7 @@ async function updateService() {
   const item=services.find(s=>s.id===editingSvcId); if (!item) return;
   const isVenueUpd = item.category === 'Venue';
   const isDecoUpd = item.category === 'Decoration';
-  const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories';
+  const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
   if (!isVenueUpd && !isDecoUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
   if (isVenueUpd && !validateVenueRooms('es')) return;
   if (isDecoUpd && !validateDecorationStyles('es')) return;
@@ -1461,14 +1462,15 @@ async function deleteService(id) {
   const item=services.find(s=>s.id===id); if (!item) return;
   const confirmed = await confirmDeleteModal({
     title: 'Delete service?',
-    message: `Delete "${item.name}"? This removes the service from your supplier list.`,
-    requireType: item.name
+    message: `Delete "${item.name}"? This removes the service from your supplier list. This action cannot be undone.`
   });
   if (!confirmed) return;
   try {
     await apiRequest(serviceManagementUrls.serviceDelete + id);
     services=services.filter(s=>Number(s.id)!==Number(id));
-    closeAll(); render();
+    closeAll();
+    render();
+    showToast('Service deleted.', 'success');
   } catch (error) { showToast(error.message, 'error'); }
 }
 

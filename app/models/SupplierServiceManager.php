@@ -234,27 +234,74 @@ class SupplierServiceManager
 
     public function deleteService($supplierId, $serviceId)
     {
-        $this->db->dbquery('DELETE FROM supplier_package_items WHERE service_id = :service_id');
-        $this->db->dbbind(':service_id', (int)$serviceId);
-        $this->db->dbexecute();
+        $supplierId = (int)$supplierId;
+        $serviceId = (int)$serviceId;
 
-        $this->db->dbquery('DELETE FROM service_media WHERE service_id = :service_id');
-        $this->db->dbbind(':service_id', (int)$serviceId);
-        $this->db->dbexecute();
+        $this->db->dbquery(
+            'SELECT id
+             FROM services
+             WHERE id = :id
+               AND supplier_id = :supplier_id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':id', $serviceId);
+        $this->db->dbbind(':supplier_id', $supplierId);
+        if (!$this->db->getsingledata()) {
+            return false;
+        }
 
-        $this->db->dbquery('DELETE FROM decoration_styles WHERE service_id = :service_id');
-        $this->db->dbbind(':service_id', (int)$serviceId);
-        $this->db->dbexecute();
+        $this->db->dbquery(
+            "SELECT
+                (SELECT COUNT(*) FROM booking_items
+                 WHERE item_type = 'service' AND item_id = :booking_service_id)
+              + (SELECT COUNT(*) FROM booking_vouchers
+                 WHERE service_id = :voucher_service_id)
+              + (SELECT COUNT(*) FROM reviews
+                 WHERE service_id = :review_service_id) AS usage_count"
+        );
+        $this->db->dbbind(':booking_service_id', $serviceId);
+        $this->db->dbbind(':voucher_service_id', $serviceId);
+        $this->db->dbbind(':review_service_id', $serviceId);
+        $usage = $this->db->getsingledata();
 
-        $this->db->dbquery('DELETE FROM service_rental_pricing WHERE service_id = :service_id');
-        $this->db->dbbind(':service_id', (int)$serviceId);
-        $this->db->dbexecute();
+        if ((int)($usage['usage_count'] ?? 0) > 0) {
+            throw new DomainException('This service has booking or review history and cannot be deleted. Set it to inactive instead.');
+        }
 
-        $this->db->dbquery('DELETE FROM services WHERE id = :id AND supplier_id = :supplier_id');
-        $this->db->dbbind(':id', (int)$serviceId);
-        $this->db->dbbind(':supplier_id', (int)$supplierId);
+        $this->db->beginTransaction();
 
-        return $this->db->dbexecute();
+        try {
+            $childTables = [
+                'package_items',
+                'supplier_package_items',
+                'service_media',
+                'decoration_styles',
+                'service_rental_pricing',
+                'attire_items',
+            ];
+
+            foreach ($childTables as $table) {
+                $this->db->dbquery("DELETE FROM {$table} WHERE service_id = :service_id");
+                $this->db->dbbind(':service_id', $serviceId);
+                $this->db->dbexecute();
+            }
+
+            $this->db->dbquery('DELETE FROM services WHERE id = :id AND supplier_id = :supplier_id');
+            $this->db->dbbind(':id', $serviceId);
+            $this->db->dbbind(':supplier_id', $supplierId);
+            $this->db->dbexecute();
+            $deleted = $this->db->rowcount() > 0;
+
+            if (!$deleted) {
+                throw new RuntimeException('The service disappeared before it could be deleted.');
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 
     public function setServiceStatus($supplierId, $serviceId, $isActive)
@@ -1192,6 +1239,37 @@ class SupplierServiceManager
         $category = strtolower((string)($data['category'] ?? ''));
         if (!in_array($category, ['attire'], true)) {
             return $data;
+        }
+
+        $attireItems = is_array($data['attire_items'] ?? null) ? $data['attire_items'] : [];
+        if (!empty($attireItems)) {
+            $packagePrices = [];
+            $customizePrices = [];
+            foreach ($attireItems as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $borrowPackage = max(0, (float)($item['borrow_package_price'] ?? 0));
+                $borrowCustomize = max($borrowPackage, (float)($item['borrow_customize_price'] ?? $borrowPackage));
+                $buyPackage = max(0, (float)($item['buy_package_price'] ?? 0));
+                $buyCustomize = max($buyPackage, (float)($item['buy_customize_price'] ?? $buyPackage));
+
+                if ($borrowPackage > 0) $packagePrices[] = $borrowPackage;
+                if ($buyPackage > 0) $packagePrices[] = $buyPackage;
+                if ($borrowCustomize > 0) $customizePrices[] = $borrowCustomize;
+                if ($buyCustomize > 0) $customizePrices[] = $buyCustomize;
+            }
+
+            if (!empty($packagePrices)) {
+                $priceMin = min($packagePrices);
+                $priceMax = !empty($customizePrices) ? max($customizePrices) : $priceMin;
+                $data['price'] = $priceMin;
+                $data['price_min'] = $priceMin;
+                $data['price_max'] = max($priceMin, $priceMax);
+                $data['package_price'] = $data['price_min'];
+                $data['customize_price'] = $data['price_max'];
+                return $data;
+            }
         }
 
         $rental = is_array($data['rental_pricing'] ?? null) ? $data['rental_pricing'] : [];
