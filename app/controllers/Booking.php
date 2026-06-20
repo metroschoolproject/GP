@@ -331,6 +331,33 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Lead time requirement not met: ' . implode('; ', $leadTimeErrors)], 422);
         }
 
+        // PRE-FLIGHT: gather every package service with no slot left on its
+        // chosen date so the customer sees all conflicts at once, before we
+        // open a transaction. Advisory only — reserveServiceSlot() is still
+        // the authoritative race guard inside the transaction below.
+        $unavailable = [];
+        foreach ($items as $i => $item) {
+            if (($item['item_type'] ?? '') !== 'package') {
+                continue;
+            }
+            if (!empty($item['package_cart_item_id'])) {
+                continue; // add-ons inherit the parent package's schedule
+            }
+            $pkgDate = trim($_POST['item_date'][$i] ?? '') ?: trim((string)($item['selected_date'] ?? ''));
+            if ($pkgDate === '') {
+                continue;
+            }
+            foreach ($this->cartModel->getUnavailablePackageServices((int)($item['item_id'] ?? 0), $pkgDate) as $u) {
+                $unavailable[] = $u;
+            }
+        }
+        if (!empty($unavailable)) {
+            $this->jsonResponse([
+                'error'       => "Some package services aren't available on your selected date.",
+                'unavailable' => $unavailable,
+            ], 422);
+        }
+
         $this->bookingModel->beginTransaction();
         $transactionStarted = true;
 
@@ -385,7 +412,8 @@ class Booking extends Controller
                 );
                 if (!empty($packageSchedule)) {
                     if ($this->bookingModel->reservePackageServiceSlots($bookingId, $pkgDate, $packageSchedule) === false) {
-                        throw new RuntimeException('One of the selected package services is no longer available.');
+                        $fail = $this->bookingModel->getLastUnavailableService();
+                        throw new SlotUnavailableException($fail ? [$fail] : []);
                     }
                 }
             }
@@ -463,6 +491,14 @@ class Booking extends Controller
                 'redirect' => URLROOT . '/booking/detail/' . $bookingId,
             ]);
         }
+        } catch (SlotUnavailableException $e) {
+            if ($transactionStarted) {
+                $this->bookingModel->rollBack();
+            }
+            $this->jsonResponse([
+                'error'       => "Some package services aren't available on your selected date.",
+                'unavailable' => $e->services,
+            ], 422);
         } catch (Throwable $e) {
             if ($transactionStarted) {
                 $this->bookingModel->rollBack();
