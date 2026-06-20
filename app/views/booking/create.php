@@ -6,7 +6,7 @@ $items = $items ?? [];
 $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
 $user = $user ?? ['name' => '', 'email' => '', 'phone' => ''];
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
@@ -1345,6 +1345,7 @@ input[type="date"]:invalid {
   </div>
 
   <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
+    <?= csrf_field() ?>
     <div class="gp-layout">
 
       <!-- LEFT: item cards -->

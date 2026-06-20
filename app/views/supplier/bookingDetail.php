@@ -6,7 +6,7 @@ $suppliers = $suppliers ?? [];
 $bookingRef = $bookingRef ?? '';
 $supplierStatus = strtolower($supplierStatus ?? 'pending');
 $supplierId = (int)($supplierId ?? 0);
-$depositPercent = $depositPercent ?? 30;
+$depositPercent = $depositPercent ?? BOOKING_DEPOSIT_PERCENT;
 $packageSchedules = $packageSchedules ?? [];
 
 $money = fn($v) => 'RM ' . number_format((float)$v, 0);
@@ -107,6 +107,10 @@ $customerEmail = trim((string)($booking['customer_email'] ?? ''));
 $customerPhone = trim((string)($booking['customer_phone'] ?? ''));
 $customerInitial = strtoupper(substr($customerName !== '' ? $customerName : 'C', 0, 1));
 $bookingStatus = strtolower((string)($booking['status'] ?? $supplierStatus));
+$bookingStatusLabel = match ($bookingStatus) {
+    'replacement_pending' => 'Replacement in progress',
+    default => ucwords(str_replace('_', ' ', $bookingStatus ?: 'pending')),
+};
 
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = $bookingRef ?: 'Booking detail';
@@ -118,7 +122,7 @@ $dashboardContent = function () use (
     $totalGuests, $hasGuestData, $firstDate, $firstStart, $firstEnd,
     $firstLocation, $firstContactName, $firstContactPhone,
     $allSpecialRequests, $supplierTotal, $supplierPaid, $supplierRemaining,
-    $paymentStatus, $daysUntil, $otherSuppliers, $bookingStatus,
+    $paymentStatus, $daysUntil, $otherSuppliers, $bookingStatus, $bookingStatusLabel,
     $customerName, $customerEmail, $customerPhone, $customerInitial,
     $packageSchedules, $isPackage, $declineCutoffDays, $myServiceRows
 ) {
@@ -143,6 +147,14 @@ $dashboardContent = function () use (
 
     // Services of this supplier already routed to replacement.
     $replacementRows = array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['needs_replacement', 'rejected'], true)));
+    $acceptedReplacementRows = array_values(array_filter(
+        $myServiceRows,
+        static fn($r) => ($r['replacement_status'] ?? '') === 'accepted'
+    ));
+    $assignedReplacementRows = array_values(array_filter(
+        $myServiceRows,
+        static fn($r) => ($r['replacement_status'] ?? '') === 'assigned'
+    ));
     $inReplacement = !empty($replacementRows) || $bookingStatus === 'replacement_pending';
     $ownTimelineServiceIds = array_values(array_unique(array_filter(array_map(
         static fn($row) => (int)($row['service_id'] ?? 0),
@@ -1342,7 +1354,7 @@ $dashboardContent = function () use (
               else: echo $daysUntil . ' day' . ($daysUntil === 1 ? '' : 's') . ' away'; endif; ?>
             </span>
           <?php endif; ?>
-          <span class="sup-badge <?= $statusBadgeClass($bookingStatus) ?>">Booking <?= $h(ucfirst($bookingStatus ?: 'pending')) ?></span>
+          <span class="sup-badge <?= $statusBadgeClass($bookingStatus) ?>">Booking <?= $h($bookingStatusLabel) ?></span>
         </div>
       </div>
 
@@ -1415,11 +1427,21 @@ $dashboardContent = function () use (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 0110-4.5M14 8a6 6 0 01-10 4.5"/><path d="M12 2v3H9M4 14v-3h3"/></svg>
       <div>
         <strong>Replacement in progress.</strong>
-        <?php if (!empty($replacementRows)): ?>
+        <?php if (!empty($acceptedReplacementRows)): ?>
+          You accepted the replacement service
+          <?= $h(implode(', ', array_map(static fn($r) => $r['service_name'] ?? ($r['category_name'] ?? 'service'), $acceptedReplacementRows))) ?>.
+          Your part is confirmed; other replacement services on this booking are still pending.
+        <?php elseif (!empty($assignedReplacementRows)): ?>
+          You were assigned as the replacement for
+          <?= $h(implode(', ', array_map(static fn($r) => $r['service_name'] ?? ($r['category_name'] ?? 'service'), $assignedReplacementRows))) ?>.
+          Please accept or decline.
+        <?php elseif (!empty($replacementRows)): ?>
           You declined
           <?= $h(implode(', ', array_map(static fn($r) => $r['service_name'] ?? ($r['category_name'] ?? 'a service'), $replacementRows))) ?>.
+          The admin is assigning another supplier for the affected service(s) — your other services on this booking are unchanged.
+        <?php else: ?>
+          Other replacement services on this booking are still awaiting supplier responses.
         <?php endif; ?>
-        The admin is assigning another supplier for the affected service(s) — your other services on this booking are unchanged.
       </div>
     </div>
     <?php endif; ?>
@@ -1495,7 +1517,7 @@ $dashboardContent = function () use (
       <div class="sup-card">
         <div class="sup-card-head">
           <span class="sup-card-title">Services in this booking</span>
-          <span class="sup-badge <?= $statusBadgeClass($bookingStatus) ?>"><?= $h(ucfirst($bookingStatus ?: 'pending')) ?></span>
+          <span class="sup-badge <?= $statusBadgeClass($bookingStatus) ?>"><?= $h($bookingStatusLabel) ?></span>
         </div>
         <?php if (empty($items)): ?>
           <div class="sup-empty">No supplier service lines are attached to this booking.</div>
@@ -1980,6 +2002,7 @@ $dashboardContent = function () use (
 
       var formData = new FormData(form);
       formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
 
       try {
         var resp = await fetch('<?= URLROOT ?>/supplier/proposeReschedule', { method: 'POST', body: formData });
@@ -2010,6 +2033,7 @@ $dashboardContent = function () use (
       var formData = new FormData();
       formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
       formData.append('action', button.dataset.action);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
 
       try {
         var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
@@ -2061,6 +2085,7 @@ $dashboardContent = function () use (
       formData.append('booking_supplier_id', declineTarget);
       formData.append('action', 'decline');
       formData.append('reason', reason);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
 
       try {
         var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });

@@ -10,6 +10,7 @@ class SupplierServiceManager
     private $hasRentalPriceMatrixColumns = null;
     private $rentalPricingColumns = null;
     private $hasDecorationStylePhotoColumn = null;
+    private $tableExistsCache = [];
 
     public function __construct()
     {
@@ -31,6 +32,7 @@ class SupplierServiceManager
             'meta' => [
                 'services' => $this->paginationMeta($serviceLimit, $serviceOffset, $this->countServices($supplierId, $search)),
                 'packages' => $this->paginationMeta($packageLimit, $packageOffset, $this->countPackages($supplierId, $search)),
+                'supplier_packages_available' => $this->supplierPackageTablesAvailable(),
             ],
         ];
     }
@@ -119,6 +121,10 @@ class SupplierServiceManager
 
     public function getPackages($supplierId, $limit = null, $offset = 0, string $search = '')
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return [];
+        }
+
         $query = 'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
                   FROM supplier_packages
                   WHERE supplier_id = :supplier_id
@@ -285,6 +291,9 @@ class SupplierServiceManager
             ];
 
             foreach ($childTables as $table) {
+                if (!$this->tableExists($table)) {
+                    continue;
+                }
                 $this->db->dbquery("DELETE FROM {$table} WHERE service_id = :service_id");
                 $this->db->dbbind(':service_id', $serviceId);
                 $this->db->dbexecute();
@@ -402,6 +411,7 @@ class SupplierServiceManager
 
     public function createPackage($supplierId, $data)
     {
+        $this->requireSupplierPackageTables();
         $categories = $this->normalizeCategories($data['categories'] ?? []);
 
         $this->db->dbquery(
@@ -416,6 +426,7 @@ class SupplierServiceManager
 
     public function updatePackage($supplierId, $packageId, $data)
     {
+        $this->requireSupplierPackageTables();
         $package = $this->getPackageById($packageId, $supplierId);
 
         if (!$package) {
@@ -445,9 +456,14 @@ class SupplierServiceManager
 
     public function deletePackage($supplierId, $packageId)
     {
-        $this->db->dbquery('DELETE FROM supplier_package_items WHERE package_id = :package_id');
-        $this->db->dbbind(':package_id', (int)$packageId);
-        $this->db->dbexecute();
+        if (!$this->tableExists('supplier_packages')) {
+            return false;
+        }
+        if ($this->tableExists('supplier_package_items')) {
+            $this->db->dbquery('DELETE FROM supplier_package_items WHERE package_id = :package_id');
+            $this->db->dbbind(':package_id', (int)$packageId);
+            $this->db->dbexecute();
+        }
 
         $this->db->dbquery(
             'UPDATE supplier_packages
@@ -463,6 +479,10 @@ class SupplierServiceManager
 
     public function setPackageStatus($supplierId, $packageId, $isActive)
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return null;
+        }
+
         $this->db->dbquery(
             'UPDATE supplier_packages
              SET is_active = :is_active
@@ -536,6 +556,10 @@ class SupplierServiceManager
 
     private function countPackages($supplierId, string $search = '')
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return 0;
+        }
+
         $query = 'SELECT COUNT(*) AS total FROM supplier_packages WHERE supplier_id = :supplier_id AND deleted_at IS NULL';
         if ($search !== '') {
             $query .= ' AND (name LIKE :search OR description LIKE :search2)';
@@ -1043,12 +1067,14 @@ class SupplierServiceManager
     {
         $poolColumn = $source === 'package' ? 'confirmed_package_count' : 'confirmed_customize_count';
 
+        // CAST to SIGNED before subtracting — confirmed_* are UNSIGNED, so 0 - 1
+        // underflows and errors under strict SQL mode before GREATEST applies.
         $this->db->dbquery(
             "UPDATE service_time_slots
-             SET confirmed_count = GREATEST(confirmed_count - 1, 0),
-                 {$poolColumn} = GREATEST({$poolColumn} - 1, 0),
+             SET confirmed_count = GREATEST(CAST(confirmed_count AS SIGNED) - 1, 0),
+                 {$poolColumn} = GREATEST(CAST({$poolColumn} AS SIGNED) - 1, 0),
                  status = CASE
-                    WHEN GREATEST(confirmed_count - 1, 0) >= max_concurrent THEN 'full'
+                    WHEN GREATEST(CAST(confirmed_count AS SIGNED) - 1, 0) >= max_concurrent THEN 'full'
                     ELSE 'available'
                  END
              WHERE id = :id"
@@ -1203,6 +1229,10 @@ class SupplierServiceManager
 
     private function getPackageById($packageId, $supplierId)
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return null;
+        }
+
         $this->db->dbquery(
             'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
              FROM supplier_packages
@@ -1216,6 +1246,40 @@ class SupplierServiceManager
         $package = $this->db->getsingledata();
 
         return $package ? $this->formatPackage($package) : null;
+    }
+
+    private function tableExists(string $table): bool
+    {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+               FROM information_schema.TABLES
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = :table'
+        );
+        $this->db->dbbind(':table', $table);
+        $row = $this->db->getsingledata();
+        $this->tableExistsCache[$table] = (int)($row['total'] ?? 0) > 0;
+
+        return $this->tableExistsCache[$table];
+    }
+
+    private function requireSupplierPackageTables(): void
+    {
+        if (!$this->supplierPackageTablesAvailable()) {
+            throw new RuntimeException(
+                'Supplier package management is unavailable because its database migration has not been applied.'
+            );
+        }
+    }
+
+    private function supplierPackageTablesAvailable(): bool
+    {
+        return $this->tableExists('supplier_packages')
+            && $this->tableExists('supplier_package_items');
     }
 
     private function bindServiceFields($supplierId, $categoryId, $data)

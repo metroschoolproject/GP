@@ -13,6 +13,7 @@ spl_autoload_register(function ($class) {
     require_once APPROOT . '/libraries/' . $class . '.php';
 });
 
+require_once 'helpers/security.php';
 require_once 'helpers/rememberauth.php';
 restoreRememberedUserSession();
 

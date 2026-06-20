@@ -277,7 +277,11 @@ HTML;
             $this->mailer->isHTML(true);
             $this->mailer->Subject = 'Booking Request Received — Booking #' . $booking['id'];
 
-            $deposit = number_format((float)$booking['total_amount'] * 0.10, 0) . ' MMK';
+            $deposit = number_format(
+                (float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100),
+                0
+            ) . ' MMK';
+            $depositPercent = BOOKING_DEPOSIT_PERCENT;
             $total   = number_format((float)$booking['total_amount'], 0) . ' MMK';
             $payUrl  = URLROOT . '/booking/pay/' . $booking['id'];
 
@@ -302,7 +306,7 @@ HTML;
       <tbody>{$itemRows}</tbody>
     </table>
     <div style="background:white;padding:16px 20px;border-radius:6px;border-left:4px solid #6b4459;margin:20px 0;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#999;font-size:12px;">DEPOSIT DUE (10%)</span><span style="font-size:20px;font-weight:bold;color:#6b4459;">{$deposit}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#999;font-size:12px;">DEPOSIT DUE ({$depositPercent}%)</span><span style="font-size:20px;font-weight:bold;color:#6b4459;">{$deposit}</span></div>
       <div style="display:flex;justify-content:space-between;"><span style="color:#999;font-size:12px;">TOTAL</span><span style="color:#666;">{$total}</span></div>
     </div>
     <p><a href="{$payUrl}" style="display:inline-block;padding:12px 30px;background:#6b4459;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Pay Deposit Now</a></p>

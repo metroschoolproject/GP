@@ -2,6 +2,7 @@
 
 require_once APPROOT . '/traits/JsonResponseTrait.php';
 require_once APPROOT . '/services/EmailService.php';
+require_once APPROOT . '/services/PaymentGatewayService.php';
 
 class Booking extends Controller
 {
@@ -12,8 +13,6 @@ class Booking extends Controller
     private SupplierProfile $supplierProfileModel;
     private Notification $notificationModel;
     private ?int $userId;
-    private const DEPOSIT_PERCENT = 20;
-
     /**
      * A supplier may self-decline a confirmed package booking only while the
      * event is at least this many days away — enough lead time for the admin to
@@ -64,6 +63,23 @@ class Booking extends Controller
     private function buildPackageSchedules(array $items, array $eventDetails): array
     {
         $packageSchedules = [];
+        $bookingId = (int)($items[0]['booking_id'] ?? 0);
+        $activePackageLines = [];
+        if ($bookingId > 0) {
+            foreach ($this->bookingModel->getBookingSuppliers($bookingId) as $supplierLine) {
+                $packageItemId = (int)($supplierLine['package_item_id'] ?? 0);
+                if (
+                    $packageItemId > 0
+                    && !in_array(
+                        (string)($supplierLine['status'] ?? ''),
+                        ['replaced', 'rejected', 'cancelled'],
+                        true
+                    )
+                ) {
+                    $activePackageLines[$packageItemId] = $supplierLine;
+                }
+            }
+        }
 
         foreach ($items as $item) {
             if (($item['item_type'] ?? '') !== 'package') {
@@ -84,10 +100,28 @@ class Booking extends Controller
                 continue;
             }
 
-            $packageSchedules[(int)($item['id'] ?? 0)] = $this->cartModel->getPackageEventSchedule(
+            $schedule = $this->cartModel->getPackageEventSchedule(
                 (int)($item['item_id'] ?? 0),
                 $eventDate
             );
+            foreach ($schedule as &$serviceEvent) {
+                $packageItemId = (int)($serviceEvent['package_item_id'] ?? 0);
+                $liveLine = $activePackageLines[$packageItemId] ?? null;
+                if (!$liveLine) {
+                    continue;
+                }
+                $serviceEvent['service_id'] = (int)($liveLine['service_id'] ?? 0);
+                $serviceEvent['service_name'] = $liveLine['service_name'] ?? $serviceEvent['service_name'];
+                $serviceEvent['supplier_id'] = (int)($liveLine['supplier_id'] ?? 0);
+                $serviceEvent['supplier_name'] = $liveLine['shop_name'] ?? $serviceEvent['supplier_name'];
+                $serviceEvent['category_id'] = (int)($liveLine['category_id'] ?? 0);
+                $serviceEvent['category_name'] = $liveLine['category_name'] ?? $serviceEvent['category_name'];
+                $serviceEvent['item_price'] = (float)($liveLine['item_price'] ?? 0);
+                $serviceEvent['supplier_status'] = $liveLine['status'] ?? 'pending';
+                $serviceEvent['is_replacement'] = !empty($liveLine['replacement_request_id']);
+            }
+            unset($serviceEvent);
+            $packageSchedules[(int)($item['id'] ?? 0)] = $schedule;
         }
 
         return $packageSchedules;
@@ -144,7 +178,7 @@ class Booking extends Controller
             'total' => (float)$total,
             'cartCount' => count($items),
             'user' => $user,
-            'depositPercent' => self::DEPOSIT_PERCENT,
+            'depositPercent' => BOOKING_DEPOSIT_PERCENT,
             'venueService' => $venueService, // Pass to view
         ]);
     }
@@ -152,11 +186,13 @@ class Booking extends Controller
     public function createPost(): void
     {
         $this->ensureAuthenticated();
+        $this->requireCsrf();
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
 
+        $transactionStarted = false;
         try {
         
         $items = $this->cartModel->getCartItems($this->userId);
@@ -295,18 +331,24 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Lead time requirement not met: ' . implode('; ', $leadTimeErrors)], 422);
         }
 
+        $this->bookingModel->beginTransaction();
+        $transactionStarted = true;
+
         // CREATE BOOKING
         $cartId = $this->cartModel->getOrCreateCart($this->userId);
         $bookingId = $this->bookingModel->createDraftFromCart($this->userId, $cartId, $adjustedTotal);
         
         if (!$bookingId) {
-            $this->jsonResponse(['error' => 'Could not create booking'], 500);
+            throw new RuntimeException('Could not create booking');
         }
         
         // INSERT BOOKING ITEMS (and get back IDs)
         $bookingItemIds = $this->bookingModel->insertBookingItems($bookingId, $this->userId, $itemPrices);
         if (!$bookingItemIds) {
-            $this->jsonResponse(['error' => 'Could not save booking items'], 500);
+            throw new RuntimeException('Could not save booking items');
+        }
+        if (!$this->bookingModel->reserveBookingItemSlots($bookingId)) {
+            throw new RuntimeException('One of the selected service slots is no longer available.');
         }
         
         // INSERT EVENT DETAILS — only for non-addon items.
@@ -321,7 +363,7 @@ class Booking extends Controller
         }
         if (!empty($nonAddonItemsData)) {
             if (!$this->bookingModel->insertEventDetails($bookingId, $nonAddonItemsData, $nonAddonBookingItemIds)) {
-                $this->jsonResponse(['error' => 'Could not save event details'], 500);
+                throw new RuntimeException('Could not save event details');
             }
         }
 
@@ -342,14 +384,16 @@ class Booking extends Controller
                     $pkgDate
                 );
                 if (!empty($packageSchedule)) {
-                    $this->bookingModel->reservePackageServiceSlots($pkgDate, $packageSchedule);
+                    if ($this->bookingModel->reservePackageServiceSlots($bookingId, $pkgDate, $packageSchedule) === false) {
+                        throw new RuntimeException('One of the selected package services is no longer available.');
+                    }
                 }
             }
         }
 
         // LINK SUPPLIERS
         if (!$this->bookingModel->insertBookingSuppliers($bookingId)) {
-            $this->jsonResponse(['error' => 'Could not assign suppliers'], 500);
+            throw new RuntimeException('Could not assign suppliers');
         }
         
         // CLEAR CART & LOG
@@ -364,6 +408,8 @@ class Booking extends Controller
         if ($this->bookingModel->isPackageBooking($bookingId)) {
             $this->bookingModel->updateStatus($bookingId, 'pending_payment');
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
+            $this->bookingModel->commit();
+            $transactionStarted = false;
 
             // Send booking confirmation email to customer
             $userData = $this->getUserData();
@@ -385,6 +431,8 @@ class Booking extends Controller
             $this->bookingModel->updateStatus($bookingId, 'pending_supplier_response');
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_supplier_response', $this->userId);
             $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
+            $this->bookingModel->commit();
+            $transactionStarted = false;
 
             $this->notificationModel->notifyBookingSuppliers(
                 $bookingId,
@@ -416,8 +464,12 @@ class Booking extends Controller
             ]);
         }
         } catch (Throwable $e) {
+            if ($transactionStarted) {
+                $this->bookingModel->rollBack();
+            }
+            error_log('Booking creation failed: ' . $e->getMessage());
             $this->jsonResponse([
-                'error' => 'Booking could not be created: ' . $e->getMessage(),
+                'error' => 'Booking could not be created. Please review availability and try again.',
             ], 500);
         }
     }
@@ -441,7 +493,7 @@ class Booking extends Controller
 
         $items = $this->bookingModel->getBookingItems($bookingId);
         $total = (float)$booking['total_amount'];
-        $deposit = $total * (self::DEPOSIT_PERCENT / 100);
+        $deposit = $total * (BOOKING_DEPOSIT_PERCENT / 100);
 
         // Update booking to pending_payment
         if ($booking['status'] === 'draft') {
@@ -454,7 +506,7 @@ class Booking extends Controller
             'items' => $items,
             'total' => $total,
             'deposit' => $deposit,
-            'depositPercent' => self::DEPOSIT_PERCENT,
+            'depositPercent' => BOOKING_DEPOSIT_PERCENT,
             'balance' => $total - $deposit,
             'bookingRef' => $this->bookingModel->generateBookingRef($bookingId),
         ]);
@@ -466,6 +518,7 @@ class Booking extends Controller
     public function submitManualPayment(): void
     {
         $this->ensureAuthenticated();
+        $this->requireCsrf(false);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('booking/myBookings');
@@ -506,10 +559,22 @@ class Booking extends Controller
             return;
         }
 
+        $expectedDeposit = round((float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100), 2);
+        if (abs($paidAmount - $expectedDeposit) > 0.01) {
+            $_SESSION['booking_payment_flash'] = 'The payment amount must match the required deposit.';
+            redirect('booking/pay/' . $bookingId);
+            return;
+        }
+
         // Store uploaded slip
         $slipPath = '';
         if (!empty($_FILES['slip_image']['name']) && ($_FILES['slip_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $slipPath = $this->storePaymentSlip($_FILES['slip_image']);
+        }
+        if ($slipPath === '') {
+            $_SESSION['booking_payment_flash'] = 'Please upload a valid JPG, PNG, WebP, or PDF payment proof under 5MB.';
+            redirect('booking/pay/' . $bookingId);
+            return;
         }
 
         $ok = $this->bookingModel->submitPaymentSlip(
@@ -561,6 +626,10 @@ class Booking extends Controller
             redirect('booking/detail/' . (int)$r['booking_id']);
             return;
         }
+        if (!empty($r['customer_approved_at']) || !empty($r['delta_payment_slip'])) {
+            redirect('booking/detail/' . (int)$r['booking_id']);
+            return;
+        }
 
         $this->view('booking/replacementDelta', [
             'replacement' => $r,
@@ -575,6 +644,7 @@ class Booking extends Controller
     public function submitReplacementDelta(): void
     {
         $this->ensureAuthenticated();
+        $this->requireCsrf(false);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('booking/myBookings');
             return;
@@ -598,7 +668,9 @@ class Booking extends Controller
             return;
         }
 
-        if (!in_array($bankName, $allowed, true) || $accountName === '' || $transactionRef === '' || $paidAmount <= 0 || $mobileNumber === '') {
+        $expectedDelta = round((float)($r['price_delta'] ?? 0), 2);
+        if (!in_array($bankName, $allowed, true) || $accountName === '' || $transactionRef === '' || $mobileNumber === ''
+            || $expectedDelta <= 0 || abs($paidAmount - $expectedDelta) > 0.01) {
             $_SESSION['booking_payment_flash'] = 'Please fill in all required fields.';
             redirect('booking/payReplacementDelta/' . $replacementId);
             return;
@@ -607,6 +679,11 @@ class Booking extends Controller
         $slipPath = '';
         if (!empty($_FILES['slip_image']['name']) && ($_FILES['slip_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $slipPath = $this->storePaymentSlip($_FILES['slip_image']);
+        }
+        if ($slipPath === '') {
+            $_SESSION['booking_payment_flash'] = 'Please upload a valid payment proof.';
+            redirect('booking/payReplacementDelta/' . $replacementId);
+            return;
         }
 
         $ok = $this->bookingModel->recordReplacementDeltaSlip(
@@ -638,6 +715,36 @@ class Booking extends Controller
 
         $_SESSION['booking_payment_flash'] = 'Your payment proof has been submitted. We will confirm your replacement shortly.';
         redirect('booking/detail/' . (int)$r['booking_id']);
+    }
+
+    public function rejectReplacement($replacementId = null): void
+    {
+        $this->ensureAuthenticated();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('booking/myBookings');
+        }
+        $this->requireCsrf(false);
+        $replacementId = (int)($replacementId ?: ($_POST['replacement_id'] ?? 0));
+        $replacement = $this->bookingModel->rejectReplacementByCustomer($replacementId, (int)$this->userId);
+        if (!$replacement) {
+            $_SESSION['booking_payment_flash'] = 'This replacement proposal can no longer be rejected.';
+            redirect('booking/myBookings');
+        }
+        $bookingId = (int)$replacement['booking_id'];
+        $this->notificationModel->notifyAdmins(
+            'Replacement Re-pick Needed',
+            'The customer rejected the pricier replacement for booking #' . $bookingId . '. Please choose another option.',
+            'booking',
+            'booking',
+            $bookingId
+        );
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Replacement Proposal Declined',
+            'We will look for another replacement option. No payment was taken.',
+            'booking'
+        );
+        redirect('booking/detail/' . $bookingId);
     }
 
     private function storePaymentSlip(array $file): string
@@ -962,7 +1069,7 @@ class Booking extends Controller
             'logs' => $logs,
             'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
-            'depositPercent' => self::DEPOSIT_PERCENT,
+            'depositPercent' => BOOKING_DEPOSIT_PERCENT,
             'depositPayment' => $depositPayment ?: [],
             'packageSchedules' => $packageSchedules,
             'canReview' => $canReview,
@@ -1020,13 +1127,14 @@ class Booking extends Controller
             'booking' => $booking,
             'items' => $items,
             'bookingRef' => $bookingRef,
-            'depositPercent' => self::DEPOSIT_PERCENT,
+            'depositPercent' => BOOKING_DEPOSIT_PERCENT,
         ]);
     }
 
     public function submitCancellation(): void
     {
         $this->ensureAuthenticated();
+        $this->requireCsrf();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
@@ -1213,7 +1321,10 @@ class Booking extends Controller
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $isAssociated = false;
         foreach ($suppliers as $s) {
-            if ((int)$s['supplier_id'] === $supplierId) {
+            if (
+                (int)$s['supplier_id'] === $supplierId
+                && !in_array((string)($s['status'] ?? ''), ['replaced', 'rejected', 'cancelled'], true)
+            ) {
                 $isAssociated = true;
                 $currentSupplierStatus = $s['status'];
                 $currentSupplierRowId = (int)$s['id'];
@@ -1230,7 +1341,9 @@ class Booking extends Controller
         // for per-service decline / replacement display.
         $myServiceRows = array_values(array_filter(
             $suppliers,
-            static fn($s) => (int)($s['supplier_id'] ?? 0) === $supplierId
+            static fn($s) =>
+                (int)($s['supplier_id'] ?? 0) === $supplierId
+                && !in_array((string)($s['status'] ?? ''), ['replaced', 'rejected', 'cancelled'], true)
         ));
 
         $items = $this->bookingModel->getBookingItemsForSupplier($bookingId, $supplierId);
@@ -1254,7 +1367,7 @@ class Booking extends Controller
             'supplierStatus' => $currentSupplierStatus ?? 'pending',
             'supplierRowId' => $currentSupplierRowId ?? 0,
             'supplierId' => $supplierId,
-            'depositPercent' => self::DEPOSIT_PERCENT,
+            'depositPercent' => BOOKING_DEPOSIT_PERCENT,
             'packageSchedules' => $packageSchedules,
             'isPackage' => $this->bookingModel->isPackageBooking($bookingId),
             'declineCutoffDays' => self::PACKAGE_DECLINE_CUTOFF_DAYS,
@@ -1267,6 +1380,7 @@ class Booking extends Controller
      */
     public function supplierRespond(): void
     {
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
@@ -1290,10 +1404,21 @@ class Booking extends Controller
         }
 
         $isPendingSupplierResponse = in_array(($booking['status'] ?? ''), ['pending_supplier_response', 'suppliers_responding'], true);
+        $activeRepl = $this->bookingModel->getActiveReplacementForSupplier($bookingId, $supplierId);
 
         // GATE: Custom-flow bookings can be responded to before payment; otherwise payment must be verified
         if (!$isPendingSupplierResponse && !$this->bookingModel->isPaymentVerified($bookingId)) {
             $this->jsonResponse(['error' => 'Booking payment has not been verified yet. Supplier cannot respond.'], 403);
+            return;
+        }
+        if (
+            !$isPendingSupplierResponse
+            && $activeRepl
+            && !$this->bookingModel->isReplacementDeltaVerified($activeRepl)
+        ) {
+            $this->jsonResponse([
+                'error' => 'The replacement price-difference payment is still awaiting verification. Please respond after admin verification.'
+            ], 403);
             return;
         }
 
@@ -1329,9 +1454,6 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Not associated with this booking'], 403);
         }
 
-        // Is this responder a replacement supplier we swapped in earlier?
-        $activeRepl = $this->bookingModel->getActiveReplacementForSupplier($bookingId, $supplierId);
-
         // A decline on a CONFIRMED package booking does not cancel the booking —
         // it opens an admin-driven supplier replacement instead (see
         // .claude/plans/admin-supplier-replacement-on-decline.md). The custom
@@ -1363,18 +1485,23 @@ class Booking extends Controller
             // A replacement supplier declined too — terminal for this row; the
             // replacement request goes back to the admin queue for a re-pick.
             $newStatus = 'rejected';
-            $this->bookingModel->updateSupplierStatus($rowId, 'rejected');
+            if (!$this->bookingModel->updateSupplierStatus($rowId, 'rejected', ['pending', 'confirmed'])) {
+                $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
+            }
             $this->bookingModel->logStatusChange($bookingId, null, 'replacement_declined', null, 'Replacement supplier declined; re-pick needed');
         } elseif ($isReplaceFlow) {
             $newStatus = 'needs_replacement';
-            $this->bookingModel->markSupplierNeedsReplacement($rowId);
+            if (!$this->bookingModel->markSupplierNeedsReplacement($rowId)) {
+                $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
+            }
             $this->bookingModel->logStatusChange($bookingId, null, 'supplier_needs_replacement', null, 'Supplier declined; awaiting admin replacement');
         } else {
             $newStatus = $action === 'accept' ? 'confirmed' : 'rejected';
             $itemStatus = $action === 'accept' ? 'accepted' : 'cancelled';
 
-            if (!$this->bookingModel->updateSupplierStatus($rowId, $newStatus)) {
-                $this->jsonResponse(['error' => 'Could not update status'], 500);
+            $allowedSupplierStates = ['pending'];
+            if (!$this->bookingModel->updateSupplierStatus($rowId, $newStatus, $allowedSupplierStates)) {
+                $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
             }
 
             $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus);
@@ -1400,7 +1527,7 @@ class Booking extends Controller
                     $this->notificationModel->notifyBookingCustomer(
                         $bookingId,
                         'Supplier Accepted — Please Pay',
-                        $shopName . ' accepted your booking request. Please complete your 10% deposit to confirm.',
+                        $shopName . ' accepted your booking request. Please complete your ' . BOOKING_DEPOSIT_PERCENT . '% deposit to confirm.',
                         'booking'
                     );
                     if (!empty($customerInfo['email'])) {
@@ -1411,6 +1538,7 @@ class Booking extends Controller
             } elseif ($action === 'decline') {
                 $this->bookingModel->updateStatus($bookingId, 'cancelled');
                 $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'cancelled', null, 'Supplier declined');
+                $this->bookingModel->releaseBookingSlots($bookingId);
                 $this->bookingModel->cancelAllSuppliers($bookingId);
                 $this->notificationModel->notifyBookingCustomer(
                     $bookingId,
@@ -1444,6 +1572,17 @@ class Booking extends Controller
                 if ($this->bookingModel->bookingReplacementsResolved($bookingId)) {
                     $this->bookingModel->updateStatus($bookingId, 'confirmed');
                     $this->bookingModel->logStatusChange($bookingId, 'replacement_pending', 'confirmed', null, 'Replacement supplier accepted');
+                } else {
+                    // This service is resolved, but other replacement requests
+                    // on the same booking are still awaiting action.
+                    $this->bookingModel->updateStatus($bookingId, 'replacement_pending');
+                    $this->bookingModel->logStatusChange(
+                        $bookingId,
+                        null,
+                        'replacement_supplier_accepted',
+                        null,
+                        $shopName . ' accepted; other replacements are still pending'
+                    );
                 }
             }
             $this->notificationModel->notifyBookingCustomer(
@@ -1516,6 +1655,7 @@ class Booking extends Controller
      */
     public function supplierProposeReschedule(): void
     {
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
@@ -1596,14 +1736,41 @@ class Booking extends Controller
      */
     public function adminBookings(): void
     {
+        $this->requireRole('admin');
         $filter = trim($_GET['status'] ?? 'all');
         $search = trim($_GET['search'] ?? '');
+        $sort = trim($_GET['sort'] ?? 'event_asc');
+        $dateFrom = trim($_GET['date_from'] ?? '');
+        $dateTo = trim($_GET['date_to'] ?? '');
+        $allowedSorts = ['event_asc', 'event_desc', 'created_desc', 'created_asc', 'total_desc', 'total_asc'];
+        if (!in_array($sort, $allowedSorts, true)) {
+            $sort = 'event_asc';
+        }
+        $validDate = static function (string $value): string {
+            $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+            return $date && $date->format('Y-m-d') === $value ? $value : '';
+        };
+        $dateFrom = $validDate($dateFrom);
+        $dateTo = $validDate($dateTo);
+        if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        }
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
-        $offset = ($page - 1) * $perPage;
 
-        $bookings = $this->bookingModel->getAllBookings($filter, $search, $perPage, $offset);
-        $totalCount = $this->bookingModel->getAllBookingsCount($filter, $search);
+        $totalCount = $this->bookingModel->getAllBookingsCount($filter, $search, $dateFrom, $dateTo);
+        $totalPages = max(1, (int)ceil($totalCount / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+        $bookings = $this->bookingModel->getAllBookings(
+            $filter,
+            $search,
+            $perPage,
+            $offset,
+            $sort,
+            $dateFrom,
+            $dateTo
+        );
         $stats = $this->bookingModel->getAdminStats();
 
         $enriched = [];
@@ -1619,8 +1786,11 @@ class Booking extends Controller
             'stats' => $stats,
             'activeFilter' => $filter,
             'search' => $search,
+            'sort' => $sort,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
             'currentPage' => $page,
-            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalPages' => $totalPages,
             'totalCount' => $totalCount,
             'perPage' => $perPage,
         ]);
@@ -1631,6 +1801,7 @@ class Booking extends Controller
      */
     public function adminBookingDetail(int $bookingId): void
     {
+        $this->requireRole('admin');
         $booking = $this->bookingModel->getBookingById($bookingId);
         if (!$booking) {
             redirect('admin/bookings');
@@ -1656,7 +1827,7 @@ class Booking extends Controller
             'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
             'packageSchedules' => $packageSchedules,
-            'depositPercent' => self::DEPOSIT_PERCENT,
+            'depositPercent' => BOOKING_DEPOSIT_PERCENT,
         ]);
     }
 
@@ -1667,6 +1838,7 @@ class Booking extends Controller
     /** Admin queue of bookings awaiting a replacement pick. */
     public function adminReplacementQueue(): void
     {
+        $this->requireRole('admin');
         $replacements = $this->bookingModel->getPendingReplacements();
         foreach ($replacements as &$r) {
             $r['booking_ref'] = $this->bookingModel->generateBookingRef((int)$r['booking_id']);
@@ -1681,6 +1853,7 @@ class Booking extends Controller
     /** Admin candidate picker for one replacement request. */
     public function adminReplacementPicker($replacementId = null): void
     {
+        $this->requireRole('admin');
         $replacementId = (int)$replacementId;
         $replacement = $this->bookingModel->getReplacement($replacementId);
         if (!$replacement) {
@@ -1705,14 +1878,11 @@ class Booking extends Controller
      */
     public function adminAssignReplacement(): void
     {
+        $adminId = $this->requireRole('admin', true);
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
-        $adminId = (int)($_SESSION['session_uid'] ?? 0);
-        if ($adminId <= 0) {
-            $this->jsonResponse(['error' => 'Unauthorized'], 401);
-        }
-
         $replacementId = (int)($_POST['replacement_id'] ?? 0);
         $newServiceId  = (int)($_POST['service_id'] ?? 0);
         if ($replacementId <= 0 || $newServiceId <= 0) {
@@ -1757,7 +1927,7 @@ class Booking extends Controller
             // Auto-swap; platform absorbs any saving.
             $this->bookingModel->updateReplacement($replacementId, ['requires_customer_approval' => 0]);
             if (!$this->bookingModel->performReplacementSwap($replacementId, false)) {
-                $this->jsonResponse(['error' => 'Swap failed (no capacity?). Try another candidate.'], 500);
+                $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
             }
             $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
             $this->notificationModel->notifyBookingSuppliers(
@@ -1782,6 +1952,7 @@ class Booking extends Controller
             'requires_customer_approval' => 1,
             'delta_payment_id' => $paymentId,
             'status' => 'pending_customer',
+            'proposed_at' => date('Y-m-d H:i:s'),
         ]);
         $this->notificationModel->notifyBookingCustomer(
             $bookingId,
@@ -1804,25 +1975,36 @@ class Booking extends Controller
      */
     public function adminVerifyReplacementPayment(): void
     {
+        $adminId = $this->requireRole('admin', true);
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
-        $adminId = (int)($_SESSION['session_uid'] ?? 0);
-        if ($adminId <= 0) {
-            $this->jsonResponse(['error' => 'Unauthorized'], 401);
-        }
-
         $replacementId = (int)($_POST['replacement_id'] ?? 0);
         $replacement = $this->bookingModel->getReplacement($replacementId);
         if (!$replacement || $replacement['status'] !== 'pending_customer') {
             $this->jsonResponse(['error' => 'No pending-customer replacement to verify'], 409);
+        }
+        $payment = $this->bookingModel->getPaymentById((int)($replacement['delta_payment_id'] ?? 0));
+        $expectedDelta = round((float)($replacement['price_delta'] ?? 0), 2);
+        if (
+            !$payment
+            || ($payment['type'] ?? '') !== 'replacement_delta'
+            || ($payment['status'] ?? '') !== 'pending'
+            || empty($payment['payment_slip_path'])
+            || abs((float)($payment['paid_amount'] ?? 0) - $expectedDelta) > 0.01
+        ) {
+            $this->jsonResponse(['error' => 'A valid matching payment proof is required before verification.'], 422);
         }
 
         $bookingId = (int)$replacement['booking_id'];
         $this->bookingModel->updateReplacement($replacementId, ['customer_approved_at' => date('Y-m-d H:i:s')]);
 
         if (!$this->bookingModel->performReplacementSwap($replacementId, true)) {
-            $this->jsonResponse(['error' => 'Swap failed (no capacity?). Try another candidate.'], 500);
+            $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
+        }
+        if (!$this->bookingModel->markPaymentSuccess((int)$payment['id'], $adminId)) {
+            $this->jsonResponse(['error' => 'Payment was already reviewed.'], 409);
         }
         $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
         $this->notificationModel->notifyBookingSuppliers(
@@ -1845,13 +2027,10 @@ class Booking extends Controller
      */
     public function adminCancelBooking(): void
     {
+        $adminId = $this->requireRole('admin', true);
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
-        }
-
-        $adminId = (int)($_SESSION['session_uid'] ?? 0);
-        if ($adminId <= 0) {
-            $this->jsonResponse(['error' => 'Unauthorized'], 401);
         }
 
         $bookingId = (int)($_POST['booking_id'] ?? 0);
@@ -1893,13 +2072,10 @@ class Booking extends Controller
      */
     public function adminMarkBookingReceived(): void
     {
+        $adminId = $this->requireRole('admin', true);
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
-        }
-
-        $adminId = (int)($_SESSION['session_uid'] ?? 0);
-        if ($adminId <= 0) {
-            $this->jsonResponse(['error' => 'Unauthorized'], 401);
         }
 
         $bookingId = (int)($_POST['booking_id'] ?? 0);
@@ -1928,9 +2104,10 @@ class Booking extends Controller
             }
         }
 
-        $saved = $hasPendingDeposit
-            ? $this->bookingModel->adminVerifyPayment($bookingId, $adminId, $note)
-            : $this->bookingModel->updateStatus($bookingId, 'payment_verified', 'partial');
+        if (!$hasPendingDeposit) {
+            $this->jsonResponse(['error' => 'No pending deposit proof exists for this booking.'], 409);
+        }
+        $saved = $this->bookingModel->adminVerifyPayment($bookingId, $adminId, $note);
 
         if (!$saved) {
             $this->jsonResponse(['error' => 'Could not mark booking as received.'], 500);
@@ -1971,6 +2148,7 @@ class Booking extends Controller
     public function submitPaymentSlip(): void
     {
         $this->ensureAuthenticated();
+        $this->requireCsrf();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
@@ -2011,7 +2189,17 @@ class Booking extends Controller
         }
 
         // Submit payment slip
-        if (!$this->bookingModel->submitPaymentSlip($bookingId, $slipPath, $reference, $paymentMethod)) {
+        $expectedDeposit = round((float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100), 2);
+        if (!$this->bookingModel->submitPaymentSlip(
+            $bookingId,
+            $slipPath,
+            $reference,
+            $paymentMethod,
+            '',
+            '',
+            $expectedDeposit,
+            date('Y-m-d H:i:s')
+        )) {
             $this->jsonResponse(['error' => 'Failed to submit payment. Please try again.'], 500);
             return;
         }
@@ -2091,6 +2279,7 @@ class Booking extends Controller
     public function requestPayoutPost(): void
     {
         $this->ensureAuthenticated();
+        $this->requireCsrf();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
@@ -2166,6 +2355,7 @@ class Booking extends Controller
     public function confirmInstantPayment(): void
     {
         $this->ensureAuthenticated();
+        $this->requireCsrf();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
@@ -2193,14 +2383,27 @@ class Booking extends Controller
         }
 
         // Verify amount matches expected deposit
-        $expectedDeposit = (float)$booking['total_amount'] * (self::DEPOSIT_PERCENT / 100);
+        $expectedDeposit = (float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
         if (abs($amount - $expectedDeposit) > 0.01) { // Allow 1 cent tolerance
             $this->jsonResponse(['error' => 'Payment amount mismatch.'], 400);
             return;
         }
 
+        $gateway = new PaymentGatewayService();
+        $verification = $gateway->verifyTransaction($transactionId);
+        $gatewayStatus = strtolower((string)($verification['status'] ?? ''));
+        $gatewayAmount = (float)($verification['amount'] ?? 0);
+        if (
+            empty($verification['success'])
+            || !in_array($gatewayStatus, ['success', 'paid', 'completed', '0000'], true)
+            || abs($gatewayAmount - $expectedDeposit) > 0.01
+            || !$gateway->methodMatches($method, $verification['method'] ?? '')
+        ) {
+            $this->jsonResponse(['error' => 'The payment gateway could not verify this transaction.'], 422);
+        }
+
         // Confirm instant payment (creates payment record and sets booking to 'paid' transiently)
-        if (!$this->bookingModel->confirmInstantPayment($bookingId, $method, $transactionId, $amount)) {
+        if (!$this->bookingModel->confirmInstantPayment($bookingId, $method, $transactionId, $gatewayAmount)) {
             $this->jsonResponse(['error' => 'Failed to confirm payment.'], 500);
             return;
         }

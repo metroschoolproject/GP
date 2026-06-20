@@ -7,7 +7,8 @@ const serviceManagementConfig = window.serviceManagementConfig || {};
 const serviceManagementUrls = serviceManagementConfig.urls || {};
 const DATA_URLROOT = (serviceManagementConfig.urls?.data || '').replace(/\/supplierServices\/serviceManagementData$/, '');
 const PAGE_SIZE = Number(serviceManagementConfig.pageSize || 24);
-const INITIAL_TAB = serviceManagementConfig.initialTab === 'packages' ? 'packages' : 'services';
+const PACKAGES_AVAILABLE = serviceManagementConfig.initialData?.meta?.supplier_packages_available !== false;
+const INITIAL_TAB = PACKAGES_AVAILABLE && serviceManagementConfig.initialTab === 'packages' ? 'packages' : 'services';
 
 let currentTab = INITIAL_TAB, currentFilter = 'All', statusFilter = 'all', nextId = 200;
 let editingSvcId = null, editingPkgId = null;
@@ -1276,6 +1277,9 @@ function pkgCard(item) {
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
+  if (tab === 'packages' && !PACKAGES_AVAILABLE) {
+    tab = 'services';
+  }
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.classList.remove('active','text-gray-800','border-gray-800');
@@ -1842,4 +1846,8 @@ if (searchEl) {
 
 installNonNegativeNumberGuards();
 renderCategoryControls();
+if (!PACKAGES_AVAILABLE) {
+  const packageTab = document.getElementById('tab-packages');
+  if (packageTab) packageTab.hidden = true;
+}
 switchTab(currentTab);

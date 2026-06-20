@@ -3,7 +3,7 @@ $booking = $booking ?? [];
 $items = $items ?? [];
 $total = (float)($total ?? 0);
 $deposit = (float)($deposit ?? 0);
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 $balance = (float)($balance ?? 0);
 $bookingRef = $bookingRef ?? '';
 
@@ -24,6 +24,7 @@ $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
 <title>Payment — Golden Promise</title>
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">

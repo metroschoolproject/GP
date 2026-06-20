@@ -3,7 +3,7 @@ $booking = $booking ?? [];
 $items = $items ?? [];
 $total = (float)($total ?? 0);
 $deposit = (float)($deposit ?? 0);
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 $balance = (float)($balance ?? 0);
 $bookingRef = $bookingRef ?? '';
 
@@ -243,6 +243,7 @@ a{color:inherit;text-decoration:none}
       </div>
 
       <form method="POST" action="<?= URLROOT ?>/booking/submitManualPayment" enctype="multipart/form-data" id="paymentForm">
+        <?= csrf_field() ?>
         <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
         <input type="hidden" name="bank_name" id="bankNameInput" value="">
 

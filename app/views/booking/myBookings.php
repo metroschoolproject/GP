@@ -178,7 +178,7 @@ button { font-family: var(--font-b); cursor: pointer; }
       $firstItem = $items[0] ?? null;
       $firstHall = $firstItem ? trim((string)($firstItem['venue_room_name'] ?? '')) : '';
       $itemCount = count($items);
-      $deposit = (float)$b['total_amount'] * 0.10;
+      $deposit = (float)$b['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
     ?>
     <div class="gp-card" data-index="<?= $loop->index ?? 0 ?>">
       <div class="gp-card-top">

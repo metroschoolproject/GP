@@ -118,13 +118,40 @@ class PaymentGatewayService
             return ['success' => false, 'error' => 'Gateway verification failed'];
         }
 
+        $responseCode = (string)($response['respCode'] ?? '');
+        $status = (string)($response['status'] ?? $response['paymentStatus'] ?? $response['transactionStatus'] ?? '');
+        $success = ($response['success'] ?? false)
+            || $responseCode === '0000'
+            || in_array(strtolower($status), ['success', 'paid', 'completed'], true);
+
         return [
-            'success' => $response['success'] ?? false,
-            'status' => $response['status'] ?? '',
-            'amount' => $response['amount'] ?? 0,
-            'method' => $response['method'] ?? '',
+            'success' => $success,
+            'status' => $status !== '' ? $status : $responseCode,
+            'amount' => $response['amount'] ?? $response['paidAmount'] ?? 0,
+            'method' => $response['method'] ?? $response['paymentChannel'] ?? '',
             'verified_at' => $response['timestamp'] ?? '',
         ];
+    }
+
+    public function methodMatches(string $expectedMethod, mixed $gatewayMethod): bool
+    {
+        $expected = strtolower(trim($expectedMethod));
+        $actual = strtolower(trim(is_array($gatewayMethod) ? implode(' ', $gatewayMethod) : (string)$gatewayMethod));
+        if ($actual === '') {
+            return false;
+        }
+
+        $aliases = [
+            'mm qr' => ['mm qr', 'mmqr', 'qr', 'promptpay'],
+            'visa' => ['visa', 'card', 'credit card'],
+            'mastercard' => ['mastercard', 'master card', 'card', 'credit card'],
+        ];
+        foreach ($aliases[$expected] ?? [$expected] as $alias) {
+            if ($alias !== '' && str_contains($actual, $alias)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

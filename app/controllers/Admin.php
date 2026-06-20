@@ -12,15 +12,22 @@ class Admin extends Controller
     private $supplierProfileModel;
     private $paymentModel;
     private $serviceManagementModel;
+    private $customerModel;
     private $uploadService;
     private $paymentGateway;
 
     public function __construct()
     {
+        $route = trim((string)($_GET['url'] ?? ''), '/');
+        $method = explode('/', $route)[1] ?? '';
+        if (!str_starts_with($method, 'cron')) {
+            $this->requireRole('admin');
+        }
         $this->notificationModel = $this->model('Notification');
         $this->supplierProfileModel = $this->model('SupplierProfile');
         $this->paymentModel = $this->model('Payment');
         $this->serviceManagementModel = $this->model('SupplierServiceManager');
+        $this->customerModel = $this->model('CustomerModel');
         $this->uploadService = new UploadService();
         $this->paymentGateway = new PaymentGatewayService();
     }   
@@ -572,6 +579,7 @@ class Admin extends Controller
 
     public function bookingCancel()
     {
+        $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminCancelBooking'], func_get_args());
     }
@@ -592,18 +600,21 @@ class Admin extends Controller
 
     public function assignReplacement()
     {
+        $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminAssignReplacement'], func_get_args());
     }
 
     public function verifyReplacementPayment()
     {
+        $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminVerifyReplacementPayment'], func_get_args());
     }
 
     public function markBookingReceived()
     {
+        $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminMarkBookingReceived'], func_get_args());
     }
@@ -841,6 +852,168 @@ class Admin extends Controller
         $this->supplierProfileModel->warnSupplier((int)$supplierId, $level, $note, $this->currentUserId());
         $_SESSION['admin_flash'] = 'Warning level ' . $level . ' issued to supplier.';
         redirect('admin/supplier/' . (int)$supplierId);
+    }
+
+    /* ─── Customer Management ─────────────────────────────────────── */
+
+    public function customers()
+    {
+        $status = (string)($_GET['status'] ?? 'all');
+        $allowed = ['all', 'active', 'suspended', 'banned', 'deleted'];
+        if (!in_array($status, $allowed, true)) {
+            $status = 'all';
+        }
+        $search = trim((string)($_GET['search'] ?? ''));
+
+        if (($_GET['export'] ?? '') === 'csv') {
+            $this->exportCustomersCsv($status, $search);
+            return;
+        }
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $totalCount = $this->customerModel->getCustomersCount($status, $search);
+        $totalPages = max(1, (int)ceil($totalCount / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        $this->view('admin/customers', [
+            'customers' => $this->customerModel->getCustomers($status, $search, $perPage, $offset),
+            'stats' => $this->customerModel->getCustomerStats(),
+            'status' => $status,
+            'search' => $search,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
+        ]);
+    }
+
+    private function exportCustomersCsv(string $status, string $search): void
+    {
+        $rows = $this->customerModel->getCustomers($status, $search, 5000, 0);
+
+        $filename = 'customers-' . date('Y-m-d-His') . '.csv';
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
+        fputcsv($output, ['Customer ID', 'Name', 'Email', 'Phone', 'Status', 'Bookings', 'Joined', 'Last login']);
+        foreach ($rows as $row) {
+            fputcsv($output, [
+                $row['user_id'] ?? '',
+                $row['name'] ?? '',
+                $row['email'] ?? '',
+                $row['phone'] ?? '',
+                ($row['deleted_at'] ?? null) ? 'deleted' : ($row['status'] ?? ''),
+                $row['bookings_count'] ?? 0,
+                $row['created_at'] ?? '',
+                $row['last_login'] ?? '',
+            ]);
+        }
+        fclose($output);
+    }
+
+    public function customer($customerId = null)
+    {
+        if (!$customerId) {
+            redirect('admin/customers');
+        }
+
+        $customer = $this->customerModel->getCustomerById((int)$customerId);
+        if (!$customer) {
+            $_SESSION['admin_flash'] = 'Customer not found.';
+            redirect('admin/customers');
+        }
+
+        $this->view('admin/customer_detail', [
+            'customer' => $customer,
+            'bookings' => $this->customerModel->getCustomerBookings((int)$customerId),
+            'activeBookings' => $this->customerModel->getActiveBookingCount((int)$customerId),
+            'history' => $this->customerModel->getModerationHistory((int)$customerId),
+            'message' => $_SESSION['admin_flash'] ?? '',
+        ]);
+        unset($_SESSION['admin_flash']);
+    }
+
+    public function customerSuspend($customerId = null)
+    {
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $reason = trim($_POST['reason'] ?? '');
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to suspend a customer.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->setStatus((int)$customerId, 'suspended', 'suspend', $reason, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer suspended. Reason: ' . $reason;
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerBan($customerId = null)
+    {
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $reason = trim($_POST['reason'] ?? '');
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to ban a customer.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->setStatus((int)$customerId, 'banned', 'ban', $reason, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer banned. Reason: ' . $reason;
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerUnban($customerId = null)
+    {
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $customer = $this->customerModel->getCustomerById((int)$customerId);
+        if ($customer && !empty($customer['deleted_at'])) {
+            $_SESSION['admin_flash'] = 'This account is deleted and cannot be restored here.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->setStatus((int)$customerId, 'active', 'unban', null, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer restored to active status.';
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerUpdate($customerId = null)
+    {
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $name = trim($_POST['name'] ?? '');
+        if ($name === '') {
+            $_SESSION['admin_flash'] = 'Name cannot be empty.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->updateContact((int)$customerId, [
+            'name' => $name,
+            'phone' => trim($_POST['phone'] ?? ''),
+            'address' => trim($_POST['address'] ?? ''),
+        ], $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer contact details updated.';
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerDelete($customerId = null)
+    {
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $reason = trim($_POST['reason'] ?? '');
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to delete a customer.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->softDelete((int)$customerId, $reason, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer account deleted (soft-delete). Login is now blocked.';
+        redirect('admin/customer/' . (int)$customerId);
     }
 
     public function payments()
@@ -1486,6 +1659,7 @@ class Admin extends Controller
      */
     public function verifyPaymentPost(): void
     {
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
@@ -1582,6 +1756,7 @@ class Admin extends Controller
      */
     public function rejectPaymentSlipPost(): void
     {
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
@@ -1837,6 +2012,7 @@ class Admin extends Controller
         $bookingModel = $this->model('BookingModel');
         $notificationModel = $this->model('Notification');
         $expired = $bookingModel->expireOverdueBookingRequests();
+        $unpaidExpired = $bookingModel->expireAbandonedUnpaidBookings();
 
         if ($expired > 0) {
             $this->db->dbquery(
@@ -1881,6 +2057,7 @@ class Admin extends Controller
         echo json_encode([
             'success' => true,
             'expired' => $expired,
+            'unpaid_bookings_expired' => $unpaidExpired,
             'replacements_requeued' => $replResult['requeued'],
             'timestamp' => date('Y-m-d H:i:s'),
         ]);
