@@ -9,10 +9,19 @@ $selectedDate = trim((string)($selectedDate ?? $service['selected_date'] ?? ''))
 $selectedDateLabel = $selectedDate !== '' ? date('l, M j, Y', strtotime($selectedDate)) : '';
 $datePickerMin = $service['earliest_booking_date'] ?? date('Y-m-d');
 $datePickerMax = date('Y-m-d', strtotime('+365 days'));
+$todayDate = date('Y-m-d');
+$venueDateInputValue = $selectedDate !== ''
+    ? $selectedDate
+    : (strtotime($datePickerMin) > strtotime($todayDate) ? $datePickerMin : $todayDate);
+$venueDateDisplayLabel = $selectedDate !== '' ? date('M j, Y', strtotime($selectedDate)) : 'Today';
 $datePickerAction = URLROOT . '/customerServices/detail/' . (int)($service['id'] ?? 0);
 $venueRooms = $service['venue_rooms'] ?? [];
 $category = strtolower(trim((string)($service['category'] ?? '')));
-$isVenue = ($detailPageType ?? '') === 'venue' || $category === 'venue';
+$categorySlug = strtolower(trim((string)($service['category_slug'] ?? '')));
+$categoryKey = str_replace(['-', '_'], ' ', trim($categorySlug . ' ' . $category));
+$isVenue = ($detailPageType ?? '') === 'venue'
+    || strpos($categoryKey, 'venue') !== false
+    || strpos($categoryKey, 'hall') !== false;
 $bookingType = $service['booking_type'] ?? 'fullday';
 $isSlotBooking = $bookingType === 'slot';
 $reviews = $service['reviews'] ?? [];
@@ -44,6 +53,41 @@ $initialBookingLabel = $hasInitialBookOption ? 'Add to cart' : (($isVenue || !$i
 $venueCapacity = !empty($venueRooms) ? max(array_map(function ($room) {
     return (int)($room['capacity'] ?? 1);
 }, $venueRooms)) : (int)($service['max_concurrent'] ?? 1);
+$metricCount = (int)($service['max_concurrent'] ?? 1);
+$pluralizeMetric = function ($count, $singular, $plural = null) {
+    return (int)$count . ' ' . ((int)$count === 1 ? $singular : ($plural ?? $singular . 's'));
+};
+$capacityMetricLabel = 'Bookings';
+$capacityMetricValue = $pluralizeMetric($metricCount, 'booking') . ' per day';
+$summaryCapacityMetricLabel = $capacityMetricLabel;
+$summaryCapacityMetricValue = $capacityMetricValue;
+$capacityCategoryKey = $categoryKey;
+if ($isVenue) {
+    $capacityMetricLabel = 'Guest Capacity';
+    $capacityMetricValue = (int)$venueCapacity . ' guests';
+    $summaryCapacityMetricLabel = 'Capacity';
+    $summaryCapacityMetricValue = (int)$venueCapacity . ' guests';
+} elseif (strpos($capacityCategoryKey, 'photo') !== false) {
+    $capacityMetricLabel = 'Bookings';
+    $capacityMetricValue = $pluralizeMetric($metricCount, 'booking') . ' per day';
+    $summaryCapacityMetricLabel = 'Bookings per day';
+    $summaryCapacityMetricValue = $pluralizeMetric($metricCount, 'booking') . ' per day';
+} elseif (strpos($capacityCategoryKey, 'makeup') !== false || strpos($capacityCategoryKey, 'make up') !== false) {
+    $capacityMetricLabel = 'Appointments';
+    $capacityMetricValue = $pluralizeMetric($metricCount, 'appointment') . ' per day';
+    $summaryCapacityMetricLabel = 'Appointments per day';
+    $summaryCapacityMetricValue = $pluralizeMetric($metricCount, 'appointment') . ' per day';
+} elseif (strpos($capacityCategoryKey, 'cater') !== false) {
+    $capacityMetricLabel = 'Serving Capacity';
+    $capacityMetricValue = $pluralizeMetric($metricCount, 'serving') . ' per event';
+    $summaryCapacityMetricLabel = 'Serving Capacity';
+    $summaryCapacityMetricValue = $pluralizeMetric($metricCount, 'serving') . ' per event';
+} elseif (strpos($capacityCategoryKey, 'planner') !== false || strpos($capacityCategoryKey, 'planning') !== false) {
+    $capacityMetricLabel = 'Events handled';
+    $capacityMetricValue = $pluralizeMetric($metricCount, 'event') . ' per day';
+    $summaryCapacityMetricLabel = 'Events handled per day';
+    $summaryCapacityMetricValue = $pluralizeMetric($metricCount, 'event') . ' per day';
+}
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
@@ -216,9 +260,9 @@ $heroItems = array_values(array_filter($media, function ($m) {
   --ink-soft: #3A2E29;
   --muted: #6F625A;
   --muted-light: #9A8C84;
-  --wine: #B94A48;
-  --wine-dark: #7F2F2D;
-  --wine-glow: rgba(185, 74, 72, 0.10);
+  --wine: #9A687F;
+  --wine-dark: #7E4F65;
+  --wine-glow: rgba(154, 104, 127, 0.12);
   --gold: #D8B46A;
   --sage: #765A46;
   --green: #2a7a4b;
@@ -819,8 +863,209 @@ button, input, select, textarea { font-family: var(--font-sans); }
   position: relative;
   z-index: 3;
   max-width: 1200px;
-  margin: -80px auto 0;
-  padding: 0 24px 60px;
+  margin: 0 auto;
+  padding: 8px 24px 60px;
+}
+
+/* Product-style selected service detail */
+.product-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 48px);
+  align-items: start;
+  margin: 0 0 var(--pad-section);
+}
+
+.product-media {
+  min-width: 0;
+}
+
+.product-media .gallery-frame {
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  overflow: visible;
+}
+
+.product-media .gallery-main {
+  height: clamp(300px, 38vw, 440px);
+  background: #f3f1ef;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.product-media .gallery-main img,
+.product-media .gallery-main video {
+  object-fit: cover;
+  opacity: 1;
+  transition: opacity .45s ease;
+}
+
+.product-media .gallery-main.is-fading img,
+.product-media .gallery-main.is-fading video {
+  opacity: 0;
+}
+
+.product-media .gallery-thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px 0 0;
+  overflow: visible;
+}
+
+.product-media .gallery-thumb {
+  flex: initial;
+  width: 100%;
+  height: 64px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  opacity: 1;
+  background: #f3f1ef;
+}
+
+.product-media .gallery-thumb.active {
+  border-color: #c9c1bb;
+}
+
+.product-copy {
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.product-title {
+  font-family: var(--font-sans);
+  font-size: clamp(24px, 2.5vw, 34px);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+
+.product-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.product-stars {
+  display: inline-flex;
+  gap: 1px;
+  color: #d4d4d4;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.product-stars .is-active {
+  color: #d8a514;
+}
+
+.product-price {
+  margin-top: 10px;
+  color: var(--ink);
+  font-size: clamp(20px, 2vw, 28px);
+  font-weight: 600;
+}
+
+.product-divider {
+  border: 0;
+  border-top: 1px solid rgba(33,29,26,.10);
+  margin: 24px 0;
+}
+
+.product-about-title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.product-about-text {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.75;
+  white-space: pre-line;
+}
+
+.product-facts {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.product-fact {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.product-fact-label {
+  color: var(--ink-soft);
+  font-weight: 800;
+}
+
+.verified-supplier {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.verified-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #1f9d55;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.product-actions {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-top: 28px;
+}
+
+.product-action-primary,
+.product-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 28px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.product-action-primary {
+  border: 1px solid #3F241A;
+  background: #3F241A;
+  color: #FFF8EF;
+}
+
+.product-action-secondary {
+  border: 1px solid rgba(63,36,26,.24);
+  background: #FFF8EF;
+  color: #3F241A;
 }
 
 /* ─── SECTION: GALLERY ──────────────────────────────── */
@@ -1158,6 +1403,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
   margin-top: var(--pad-section);
 }
 
+.booking-section.is-venue-booking {
+  margin-top: clamp(34px, 4vw, 54px);
+  scroll-margin-top: 150px;
+}
+
 .booking-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -1207,14 +1457,15 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .date-picker-control input {
   min-height: 42px;
   min-width: 170px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel-strong);
-  color: var(--ink);
+  border: 1px solid rgba(63, 36, 26, .18);
+  border-radius: 14px;
+  background: #FFF8EF;
+  color: #3F241A;
   padding: 0 12px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   outline: none;
+  cursor: pointer;
 }
 
 .date-picker-control input:focus {
@@ -1244,12 +1495,238 @@ button, input, select, textarea { font-family: var(--font-sans); }
   transform: translateY(-1px);
 }
 
+.venue-date-form {
+  display: contents;
+}
+
+.venue-date-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 18px;
+  text-align: center;
+}
+
+.venue-date-prompt > span:first-child {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.venue-date-input-wrap {
+  position: relative;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(63, 36, 26, .18);
+  border-radius: 6px;
+  background: #FFF8EF;
+  color: #3F241A;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(63, 36, 26, .06);
+}
+
+.venue-date-input-wrap input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.venue-date-display {
+  min-width: 54px;
+  pointer-events: none;
+}
+
+.venue-date-icon,
+.venue-date-chevron {
+  flex: 0 0 auto;
+  pointer-events: none;
+  color: #7A4E3D;
+  width: 13px !important;
+  height: 13px !important;
+  stroke-width: 2.2;
+}
+
+.venue-date-chevron {
+  margin-left: auto;
+}
+
+.gp-calendar-popover {
+  position: fixed;
+  z-index: 10010;
+  width: min(250px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid rgba(63, 36, 26, .14);
+  border-radius: 10px;
+  background: rgba(255, 248, 239, .98);
+  box-shadow: 0 24px 60px rgba(63, 36, 26, .18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.gp-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #3F241A;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 9px;
+}
+
+.gp-calendar-nav {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #7A4E3D;
+  cursor: pointer;
+}
+
+.gp-calendar-nav:hover {
+  background: rgba(63, 36, 26, .08);
+}
+
+.gp-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.gp-calendar-day-name,
+.gp-calendar-day {
+  display: grid;
+  place-items: center;
+  height: 24px;
+  color: #6F5448;
+  font-size: 11px;
+}
+
+.gp-calendar-day-name {
+  color: rgba(63, 36, 26, .52);
+  font-weight: 800;
+}
+
+.gp-calendar-day {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.gp-calendar-day:hover {
+  background: rgba(122, 78, 61, .12);
+}
+
+.gp-calendar-day.is-selected {
+  background: #3F241A;
+  color: #FFF8EF;
+}
+
+.gp-calendar-day.is-today:not(.is-selected) {
+  outline: 1px solid rgba(63, 36, 26, .28);
+}
+
+.gp-calendar-day.is-disabled {
+  color: rgba(63, 36, 26, .24);
+  cursor: not-allowed;
+}
+
+.venue-date-prompt input,
+.venue-date-change input {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  color: var(--ink);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+.venue-date-change {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 14px;
+}
+
+.booking-section.is-venue-booking .section-title {
+  font-size: clamp(26px, 3vw, 38px);
+  margin: 0;
+}
+
+.venue-halls-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 10px;
+}
+
+.booking-section.is-venue-booking .venue-date-change {
+  margin-top: 8px;
+}
+
+.booking-section.is-venue-booking .venue-date-change .venue-date-input-wrap {
+  min-width: 172px;
+}
+
+.booking-section.is-venue-booking .booking-grid {
+  gap: 20px;
+  margin-top: 0;
+}
+
+.booking-section.is-venue-booking .availability-list {
+  gap: 10px;
+}
+
+.booking-section.is-venue-booking .availability-row {
+  min-height: 64px;
+  padding: 12px 14px;
+}
+
+.booking-grid.is-date-pending .availability-row,
+.booking-grid.is-date-pending .sticky-summary {
+  filter: blur(1.4px);
+  opacity: .62;
+  pointer-events: none;
+  user-select: none;
+}
+
+.booking-grid.is-date-pending .availability-row::after,
+.booking-grid.is-date-pending .sticky-summary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(63, 36, 26, .18);
+  pointer-events: none;
+}
+
 .availability-list {
   display: grid;
   gap: 14px;
 }
 
 .availability-row {
+  position: relative;
   min-height: 72px;
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
@@ -1560,7 +2037,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .btn-cart {
   flex: 1; min-height: 48px;
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  border: 0; border-radius: 999px;
+  border: 0; border-radius: 8px;
   background: var(--wine); color: #fffaf7;
   font: inherit; font-size: 14px; font-weight: 800;
   cursor: pointer;
@@ -1636,33 +2113,63 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .rating-summary-card {
-  background: var(--panel-strong);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  padding: clamp(22px, 3vw, 32px);
+  background: #fff;
+  border: 1px solid rgba(63, 36, 26, .10);
+  border-radius: 8px;
+  padding: 20px 22px;
+  box-shadow: 0 12px 28px rgba(63, 36, 26, .06);
 }
 
 .rating-big {
-  display: flex; align-items: center; gap: 10px;
-  color: var(--wine-dark);
-  font-size: 28px; font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 900;
 }
-.rating-big .star-icon { color: var(--gold); }
+
+.rating-stars {
+  display: inline-flex;
+  gap: 3px;
+  color: #E5C33A;
+  font-size: 17px;
+  letter-spacing: 0;
+}
 
 .rating-bars {
   display: grid; gap: 8px;
-  margin-top: 16px;
-  font-size: 12px; color: var(--muted); font-weight: 600;
+  margin-top: 18px;
+  font-size: 11px; color: rgba(63,36,26,.62); font-weight: 700;
 }
 
 .bar-row {
   display: grid;
-  grid-template-columns: 44px minmax(80px, 1fr) 22px;
+  grid-template-columns: 14px minmax(90px, 1fr) 24px;
   gap: 8px; align-items: center;
 }
 
-.bar-track { height: 4px; overflow: hidden; border-radius: 999px; background: rgba(118,90,70,0.15); }
-.bar-fill { height: 100%; display: block; border-radius: inherit; background: var(--gold); transition: width 0.4s ease; }
+.bar-track { height: 7px; overflow: hidden; border-radius: 0; background: rgba(63,36,26,0.10); }
+.bar-fill { height: 100%; display: block; border-radius: inherit; background: #E8C94B; transition: width 0.4s ease; }
+
+.reviews-section .section-title {
+  font-size: clamp(24px, 3vw, 36px);
+}
+
+.related-section .section-title {
+  font-size: clamp(24px, 3vw, 36px);
+}
+
+.related-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--wine);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+}
 
 .review-list {
   display: grid; gap: 12px;
@@ -1958,6 +2465,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
 @media (max-width: 1024px) {
   .hero-cover { height: 70vh; min-height: 480px; }
   .package-context-strip { padding-top: 82px; }
+  .product-detail { grid-template-columns: 1fr; }
+  .product-media .gallery-main { height: clamp(320px, 58vw, 460px); }
   .hero-title { font-size: clamp(36px, 5vw, 56px); }
   .quick-stats { grid-template-columns: repeat(2, 1fr); }
   .split-section { grid-template-columns: 1fr; }
@@ -1984,7 +2493,15 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .top-bar { padding: 10px 16px; }
   .top-bar-brand { font-size: 17px; }
   .top-pill { min-height: 32px; padding: 0 12px; font-size: 11px; }
-  .page-shell { padding: 0 16px 40px; margin-top: -60px; }
+  .page-shell { padding: 8px 16px 40px; margin-top: 18px; }
+  .product-detail { gap: 24px; margin-top: 0; }
+  .product-media .gallery-main { height: 250px; }
+  .product-media .gallery-thumbs { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .product-media .gallery-thumb { height: 52px; }
+  .product-fact { grid-template-columns: 1fr; gap: 4px; }
+  .product-actions { flex-direction: column; align-items: stretch; }
+  .product-action-primary,
+  .product-action-secondary { justify-content: center; }
   .gallery-main { height: 240px; }
   .gallery-thumb { flex: 0 0 56px; height: 42px; }
   .quick-stats { grid-template-columns: repeat(2, 1fr); }
@@ -2044,41 +2561,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 </head>
 <body>
 
-<!-- ─── TOP BAR ──────────────────────────────────── -->
-<header class="top-bar" id="topBar">
-  <a class="top-bar-brand" href="<?= URLROOT ?>/main/home">Golden Promise</a>
-  <nav class="top-bar-actions">
-    <a class="top-pill" href="<?= $h($isPackageContext ? $packageDetailUrl : URLROOT . '/customerServices/service') ?>">
-      <?= $isPackageContext ? 'Back to package' : 'Explore' ?>
-    </a>
-    <a class="top-pill" href="<?= URLROOT ?>/cart" aria-label="Cart" style="display:inline-flex;align-items:center;gap:4px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      Cart
-    </a>
-    <?php if ($isLoggedIn): ?>
-    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
-    <div class="tb-profile-dropdown">
-      <button class="tb-profile-btn" type="button" aria-expanded="false">
-        <span class="tb-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
-        <span class="tb-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
-        <svg class="tb-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="tb-profile-menu" aria-hidden="true">
-        <a class="tb-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          My Bookings
-        </a>
-        <a class="tb-profile-menu-item tb-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Logout
-        </a>
-      </div>
-    </div>
-    <?php else: ?>
-    <a class="top-pill" href="<?= URLROOT ?>/users/auth">Sign in</a>
-    <?php endif; ?>
-  </nav>
-</header>
+<?php $gpNavActive = 'services'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <?php if ($isPackageContext): ?>
 <section class="package-context-strip" aria-label="Package context">
@@ -2104,231 +2587,112 @@ button, input, select, textarea { font-family: var(--font-sans); }
 </section>
 <?php endif; ?>
 
-<!-- ─── CINEMATIC HERO ───────────────────────────── -->
-<section class="hero-cover" id="heroCover">
-  <div class="hero-cover-bg" id="heroCoverBg"
-       style="background-image: url('<?= $h($heroBgUrl) ?>');"></div>
-  <div class="hero-cover-content">
-    <span class="hero-category"><?= $h($service['category'] ?? 'Service') ?></span>
-    <h1 class="hero-title"><?= $h($service['name'] ?? '') ?></h1>
-    <?php $isWL = !empty($isWishlisted); ?>
-    <button class="dt-heart <?= $isWL ? 'is-saved' : '' ?>" id="dtHeart" data-item-type="service" data-item-id="<?= (int)($service['id'] ?? 0) ?>" data-saved="<?= $isWL ? '1' : '0' ?>">
-      <span class="dt-heart-emoji"><?= $isWL ? '♥' : '♡' ?></span>
-      <?= $isWL ? 'Saved' : 'Save to wishlist' ?>
-    </button>
-    <div class="hero-sub">
-      <span class="hero-sub-item"><i data-lucide="star" size="14" fill="currentColor"></i> <?= number_format((float)$rating, 1) ?> (<?= (int)$reviewCount ?>)</span>
-      <?php if ($supplierName !== ''): ?>
-        <span class="hero-sub-item"><i data-lucide="store" size="14"></i> <?= $h($supplierName) ?></span>
-      <?php endif; ?>
-      <span class="hero-sub-item"><i data-lucide="tag" size="14"></i> <?= $moneyRange($service) ?></span>
-    </div>
-  </div>
-  <div class="hero-scroll-indicator" id="scrollIndicator" aria-label="Scroll down">
-    <i data-lucide="chevron-down" size="28"></i>
-  </div>
-</section>
-
 <!-- ─── PAGE SHELL ───────────────────────────────── -->
 <main class="page-shell">
 
-  <!-- SECTION: GALLERY + QUICK STATS -->
-  <section class="section-gallery" data-aos="fade-up" data-aos-duration="1000">
-    <div class="gallery-frame" id="heroSection">
-      <div class="gallery-main" id="heroMain">
-        <?php if (empty($heroItems)): ?>
-          <img src="<?= $h($fallbackImage) ?>" alt="Service placeholder">
-        <?php else:
-          $firstMedia = $heroItems[0];
-          $isVideo = ($firstMedia['type'] ?? 'image') === 'video';
-        ?>
-          <?php if ($isVideo): ?>
-            <video id="heroVideo" src="<?= $h($firstMedia['file_url']) ?>" muted playsinline preload="metadata"></video>
-            <div class="gallery-video-overlay" id="heroVideoOverlay">
-              <span class="gallery-play-btn"><i data-lucide="play" fill="currentColor"></i></span>
-            </div>
-          <?php else: ?>
-            <img id="heroImg" src="<?= $h($firstMedia['file_url']) ?>" alt="<?= $h($service['name'] ?? '') ?>">
-          <?php endif; ?>
-          <?php if (count($heroItems) > 1): ?>
-            <button class="gallery-nav-btn prev" id="heroPrev" aria-label="Previous" type="button"><i data-lucide="chevron-left" size="16"></i></button>
-            <button class="gallery-nav-btn next" id="heroNext" aria-label="Next" type="button"><i data-lucide="chevron-right" size="16"></i></button>
-            <div class="gallery-dots" id="heroDots">
-              <?php foreach ($heroItems as $i => $item): ?>
-                <button class="gallery-dot <?= $i === 0 ? 'active' : '' ?>" data-index="<?= $i ?>" type="button" aria-label="View media <?= $i + 1 ?>"></button>
-              <?php endforeach; ?>
-            </div>
-          <?php endif; ?>
-        <?php endif; ?>
-      </div>
-
-      <?php if (count($heroItems) > 1): ?>
-        <div class="gallery-thumbs" id="heroThumbs">
-          <?php foreach ($heroItems as $i => $item):
-            $tv = ($item['type'] ?? 'image') === 'video';
+  <section class="product-detail" data-aos="fade-up" data-aos-duration="700">
+    <div class="product-media">
+      <div class="gallery-frame" id="heroSection">
+        <div class="gallery-main" id="heroMain">
+          <?php if (empty($heroItems)): ?>
+            <img src="<?= $h($fallbackImage) ?>" alt="Service placeholder">
+          <?php else:
+            $firstMedia = $heroItems[0];
+            $isVideo = ($firstMedia['type'] ?? 'image') === 'video';
           ?>
-            <div class="gallery-thumb <?= $i === 0 ? 'active' : '' ?>" data-index="<?= $i ?>">
-              <?php if ($tv): ?>
-                <video src="<?= $h($item['file_url']) ?>" muted preload="metadata"></video>
-                <span class="gallery-thumb-video"><i data-lucide="play" size="12" fill="currentColor"></i></span>
-              <?php else: ?>
-                <img src="<?= $h($item['file_url']) ?>" alt="">
-              <?php endif; ?>
-            </div>
-          <?php endforeach; ?>
+            <?php if ($isVideo): ?>
+              <video id="heroVideo" src="<?= $h($firstMedia['file_url']) ?>" muted playsinline preload="metadata"></video>
+              <div class="gallery-video-overlay" id="heroVideoOverlay">
+                <span class="gallery-play-btn"><i data-lucide="play" fill="currentColor"></i></span>
+              </div>
+            <?php else: ?>
+              <img id="heroImg" src="<?= $h($firstMedia['file_url']) ?>" alt="<?= $h($service['name'] ?? '') ?>">
+            <?php endif; ?>
+          <?php endif; ?>
         </div>
-      <?php endif; ?>
-    </div>
 
-    <div class="quick-stats">
-      <div class="quick-stat">
-        <div class="quick-stat-value"><?= $moneyRange($service) ?></div>
-        <div class="quick-stat-label"><?= $pricingUnitLabel($service) ?></div>
-      </div>
-      <div class="quick-stat">
-        <div class="quick-stat-value"><?= $h($durationText($service)) ?></div>
-        <div class="quick-stat-label">Duration</div>
-      </div>
-      <div class="quick-stat">
-        <div class="quick-stat-value"><?= $isVenue ? (int)$venueCapacity : (int)($service['max_concurrent'] ?? 1) ?></div>
-        <div class="quick-stat-label"><?= $isVenue ? 'Guest capacity' : 'Capacity' ?></div>
-      </div>
-      <div class="quick-stat">
-        <div class="quick-stat-value"><?= $rating > 0 ? number_format((float)$rating, 1) : '—' ?></div>
-        <div class="quick-stat-label">Rating</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION: ABOUT + GLASS STATS (SPLIT) -->
-  <section class="split-section" data-aos="fade-up" data-aos-duration="800">
-    <div class="split-content">
-      <?php if ($description !== ''): ?>
-        <div class="section-card">
-          <h2 class="card-title">About this service</h2>
-          <p class="card-sub">What <?= $h($service['name'] ?? '') ?> offers you</p>
-          <div class="desc-text"><?= $h($description) ?></div>
-        </div>
-      <?php endif; ?>
-
-      <!-- Portfolio moved inline here -->
-      <div class="section-card" style="<?= $description === '' ? '' : 'margin-top:24px;' ?>">
-        <h2 class="card-title">Portfolio</h2>
-        <p class="card-sub">Photos &amp; media from this service</p>
-        <?php if (empty($media)): ?>
-          <div class="empty-state">
-            <i data-lucide="image" size="22"></i>
-            No portfolio photos have been published for this service yet.
-          </div>
-        <?php else: ?>
-          <div class="portfolio-grid">
-            <?php foreach (array_slice($media, 0, 7) as $i => $item): ?>
-              <?php $assetUrl = trim((string)($item['file_url'] ?? '')); ?>
-              <?php if ($assetUrl === '') continue; ?>
-              <?php $isVid = ($item['type'] ?? 'image') === 'video'; ?>
-              <div class="portfolio-item" data-src="<?= $h($assetUrl) ?>" data-type="<?= $isVid ? 'video' : 'image' ?>"
-                   data-aos="zoom-in" data-aos-delay="<?= min($i * 80, 400) ?>">
-                <?php if ($isVid): ?>
-                  <video src="<?= $h($assetUrl) ?>" muted preload="metadata"></video>
-                  <span class="portfolio-vid-badge"><i data-lucide="play-circle" size="32"></i></span>
+        <?php if (count($heroItems) > 1): ?>
+          <div class="gallery-thumbs" id="heroThumbs">
+            <?php foreach (array_slice($heroItems, 0, 4) as $i => $item):
+              $tv = ($item['type'] ?? 'image') === 'video';
+            ?>
+              <div class="gallery-thumb <?= $i === 0 ? 'active' : '' ?>" data-index="<?= $i ?>">
+                <?php if ($tv): ?>
+                  <video src="<?= $h($item['file_url']) ?>" muted preload="metadata"></video>
+                  <span class="gallery-thumb-video"><i data-lucide="play" size="12" fill="currentColor"></i></span>
                 <?php else: ?>
-                  <img src="<?= $h($assetUrl) ?>" alt="<?= $h(($service['name'] ?? 'Service') . ' portfolio') ?>">
+                  <img src="<?= $h($item['file_url']) ?>" alt="">
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>
           </div>
         <?php endif; ?>
       </div>
-
-      <?php if ($isDecorationCategory && !empty($decorationStyles)): ?>
-        <div class="section-card" style="margin-top:24px;">
-          <h2 class="card-title">Decoration styles</h2>
-          <p class="card-sub">Style options available for this service</p>
-          <div class="style-grid">
-            <?php foreach ($decorationStyles as $index => $style): ?>
-              <?php $stylePhoto = trim((string)($style['photo_url'] ?? '')); ?>
-              <div class="style-card" data-aos="fade-up" data-aos-delay="<?= min($index * 70, 280) ?>">
-                <div class="style-photo">
-                  <?php if ($stylePhoto !== ''): ?>
-                    <img src="<?= $h($stylePhoto) ?>" alt="<?= $h(($style['name'] ?? 'Decoration style') . ' photo') ?>" loading="lazy">
-                  <?php else: ?>
-                    <i data-lucide="image" size="22"></i>
-                  <?php endif; ?>
-                </div>
-                <div class="style-body">
-                  <strong><?= $h($style['name'] ?? 'Decoration style') ?></strong>
-                  <span><?= $money($style['price'] ?? 0) ?></span>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      <?php endif; ?>
     </div>
 
-    <aside class="split-sidebar">
-      <div class="glass-stats" data-aos="fade-left" data-aos-delay="200">
-        <div class="stat-price"><?= $moneyRange($service) ?></div>
-        <?php if (!empty($rentalOptions)): ?>
-          <div class="rental-price-stack" aria-label="Dress and accessory pricing options">
-            <?php foreach ($rentalOptions as $option): ?>
-              <div class="rental-price-card">
-                <div class="rental-icon"><i data-lucide="<?= $h($option['icon']) ?>" size="16"></i></div>
-                <div>
-                  <span><?= $h($option['label']) ?></span>
-                  <div class="rental-price-grid">
-                    <div>
-                      <em>Package</em>
-                      <strong><?= $h($option['package']) ?></strong>
-                    </div>
-                    <div>
-                      <em>Customize</em>
-                      <strong><?= $h($option['customize']) ?></strong>
-                    </div>
-                  </div>
-                  <small><?= $h($option['meta']) ?></small>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-        <div class="stat-item" style="padding-top:18px;">
-          <div class="stat-icon"><i data-lucide="clock" size="16"></i></div>
-          <div class="stat-content">
-            <strong><?= $h($durationText($service)) ?></strong>
-            <span>Booking type</span>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon"><i data-lucide="users" size="16"></i></div>
-          <div class="stat-content">
-            <strong><?= $isVenue ? (int)$venueCapacity . ' guests' : (int)($service['max_concurrent'] ?? 1) ?></strong>
-            <span><?= $isVenue ? 'Hall capacity' : 'Maximum concurrent' ?></span>
-          </div>
-        </div>
-        <?php if ($supplierName !== ''): ?>
-        <div class="stat-item">
-          <div class="stat-icon"><i data-lucide="store" size="16"></i></div>
-          <div class="stat-content">
-            <strong><?= $h($supplierName) ?></strong>
-            <span>Wedding supplier</span>
-          </div>
-        </div>
-        <?php endif; ?>
+    <div class="product-copy">
+      <h1 class="product-title"><?= $h($service['name'] ?? '') ?></h1>
+      <div class="product-rating-row">
+        <span class="product-stars" aria-label="<?= $h(number_format((float)$rating, 1)) ?> star rating">
+          <?php $roundedRating = (int)round($rating); ?>
+          <?php for ($star = 1; $star <= 5; $star++): ?>
+            <span class="<?= $star <= $roundedRating ? 'is-active' : '' ?>">★</span>
+          <?php endfor; ?>
+        </span>
+        <span><?= number_format((float)$rating, 1) ?> (<?= (int)$reviewCount ?> reviews)</span>
       </div>
-    </aside>
+      <div class="product-price"><?= $moneyRange($service) ?></div>
+
+      <hr class="product-divider">
+
+      <h2 class="product-about-title">About service</h2>
+      <div class="product-about-text">
+        <?= $description !== '' ? $h($description) : 'This wedding service is available from a Golden Promise supplier. Choose your preferred date below to view availability and booking options.' ?>
+      </div>
+
+      <div class="product-facts" aria-label="Service facts">
+        <div class="product-fact">
+          <span class="product-fact-label"><?= $h($capacityMetricLabel) ?>:</span>
+          <span><?= $h($capacityMetricValue) ?></span>
+        </div>
+        <div class="product-fact">
+          <span class="product-fact-label">Wedding supply:</span>
+          <span class="verified-supplier">
+            <?= $h($supplierName) ?>
+            <span class="verified-mark" aria-label="Verified supplier">✓</span>
+            <span>Verified supplier</span>
+          </span>
+        </div>
+        <div class="product-fact">
+          <span class="product-fact-label">Booking type:</span>
+          <span><?= $h($durationText($service)) ?></span>
+        </div>
+      </div>
+
+      <div class="product-actions">
+        <a class="product-action-primary" href="#detail-date">Book service</a>
+        <a class="product-action-secondary" href="#reviews">View reviews</a>
+      </div>
+    </div>
   </section>
 
   <!-- SECTION: AVAILABILITY / BOOKING -->
-  <section class="booking-section" data-aos="fade-up" data-aos-duration="800">
-    <span class="section-label"><?= $isVenue ? 'Choose a hall' : 'Pick a date' ?></span>
-    <h2 class="section-title"><?= $isVenue ? 'Available Halls' : ($isSlotBooking ? 'Available Dates &amp; Times' : 'Available Dates') ?></h2>
+  <section class="booking-section <?= $isVenue ? 'is-venue-booking' : '' ?>" id="<?= $isVenue ? 'available-halls' : 'availability' ?>" data-aos="fade-up" data-aos-duration="800">
+    <?php if (!$isVenue): ?>
+    <span class="section-label">Pick a date</span>
+    <?php endif; ?>
+    <?php if (!$isVenue): ?>
+    <h2 class="section-title"><?= $isSlotBooking ? 'Available Dates &amp; Times' : 'Available Dates' ?></h2>
+    <?php endif; ?>
+    <?php if (!$isVenue): ?>
     <p class="section-sub">
       <?= $selectedDateLabel !== ''
-        ? $h(($isVenue ? 'Reserve a hall for ' : ($isSlotBooking ? 'Available times for ' : 'Available range for ')) . $selectedDateLabel)
-        : ($isVenue ? 'Choose your wedding date first so hall availability is accurate' : ($isSlotBooking ? 'Choose your preferred date and time' : 'Choose an available date')) ?>
+        ? $h(($isSlotBooking ? 'Available times for ' : 'Available range for ') . $selectedDateLabel)
+        : ($isSlotBooking ? 'Choose your preferred date and time' : 'Choose an available date') ?>
     </p>
+    <?php endif; ?>
 
+    <?php if (!$isVenue): ?>
     <form class="date-picker-card" method="GET" action="<?= $h($datePickerAction) ?>">
       <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
         <?php if ($fieldValue > 0): ?>
@@ -2340,13 +2704,16 @@ button, input, select, textarea { font-family: var(--font-sans); }
         <span>
           <?= $selectedDateLabel !== ''
             ? $h('Showing availability for ' . $selectedDateLabel . '. You can change the date anytime.')
-            : ($isVenue
-              ? 'Halls are checked against the wedding date before you choose one.'
-              : ($isSlotBooking ? 'If you came from the service list, that date is prefilled here.' : 'Full-day services show one available time range for each open date.')) ?>
+            : ($isSlotBooking ? 'If you came from the service list, that date is prefilled here.' : 'Full-day services show one available time range for each open date.') ?>
         </span>
       </div>
       <div class="date-picker-control">
-        <input type="date" id="detail-date" name="date" value="<?= $h($selectedDate) ?>" min="<?= $h($datePickerMin) ?>" max="<?= $h($datePickerMax) ?>" aria-label="Wedding date">
+        <span class="venue-date-input-wrap">
+          <i class="venue-date-icon" data-lucide="calendar-days" size="8"></i>
+          <span class="venue-date-display"><?= $h($selectedDate !== '' ? date('M j, Y', strtotime($selectedDate)) : 'Today') ?></span>
+          <i class="venue-date-chevron" data-lucide="chevron-down" size="8"></i>
+          <input class="gp-calendar-input" type="date" id="detail-date" name="date" value="<?= $h($selectedDate) ?>" min="<?= $h($datePickerMin) ?>" max="<?= $h($datePickerMax) ?>" aria-label="Wedding date">
+        </span>
         <button class="date-picker-btn" type="submit">
           <i data-lucide="calendar-check" size="15"></i>
           Check
@@ -2358,12 +2725,46 @@ button, input, select, textarea { font-family: var(--font-sans); }
       </div>
       <?php endif; ?>
     </form>
+    <?php endif; ?>
 
-    <div class="booking-grid">
+    <div class="booking-grid <?= $isVenue && $selectedDate === '' ? 'is-date-pending' : '' ?>">
       <div class="availability-list">
         <?php if ($isVenue): ?>
+          <div class="venue-halls-heading">
+            <h2 class="section-title">Available Halls</h2>
+            <?php if ($selectedDateLabel !== ''): ?>
+              <form class="venue-date-form venue-date-change" method="GET" action="<?= $h($datePickerAction) ?>#available-halls">
+                <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
+                  <?php if ($fieldValue > 0): ?>
+                    <input type="hidden" name="<?= $h($fieldName) ?>" value="<?= (int)$fieldValue ?>">
+                  <?php endif; ?>
+                <?php endforeach; ?>
+                <span class="venue-date-input-wrap">
+          <i class="venue-date-icon" data-lucide="calendar-days" size="8"></i>
+          <span class="venue-date-display"><?= $h($venueDateDisplayLabel) ?></span>
+          <i class="venue-date-chevron" data-lucide="chevron-down" size="8"></i>
+                  <input class="gp-calendar-input" type="date" id="detail-date" name="date" value="<?= $h($venueDateInputValue) ?>" min="<?= $h($datePickerMin) ?>" max="<?= $h($datePickerMax) ?>" aria-label="Wedding date">
+                </span>
+              </form>
+            <?php endif; ?>
+          </div>
           <?php if ($selectedDate === ''): ?>
-            <div class="empty-state"><i data-lucide="calendar-days" size="22"></i>Please choose a wedding date to see which halls are available.</div>
+            <form class="venue-date-form" method="GET" action="<?= $h($datePickerAction) ?>#available-halls">
+              <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
+                <?php if ($fieldValue > 0): ?>
+                  <input type="hidden" name="<?= $h($fieldName) ?>" value="<?= (int)$fieldValue ?>">
+                <?php endif; ?>
+              <?php endforeach; ?>
+              <div class="empty-state venue-date-prompt">
+                <span>Please choose a wedding date to see which halls are available.</span>
+                <span class="venue-date-input-wrap">
+                  <i class="venue-date-icon" data-lucide="calendar-days" size="8"></i>
+                  <span class="venue-date-display"><?= $h($venueDateDisplayLabel) ?></span>
+                  <i class="venue-date-chevron" data-lucide="chevron-down" size="8"></i>
+                  <input class="gp-calendar-input" type="date" id="detail-date" name="date" value="<?= $h($venueDateInputValue) ?>" min="<?= $h($datePickerMin) ?>" max="<?= $h($datePickerMax) ?>" aria-label="Wedding date">
+                </span>
+              </div>
+            </form>
           <?php endif; ?>
           <?php if (empty($venueRooms)): ?>
             <div class="empty-state"><i data-lucide="door-open" size="22"></i>No halls have been published for this venue yet.</div>
@@ -2539,7 +2940,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <?php if ($isVenue): ?>
             <div class="summary-line">
               Selected hall
-              <span id="selectedHall"><?= $h($firstVenueRoom['name'] ?? 'Choose a hall') ?></span>
+              <span id="selectedHall"><?= $h($firstVenueRoom['name'] ?? 'Select after date') ?></span>
             </div>
           <?php endif; ?>
           <div class="summary-line">
@@ -2553,22 +2954,22 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <?php if ($isVenue): ?>
             <div class="summary-line">
               Capacity
-              <span id="selectedTime"><?= $firstVenueRoom ? (int)($firstVenueRoom['capacity'] ?? 1) . ' guests' : 'Choose a hall' ?></span>
+              <span id="selectedTime"><?= $firstVenueRoom ? (int)($firstVenueRoom['capacity'] ?? 1) . ' guests' : 'Select after date' ?></span>
+            </div>
+          <?php elseif (!$isSlotBooking): ?>
+            <div class="summary-line">
+              <?= $h($summaryCapacityMetricLabel) ?>
+              <span id="selectedTime"><?= $h($summaryCapacityMetricValue) ?></span>
             </div>
           <?php elseif ($isSlotBooking && $firstSlot): ?>
             <div class="summary-line">
               Time
               <span id="selectedTime"><?= $h($firstSlot['label'] ?? '') ?></span>
             </div>
-          <?php elseif (!$isSlotBooking && $firstAvailable): ?>
-            <div class="summary-line">
-              Duration
-              <span id="selectedTime">Full day</span>
-            </div>
           <?php else: ?>
             <div class="summary-line">
-              <?= $isSlotBooking ? 'Time' : 'Duration' ?>
-              <span id="selectedTime"><?= $isSlotBooking ? 'Choose a time slot' : 'Choose an available date' ?></span>
+              Time
+              <span id="selectedTime">Choose a time slot</span>
             </div>
           <?php endif; ?>
         </div>
@@ -2642,7 +3043,6 @@ button, input, select, textarea { font-family: var(--font-sans); }
           </form>
           <?php else: ?>
           <a class="btn-cart is-guidance" id="addCartLink" href="#detail-date">
-            <i data-lucide="calendar-days" size="16"></i>
             <?= $h($initialBookingLabel) ?>
           </a>
           <?php endif; ?>
@@ -2651,44 +3051,25 @@ button, input, select, textarea { font-family: var(--font-sans); }
     </div>
   </section>
 
-  <!-- SECTION: SUPPLIER SPOTLIGHT -->
-  <?php if ($supplierName !== ''): ?>
-  <section class="supplier-spotlight" data-aos="fade-up" data-aos-duration="800">
-    <div class="supplier-avatar-lg">
-      <?= $h(strtoupper(substr($supplierName, 0, 1))) ?>
-    </div>
-    <div class="supplier-spot-info">
-      <h3><?= $h($supplierName) ?></h3>
-      <?php if ($supplierDesc !== ''): ?>
-        <p><?= $h($supplierDesc) ?></p>
-      <?php endif; ?>
-      <?php if ($supplierUrl !== ''): ?>
-        <span class="supplier-badge">
-          <i data-lucide="badge-check" size="14"></i>
-          Verified supplier
-        </span>
-      <?php endif; ?>
-    </div>
-  </section>
-  <?php endif; ?>
-
   <!-- SECTION: REVIEWS -->
-  <section class="booking-section" data-aos="fade-up" data-aos-duration="800" style="margin-top:40px;">
-    <span class="section-label">Social proof</span>
+  <section class="booking-section reviews-section" id="reviews" data-aos="fade-up" data-aos-duration="800" style="margin-top:40px;">
     <h2 class="section-title">Reviews &amp; Rating</h2>
     <p class="section-sub">What customers are saying about this service</p>
 
     <div class="reviews-grid">
       <div class="rating-summary-card">
         <div class="rating-big">
-          <span class="star-icon"><i data-lucide="star" size="22" fill="currentColor"></i></span>
-          <?= number_format((float)$rating, 1) ?>
-          <span style="font-size:13px;color:var(--muted);font-weight:600;">(<?= (int)$reviewCount ?>)</span>
+          <span class="rating-stars" aria-label="<?= $h(number_format((float)$rating, 1)) ?> star rating">
+            <?php for ($star = 1; $star <= 5; $star++): ?>
+              <span>★</span>
+            <?php endfor; ?>
+          </span>
+          <span><?= number_format((float)$rating, 1) ?></span>
         </div>
         <div class="rating-bars">
           <?php foreach ($ratingBuckets as $stars => $count): ?>
             <div class="bar-row">
-              <span><?= (int)$stars ?> stars</span>
+              <span><?= (int)$stars ?></span>
               <span class="bar-track"><span class="bar-fill" style="width: <?= (int)round(($count / $maxBucket) * 100) ?>%;"></span></span>
               <span><?= (int)$count ?></span>
             </div>
@@ -2698,7 +3079,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
       <div>
         <div class="review-sort-tabs" style="display:flex;gap:6px;margin-bottom:14px;">
-          <button class="review-sort-btn active" data-sort="recent" onclick="sortReviews('recent',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--plum);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Most Recent</button>
+          <button class="review-sort-btn active" data-sort="recent" onclick="sortReviews('recent',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--wine-dark);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Most Recent</button>
           <button class="review-sort-btn" data-sort="highest" onclick="sortReviews('highest',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);">Highest Rated</button>
           <button class="review-sort-btn" data-sort="lowest" onclick="sortReviews('lowest',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);">Lowest Rated</button>
         </div>
@@ -2707,7 +3088,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <?php foreach ($reviews as $idx => $review): ?>
             <?php $rName = $review['customer_name'] ?? 'Customer'; $rInitial = mb_strtoupper(mb_substr($rName, 0, 1)); ?>
             <article class="review-item" data-aos="fade-up" data-aos-delay="<?= min($idx * 80, 200) ?>">
-              <div class="review-avatar" style="background:var(--plum);color:#fff;font-weight:700;display:grid;place-items:center;"><?= $h($rInitial) ?></div>
+              <div class="review-avatar" style="background:var(--wine-dark);color:#fff;font-weight:700;display:grid;place-items:center;"><?= $h($rInitial) ?></div>
               <div class="review-text">
                 <strong><?= $h($rName) ?></strong>
                 <span><?= $h(date('Y.m.d', strtotime($review['created_at'] ?? 'now'))) ?></span>
@@ -2731,7 +3112,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
         <?php if (count($reviews) >= 4): ?>
         <div style="margin-top:14px;text-align:center;">
-          <button id="loadMoreReviews" data-service-id="<?= (int)($service['id'] ?? 0) ?>" data-offset="4" data-sort="recent" onclick="loadMoreReviews(this)" style="padding:7px 20px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--plum);">Load more reviews</button>
+          <button id="loadMoreReviews" data-service-id="<?= (int)($service['id'] ?? 0) ?>" data-offset="4" data-sort="recent" onclick="loadMoreReviews(this)" style="padding:7px 20px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--wine-dark);">Load more reviews</button>
         </div>
         <?php endif; ?>
       </div>
@@ -2745,7 +3126,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
       b.style.background = 'none'; b.style.color = 'var(--text2)';
       b.classList.remove('active');
     });
-    btn.style.background = 'var(--plum)'; btn.style.color = '#fff';
+    btn.style.background = 'var(--wine-dark)'; btn.style.color = '#fff';
     btn.classList.add('active');
     fetch('<?= URLROOT ?>/review/service/' + serviceId + '?sort=' + sort + '&offset=0&limit=4')
       .then(r => r.json()).then(d => {
@@ -2770,8 +3151,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
   <!-- SECTION: RELATED SERVICES -->
   <?php if (!empty($related)): ?>
   <section class="related-section" data-aos="fade-up" data-aos-duration="800">
-    <span class="section-label">You may also like</span>
-    <h2 class="section-title">Other related services</h2>
+    <span class="related-kicker">you may also like</span>
+    <h2 class="section-title">Explore Our Related Service</h2>
     <div class="related-grid">
       <?php foreach (array_slice($related, 0, 2) as $idx => $item): ?>
         <article class="related-item" data-aos="flip-up" data-aos-delay="<?= $idx * 100 ?>">
@@ -2842,6 +3223,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
   <div id="lightboxContent"></div>
 </div>
 
+<div class="gp-calendar-popover" id="gpCalendarPopover" hidden></div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   lucide.createIcons();
@@ -2906,6 +3289,157 @@ document.addEventListener('DOMContentLoaded', () => {
   const estimatedTotal = document.querySelector('.estimated-row strong');
   const mobileBookPrice = document.querySelector('.mobile-book-price');
   const serviceId = <?= (int)($service['id'] ?? 0) ?>;
+  const summaryCapacityText = <?= json_encode($summaryCapacityMetricValue) ?>;
+
+  const gpCalendar = document.getElementById('gpCalendarPopover');
+  let gpCalendarInput = null;
+  let gpCalendarMonth = null;
+
+  function formatDateValue(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
+  }
+
+  function parseDateValue(value) {
+    if (!value) return null;
+    const parts = value.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function updateCalendarDisplay(input) {
+    const display = input.closest('.venue-date-input-wrap')?.querySelector('.venue-date-display');
+    if (!display) return;
+    const todayValue = formatDateValue(new Date());
+    if (input.value === todayValue) display.textContent = 'Today';
+    else {
+      const parsed = parseDateValue(input.value);
+      display.textContent = parsed ? parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today';
+    }
+  }
+
+  function positionCalendar(anchor) {
+    if (!gpCalendar || !anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const width = Math.min(250, window.innerWidth - 32);
+    const left = Math.max(16, Math.min(rect.left, window.innerWidth - width - 16));
+    gpCalendar.style.width = width + 'px';
+    gpCalendar.style.left = left + 'px';
+    gpCalendar.style.top = (rect.bottom + 10) + 'px';
+  }
+
+  function renderCalendar() {
+    if (!gpCalendar || !gpCalendarInput || !gpCalendarMonth) return;
+    const monthStart = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth(), 1);
+    const selectedValue = gpCalendarInput.value;
+    const todayValue = formatDateValue(new Date());
+    const minValue = gpCalendarInput.min || '';
+    const maxValue = gpCalendarInput.max || '';
+    const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+    const leadingBlanks = monthStart.getDay();
+    const monthTitle = monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+    let html = '<div class="gp-calendar-head">' +
+      '<button class="gp-calendar-nav" type="button" data-cal-prev aria-label="Previous month"><i data-lucide="chevron-left" size="16"></i></button>' +
+      '<span>' + monthTitle + '</span>' +
+      '<button class="gp-calendar-nav" type="button" data-cal-next aria-label="Next month"><i data-lucide="chevron-right" size="16"></i></button>' +
+      '</div><div class="gp-calendar-grid">';
+
+    dayNames.forEach(day => { html += '<div class="gp-calendar-day-name">' + day + '</div>'; });
+    for (let i = 0; i < leadingBlanks; i++) html += '<span></span>';
+    for (let day = 1; day <= daysInMonth; day++) {
+      const value = formatDateValue(new Date(monthStart.getFullYear(), monthStart.getMonth(), day));
+      const disabled = (minValue && value < minValue) || (maxValue && value > maxValue);
+      const classes = ['gp-calendar-day'];
+      if (value === selectedValue) classes.push('is-selected');
+      if (value === todayValue) classes.push('is-today');
+      if (disabled) classes.push('is-disabled');
+      html += '<button class="' + classes.join(' ') + '" type="button" data-date="' + value + '"' + (disabled ? ' disabled' : '') + '>' + day + '</button>';
+    }
+    html += '</div>';
+    gpCalendar.innerHTML = html;
+    lucide.createIcons({ nodes: [gpCalendar] });
+  }
+
+  function openCalendar(input) {
+    gpCalendarInput = input;
+    gpCalendarMonth = parseDateValue(input.value) || parseDateValue(input.min) || new Date();
+    renderCalendar();
+    gpCalendar.hidden = false;
+    positionCalendar(input.closest('.venue-date-input-wrap') || input);
+  }
+
+  document.querySelectorAll('.gp-calendar-input').forEach(input => {
+    updateCalendarDisplay(input);
+    input.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openCalendar(input);
+    });
+    input.addEventListener('focus', () => openCalendar(input));
+  });
+
+  document.querySelectorAll('.venue-date-input-wrap').forEach(wrap => {
+    const input = wrap.querySelector('.gp-calendar-input');
+    if (!input) return;
+    wrap.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openCalendar(input);
+    });
+  });
+
+  gpCalendar?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const prev = event.target.closest('[data-cal-prev]');
+    const next = event.target.closest('[data-cal-next]');
+    const day = event.target.closest('[data-date]');
+    if (prev) {
+      gpCalendarMonth = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth() - 1, 1);
+      renderCalendar();
+      return;
+    }
+    if (next) {
+      gpCalendarMonth = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth() + 1, 1);
+      renderCalendar();
+      return;
+    }
+    if (day && gpCalendarInput) {
+      gpCalendarInput.value = day.dataset.date;
+      updateCalendarDisplay(gpCalendarInput);
+      gpCalendar.hidden = true;
+      gpCalendarInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  gpCalendar?.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!gpCalendar || gpCalendar.hidden) return;
+    if (event.target.closest('.gp-calendar-popover') || event.target.closest('.venue-date-input-wrap') || event.target.closest('.date-picker-control')) return;
+    gpCalendar.hidden = true;
+  });
+
+  window.addEventListener('resize', () => {
+    if (!gpCalendar?.hidden && gpCalendarInput) positionCalendar(gpCalendarInput.closest('.venue-date-input-wrap') || gpCalendarInput);
+  });
+  window.addEventListener('scroll', () => {
+    if (gpCalendar && !gpCalendar.hidden) gpCalendar.hidden = true;
+  }, { passive: true });
+
+  document.querySelectorAll('.venue-date-form input[name="date"]').forEach(input => {
+    input.addEventListener('change', () => {
+      if (input.value && input.form) {
+        if (typeof input.form.requestSubmit === 'function') input.form.requestSubmit();
+        else input.form.submit();
+      }
+    });
+  });
 
   function updateSelectedSlot(input) {
     if (!input) return;
@@ -2935,7 +3469,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-fullday-row]').forEach(r => r.classList.remove('is-selected'));
     row.classList.add('is-selected');
     if (selectedDate) selectedDate.textContent = row.dataset.dateLabel || 'Selected date';
-    if (selectedTime) selectedTime.textContent = 'Full day';
+    if (selectedTime) selectedTime.textContent = summaryCapacityText || 'Full day';
     if (estimatedTotal && row.dataset.priceValue) estimatedTotal.textContent = row.dataset.priceValue;
     if (mobileBookPrice && row.dataset.priceValue) mobileBookPrice.textContent = row.dataset.priceValue;
 
@@ -2985,12 +3519,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const heroDots = document.getElementById('heroDots');
   const heroPrev = document.getElementById('heroPrev');
   const heroNext = document.getElementById('heroNext');
-  const galleryHeroItems = <?= json_encode($heroItems) ?>;
+  const galleryHeroItems = <?= json_encode(array_slice($heroItems, 0, 4)) ?>;
 
   let currentIndex = 0;
   const totalItems = galleryHeroItems.length;
+  let heroAutoTimer = null;
 
-  function renderHeroMedia(index) {
+  function swapHeroMedia(index) {
     if (!heroMain || totalItems === 0) return;
     const item = galleryHeroItems[index];
     if (!item) return;
@@ -3021,10 +3556,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (heroThumbs) heroThumbs.querySelectorAll('.gallery-thumb').forEach((t, i) => t.classList.toggle('active', i === index));
     if (heroDots) heroDots.querySelectorAll('.gallery-dot').forEach((d, i) => d.classList.toggle('active', i === index));
-    if (heroThumbs) {
-      const activeThumb = heroThumbs.querySelector('.gallery-thumb.active');
-      if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
+  }
+
+  function renderHeroMedia(index) {
+    if (!heroMain || totalItems === 0) return;
+    heroMain.classList.add('is-fading');
+    window.setTimeout(() => {
+      swapHeroMedia(index);
+      window.requestAnimationFrame(() => {
+        heroMain.classList.remove('is-fading');
+      });
+    }, 180);
   }
 
   function setupVideoToggle() {
@@ -3044,17 +3586,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newVideo) newVideo.addEventListener('pause', () => newOverlay?.classList.remove('playing'));
   }
 
-  if (heroPrev && heroNext && totalItems > 1) {
-    heroPrev.addEventListener('click', (e) => { e.stopPropagation(); currentIndex = (currentIndex - 1 + totalItems) % totalItems; renderHeroMedia(currentIndex); });
-    heroNext.addEventListener('click', (e) => { e.stopPropagation(); currentIndex = (currentIndex + 1) % totalItems; renderHeroMedia(currentIndex); });
+  function goToHeroMedia(index) {
+    currentIndex = (index + totalItems) % totalItems;
+    renderHeroMedia(currentIndex);
+  }
+
+  function restartHeroAuto() {
+    if (heroAutoTimer) window.clearInterval(heroAutoTimer);
+    if (prefersReduced || totalItems <= 1) return;
+    heroAutoTimer = window.setInterval(() => {
+      goToHeroMedia(currentIndex + 1);
+    }, 4000);
+  }
+
+  if (totalItems > 1) {
+    heroPrev?.addEventListener('click', (e) => { e.stopPropagation(); goToHeroMedia(currentIndex - 1); restartHeroAuto(); });
+    heroNext?.addEventListener('click', (e) => { e.stopPropagation(); goToHeroMedia(currentIndex + 1); restartHeroAuto(); });
     heroDots?.addEventListener('click', (e) => {
       const dot = e.target.closest('.gallery-dot');
-      if (dot) { currentIndex = parseInt(dot.dataset.index); renderHeroMedia(currentIndex); }
+      if (dot) { goToHeroMedia(parseInt(dot.dataset.index)); restartHeroAuto(); }
     });
     heroThumbs?.addEventListener('click', (e) => {
       const thumb = e.target.closest('.gallery-thumb');
-      if (thumb) { currentIndex = parseInt(thumb.dataset.index); renderHeroMedia(currentIndex); }
+      if (thumb) { goToHeroMedia(parseInt(thumb.dataset.index)); restartHeroAuto(); }
     });
+    heroMain?.addEventListener('mouseenter', () => {
+      if (heroAutoTimer) window.clearInterval(heroAutoTimer);
+    });
+    heroMain?.addEventListener('mouseleave', restartHeroAuto);
+    restartHeroAuto();
   }
   setupVideoToggle();
 

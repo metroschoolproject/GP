@@ -271,54 +271,46 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
   transform: translateY(0);
 }
 
+.site-header,
+.site-header a,
+.site-header button,
+.mobile-menu {
+  font-family: "Playfair Display", Georgia, serif;
+}
+
 .navbar {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
 
-  background: rgba(255, 248, 239, 0.18);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  background: transparent;
 
-  border-radius: 0 0 24px 24px;
+  border-radius: 0 0 6px 6px;
 
-  border-bottom: 1px solid rgba(255,255,255,0.3);
+  border-bottom: 0;
 
   box-shadow:
     0 10px 30px rgba(74, 52, 47, 0.08),
     inset 0 1px 0 rgba(255,255,255,0.4);
 }
-.navbar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255,255,255,0.25),
-      rgba(255,255,255,0.05)
-    );
-
-  pointer-events: none;
-}
+.navbar::before { display: none; }
     .nav-left-spacer {
-      width: 40px;
+      width: 92px;
       height: 40px;
-      flex: 0 0 40px;
+      flex: 0 0 92px;
     }
 
     .nav-center-logo {
       position: absolute;
-      left: 50%;
+      left: 24px;
       top: 50%;
       z-index: 2;
       display: grid;
-      width: 82px;
-      height: 82px;
+      width: 76px;
+      height: 76px;
       place-items: center;
-      transform: translate(-50%, -50%);
+      transform: translateY(-50%);
     }
 
     .nav-center-logo img {
@@ -326,6 +318,28 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       height: 100%;
       object-fit: contain;
       filter: drop-shadow(0 4px 8px rgba(74, 52, 47, 0.22));
+    }
+
+    .home-nav-pill {
+      gap: 8px;
+      padding: 5px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.52);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .home-nav-pill a {
+      border-radius: 8px;
+      padding: 7px 18px;
+      color: #FFF4E6;
+      white-space: nowrap;
+    }
+
+    .home-nav-pill a:first-child {
+      background: rgba(255, 255, 255, 0.92);
+      color: #3F2F24;
     }
     /* dropdown */
     .service-item {
@@ -346,62 +360,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       transform: translateX(4px);
     }
 
-      .dock-dropdown {
-    position: relative;
-  }
-
-  .service-arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  margin-left: 6px;
-  font-size: 22px;
-  line-height: 1;
-
-  position: relative;
-  top: 4px;
-
-  transform: rotate(180deg);
-  transition: transform 0.25s ease;
-}
-  .dock-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-20%);
-
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-
-    transition: all 0.3s ease;
-  }
-
-.dock-dropdown:hover .dock-dropdown-menu {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-.dock-dropdown:hover .service-arrow {
-  transform: rotate(0deg);
-}
-    .dock-dropdown.open .dock-dropdown-menu {
-      display: block;
-    }
-
-    .dock-dropdown-menu .dock-link {
-      display: block;
-      padding: 8px 12px;
-      color: #333;
-      background: transparent;
-      border-radius: 6px;
-    }
-
-    .dock-dropdown-menu .dock-link:hover {
-      background: rgba(17, 24, 39, 0.04);
-      color: #000;
-    }
     .hero-brand-title {
       margin: 0 0 18px;
       color: #F3D9A4;
@@ -516,6 +474,64 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       scroll-snap-align: start;
       scroll-snap-stop: always;
       scroll-margin-top: 0;
+      padding-left: clamp(32px, 6vw, 96px);
+      padding-right: clamp(32px, 6vw, 96px);
+      padding-top: clamp(58px, 7vh, 76px);
+      padding-bottom: clamp(58px, 7vh, 76px);
+    }
+
+    #our-services > .mx-auto {
+      min-height: calc(100vh - 152px);
+      gap: clamp(28px, 4vw, 56px);
+    }
+
+    #our-services > .mx-auto > div:first-child {
+      margin-left: 0;
+    }
+
+    #our-services .service-slide-top {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    #our-services .service-slide-left {
+      min-height: clamp(360px, 46vh, 460px);
+      width: 100%;
+    }
+
+    #our-services > .mx-auto > div:last-child {
+      min-height: clamp(500px, 62vh, 580px);
+    }
+
+    #our-services .service-slide-right:first-child {
+      min-height: clamp(140px, 18vh, 170px);
+      width: min(56%, 340px);
+    }
+
+    #our-services .service-slide-right:first-child img {
+      min-height: clamp(140px, 18vh, 170px);
+    }
+
+    #our-services .service-slide-right:last-child {
+      height: clamp(220px, 30vh, 270px);
+      width: min(92%, 520px);
+    }
+
+    @media (max-width: 767px) {
+      #our-services {
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-top: 56px;
+        padding-bottom: 56px;
+      }
+
+      #our-services > .mx-auto {
+        min-height: 0;
+      }
+
+      #our-services > .mx-auto > div:last-child {
+        min-height: 0;
+      }
     }
 
     @keyframes serviceSlideFromLeft {
@@ -1161,19 +1177,19 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     #reviews {
       position: relative;
-      min-height: 100vh;
+      min-height: 78vh;
       overflow: hidden;
       background: #C8B19F;
       color: #4A342F;
-      padding: clamp(72px, 8vw, 118px) 24px;
+      padding: clamp(44px, 5vw, 72px) 24px;
       scroll-snap-align: start;
       scroll-snap-stop: always;
     }
 
     .review-cloud {
       position: relative;
-      width: min(100%, 1180px);
-      min-height: 680px;
+      width: min(100%, 1040px);
+      min-height: 500px;
       margin: 0 auto;
     }
 
@@ -1205,14 +1221,14 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       margin: 0 0 10px;
       color: #4A342F;
       font-family: "Playfair Display", serif;
-      font-size: clamp(20px, 2.1vw, 32px);
+      font-size: clamp(18px, 1.8vw, 26px);
       line-height: 1.05;
     }
 
     .review-card p,
     .review-card blockquote {
       margin: 0;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       line-height: 1.45;
     }
@@ -1226,93 +1242,93 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     .review-avatar {
       display: grid;
       place-items: center;
-      width: 72px;
-      height: 72px;
-      border: 6px solid rgba(255, 248, 239, 0.92);
+      width: 58px;
+      height: 58px;
+      border: 5px solid rgba(255, 248, 239, 0.92);
       border-radius: 999px;
       background: #8A6A58;
       color: #FFF8EF;
       font-family: "Playfair Display", serif;
-      font-size: 22px;
+      font-size: 19px;
       font-weight: 700;
       box-shadow: 0 14px 34px rgba(74, 52, 47, 0.16);
     }
 
     .review-card-feature {
       left: 38%;
-      top: 78px;
+      top: 54px;
       display: grid;
       justify-items: center;
-      width: min(300px, 82vw);
-      padding: 72px 34px 34px;
+      width: min(260px, 82vw);
+      padding: 56px 26px 26px;
       border-radius: 28px;
       text-align: center;
     }
 
     .review-card-feature .review-avatar {
       position: absolute;
-      top: -48px;
-      width: 104px;
-      height: 104px;
-      font-size: 30px;
+      top: -38px;
+      width: 82px;
+      height: 82px;
+      font-size: 25px;
     }
 
     .review-card-feature .signature {
-      margin-top: 18px;
+      margin-top: 12px;
       color: rgba(74, 52, 47, 0.55);
       font-family: "Great Vibes", cursive;
-      font-size: 38px;
+      font-size: 30px;
       font-weight: 400;
     }
 
     .review-card-wide {
-      width: min(330px, 78vw);
-      padding: 20px 24px;
+      width: min(290px, 78vw);
+      padding: 16px 20px;
       border-radius: 10px;
     }
 
     .review-card-pill {
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: 16px;
+      gap: 12px;
       align-items: center;
-      width: min(360px, 82vw);
-      padding: 18px 22px;
+      width: min(310px, 82vw);
+      padding: 14px 18px;
       border-radius: 999px;
     }
 
     .review-card-note {
-      width: min(280px, 78vw);
-      padding: 24px 26px;
+      width: min(240px, 78vw);
+      padding: 18px 20px;
       border-radius: 22px;
       text-align: center;
     }
 
     .review-card-speech {
-      width: min(300px, 80vw);
-      padding: 22px 26px;
+      width: min(260px, 80vw);
+      padding: 18px 20px;
       border-radius: 14px;
     }
 
     .review-card-speech::after {
       content: "";
       position: absolute;
-      right: 44px;
-      bottom: -18px;
-      width: 34px;
-      height: 34px;
+      right: 36px;
+      bottom: -14px;
+      width: 28px;
+      height: 28px;
       background: inherit;
       clip-path: polygon(0 0, 100% 0, 100% 100%);
     }
 
-    .review-pos-1 { left: 4%; top: 32px; }
-    .review-pos-2 { left: 0; top: 210px; }
-    .review-pos-3 { left: 0; top: 430px; }
-    .review-pos-4 { left: 25%; top: 478px; }
-    .review-pos-5 { right: 2%; top: 28px; }
-    .review-pos-6 { right: 0; top: 220px; }
-    .review-pos-7 { right: 4%; top: 408px; }
-    .review-pos-8 { left: 57%; top: 458px; }
+    .review-pos-1 { left: 5%; top: 24px; }
+    .review-pos-2 { left: 0; top: 152px; }
+    .review-pos-3 { left: 2%; top: 318px; }
+    .review-pos-4 { left: 26%; top: 346px; }
+    .review-pos-5 { right: 3%; top: 22px; }
+    .review-pos-6 { right: 0; top: 160px; }
+    .review-pos-7 { right: 5%; top: 300px; }
+    .review-pos-8 { left: 58%; top: 338px; }
 
     @media (max-width: 980px) {
       #reviews {
@@ -1351,14 +1367,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     #contact {
-      min-height: 100vh;
+      min-height: 72vh;
       display: grid;
       place-items: center;
-      padding: clamp(74px, 8vw, 120px) 24px;
-      background:
-        radial-gradient(ellipse at 18% 20%, rgba(255, 255, 255, 0.58), transparent 34%),
-        linear-gradient(135deg, #F8F2EC 0%, #F5E8D9 100%);
-      color: #4A342F;
+      padding: clamp(42px, 5vw, 72px) 24px;
+      background: #2A1710;
+      color: #FFF8EF;
       scroll-snap-align: start;
       scroll-snap-stop: always;
     }
@@ -1366,12 +1380,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     .contact-card {
       position: relative;
       width: min(100%, 1120px);
-      min-height: 560px;
+      min-height: 420px;
       overflow: hidden;
-      border: 1px solid rgba(118, 90, 70, 0.22);
+      border: 1px solid rgba(216, 180, 106, 0.22);
       border-radius: 34px;
-      background: rgba(255, 248, 239, 0.88);
-      box-shadow: 0 36px 90px rgba(92, 67, 48, 0.18);
+      background: #2A1710;
+      box-shadow: 0 36px 90px rgba(0, 0, 0, 0.32);
       backdrop-filter: blur(18px);
     }
 
@@ -1379,7 +1393,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       content: "";
       position: absolute;
       inset: 20px;
-      border: 1px solid rgba(185, 74, 72, 0.16);
+      border: 1px solid rgba(216, 180, 106, 0.18);
       border-radius: 24px;
       pointer-events: none;
     }
@@ -1389,8 +1403,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       position: absolute;
       right: clamp(28px, 6vw, 76px);
       bottom: clamp(16px, 4vw, 44px);
-      color: rgba(185, 74, 72, 0.08);
-      background: linear-gradient(180deg, rgba(255, 246, 236, 0) 0%, rgba(255, 246, 236, 0.08) 54%, rgba(245, 228, 215, 0.42) 82%, #f5e4d7 100%);
+      color: rgba(216, 180, 106, 0.08);
+      background: transparent;
       font-size: clamp(110px, 19vw, 240px);
       font-weight: 700;
       line-height: 0.8;
@@ -1404,7 +1418,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       grid-template-columns: 0.92fr 1.08fr;
       gap: clamp(36px, 6vw, 86px);
       min-height: inherit;
-      padding: clamp(38px, 6vw, 76px);
+      padding: clamp(28px, 4vw, 52px);
     }
 
     .contact-kicker {
@@ -1422,7 +1436,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       font-size: clamp(42px, 6vw, 84px);
       font-weight: 600;
       line-height: 0.94;
-      color: #4A342F;
+      color: #FFF8EF;
     }
 
     .contact-script {
@@ -1438,7 +1452,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     .contact-copy {
       max-width: 420px;
       margin: 30px 0 0;
-      color: #765A46;
+      color: #e2cdb9;
       font-size: 16px;
       font-weight: 600;
       line-height: 1.75;
@@ -1456,7 +1470,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .contact-detail span {
-      color: rgba(74, 52, 47, 0.5);
+      color: rgba(255, 248, 239, 0.55);
       font-size: 11px;
       font-weight: 900;
       letter-spacing: 0.22em;
@@ -1466,7 +1480,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     .contact-detail a,
     .contact-detail p {
       margin: 0;
-      color: #4A342F;
+      color: #FFF8EF;
       font-size: clamp(18px, 2vw, 24px);
       font-weight: 700;
       text-decoration: none;
@@ -1477,16 +1491,16 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       display: grid;
       gap: 16px;
       padding: clamp(22px, 3vw, 34px);
-      border: 1px solid rgba(118, 90, 70, 0.16);
+      border: 1px solid rgba(216, 180, 106, 0.20);
       border-radius: 26px;
-      background: rgba(255, 255, 255, 0.38);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
 
     .contact-form label {
       display: grid;
       gap: 8px;
-      color: #765A46;
+      color: #d8b46a;
       font-size: 11px;
       font-weight: 900;
       letter-spacing: 0.18em;
@@ -1497,11 +1511,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     .contact-form textarea {
       width: 100%;
       border: 0;
-      border-bottom: 1px solid rgba(118, 90, 70, 0.28);
+      border-bottom: 1px solid rgba(255, 248, 239, 0.28);
       border-radius: 0;
       background: transparent;
       padding: 10px 0 12px;
-      color: #4A342F;
+      color: #FFF8EF;
       font-size: 16px;
       outline: none;
     }
@@ -1559,46 +1573,47 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .site-footer {
-      min-height: 28vh;
+      min-height: 22vh;
       display: grid;
       place-items: center;
-      padding: clamp(24px, 3vw, 40px) 24px 24px;
+      padding: clamp(18px, 2.2vw, 28px) 24px 18px;
       background: #2A1710;
       color: #fff;
       scroll-snap-align: start;
       scroll-snap-stop: always;
     }
-    .footer-contact-card{
+.footer-contact-card{
     text-align:center;
+    margin-top:clamp(16px,2.2vw,24px);
 }
 
 #footerText{
-    font-size:clamp(2rem,5vw,4rem);
+    font-size:clamp(1.7rem,4vw,3rem);
     font-weight:700;
     transition:.35s ease;
 }
 
 #footerLabel{
-    color:#888;
-    margin-top:8px;
+    color:#aaa;
+    margin-top:4px;
     transition:.35s ease;
 }
 
 .footer-icons{
     display:flex;
     justify-content:center;
-    gap:18px;
-    margin-top:30px;
+    gap:14px;
+    margin-top:18px;
 }
 
 .contact-btn{
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.16);
     border-radius: 10px;
     cursor: pointer;
     color: #999;
-    width: 48px;
-    height: 48px;
+    width: 42px;
+    height: 42px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1612,7 +1627,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 .contact-btn:hover,
 .contact-btn.active{
-    background: rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.16);
     border-color: rgba(255,255,255,0.4);
     color: #ffffff;
 }
@@ -1643,8 +1658,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       display: flex;
       justify-content: center;
       gap: clamp(28px, 7vw, 92px);
-      margin-top: clamp(28px, 4vw, 44px);
-      font-family: Arial, Helvetica, sans-serif;
+      margin-top: clamp(14px, 2vw, 22px);
+      font-family: "Playfair Display", Georgia, serif;
     }
 
     .footer-nav a {
@@ -1703,7 +1718,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .footer-copy {
-      margin: clamp(38px, 5vw, 62px) 0 0;
+      margin: clamp(18px, 2.4vw, 28px) 0 0;
       color: rgba(255, 255, 255, 0.78);
       font-family: Arial, Helvetica, sans-serif;
       font-size: 12px;
@@ -1713,7 +1728,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     @media (max-width: 640px) {
       .site-footer {
-        min-height: 42vh;
+        min-height: 30vh;
       }
 
       .footer-nav {
@@ -1910,8 +1925,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     </a>
 
     <!-- NAV LINKS -->
-    <div class="absolute left-12 top-1/2 flex -translate-y-1/2 items-center gap-[18px]">
-      <div class="flex items-center gap-7 text-sm font-semibold text-[#4A342F] max-[980px]:hidden">
+    <div class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[18px]">
+      <div class="home-nav-pill flex items-center text-sm font-semibold text-[#4A342F] max-[980px]:hidden">
 
         <a class="transition duration-300 hover:text-[#5a4038]" href="#top">
           Home
@@ -1921,57 +1936,23 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
           Packages
         </a>
 
-        <a class="transition duration-300 hover:text-[#5a4038]" href="#gallery">
-          Gallery
-        </a>
-
-        <!-- DROPDOWN -->
-        <div class="dock-dropdown relative inline-block" id="dockDropdown">
-
-          <button
-          class="cursor-pointer border-0 bg-transparent px-2 py-1.5 font-bold text-[#4A342F] transition duration-300 hover:text-[#5A4038]"
-          id="dockDropdownBtn"
-          type="button"
-          aria-expanded="false">
-
+        <a class="transition duration-300 hover:text-[#5a4038]" id="servicesNavLink" href="<?= URLROOT ?>/customerServices/service">
           Services
-          <span class="service-arrow">^</span>
-        </button>
-          <!-- DROPDOWN MENU -->
-          <div
-  class="dock-dropdown-menu absolute z-[80] min-w-52 overflow-hidden rounded-[20px] border border-white/30 bg-[rgba(255,248,239,0.85)] p-2 backdrop-blur-[20px]"
-  id="dockDropdownMenu">
-
-            <?php foreach (array_slice($serviceCategories, 0, 8) as $category): ?>
-              <?php
-                $categoryName = trim((string)($category['name'] ?? 'Service'));
-                $categoryValue = trim((string)($category['slug'] ?? $categoryName));
-              ?>
-              <a class="service-item" href="<?= URLROOT ?>/customerServices/service?category=<?= rawurlencode($categoryValue) ?>">
-                <?= $h($categoryName) ?>
-              </a>
-            <?php endforeach; ?>
-            <?php if (empty($serviceCategories)): ?>
-              <a class="service-item" href="<?= URLROOT ?>/customerServices/service">Browse services</a>
-            <?php endif; ?>
-
-          </div>
-
-          </div>
+        </a>
 
       </div>
     </div>
 
     <!-- RIGHT BUTTONS -->
-    <div class="ml-8 flex items-center gap-3 max-[980px]:hidden">
+    <div class="ml-auto flex items-center gap-3 max-[980px]:hidden">
       <a
-  class="rounded-[12px] bg-[#8A6A58] px-4 py-2 text-sm font-semibold text-[#FFF8EF] shadow-[0_10px_25px_rgba(74,52,47,0.15)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#765A46]"
+  class="rounded-[8px] bg-[#3F241A] px-4 py-2 text-[13px] font-semibold text-[#FFF8EF] shadow-[0_10px_25px_rgba(63,36,26,0.24)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#4A2D22]"
   href="<?= URLROOT ?>/users/register?type=supplier">
   Be a Partner
 </a>
 
       <a
-  class="rounded-[12px] border border-white/30 bg-white/8 px-4 py-2 text-sm font-semibold tracking-[0.04em] text-[#4A342F] backdrop-blur-md transition duration-300 hover:bg-white/20 hover:text-[#B94A48]"
+  class="rounded-[8px] border border-transparent bg-[#FFF8EF] px-4 py-2 text-[13px] font-semibold tracking-[0.04em] text-[#3F2F24] transition duration-300 hover:bg-[#F3D9A4] hover:text-[#3F2F24]"
   href="<?= $h($authNavUrl) ?>">
   <?= $h($authNavLabel) ?>
 </a>
@@ -1979,7 +1960,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     <!-- MOBILE BUTTON -->
     <button
-      class="hidden min-h-10 cursor-pointer items-center justify-center rounded-full border border-transparent bg-white/10 px-3.5 text-[13px] font-bold text-[#FFF4E6] shadow-[0_6px_18px_rgba(92,67,48,0.14)] max-[980px]:inline-flex"
+      class="hidden min-h-10 cursor-pointer items-center justify-center rounded-[8px] border border-transparent bg-white/10 px-3.5 text-[13px] font-bold text-[#FFF4E6] shadow-[0_6px_18px_rgba(92,67,48,0.14)] max-[980px]:inline-flex"
       id="menuButton"
       type="button"
       aria-label="Open navigation"
@@ -1992,30 +1973,26 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
   <!-- MOBILE MENU -->
   <div
-    class="mobile-menu mx-auto mt-2.5 hidden w-[min(100%,1152px)] rounded-[22px] border border-transparent bg-[#765A46] p-2.5 shadow-[0_18px_36px_rgba(92,67,48,0.18)]"
+    class="mobile-menu mx-auto mt-2.5 hidden w-[min(100%,1152px)] rounded-[10px] border border-transparent bg-[#765A46] p-2.5 shadow-[0_18px_36px_rgba(92,67,48,0.18)]"
     id="mobileMenu">
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#top">
+    <a class="rounded-[8px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#top">
       Home
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service">
-      Our Service
-    </a>
-
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/packages">
+    <a class="rounded-[8px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/packages">
       Packages
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#gallery">
-      Gallery
+    <a class="rounded-[8px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service">
+      Services
     </a>
 
-    <a class="rounded-[14px] bg-[#D8B46A] px-3.5 py-3 font-bold text-[#3F2F24] hover:bg-[#F3D9A4]" href="<?= URLROOT ?>/users/register?type=supplier">
+    <a class="rounded-[8px] bg-[#3F241A] px-3.5 py-3 text-[13px] font-bold text-[#FFF8EF] hover:bg-[#4A2D22]" href="<?= URLROOT ?>/users/register?type=supplier">
       Be a Partner
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= $h($authNavUrl) ?>">
+    <a class="rounded-[8px] bg-[#FFF8EF] px-3.5 py-3 text-[13px] font-bold text-[#3F2F24] hover:bg-[#F3D9A4]" href="<?= $h($authNavUrl) ?>">
       <?= $h($authNavLabel) ?>
     </a>
 
@@ -2354,20 +2331,18 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         </div>
       </section>
 
-      <footer class="site-footer" aria-label="Website Footer">
+      <footer class="site-footer" id="contact" aria-label="Website Footer">
         <div class="footer-inner">
 
           <!-- Footer nav -->
           <nav class="footer-nav" aria-label="Footer navigation">
             <a href="#our-services">Services</a>
-            <a href="#services">Our Story</a>
-            <a href="#gallery">Gallery</a>
-            <a href="#reviewss">Review</a>
-            <a href="#contact">Contact</a>
+            <a href="#top">Our Story</a>
+            <a href="#reviews">Review</a>
           </nav>
 
           <!-- Social icons with hover animation -->
-          <div class="footer-contact-card" style="margin-top:clamp(28px,4vw,44px);">
+          <div class="footer-contact-card">
             <h2 id="footerText">GPromise Wedding</h2>
             <p id="footerLabel">Facebook</p>
             <div class="footer-icons">
@@ -2881,7 +2856,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       const arcSideInset = clamp(window.innerWidth * 0.11, 42, 165);
       const arcBaseY = clamp(window.innerHeight * 0.45, 295, 430);
       const arcLift = clamp(window.innerHeight * 0.26, 150, 245);
-      const servicesButton = document.getElementById("dockDropdownBtn");
+      const servicesButton = document.getElementById("servicesNavLink");
       const navRect = navbar.getBoundingClientRect();
       const dockRect = servicesButton.getBoundingClientRect();
       const canDock = dockRect.width > 4 && dockRect.height > 4;
@@ -2933,16 +2908,14 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     const menuButton = document.getElementById("menuButton");
     const mobileMenu = document.getElementById("mobileMenu");
-    const dockDropdown = document.getElementById("dockDropdown");
-    const dockDropdownBtn = document.getElementById("dockDropdownBtn");
-    const dockDropdownMenu = document.getElementById("dockDropdownMenu");
 
     function scrollToHash(hash, behavior = "smooth") {
       const target = document.querySelector(hash);
       if (!target) return;
+      const navOffset = hash === "#contact" ? (navbar?.getBoundingClientRect().height || 0) + 12 : 0;
 
       introScroll.scrollTo({
-        top: getScrollPositionInIntro(target),
+        top: Math.max(0, getScrollPositionInIntro(target) - navOffset),
         behavior
       });
     }
@@ -2950,19 +2923,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     menuButton.addEventListener("click", () => {
       const isOpen = mobileMenu.classList.toggle("open");
       menuButton.setAttribute("aria-expanded", String(isOpen));
-    });
-
-    dockDropdownBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const isOpen = dockDropdown.classList.toggle("open");
-      dockDropdownBtn.setAttribute("aria-expanded", String(isOpen));
-      dockDropdownMenu.setAttribute("aria-hidden", String(!isOpen));
-    });
-
-    document.addEventListener("click", () => {
-      dockDropdown.classList.remove("open");
-      dockDropdownBtn.setAttribute("aria-expanded", "false");
-      dockDropdownMenu.setAttribute("aria-hidden", "true");
     });
 
     document.querySelectorAll('a[href^="#"]').forEach((link) => {
@@ -2977,9 +2937,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         scrollToHash(hash);
         mobileMenu.classList.remove("open");
         menuButton.setAttribute("aria-expanded", "false");
-        dockDropdown.classList.remove("open");
-        dockDropdownBtn.setAttribute("aria-expanded", "false");
-        dockDropdownMenu.setAttribute("aria-hidden", "true");
       });
     });
 

@@ -261,6 +261,13 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       transform: translateY(0);
     }
 
+    .site-header,
+    .site-header a,
+    .site-header button,
+    .mobile-menu {
+      font-family: "Playfair Display", Georgia, serif;
+    }
+
     .navbar {
       position: fixed;
       top: 0;
@@ -269,32 +276,30 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       pointer-events: auto;
       width: 100%;
       max-width: none;
-      border-radius: 0 0 14px 14px;
-      background: rgba(0, 0, 0, 0.5);
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0 0 6px 6px;
+      background: transparent;
+      border-bottom: 0;
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
     }
 
     .nav-left-spacer {
-      width: 40px;
+      width: 92px;
       height: 40px;
-      flex: 0 0 40px;
+      flex: 0 0 92px;
     }
 
     .nav-center-logo {
       position: absolute;
-      left: 50%;
+      left: 24px;
       top: 50%;
       z-index: 2;
       display: grid;
-      width: 84px;
-      height: 84px;
+      width: 76px;
+      height: 76px;
       place-items: center;
       overflow: hidden;
       border-radius: 50%;
-      transform: translate(-50%, -50%);
+      transform: translateY(-50%);
     }
 
     .nav-center-logo img {
@@ -303,21 +308,25 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       object-fit: cover;
     }
 
-    .dock-dropdown.open .dock-dropdown-menu {
-      display: block;
+    .home-nav-pill {
+      gap: 8px;
+      padding: 5px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.52);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
     }
 
-    .dock-dropdown-menu .dock-link {
-      display: block;
-      padding: 8px 12px;
-      color: #333;
-      background: transparent;
-      border-radius: 6px;
+    .home-nav-pill a {
+      border-radius: 8px;
+      padding: 7px 18px;
+      white-space: nowrap;
     }
 
-    .dock-dropdown-menu .dock-link:hover {
-      background: rgba(17, 24, 39, 0.04);
-      color: #000;
+    .home-nav-pill a:first-child {
+      background: rgba(255, 255, 255, 0.92);
+      color: #3F2F24;
     }
 
     .mobile-menu.open {
@@ -328,13 +337,13 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .home-profile-btn {
       display: flex; align-items: center; gap: 8px;
       padding: 4px 12px 4px 4px;
-      border-radius: 999px;
+      border-radius: 8px;
       border: 1px solid rgba(255,255,255,0.15);
       background: rgba(255,255,255,0.08);
       cursor: pointer;
       transition: all 0.2s;
       color: #FFF4E6;
-      font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+      font-family: "Playfair Display", Georgia, serif;
       font-size: 13px;
       font-weight: 600;
     }
@@ -360,7 +369,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 1100;
       min-width: 180px;
       padding: 6px;
-      border-radius: 14px;
+      border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.1);
       background: #765A46;
       box-shadow: 0 12px 35px rgba(92,67,48,0.25);
@@ -447,6 +456,64 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       scroll-snap-align: start;
       scroll-snap-stop: always;
       scroll-margin-top: 0;
+      padding-left: clamp(32px, 6vw, 96px);
+      padding-right: clamp(32px, 6vw, 96px);
+      padding-top: clamp(58px, 7vh, 76px);
+      padding-bottom: clamp(58px, 7vh, 76px);
+    }
+
+    #our-services > .mx-auto {
+      min-height: calc(100vh - 152px);
+      gap: clamp(28px, 4vw, 56px);
+    }
+
+    #our-services > .mx-auto > div:first-child {
+      margin-left: 0;
+    }
+
+    #our-services .service-slide-top {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    #our-services .service-slide-left {
+      min-height: clamp(360px, 46vh, 460px);
+      width: 100%;
+    }
+
+    #our-services > .mx-auto > div:last-child {
+      min-height: clamp(500px, 62vh, 580px);
+    }
+
+    #our-services .service-slide-right:first-child {
+      min-height: clamp(140px, 18vh, 170px);
+      width: min(56%, 340px);
+    }
+
+    #our-services .service-slide-right:first-child img {
+      min-height: clamp(140px, 18vh, 170px);
+    }
+
+    #our-services .service-slide-right:last-child {
+      height: clamp(220px, 30vh, 270px);
+      width: min(92%, 520px);
+    }
+
+    @media (max-width: 767px) {
+      #our-services {
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-top: 56px;
+        padding-bottom: 56px;
+      }
+
+      #our-services > .mx-auto {
+        min-height: 0;
+      }
+
+      #our-services > .mx-auto > div:last-child {
+        min-height: 0;
+      }
     }
 
     @keyframes serviceSlideFromLeft {
@@ -903,19 +970,19 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
     #reviews {
       position: relative;
-      min-height: 100vh;
+      min-height: 78vh;
       overflow: hidden;
       background: #C8B19F;
       color: #4A342F;
-      padding: clamp(72px, 8vw, 118px) 24px;
+      padding: clamp(44px, 5vw, 72px) 24px;
       scroll-snap-align: start;
       scroll-snap-stop: always;
     }
 
     .review-cloud {
       position: relative;
-      width: min(100%, 1180px);
-      min-height: 680px;
+      width: min(100%, 1040px);
+      min-height: 500px;
       margin: 0 auto;
     }
 
@@ -943,14 +1010,14 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       margin: 0 0 10px;
       color: #4A342F;
       font-family: "Playfair Display", serif;
-      font-size: clamp(20px, 2.1vw, 32px);
+      font-size: clamp(18px, 1.8vw, 26px);
       line-height: 1.05;
     }
 
     .review-card p,
     .review-card blockquote {
       margin: 0;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       line-height: 1.45;
     }
@@ -964,93 +1031,93 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .review-avatar {
       display: grid;
       place-items: center;
-      width: 72px;
-      height: 72px;
-      border: 6px solid rgba(255, 248, 239, 0.92);
+      width: 58px;
+      height: 58px;
+      border: 5px solid rgba(255, 248, 239, 0.92);
       border-radius: 999px;
       background: #B94A48;
       color: #FFF8EF;
       font-family: "Playfair Display", serif;
-      font-size: 22px;
+      font-size: 19px;
       font-weight: 700;
       box-shadow: 0 14px 34px rgba(74, 52, 47, 0.16);
     }
 
     .review-card-feature {
       left: 38%;
-      top: 78px;
+      top: 54px;
       display: grid;
       justify-items: center;
-      width: min(300px, 82vw);
-      padding: 72px 34px 34px;
+      width: min(260px, 82vw);
+      padding: 56px 26px 26px;
       border-radius: 28px;
       text-align: center;
     }
 
     .review-card-feature .review-avatar {
       position: absolute;
-      top: -48px;
-      width: 104px;
-      height: 104px;
-      font-size: 30px;
+      top: -38px;
+      width: 82px;
+      height: 82px;
+      font-size: 25px;
     }
 
     .review-card-feature .signature {
-      margin-top: 18px;
+      margin-top: 12px;
       color: rgba(74, 52, 47, 0.55);
       font-family: "Great Vibes", cursive;
-      font-size: 38px;
+      font-size: 30px;
       font-weight: 400;
     }
 
     .review-card-wide {
-      width: min(330px, 78vw);
-      padding: 20px 24px;
+      width: min(290px, 78vw);
+      padding: 16px 20px;
       border-radius: 10px;
     }
 
     .review-card-pill {
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: 16px;
+      gap: 12px;
       align-items: center;
-      width: min(360px, 82vw);
-      padding: 18px 22px;
+      width: min(310px, 82vw);
+      padding: 14px 18px;
       border-radius: 999px;
     }
 
     .review-card-note {
-      width: min(280px, 78vw);
-      padding: 24px 26px;
+      width: min(240px, 78vw);
+      padding: 18px 20px;
       border-radius: 22px;
       text-align: center;
     }
 
     .review-card-speech {
-      width: min(300px, 80vw);
-      padding: 22px 26px;
+      width: min(260px, 80vw);
+      padding: 18px 20px;
       border-radius: 14px;
     }
 
     .review-card-speech::after {
       content: "";
       position: absolute;
-      right: 44px;
-      bottom: -18px;
-      width: 34px;
-      height: 34px;
+      right: 36px;
+      bottom: -14px;
+      width: 28px;
+      height: 28px;
       background: inherit;
       clip-path: polygon(0 0, 100% 0, 100% 100%);
     }
 
-    .review-pos-1 { left: 4%; top: 32px; }
-    .review-pos-2 { left: 0; top: 210px; }
-    .review-pos-3 { left: 0; top: 430px; }
-    .review-pos-4 { left: 25%; top: 478px; }
-    .review-pos-5 { right: 2%; top: 28px; }
-    .review-pos-6 { right: 0; top: 220px; }
-    .review-pos-7 { right: 4%; top: 408px; }
-    .review-pos-8 { left: 57%; top: 458px; }
+    .review-pos-1 { left: 5%; top: 24px; }
+    .review-pos-2 { left: 0; top: 152px; }
+    .review-pos-3 { left: 2%; top: 318px; }
+    .review-pos-4 { left: 26%; top: 346px; }
+    .review-pos-5 { right: 3%; top: 22px; }
+    .review-pos-6 { right: 0; top: 160px; }
+    .review-pos-7 { right: 5%; top: 300px; }
+    .review-pos-8 { left: 58%; top: 338px; }
 
     .review-like {
       position: absolute;
@@ -1100,14 +1167,12 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     }
 
     #contact {
-      min-height: 100vh;
+      min-height: 72vh;
       display: grid;
       place-items: center;
-      padding: clamp(74px, 8vw, 120px) 24px;
-      background:
-        radial-gradient(ellipse at 18% 20%, rgba(255, 255, 255, 0.58), transparent 34%),
-        linear-gradient(135deg, #F8F2EC 0%, #F5E8D9 100%);
-      color: #4A342F;
+      padding: clamp(42px, 5vw, 72px) 24px;
+      background: #2A1710;
+      color: #FFF8EF;
       scroll-snap-align: start;
       scroll-snap-stop: always;
     }
@@ -1115,12 +1180,12 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .contact-card {
       position: relative;
       width: min(100%, 1120px);
-      min-height: 560px;
+      min-height: 420px;
       overflow: hidden;
-      border: 1px solid rgba(118, 90, 70, 0.22);
+      border: 1px solid rgba(216, 180, 106, 0.22);
       border-radius: 34px;
-      background: rgba(255, 248, 239, 0.88);
-      box-shadow: 0 36px 90px rgba(92, 67, 48, 0.18);
+      background: #2A1710;
+      box-shadow: 0 36px 90px rgba(0, 0, 0, 0.32);
       backdrop-filter: blur(18px);
     }
 
@@ -1128,7 +1193,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       content: "";
       position: absolute;
       inset: 20px;
-      border: 1px solid rgba(185, 74, 72, 0.16);
+      border: 1px solid rgba(216, 180, 106, 0.18);
       border-radius: 24px;
       pointer-events: none;
     }
@@ -1138,7 +1203,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       position: absolute;
       right: clamp(28px, 6vw, 76px);
       bottom: clamp(16px, 4vw, 44px);
-      color: rgba(185, 74, 72, 0.08);
+      color: rgba(216, 180, 106, 0.08);
       font-family: "Playfair Display", serif;
       font-size: clamp(110px, 19vw, 240px);
       font-weight: 700;
@@ -1153,7 +1218,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       grid-template-columns: 0.92fr 1.08fr;
       gap: clamp(36px, 6vw, 86px);
       min-height: inherit;
-      padding: clamp(38px, 6vw, 76px);
+      padding: clamp(28px, 4vw, 52px);
     }
 
     .contact-kicker {
@@ -1171,7 +1236,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       font-size: clamp(42px, 6vw, 84px);
       font-weight: 600;
       line-height: 0.94;
-      color: #4A342F;
+      color: #FFF8EF;
     }
 
     .contact-script {
@@ -1187,7 +1252,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .contact-copy {
       max-width: 420px;
       margin: 30px 0 0;
-      color: #765A46;
+      color: #e2cdb9;
       font-size: 16px;
       font-weight: 600;
       line-height: 1.75;
@@ -1205,7 +1270,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     }
 
     .contact-detail span {
-      color: rgba(74, 52, 47, 0.5);
+      color: rgba(255, 248, 239, 0.55);
       font-size: 11px;
       font-weight: 900;
       letter-spacing: 0.22em;
@@ -1215,7 +1280,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .contact-detail a,
     .contact-detail p {
       margin: 0;
-      color: #4A342F;
+      color: #FFF8EF;
       font-size: clamp(18px, 2vw, 24px);
       font-weight: 700;
       text-decoration: none;
@@ -1226,16 +1291,16 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       display: grid;
       gap: 16px;
       padding: clamp(22px, 3vw, 34px);
-      border: 1px solid rgba(118, 90, 70, 0.16);
+      border: 1px solid rgba(216, 180, 106, 0.20);
       border-radius: 26px;
-      background: rgba(255, 255, 255, 0.38);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
 
     .contact-form label {
       display: grid;
       gap: 8px;
-      color: #765A46;
+      color: #d8b46a;
       font-size: 11px;
       font-weight: 900;
       letter-spacing: 0.18em;
@@ -1246,11 +1311,11 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     .contact-form textarea {
       width: 100%;
       border: 0;
-      border-bottom: 1px solid rgba(118, 90, 70, 0.28);
+      border-bottom: 1px solid rgba(255, 248, 239, 0.28);
       border-radius: 0;
       background: transparent;
       padding: 10px 0 12px;
-      color: #4A342F;
+      color: #FFF8EF;
       font-size: 16px;
       outline: none;
     }
@@ -1491,8 +1556,8 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     </a>
 
     <!-- NAV LINKS -->
-    <div class="absolute left-12 top-1/2 flex -translate-y-1/2 items-center gap-[18px]">
-      <div class="flex items-center gap-7 text-sm font-semibold text-[#FFF4E6] max-[980px]:hidden">
+    <div class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[18px]">
+      <div class="home-nav-pill flex items-center text-sm font-semibold text-[#FFF4E6] max-[980px]:hidden">
 
         <a class="transition duration-300 hover:text-[#F3D9A4]" href="#top">
           Home
@@ -1502,43 +1567,8 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
           Packages
         </a>
 
-        <a class="transition duration-300 hover:text-[#F3D9A4]" href="#gallery">
-          Gallery
-        </a>
-
-        <!-- DROPDOWN -->
-        <div class="dock-dropdown relative inline-block" id="dockDropdown">
-
-          <button
-            class="cursor-pointer border-0 bg-transparent px-2 py-1.5 font-bold text-[#FFF4E6] transition duration-300 hover:text-[#F3D9A4]"
-            id="dockDropdownBtn"
-            type="button"
-            aria-expanded="false">
-
-            Services ▾
-          </button>
-
-          <!-- DROPDOWN MENU -->
-          <div
-            class="dock-dropdown-menu absolute right-0 top-full z-[80] hidden min-w-40 overflow-hidden rounded-xl border border-transparent bg-[#765A46] px-1 py-1.5 shadow-[0_12px_30px_rgba(92,67,48,0.18)]"
-            id="dockDropdownMenu"
-            aria-hidden="true">
-
-            <?php foreach ($serviceCategories as $category): ?>
-              <?php
-                $categoryName = (string)($category['name'] ?? '');
-                $categoryValue = (string)($category['slug'] ?? $categoryName);
-              ?>
-              <a class="dock-link text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service?category=<?= urlencode($categoryValue) ?>">
-                <?= $h($categoryName) ?>
-              </a>
-            <?php endforeach; ?>
-
-          </div>
-        </div>
-
-        <a class="transition duration-300 hover:text-[#F3D9A4]" href="#contact">
-          Contact
+        <a class="transition duration-300 hover:text-[#F3D9A4]" id="servicesNavLink" href="<?= URLROOT ?>/customerServices/service">
+          Services
         </a>
 
       </div>
@@ -1547,7 +1577,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     <!-- RIGHT BUTTONS -->
     <div class="ml-auto flex items-center gap-3 max-[980px]:hidden">
       <a
-        class="rounded-full bg-[#D8B46A] px-3.5 py-1.5 text-sm font-extrabold text-[#3F2F24] shadow-[0_10px_25px_rgba(92,67,48,0.18)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#F3D9A4]"
+        class="rounded-[8px] bg-[#3F241A] px-3.5 py-1.5 text-[13px] font-extrabold text-[#FFF8EF] shadow-[0_10px_25px_rgba(63,36,26,0.24)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#4A2D22]"
         href="<?= URLROOT ?>/users/register?type=supplier">
         Be a Partner
       </a>
@@ -1573,7 +1603,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       </div>
       <?php else: ?>
       <a
-        class="rounded-full border border-transparent bg-white/10 px-2.5 py-1.5 text-sm font-bold text-[#FFF4E6] transition duration-300 hover:bg-white/15 hover:text-[#F3D9A4]"
+        class="rounded-[8px] border border-transparent bg-[#FFF8EF] px-2.5 py-1.5 text-[13px] font-bold text-[#3F2F24] transition duration-300 hover:bg-[#F3D9A4] hover:text-[#3F2F24]"
         href="<?= URLROOT ?>/users/auth">
         Log In
       </a>
@@ -1582,7 +1612,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
     <!-- MOBILE BUTTON -->
     <button
-      class="hidden min-h-10 cursor-pointer items-center justify-center rounded-full border border-transparent bg-white/10 px-3.5 text-[13px] font-bold text-[#FFF4E6] shadow-[0_6px_18px_rgba(92,67,48,0.14)] max-[980px]:inline-flex"
+      class="hidden min-h-10 cursor-pointer items-center justify-center rounded-[8px] border border-transparent bg-white/10 px-3.5 text-[13px] font-bold text-[#FFF4E6] shadow-[0_6px_18px_rgba(92,67,48,0.14)] max-[980px]:inline-flex"
       id="menuButton"
       type="button"
       aria-label="Open navigation"
@@ -1595,42 +1625,34 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
   <!-- MOBILE MENU -->
   <div
-    class="mobile-menu mx-auto mt-2.5 hidden w-[min(100%,1152px)] rounded-[22px] border border-transparent bg-[#765A46] p-2.5 shadow-[0_18px_36px_rgba(92,67,48,0.18)]"
+    class="mobile-menu mx-auto mt-2.5 hidden w-[min(100%,1152px)] rounded-[10px] border border-transparent bg-[#765A46] p-2.5 shadow-[0_18px_36px_rgba(92,67,48,0.18)]"
     id="mobileMenu">
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#top">
+    <a class="rounded-[8px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#top">
       Home
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service">
-      Our Service
-    </a>
-
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/packages">
+    <a class="rounded-[8px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/packages">
       Packages
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#gallery">
-      Gallery
+    <a class="rounded-[8px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/customerServices/service">
+      Services
     </a>
 
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="#contact">
-      Contact
-    </a>
-
-    <a class="rounded-[14px] bg-[#D8B46A] px-3.5 py-3 font-bold text-[#3F2F24] hover:bg-[#F3D9A4]" href="<?= URLROOT ?>/users/register?type=supplier">
+    <a class="rounded-[8px] bg-[#3F241A] px-3.5 py-3 text-[13px] font-bold text-[#FFF8EF] hover:bg-[#4A2D22]" href="<?= URLROOT ?>/users/register?type=supplier">
       Be a Partner
     </a>
 
     <?php if ($isLoggedIn): ?>
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/booking/myBookings">
+    <a class="rounded-[8px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/booking/myBookings">
       My Bookings
     </a>
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/users/logout">
+    <a class="rounded-[8px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/users/logout">
       Logout
     </a>
     <?php else: ?>
-    <a class="rounded-[14px] px-3.5 py-3 font-bold text-[#FFF4E6] hover:bg-[#D8B46A]/16 hover:text-[#F3D9A4]" href="<?= URLROOT ?>/users/auth">
+    <a class="rounded-[8px] bg-[#FFF8EF] px-3.5 py-3 text-[13px] font-bold text-[#3F2F24] hover:bg-[#F3D9A4]" href="<?= URLROOT ?>/users/auth">
       Log In
     </a>
     <?php endif; ?>
@@ -2374,7 +2396,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
       const arcCenterX = window.innerWidth / 2;
       const arcCenterY = clamp(window.innerHeight * 0.5, 260, 440);
-      const servicesButton = document.getElementById("dockDropdownBtn");
+      const servicesButton = document.getElementById("servicesNavLink");
       const navRect = navbar.getBoundingClientRect();
       const dockRect = servicesButton.getBoundingClientRect();
       const canDock = dockRect.width > 4 && dockRect.height > 4;
@@ -2424,9 +2446,6 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
 
     const menuButton = document.getElementById("menuButton");
     const mobileMenu = document.getElementById("mobileMenu");
-    const dockDropdown = document.getElementById("dockDropdown");
-    const dockDropdownBtn = document.getElementById("dockDropdownBtn");
-    const dockDropdownMenu = document.getElementById("dockDropdownMenu");
 
     function scrollToHash(hash, behavior = "smooth") {
       const target = document.querySelector(hash);
@@ -2443,19 +2462,6 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       menuButton.setAttribute("aria-expanded", String(isOpen));
     });
 
-    dockDropdownBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const isOpen = dockDropdown.classList.toggle("open");
-      dockDropdownBtn.setAttribute("aria-expanded", String(isOpen));
-      dockDropdownMenu.setAttribute("aria-hidden", String(!isOpen));
-    });
-
-    document.addEventListener("click", () => {
-      dockDropdown.classList.remove("open");
-      dockDropdownBtn.setAttribute("aria-expanded", "false");
-      dockDropdownMenu.setAttribute("aria-hidden", "true");
-    });
-
     document.querySelectorAll('a[href^="#"]').forEach((link) => {
       link.addEventListener("click", (event) => {
         const hash = link.getAttribute("href");
@@ -2468,9 +2474,6 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
         scrollToHash(hash);
         mobileMenu.classList.remove("open");
         menuButton.setAttribute("aria-expanded", "false");
-        dockDropdown.classList.remove("open");
-        dockDropdownBtn.setAttribute("aria-expanded", "false");
-        dockDropdownMenu.setAttribute("aria-hidden", "true");
       });
     });
 
