@@ -626,6 +626,33 @@ class CartModel
         return $rows;
     }
 
+    /**
+     * Return the slot-type services in a package that are NOT available on a
+     * given date. Reuses getPackageEventSchedule()'s computed availability so
+     * the logic stays in one place. Empty array = every service is bookable.
+     *
+     * @return array<int,array{service_id:int,service_name:string,date:string,message:string}>
+     */
+    public function getUnavailablePackageServices(int $packageId, string $eventDate): array
+    {
+        $unavailable = [];
+        foreach ($this->getPackageEventSchedule($packageId, $eventDate) as $row) {
+            if (($row['booking_type'] ?? '') !== 'slot') {
+                continue; // 'managed' services are always available
+            }
+            if (empty($row['is_available'])) {
+                $unavailable[] = [
+                    'service_id'   => (int)($row['service_id'] ?? 0),
+                    'service_name' => (string)($row['service_name'] ?? 'Package service'),
+                    'date'         => $eventDate,
+                    'message'      => (string)($row['availability_message']
+                                        ?? 'No package slots available for this time'),
+                ];
+            }
+        }
+        return $unavailable;
+    }
+
     private function getPackageServiceSlotAvailability(
         int $serviceId,
         string $eventDate,
