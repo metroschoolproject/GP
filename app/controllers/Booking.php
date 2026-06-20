@@ -418,14 +418,18 @@ class Booking extends Controller
                 if (!empty($packageSchedule)) {
                     if ($this->bookingModel->reservePackageServiceSlots($bookingId, $pkgDate, $packageSchedule) === false) {
                         $fail = $this->bookingModel->getLastUnavailableService();
-                        if ($fail) {
-                            $fail['alternatives'] = $this->cartModel->findAlternativePackageDates(
-                                (int)($item['item_id'] ?? 0),
-                                (int)$fail['service_id'],
-                                $pkgDate
-                            );
+                        if (!$fail) {
+                            // Not an availability conflict (e.g. the slot-reservation
+                            // write failed) — route to the generic 500 handler rather
+                            // than emit a 422 with an empty unavailable list.
+                            throw new RuntimeException('Could not reserve package service slots.');
                         }
-                        throw new SlotUnavailableException($fail ? [$fail] : []);
+                        $fail['alternatives'] = $this->cartModel->findAlternativePackageDates(
+                            (int)($item['item_id'] ?? 0),
+                            (int)$fail['service_id'],
+                            $pkgDate
+                        );
+                        throw new SlotUnavailableException([$fail]);
                     }
                 }
             }
