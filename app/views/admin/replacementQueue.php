@@ -48,7 +48,7 @@ $dashboardContent = function () use ($replacements, $h, $money, $dateOnly, $stat
       <table class="repl">
         <thead>
           <tr>
-            <th>Booking</th><th>Customer</th><th>Category</th>
+            <th>Booking</th><th>Customer</th><th>Declined service</th>
             <th>Declined supplier</th><th>Wedding date</th><th>Status</th><th></th>
           </tr>
         </thead>
@@ -57,7 +57,7 @@ $dashboardContent = function () use ($replacements, $h, $money, $dateOnly, $stat
           <tr>
             <td><strong><?= $h($r['booking_ref'] ?? ('#' . $r['booking_id'])) ?></strong></td>
             <td><?= $h($r['customer_name'] ?? '-') ?></td>
-            <td><?= $h($r['category_name'] ?? '-') ?></td>
+            <td><?= $h($r['old_service_name'] ?? ($r['category_name'] ?? '-')) ?><br><span style="color:#b79c8b;font-size:11px"><?= $h($r['category_name'] ?? '') ?></span></td>
             <td><?= $h($r['old_shop_name'] ?? '-') ?><br><span style="color:#b79c8b;font-size:11px"><?= $money($r['old_price'] ?? 0) ?></span></td>
             <td><?= $h($dateOnly($r['event_date'] ?? null)) ?></td>
             <td><span class="badge"><?= $h($statusLabels[$r['status']] ?? $r['status']) ?></span></td>

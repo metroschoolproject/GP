@@ -411,18 +411,24 @@ class PlatformPackage
      */
     private function clonePackageItems(int $sourcePackageId, int $targetPackageId): void
     {
+        $columns = ['category_id', 'service_id', 'default_supplier_id', 'default_price'];
+        if ($this->hasPackagePriceColumn()) {
+            $columns[] = 'customize_price';
+        }
+        if ($this->hasPackageQuantityColumns()) {
+            $columns[] = 'quantity_type';
+            $columns[] = 'quantity';
+        }
+        if ($this->hasPackageVenueRoomColumn()) {
+            $columns[] = 'venue_room_id';
+        }
+        if ($this->hasPackageItemConcurrentColumn()) {
+            $columns[] = 'max_concurrent';
+        }
+
         $this->db->dbquery(
-            'INSERT INTO package_items (package_id, category_id, service_id, default_supplier_id, default_price,'
-            . ($this->hasPackagePriceColumn() ? ' customize_price,' : '')
-            . ($this->hasPackageQuantityColumns() ? ' quantity_type, quantity,' : '')
-            . ($this->hasPackageVenueRoomColumn() ? ' venue_room_id' : '')
-            . ($this->hasPackageItemConcurrentColumn() ? ' max_concurrent' : '')
-            . ')'
-            . ' SELECT :target_id, category_id, service_id, default_supplier_id, default_price,'
-            . ($this->hasPackagePriceColumn() ? ' customize_price,' : '')
-            . ($this->hasPackageQuantityColumns() ? ' quantity_type, quantity,' : '')
-            . ($this->hasPackageVenueRoomColumn() ? ' venue_room_id' : '')
-            . ($this->hasPackageItemConcurrentColumn() ? ' max_concurrent' : '')
+            'INSERT INTO package_items (package_id, ' . implode(', ', $columns) . ')'
+            . ' SELECT :target_id, ' . implode(', ', $columns)
             . ' FROM package_items'
             . ' WHERE package_id = :source_id'
         );

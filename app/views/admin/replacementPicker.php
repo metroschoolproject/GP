@@ -51,6 +51,7 @@ $dashboardContent = function () use ($replacement, $candidates, $bookingRef, $ma
 
   <div class="panel">
     <div class="meta">
+      <div><div class="k">Declined service</div><div class="v"><?= $h($replacement['old_service_name'] ?? '-') ?></div></div>
       <div><div class="k">Declined supplier</div><div class="v"><?= $h($replacement['old_shop_name'] ?? '-') ?></div></div>
       <div><div class="k">Category</div><div class="v"><?= $h($replacement['category_name'] ?? '-') ?></div></div>
       <div><div class="k">Original price</div><div class="v"><?= $money($oldPrice) ?></div></div>
@@ -71,9 +72,9 @@ $dashboardContent = function () use ($replacement, $candidates, $bookingRef, $ma
     </div>
   <?php else: ?>
     <div class="panel">
-      <div class="eyebrow" style="margin-bottom:10px">Available replacements &middot; same category, free on the date, up to +<?= (int)$maxUpchargePct ?>%</div>
+      <div class="eyebrow" style="margin-bottom:10px">Available replacements &middot; same category, free on the date &middot; over-budget allowed (customer approves the extra)</div>
       <?php if (empty($candidates)): ?>
-        <div class="empty">No eligible suppliers found under the +<?= (int)$maxUpchargePct ?>% ceiling for this date.<br>Try cancelling this item with a refund, or adjust the cap.</div>
+        <div class="empty">No eligible suppliers in this category are free on the wedding date.<br>Try cancelling this item with a refund instead.</div>
       <?php else: ?>
         <table class="cand">
           <thead>
@@ -83,6 +84,7 @@ $dashboardContent = function () use ($replacement, $candidates, $bookingRef, $ma
           <?php foreach ($candidates as $c):
               $delta = (float)($c['price_delta'] ?? 0);
               $needs = !empty($c['needs_customer_approval']);
+              $overCap = !empty($c['over_cap']);
           ?>
             <tr>
               <td><strong><?= $h($c['shop_name'] ?? '-') ?></strong></td>
@@ -90,6 +92,9 @@ $dashboardContent = function () use ($replacement, $candidates, $bookingRef, $ma
               <td><?= $money($c['price'] ?? 0) ?></td>
               <td style="color:<?= $delta > 0 ? '#991b1b' : '#065f46' ?>">
                 <?= $delta > 0 ? '+' . $money($delta) : ($delta < 0 ? '-' . $money(abs($delta)) : 'same') ?>
+                <?php if ($overCap): ?>
+                  <br><span style="font-size:10px;font-weight:700;color:#b45309">over +<?= (int)$maxUpchargePct ?>% cap</span>
+                <?php endif; ?>
               </td>
               <td>
                 <?php if ($needs): ?>

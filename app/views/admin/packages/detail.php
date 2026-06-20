@@ -496,10 +496,10 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         </div>
 
         <div class="field">
-          <label>Max Concurrent Bookings (per date)</label>
+          <label>Package bookings per event date</label>
           <input type="number" name="max_concurrent" min="0" step="1"
                  value="<?= (int)($package['max_concurrent'] ?? 0) ?>">
-          <div class="stat-sub" style="margin-top:4px">How many of this package can be booked for the same wedding date. 0 = unlimited.</div>
+          <div class="stat-sub" style="margin-top:4px">How many customers can book this whole package for the same wedding date. 0 = unlimited.</div>
         </div>
 
         <div class="field">
@@ -742,9 +742,16 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
             <option value="">Select a service…</option>
             <?php foreach ($addableServices as $svc):
               $svcId = (int)($svc['id'] ?? 0);
-              $isFoodSvc = str_contains(strtolower((string)($svc['category_slug'] ?? '') . ' ' . (string)($svc['category_name'] ?? '')), 'food')
-                        || str_contains(strtolower((string)($svc['category_slug'] ?? '') . ' ' . (string)($svc['category_name'] ?? '')), 'cater');
-              $priceLabel = $money($svc['display_price'] ?? 0) . ($isFoodSvc ? ' per guest' : '');
+              $categoryLabel = strtolower((string)($svc['category_slug'] ?? '') . ' ' . (string)($svc['category_name'] ?? ''));
+              $isGuestPricedSvc = str_contains($categoryLabel, 'food')
+                        || str_contains($categoryLabel, 'cater')
+                        || str_contains($categoryLabel, 'decor')
+                        || str_contains($categoryLabel, 'music')
+                        || str_contains($categoryLabel, 'photo')
+                        || str_contains($categoryLabel, 'makeup')
+                        || str_contains($categoryLabel, 'attire')
+                        || str_contains($categoryLabel, 'studio');
+              $priceLabel = $money($svc['display_price'] ?? 0) . ($isGuestPricedSvc ? ' per guest' : '');
             ?>
               <option value="<?= $svcId ?>"
                       data-name="<?= $h($svc['name'] ?? '') ?>"
@@ -752,7 +759,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
                       data-price="<?= $h($priceLabel) ?>"
                       data-category-id="<?= (int)($svc['category_id'] ?? 0) ?>"
                       data-category-name="<?= $h($svc['category_name'] ?? 'this category') ?>"
-                      data-food="<?= $isFoodSvc ? '1' : '0' ?>"
+                      data-guest-priced="<?= $isGuestPricedSvc ? '1' : '0' ?>"
                       data-room-count="<?= count($hallOptionsByService[$svcId] ?? []) ?>"
                       data-attire-count="<?= count($attireOptionsByService[$svcId] ?? []) ?>"
                       data-deco-count="<?= count($decoOptionsByService[$svcId] ?? []) ?>">
@@ -813,19 +820,19 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
           <input type="hidden" name="decoration_style_id" id="decoStyleIdHidden" value="">
         </div><!-- /decoPicker -->
 
-        <!-- ── Step 2 for all services: guest count ──────────────────── -->
+        <!-- ── Step 2 for guest-priced services: quantity / guest count ─ -->
         <div id="guestCountRow" class="guest-count-row" style="display:none">
-          <label for="guestCountInput">Guest count</label>
+          <label for="guestCountInput">Guests / quantity for pricing</label>
           <input id="guestCountInput" type="number" name="guest_count" min="1" step="1" value="100">
-          <span class="guest-count-note">Adjust quantity to control package quality and pricing. Higher guest counts increase the total.</span>
+          <span class="guest-count-note">Used for guest-priced services, such as catering for 300 guests or makeup for 3 people. This updates the package total.</span>
         </div>
         <input type="hidden" name="guest_count" id="guestCountHidden" value="100">
 
         <!-- ── Per-item concurrency override ─────────────────────────── -->
         <div id="itemConcurrentRow" class="guest-count-row" style="display:none">
-          <label for="itemConcurrentInput">Max concurrent (per date)</label>
-          <input id="itemConcurrentInput" type="number" name="max_concurrent" min="0" step="1" value="0">
-          <span class="guest-count-note">How many bookings of this service inside this package can share one wedding date. 0 = use the service default.</span>
+          <label for="itemConcurrentInput">Package bookings per slot</label>
+          <input id="itemConcurrentInput" type="number" name="max_concurrent" min="0" max="65535" step="1" value="0">
+          <span class="guest-count-note">Optional capacity override for this included service in the same generated time slot. 0 = use the supplier service default.</span>
         </div>
 
         <!-- Confirm / Add button -->
@@ -1064,6 +1071,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   window.onServiceChange = function (sel) {
     const opt = sel.options[sel.selectedIndex];
     const hasVal = !!sel.value;
+    const isFood = hasVal && opt.dataset.food === '1';
 
     if (hasVal) {
       svcPreviewName.textContent = opt.dataset.name || '';
@@ -1113,13 +1121,13 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       }
     }
 
-    /* show guest count for all services (controls package quality/price) */
+    /* show guest count only when it affects per-guest pricing */
     if (guestCountRow) {
-      guestCountRow.style.display = hasVal ? 'flex' : 'none';
+      guestCountRow.style.display = hasVal && isFood ? 'flex' : 'none';
       if (guestCountInput && guestCountHidden) {
-        guestCountInput.name = 'guest_count';
-        guestCountHidden.name = '';
-        guestCountHidden.value = '';
+        guestCountInput.name = hasVal && isFood ? 'guest_count' : '';
+        guestCountHidden.name = hasVal && !isFood ? 'guest_count' : '';
+        guestCountHidden.value = hasVal && !isFood ? '1' : '';
       }
     }
 

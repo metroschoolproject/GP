@@ -1,4 +1,4 @@
-<div id="supplier-service-detail">
+<div id="supplier-service-detail" class="is-tabbed-layout">
 
 <?php
 // Derived rental pricing variables (used in stats bar and rental card below)
@@ -21,141 +21,106 @@ if ($isRental && !empty($attireItems)) {
   $rentBorrowPackagePrice = $borrowPrices ? min($borrowPrices) : 0;
   $rentBuyPackagePrice = $buyPrices ? min($buyPrices) : 0;
 }
+$reviewAttentionTab = 'overview';
+if (!empty($attentionItems[0]['label'])) {
+  $attentionLabel = strtolower((string)$attentionItems[0]['label']);
+  if (strpos($attentionLabel, 'photo') !== false) {
+    $reviewAttentionTab = 'photos';
+  } elseif (strpos($attentionLabel, 'availability') !== false) {
+    $reviewAttentionTab = 'availability';
+  } elseif (strpos($attentionLabel, 'hall') !== false || strpos($attentionLabel, 'pricing') !== false) {
+    $reviewAttentionTab = ($isRental || $isVenue) ? 'catalog' : 'overview';
+  }
+}
 ?>
 
-  <!-- ═══════════════ HERO ═══════════════ -->
-  <div class="sd-hero sd-anim-hero">
-
-    <!-- Floating topnav -->
-    <div class="sd-topnav" data-service-status="<?= $h($serviceStatus) ?>">
-      <div class="sd-topnav-left">
-        <a href="<?= URLROOT ?>/supplier/services" class="sd-back-link"><i class="ti ti-arrow-left" style="font-size:13px"></i> Back</a>
-        <span class="sd-badge">ID #<?= (int)$serviceId ?></span>
-        <span class="sd-status-pill">
-          <span class="sd-status-dot <?= $serviceStatus === 'active' || $isReady ? 'is-live' : '' ?>" id="publishStatusDot"></span>
-          <span id="publishStatusText"><?= $serviceStatus === 'active' ? 'Live' : ($isReady ? 'Ready' : 'Needs attention') ?></span>
-        </span>
+  <!-- ═══════════════ COMPACT SERVICE HEADER ═══════════════ -->
+  <header class="sd-service-header sd-anim-hero">
+    <a href="<?= URLROOT ?>/supplier/services" class="sd-service-header-back" aria-label="Back to services">
+      <i class="ti ti-arrow-left"></i>
+    </a>
+    <div class="sd-service-header-media">
+      <?php if ($serviceImage !== ''): ?>
+        <img src="<?= $h($serviceImage) ?>" alt="<?= $h($serviceNameRaw) ?>">
+      <?php else: ?>
+        <div class="sd-service-header-placeholder"><i class="ti ti-photo"></i></div>
+      <?php endif; ?>
+    </div>
+    <div class="sd-service-header-copy">
+      <div class="sd-service-header-meta">
+        <span><?= $h($serviceCategoryRaw) ?></span>
+        <i></i>
+        <span>ID #<?= (int)$serviceId ?></span>
       </div>
+      <h1><?= $h($serviceNameRaw) ?></h1>
+      <p><?= $serviceDescriptionRaw !== '' ? $h($serviceDescriptionRaw) : 'Add a description so customers understand this service.' ?></p>
+      <div class="sd-service-readiness <?= $isReady ? 'is-ready' : '' ?>">
+        <span class="sd-status-dot <?= $serviceStatus === 'active' || $isReady ? 'is-live' : '' ?>" id="publishStatusDot"></span>
+        <strong id="publishStatusText"><?= $serviceStatus === 'active' ? 'Live' : ($isReady ? 'Ready to publish' : 'Needs attention') ?></strong>
+        <span class="sd-service-readiness-divider"></span>
+        <span><?= $isReady ? 'All required sections are complete' : count($attentionItems) . ' ' . (count($attentionItems) === 1 ? 'task remains' : 'tasks remain') ?></span>
+        <?php if (!$isReady): ?>
+          <button type="button" class="sd-service-review-link" data-review-attention="<?= $h($reviewAttentionTab) ?>">Review tasks</button>
+        <?php endif; ?>
+      </div>
+    </div>
+    <div class="sd-service-header-actions">
+      <a href="<?= URLROOT ?>/main/service/<?= (int)$serviceId ?>" target="_blank" class="btn btn-outline btn-sm">
+        <i class="ti ti-eye" style="font-size:13px"></i> Preview
+      </a>
       <button type="button" id="publishServiceBtn" class="btn btn-primary btn-sm" <?= $serviceStatus === 'active' ? 'disabled' : '' ?>>
         <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check' : 'ti-send' ?>" style="font-size:13px"></i>
         <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Published' : 'Request publish' ?></span>
       </button>
-      <a href="<?= URLROOT ?>/main/service/<?= (int)$serviceId ?>" target="_blank" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px">
-        <i class="ti ti-eye" style="font-size:13px"></i> Preview
-      </a>
     </div>
-
-    <!-- Hero image -->
-    <div class="sd-hero-img">
-      <?php if ($serviceImage !== ''): ?>
-        <img src="<?= $h($serviceImage) ?>" alt="<?= $h($serviceNameRaw) ?>">
-      <?php else: ?>
-        <div class="sd-hero-img-placeholder">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-3)">
-            <div style="width:60px;height:60px;border-radius:14px;border:1.5px dashed var(--border-strong);display:flex;align-items:center;justify-content:center">
-              <i class="ti ti-photo" style="font-size:26px"></i>
-            </div>
-            <span style="font-size:12px;font-weight:600">No cover photo</span>
-          </div>
-        </div>
-      <?php endif; ?>
-      <div class="sd-hero-scrim"></div>
-    </div>
-
-    <!-- Hero body overlaid -->
-    <div class="sd-hero-body">
-      <div class="sd-hero-category"><i class="ti ti-sparkles" style="font-size:11px"></i> <?= $h($serviceCategoryRaw) ?></div>
-      <h1 class="sd-hero-title"><?= $h($serviceNameRaw) ?></h1>
-      <p class="sd-hero-desc"><?= $serviceDescriptionRaw !== '' ? $h($serviceDescriptionRaw) : 'No description has been added yet.' ?></p>
-    </div>
-
-    <!-- Stats bar -->
-    <div class="sd-stats">
-      <div class="sd-stat sd-stat-price">
-        <div class="sd-stat-icon"><i class="ti ti-tag"></i></div>
-        <div class="sd-stat-body">
-          <div class="sd-stat-label">Pricing</div>
-          <div class="sd-stat-price-stack">
-            <?php if ($isRental): ?>
-            <div class="sd-stat-price-line">
-              <span class="sd-stat-price-key">Borrow</span>
-              <span class="sd-stat-value"><?= $rentBorrowPackagePrice > 0 ? $money($rentBorrowPackagePrice) : '—' ?></span>
-            </div>
-            <div class="sd-stat-price-line">
-              <span class="sd-stat-price-key">Buy</span>
-              <span class="sd-stat-price-subvalue"><?= $rentBuyPackagePrice > 0 ? $money($rentBuyPackagePrice) : '—' ?></span>
-            </div>
-            <?php else: ?>
-            <div class="sd-stat-price-line">
-              <span class="sd-stat-price-key">Package</span>
-              <span class="sd-stat-value"><?= $money($servicePackagePrice) ?></span>
-            </div>
-            <div class="sd-stat-price-line">
-              <span class="sd-stat-price-key">Customize</span>
-              <span class="sd-stat-price-subvalue"><?= $money($serviceCustomizePrice) ?></span>
-            </div>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
-      <div class="sd-stat">
-        <div class="sd-stat-icon gold"><i class="ti ti-calendar"></i></div>
-        <div class="sd-stat-body">
-          <div class="sd-stat-label">Days open</div>
-          <div id="heroOpenDaysValue" class="sd-stat-value"><?= (int)$openDaysCount ?><span style="font-size:14px;color:var(--text-3)">/7</span></div>
-          <div class="sd-stat-sub" id="heroOpenDaysSub"><?= $openDaysCount > 0 ? 'Schedule active' : 'No days open' ?></div>
-        </div>
-      </div>
-      <div class="sd-stat">
-        <div class="sd-stat-icon green"><i class="ti ti-photo"></i></div>
-        <div class="sd-stat-body">
-          <div class="sd-stat-label">Portfolio</div>
-          <div class="sd-stat-value"><?= (int)$mediaCount ?></div>
-          <div class="sd-stat-sub"><?= $mediaCount === 1 ? 'photo uploaded' : 'photos uploaded' ?></div>
-        </div>
-      </div>
-    </div>
-  </div>
+  </header>
 
   <!-- ═══════════════ PUBLISH MESSAGE ═══════════════ -->
   <div id="publishMessage" class="sd-message sd-publish-toast error" style="display:none" role="status" aria-live="polite"></div>
 
-  <!-- ═══════════════ ATTENTION BANNER ═══════════════ -->
-  <div class="sd-attention <?= $isReady ? 'is-ready' : '' ?> sd-anim-card-1">
-    <div class="sd-attention-icon"><i class="ti <?= $isReady ? 'ti-circle-check' : 'ti-alert-triangle' ?>"></i></div>
-    <div style="flex:1">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <div class="sd-attention-title">
-          <?= $isReady ? 'This service is ready for customers' : count($attentionItems) . ' ' . (count($attentionItems) === 1 ? 'thing' : 'things') . ' to complete before customers can book' ?>
-        </div>
-        <span class="sd-badge" style="background:#fff;color:<?= $isReady ? 'var(--success)' : 'var(--warning)' ?>"><?= $isReady ? 'Ready' : count($attentionItems) . ' items' ?></span>
-      </div>
-      <?php if (!$isReady): ?>
-        <div class="sd-attention-items">
-          <?php foreach ($attentionItems as $item): ?>
-            <div class="sd-attention-item">
-              <i class="<?= $h($item['icon']) ?>"></i>
-              <div>
-                <div class="sd-attention-item-label"><?= $h($item['label']) ?></div>
-                <div class="sd-attention-item-detail"><?= $h($item['detail']) ?></div>
-              </div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      <?php else: ?>
-        <div class="sd-attention-sub">Pricing, media, and weekly availability are set.</div>
+  <!-- ═══════════════ FOCUSED WORKSPACE NAVIGATION ═══════════════ -->
+  <nav class="sd-workspace-tabs" aria-label="Service editing sections">
+    <div class="sd-workspace-tab-list" role="tablist">
+      <button type="button" class="sd-workspace-tab is-active" role="tab" aria-selected="true" data-service-tab="overview">
+        <i class="ti ti-layout-dashboard"></i><span>Overview</span>
+      </button>
+      <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="photos">
+        <i class="ti ti-photo"></i><span>Photos</span><small><?= (int)$mediaCount ?></small>
+      </button>
+      <?php if ($isRental): ?>
+      <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="catalog">
+        <i class="ti ti-hanger"></i><span>Dresses</span><small><?= count($attireItems) ?></small>
+      </button>
+      <?php elseif ($isVenue): ?>
+      <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="catalog">
+        <i class="ti ti-door"></i><span>Halls</span><small><?= count($venueRooms) ?></small>
+      </button>
+      <?php elseif (strtolower((string)$serviceCategoryRaw) === 'decoration'): ?>
+      <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="catalog">
+        <i class="ti ti-sparkles"></i><span>Styles</span><small><?= count($decorationStyles) ?></small>
+      </button>
       <?php endif; ?>
+      <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="availability">
+        <i class="ti ti-calendar-week"></i><span>Availability</span><small><?= (int)$openDaysCount ?>/7</small>
+      </button>
+      <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="special">
+        <i class="ti ti-calendar-event"></i><span>Special dates</span><small><?= (int)$overrideCount ?></small>
+      </button>
     </div>
-  </div>
+    <div class="sd-workspace-progress">
+      <span class="sd-workspace-progress-dot <?= $isReady ? 'is-ready' : '' ?>"></span>
+      <span><?= $isReady ? 'All required sections complete' : count($attentionItems) . ' ' . (count($attentionItems) === 1 ? 'item needs' : 'items need') . ' attention' ?></span>
+    </div>
+  </nav>
 
   <!-- ═══════════════ WORKSPACE ═══════════════ -->
-  <div class="sd-workspace">
+  <div class="sd-workspace sd-tabbed-workspace <?= $isRental ? 'is-attire-workspace' : '' ?>">
 
     <!-- ═══ MAIN COLUMN ═══ -->
     <div class="sd-main">
 
       <!-- === PORTFOLIO === -->
-      <div class="sd-card sd-anim-card-2">
+      <div class="sd-card sd-anim-card-2" data-service-panel="photos">
         <div class="sd-card-head">
           <div>
             <div class="sd-card-title">Portfolio photos</div>
@@ -185,7 +150,7 @@ if ($isRental && !empty($attireItems)) {
       </div>
 
       <?php if (strtolower((string)$serviceCategoryRaw) === 'decoration'): ?>
-        <div class="sd-card sd-anim-card-3">
+        <div class="sd-card sd-anim-card-3" data-service-panel="catalog">
           <div class="sd-card-head">
             <div>
               <div class="sd-card-title">Decoration styles</div>
@@ -208,7 +173,7 @@ if ($isRental && !empty($attireItems)) {
 
       <!-- === ROOMS / HALLS (Venue only) === -->
       <?php if ($isVenue): ?>
-        <div class="sd-card sd-anim-card-3">
+        <div class="sd-card sd-anim-card-3" data-service-panel="catalog">
           <div class="sd-card-head">
             <div>
               <div class="sd-card-title">Rooms &amp; Halls</div>
@@ -266,11 +231,11 @@ if ($isRental && !empty($attireItems)) {
       <?php endif; ?>
 
       <!-- === WEEKLY AVAILABILITY === -->
-      <div class="sd-card sd-anim-card-4">
+      <div class="sd-card sd-anim-card-4" data-service-panel="availability">
         <div class="sd-card-head">
           <div>
             <div class="sd-card-title">Weekly availability</div>
-            <div class="sd-card-sub">Hours and slot settings for each day</div>
+	            <div class="sd-card-sub">Customer-bookable days, hours, and slot capacity</div>
           </div>
           <span id="openDaysBadge" class="sd-badge"><?= (int)$openDaysCount ?> days open</span>
         </div>
@@ -309,21 +274,22 @@ if ($isRental && !empty($attireItems)) {
                 <?php endforeach; ?>
               </select>
             </div>
-            <?php if (!$isVenue): ?>
-            <div class="sd-avail-field">
-              <label>Max concurrent (total)</label>
-              <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
-            </div>
-            <div class="sd-avail-field">
-              <label>Max concurrent — package bookings</label>
-              <input id="availabilityConcurrentPackage" type="number" min="0" value="<?= (int)$maxConcurrentPackage ?>">
-              <span class="sd-field-hint">Cap for bookings made through admin packages. 0 = no separate cap.</span>
-            </div>
-            <div class="sd-avail-field">
-              <label>Max concurrent — custom bookings</label>
-              <input id="availabilityConcurrentCustomize" type="number" min="0" value="<?= (int)$maxConcurrentCustomize ?>">
-              <span class="sd-field-hint">Cap for direct/customized bookings. 0 = no separate cap.</span>
-            </div>
+	            <?php if (!$isVenue): ?>
+	            <div class="sd-avail-field">
+	              <label>Bookings per time slot</label>
+	              <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
+	              <span class="sd-field-hint">Total bookings this service can accept for the same date and time window.</span>
+	            </div>
+	            <div class="sd-avail-field">
+	              <label>Package bookings per slot</label>
+	              <input id="availabilityConcurrentPackage" type="number" min="0" value="<?= (int)$maxConcurrentPackage ?>">
+	              <span class="sd-field-hint">Optional cap for admin package bookings in the same slot. 0 = use total capacity.</span>
+	            </div>
+	            <div class="sd-avail-field">
+	              <label>Custom bookings per slot</label>
+	              <input id="availabilityConcurrentCustomize" type="number" min="0" value="<?= (int)$maxConcurrentCustomize ?>">
+	              <span class="sd-field-hint">Optional cap for direct/customized bookings in the same slot. 0 = use total capacity.</span>
+	            </div>
             <?php endif; ?>
             <div class="sd-avail-field">
               <label>Minimum notice</label>
@@ -375,7 +341,7 @@ if ($isRental && !empty($attireItems)) {
     <div class="sd-side">
 
       <!-- === SPECIAL DATES === -->
-      <div class="sd-card sd-anim-card-3">
+      <div class="sd-card sd-special-dates-card sd-anim-card-3" data-service-panel="special">
         <div class="sd-card-head">
           <div>
             <div class="sd-card-title">Special dates</div>
@@ -491,11 +457,11 @@ if ($isRental && !empty($attireItems)) {
 
       <!-- === ATTIRE ITEMS (Attire only) === -->
       <?php if ($isRental): ?>
-      <div class="sd-card sd-anim-card-3">
+      <div class="sd-card sd-attire-manager-card sd-anim-card-3" data-service-panel="catalog">
         <div class="sd-card-head">
           <div>
-            <div class="sd-card-title">Dresses &amp; attire</div>
-            <div class="sd-card-sub">Set borrowing, buying, and return details for each individual item.</div>
+            <div class="sd-card-title">Dress collection</div>
+            <div class="sd-card-sub">Choose a dress from your wardrobe, then edit it in the larger workspace.</div>
           </div>
           <div class="sd-head-actions">
             <span id="attireItemCount" class="sd-badge"><?= count($attireItems) ?> <?= count($attireItems) === 1 ? 'dress' : 'items' ?></span>
@@ -504,35 +470,17 @@ if ($isRental && !empty($attireItems)) {
         </div>
         <div class="sd-card-body">
           <div id="attireItemMessage" class="sd-message error" style="display:none"></div>
-          <div id="attireItemGrid" class="sd-attire-items"></div>
+          <div id="attireItemGrid" class="sd-attire-manager"></div>
         </div>
         <div class="sd-card-foot">
-          <button type="button" class="btn btn-primary btn-sm" id="saveAttireItemsBtn"><i class="ti ti-check" style="font-size:12px"></i> Save dresses</button>
+          <span class="sd-attire-save-note">Your edits stay in this workspace until you save the collection.</span>
+          <button type="button" class="btn btn-primary btn-sm" id="saveAttireItemsBtn"><i class="ti ti-check" style="font-size:12px"></i> Save collection</button>
         </div>
       </div>
       <?php endif; ?>
 
-      <!-- === BOOKING PREVIEW === -->
-      <div class="sd-card sd-anim-card-4">
-        <div class="sd-card-head">
-          <div>
-            <div class="sd-card-title">Booking preview</div>
-            <div class="sd-card-sub">See available slots for any date</div>
-          </div>
-        </div>
-        <div class="sd-card-body">
-          <div style="display:flex;gap:10px;margin-bottom:12px">
-            <input id="previewDate" type="date" class="sd-input" style="flex:1">
-            <button type="button" id="previewSlotsBtn" class="btn btn-primary btn-sm"><i class="ti ti-eye" style="font-size:12px"></i> Show</button>
-          </div>
-          <div id="previewSlotsResult" class="sd-preview-box">
-            <div class="sd-preview-empty">Pick a date to see available slots</div>
-          </div>
-        </div>
-      </div>
-
       <!-- === SERVICE INFO === -->
-      <div class="sd-card sd-anim-card-5">
+      <div class="sd-card sd-service-info-card sd-anim-card-5 is-active" data-service-panel="overview">
         <div class="sd-card-head">
           <div>
             <div class="sd-card-title">Service info</div>

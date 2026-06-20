@@ -75,7 +75,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
         </div>
 
         <nav class="px-4 py-3 space-y-1.5">
-            <a href="<?= URLROOT ?>/admin/profile" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+            <a href="<?= URLROOT ?>/admin/profile" class="<?= dashboard_admin_nav_class('admin/profile', $currentPath, true) ?>">
                 <i data-lucide="circle-user" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="flex-1">My Profile</span>
                 <i data-lucide="chevron-right" class="h-4 w-4 text-app-header-muted"></i>
@@ -93,7 +93,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
             </a>
 
             <div class="space-y-1">
-                <button type="button" data-subnav-toggle="bookings" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+                <button type="button" data-subnav-toggle="bookings" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition <?= strpos($currentPath, 'admin/booking') !== false || strpos($currentPath, 'admin/replacement') !== false ? 'bg-app-primary text-app-white shadow-sm' : 'text-app-text hover:bg-app-input hover:shadow-sm' ?>">
                     <i data-lucide="calendar-days" class="h-4 w-4 text-app-header-muted"></i>
                     <span class="flex-1 text-left">Bookings</span>
                     <i data-chevron="bookings" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
@@ -121,34 +121,10 @@ if (!function_exists('dashboard_admin_nav_class')) {
                 <span class="flex-1">Packages</span>
             </a>
 
-            <div class="space-y-1">
-                <button type="button" data-subnav-toggle="suppliers" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
-                    <i data-lucide="store" class="h-4 w-4 text-app-header-muted"></i>
-                    <span class="flex-1 text-left">Suppliers</span>
-                    <i data-chevron="suppliers" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
-                </button>
-                <div data-subnav-panel="suppliers" class="<?= strpos($currentPath, 'admin/supplier') !== false ? '' : 'hidden' ?> pl-6">
-                    <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                        <a href="<?= URLROOT ?>/admin/suppliers?status=all" class="<?= dashboard_admin_subnav_class('admin/suppliers', $currentPath) ?>">
-                            <i data-lucide="list-filter" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>All suppliers</span>
-                        </a>
-                        <a href="<?= URLROOT ?>/admin/supplier/application" class="<?= dashboard_admin_subnav_class('admin/supplier/application', $currentPath) ?>">
-                            <i data-lucide="clipboard-check" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Applications</span>
-                        </a>
-                    
-                        <a href="<?= URLROOT ?>/admin/suppliers?status=verified" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
-                            <i data-lucide="badge-check" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Verified</span>
-                        </a>
-                        <a href="<?= URLROOT ?>/admin/suppliers?status=rejected" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
-                            <i data-lucide="circle-x" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Rejected</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
+            <a href="<?= URLROOT ?>/admin/suppliers" class="<?= dashboard_admin_nav_class('admin/supplier', $currentPath) ?>">
+                <i data-lucide="store" class="h-4 w-4"></i>
+                <span class="flex-1">Suppliers</span>
+            </a>
 
             <div class="space-y-1">
                 <button type="button" data-subnav-toggle="customers" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
@@ -171,7 +147,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
             </div>
 
             <div class="space-y-1">
-                <button type="button" data-subnav-toggle="payments" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+                <button type="button" data-subnav-toggle="payments" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition <?= strpos($currentPath, 'admin/payment') !== false ? 'bg-app-primary text-app-white shadow-sm' : 'text-app-text hover:bg-app-input hover:shadow-sm' ?>">
                     <i data-lucide="store" class="h-4 w-4 text-app-header-muted"></i>
                     <span class="flex-1 text-left">Payments</span>
                     <i data-chevron="payments" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
@@ -205,7 +181,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
                         <span class="flex-1">Notifications</span>
                     </a>
                     <div class="space-y-1">
-                        <button type="button" data-subnav-toggle="settings" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+                        <button type="button" data-subnav-toggle="settings" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition <?= strpos($currentPath, 'admin/logs') !== false ? 'bg-app-primary text-app-white shadow-sm' : 'text-app-text hover:bg-app-input hover:shadow-sm' ?>">
                             <i data-lucide="settings" class="h-4 w-4 text-app-header-muted"></i>
                             <span class="flex-1 text-left">Settings</span>
                             <i data-chevron="settings" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
@@ -235,9 +211,9 @@ if (!function_exists('dashboard_admin_nav_class')) {
     </div>
 </aside>
 
-<main class="overflow-y-auto">
-    <div class="sticky top-0 z-40 flex flex-col gap-4 border-b border-app-border bg-app-sidebar/95 px-6 py-[18px] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
-        <div>
+<main class="admin-shell-type overflow-y-auto">
+    <div class="admin-dashboard-topbar sticky top-0 z-40 flex flex-col gap-4 border-b border-app-border bg-app-sidebar/95 px-6 py-[18px] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+        <div class="admin-topbar-title min-w-0">
             <?php
             $dashboardBreadcrumbs = $dashboardBreadcrumbs ?? [
                 ['label' => $dashboardTitle ?? 'Dashboard', 'url' => null],
@@ -263,9 +239,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
             </nav>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-           
-
+        <div class="admin-topbar-actions flex flex-wrap items-center gap-3">
             <?php require APPROOT . '/views/dashboardLayout/notification.php'; ?>
         </div>
     </div>
@@ -312,3 +286,26 @@ if (!function_exists('dashboard_admin_nav_class')) {
 
     lucide.createIcons();
 </script>
+<style>
+    .admin-shell-type {
+        --admin-text: #111827;
+        --admin-muted: #b79c8b;
+        --admin-primary: #6d4c5b;
+        --admin-secondary: #7b5c69;
+        --admin-border: #ead8c7;
+        --admin-focus: #c8b1a1;
+        --admin-sidebar-hover: #eddecc;
+        --admin-soft: #faf5ef;
+        --admin-danger-soft: #f9dede;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-variant-numeric: tabular-nums;
+    }
+    .admin-dashboard-topbar nav[aria-label="Breadcrumb"] {
+        font-size: 10px;
+        letter-spacing: .08em;
+        color: var(--admin-muted);
+    }
+    .admin-dashboard-topbar nav[aria-label="Breadcrumb"] a:hover {
+        color: var(--admin-primary);
+    }
+</style>

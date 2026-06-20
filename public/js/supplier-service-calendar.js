@@ -133,8 +133,53 @@ function openDayModal(day) {
   document.getElementById('clearOverrideBtn').style.display = override.id ? 'inline-flex' : 'none';
 
   renderModalBookings(day.bookings || []);
+  loadDayCapacity(day.date, day.status);
   updateCustomHoursVisibility();
   modal.hidden = false;
+}
+
+async function loadDayCapacity(date, status) {
+  const box = document.getElementById('modalCapacity');
+  if (!box) return;
+
+  if (!calendarUrls.preview || ['closed', 'unavailable'].includes(status)) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+
+  box.hidden = false;
+  box.innerHTML = '<strong>Remaining capacity</strong><p class="capacity-loading">Loading slots…</p>';
+
+  try {
+    const result = await calendarJson(calendarUrls.preview, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date })
+    });
+    const slots = result.preview?.slots || [];
+
+    if (!slots.length) {
+      box.innerHTML = '<strong>Remaining capacity</strong><p class="capacity-empty">No bookable slots for this date.</p>';
+      return;
+    }
+
+    box.innerHTML = '<strong>Remaining capacity</strong><div class="capacity-slots">' + slots.map(slot => {
+      const start = String(slot.start_time || '').slice(0, 5);
+      const end = String(slot.end_time || '').slice(0, 5);
+      const total = Number(slot.max_concurrent || 0);
+      const left = Math.max(0, total - Number(slot.confirmed_count || 0));
+      const parts = [];
+      const pkgMax = Number(slot.max_concurrent_package || 0);
+      if (pkgMax > 0) parts.push(`Package ${Math.max(0, pkgMax - Number(slot.confirmed_package_count || 0))}/${pkgMax}`);
+      const cusMax = Number(slot.max_concurrent_customize || 0);
+      if (cusMax > 0) parts.push(`Custom ${Math.max(0, cusMax - Number(slot.confirmed_customize_count || 0))}/${cusMax}`);
+      const split = parts.length ? `<span class="capacity-split">${escapeHtml(parts.join(' · '))}</span>` : '';
+      return `<span class="capacity-slot${left <= 0 ? ' is-full' : ''}">${escapeHtml(start)} - ${escapeHtml(end)} <strong>${left} left</strong> of ${total}${split}</span>`;
+    }).join('') + '</div>';
+  } catch (error) {
+    box.innerHTML = `<strong>Remaining capacity</strong><p class="capacity-empty">${escapeHtml(error.message)}</p>`;
+  }
 }
 
 function renderModalBookings(bookings) {

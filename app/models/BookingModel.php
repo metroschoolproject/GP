@@ -414,13 +414,21 @@ class BookingModel
                 $svcId = (int)($event['service_id'] ?? 0);
                 $svcConcurrent = $this->getServiceConcurrent($svcId);
 
+                // Per-package override: a package_item.max_concurrent > 0 caps how
+                // many bookings of this service through this package can share the
+                // wedding date. 0 (or unset) falls back to the service's package cap.
+                $itemMaxConcurrent = (int)($event['item_max_concurrent'] ?? 0);
+                $packageCap = $itemMaxConcurrent > 0
+                    ? $itemMaxConcurrent
+                    : (int)($svcConcurrent['max_concurrent_package'] ?? 0);
+
                 $slotId = $this->findOrCreateServiceSlot(
                     $svcId,
                     $eventDate,
                     (string)($event['start_time'] ?? '09:00:00'),
                     (string)($event['end_time'] ?? '10:00:00'),
                     $svcConcurrent['max_concurrent'] ?? 1,
-                    $svcConcurrent['max_concurrent_package'] ?? 0,
+                    $packageCap,
                     $svcConcurrent['max_concurrent_customize'] ?? 0
                 );
                 if ($slotId) {
@@ -477,6 +485,21 @@ class BookingModel
         $this->db->dbbind(':etime', $endTime);
         $existing = $this->db->getsingledata();
         if ($existing) {
+            // Slot may have been created earlier (e.g. supplier preview) with a 0
+            // package cap. Apply the package's per-item cap if it sets a tighter
+            // limit, so the override still governs. Never loosen an existing cap to 0.
+            if ($this->hasSlotPoolColumns() && $maxConcurrentPackage > 0) {
+                $this->db->dbquery(
+                    "UPDATE service_time_slots
+                     SET max_concurrent_package = :maxcp
+                     WHERE id = :id
+                       AND (max_concurrent_package = 0 OR max_concurrent_package > :maxcp2)"
+                );
+                $this->db->dbbind(':maxcp', $maxConcurrentPackage, PDO::PARAM_INT);
+                $this->db->dbbind(':maxcp2', $maxConcurrentPackage, PDO::PARAM_INT);
+                $this->db->dbbind(':id', (int)$existing['id'], PDO::PARAM_INT);
+                $this->db->dbexecute();
+            }
             return (int)$existing['id'];
         }
 
@@ -560,53 +583,53 @@ class BookingModel
      */
     public function insertBookingSuppliers(int $bookingId): bool
     {
+        // One row per SERVICE LINE (not per supplier): a package expands to one
+        // row per package_item, so a supplier with several services in the
+        // package gets one row each — enabling per-service decline/replacement.
+        // The uniq_booking_pkg_item (booking_id, package_item_id) key keeps
+        // package lines idempotent; direct/supplier-package lines (NULL
+        // package_item_id) are distinct per service within a single insert.
         $this->db->dbquery(
-            "INSERT IGNORE INTO booking_suppliers (booking_id, supplier_id)
-             SELECT :bid, suppliers_for_booking.supplier_id
+            "INSERT IGNORE INTO booking_suppliers
+                (booking_id, supplier_id, service_id, category_id, package_item_id, item_price)
+             SELECT svc_lines.booking_id, svc_lines.supplier_id, svc_lines.service_id,
+                    svc_lines.category_id, svc_lines.package_item_id, svc_lines.item_price
              FROM (
-                SELECT s.supplier_id
+                -- Package service lines (one per package_item)
+                SELECT bi.booking_id AS booking_id,
+                       pi.default_supplier_id AS supplier_id,
+                       pi.service_id AS service_id,
+                       pi.category_id AS category_id,
+                       pi.id AS package_item_id,
+                       COALESCE(pi.default_price, pi.customize_price) AS item_price
+                FROM booking_items bi
+                INNER JOIN package_items pi
+                    ON pi.package_id = bi.item_id AND bi.item_type = 'package'
+                   AND pi.deleted_at IS NULL
+                WHERE bi.booking_id = :package_bid
+
+                UNION ALL
+
+                -- Direct service lines
+                SELECT bi.booking_id, s.supplier_id, s.id, s.category_id, NULL, bi.price
                 FROM booking_items bi
                 INNER JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
                 WHERE bi.booking_id = :service_bid
 
-                UNION
+                UNION ALL
 
-                SELECT pi.default_supplier_id AS supplier_id
+                -- Supplier-package service lines
+                SELECT bi.booking_id, s2.supplier_id, s2.id, s2.category_id, NULL, NULL
                 FROM booking_items bi
-                INNER JOIN package_items pi ON bi.item_id = pi.package_id AND bi.item_type = 'package'
-                WHERE bi.booking_id = :package_bid
-
-                UNION
-
-                SELECT package_service.supplier_id
-                FROM booking_items bi
-                INNER JOIN package_items pi ON bi.item_id = pi.package_id AND bi.item_type = 'package'
-                INNER JOIN services package_service ON pi.service_id = package_service.id
-                WHERE bi.booking_id = :package_service_bid
-
-                UNION
-
-                SELECT sp.supplier_id
-                FROM booking_items bi
-                INNER JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
-                WHERE bi.booking_id = :supplier_package_bid
-
-                UNION
-
-                SELECT s2.supplier_id
-                FROM booking_items bi
-                INNER JOIN supplier_package_items spi ON bi.item_id = spi.package_id AND bi.item_type = 'supplier_package'
+                INNER JOIN supplier_package_items spi
+                    ON spi.package_id = bi.item_id AND bi.item_type = 'supplier_package'
                 INNER JOIN services s2 ON spi.service_id = s2.id
                 WHERE bi.booking_id = :supplier_package_items_bid
-             ) suppliers_for_booking
-             WHERE suppliers_for_booking.supplier_id IS NOT NULL
-             GROUP BY suppliers_for_booking.supplier_id"
+             ) svc_lines
+             WHERE svc_lines.supplier_id IS NOT NULL"
         );
-        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':service_bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':package_bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':package_service_bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':supplier_package_bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':service_bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':supplier_package_items_bid', $bookingId, PDO::PARAM_INT);
 
         return $this->db->dbexecute();
@@ -838,6 +861,33 @@ class BookingModel
     }
 
     /**
+     * Whole days from today until the booking's earliest event date.
+     * Returns null when no event date is set. Negative if the date has passed.
+     */
+    public function daysUntilFirstEvent(int $bookingId): ?int
+    {
+        $this->db->dbquery(
+            "SELECT MIN(event_date) AS event_date
+             FROM event_details
+             WHERE booking_id = :bid AND event_date IS NOT NULL"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        $eventDate = $row['event_date'] ?? null;
+        if (empty($eventDate)) {
+            return null;
+        }
+
+        $today = new DateTimeImmutable('today');
+        $target = DateTimeImmutable::createFromFormat('!Y-m-d', substr((string)$eventDate, 0, 10));
+        if (!$target) {
+            return null;
+        }
+
+        return (int)$today->diff($target)->format('%r%a');
+    }
+
+    /**
      * Get booking suppliers.
      */
     public function getBookingSuppliers(int $bookingId): array
@@ -845,6 +895,8 @@ class BookingModel
         $this->db->dbquery(
             "SELECT bs.*,
                     sup.shop_name,
+                    svc.name AS service_name,
+                    cat.name AS category_name,
                     (
                         SELECT sd.file_url
                         FROM supplier_documents sd
@@ -855,6 +907,8 @@ class BookingModel
                     ) AS thumbnail_url
              FROM booking_suppliers bs
              LEFT JOIN suppliers sup ON bs.supplier_id = sup.supplier_id
+             LEFT JOIN services svc ON svc.id = bs.service_id
+             LEFT JOIN categories cat ON cat.id = bs.category_id
              WHERE bs.booking_id = :bid
              ORDER BY bs.id ASC"
         );
@@ -971,8 +1025,13 @@ class BookingModel
     {
         $supplierItemCountSql = $this->supplierBookingItemCountSql();
         $supplierItemTotalSql = $this->supplierBookingItemTotalSql();
+        // A supplier can now have several service rows per booking. Collapse to
+        // one row per booking and surface the most actionable status (a pending
+        // replacement outranks a plain confirm).
+        $statusExpr = $this->supplierAggregateStatusSql();
         $sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone,
-                       bs.status AS supplier_status, bs.id AS booking_supplier_id,
+                       {$statusExpr} AS supplier_status,
+                       MIN(bs.id) AS booking_supplier_id,
                        {$supplierItemCountSql} AS item_count,
                        {$supplierItemTotalSql} AS supplier_total_amount,
                        (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
@@ -983,14 +1042,18 @@ class BookingModel
                   AND b.status NOT IN ('draft', 'pending_payment', 'payment_submitted')";
 
         if ($statusFilter && $statusFilter !== 'all') {
-            $sql .= " AND bs.status = :status";
+            $sql .= " AND EXISTS (SELECT 1 FROM booking_suppliers bsf
+                                  WHERE bsf.booking_id = b.id AND bsf.supplier_id = :sid_f
+                                    AND bsf.status = :status)";
         }
 
-        $sql .= " ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
+        $sql .= " GROUP BY b.id ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
 
         $this->db->dbquery($sql);
         $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid_status', $supplierId, PDO::PARAM_INT);
         if ($statusFilter && $statusFilter !== 'all') {
+            $this->db->dbbind(':sid_f', $supplierId, PDO::PARAM_INT);
             $this->db->dbbind(':status', $statusFilter);
         }
         $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
@@ -1004,7 +1067,7 @@ class BookingModel
      */
     public function getSupplierBookingsCount(int $supplierId, ?string $statusFilter = null): int
     {
-        $sql = "SELECT COUNT(*) as total
+        $sql = "SELECT COUNT(DISTINCT b.id) as total
                 FROM bookings b
                 INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
                 WHERE bs.supplier_id = :sid
@@ -1033,8 +1096,10 @@ class BookingModel
         $supplierItemCountSql = $this->supplierBookingItemCountSql();
         $supplierItemTotalSql = $this->supplierBookingItemTotalSql();
 
+        $statusExpr = $this->supplierAggregateStatusSql();
         $sql = "SELECT b.*, u.name AS customer_name, u.phone AS customer_phone,
-                       bs.status AS supplier_status, bs.id AS booking_supplier_id,
+                       {$statusExpr} AS supplier_status,
+                       MIN(bs.id) AS booking_supplier_id,
                        {$supplierItemCountSql} AS item_count,
                        {$supplierItemTotalSql} AS supplier_total_amount,
                        (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
@@ -1045,17 +1110,21 @@ class BookingModel
                 AND (u.name LIKE :search OR u.phone LIKE :search2 OR CONCAT('BK', b.id) LIKE :search3)";
 
         if ($statusFilter && $statusFilter !== 'all') {
-            $sql .= " AND bs.status = :status";
+            $sql .= " AND EXISTS (SELECT 1 FROM booking_suppliers bsf
+                                  WHERE bsf.booking_id = b.id AND bsf.supplier_id = :sid_f
+                                    AND bsf.status = :status)";
         }
 
-        $sql .= " ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
+        $sql .= " GROUP BY b.id ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
 
         $this->db->dbquery($sql);
         $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid_status', $supplierId, PDO::PARAM_INT);
         $this->db->dbbind(':search', $searchTerm);
         $this->db->dbbind(':search2', $searchTerm);
         $this->db->dbbind(':search3', $searchTerm);
         if ($statusFilter && $statusFilter !== 'all') {
+            $this->db->dbbind(':sid_f', $supplierId, PDO::PARAM_INT);
             $this->db->dbbind(':status', $statusFilter);
         }
         $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
@@ -1071,7 +1140,7 @@ class BookingModel
     {
         $searchTerm = '%' . trim($searchTerm) . '%';
 
-        $sql = "SELECT COUNT(*) as total
+        $sql = "SELECT COUNT(DISTINCT b.id) as total
                 FROM bookings b
                 INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
                 LEFT JOIN users u ON b.user_id = u.user_id
@@ -1412,11 +1481,13 @@ class BookingModel
             "SELECT r.*,
                     sup.shop_name AS old_shop_name,
                     cat.name      AS category_name,
+                    osvc.name     AS old_service_name,
                     (SELECT event_date FROM event_details ed
                       WHERE ed.booking_id = r.booking_id ORDER BY ed.event_date ASC LIMIT 1) AS event_date
                FROM booking_supplier_replacements r
-               LEFT JOIN suppliers  sup ON sup.supplier_id = r.old_supplier_id
-               LEFT JOIN categories cat ON cat.id = r.category_id
+               LEFT JOIN suppliers  sup  ON sup.supplier_id = r.old_supplier_id
+               LEFT JOIN categories cat  ON cat.id = r.category_id
+               LEFT JOIN services   osvc ON osvc.id = r.old_service_id
               WHERE r.id = :id
               LIMIT 1"
         );
@@ -1433,15 +1504,17 @@ class BookingModel
             "SELECT r.*,
                     sup.shop_name AS old_shop_name,
                     cat.name      AS category_name,
+                    osvc.name     AS old_service_name,
                     b.status      AS booking_status,
                     u.name        AS customer_name,
                     (SELECT event_date FROM event_details ed
                       WHERE ed.booking_id = r.booking_id ORDER BY ed.event_date ASC LIMIT 1) AS event_date
                FROM booking_supplier_replacements r
-               LEFT JOIN suppliers  sup ON sup.supplier_id = r.old_supplier_id
-               LEFT JOIN categories cat ON cat.id = r.category_id
-               LEFT JOIN bookings   b   ON b.id = r.booking_id
-               LEFT JOIN users      u   ON u.user_id = b.user_id
+               LEFT JOIN suppliers  sup  ON sup.supplier_id = r.old_supplier_id
+               LEFT JOIN categories cat  ON cat.id = r.category_id
+               LEFT JOIN services   osvc ON osvc.id = r.old_service_id
+               LEFT JOIN bookings   b    ON b.id = r.booking_id
+               LEFT JOIN users      u    ON u.user_id = b.user_id
               WHERE r.status IN ('pending_admin','declined_again','rejected_by_customer')
               ORDER BY r.created_at ASC"
         );
@@ -1483,9 +1556,9 @@ class BookingModel
                    AND sup.is_available = 1
                    AND sup.status IN ('approved','verified')
                    AND sup.payment_status = 'paid'";
-        if ($ceiling !== null) {
-            $sql .= " AND s.price <= :ceiling";
-        }
+        // Price ceiling is NOT enforced — admins may pick an over-budget
+        // replacement; those are flagged below and routed through the customer
+        // approval (propose + pay delta) flow.
         // Schedule must allow this weekday (venue exempt, like the catalog).
         if ($dayOfWeek !== null) {
             $sql .= " AND EXISTS (
@@ -1511,9 +1584,6 @@ class BookingModel
         $this->db->dbquery($sql);
         $this->db->dbbind(':cat', $categoryId, PDO::PARAM_INT);
         $this->db->dbbind(':old_sup', $oldSupplier, PDO::PARAM_INT);
-        if ($ceiling !== null) {
-            $this->db->dbbind(':ceiling', $ceiling);
-        }
         if ($dayOfWeek !== null) {
             $this->db->dbbind(':dow', $dayOfWeek, PDO::PARAM_INT);
         }
@@ -1526,6 +1596,9 @@ class BookingModel
             $price = (float)($row['price'] ?? 0);
             $row['price_delta'] = round($price - $oldPrice, 2);
             $row['needs_customer_approval'] = $price > $oldPrice;
+            // Flag candidates beyond the soft upcharge cap so the UI can warn,
+            // but they remain selectable.
+            $row['over_cap'] = $ceiling !== null && $price > $ceiling;
         }
         unset($row);
         return $rows;
@@ -2171,6 +2244,20 @@ class BookingModel
         $this->logStatusChange($bookingId, null, 'cancelled', $adminId, 'Cancelled by admin: ' . $reason);
 
         return true;
+    }
+
+    /**
+     * Most-actionable status across a supplier's service rows on one booking.
+     * Requires a bound :sid_status parameter. A pending replacement outranks a
+     * plain confirm so the dashboard chip surfaces what needs attention.
+     */
+    private function supplierAggregateStatusSql(): string
+    {
+        return "(SELECT bs_st.status FROM booking_suppliers bs_st
+                 WHERE bs_st.booking_id = b.id AND bs_st.supplier_id = :sid_status
+                 ORDER BY FIELD(bs_st.status,
+                    'needs_replacement','pending','confirmed','in_progress','completed','rejected','replaced','cancelled') ASC
+                 LIMIT 1)";
     }
 
     private function supplierBookingItemCountSql(): string

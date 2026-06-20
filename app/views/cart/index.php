@@ -473,6 +473,36 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   line-height: 1.3;
   text-overflow: ellipsis; white-space: nowrap;
 }
+.gp-package-service-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(107,68,89,0.06);
+  color: var(--plum);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+}
+.gp-package-service-time.is-pending {
+  background: rgba(184,146,74,0.10);
+  color: #8a682d;
+}
+.gp-package-schedule-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 8px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(184,146,74,0.18);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.45;
+}
 
 .gp-edit-form {
   margin-top: 10px;
@@ -992,6 +1022,11 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         $timeRange   = $formatTimeRange($startTime, $endTime);
         $itemType    = $item['item_type'] ?? 'service';
         $includedServices = $item['included_services'] ?? [];
+        $packageSchedule = $item['package_schedule'] ?? [];
+        $packageScheduleByItem = [];
+        foreach ($packageSchedule as $scheduledService) {
+          $packageScheduleByItem[(int)($scheduledService['package_item_id'] ?? 0)] = $scheduledService;
+        }
         $addonPackageName = trim((string)($item['addon_package_name'] ?? ''));
         $venueRoomName = trim((string)($item['venue_room_name'] ?? ''));
         $venueName = trim((string)($item['venue_name'] ?? ''));
@@ -1071,9 +1106,12 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             <div class="gp-package-service-list">
               <?php foreach ($includedServices as $service): ?>
                 <?php
+                  $schedule = $packageScheduleByItem[(int)($service['package_item_id'] ?? 0)] ?? [];
                   $serviceImage = trim((string)($service['thumbnail_url'] ?? ''));
                   $serviceHall = trim((string)($service['venue_room_name'] ?? ''));
                   $serviceVenue = trim((string)($service['venue_name'] ?? ''));
+                  $serviceDate = trim((string)($schedule['event_date'] ?? ''));
+                  $serviceTime = $formatTimeRange($schedule['start_time'] ?? '', $schedule['end_time'] ?? '');
                   $serviceMeta = array_filter([
                       $service['category_name'] ?? 'Service',
                       $service['supplier_name'] ?? 'Golden Promise',
@@ -1088,16 +1126,37 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/></svg>
                     <?php endif; ?>
                   </div>
-                  <div>
-                    <div class="gp-package-service-name"><?= $h($service['service_name'] ?? 'Service') ?></div>
-                    <div class="gp-package-service-meta"><?= $h(implode(' · ', $serviceMeta)) ?></div>
-                  </div>
-                </div>
-              <?php endforeach; ?>
-            </div>
-            <?php else: ?>
-              <div class="gp-edit-slot-note">Package service details are not available.</div>
-            <?php endif; ?>
+	                  <div>
+	                    <div class="gp-package-service-name"><?= $h($service['service_name'] ?? 'Service') ?></div>
+	                    <div class="gp-package-service-meta"><?= $h(implode(' · ', $serviceMeta)) ?></div>
+	                    <?php if ($serviceDate !== '' || $serviceTime !== ''): ?>
+	                      <div class="gp-package-service-time">
+	                        <i data-lucide="clock" style="width:10px;height:10px"></i>
+	                        <?= $h(trim(($serviceDate !== '' ? $formatDate($serviceDate) : '') . ($serviceDate !== '' && $serviceTime !== '' ? ' · ' : '') . $serviceTime)) ?>
+	                      </div>
+	                    <?php else: ?>
+	                      <div class="gp-package-service-time is-pending">
+	                        <i data-lucide="calendar-clock" style="width:10px;height:10px"></i>
+	                        Scheduled after event date
+	                      </div>
+	                    <?php endif; ?>
+	                  </div>
+	                </div>
+	              <?php endforeach; ?>
+	            </div>
+	            <div class="gp-package-schedule-note">
+	              <i data-lucide="calendar-days" style="width:13px;height:13px;flex-shrink:0;margin-top:1px"></i>
+	              <span>
+	                <?php if (!empty($packageSchedule)): ?>
+	                  Times are based on the selected event date and may be confirmed during booking.
+	                <?php else: ?>
+	                  Choose the event date on the booking page to build the full service timeline.
+	                <?php endif; ?>
+	              </span>
+	            </div>
+	            <?php else: ?>
+	              <div class="gp-edit-slot-note">Package service details are not available.</div>
+	            <?php endif; ?>
           </section>
           <?php endif; ?>
 

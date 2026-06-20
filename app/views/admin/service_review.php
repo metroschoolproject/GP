@@ -132,7 +132,7 @@ $dashboardContent = function () use (
   .rw-missing li{display:flex;gap:8px;color:#8a6944;font-size:10px;font-weight:600;line-height:1.45}
   .rw-missing li::before{content:"•";color:#b7792f}
   .rw-decision-actions{display:grid;gap:8px;padding:17px 18px;border-top:1px solid var(--line);background:#faf5ef}
-  .rw-btn{display:inline-flex;min-height:42px;box-sizing:border-box;align-items:center;justify-content:center;gap:8px;border-radius:10px;padding:0 14px;font:800 11px Poppins,sans-serif;text-decoration:none;cursor:pointer}
+  .rw-btn{display:inline-flex;min-height:42px;box-sizing:border-box;align-items:center;justify-content:center;gap:8px;border-radius:10px;padding:0 14px;font:800 11px Inter,sans-serif;text-decoration:none;cursor:pointer}
   .rw-btn-primary{border:1px solid var(--wine);background:var(--wine);color:#fff;box-shadow:0 10px 22px rgba(109,76,91,.17)}
   .rw-btn-secondary{border:1px solid #e0ccbd;background:#fff;color:var(--wine)}
   .rw-btn:disabled{box-shadow:none;cursor:not-allowed;opacity:.45}

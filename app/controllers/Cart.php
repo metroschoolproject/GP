@@ -60,6 +60,14 @@ class Cart extends Controller
             $packageServices = $this->cartModel->getCartPackageServices($this->userId);
             foreach ($items as &$item) {
                 $item['included_services'] = $packageServices[(int)($item['cart_item_id'] ?? 0)] ?? [];
+                if (($item['item_type'] ?? '') === 'package' && !empty($item['selected_date'])) {
+                    $item['package_schedule'] = $this->cartModel->getPackageEventSchedule(
+                        (int)($item['item_id'] ?? 0),
+                        (string)$item['selected_date']
+                    );
+                } else {
+                    $item['package_schedule'] = [];
+                }
             }
             unset($item);
         }
