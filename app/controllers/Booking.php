@@ -348,6 +348,11 @@ class Booking extends Controller
                 continue;
             }
             foreach ($this->cartModel->getUnavailablePackageServices((int)($item['item_id'] ?? 0), $pkgDate) as $u) {
+                $u['alternatives'] = $this->cartModel->findAlternativePackageDates(
+                    (int)($item['item_id'] ?? 0),
+                    (int)$u['service_id'],
+                    $pkgDate
+                );
                 $unavailable[] = $u;
             }
         }
@@ -413,6 +418,13 @@ class Booking extends Controller
                 if (!empty($packageSchedule)) {
                     if ($this->bookingModel->reservePackageServiceSlots($bookingId, $pkgDate, $packageSchedule) === false) {
                         $fail = $this->bookingModel->getLastUnavailableService();
+                        if ($fail) {
+                            $fail['alternatives'] = $this->cartModel->findAlternativePackageDates(
+                                (int)($item['item_id'] ?? 0),
+                                (int)$fail['service_id'],
+                                $pkgDate
+                            );
+                        }
                         throw new SlotUnavailableException($fail ? [$fail] : []);
                     }
                 }
