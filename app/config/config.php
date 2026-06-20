@@ -8,6 +8,11 @@ define('NETWORK_IMG_ROOT', 'http://10.247.249.2/GP/public');
 define('APPROOT', dirname(dirname(__FILE__)));
 // define('VENDOR_AUTOLOAD','');
 
+// Supplier-replacement (on decline of a confirmed package booking):
+// candidates priced above the original item are only shown up to this
+// percentage over the original price; pricier picks need customer approval.
+define('MAX_REPLACEMENT_UPCHARGE_PCT', 25);
+
 define('DB_HOST', 'localhost;port=3307');
 define('DB_USER', 'root');
 define('DB_PASS', '');

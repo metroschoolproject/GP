@@ -165,6 +165,7 @@ class User
                 $_SESSION['session_uid'] = $row['user_id'];
                 $_SESSION['session_email'] = $data['email'];
                 $_SESSION['session_name'] = $row['name'] ?? '';
+                $_SESSION['session_avatar'] = $row['avatar'] ?? null;
                 return true;
             } else {
                 return false;
@@ -223,7 +224,7 @@ class User
     public function getRememberedUser($userId, $tokenHash)
     {
         $this->db->dbquery(
-            "SELECT user_id, email, name
+            "SELECT user_id, email, name, avatar
              FROM users
              WHERE user_id = :user_id
                AND remember_token = :token
@@ -393,6 +394,96 @@ class User
         $this->db->dbexecute();
 
         return $this->getuserinfo($data['email']);
+    }
+
+    /**
+     * Update the avatar URL for a user.
+     */
+    public function updateAvatar(int $userId, string $avatarUrl): bool
+    {
+        $this->db->dbquery('UPDATE users SET avatar = :avatar WHERE user_id = :id');
+        $this->db->dbbind(':avatar', $avatarUrl);
+        $this->db->dbbind(':id', $userId);
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Get the avatar URL for a user, or null.
+     */
+    public function getAvatar(int $userId): ?string
+    {
+        $this->db->dbquery('SELECT avatar FROM users WHERE user_id = :id');
+        $this->db->dbbind(':id', $userId);
+        $row = $this->db->getsingledata();
+        return ($row && !empty($row['avatar'])) ? $row['avatar'] : null;
+    }
+
+    /**
+     * Verify a plaintext password against the stored bcrypt hash.
+     * The stored hash is bcrypt(sha256(plaintext)).
+     */
+    public function verifyPassword(int $userId, string $plaintext): bool
+    {
+        $this->db->dbquery('SELECT password FROM users WHERE user_id = :id');
+        $this->db->dbbind(':id', $userId);
+        $row = $this->db->getsingledata();
+        if (!$row || empty($row['password'])) {
+            return false;
+        }
+        $pwSha = hash('sha256', $plaintext);
+        return password_verify($pwSha, $row['password']);
+    }
+
+    /**
+     * Update a user's password.
+     * Stores as bcrypt(sha256(plaintext)) to match the existing auth scheme.
+     */
+    public function updatePassword(int $userId, string $plaintext): bool
+    {
+        $pwSha = hash('sha256', $plaintext);
+        $hash = password_hash($pwSha, PASSWORD_DEFAULT);
+        $this->db->dbquery('UPDATE users SET password = :password WHERE user_id = :id');
+        $this->db->dbbind(':password', $hash);
+        $this->db->dbbind(':id', $userId);
+        return $this->db->dbexecute();
+    }
+
+    /**
+     * Update basic profile fields in the users table.
+     */
+    public function updateProfile(int $userId, array $data): bool
+    {
+        $sets = [];
+        $params = [];
+
+        if (array_key_exists('name', $data)) {
+            $sets[] = 'name = :name';
+            $params[':name'] = trim((string)$data['name']);
+        }
+        if (array_key_exists('email', $data)) {
+            $sets[] = 'email = :email';
+            $params[':email'] = trim((string)$data['email']);
+        }
+        if (array_key_exists('phone', $data)) {
+            $sets[] = 'phone = :phone';
+            $params[':phone'] = trim((string)$data['phone']);
+        }
+        if (array_key_exists('address', $data)) {
+            $sets[] = 'address = :address';
+            $params[':address'] = trim((string)$data['address']);
+        }
+
+        if (empty($sets)) {
+            return false;
+        }
+
+        $sql = 'UPDATE users SET ' . implode(', ', $sets) . ' WHERE user_id = :id';
+        $this->db->dbquery($sql);
+        foreach ($params as $key => $val) {
+            $this->db->dbbind($key, $val);
+        }
+        $this->db->dbbind(':id', $userId);
+        return $this->db->dbexecute();
     }
 }
 

@@ -1,16 +1,187 @@
 <?php
-$dashboardCardClass = 'rounded-card border border-app-border bg-app-input p-4 shadow-sm';
-$dashboardCompactCardClass = 'rounded-card border border-app-border bg-app-input p-3 shadow-sm';
-$dashboardMenuButtonClass = 'flex h-8 items-center gap-1.5 rounded-xl border border-app-border bg-app-input px-3 text-xs font-semibold text-app-primary shadow-sm hover:bg-app-soft hover:text-app-accent focus:outline-none focus:ring-2 focus:ring-app-ring';
-$dashboardMenuItemClass = 'flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-app-primary hover:bg-app-soft hover:text-app-accent';
-$dashboardMenuItemActiveClass = 'flex w-full items-center rounded-lg bg-app-soft px-3 py-1.5 text-left text-xs font-semibold text-app-accent hover:bg-app-surface';
+$dashboardCardClass = 'supplier-admin-card p-5';
+$dashboardCompactCardClass = 'supplier-admin-card p-5';
+$dashboardMenuButtonClass = 'supplier-admin-control flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-sm hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-rose-100';
+$dashboardMenuItemClass = 'flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-stone-600 hover:bg-rose-50 hover:text-[#673049]';
+$dashboardMenuItemActiveClass = 'flex w-full items-center rounded-lg bg-rose-50 px-3 py-1.5 text-left text-xs font-semibold text-[#673049]';
 $dashboardFilterTabClass = 'filter-tab rounded-full px-4 py-1.5 text-xs font-semibold border border-app-border transition-all';
 $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-wider text-app-muted font-semibold whitespace-nowrap';
 ?>
 
 <style>
+  .supplier-dashboard-overview {
+    --supplier-admin-bg: #fbfbf9;
+    --supplier-admin-card: #ffffff;
+    --supplier-admin-border: #e7e5e4;
+    --supplier-admin-text: #1c1917;
+    --supplier-admin-muted: #78716c;
+    --supplier-admin-soft: #f5f5f3;
+    --supplier-admin-accent: #673049;
+    font-family: Inter, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  .supplier-dashboard-overview .supplier-admin-card {
+    border: 1px solid var(--supplier-admin-border);
+    border-radius: 1.2rem;
+    background: var(--supplier-admin-card);
+    box-shadow: 0 1px 2px rgba(28, 25, 23, 0.05);
+    transition: box-shadow .18s ease;
+  }
+  .supplier-dashboard-overview .supplier-admin-card:hover {
+    box-shadow: 0 4px 12px rgba(28, 25, 23, 0.08);
+  }
+  .supplier-dashboard-overview .supplier-admin-page-title {
+    margin: 0;
+    color: #34232b;
+    font-family: "Playfair Display", serif;
+    font-size: clamp(27px, 2.5vw, 36px);
+    font-weight: 650;
+    letter-spacing: -.025em;
+    line-height: 1.08;
+  }
+  .supplier-dashboard-overview .supplier-admin-page-copy {
+    margin-top: .4rem;
+    color: #7b5c69;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .supplier-dashboard-overview .supplier-admin-kicker,
+  .supplier-dashboard-overview .supplier-admin-stat-label {
+    color: var(--supplier-admin-muted);
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: .01em;
+  }
+  .supplier-dashboard-overview .supplier-admin-kicker {
+    margin-bottom: .25rem;
+  }
+  .supplier-dashboard-overview .supplier-admin-icon {
+    display: flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: .75rem;
+    border-radius: .5rem;
+  }
+  .supplier-dashboard-overview .supplier-admin-section-title {
+    color: var(--supplier-admin-text);
+    font-size: 13px;
+    font-weight: 750;
+    letter-spacing: -.015em;
+  }
+  .supplier-dashboard-overview .supplier-admin-control {
+    border-color: var(--supplier-admin-border) !important;
+    background: #fff !important;
+    color: var(--supplier-admin-accent) !important;
+  }
+  .supplier-dashboard-overview .filter-tab {
+    border-color: var(--supplier-admin-border) !important;
+    background: var(--supplier-admin-soft);
+    color: #57534e;
+  }
+  .supplier-dashboard-overview .filter-tab.bg-app-primary {
+    border-color: var(--supplier-admin-accent) !important;
+    background: var(--supplier-admin-accent) !important;
+    color: #fff !important;
+  }
+  .supplier-dashboard-overview table thead {
+    background: #f9f8f6;
+  }
+  .supplier-dashboard-overview table thead th {
+    color: var(--supplier-admin-muted) !important;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .055em;
+    text-transform: uppercase;
+  }
+  .supplier-dashboard-overview table tbody tr {
+    border-color: var(--supplier-admin-border) !important;
+    transition: background .1s ease;
+  }
+  .supplier-dashboard-overview table tbody tr:hover {
+    background: var(--supplier-admin-soft) !important;
+  }
+  .supplier-dashboard-overview #weddingBookingsList > div {
+    border: 1px solid transparent;
+    border-radius: .75rem;
+    background: var(--supplier-admin-soft);
+    transition: all .12s ease;
+  }
+  .supplier-dashboard-overview #weddingBookingsList > div:hover {
+    border-color: var(--supplier-admin-border);
+    background: #eeece9;
+  }
+  .supplier-dashboard-overview canvas {
+    max-width: 100%;
+  }
+  .supplier-dashboard-overview .supplier-admin-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: .75rem;
+    align-items: stretch;
+  }
+  .supplier-dashboard-overview .supplier-admin-primary,
+  .supplier-dashboard-overview .supplier-admin-side {
+    display: contents;
+  }
+  .supplier-dashboard-overview .supplier-admin-kpis {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .supplier-dashboard-overview .supplier-admin-charts {
+    grid-column: 1 / span 8;
+    grid-row: 2;
+  }
+  .supplier-dashboard-overview .supplier-admin-calendar {
+    grid-column: 9 / -1;
+    grid-row: 2;
+  }
+  .supplier-dashboard-overview .supplier-admin-upcoming {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .supplier-dashboard-overview .supplier-admin-upcoming #weddingBookingsList {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .5rem;
+    max-height: none;
+  }
+  .supplier-dashboard-overview .supplier-admin-charts .chart-container {
+    min-height: 250px;
+  }
+  @keyframes supplierAdminFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .supplier-dashboard-overview .supplier-admin-animate {
+    animation: supplierAdminFadeUp .35s ease both;
+  }
   .scroll-hint { position: relative; }
   .scroll-hint.can-scroll::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 32px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.9)); pointer-events: none; z-index: 2; }
+  @media (max-width: 1100px) {
+    .supplier-dashboard-overview .supplier-admin-charts {
+      grid-column: 1 / span 7;
+    }
+    .supplier-dashboard-overview .supplier-admin-calendar {
+      grid-column: 8 / -1;
+    }
+    .supplier-dashboard-overview .supplier-admin-upcoming #weddingBookingsList {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 900px) {
+    .supplier-dashboard-overview .supplier-admin-layout-grid {
+      grid-template-columns: 1fr;
+    }
+    .supplier-dashboard-overview .supplier-admin-kpis,
+    .supplier-dashboard-overview .supplier-admin-charts,
+    .supplier-dashboard-overview .supplier-admin-calendar,
+    .supplier-dashboard-overview .supplier-admin-upcoming {
+      grid-column: 1;
+      grid-row: auto;
+    }
+  }
   @media (max-width: 640px) {
     .supplier-dashboard-overview { padding-left: 0.75rem !important; padding-right: 0.75rem !important; padding-top: 1rem !important; }
     .supplier-dashboard-overview .rounded-card { padding: 0.75rem !important; }
@@ -25,47 +196,86 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     .supplier-dashboard-overview .gap-4 { gap: 0.75rem !important; }
     .supplier-dashboard-overview .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
     .supplier-dashboard-overview .py-5 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+    .supplier-dashboard-overview .supplier-admin-upcoming #weddingBookingsList {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 
-<div class="supplier-dashboard-overview mx-auto max-w-[1600px] px-4 py-5 font-ui text-[13px] text-app-text antialiased">
+<div class="supplier-dashboard-overview mx-auto max-w-[1600px] px-5 py-6 text-[13px] antialiased">
 
-       
+        <header class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="supplier-admin-kicker">Supplier workspace</p>
+                <h1 class="supplier-admin-page-title">Business overview</h1>
+                <p class="supplier-admin-page-copy">Revenue, bookings, availability, and payments at a glance.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <a href="<?= URLROOT ?>/supplier/services"
+                   class="supplier-admin-control inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-sm transition hover:bg-stone-50">
+                    <i data-lucide="briefcase-business" class="h-3.5 w-3.5"></i>
+                    Manage services
+                </a>
+                <a href="<?= URLROOT ?>/supplier/calendar"
+                   class="supplier-admin-control inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-sm transition hover:bg-stone-50">
+                    <i data-lucide="calendar-days" class="h-3.5 w-3.5"></i>
+                    Open calendar
+                </a>
+            </div>
+        </header>
 
         <!-- MAIN LAYOUT: left col (stats + charts) | right col (calendar + events) -->
-        <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_300px] lg:items-stretch">
+        <section class="supplier-admin-layout-grid mb-4">
         <!-- LEFT: stat cards + charts -->
-        <div class="flex flex-col gap-3 h-full">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="supplier-admin-primary">
+        <div class="supplier-admin-kpis grid grid-cols-1 gap-3 sm:grid-cols-3">
 
             <!-- Total Revenue -->
-            <div class="<?= $dashboardCardClass ?>">
-                <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-danger-soft text-app-danger">
+            <div class="<?= $dashboardCardClass ?> supplier-admin-animate" style="animation-delay:.07s">
+                <div class="supplier-admin-icon" style="background:#fff1f2;color:#be123c">
                     <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M12 7v10"/><path d="M14.35 9A2 2 0 0 0 12 7.5h-1a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-1a2 2 0 0 1-2.35-1.5"/></svg>
                 </div>
-                <p class="text-xs font-medium text-app-secondary">Total Revenue</p>
-                <h2 id="totalRevenue" class="mt-1.5 text-2xl font-bold tracking-tighter text-app-text">$63,400</h2>
-                <div class="mt-3 border-t border-app-panel-border pt-3">
-                    <p class="text-[10px] uppercase tracking-widest text-app-muted">Avg Spend</p>
-                    <p id="avgSpend" class="mt-0.5 text-base font-bold text-app-text">$200</p>
+                <p class="supplier-admin-stat-label">Total Revenue</p>
+                <h2 id="totalRevenue" class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#1c1917">$63,400</h2>
+                <div class="mt-4 border-t pt-3" style="border-color:var(--supplier-admin-border)">
+                    <p class="supplier-admin-stat-label">Average spend</p>
+                    <p id="avgSpend" class="mt-1 text-base font-bold" style="color:#1c1917">$200</p>
                 </div>
             </div>
 
             <!-- Total Bookings -->
-            <div class="<?= $dashboardCardClass ?>">
-                <div class="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-app-soft text-app-accent">
+            <div class="<?= $dashboardCardClass ?> supplier-admin-animate" style="animation-delay:.14s">
+                <div class="supplier-admin-icon" style="background:#f0f9ff;color:#0284c7">
                     <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
                 </div>
-                <p class="text-xs font-medium text-app-secondary">Total Bookings</p>
-                <h2 id="totalBookings" class="mt-1.5 text-2xl font-bold tracking-tighter text-app-text">317</h2>
-                <div class="mt-3 grid grid-cols-2 gap-2 border-t border-app-panel-border pt-3">
+                <p class="supplier-admin-stat-label">Total Bookings</p>
+                <h2 id="totalBookings" class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#1c1917">317</h2>
+                <div class="mt-4 grid grid-cols-2 gap-3 border-t pt-3" style="border-color:var(--supplier-admin-border)">
                     <div>
-                        <p class="text-[10px] uppercase tracking-widest text-app-muted">Confirmed</p>
-                        <p id="confirmedBookings" class="mt-0.5 text-lg font-bold text-app-success">217</p>
+                        <p class="supplier-admin-stat-label">Confirmed</p>
+                        <p id="confirmedBookings" class="mt-1 text-lg font-bold" style="color:#07825f">217</p>
                     </div>
                     <div>
-                        <p class="text-[10px] uppercase tracking-widest text-app-muted">Cancelled</p>
-                        <p id="cancelledBookings" class="mt-0.5 text-lg font-bold text-app-danger">33</p>
+                        <p class="supplier-admin-stat-label">Cancelled</p>
+                        <p id="cancelledBookings" class="mt-1 text-lg font-bold" style="color:#c73434">33</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="<?= $dashboardCardClass ?> supplier-admin-animate" style="animation-delay:.21s">
+                <div class="supplier-admin-icon" style="background:#fdf2f8;color:#9d174d">
+                    <i data-lucide="store" class="h-4 w-4"></i>
+                </div>
+                <p class="supplier-admin-stat-label">Service portfolio</p>
+                <h2 class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#1c1917"><?= number_format((int)($dashboardData['stats']['total_services'] ?? 0)) ?></h2>
+                <div class="mt-4 grid grid-cols-2 gap-3 border-t pt-3" style="border-color:var(--supplier-admin-border)">
+                    <div>
+                        <p class="supplier-admin-stat-label">Rating</p>
+                        <p class="mt-1 text-lg font-bold" style="color:#b45309"><?= number_format((float)($dashboardData['stats']['avg_rating'] ?? 0), 1) ?></p>
+                    </div>
+                    <div>
+                        <p class="supplier-admin-stat-label">Upcoming</p>
+                        <p class="mt-1 text-lg font-bold" style="color:#673049"><?= number_format(count($dashboardData['upcomingBookings'] ?? [])) ?></p>
                     </div>
                 </div>
             </div>
@@ -73,14 +283,14 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
             </div><!-- end stat cards inner -->
 
             <!-- CHARTS: two side by side inside left col -->
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 flex-1">
+            <div class="supplier-admin-charts grid grid-cols-1 gap-3 sm:grid-cols-2">
 
                 <!-- Revenue Chart -->
-                <div class="<?= $dashboardCompactCardClass ?> flex flex-col">
+                <div class="<?= $dashboardCompactCardClass ?> supplier-admin-animate flex flex-col" style="animation-delay:.28s">
                     <div class="mb-2 flex items-start justify-between">
                         <div>
-                            <h3 class="text-xs font-bold text-app-text">Revenue Chart</h3>
-                            <p class="text-[10px] text-app-muted">Monthly revenue</p>
+                            <h3 class="supplier-admin-section-title">Revenue trend</h3>
+                            <p class="mt-0.5 text-[11px]" style="color:#a8a29e">Monthly revenue performance</p>
                         </div>
                         <span class="self-start inline-flex items-center gap-1 bg-app-danger-soft text-app-danger font-bold text-[10px] px-2.5 py-1 rounded-full border border-app-border">PEAK: FEB</span>
                     </div>
@@ -104,11 +314,11 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 </div>
 
                 <!-- Booking Trends -->
-                <div class="<?= $dashboardCompactCardClass ?> flex flex-col">
+                <div class="<?= $dashboardCompactCardClass ?> supplier-admin-animate flex flex-col" style="animation-delay:.35s">
                     <div class="mb-2 flex items-start justify-between">
                         <div>
-                            <h3 class="text-xs font-bold text-app-text">Booking Trends</h3>
-                            <p class="text-[10px] text-app-muted">Monthly bookings</p>
+                            <h3 class="supplier-admin-section-title">Booking trend</h3>
+                            <p class="mt-0.5 text-[11px]" style="color:#a8a29e">Monthly booking volume</p>
                         </div>
                         <span class="self-start inline-flex items-center gap-1 bg-app-danger-soft text-app-danger font-bold text-[10px] px-2.5 py-1 rounded-full border border-app-border">PEAK: FEB</span>
                     </div>
@@ -131,15 +341,15 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
         </div><!-- end left col -->
 
             <!-- RIGHT: Calendar + Upcoming Events -->
-            <div class="flex flex-col gap-3 h-full">
+            <div class="supplier-admin-side">
 
                 <!-- Calendar -->
-                <div class="<?= $dashboardCardClass ?>">
+                <div class="<?= $dashboardCardClass ?> supplier-admin-calendar supplier-admin-animate" style="animation-delay:.42s">
                     <div class="mb-3 flex items-center justify-between">
                         <button id="calPrev" class="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-app-soft transition-colors">
                             <svg class="h-3.5 w-3.5 text-app-secondary"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                         </button>
-                        <h3 class="text-xs font-bold text-app-text" id="calendarMonthLabel">January</h3>
+                        <h3 class="supplier-admin-section-title" id="calendarMonthLabel">January</h3>
                         <button id="calNext" class="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-app-soft transition-colors">
                             <svg class="h-3.5 w-3.5 text-app-secondary"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                         </button>
@@ -175,9 +385,9 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 </div>
 
                 <!-- Upcoming Events (below calendar) -->
-                <div class="<?= $dashboardCardClass ?> flex flex-col flex-1">
+                <div class="<?= $dashboardCardClass ?> supplier-admin-upcoming supplier-admin-animate flex flex-col" style="animation-delay:.49s">
                     <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-xs font-bold text-app-text">Upcoming Events</h3>
+                        <h3 class="supplier-admin-section-title">Upcoming events</h3>
                         <button class="text-xs font-medium text-app-primary hover:text-app-accent">View all</button>
                     </div>
                     <div id="weddingBookingsList" class="space-y-2 flex-1 overflow-y-auto">
@@ -189,9 +399,12 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
 
         <!-- PAYMENT STATUS -->
         <section class="mb-4">
-            <div class="<?= $dashboardCardClass ?>">
+            <div class="<?= $dashboardCardClass ?> supplier-admin-animate" style="animation-delay:.56s">
                 <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <h3 class="text-sm font-bold text-app-text">Payment status</h3>
+                    <div>
+                        <h3 class="supplier-admin-section-title text-sm">Payment status</h3>
+                        <p class="mt-0.5 text-[11px]" style="color:#a8a29e">Customer payments linked to your bookings</p>
+                    </div>
                     <div class="relative">
                         <button id="paymentFilterBtn" type="button" aria-expanded="false"
                             class="<?= $dashboardMenuButtonClass ?>">
@@ -241,9 +454,12 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
 
         <!-- WITHDRAW HISTORY -->
         <section class="mb-4">
-            <div class="<?= $dashboardCardClass ?>">
+            <div class="<?= $dashboardCardClass ?> supplier-admin-animate" style="animation-delay:.63s">
                 <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <h3 class="text-sm font-bold text-app-text">Withdraw History</h3>
+                    <div>
+                        <h3 class="supplier-admin-section-title text-sm">Withdrawal history</h3>
+                        <p class="mt-0.5 text-[11px]" style="color:#a8a29e">Recent supplier payout activity</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <div class="relative">
                             <button id="withdrawFilterBtn" type="button" aria-expanded="false"
@@ -427,11 +643,11 @@ window.supplierDashboardData = <?= json_encode([
     var ch = (window.supplierDashboardData || {}).chartData || {};
     var revenueVals = ch.revenue || [0,0,0,0,0,0,0,0,0,0,0,0];
     var bookingVals = ch.bookings || [0,0,0,0,0,0,0,0,0,0,0,0];
-    const primaryColor = readUtilityColor("text-app-primary");
-    const mutedColor = readUtilityColor("text-app-muted");
-    const gridColor = readUtilityColor("border-app-panel-border border", "borderTopColor");
-    const barColor = readUtilityColor("bg-app-ring", "backgroundColor");
-    const peakColor = readUtilityColor("bg-app-danger-soft", "backgroundColor");
+    const primaryColor = "#673049";
+    const mutedColor = "#a8a29e";
+    const gridColor = "#e7e5e4";
+    const barColor = "#d6d3d1";
+    const peakColor = "#fda4af";
     const revenuePeakIndex = revenueVals.indexOf(Math.max(...revenueVals));
     const bookingPeakIndex = bookingVals.indexOf(Math.max(...bookingVals));
 
@@ -614,6 +830,9 @@ window.supplierDashboardData = <?= json_encode([
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+      window.lucide.createIcons();
+    }
 
     /* ── scroll hint for overflowing tables ── */
     document.querySelectorAll(".overflow-x-auto").forEach(el => {

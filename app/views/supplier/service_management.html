@@ -456,10 +456,11 @@
           <label class="fm-label" for="csPriceMax">Customize price (MMK) <span class="fm-required">*</span></label>
           <input id="csPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 1500" class="fm-input"/>
         </div>
-        <div>
-          <label class="fm-label" for="csCapacity">Max concurrent</label>
-          <input id="csCapacity" type="number" min="1" step="1" placeholder="e.g. 50" class="fm-input"/>
-        </div>
+	        <div>
+	          <label class="fm-label" for="csCapacity">Bookings per time slot</label>
+	          <input id="csCapacity" type="number" min="1" step="1" placeholder="e.g. 4" class="fm-input"/>
+	          <p class="fm-hint">How many bookings you can handle in the same slot. This is not a daily limit.</p>
+	        </div>
       </div>
       </section>
 
@@ -581,15 +582,15 @@
             <input id="csMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0" class="fm-input" style="max-width:160px"/>
             <p class="fm-hint">How many days in advance customers must book. 0 = same day.</p>
           </div>
-          <div>
-            <label class="fm-label">Default service hours <span style="font-weight:400;color:var(--fm-text-muted)">— optional</span></label>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-              <input id="csDefaultStartTime" type="time" class="fm-input" style="max-width:150px"/>
-              <span style="color:var(--fm-text-soft);flex-shrink:0;font-size:13px">to</span>
-              <input id="csDefaultEndTime" type="time" class="fm-input" style="max-width:150px"/>
-            </div>
-            <p class="fm-hint">Leave blank to use category defaults. Used for full-day package bookings.</p>
-          </div>
+	          <div>
+	            <label class="fm-label">Default event time <span style="font-weight:400;color:var(--fm-text-muted)">— optional</span></label>
+	            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+	              <input id="csDefaultStartTime" type="time" class="fm-input" style="max-width:150px"/>
+	              <span style="color:var(--fm-text-soft);flex-shrink:0;font-size:13px">to</span>
+	              <input id="csDefaultEndTime" type="time" class="fm-input" style="max-width:150px"/>
+	            </div>
+	            <p class="fm-hint">Fallback time for package/full-day bookings. This does not open your weekly calendar.</p>
+	          </div>
         </div>
       </div>
       </section>
@@ -645,15 +646,15 @@
         <input id="esMinLeadDays" type="number" min="0" max="365" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
         <div style="font-size:12px;color:#666;margin-top:4px">How many days in advance must customers book this service?</div>
       </div>
-      <div id="esDefaultTimeRow">
-        <label class="fm-label">Default service hours <span style="font-weight:400;color:#9a8b82">(optional)</span></label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input id="esDefaultStartTime" type="time" class="fm-input" style="max-width:130px"/>
-          <span style="color:#9a8b82;flex-shrink:0">to</span>
-          <input id="esDefaultEndTime" type="time" class="fm-input" style="max-width:130px"/>
-        </div>
-        <div style="font-size:12px;color:#666;margin-top:4px">Leave blank to use category defaults. Used for full-day package bookings.</div>
-      </div>
+	      <div id="esDefaultTimeRow">
+	        <label class="fm-label">Default event time <span style="font-weight:400;color:#9a8b82">(optional)</span></label>
+	        <div style="display:flex;align-items:center;gap:8px">
+	          <input id="esDefaultStartTime" type="time" class="fm-input" style="max-width:130px"/>
+	          <span style="color:#9a8b82;flex-shrink:0">to</span>
+	          <input id="esDefaultEndTime" type="time" class="fm-input" style="max-width:130px"/>
+	        </div>
+	        <div style="font-size:12px;color:#666;margin-top:4px">Fallback time for package/full-day bookings. Weekly availability is set separately.</div>
+	      </div>
       <div id="esVenueExtras" class="hidden space-y-4">
         <div class="modal-grid-2">
           <div>
@@ -719,6 +720,16 @@
           </div>
         </div>
         <div style="font-size:12px;color:#888">Fill in one or both. Leave blank to hide that option from customers.</div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--fm-border)">
+          <div class="flex items-center justify-between" style="margin-bottom:12px">
+            <span class="fm-label" style="margin-bottom:0">Individual items</span>
+            <button type="button" onclick="addAttireItem('es')" class="room-add">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+              Add item
+            </button>
+          </div>
+          <div id="esAttireItemsList" class="space-y-3"></div>
+        </div>
       </div>
     </div>
     <div class="modal-f">
@@ -774,29 +785,22 @@
 
 <!-- ══════════════════ MODAL: DELETE CONFIRMATION ══════════════════ -->
 <div id="deleteConfirmModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4" style="background:rgba(28,22,20,0.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" style="box-shadow:0 24px 80px rgba(28,22,20,0.16),0 0 0 1px rgba(28,22,20,0.04)">
-    <div class="px-8 pt-8 pb-6">
-      <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-full" style="background:#fef2f2;color:#dc4a4a">
+  <div class="delete-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="deleteConfirmTitle" aria-describedby="deleteConfirmMessage">
+    <div class="delete-confirm-body">
+      <div class="delete-confirm-icon" aria-hidden="true">
         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>
         </svg>
       </div>
-      <h2 id="deleteConfirmTitle" class="text-lg font-semibold text-gray-900" style="font-family:'Playfair Display',Georgia,serif">Delete item?</h2>
-      <p id="deleteConfirmMessage" class="mt-2 text-sm leading-6 text-gray-600">This action cannot be undone.</p>
-      <div id="deleteConfirmTypeWrap" class="mt-3 hidden">
-        <input id="deleteConfirmTypeInput" type="text" class="fm-input w-full" placeholder="Type name to confirm" autocomplete="off"/>
-      </div>
-        </svg>
-      </div>
-      <h2 id="deleteConfirmTitle" class="text-lg font-bold text-gray-900">Delete item?</h2>
-      <p id="deleteConfirmMessage" class="mt-2 text-sm leading-6 text-gray-600">This action cannot be undone.</p>
-      <div id="deleteConfirmTypeWrap" class="mt-3 hidden">
+      <h2 id="deleteConfirmTitle" class="delete-confirm-title">Delete item?</h2>
+      <p id="deleteConfirmMessage" class="delete-confirm-message">This action cannot be undone.</p>
+      <div id="deleteConfirmTypeWrap" class="delete-confirm-type hidden">
         <input id="deleteConfirmTypeInput" type="text" class="fm-input w-full" placeholder="Type name to confirm" autocomplete="off"/>
       </div>
     </div>
-    <div class="flex justify-end gap-3 px-8 py-5" style="background:var(--fm-surface-warm);border-top:1px solid var(--fm-border);border-radius:0 0 16px 16px">
-      <button type="button" id="deleteConfirmCancel" class="btn-dull">Cancel</button>
-      <button type="button" id="deleteConfirmAction" class="btn-save" style="background:#dc4a4a;box-shadow:0 2px 4px rgba(220,74,74,0.2),0 1px 2px rgba(220,74,74,0.15)">Delete</button>
+    <div class="delete-confirm-actions">
+      <button type="button" id="deleteConfirmCancel" class="delete-confirm-cancel">Cancel</button>
+      <button type="button" id="deleteConfirmAction" class="delete-confirm-delete">Delete service</button>
     </div>
   </div>
 </div>

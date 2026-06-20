@@ -136,6 +136,7 @@ $dashboardContent = function () use (
   .badge-pending{background:var(--warn-bg);color:var(--warn-text)}
   .badge-success{background:var(--success-bg);color:var(--success-text)}
   .badge-failed{background:var(--danger-bg);color:var(--danger-text)}
+  .badge-refunded{background:#e0e7ff;color:#3730a3}
 
   .payment-actions{display:inline-flex;gap:6px;justify-content:flex-end}
   .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#fff;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer}
@@ -261,8 +262,14 @@ $dashboardContent = function () use (
             <?php
               $paymentId = (int)($payment['id'] ?? 0);
               $paymentStatus = strtolower($payment['status'] ?? 'pending');
+              $escrowStatus  = strtolower($payment['escrow_status'] ?? '');
+              $isRefunded    = $escrowStatus === 'refunded';
               $statusLabel = $paymentStatus === 'success' ? 'Approved' : ($paymentStatus === 'failed' ? 'Rejected' : 'Pending');
               $badgeClass = $paymentStatus === 'success' ? 'badge-success' : ($paymentStatus === 'failed' ? 'badge-failed' : 'badge-pending');
+              if ($isRefunded) {
+                  $statusLabel = 'Refunded';
+                  $badgeClass = 'badge-refunded';
+              }
               $submittedAt = !empty($payment['verified_at'] ?? null)
                 ? date('M j, Y H:i', strtotime($payment['verified_at']))
                 : (!empty($payment['created_at']) ? date('M j, Y H:i', strtotime($payment['created_at'])) : '-');

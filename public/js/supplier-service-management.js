@@ -924,6 +924,30 @@ function validateCreateEssentials() {
   return true;
 }
 
+function validateDefaultEventTime(prefix) {
+  const start = document.getElementById(prefix + 'DefaultStartTime');
+  const end = document.getElementById(prefix + 'DefaultEndTime');
+  if (!start || !end) return true;
+
+  const startValue = start.value.trim();
+  const endValue = end.value.trim();
+  if (!startValue && !endValue) return true;
+
+  if (!startValue || !endValue) {
+    showToast('Add both default event start and end time, or leave both blank.', 'error');
+    (startValue ? end : start).focus();
+    return false;
+  }
+
+  if (startValue >= endValue) {
+    showToast('Default event end time must be later than the start time.', 'error');
+    end.focus();
+    return false;
+  }
+
+  return true;
+}
+
 function nextCreateStep() {
   if (currentCreateStep === 1 && !currentCreateCategory) {
     showToast('Choose a service category first.', 'error');
@@ -947,6 +971,7 @@ async function saveCreateService() {
   var category = document.getElementById('csCategory').value || currentCreateCategory;
   var name = document.getElementById('csName').value.trim();
   if (!name) { showCreateStep(2); showToast('Please fill in the service name.', 'error'); return; }
+  if (!validateDefaultEventTime('cs')) { showCreateStep(3); return; }
 
   if (category === 'Venue') {
     if (!validateVenueRooms('cs')) return;
@@ -1318,6 +1343,7 @@ function confirmDeleteModal({ title = 'Delete item?', message = 'This action can
 
   if (titleEl) titleEl.textContent = title;
   if (messageEl) messageEl.textContent = message;
+  actionBtn.textContent = title.toLowerCase().includes('package') ? 'Delete package' : 'Delete service';
   if (typeWrap) typeWrap.classList.toggle('hidden', !requireType);
   if (typeInput) { typeInput.value = ''; typeInput.placeholder = requireType ? 'Type "' + requireType + '" to confirm' : ''; }
   actionBtn.disabled = !!requireType;
@@ -1390,7 +1416,7 @@ function openEditService(id) {
   const rentalExtras = document.getElementById('esRentalExtras');
   const isVenueEdit = item.category === 'Venue';
   const isDecoEdit = item.category === 'Decoration';
-  const isRentalEdit = item.category === 'Dress' || item.category === 'Accessories';
+  const isRentalEdit = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
   venueExtras?.classList.toggle('hidden', !isVenueEdit);
   decoExtras?.classList.toggle('hidden', !isDecoEdit);
   rentalExtras?.classList.toggle('hidden', !isRentalEdit);
@@ -1420,8 +1446,9 @@ async function updateService() {
   const item=services.find(s=>s.id===editingSvcId); if (!item) return;
   const isVenueUpd = item.category === 'Venue';
   const isDecoUpd = item.category === 'Decoration';
-  const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories';
+  const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
   if (!isVenueUpd && !isDecoUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
+  if (!validateDefaultEventTime('es')) return;
   if (isVenueUpd && !validateVenueRooms('es')) return;
   if (isDecoUpd && !validateDecorationStyles('es')) return;
   if (isRentalUpd && !validateAttireItems('es')) return;
@@ -1461,14 +1488,15 @@ async function deleteService(id) {
   const item=services.find(s=>s.id===id); if (!item) return;
   const confirmed = await confirmDeleteModal({
     title: 'Delete service?',
-    message: `Delete "${item.name}"? This removes the service from your supplier list.`,
-    requireType: item.name
+    message: `Delete "${item.name}"? This removes the service from your supplier list. This action cannot be undone.`
   });
   if (!confirmed) return;
   try {
     await apiRequest(serviceManagementUrls.serviceDelete + id);
     services=services.filter(s=>Number(s.id)!==Number(id));
-    closeAll(); render();
+    closeAll();
+    render();
+    showToast('Service deleted.', 'success');
   } catch (error) { showToast(error.message, 'error'); }
 }
 

@@ -160,6 +160,7 @@ class SupplierServices extends SupplierControllerSupport
     {
         $supplier = $this->authorizedSupplierForServiceManagement();
         $data = $this->servicePayload((int)$supplier['supplier_id'], 'service');
+        $this->validateDefaultEventTime($data);
         $data['status'] = 'inactive';
 
         if ($data['name'] === '' || (float)$data['price'] < 0) {
@@ -190,6 +191,7 @@ class SupplierServices extends SupplierControllerSupport
             }
 
             $data = $this->servicePayload((int)$supplier['supplier_id'], 'service');
+            $this->validateDefaultEventTime($data);
             $existingService = $this->serviceManagementModel->getServiceDetail((int)$supplier['supplier_id'], $serviceId);
 
             if (($existingService['status'] ?? 'inactive') === 'inactive' && ($data['status'] ?? 'inactive') === 'active') {
@@ -223,11 +225,62 @@ class SupplierServices extends SupplierControllerSupport
 
         try {
             $deleted = $this->serviceManagementModel->deleteService((int)$supplier['supplier_id'], $serviceId);
+        } catch (DomainException $e) {
+            $this->jsonResponse(['status' => 'error', 'message' => $e->getMessage()], 409);
         } catch (Throwable $e) {
-            $this->jsonResponse(['status' => 'error', 'message' => 'This service is already used by bookings and cannot be deleted.'], 409);
+            error_log('Supplier service delete failed: ' . $e->getMessage());
+            $this->jsonResponse(['status' => 'error', 'message' => 'Could not delete the service. Please try again.'], 500);
         }
 
-        $this->jsonResponse(['status' => $deleted ? 'success' : 'error']);
+        if (!$deleted) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
+        }
+
+        $this->jsonResponse(['status' => 'success']);
+    }
+
+    private function validateDefaultEventTime(array &$data): void
+    {
+        $start = trim((string)($data['default_start_time'] ?? ''));
+        $end = trim((string)($data['default_end_time'] ?? ''));
+
+        if ($start === '' && $end === '') {
+            $data['default_start_time'] = null;
+            $data['default_end_time'] = null;
+            return;
+        }
+
+        if ($start === '' || $end === '') {
+            $this->jsonResponse([
+                'status' => 'error',
+                'message' => 'Add both default event start and end time, or leave both blank.',
+            ], 422);
+        }
+
+        if (!$this->isValidClockTime($start) || !$this->isValidClockTime($end)) {
+            $this->jsonResponse([
+                'status' => 'error',
+                'message' => 'Default event time must use a valid time format.',
+            ], 422);
+        }
+
+        $start = strlen($start) === 5 ? $start . ':00' : $start;
+        $end = strlen($end) === 5 ? $end . ':00' : $end;
+
+        if ($start >= $end) {
+            $this->jsonResponse([
+                'status' => 'error',
+                'message' => 'Default event end time must be later than the start time.',
+            ], 422);
+        }
+
+        $data['default_start_time'] = $start;
+        $data['default_end_time'] = $end;
+    }
+
+    private function isValidClockTime(string $time): bool
+    {
+        return (bool)preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $time);
     }
 
     public function serviceStatus($serviceId = null)

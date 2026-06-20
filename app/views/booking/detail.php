@@ -10,6 +10,7 @@ $depositPercent = (int)($depositPercent ?? 10);
 $canReview = $canReview ?? false;
 $existingReview = $existingReview ?? null;
 $canEditReview = $canEditReview ?? false;
+$pendingReplacement = $pendingReplacement ?? null;
 
 $statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled','cancellation_requested'=>'Cancellation Requested'];
 $money = fn($v) => 'RM '.number_format((float)$v,0);
@@ -146,6 +147,23 @@ a{color:inherit;text-decoration:none}
 
 <main class="gp-page">
   <div class="gp-back"><a href="<?=URLROOT?>/booking/myBookings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back to Bookings</a></div>
+
+  <?php if ($pendingReplacement): ?>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;background:#fffbeb;border:1px solid #fcd34d;border-radius:14px;padding:16px 20px;margin-bottom:20px">
+      <div>
+        <strong style="display:block;color:#92400e;font-size:14px">Replacement supplier needs your approval</strong>
+        <span style="color:#7b5c69;font-size:13px">
+          <?= $h($pendingReplacement['new_shop_name'] ?? 'A new supplier') ?> is available, but costs
+          <strong><?= number_format((float)($pendingReplacement['price_delta'] ?? 0), 0) ?> MMK</strong> more.
+          Approve and pay the difference to confirm it.
+        </span>
+      </div>
+      <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$pendingReplacement['id'] ?>"
+         style="white-space:nowrap;background:#6d4c5b;color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none">
+        Approve &amp; pay difference →
+      </a>
+    </div>
+  <?php endif; ?>
 
   <div class="gp-head">
     <h1>Booking <?= $h($bookingRef) ?></h1>

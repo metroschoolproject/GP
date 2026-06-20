@@ -41,6 +41,7 @@ class SupplierProfile
                     suppliers.agreement_version,
                     suppliers.payment_status,
                     suppliers.is_available,
+                    suppliers.created_at,
                     suppliers.verify_url AS business_url,
                     users.name AS owner_name,
                     users.email AS owner_email,
@@ -84,7 +85,14 @@ class SupplierProfile
         return $this->db->getmultidata();
     }
 
-    public function getApplications($status = 'pending', int $limit = 15, int $offset = 0)
+    public function getApplications(
+        $status = 'pending',
+        int $limit = 15,
+        int $offset = 0,
+        string $search = '',
+        int $categoryId = 0,
+        string $paymentStatus = 'all'
+    )
     {
         $query = 'SELECT suppliers.supplier_id,
                          suppliers.shop_name,
@@ -117,12 +125,55 @@ class SupplierProfile
                               AND supplier_documents.type = \'business_license\'
                             ORDER BY supplier_documents.id DESC
                             LIMIT 1
-                         ) AS business_license_url
+                         ) AS business_license_url,
+                         (
+                            SELECT COUNT(*)
+                            FROM booking_suppliers
+                            WHERE booking_suppliers.supplier_id = suppliers.supplier_id
+                              AND booking_suppliers.status IN (\'confirmed\', \'accepted\', \'completed\')
+                         ) AS booking_count,
+                         (
+                            SELECT COALESCE(AVG(reviews.rating), 0)
+                            FROM reviews
+                            WHERE reviews.supplier_id = suppliers.supplier_id
+                         ) AS avg_rating,
+                         (
+                            SELECT COUNT(*)
+                            FROM reviews
+                            WHERE reviews.supplier_id = suppliers.supplier_id
+                         ) AS review_count
                   FROM suppliers
                   LEFT JOIN users ON users.user_id = suppliers.user_id';
 
+        $conditions = [];
         if ($status !== 'all') {
-            $query .= ' WHERE suppliers.status = :status';
+            $conditions[] = 'suppliers.status = :status';
+        }
+        if ($search !== '') {
+            $conditions[] = '(suppliers.shop_name LIKE :search_shop
+                              OR users.name LIKE :search_owner
+                              OR users.email LIKE :search_email
+                              OR EXISTS (
+                                  SELECT 1
+                                  FROM supplier_categories search_sc
+                                  INNER JOIN categories search_c ON search_c.id = search_sc.category_id
+                                  WHERE search_sc.supplier_id = suppliers.supplier_id
+                                    AND search_c.name LIKE :search_category
+                              ))';
+        }
+        if ($categoryId > 0) {
+            $conditions[] = 'EXISTS (
+                                SELECT 1
+                                FROM supplier_categories filter_sc
+                                WHERE filter_sc.supplier_id = suppliers.supplier_id
+                                  AND filter_sc.category_id = :category_id
+                              )';
+        }
+        if (in_array($paymentStatus, ['paid', 'unpaid'], true)) {
+            $conditions[] = 'suppliers.payment_status = :payment_status';
+        }
+        if ($conditions) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
         $query .= ' ORDER BY suppliers.created_at DESC, suppliers.supplier_id DESC';
@@ -133,21 +184,81 @@ class SupplierProfile
         if ($status !== 'all') {
             $this->db->dbbind(':status', $status);
         }
+        if ($search !== '') {
+            $searchValue = '%' . $search . '%';
+            $this->db->dbbind(':search_shop', $searchValue);
+            $this->db->dbbind(':search_owner', $searchValue);
+            $this->db->dbbind(':search_email', $searchValue);
+            $this->db->dbbind(':search_category', $searchValue);
+        }
+        if ($categoryId > 0) {
+            $this->db->dbbind(':category_id', $categoryId, PDO::PARAM_INT);
+        }
+        if (in_array($paymentStatus, ['paid', 'unpaid'], true)) {
+            $this->db->dbbind(':payment_status', $paymentStatus);
+        }
         $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
         $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
         return $this->db->getmultidata();
     }
 
-    public function getApplicationsCount(string $status = 'pending'): int
+    public function getApplicationsCount(
+        string $status = 'pending',
+        string $search = '',
+        int $categoryId = 0,
+        string $paymentStatus = 'all'
+    ): int
     {
-        $query = 'SELECT COUNT(*) AS total FROM suppliers';
+        $query = 'SELECT COUNT(*) AS total
+                  FROM suppliers
+                  LEFT JOIN users ON users.user_id = suppliers.user_id';
+        $conditions = [];
         if ($status !== 'all') {
-            $query .= ' WHERE suppliers.status = :status';
+            $conditions[] = 'suppliers.status = :status';
+        }
+        if ($search !== '') {
+            $conditions[] = '(suppliers.shop_name LIKE :search_shop
+                              OR users.name LIKE :search_owner
+                              OR users.email LIKE :search_email
+                              OR EXISTS (
+                                  SELECT 1
+                                  FROM supplier_categories search_sc
+                                  INNER JOIN categories search_c ON search_c.id = search_sc.category_id
+                                  WHERE search_sc.supplier_id = suppliers.supplier_id
+                                    AND search_c.name LIKE :search_category
+                              ))';
+        }
+        if ($categoryId > 0) {
+            $conditions[] = 'EXISTS (
+                                SELECT 1
+                                FROM supplier_categories filter_sc
+                                WHERE filter_sc.supplier_id = suppliers.supplier_id
+                                  AND filter_sc.category_id = :category_id
+                              )';
+        }
+        if (in_array($paymentStatus, ['paid', 'unpaid'], true)) {
+            $conditions[] = 'suppliers.payment_status = :payment_status';
+        }
+        if ($conditions) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
         }
         $this->db->dbquery($query);
         if ($status !== 'all') {
             $this->db->dbbind(':status', $status);
+        }
+        if ($search !== '') {
+            $searchValue = '%' . $search . '%';
+            $this->db->dbbind(':search_shop', $searchValue);
+            $this->db->dbbind(':search_owner', $searchValue);
+            $this->db->dbbind(':search_email', $searchValue);
+            $this->db->dbbind(':search_category', $searchValue);
+        }
+        if ($categoryId > 0) {
+            $this->db->dbbind(':category_id', $categoryId, PDO::PARAM_INT);
+        }
+        if (in_array($paymentStatus, ['paid', 'unpaid'], true)) {
+            $this->db->dbbind(':payment_status', $paymentStatus);
         }
         return (int)($this->db->getsingledata()['total'] ?? 0);
     }
@@ -295,14 +406,15 @@ class SupplierProfile
         $this->db->dbquery(
             "SELECT
                 SUM(s.status = 'pending') AS pending,
-                SUM(s.status = 'approved' OR s.status = 'verified') AS approved,
+                SUM(s.status = 'approved') AS approved,
+                SUM(s.status = 'verified') AS verified,
                 SUM(s.status = 'rejected') AS rejected,
                 SUM(s.status = 'banned') AS banned,
                 COUNT(*) AS total
              FROM suppliers s
              WHERE s.deleted_at IS NULL"
         );
-        return $this->db->getsingledata() ?: ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'banned' => 0, 'total' => 0];
+        return $this->db->getsingledata() ?: ['pending' => 0, 'approved' => 0, 'verified' => 0, 'rejected' => 0, 'banned' => 0, 'total' => 0];
     }
 
     public function getSupplierPerformance(int $supplierId): array
@@ -446,15 +558,14 @@ class SupplierProfile
             'SELECT
                 (SELECT COUNT(*) FROM services WHERE supplier_id = :services_supplier_id) AS total_services,
                 (SELECT COUNT(*) FROM services WHERE supplier_id = :active_services_supplier_id AND is_active = 1) AS active_services,
-                (SELECT COUNT(*) FROM booking_suppliers WHERE supplier_id = :bookings_supplier_id) AS total_bookings,
-                (SELECT COUNT(*) FROM booking_suppliers WHERE supplier_id = :pending_bookings_supplier_id AND status = \'pending\') AS pending_bookings,
-                (SELECT COUNT(*) FROM booking_suppliers WHERE supplier_id = :active_bookings_supplier_id AND status IN (\'confirmed\', \'in_progress\')) AS active_bookings,
-                (SELECT COUNT(*) FROM booking_suppliers WHERE supplier_id = :completed_bookings_supplier_id AND status = \'completed\') AS completed_bookings,
-                (SELECT COALESCE(SUM(booking_items.price), 0)
+                (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :bookings_supplier_id) AS total_bookings,
+                (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :pending_bookings_supplier_id AND status = \'pending\') AS pending_bookings,
+                (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :active_bookings_supplier_id AND status IN (\'confirmed\', \'in_progress\')) AS active_bookings,
+                (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :completed_bookings_supplier_id AND status = \'completed\') AS completed_bookings,
+                (SELECT COALESCE(SUM(item_price), 0)
                  FROM booking_suppliers
-                 LEFT JOIN booking_items ON booking_items.booking_id = booking_suppliers.booking_id
-                 WHERE booking_suppliers.supplier_id = :revenue_supplier_id
-                   AND booking_suppliers.status IN (\'confirmed\', \'in_progress\', \'completed\')) AS total_revenue,
+                 WHERE supplier_id = :revenue_supplier_id
+                   AND status IN (\'confirmed\', \'in_progress\', \'completed\')) AS total_revenue,
                 (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE supplier_id = :rating_supplier_id) AS average_rating,
                 (SELECT COUNT(*) FROM reviews WHERE supplier_id = :review_supplier_id) AS review_count'
         );
@@ -776,5 +887,71 @@ class SupplierProfile
         return [
             'supplier_id' => $supplierId,
         ];
+    }
+
+    /**
+     * Update supplier profile fields (not status/payment).
+     * $data may contain: name, email, phone, address (→ users table)
+     * and: shop_name, description, business_url (→ suppliers table).
+     */
+    public function updateProfile(int $userId, array $data): bool
+    {
+        // Update users table
+        $userSets = [];
+        $userParams = [];
+        if (array_key_exists('name', $data)) {
+            $userSets[] = 'name = :name';
+            $userParams[':name'] = trim((string)$data['name']);
+        }
+        if (array_key_exists('email', $data)) {
+            $userSets[] = 'email = :email';
+            $userParams[':email'] = trim((string)$data['email']);
+        }
+        if (array_key_exists('phone', $data)) {
+            $userSets[] = 'phone = :phone';
+            $userParams[':phone'] = trim((string)$data['phone']);
+        }
+        if (array_key_exists('address', $data)) {
+            $userSets[] = 'address = :address';
+            $userParams[':address'] = trim((string)$data['address']);
+        }
+
+        if (!empty($userSets)) {
+            $sql = 'UPDATE users SET ' . implode(', ', $userSets) . ' WHERE user_id = :id';
+            $this->db->dbquery($sql);
+            foreach ($userParams as $key => $val) {
+                $this->db->dbbind($key, $val);
+            }
+            $this->db->dbbind(':id', $userId);
+            $this->db->dbexecute();
+        }
+
+        // Update suppliers table
+        $supplierSets = [];
+        $supplierParams = [];
+        if (array_key_exists('shop_name', $data)) {
+            $supplierSets[] = 'shop_name = :shop_name';
+            $supplierParams[':shop_name'] = trim((string)$data['shop_name']);
+        }
+        if (array_key_exists('description', $data)) {
+            $supplierSets[] = 'description = :description';
+            $supplierParams[':description'] = trim((string)$data['description']);
+        }
+        if (array_key_exists('business_url', $data)) {
+            $supplierSets[] = 'verify_url = :verify_url';
+            $supplierParams[':verify_url'] = trim((string)$data['business_url']);
+        }
+
+        if (!empty($supplierSets)) {
+            $sql = 'UPDATE suppliers SET ' . implode(', ', $supplierSets) . ' WHERE user_id = :id';
+            $this->db->dbquery($sql);
+            foreach ($supplierParams as $key => $val) {
+                $this->db->dbbind($key, $val);
+            }
+            $this->db->dbbind(':id', $userId);
+            $this->db->dbexecute();
+        }
+
+        return true;
     }
 }

@@ -2543,6 +2543,20 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .cursor-follower { display: none !important; }
   [data-aos] { opacity: 1 !important; transform: none !important; }
 }
+
+/* ── WISHLIST HEART (detail page) ── */
+.dt-heart{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.28);
+  background:rgba(0,0,0,.22);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  color:rgba(255,255,255,.82);cursor:pointer;
+  font-family:var(--font-body);font-size:13px;font-weight:600;
+  transition:all .2s var(--ease);margin-top:12px;
+}
+.dt-heart:hover{background:rgba(0,0,0,.38);border-color:rgba(255,255,255,.48)}
+.dt-heart.is-saved{color:#ff7b7b;border-color:rgba(229,91,91,.28);background:rgba(0,0,0,.32)}
+.dt-heart.is-loading{pointer-events:none;opacity:.6}
+.dt-heart-emoji{font-size:16px;line-height:1}
 </style>
 </head>
 <body>
@@ -3674,6 +3688,47 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.tb-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
   });
 });
+
+/* ── wishlist heart toggle ── */
+(function(){
+  var heart = document.getElementById('dtHeart');
+  if (!heart) return;
+
+  heart.addEventListener('click', function(){
+    var isLoggedIn = <?= !empty($_SESSION['session_uid']) ? 'true' : 'false' ?>;
+    if (!isLoggedIn) {
+      window.location.href = '<?= URLROOT ?>/users/auth?redirect=' + encodeURIComponent('customerServices/detail/<?= (int)($service['id'] ?? 0) ?>');
+      return;
+    }
+
+    var itemId  = parseInt(heart.dataset.itemId, 10);
+    var isSaved = heart.dataset.saved === '1' || heart.classList.contains('is-saved');
+
+    heart.classList.add('is-loading');
+
+    fetch('<?= URLROOT ?>/main/toggleWishlist', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({item_type: 'service', item_id: itemId, collection_id: null})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      heart.classList.remove('is-loading');
+      if (d.ok) {
+        if (d.action === 'added') {
+          heart.classList.add('is-saved');
+          heart.dataset.saved = '1';
+          heart.innerHTML = '<span class="dt-heart-emoji">♥</span> Saved';
+        } else {
+          heart.classList.remove('is-saved');
+          heart.dataset.saved = '0';
+          heart.innerHTML = '<span class="dt-heart-emoji">♡</span> Save to wishlist';
+        }
+      }
+    })
+    .catch(function(){ heart.classList.remove('is-loading'); });
+  });
+})();
 </script>
 </body>
 </html>

@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
 
         :root {
             --dashboard-bg:             #FBFBF9;
@@ -26,10 +26,12 @@
 
         body {
             font-family: var(--dashboard-font);
-            font-size: 13px;
+            font-size: 13.5px;
+            line-height: 1.5;
             background-color: var(--dashboard-bg);
             color: var(--dashboard-text);
             -webkit-font-smoothing: antialiased;
+            font-variant-numeric: tabular-nums;
         }
 
         main { position: relative; }
@@ -45,14 +47,53 @@
         .card:hover { box-shadow: 0 4px 12px rgba(28,25,23,0.08); }
 
         /* ── Typography ── */
-        .section-title { font-weight: 700; letter-spacing: -0.01em; }
+        .dashboard-page-title {
+            margin: 0;
+            color: #34232b;
+            font-family: "Playfair Display", serif;
+            font-size: clamp(27px, 2.5vw, 36px);
+            font-weight: 650;
+            letter-spacing: -0.025em;
+            line-height: 1.08;
+        }
+
+        .dashboard-page-copy {
+            margin-top: 0.4rem;
+            color: #7b5c69;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .section-title {
+            color: #292524;
+            font-weight: 750;
+            letter-spacing: -0.015em;
+        }
 
         .stat-label {
-            font-size: 10px;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: #a8a29e;
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: 0.01em;
+            text-transform: none;
+            color: #78716c;
+        }
+
+        .dashboard-fact {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.025em;
+        }
+
+        #pendingBookingConfirm,
+        #pendingPayments,
+        #pendingVendorApproval,
+        #pendingVendorApproval2,
+        #vendorApproved,
+        #vendorPending,
+        #vendorRejected,
+        #totalCustomers,
+        #totalSuppliers,
+        #totalStaffs {
+            font-variant-numeric: tabular-nums;
         }
 
         /* ── Queue / list item ── */
@@ -69,6 +110,12 @@
         .queue-item:hover {
             background: #eeece9;
             border-color: var(--dashboard-border);
+        }
+
+        .queue-item > div > p:first-child,
+        .queue-item > span:first-child {
+            color: #292524 !important;
+            font-weight: 650 !important;
         }
 
         /* ── Progress bar ── */
@@ -91,10 +138,10 @@
 
         thead th {
             font-size: 10px;
-            font-weight: 600;
-            letter-spacing: 0.1em;
+            font-weight: 750;
+            letter-spacing: 0.055em;
             text-transform: uppercase;
-            color: #a8a29e;
+            color: #78716c;
         }
 
         /* ── Badge pill ── */
@@ -104,9 +151,9 @@
             padding: 0.15rem 0.55rem;
             border-radius: 9999px;
             font-size: 10px;
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            text-transform: none;
         }
         .badge-emerald   { background: #d1fae5; color: #065f46; }
         .badge-amber     { background: #fef3c7; color: #92400e; }
@@ -248,7 +295,13 @@
 </head>
 <body class="antialiased">
     <main class="mx-auto max-w-[1600px] px-5 py-6">
-        <div class="mb-4 flex flex-wrap justify-end gap-2">
+        <header class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="stat-label mb-1">Admin workspace</p>
+                <h1 class="dashboard-page-title">Operations overview</h1>
+                <p class="dashboard-page-copy">Bookings, revenue, suppliers, and upcoming events at a glance.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
             <label class="flex h-8 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold shadow-sm"
                 style="color:var(--accent-color)">
                 <i data-lucide="calendar-days" class="h-3 w-3" style="color:#a8a29e"></i>
@@ -270,7 +323,8 @@
                     <button type="button" data-event-filter="year"   class="dropdown-item">This year</button>
                 </div>
             </div>
-        </div>
+            </div>
+        </header>
 
         <!-- ── ROW 1: KPI cards ── -->
         <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
@@ -281,10 +335,10 @@
                     <i data-lucide="badge-dollar-sign" class="h-4 w-4" style="color:#be123c"></i>
                 </div>
                 <p class="stat-label">Total Revenue</p>
-                <h2 id="totalRevenue" class="section-title mt-1.5 text-2xl tracking-tight" style="color:#1c1917">$63,400</h2>
+                <h2 id="totalRevenue" class="section-title dashboard-fact mt-1.5 text-2xl" style="color:#1c1917">$63,400</h2>
                 <hr class="divider mt-4 mb-3">
                 <p class="stat-label">Avg Customer Spend</p>
-                <p id="avgSpend" class="mt-1 text-base font-bold" style="color:#1c1917">$200</p>
+                <p id="avgSpend" class="dashboard-fact mt-1 text-base font-bold" style="color:#1c1917">$200</p>
             </div>
 
             <!-- Total Bookings -->
@@ -293,16 +347,16 @@
                     <i data-lucide="calendar-check" class="h-4 w-4" style="color:#0284c7"></i>
                 </div>
                 <p class="stat-label">Total Bookings</p>
-                <h2 id="totalBookings" class="section-title mt-1.5 text-2xl tracking-tight" style="color:#1c1917">317</h2>
+                <h2 id="totalBookings" class="section-title dashboard-fact mt-1.5 text-2xl" style="color:#1c1917">317</h2>
                 <hr class="divider mt-4 mb-3">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <p class="stat-label">Confirmed</p>
-                        <p id="confirmedBookings" class="mt-1 text-lg font-bold" style="color:#12bb8b">217</p>
+                        <p id="confirmedBookings" class="dashboard-fact mt-1 text-lg font-bold" style="color:#07825f">217</p>
                     </div>
                     <div>
                         <p class="stat-label">Cancelled</p>
-                        <p id="cancelledBookings" class="mt-1 text-lg font-bold" style="color:#e93e3e">33</p>
+                        <p id="cancelledBookings" class="dashboard-fact mt-1 text-lg font-bold" style="color:#c73434">33</p>
                     </div>
                 </div>
             </div>
@@ -616,7 +670,7 @@
                                 font: { size: 11, weight: "700", family: "Inter" },
                                 padding: { top: 8 }
                             },
-                            ticks: { color: "#a8a29e", font: { size: 10, weight: "600", family: "Inter" } }
+                            ticks: { color: "#78716c", font: { size: 10, weight: "600", family: "Inter" } }
                         },
                         y: {
                             grid: { color: "#f5f5f4" },
@@ -629,8 +683,8 @@
                                 padding: { bottom: 8 }
                             },
                             ticks: {
-                                color: "#a8a29e",
-                                font: { size: 10, family: "Inter" },
+                                color: "#78716c",
+                                font: { size: 10, weight: "500", family: "Inter" },
                                 callback: (v) => `$${v / 1000}k`
                             }
                         }

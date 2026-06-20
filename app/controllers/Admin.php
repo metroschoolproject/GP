@@ -2,6 +2,7 @@
 
 require_once APPROOT . '/services/UploadService.php';
 require_once APPROOT . '/services/PaymentGatewayService.php';
+require_once APPROOT . '/services/EmailService.php';
 require_once APPROOT . '/controllers/Booking.php';
 require_once APPROOT . '/services/EmailService.php';
 
@@ -445,22 +446,116 @@ class Admin extends Controller
 
     public function notifications()
     {
+        $allowedTypes = ['all', 'booking', 'payment', 'approval', 'system'];
+        $allowedStates = ['all', 'unread'];
+        $requestedType = (string)($_GET['type'] ?? 'all');
+        $requestedState = (string)($_GET['state'] ?? 'all');
+        $filters = [
+            'type' => in_array($requestedType, $allowedTypes, true) ? $requestedType : 'all',
+            'state' => in_array($requestedState, $allowedStates, true) ? $requestedState : 'all',
+            'search' => trim((string)($_GET['search'] ?? '')),
+        ];
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 20;
+        $userId = $this->currentUserId();
+        $totalCount = $this->notificationModel->getAdminInboxCount($userId, $filters);
+        $totalPages = max(1, (int)ceil($totalCount / $perPage));
+        $page = min($page, $totalPages);
         $offset = ($page - 1) * $perPage;
 
-        $totalCount = $this->notificationModel->getAllCount($this->currentUserId());
-
         $this->view('admin/notifications', [
-            'notifications' => $this->notificationModel->getAll($this->currentUserId(), $perPage, $offset),
-            'unreadCount' => $this->notificationModel->getUnreadCount($this->currentUserId()),
+            'notifications' => $this->notificationModel->getAdminInbox($userId, $filters, $perPage, $offset),
+            'stats' => $this->notificationModel->getAdminInboxStats($userId),
+            'filters' => $filters,
             'message' => $_SESSION['admin_flash'] ?? '',
             'currentPage' => $page,
-            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalPages' => $totalPages,
             'totalCount' => $totalCount,
             'perPage' => $perPage,
         ]);
         unset($_SESSION['admin_flash']);
+    }
+
+    public function markAllNotificationsRead()
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->jsonResponse(['status' => 'error', 'message' => 'Method not allowed.'], 405);
+        }
+
+        $this->notificationModel->markAllRead($this->currentUserId());
+        $_SESSION['admin_flash'] = 'All notifications marked as read.';
+        redirect('admin/notifications');
+    }
+
+    public function logs()
+    {
+        $allowedEvents = ['all', 'login', 'otp', 'logout', 'lockout'];
+        $allowedStatuses = ['all', 'success', 'warning', 'critical'];
+        $requestedEvent = (string)($_GET['event'] ?? 'all');
+        $requestedStatus = (string)($_GET['status'] ?? 'all');
+        $filters = [
+            'search' => trim((string)($_GET['search'] ?? '')),
+            'event' => in_array($requestedEvent, $allowedEvents, true) ? $requestedEvent : 'all',
+            'status' => in_array($requestedStatus, $allowedStatuses, true) ? $requestedStatus : 'all',
+            'date_from' => $this->validLogDate($_GET['date_from'] ?? ''),
+            'date_to' => $this->validLogDate($_GET['date_to'] ?? ''),
+        ];
+
+        $logModel = $this->model('Log');
+
+        if (($_GET['export'] ?? '') === 'csv') {
+            $this->exportLogsCsv($logModel->getAdminLedger($filters, 5000, 0));
+            return;
+        }
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+        $totalCount = $logModel->getAdminLedgerCount($filters);
+        $totalPages = max(1, (int)ceil($totalCount / $perPage));
+        $page = min($page, $totalPages);
+
+        $this->view('admin/setting/log', [
+            'logs' => $logModel->getAdminLedger($filters, $perPage, ($page - 1) * $perPage),
+            'stats' => $logModel->getAdminLedgerStats(),
+            'filters' => $filters,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
+        ]);
+    }
+
+    private function validLogDate($value): string
+    {
+        $value = trim((string)$value);
+        $date = DateTime::createFromFormat('Y-m-d', $value);
+        return $date && $date->format('Y-m-d') === $value ? $value : '';
+    }
+
+    private function exportLogsCsv(array $logs): void
+    {
+        $filename = 'system-logs-' . date('Y-m-d-His') . '.csv';
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
+        fputcsv($output, ['Date and time', 'Event', 'Status', 'User', 'Email', 'IP address', 'Device']);
+
+        foreach ($logs as $log) {
+            fputcsv($output, [
+                $log['created_at'] ?? '',
+                $log['action'] ?? '',
+                $log['severity'] ?? '',
+                $log['user_name'] ?? '',
+                $log['user_email'] ?? '',
+                $log['ip_address'] ?? '',
+                $log['user_agent'] ?? '',
+            ]);
+        }
+
+        fclose($output);
+        exit;
     }
 
     public function bookings()
@@ -479,6 +574,32 @@ class Admin extends Controller
     {
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminCancelBooking'], func_get_args());
+    }
+
+    /* ─── Supplier replacement (on decline of confirmed package booking) ─── */
+
+    public function replacementQueue()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminReplacementQueue'], func_get_args());
+    }
+
+    public function replacementPicker($replacementId = null)
+    {
+        $bookingController = new Booking();
+        return $bookingController->adminReplacementPicker((int)$replacementId);
+    }
+
+    public function assignReplacement()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminAssignReplacement'], func_get_args());
+    }
+
+    public function verifyReplacementPayment()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminVerifyReplacementPayment'], func_get_args());
     }
 
     public function markBookingReceived()
@@ -582,23 +703,45 @@ class Admin extends Controller
 
     private function supplierApplications()
     {
-        $status = $_GET['status'] ?? 'pending';
+        $status = $_GET['status'] ?? 'all';
         $allowedStatuses = ['pending', 'approved', 'verified', 'rejected', 'banned', 'all'];
 
         if (!in_array($status, $allowedStatuses, true)) {
-            $status = 'pending';
+            $status = 'all';
         }
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
         $offset = ($page - 1) * $perPage;
+        $search = trim((string)($_GET['search'] ?? ''));
+        $categoryId = max(0, (int)($_GET['category'] ?? 0));
+        $paymentStatus = (string)($_GET['payment'] ?? 'all');
+        if (!in_array($paymentStatus, ['all', 'paid', 'unpaid'], true)) {
+            $paymentStatus = 'all';
+        }
 
-        $suppliers = $this->supplierProfileModel->getApplications($status, $perPage, $offset);
-        $totalCount = $this->supplierProfileModel->getApplicationsCount($status);
+        $suppliers = $this->supplierProfileModel->getApplications(
+            $status,
+            $perPage,
+            $offset,
+            $search,
+            $categoryId,
+            $paymentStatus
+        );
+        $totalCount = $this->supplierProfileModel->getApplicationsCount(
+            $status,
+            $search,
+            $categoryId,
+            $paymentStatus
+        );
 
         $this->view('admin/suppliers', [
             'suppliers' => $suppliers,
             'status' => $status,
+            'search' => $search,
+            'categoryId' => $categoryId,
+            'paymentStatus' => $paymentStatus,
+            'categories' => $this->supplierProfileModel->getCategories(),
             'stats' => $this->supplierProfileModel->getSupplierStats(),
             'topSuppliers' => $status === 'all' ? $this->supplierProfileModel->getTopSuppliers(5) : [],
             'currentPage' => $page,
@@ -882,6 +1025,7 @@ class Admin extends Controller
             'description' => trim($_POST['description'] ?? ''),
             'tagline' => trim($_POST['tagline'] ?? ''),
             'base_price' => (float)($_POST['base_price'] ?? 0),
+            'max_concurrent' => (int)($_POST['max_concurrent'] ?? 0),
             'image_url' => $imageUrl,
             'is_active' => !empty($_POST['is_active']),
             'sort_order' => (int)($_POST['sort_order'] ?? 0),
@@ -959,6 +1103,9 @@ class Admin extends Controller
             $data['tagline'] = trim($_POST['tagline']);
         }
         $data['base_price'] = $this->moneyInput($_POST['base_price'] ?? ($package['included_total'] ?? $package['base_price'] ?? 0));
+        if (isset($_POST['max_concurrent'])) {
+            $data['max_concurrent'] = (int)$_POST['max_concurrent'];
+        }
         if ($this->uploadService->hasUploaded('package_image')) {
             $imageUrl = $this->uploadService->storePackageImage($_FILES['package_image']);
             if ($imageUrl === '') {
@@ -1154,7 +1301,10 @@ class Admin extends Controller
         $hallId = (int)($_POST['hall_id'] ?? 0);
         $attireItemId = (int)($_POST['attire_item_id'] ?? 0);
         $decoStyleId = (int)($_POST['decoration_style_id'] ?? 0);
-        $added = $packageModel->addPackageService((int)$packageId, $serviceId, $guestCount, $hallId > 0 ? $hallId : null, $attireItemId > 0 ? $attireItemId : null, $decoStyleId > 0 ? $decoStyleId : null);
+        $itemMaxConcurrent = isset($_POST['max_concurrent']) && $_POST['max_concurrent'] !== ''
+            ? max(0, (int)$_POST['max_concurrent'])
+            : null;
+        $added = $packageModel->addPackageService((int)$packageId, $serviceId, $guestCount, $hallId > 0 ? $hallId : null, $attireItemId > 0 ? $attireItemId : null, $decoStyleId > 0 ? $decoStyleId : null, $itemMaxConcurrent);
         if ($added) {
             $this->refreshPackageBasePrice($packageModel, (int)$packageId);
         }
@@ -1197,8 +1347,8 @@ class Admin extends Controller
                 : 'Could not update hall assignment. The room may not belong to this service.';
         } else {
             $_SESSION['admin_flash'] = $updated
-                ? 'Package food guest count and base price updated.'
-                : 'Only food or catering services can use guest count.';
+                ? 'Included guest count and base price updated.'
+                : 'Only per-guest services can use included guest count.';
         }
         redirect($packageId > 0 ? 'admin/packageDetail/' . $packageId : 'admin/packages');
     }
@@ -1709,13 +1859,235 @@ class Admin extends Controller
             }
         }
 
+        // Expire stale supplier replacements (unresponsive new supplier /
+        // unapproved pricier proposal) and re-queue them for admin re-pick.
+        $replResult = $bookingModel->expireOverdueReplacements();
+        foreach ($replResult['booking_ids'] as $bid) {
+            $notificationModel->notifyAdmins(
+                'Replacement Re-pick Needed',
+                'A supplier replacement for booking #' . $bid . ' expired and needs a new pick.',
+                'booking',
+                'booking',
+                (int)$bid
+            );
+            $notificationModel->notifyBookingCustomer(
+                (int)$bid,
+                'Still Arranging Your Replacement',
+                'We are still arranging a replacement supplier for your booking. No action needed.',
+                'booking'
+            );
+        }
+
         echo json_encode([
             'success' => true,
             'expired' => $expired,
+            'replacements_requeued' => $replResult['requeued'],
             'timestamp' => date('Y-m-d H:i:s'),
         ]);
 
         exit;
+    }
+
+    public function profile()
+    {
+        $userModel = $this->model('User');
+        $email = $_SESSION['session_email'] ?? '';
+        $user = $userModel->getuserinfo($email);
+
+        // Split full name into first/last for the form fields
+        $fullName = trim($user['name'] ?? $_SESSION['session_name'] ?? '');
+        $nameParts = explode(' ', $fullName, 2);
+        $firstName = $nameParts[0] ?? '';
+        $lastName  = $nameParts[1] ?? '';
+
+        $data = [
+            'user_id'    => (int)($_SESSION['session_uid'] ?? 0),
+            'name'       => $fullName,
+            'first_name' => $firstName,
+            'last_name'  => $lastName,
+            'email'      => $email,
+            'role'       => 'Administrator',
+            'phone'      => $user['phone'] ?? '',
+            'avatar'     => $_SESSION['session_avatar'] ?? $user['avatar'] ?? null,
+            'joined'     => !empty($user['created_at']) ? date('Y-m-d', strtotime($user['created_at'])) : '-',
+            'lastLogin'  => !empty($user['last_login']) ? date('Y-m-d h:i A', strtotime($user['last_login'])) : '-',
+            'timezone'   => 'Asia/Yangon',
+        ];
+
+        $this->view('admin/profile/profile', $data);
+    }
+
+    /**
+     * JSON endpoint — upload profile photo (POST multipart).
+     * Expects: $_FILES['profile_photo']
+     * Returns JSON: { ok: true, url: "..." } or { ok: false, error: "..." }
+     */
+    public function uploadProfilePhoto()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        if (!$this->uploadService->hasUploaded('profile_photo')) {
+            echo json_encode(['ok' => false, 'error' => 'No file uploaded.']);
+            return;
+        }
+
+        $file = $_FILES['profile_photo'];
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['ok' => false, 'error' => 'Upload error code ' . $file['error']]);
+            return;
+        }
+
+        $url = $this->uploadService->storeProfilePhoto($file, (int)$userId);
+        if ($url === '') {
+            echo json_encode(['ok' => false, 'error' => 'Invalid file. Accepted: JPEG, PNG, WebP (max 5MB).']);
+            return;
+        }
+
+        // Clean up old photos
+        $this->uploadService->removeOldProfilePhotos((int)$userId, $url);
+
+        // Persist to DB
+        $userModel = $this->model('User');
+        $userModel->updateAvatar((int)$userId, $url);
+
+        // Update session for sidebar
+        $_SESSION['session_avatar'] = $url;
+
+        echo json_encode(['ok' => true, 'url' => $url]);
+    }
+
+    /**
+     * JSON endpoint — remove profile photo.
+     */
+    public function removeProfilePhoto()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        // Remove files from disk
+        $this->uploadService->removeOldProfilePhotos((int)$userId);
+
+        // Clear from DB
+        $userModel = $this->model('User');
+        $userModel->updateAvatar((int)$userId, '');
+
+        // Clear session
+        $_SESSION['session_avatar'] = null;
+
+        echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * JSON endpoint — update personal information.
+     * Expects JSON body: { name, email, phone }
+     */
+    public function updateProfile()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+            return;
+        }
+
+        $name  = trim((string)($payload['name'] ?? ''));
+        $email = trim((string)($payload['email'] ?? ''));
+        $phone = trim((string)($payload['phone'] ?? ''));
+
+        if ($name === '' || $email === '') {
+            echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
+            return;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
+            return;
+        }
+
+        $userModel = $this->model('User');
+        $userModel->updateProfile($userId, [
+            'name'  => $name,
+            'email' => $email,
+            'phone' => $phone,
+        ]);
+
+        // Update session
+        $_SESSION['session_name'] = $name;
+        $_SESSION['session_email'] = $email;
+
+        echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * JSON endpoint — change password.
+     * Expects JSON body: { current_password, new_password, device? }
+     */
+    public function updatePassword()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+            return;
+        }
+
+        $current = $payload['current_password'] ?? '';
+        $newPass = $payload['new_password'] ?? '';
+        $device  = trim((string)($payload['device'] ?? ''));
+
+        if ($current === '' || $newPass === '') {
+            echo json_encode(['ok' => false, 'error' => 'Both password fields are required.']);
+            return;
+        }
+
+        if (strlen($newPass) < 8) {
+            echo json_encode(['ok' => false, 'error' => 'New password must be at least 8 characters.']);
+            return;
+        }
+
+        $userModel = $this->model('User');
+
+        if (!$userModel->verifyPassword($userId, $current)) {
+            echo json_encode(['ok' => false, 'error' => 'Current password is incorrect.']);
+            return;
+        }
+
+        $userModel->updatePassword($userId, $newPass);
+
+        // Send email notification
+        $deviceInfo = $device ?: ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown device');
+        $emailService = new EmailService();
+        $emailService->sendPasswordChangedEmail([
+            'name'  => $_SESSION['session_name'] ?? 'Admin',
+            'email' => $_SESSION['session_email'] ?? '',
+        ], $deviceInfo);
+
+        echo json_encode(['ok' => true]);
     }
 
 }

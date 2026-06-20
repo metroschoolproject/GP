@@ -805,6 +805,79 @@ textarea { font-family: var(--sans); }
 .loading { font-size: 13px; color: var(--mist); padding: 10px 0; font-style: italic; }
 .error { font-size: 13px; color: var(--danger); padding: 6px 0; }
 
+.gp-package-schedule {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gp-package-schedule.is-missing .gp-package-summary,
+.gp-package-schedule.is-missing .loading,
+.gp-package-schedule.is-missing .error {
+  border-color: var(--danger);
+}
+.gp-package-summary {
+  padding: 10px 12px;
+  border: 1px solid var(--rule-md);
+  border-radius: var(--r-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-size: 12px;
+}
+.gp-package-summary strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+.gp-package-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gp-package-service-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--rule-md);
+  border-radius: var(--r-sm);
+  background: var(--ivory);
+}
+.gp-package-service-row.is-full {
+  border-color: rgba(174, 64, 64, 0.35);
+  background: rgba(174, 64, 64, 0.06);
+}
+.gp-package-service-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gp-package-service-name {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.gp-package-service-meta {
+  font-size: 12px;
+  color: var(--mist);
+}
+.gp-package-status {
+  justify-self: end;
+  padding: 4px 8px;
+  border-radius: var(--r-pill);
+  background: rgba(55, 126, 92, 0.1);
+  color: #377e5c;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.gp-package-service-row.is-full .gp-package-status {
+  background: rgba(174, 64, 64, 0.1);
+  color: var(--danger);
+}
+
 /* Form fields */
 .gp-detail-label {
   display: block;
@@ -1346,17 +1419,19 @@ input[type="date"]:invalid {
         ?>
 
         <?php $itemBookingType = $item['booking_type'] ?? 'fullday'; ?>
+        <?php $isPackageItem = ($item['item_type'] ?? '') === 'package'; ?>
         <article class="gp-card gp-item-card" data-index="<?= $i + 1 ?>"
                  data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>"
                  data-booking-type="<?= $h($itemBookingType) ?>"
                  data-price-index="<?= $i ?>"
                  data-unit-price="<?= $h($linePrice) ?>"
-                 data-guest-priced="<?= $isGuestPriced ? 'yes' : 'no' ?>"
-                 data-hall-capacity="<?= $venueRoomCapacity ?>"
-                 data-min-lead-days="<?= $minLeadDays ?>"
-                 data-earliest-date="<?= $h($earliestBookingDate) ?>"
-                 <?php if (($item['item_type'] ?? '') === 'package'): ?>data-package-id="<?= (int)($item['item_id'] ?? 0) ?>"<?php endif; ?>
-                 <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
+	                 data-guest-priced="<?= $isGuestPriced ? 'yes' : 'no' ?>"
+	                 data-hall-capacity="<?= $venueRoomCapacity ?>"
+	                 data-min-lead-days="<?= $minLeadDays ?>"
+	                 data-earliest-date="<?= $h($earliestBookingDate) ?>"
+	                 data-item-type="<?= $h($item['item_type'] ?? 'service') ?>"
+	                 <?php if (($item['item_type'] ?? '') === 'package'): ?>data-package-id="<?= (int)($item['item_id'] ?? 0) ?>"<?php endif; ?>
+	                 <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
 
           <div class="gp-item-header">
             <a class="gp-item-thumb" href="<?= URLROOT ?>/customerServices/detail/<?= (int)($item['item_id'] ?? 0) ?>"
@@ -1401,7 +1476,7 @@ input[type="date"]:invalid {
 
             <!-- Slot section -->
             <fieldset class="gp-slot-fieldset">
-              <legend class="gp-fieldset-legend">Date &amp; time</legend>
+              <legend class="gp-fieldset-legend"><?= $isPackageItem ? 'Event date & package timeline' : 'Date & time' ?></legend>
 
               <?php if ($hasSlot): ?>
                 <!-- Has existing slot -->
@@ -1426,10 +1501,16 @@ input[type="date"]:invalid {
                 <input type="hidden" name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
                        data-min-lead-days="<?= (int)$minLeadDays ?>"
                        data-earliest-date="<?= $h($earliestBookingDate) ?>">
-                <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($slotStart) ?>">
-                <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($slotEnd) ?>">
+	                <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($slotStart) ?>">
+	                <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($slotEnd) ?>">
 
-                <!-- Hidden slot selector -->
+	                <?php if (($item['item_type'] ?? '') === 'package'): ?>
+	                  <div class="gp-package-schedule" id="package-schedule-<?= $i ?>" aria-live="polite" data-package-schedule-state="empty">
+	                    <p class="loading">Loading the package timeline…</p>
+	                  </div>
+	                <?php endif; ?>
+
+	                <!-- Hidden slot selector -->
                 <div class="gp-slot-selector hidden" id="slot-selector-<?= $i ?>">
                   <?php
                     $minLeadDays = (int)($item['min_lead_days'] ?? 0);
@@ -1440,14 +1521,21 @@ input[type="date"]:invalid {
                   ?>
                   <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
                   <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
-                         name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
-                         min="<?= $minDateStr ?>"
-                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
-                         data-min-lead-days="<?= $minLeadDays ?>"
-                         data-index="<?= $i ?>">
-                  <?php if ($minLeadDays > 0): ?>
-                    <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
-                  <?php endif; ?>
+	                         name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
+	                         min="<?= $minDateStr ?>"
+	                         <?php if (($item['item_type'] ?? '') !== 'package'): ?>
+	                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+	                         <?php endif; ?>
+	                         data-min-lead-days="<?= $minLeadDays ?>"
+	                         data-index="<?= $i ?>">
+	                <?php if ($minLeadDays > 0): ?>
+	                  <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
+	                <?php endif; ?>
+	                <?php if ($isPackageItem): ?>
+	                  <div class="gp-input-note">
+	                    Choose the wedding/event date once. Golden Promise will assign each included service to its planned time slot from supplier availability.
+	                  </div>
+	                <?php endif; ?>
 
                   <label class="gp-detail-label">Available slots</label>
                   <div class="gp-slots-container" id="slots-<?= $i ?>">
@@ -1469,7 +1557,7 @@ input[type="date"]:invalid {
                   $minDateDisplay = $minDate->format('M j, Y');
                   $isFulldayItem = ($itemBookingType === 'fullday');
                 ?>
-                <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select date</label>
+                <label class="gp-detail-label" for="slot-date-<?= $i ?>"><?= $isPackageItem ? 'Select event date' : 'Select date' ?></label>
                 <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
                        name="item_date[<?= $i ?>]"
                        min="<?= $minDateStr ?>"
@@ -1495,20 +1583,20 @@ input[type="date"]:invalid {
                   $fmtEnd   = $showTimeHint ? date('g:i A', strtotime($autoEnd))   : '';
                 ?>
                   <!-- Full-day booking: time resolved via schedule → service default → category fallback -->
-                  <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($autoStart) ?>">
-                  <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($autoEnd) ?>">
+	                  <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($autoStart) ?>">
+	                  <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($autoEnd) ?>">
                   <div class="gp-input-note" style="margin-top:8px;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     <?php if ($showTimeHint): ?>
-                      Full-day booking — estimated service window: <?= $h($fmtStart) ?> – <?= $h($fmtEnd) ?>
-                    <?php else: ?>
-                      Full-day booking — time is managed automatically
-                    <?php endif; ?>
+	                      <?= $isPackageItem ? 'Package timeline' : 'Full-day booking' ?> — estimated window: <?= $h($fmtStart) ?> – <?= $h($fmtEnd) ?>
+	                    <?php else: ?>
+	                      <?= $isPackageItem ? 'Package service times are managed automatically after you choose the event date' : 'Full-day booking — time is managed automatically' ?>
+	                    <?php endif; ?>
                   </div>
-                  <?php if (($item['item_type'] ?? '') === 'package'): ?>
-                    <div class="gp-package-schedule" id="package-schedule-<?= $i ?>" aria-live="polite">
-                      <p class="loading">Select the event date to build the package timeline.</p>
-                    </div>
+	                  <?php if (($item['item_type'] ?? '') === 'package'): ?>
+	                    <div class="gp-package-schedule" id="package-schedule-<?= $i ?>" aria-live="polite" data-package-schedule-state="empty">
+	                      <p class="loading">Choose the event date. We will build the included-service timeline automatically.</p>
+	                    </div>
                   <?php endif; ?>
                 <?php else: ?>
                   <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
@@ -1522,14 +1610,14 @@ input[type="date"]:invalid {
             <!-- Customise drawer -->
             <details class="gp-service-drawer" open>
               <summary>
-                <span>Service details</span>
-                <span class="gp-drawer-hint">Required contact, guests, room and notes</span>
+	                <span><?= $isPackageItem ? 'Event details' : 'Service details' ?></span>
+	                <span class="gp-drawer-hint"><?= $isPackageItem ? 'Shared guest count, location, contact and notes for this package' : 'Required contact, guests, room and notes' ?></span>
               </summary>
 
               <fieldset class="gp-overrides-fieldset">
                 <div class="gp-detail-row">
                   <div class="gp-detail-field">
-                    <label class="gp-detail-label" for="guests-<?= $i ?>">Guests for this service</label>
+	                    <label class="gp-detail-label" for="guests-<?= $i ?>"><?= $isPackageItem ? 'Event guest count' : 'Guests for this service' ?></label>
                     <input class="gp-detail-input" type="number" id="guests-<?= $i ?>"
                            name="item_guests[<?= $i ?>]" min="0"
                            value="<?= $isVenue && $venueRoomCapacity > 0 ? (int)$venueRoomCapacity : '' ?>"
@@ -1540,7 +1628,7 @@ input[type="date"]:invalid {
                     <?php endif; ?>
                   </div>
                   <div class="gp-detail-field">
-                    <label class="gp-detail-label" for="location-<?= $i ?>">Location / Venue room</label>
+	                    <label class="gp-detail-label" for="location-<?= $i ?>"><?= $isPackageItem ? 'Event location / venue room' : 'Location / Venue room' ?></label>
                     <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
                            name="item_location[<?= $i ?>]"
                            value="<?= $h($venueLocation) ?>"
@@ -1565,12 +1653,12 @@ input[type="date"]:invalid {
                   </div>
                 </div>
                 <div class="gp-detail-row" style="margin-top:12px;">
-                  <div class="gp-detail-field full">
-                    <label class="gp-detail-label" for="notes-<?= $i ?>">Special requests / notes</label>
-                    <textarea class="gp-detail-textarea" id="notes-<?= $i ?>"
-                              name="item_notes[<?= $i ?>]"
-                              placeholder="Any specific requirements for this service…"
-                              data-autogrow></textarea>
+	                  <div class="gp-detail-field full">
+	                    <label class="gp-detail-label" for="notes-<?= $i ?>">Special requests / notes</label>
+	                    <textarea class="gp-detail-textarea" id="notes-<?= $i ?>"
+	                              name="item_notes[<?= $i ?>]"
+	                              placeholder="<?= $isPackageItem ? 'Any notes for the whole package event…' : 'Any specific requirements for this service…' ?>"
+	                              data-autogrow></textarea>
                   </div>
                 </div>
               </fieldset>
@@ -1679,6 +1767,8 @@ input[type="date"]:invalid {
 <div class="gp-toast" id="gp-toast" role="alert"></div>
 
 <script>
+const packageScheduleState = new Map();
+
 (function () {
   /* ─── Venue auto-fill ─────────────────────── */
   (function() {
@@ -1972,6 +2062,33 @@ input[type="date"]:invalid {
         rememberMissing(card.querySelector(`[name="item_guests[${index}]"]`));
       }
 
+      if (card.dataset.packageId && itemDate) {
+        const scheduleState = packageScheduleState.get(String(index));
+        const scheduleBox = document.getElementById('package-schedule-' + index);
+        const dateInput = card.querySelector(`[name="item_date[${index}]"]`);
+        let packageScheduleError = '';
+
+        if (!scheduleState || scheduleState.date !== itemDate) {
+          packageScheduleError = 'package timeline is not ready';
+          if (!scheduleState || scheduleState.status !== 'loading') {
+            loadPackageSchedule(card.dataset.packageId, itemDate, index);
+          }
+        } else if (scheduleState.status === 'loading') {
+          packageScheduleError = 'package timeline is still loading';
+        } else if (scheduleState.status === 'error') {
+          packageScheduleError = scheduleState.message || 'package timeline could not be built';
+        } else if (scheduleState.status === 'unavailable') {
+          packageScheduleError = scheduleState.message || 'one or more package services are full';
+        } else if (!itemStart || !itemEnd) {
+          packageScheduleError = 'package timeline did not resolve a start and end time';
+        }
+
+        if (packageScheduleError) {
+          missing.push(packageScheduleError);
+          rememberMissing(scheduleBox || dateInput);
+        }
+      }
+
       if (missing.length) {
         if (drawer) drawer.open = true;
         missingMessages.push(serviceName + ': ' + missing.join(', '));
@@ -2002,8 +2119,36 @@ input[type="date"]:invalid {
     return true;
   }
 
-  form.addEventListener('submit', function (e) {
+  async function refreshPackageSchedulesBeforeSubmit() {
+    const packageCards = Array.from(document.querySelectorAll('.gp-item-card[data-package-id]'));
+    const refreshes = [];
+
+    packageCards.forEach(card => {
+      const index = card.dataset.priceIndex;
+      const dateInput = card.querySelector(`input[name="item_date[${index}]"]`);
+      const date = String(dateInput?.value || '').trim();
+      if (!date) return;
+
+      const state = packageScheduleState.get(String(index));
+      if (!state || state.date !== date || state.status === 'empty' || state.status === 'error') {
+        refreshes.push(loadPackageSchedule(card.dataset.packageId, date, index));
+      }
+    });
+
+    if (refreshes.length > 0) {
+      await Promise.allSettled(refreshes);
+    }
+  }
+
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="gp-spinner"></span> Checking schedule…';
+
+    await refreshPackageSchedulesBeforeSubmit();
+
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalSubmitHtml;
     if (!validateRequiredBookingInfo()) return;
 
     submitBtn.disabled = true;
@@ -2169,13 +2314,18 @@ function packageEscapeHtml(value) {
 }
 
 async function loadPackageSchedule(packageId, date, index) {
+  index = String(index);
   const container = document.getElementById('package-schedule-' + index);
   if (!container) return;
   if (!date) {
+    packageScheduleState.set(index, { status: 'empty', date: '' });
+    container.dataset.packageScheduleState = 'empty';
     container.innerHTML = '<p class="loading">Select the event date to build the package timeline.</p>';
     return;
   }
 
+  packageScheduleState.set(index, { status: 'loading', date });
+  container.dataset.packageScheduleState = 'loading';
   container.innerHTML = '<p class="loading">Building your package timeline…</p>';
   try {
     const response = await fetch('<?= URLROOT ?>/booking/getPackageSchedule', {
@@ -2185,7 +2335,10 @@ async function loadPackageSchedule(packageId, date, index) {
     });
     const data = await response.json();
     if (!response.ok || !data.success) {
-      container.innerHTML = '<p class="error">' + packageEscapeHtml(data.error || 'Could not build the package timeline') + '</p>';
+      const message = data.error || 'Could not build the package timeline';
+      packageScheduleState.set(index, { status: 'error', date, message });
+      container.dataset.packageScheduleState = 'error';
+      container.innerHTML = '<p class="error">' + packageEscapeHtml(message) + '</p>';
       return;
     }
 
@@ -2195,17 +2348,51 @@ async function loadPackageSchedule(packageId, date, index) {
     if (startField) startField.value = data.start_time || '';
     if (endField) endField.value = data.end_time || '';
 
+    const schedule = Array.isArray(data.schedule) ? data.schedule : [];
+    const unavailable = schedule.filter(item => item.booking_type === 'slot' && !item.is_available);
+    const scheduleReady = schedule.length > 0 && unavailable.length === 0 && data.start_time && data.end_time;
+    const message = unavailable.length
+      ? unavailable.map(item => item.service_name || 'Package service').join(', ') + ' has no package slot left.'
+      : 'Package timeline ready.';
+    packageScheduleState.set(index, {
+      status: scheduleReady ? 'ready' : 'unavailable',
+      date,
+      message,
+      startTime: data.start_time || '',
+      endTime: data.end_time || '',
+      unavailableCount: unavailable.length
+    });
+    container.dataset.packageScheduleState = scheduleReady ? 'ready' : 'unavailable';
+
     container.innerHTML = `
-      <div class="gp-input-note"><strong>Automatically managed event timeline</strong></div>
-      ${data.schedule.map(item => `
-        <div class="gp-slot-box" style="margin-top:6px;">
-          <div class="slot-date">${packageEscapeHtml(item.service_name || 'Package service')}</div>
-          <div class="slot-time">${packageTime(item.start_time)} – ${packageTime(item.end_time)} · ${packageEscapeHtml(item.supplier_name || 'Golden Promise')}</div>
+      <div class="gp-package-summary">
+        <strong>Automatically managed package timeline</strong>
+        ${packageTime(data.start_time)} – ${packageTime(data.end_time)}
+      </div>
+      <div class="gp-package-timeline">
+      ${schedule.map(item => {
+        const isSlot = item.booking_type === 'slot';
+        const isAvailable = !isSlot || Boolean(item.is_available);
+        const status = isSlot
+          ? (isAvailable ? packageEscapeHtml(item.availability_message || 'Available') : packageEscapeHtml(item.availability_message || 'Full'))
+          : 'Managed';
+        return `
+        <div class="gp-package-service-row ${isAvailable ? '' : 'is-full'}">
+          <div class="gp-package-service-main">
+            <div class="gp-package-service-name">${packageEscapeHtml(item.service_name || 'Package service')}</div>
+            <div class="gp-package-service-meta">${packageTime(item.start_time)} – ${packageTime(item.end_time)} · ${packageEscapeHtml(item.supplier_name || 'Golden Promise')}</div>
+          </div>
+          <div class="gp-package-status">${status}</div>
         </div>
-      `).join('')}
+        `;
+      }).join('')}
+      </div>
     `;
   } catch (error) {
-    container.innerHTML = '<p class="error">Could not build the package timeline. Please try again.</p>';
+    const message = 'Could not build the package timeline. Please try again.';
+    packageScheduleState.set(index, { status: 'error', date, message });
+    container.dataset.packageScheduleState = 'error';
+    container.innerHTML = '<p class="error">' + message + '</p>';
   }
 }
 

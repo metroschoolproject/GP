@@ -337,6 +337,255 @@ document.getElementById('saveDecorationStylesBtn')?.addEventListener('click', as
 
 renderDecorationStyles(Array.isArray(serviceDetailConfig.decorationStyles) ? serviceDetailConfig.decorationStyles : []);
 
+// ── ATTIRE ITEMS ────────────────────────────────────────────────
+let attireDrafts = [];
+let activeAttireIndex = 0;
+
+function normalizeAttireItem(item = {}) {
+  return {
+    name: item.name || '',
+    photo_url: item.photo_url || '',
+    borrow_package_price: item.borrow_package_price ?? '',
+    borrow_customize_price: item.borrow_customize_price ?? '',
+    buy_package_price: item.buy_package_price ?? '',
+    buy_customize_price: item.buy_customize_price ?? '',
+    return_days: item.return_days ?? ''
+  };
+}
+
+function attireHasBorrowPrice(item) {
+  return Number(item.borrow_package_price) > 0 || Number(item.borrow_customize_price) > 0;
+}
+
+function attireHasBuyPrice(item) {
+  return Number(item.buy_package_price) > 0 || Number(item.buy_customize_price) > 0;
+}
+
+function attireOfferLabel(item) {
+  const offers = [];
+  if (attireHasBorrowPrice(item)) offers.push('Borrow');
+  if (attireHasBuyPrice(item)) offers.push('Buy');
+  return offers.length ? offers.join(' + ') : 'Needs pricing';
+}
+
+function updateAttireItemCount() {
+  const count = attireDrafts.length;
+  const badge = document.getElementById('attireItemCount');
+  if (badge) badge.textContent = count + ' ' + (count === 1 ? 'dress' : 'items');
+}
+
+function attireNavHtml() {
+  return attireDrafts.map((item, index) => {
+    const itemName = item.name.trim() || `New dress ${index + 1}`;
+    const photo = item.photo_url
+      ? `<img src="${escapeHtml(item.photo_url)}" alt="">`
+      : '<i class="ti ti-hanger"></i>';
+    const ready = attireHasBorrowPrice(item) || attireHasBuyPrice(item);
+
+    return `
+      <button type="button" class="sd-attire-nav-item ${index === activeAttireIndex ? 'is-active' : ''}" data-attire-index="${index}" aria-pressed="${index === activeAttireIndex}">
+        <span class="sd-attire-nav-thumb ${item.photo_url ? '' : 'is-empty'}">${photo}</span>
+        <span class="sd-attire-nav-copy">
+          <strong>${escapeHtml(itemName)}</strong>
+          <small>${escapeHtml(attireOfferLabel(item))}</small>
+        </span>
+        <span class="sd-attire-nav-status ${ready ? 'is-ready' : ''}" title="${ready ? 'Pricing added' : 'Pricing needed'}"></span>
+      </button>
+    `;
+  }).join('');
+}
+
+function attireEditorHtml(item, index) {
+  const itemName = item.name.trim() || `New dress ${index + 1}`;
+  const photoPreview = item.photo_url
+    ? `<img src="${escapeHtml(item.photo_url)}" alt="${escapeHtml(itemName)} photo">`
+    : '<i class="ti ti-photo-plus"></i><strong>Add the dress photo</strong><span>A clear portrait photo works best</span>';
+
+  return `
+    <aside class="sd-attire-wardrobe">
+      <div class="sd-attire-wardrobe-head">
+        <div>
+          <span>Your wardrobe</span>
+          <strong>${attireDrafts.length} ${attireDrafts.length === 1 ? 'dress' : 'dresses'}</strong>
+        </div>
+      </div>
+      <div class="sd-attire-nav-list">${attireNavHtml()}</div>
+      <button type="button" class="sd-attire-add-card" data-attire-add><i class="ti ti-plus"></i> Add another dress</button>
+    </aside>
+    <section class="sd-attire-editor">
+      <div class="sd-attire-editor-head">
+        <div>
+          <span class="sd-attire-editor-kicker">Editing dress ${index + 1}</span>
+          <h3>${escapeHtml(itemName)}</h3>
+          <p>Photo, borrowing, and buying details for this dress.</p>
+        </div>
+        <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" data-attire-remove title="Remove dress" aria-label="Remove ${escapeHtml(itemName)}"><i class="ti ti-trash" style="font-size:14px"></i></button>
+      </div>
+      <div class="sd-attire-editor-grid">
+        <div class="sd-attire-photo-stage">
+          <div class="sd-attire-preview ${item.photo_url ? '' : 'is-empty'}">${photoPreview}</div>
+          <label class="sd-attire-photo-action">
+            <i class="ti ti-upload"></i>
+            <span>${item.photo_url ? 'Replace photo' : 'Upload photo'}</span>
+            <input type="file" accept="image/*" class="attire-item-photo-input" style="display:none">
+          </label>
+        </div>
+        <div class="sd-attire-fields">
+          <div class="sd-hall-fg full">
+            <label>Dress / item name</label>
+            <input class="sd-hall-input" data-attire-field="name" value="${escapeHtml(item.name)}" placeholder="e.g. Long Sleeve Bridal Gown">
+          </div>
+          <div class="sd-attire-price-group">
+            <div class="sd-attire-group-head"><i class="ti ti-clock"></i><span>Borrow pricing</span><small>Customer returns it</small></div>
+            <div class="sd-attire-pair">
+              <div class="sd-hall-fg"><label>Package price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-attire-field="borrow_package_price" value="${escapeHtml(item.borrow_package_price)}" placeholder="0"><span>MMK</span></div></div>
+              <div class="sd-hall-fg"><label>Customize price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-attire-field="borrow_customize_price" value="${escapeHtml(item.borrow_customize_price)}" placeholder="0"><span>MMK</span></div></div>
+            </div>
+            <div class="sd-hall-fg sd-attire-return"><label>Return within</label><div class="sd-attire-return-input"><input type="number" min="1" step="1" class="sd-hall-input" data-attire-field="return_days" value="${escapeHtml(item.return_days)}" placeholder="3"><span>days</span></div></div>
+          </div>
+          <div class="sd-attire-price-group">
+            <div class="sd-attire-group-head buy"><i class="ti ti-shopping-bag"></i><span>Buy pricing</span><small>Customer keeps it</small></div>
+            <div class="sd-attire-pair">
+              <div class="sd-hall-fg"><label>Package price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-attire-field="buy_package_price" value="${escapeHtml(item.buy_package_price)}" placeholder="0"><span>MMK</span></div></div>
+              <div class="sd-hall-fg"><label>Customize price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-attire-field="buy_customize_price" value="${escapeHtml(item.buy_customize_price)}" placeholder="0"><span>MMK</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderAttireItems(items = null) {
+  const manager = document.getElementById('attireItemGrid');
+  if (!manager) return;
+  if (Array.isArray(items)) {
+    attireDrafts = (items.length ? items : [{}]).map(normalizeAttireItem);
+    activeAttireIndex = 0;
+  }
+  if (!attireDrafts.length) attireDrafts = [normalizeAttireItem()];
+  activeAttireIndex = Math.max(0, Math.min(activeAttireIndex, attireDrafts.length - 1));
+  manager.innerHTML = attireEditorHtml(attireDrafts[activeAttireIndex], activeAttireIndex);
+  updateAttireItemCount();
+}
+
+function addAttireItem() {
+  attireDrafts.push(normalizeAttireItem());
+  activeAttireIndex = attireDrafts.length - 1;
+  renderAttireItems();
+  document.querySelector('[data-attire-field="name"]')?.focus();
+}
+
+function collectAttireItems() {
+  return attireDrafts.map(item => ({
+    name: item.name.trim(),
+    photo_url: item.photo_url || null,
+    borrow_package_price: parseFloat(item.borrow_package_price || '0') || null,
+    borrow_customize_price: parseFloat(item.borrow_customize_price || '0') || null,
+    buy_package_price: parseFloat(item.buy_package_price || '0') || null,
+    buy_customize_price: parseFloat(item.buy_customize_price || '0') || null,
+    return_days: parseInt(item.return_days || '0', 10) || null
+  })).filter(item => item.name !== '');
+}
+
+document.getElementById('addAttireItemBtn')?.addEventListener('click', addAttireItem);
+
+document.getElementById('attireItemGrid')?.addEventListener('input', event => {
+  const field = event.target.closest('[data-attire-field]');
+  if (!field || !attireDrafts[activeAttireIndex]) return;
+  attireDrafts[activeAttireIndex][field.dataset.attireField] = field.value;
+
+  const manager = document.getElementById('attireItemGrid');
+  const title = manager?.querySelector('.sd-attire-editor-head h3');
+  if (field.dataset.attireField === 'name' && title) {
+    title.textContent = field.value.trim() || `New dress ${activeAttireIndex + 1}`;
+  }
+  const navList = manager?.querySelector('.sd-attire-nav-list');
+  if (navList) navList.innerHTML = attireNavHtml();
+});
+
+document.getElementById('attireItemGrid')?.addEventListener('click', event => {
+  const navItem = event.target.closest('[data-attire-index]');
+  if (navItem) {
+    activeAttireIndex = Number(navItem.dataset.attireIndex);
+    renderAttireItems();
+    return;
+  }
+  if (event.target.closest('[data-attire-add]')) {
+    addAttireItem();
+    return;
+  }
+  if (event.target.closest('[data-attire-remove]')) {
+    const item = attireDrafts[activeAttireIndex];
+    const itemName = item?.name.trim() || `dress ${activeAttireIndex + 1}`;
+    if (item?.name.trim() && !window.confirm(`Remove "${itemName}" from this collection?`)) return;
+    if (attireDrafts.length === 1) {
+      attireDrafts[0] = normalizeAttireItem();
+      activeAttireIndex = 0;
+    } else {
+      attireDrafts.splice(activeAttireIndex, 1);
+      activeAttireIndex = Math.min(activeAttireIndex, attireDrafts.length - 1);
+    }
+    renderAttireItems();
+  }
+});
+
+document.getElementById('attireItemGrid')?.addEventListener('change', async event => {
+  const input = event.target.closest('.attire-item-photo-input');
+  if (!input || !input.files?.[0]) return;
+
+  try {
+    const dataUrl = await fileToDataUrl(input.files[0]);
+    attireDrafts[activeAttireIndex].photo_url = dataUrl;
+    renderAttireItems();
+  } catch (error) {
+    showMessage('attireItemMessage', 'Could not read item photo. Please try another image.');
+  } finally {
+    input.value = '';
+  }
+});
+
+document.getElementById('saveAttireItemsBtn')?.addEventListener('click', async () => {
+  showMessage('attireItemMessage', '');
+  try {
+    const items = collectAttireItems();
+    if (!items.length) {
+      throw new Error('Add at least one attire item with a name.');
+    }
+    const hasNoPrice = items.some(item =>
+      (!item.borrow_package_price || item.borrow_package_price <= 0) &&
+      (!item.borrow_customize_price || item.borrow_customize_price <= 0) &&
+      (!item.buy_package_price || item.buy_package_price <= 0) &&
+      (!item.buy_customize_price || item.buy_customize_price <= 0)
+    );
+    if (hasNoPrice) {
+      throw new Error('Each attire item needs at least one price greater than zero.');
+    }
+
+    const result = await jsonPost(urls.serviceUpdate, {
+      ...serviceDetailConfig.servicePayloadBase,
+      min_lead_days: currentServiceMinLeadDays(),
+      attire_items: items,
+      attire_items_replace: true
+    });
+    const savedService = result.item || {};
+    const savedItems = Array.isArray(savedService.attire_items) ? savedService.attire_items : items;
+    serviceDetailConfig.attireItems = savedItems;
+    serviceDetailConfig.servicePayloadBase.price = savedService.price ?? serviceDetailConfig.servicePayloadBase.price;
+    serviceDetailConfig.servicePayloadBase.price_min = savedService.price_min ?? serviceDetailConfig.servicePayloadBase.price_min;
+    serviceDetailConfig.servicePayloadBase.price_max = savedService.price_max ?? serviceDetailConfig.servicePayloadBase.price_max;
+    renderAttireItems(savedItems);
+    const attireCount = document.getElementById('serviceInfoAttireCount');
+    if (attireCount) attireCount.textContent = String(savedItems.length);
+    updateServiceInfoFromService(savedService);
+    showMessage('attireItemMessage', 'Dress collection saved.', true);
+  } catch (error) {
+    showMessage('attireItemMessage', error.message);
+  }
+});
+
+renderAttireItems(Array.isArray(serviceDetailConfig.attireItems) ? serviceDetailConfig.attireItems : []);
+
 function toggleDay(checkbox) {
   const card = checkbox.closest('.sd-day-card');
   const closedEl = card.querySelector('.sd-day-closed');
@@ -377,11 +626,15 @@ document.getElementById('saveAvailabilityBtn')?.addEventListener('click', async 
 
   try {
     const concurrentElement = document.getElementById('availabilityConcurrent');
+    const concurrentPackageEl = document.getElementById('availabilityConcurrentPackage');
+    const concurrentCustomizeEl = document.getElementById('availabilityConcurrentCustomize');
     const minLeadDays = currentServiceMinLeadDays();
     await jsonPost(urls.availabilitySave, {
       duration_minutes: document.getElementById('availabilityDuration').value,
       buffer_minutes: document.getElementById('availabilityBuffer').value,
       max_concurrent: concurrentElement ? concurrentElement.value : 1,
+      max_concurrent_package: concurrentPackageEl ? concurrentPackageEl.value : 0,
+      max_concurrent_customize: concurrentCustomizeEl ? concurrentCustomizeEl.value : 0,
       min_lead_days: minLeadDays,
       weekly
     });
@@ -462,7 +715,7 @@ function updateHallCount() {
 
 function formatMoney(value) {
   const amount = Number(value || 0);
-  return 'RM ' + amount.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return amount.toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' MMK';
 }
 
 function normalizeTimeValue(value) {
@@ -763,22 +1016,62 @@ async function deleteRoomOverride(overrideId) {
 window.deleteOverride = deleteOverride;
 window.deleteRoomOverride = deleteRoomOverride;
 
-document.getElementById('previewSlotsBtn')?.addEventListener('click', async () => {
-  const resultBox = document.getElementById('previewSlotsResult');
-  resultBox.innerHTML = '<div class="sd-preview-empty">Loading slots...</div>';
+// ── FOCUSED SERVICE WORKSPACE ──────────────────────────────────
+const serviceWorkspaceTabs = Array.from(document.querySelectorAll('[data-service-tab]'));
+const serviceWorkspacePanels = Array.from(document.querySelectorAll('[data-service-panel]'));
+const serviceWorkspaceStorageKey = `supplierServiceTab:${window.location.pathname}`;
+
+function activateServiceWorkspaceTab(tabName, moveFocus = false) {
+  const requestedTab = serviceWorkspaceTabs.find(tab => tab.dataset.serviceTab === tabName);
+  const activeTab = requestedTab || serviceWorkspaceTabs[0];
+  if (!activeTab) return;
+
+  const activeName = activeTab.dataset.serviceTab;
+  serviceWorkspaceTabs.forEach(tab => {
+    const isActive = tab === activeTab;
+    tab.classList.toggle('is-active', isActive);
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    tab.tabIndex = isActive ? 0 : -1;
+  });
+  serviceWorkspacePanels.forEach(panel => {
+    const isActive = panel.dataset.servicePanel === activeName;
+    panel.classList.toggle('is-active', isActive);
+    panel.hidden = !isActive;
+  });
+
   try {
-    const result = await jsonPost(urls.preview, { date: document.getElementById('previewDate').value });
-    const slots = result.preview?.slots || [];
-    if (!slots.length) {
-      resultBox.innerHTML = '<div class="sd-preview-empty">Closed or no available slots for this date</div>';
-      return;
-    }
-    resultBox.innerHTML = slots.map(slot => {
-      const start = String(slot.start_time || '').slice(0, 5);
-      const end = String(slot.end_time || '').slice(0, 5);
-      return `<span class="sd-slot">${start} - ${end} (${slot.confirmed_count}/${slot.max_concurrent})</span>`;
-    }).join('');
+    window.sessionStorage.setItem(serviceWorkspaceStorageKey, activeName);
   } catch (error) {
-    resultBox.innerHTML = `<div class="sd-preview-empty">${error.message}</div>`;
+    // Storage may be unavailable in privacy-restricted browsers.
   }
+
+  if (moveFocus) activeTab.focus();
+}
+
+serviceWorkspaceTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => activateServiceWorkspaceTab(tab.dataset.serviceTab));
+  tab.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    let nextIndex = index;
+    if (event.key === 'ArrowLeft') nextIndex = (index - 1 + serviceWorkspaceTabs.length) % serviceWorkspaceTabs.length;
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % serviceWorkspaceTabs.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = serviceWorkspaceTabs.length - 1;
+    activateServiceWorkspaceTab(serviceWorkspaceTabs[nextIndex].dataset.serviceTab, true);
+  });
 });
+
+document.querySelector('[data-review-attention]')?.addEventListener('click', event => {
+  const nextTab = event.currentTarget.dataset.reviewAttention || 'overview';
+  activateServiceWorkspaceTab(nextTab);
+  document.querySelector('.sd-workspace-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+let initialServiceWorkspaceTab = 'overview';
+try {
+  initialServiceWorkspaceTab = window.sessionStorage.getItem(serviceWorkspaceStorageKey) || 'overview';
+} catch (error) {
+  // Use the overview when session storage is unavailable.
+}
+activateServiceWorkspaceTab(initialServiceWorkspaceTab);

@@ -143,6 +143,12 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
       </div>
 
       <div class="field">
+        <label>Max Concurrent Bookings (per date)</label>
+        <input type="number" name="max_concurrent" min="0" step="1" value="0">
+        <p class="hint" style="margin-top:6px">How many of this package can be booked for the same wedding date. 0 = unlimited.</p>
+      </div>
+
+      <div class="field">
         <label>Package Cover</label>
         <div class="cover-uploader" id="packageCoverUploader">
           <input class="cover-uploader-input" id="packageCoverInput" type="file" name="package_image" accept="image/jpeg,image/png,image/webp">

@@ -29,7 +29,7 @@ $statusBadgeClass = function (string $status): string {
 
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = 'Incoming bookings';
-$dashboardContentClass = 'bg-app-content px-6 py-6 overflow-y-auto';
+$dashboardContentClass = 'bg-[#FBFBF9] px-0 py-0 overflow-y-auto';
 $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters, $money, $h, $statusBadgeClass, $currentPage, $totalPages, $totalCount, $perPage, $searchQuery, $performanceMetrics, $upcomingBookings) {
     $pendingCount   = (int)($stats['pending_count'] ?? 0);
     $confirmedCount = (int)($stats['confirmed_count'] ?? 0);
@@ -47,40 +47,57 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 /* ── Bookings view ────────────────────────────────────────────── */
 .bk-kpi-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
 }
 .bk-kpi {
-    background: var(--color-app-input, #fff);
-    border: 1px solid var(--color-app-border, #e5e7eb);
-    border-left-width: 3px;
-    border-radius: 10px;
-    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 1.2rem;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(28,25,23,.05);
+    transition: box-shadow .18s ease;
 }
+.bk-kpi:hover { box-shadow: 0 4px 12px rgba(28,25,23,.08); }
 .bk-kpi-label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-app-muted, #9ca3af);
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: .01em;
+    color: #78716c;
 }
 .bk-kpi-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--color-app-text, #111827);
-    margin-top: 4px;
+    font-size: 24px;
+    font-weight: 750;
+    letter-spacing: -.025em;
+    color: #1c1917;
+    margin-top: 6px;
     line-height: 1;
 }
 .bk-kpi-sub {
     font-size: 11px;
-    color: var(--color-app-muted, #9ca3af);
-    margin-top: 3px;
+    color: #a8a29e;
+    margin-top: 5px;
 }
-.bk-kpi-pending   { border-left-color: #d97706; }
-.bk-kpi-confirmed { border-left-color: #059669; }
-.bk-kpi-completed { border-left-color: #2563eb; }
-.bk-kpi-revenue   { border-left-color: var(--color-app-border, #e5e7eb); }
+.bk-kpi-icon {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    border-radius: 8px;
+}
+.bk-kpi-icon svg { width: 16px; height: 16px; }
+.bk-kpi-breakdown {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e7e5e4;
+}
+.bk-kpi-breakdown strong { display:block; margin-top:3px; font-size:16px; color:#1c1917; }
 
 /* Pending alert banner */
 .bk-pending-banner {
@@ -109,10 +126,11 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 
 /* Section card */
 .bk-section {
-    background: var(--color-app-input, #fff);
-    border: 1px solid var(--color-app-border, #e5e7eb);
-    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 1.2rem;
     overflow: hidden;
+    box-shadow: 0 1px 2px rgba(28,25,23,.05);
 }
 
 /* Toolbar */
@@ -120,8 +138,8 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--color-app-border, #e5e7eb);
+    padding: 16px 20px;
+    border-bottom: 1px solid #e7e5e4;
     flex-wrap: wrap;
 }
 .bk-filter-group {
@@ -138,9 +156,9 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     font-weight: 600;
     padding: 4px 12px;
     border-radius: 999px;
-    border: 1px solid var(--color-app-border, #e5e7eb);
-    background: transparent;
-    color: var(--color-app-secondary, #6b7280);
+    border: 1px solid #e7e5e4;
+    background: #f5f5f3;
+    color: #57534e;
     text-decoration: none;
     transition: all 0.12s ease;
     white-space: nowrap;
@@ -150,9 +168,9 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     color: var(--color-app-text, #111827);
 }
 .bk-pill-active-all {
-    background: var(--color-app-text, #111827);
+    background: #673049;
     color: #fff;
-    border-color: var(--color-app-text, #111827);
+    border-color: #673049;
 }
 .bk-pill-active-pending {
     background: #92400e;
@@ -195,46 +213,46 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     height: 34px;
     padding: 0 10px 0 30px;
     border-radius: 8px;
-    border: 1px solid var(--color-app-border, #e5e7eb);
-    background: var(--color-app-soft, #f9fafb);
-    color: var(--color-app-text, #111827);
+    border: 1px solid #e7e5e4;
+    background: #fff;
+    color: #1c1917;
     width: 220px;
     transition: border-color 0.12s;
 }
 .bk-search-input::placeholder { color: var(--color-app-muted, #9ca3af); }
 .bk-search-input:focus {
     outline: none;
-    border-color: var(--color-app-primary, #6366f1);
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+    border-color: #673049;
+    box-shadow: 0 0 0 3px rgba(103,48,73,.08);
 }
 
 /* Table */
 .bk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .bk-table thead tr {
-    background: var(--color-app-soft, #f9fafb);
-    border-bottom: 1px solid var(--color-app-border, #e5e7eb);
+    background: #f9f8f6;
+    border-bottom: 1px solid #e7e5e4;
 }
 .bk-table th {
     padding: 10px 16px;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 750;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-app-muted, #9ca3af);
+    color: #78716c;
     text-align: left;
     white-space: nowrap;
 }
 .bk-table th.bk-right,
 .bk-table td.bk-right { text-align: right; }
 .bk-table tbody tr {
-    border-bottom: 1px solid var(--color-app-border, #e5e7eb);
+    border-bottom: 1px solid #e7e5e4;
     transition: background 0.1s;
 }
 .bk-table tbody tr:last-child { border-bottom: none; }
-.bk-table tbody tr:hover { background: var(--color-app-soft, #f9fafb); }
+.bk-table tbody tr:hover { background: #f5f5f3; }
 .bk-table td {
     padding: 13px 16px;
-    color: var(--color-app-text, #111827);
+    color: #1c1917;
     vertical-align: middle;
 }
 
@@ -250,11 +268,11 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     font-size: 11px;
     font-weight: 600;
     flex-shrink: 0;
-    background: var(--color-app-soft, #f3f4f6);
-    color: var(--color-app-secondary, #6b7280);
+    background: #fde8ef;
+    color: #673049;
 }
-.bk-cname { font-weight: 600; font-size: 13px; color: var(--color-app-text, #111827); }
-.bk-cdate { font-size: 11px; color: var(--color-app-muted, #9ca3af); margin-top: 1px; }
+.bk-cname { font-weight: 650; font-size: 13px; color: #1c1917; }
+.bk-cdate { font-size: 11px; color: #a8a29e; margin-top: 1px; }
 .bk-ref {
     font-size: 12px;
     font-weight: 500;
@@ -285,6 +303,8 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 .bk-badge-rejected .bk-badge-dot  { background: #ef4444; }
 .bk-badge-cancelled { background: #fee2e2; color: #991b1b; }
 .bk-badge-cancelled .bk-badge-dot { background: #ef4444; }
+.bk-badge-replacement { background: #e8e7ff; color: #4f46a5; }
+.bk-badge-replacement .bk-badge-dot { background: #6366f1; }
 
 /* Action buttons */
 .bk-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
@@ -325,11 +345,14 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     border-color: #fca5a5;
 }
 .bk-btn-view {
-    color: var(--color-app-secondary, #6b7280);
+    color: #673049;
+    background: #fff;
+    border-color: #e7e5e4;
 }
 .bk-btn-view:hover {
-    background: var(--color-app-soft, #f9fafb);
-    color: var(--color-app-text, #111827);
+    background: #fde8ef;
+    color: #673049;
+    border-color: #f9c0d2;
 }
 
 /* Empty state */
@@ -369,9 +392,9 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     align-items: center;
     justify-content: space-between;
     padding: 11px 16px;
-    border-top: 1px solid var(--color-app-border, #e5e7eb);
+    border-top: 1px solid #e7e5e4;
 }
-.bk-page-info { font-size: 12px; color: var(--color-app-muted, #9ca3af); }
+.bk-page-info { font-size: 12px; color: #78716c; }
 .bk-page-btns { display: flex; align-items: center; gap: 4px; }
 .bk-page-btn {
     width: 28px;
@@ -380,12 +403,12 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     align-items: center;
     justify-content: center;
     border-radius: 7px;
-    border: 1px solid var(--color-app-border, #e5e7eb);
+    border: 1px solid #e7e5e4;
     font-size: 12px;
     font-weight: 600;
     text-decoration: none;
-    color: var(--color-app-secondary, #6b7280);
-    background: transparent;
+    color: #57534e;
+    background: #fff;
     transition: all 0.1s;
 }
 .bk-page-btn:hover:not(.bk-page-btn-cur):not(.bk-page-btn-disabled) {
@@ -393,9 +416,9 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     color: var(--color-app-text, #111827);
 }
 .bk-page-btn-cur {
-    background: var(--color-app-text, #111827);
+    background: #673049;
     color: #fff;
-    border-color: var(--color-app-text, #111827);
+    border-color: #673049;
 }
 .bk-page-btn-disabled { opacity: 0.35; pointer-events: none; }
 .bk-page-btn i[data-lucide] { width: 13px; height: 13px; }
@@ -409,7 +432,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     .bk-toolbar { gap: 6px; }
 }
 @media (max-width: 480px) {
-    .bk-kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .bk-kpi-row { grid-template-columns: 1fr; }
     .bk-filter-group {
         overflow-x: auto;
         flex-wrap: nowrap;
@@ -421,32 +444,42 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 }
 </style>
 
-<section class="mx-auto max-w-[1400px] space-y-4 font-ui text-[13px] text-app-text antialiased">
+<section class="mx-auto max-w-[1600px] space-y-4 px-5 py-6 text-[13px] antialiased" style="font-family:Inter,sans-serif;color:#1c1917">
 
     <!-- Page header -->
-    <div>
-        <h2 class="text-base font-bold text-app-text">Bookings</h2>
-        <p class="mt-0.5 text-xs text-app-muted">Review and respond to incoming customer bookings</p>
+    <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <p style="margin-bottom:4px;color:#78716c;font-size:11px;font-weight:650">Supplier workspace</p>
+            <h1 style="margin:0;color:#34232b;font-family:'Playfair Display',serif;font-size:clamp(27px,2.5vw,36px);font-weight:650;letter-spacing:-.025em;line-height:1.08">Booking operations</h1>
+            <p style="margin-top:6px;color:#7b5c69;font-size:12px;font-weight:500">Review requests, track upcoming events, and follow completed work.</p>
+        </div>
+        <a href="<?= URLROOT ?>/supplier/calendar"
+           class="inline-flex h-8 items-center gap-1.5 rounded-xl border bg-white px-3 text-xs font-semibold shadow-sm"
+           style="border-color:#e7e5e4;color:#673049;text-decoration:none">
+            <i data-lucide="calendar-days" class="h-3.5 w-3.5"></i>
+            Open calendar
+        </a>
     </div>
 
     <!-- ── KPI row ───────────────────────────────────────────────── -->
     <div class="bk-kpi-row">
-        <div class="bk-kpi bk-kpi-pending">
-            <p class="bk-kpi-label">Pending</p>
-            <p class="bk-kpi-value"><?= $pendingCount ?></p>
-            <p class="bk-kpi-sub">Need your response</p>
+        <div class="bk-kpi">
+            <div class="bk-kpi-icon" style="background:#fff7ed;color:#c2410c"><i data-lucide="calendar-check"></i></div>
+            <p class="bk-kpi-label">Total bookings</p>
+            <p class="bk-kpi-value"><?= number_format($totalCount) ?></p>
+            <div class="bk-kpi-breakdown">
+                <div><span class="bk-kpi-label">Pending</span><strong style="color:#b45309"><?= $pendingCount ?></strong></div>
+                <div><span class="bk-kpi-label">Confirmed</span><strong style="color:#07825f"><?= $confirmedCount ?></strong></div>
+            </div>
         </div>
-        <div class="bk-kpi bk-kpi-confirmed">
-            <p class="bk-kpi-label">Confirmed</p>
-            <p class="bk-kpi-value"><?= $confirmedCount ?></p>
-            <p class="bk-kpi-sub">Upcoming events</p>
-        </div>
-        <div class="bk-kpi bk-kpi-completed">
+        <div class="bk-kpi">
+            <div class="bk-kpi-icon" style="background:#ecfdf5;color:#047857"><i data-lucide="badge-check"></i></div>
             <p class="bk-kpi-label">Completed</p>
             <p class="bk-kpi-value"><?= $completedCount ?></p>
             <p class="bk-kpi-sub">Successfully delivered</p>
         </div>
-        <div class="bk-kpi bk-kpi-revenue">
+        <div class="bk-kpi">
+            <div class="bk-kpi-icon" style="background:#fdf2f8;color:#9d174d"><i data-lucide="badge-dollar-sign"></i></div>
             <p class="bk-kpi-label">Est. revenue</p>
             <p class="bk-kpi-value"><?= $money($estRevenue) ?></p>
             <p class="bk-kpi-sub">Across all bookings</p>
@@ -455,6 +488,14 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 
     <!-- ── Main table section ────────────────────────────────────── -->
     <div class="bk-section">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px;border-bottom:1px solid #e7e5e4">
+            <div>
+                <h2 style="margin:0;color:#1c1917;font-size:14px;font-weight:750;letter-spacing:-.015em">Booking queue</h2>
+                <p style="margin-top:3px;color:#a8a29e;font-size:11px">Customer requests and confirmed event work</p>
+            </div>
+            <span style="color:#78716c;font-size:11px;font-weight:650"><?= number_format($totalCount) ?> records</span>
+        </div>
 
         <!-- Pending alert banner — only shown when there are pending bookings -->
         <?php if ($pendingCount > 0): ?>
@@ -576,9 +617,14 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 
                             <!-- Status badge -->
                             <td>
-                                <span class="bk-badge bk-badge-<?= $h($bStatus) ?>">
+                                <?php
+                                $isReplacementChip = $bStatus === 'needs_replacement';
+                                $badgeClass = $isReplacementChip ? 'replacement' : $bStatus;
+                                $badgeLabel = $isReplacementChip ? 'Replacement pending' : ucfirst($bStatus);
+                                ?>
+                                <span class="bk-badge bk-badge-<?= $h($badgeClass) ?>">
                                     <span class="bk-badge-dot"></span>
-                                    <?= $h(ucfirst($bStatus)) ?>
+                                    <?= $h($badgeLabel) ?>
                                 </span>
                             </td>
 

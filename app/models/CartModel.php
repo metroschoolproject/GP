@@ -6,6 +6,9 @@ class CartModel
     private ?bool $cartVenueRoomColumn = null;
     private ?bool $cartPackageParentColumn = null;
     private ?bool $serviceDefaultTimeColumns = null;
+    private ?bool $packageItemConcurrentColumn = null;
+    private ?bool $slotPoolColumns = null;
+    private ?bool $servicePoolColumns = null;
 
     public function __construct()
     {
@@ -228,7 +231,8 @@ class CartModel
         }
 
         $this->db->dbquery(
-            "SELECT booking_type, duration_minutes, buffer_minutes, max_concurrent, min_lead_days
+            "SELECT booking_type, duration_minutes, buffer_minutes,
+                    max_concurrent, max_concurrent_package, max_concurrent_customize, min_lead_days
              FROM services
              WHERE id = :sid AND is_active = 1
              LIMIT 1"
@@ -261,6 +265,8 @@ class CartModel
                 'end_time' => $hours['close_time'],
                 'display' => $this->formatTimeRange($hours['open_time'], $hours['close_time']),
                 'available' => max(1, (int)($service['max_concurrent'] ?? 1)),
+                'available_package' => (int)($service['max_concurrent_package'] ?? 0) > 0 ? (int)($service['max_concurrent_package'] ?? 0) : max(1, (int)($service['max_concurrent'] ?? 1)),
+                'available_customize' => (int)($service['max_concurrent_customize'] ?? 0) > 0 ? (int)($service['max_concurrent_customize'] ?? 0) : max(1, (int)($service['max_concurrent'] ?? 1)),
             ]];
         }
 
@@ -282,6 +288,14 @@ class CartModel
             $status = $stored['status'] ?? 'available';
             $available = max(0, $capacity - $confirmed);
 
+            // Per-pool remaining
+            $pkgCap = $stored ? (int)($stored['max_concurrent_package'] ?? 0) : 0;
+            $pkgConfirmed = $stored ? (int)($stored['confirmed_package_count'] ?? 0) : 0;
+            $customCap = $stored ? (int)($stored['max_concurrent_customize'] ?? 0) : 0;
+            $customConfirmed = $stored ? (int)($stored['confirmed_customize_count'] ?? 0) : 0;
+            $availPackage = $pkgCap > 0 ? max(0, $pkgCap - $pkgConfirmed) : $available;
+            $availCustomize = $customCap > 0 ? max(0, $customCap - $customConfirmed) : $available;
+
             if ($status !== 'available' || $available <= 0) {
                 continue;
             }
@@ -292,6 +306,8 @@ class CartModel
                 'end_time' => $slot['end_time'],
                 'display' => $this->formatTimeRange($slot['start_time'], $slot['end_time']),
                 'available' => $available,
+                'available_package' => $availPackage,
+                'available_customize' => $availCustomize,
             ];
         }
 
@@ -404,7 +420,10 @@ class CartModel
     private function storedSlotsForDate(int $serviceId, string $date): array
     {
         $this->db->dbquery(
-            "SELECT id, start_time, end_time, confirmed_count, max_concurrent, status
+            "SELECT id, start_time, end_time,
+                    confirmed_count, confirmed_package_count, confirmed_customize_count,
+                    max_concurrent, max_concurrent_package, max_concurrent_customize,
+                    status
              FROM service_time_slots
              WHERE service_id = :sid AND date = :sdate"
         );
@@ -477,6 +496,18 @@ class CartModel
         return $this->cartVenueRoomColumn;
     }
 
+    private function hasPackageItemConcurrentColumn(): bool
+    {
+        if ($this->packageItemConcurrentColumn !== null) {
+            return $this->packageItemConcurrentColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM package_items LIKE 'max_concurrent'");
+        $this->packageItemConcurrentColumn = (bool)$this->db->getsingledata();
+
+        return $this->packageItemConcurrentColumn;
+    }
+
     private function hasServiceDefaultTimeColumns(): bool
     {
         if ($this->serviceDefaultTimeColumns !== null) {
@@ -512,14 +543,25 @@ class CartModel
             ? 's.default_start_time'
             : 'NULL';
 
+        $itemConcurrentSelect = $this->hasPackageItemConcurrentColumn()
+            ? 'pi.max_concurrent AS item_max_concurrent,'
+            : 'NULL AS item_max_concurrent,';
+        $servicePoolSelect = $this->hasServicePoolColumns()
+            ? 's.max_concurrent_package, s.max_concurrent_customize,'
+            : '0 AS max_concurrent_package, 0 AS max_concurrent_customize,';
+
         $this->db->dbquery(
             "SELECT pi.id AS package_item_id,
                     pi.service_id,
+                    {$itemConcurrentSelect}
                     s.name AS service_name,
                     s.booking_type,
+                    s.max_concurrent,
+                    {$servicePoolSelect}
                     COALESCE(vr.min_lead_days, s.min_lead_days, 0) AS min_lead_days,
                     c.id AS category_id,
                     c.name AS category_name,
+                    COALESCE(pi.default_supplier_id, s.supplier_id) AS supplier_id,
                     COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name,
                     ss.open_time AS schedule_start_time,
                     ss.close_time AS schedule_end_time,
@@ -556,6 +598,25 @@ class CartModel
             $row['end_time'] = $row['schedule_end_time']
                 ?: ($row['default_end_time'] ?: ($categoryTimes['end'] ?? '17:00:00'));
             $row['event_date'] = $eventDate;
+
+            if (($row['booking_type'] ?? '') === 'slot') {
+                $availability = $this->getPackageServiceSlotAvailability(
+                    (int)($row['service_id'] ?? 0),
+                    $eventDate,
+                    (string)$row['start_time'],
+                    (string)$row['end_time'],
+                    max(1, (int)($row['max_concurrent'] ?? 1)),
+                    (int)($row['max_concurrent_package'] ?? 0),
+                    (int)($row['item_max_concurrent'] ?? 0)
+                );
+                $row = array_merge($row, $availability);
+            } else {
+                $row['availability_status'] = 'managed';
+                $row['available'] = null;
+                $row['available_package'] = null;
+                $row['is_available'] = true;
+                $row['availability_message'] = 'Managed automatically';
+            }
         }
         unset($row);
         usort($rows, static fn(array $a, array $b): int =>
@@ -563,6 +624,103 @@ class CartModel
         );
 
         return $rows;
+    }
+
+    private function getPackageServiceSlotAvailability(
+        int $serviceId,
+        string $eventDate,
+        string $startTime,
+        string $endTime,
+        int $maxConcurrent,
+        int $servicePackageCap,
+        int $itemPackageCap
+    ): array {
+        $slot = null;
+        if ($serviceId > 0) {
+            $poolSelect = $this->hasSlotPoolColumns()
+                ? ', confirmed_package_count, max_concurrent_package'
+                : '';
+            $this->db->dbquery(
+                "SELECT confirmed_count, max_concurrent, status,
+                        0 AS pool_placeholder{$poolSelect}
+                 FROM service_time_slots
+                 WHERE service_id = :sid
+                   AND date = :event_date
+                   AND start_time = :start_time
+                   AND end_time = :end_time
+                 LIMIT 1"
+            );
+            $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+            $this->db->dbbind(':event_date', $eventDate);
+            $this->db->dbbind(':start_time', $startTime);
+            $this->db->dbbind(':end_time', $endTime);
+            $slot = $this->db->getsingledata();
+        }
+
+        $capacity = $slot ? max(1, (int)($slot['max_concurrent'] ?? $maxConcurrent)) : $maxConcurrent;
+        $confirmed = $slot ? max(0, (int)($slot['confirmed_count'] ?? 0)) : 0;
+        $available = max(0, $capacity - $confirmed);
+        $status = $slot['status'] ?? 'available';
+
+        $packageCap = $itemPackageCap > 0 ? $itemPackageCap : $servicePackageCap;
+        if ($slot && $this->hasSlotPoolColumns()) {
+            $storedPackageCap = (int)($slot['max_concurrent_package'] ?? 0);
+            if ($storedPackageCap > 0) {
+                $packageCap = $packageCap > 0 ? min($packageCap, $storedPackageCap) : $storedPackageCap;
+            }
+        }
+
+        $packageConfirmed = $slot && $this->hasSlotPoolColumns()
+            ? max(0, (int)($slot['confirmed_package_count'] ?? 0))
+            : 0;
+        $availablePackage = $packageCap > 0
+            ? max(0, $packageCap - $packageConfirmed)
+            : $available;
+        $isAvailable = $status === 'available' && $available > 0 && $availablePackage > 0;
+
+        return [
+            'availability_status' => $isAvailable ? 'available' : 'full',
+            'available' => $available,
+            'available_package' => $availablePackage,
+            'package_capacity' => $packageCap,
+            'confirmed_package_count' => $packageConfirmed,
+            'is_available' => $isAvailable,
+            'availability_message' => $isAvailable
+                ? ($availablePackage . ' package slot' . ($availablePackage === 1 ? '' : 's') . ' available')
+                : 'No package slots available for this time',
+        ];
+    }
+
+    private function hasSlotPoolColumns(): bool
+    {
+        if ($this->slotPoolColumns !== null) {
+            return $this->slotPoolColumns;
+        }
+
+        try {
+            $this->db->dbquery("SHOW COLUMNS FROM service_time_slots LIKE 'max_concurrent_package'");
+            $this->slotPoolColumns = (bool)$this->db->getsingledata();
+        } catch (Throwable $e) {
+            $this->slotPoolColumns = false;
+        }
+
+        return $this->slotPoolColumns;
+    }
+
+    private function hasServicePoolColumns(): bool
+    {
+        if ($this->servicePoolColumns !== null) {
+            return $this->servicePoolColumns;
+        }
+
+        try {
+            $this->db->dbquery("SHOW COLUMNS FROM services LIKE 'max_concurrent_package'");
+            $this->servicePoolColumns = (bool)$this->db->getsingledata();
+        } catch (Throwable $e) {
+            $this->servicePoolColumns = false;
+        }
+
+        return $this->servicePoolColumns;
     }
 
     /**

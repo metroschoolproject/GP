@@ -16,6 +16,8 @@ $initialServiceTab = ($_GET['tab'] ?? '') === 'packages' ? 'packages' : 'service
 $dashboardContent = function () use ($serviceManagementData, $initialServiceTab) {
     $serviceManagementPath = APPROOT . '/views/supplier/service_management.html';
     $serviceManagementHtml = file_exists($serviceManagementPath) ? file_get_contents($serviceManagementPath) : '';
+    $serviceManagementStylesheet = URLROOT . '/public/css/supplier-service-management.css?v='
+        . rawurlencode((string)@filemtime(dirname(APPROOT) . '/public/css/supplier-service-management.css'));
     $serviceManagementScript = '<script src="' . URLROOT . '/public/js/supplier-service-management.js?v=' . rawurlencode((string)@filemtime(dirname(APPROOT) . '/public/js/supplier-service-management.js')) . '"></script>';
 
     $serviceManagementConfigScript = '<script>window.serviceManagementConfig = ' . json_encode([
@@ -38,6 +40,11 @@ $dashboardContent = function () use ($serviceManagementData, $initialServiceTab)
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ';</script><base target="_top">';
 
     $serviceManagementHtml = str_replace('<!-- SERVICE_MANAGEMENT_SCRIPT -->', $serviceManagementScript, $serviceManagementHtml);
+    $serviceManagementHtml = str_replace(
+        '/GP/public/css/supplier-service-management.css',
+        $serviceManagementStylesheet,
+        $serviceManagementHtml
+    );
 
     if (preg_match('/<head\b[^>]*>/i', $serviceManagementHtml)) {
         $serviceManagementHtml = preg_replace('/<head\b[^>]*>/i', '$0' . $serviceManagementConfigScript, $serviceManagementHtml, 1);
