@@ -59,17 +59,7 @@ a{color:inherit;text-decoration:none}
 </style>
 </head>
 <body>
-<header class="gp-header">
-  <a class="gp-brand" href="<?= URLROOT ?>/main/index"><span class="gp-brand-mark">G</span>Golden Promise</a>
-  <nav class="gp-header-nav">
-    <a href="<?= URLROOT ?>/main/index">Home</a>
-    <a href="<?= URLROOT ?>/booking/myBookings">Bookings</a>
-    <a href="<?= URLROOT ?>/review/my" class="active">Reviews</a>
-  </nav>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
-  </div>
-</header>
+<?php $gpNavActive = 'reviews'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <main class="gp-page">
   <div class="gp-page-title">My Reviews</div>

@@ -143,24 +143,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 
 <div class="gp-orbs" aria-hidden="true"><div class="gp-orb gp-orb-1"></div><div class="gp-orb gp-orb-2"></div></div>
 
-<header class="gp-header">
-  <a class="gp-brand" href="<?= URLROOT ?>/main/index"><span class="gp-brand-mark">G</span>Golden Promise</a>
-  <nav class="gp-header-nav"><a href="<?= URLROOT ?>/main/index">Home</a><a href="<?= URLROOT ?>/customerServices/service">Services</a><a href="<?= URLROOT ?>/booking/vouchers">Vouchers</a></nav>
-  <div class="gp-header-actions">
-    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
-    <div class="gp-profile-dropdown">
-      <button class="gp-profile-btn" type="button" aria-expanded="false">
-        <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
-        <span class="gp-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
-        <svg class="gp-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="gp-profile-menu" aria-hidden="true">
-        <a class="gp-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> My Bookings</a>
-        <a class="gp-profile-menu-item gp-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
-      </div>
-    </div>
-  </div>
-</header>
+<?php $gpNavActive = 'bookings'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <main class="gp-page">
   <div class="gp-page-head">
