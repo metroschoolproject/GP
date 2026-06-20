@@ -653,6 +653,44 @@ class CartModel
         return $unavailable;
     }
 
+    /**
+     * Suggest upcoming dates on which a specific package service is available,
+     * for when the customer's chosen date is full. Re-runs the package schedule
+     * per candidate date because auto-resolved times shift with day-of-week.
+     *
+     * @return array<int,array{date:string,label:string}>
+     */
+    public function findAlternativePackageDates(
+        int $packageId,
+        int $serviceId,
+        string $fromDate,
+        int $maxResults = 3,
+        int $horizonDays = 60
+    ): array {
+        $alternatives = [];
+        $start = DateTimeImmutable::createFromFormat('!Y-m-d', $fromDate);
+        if (!$start || $packageId <= 0 || $serviceId <= 0) {
+            return $alternatives;
+        }
+        for ($offset = 1; $offset <= $horizonDays && count($alternatives) < $maxResults; $offset++) {
+            $candidate = $start->modify('+' . $offset . ' days');
+            $candidateStr = $candidate->format('Y-m-d');
+            foreach ($this->getPackageEventSchedule($packageId, $candidateStr) as $row) {
+                if ((int)($row['service_id'] ?? 0) !== $serviceId) {
+                    continue;
+                }
+                if (($row['booking_type'] ?? '') === 'slot' && !empty($row['is_available'])) {
+                    $alternatives[] = [
+                        'date'  => $candidateStr,
+                        'label' => $candidate->format('D, M j'),
+                    ];
+                }
+                break; // this service appears once per schedule
+            }
+        }
+        return $alternatives;
+    }
+
     private function getPackageServiceSlotAvailability(
         int $serviceId,
         string $eventDate,
