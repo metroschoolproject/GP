@@ -15,6 +15,7 @@ class BookingModel
     private array $replacementColumnCache = [];
     private array $tableExistsCache = [];
     private ?string $replacementSwapError = null;
+    private ?array $lastUnavailableService = null;
 
     public function __construct()
     {
@@ -453,6 +454,18 @@ class BookingModel
     }
 
     /**
+     * Details of the service whose slot could not be reserved in the most
+     * recent reservePackageServiceSlots() call, or null if the last call
+     * succeeded. Mirrors the $replacementSwapError accessor pattern.
+     *
+     * @return array{service_id:int,service_name:string,date:string,message:string}|null
+     */
+    public function getLastUnavailableService(): ?array
+    {
+        return $this->lastUnavailableService;
+    }
+
+    /**
      * Reserve per-service time slots for every service inside a package.
      * Creates service_time_slot entries for slot-type services and increments
      * their confirmed_count + confirmed_package_count so they're blocked from double booking.
@@ -467,6 +480,7 @@ class BookingModel
      */
     public function reservePackageServiceSlots(int $bookingId, string $eventDate, array $packageSchedule): array|false
     {
+        $this->lastUnavailableService = null;
         foreach ($packageSchedule as $event) {
             if (($event['booking_type'] ?? '') === 'slot') {
                 $svcId = (int)($event['service_id'] ?? 0);
@@ -490,6 +504,12 @@ class BookingModel
                     $svcConcurrent['max_concurrent_customize'] ?? 0
                 );
                 if (!$slotId || !$this->reserveServiceSlot($slotId, 'package')) {
+                    $this->lastUnavailableService = [
+                        'service_id'   => $svcId,
+                        'service_name' => (string)($event['service_name'] ?? 'Package service'),
+                        'date'         => $eventDate,
+                        'message'      => 'No package slots available for this time',
+                    ];
                     return false;
                 }
                 if (!$this->recordSlotReservation(
