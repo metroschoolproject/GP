@@ -14,6 +14,13 @@ class Booking extends Controller
     private ?int $userId;
     private const DEPOSIT_PERCENT = 20;
 
+    /**
+     * A supplier may self-decline a confirmed package booking only while the
+     * event is at least this many days away — enough lead time for the admin to
+     * find a replacement. Inside the window they must contact admin instead.
+     */
+    private const PACKAGE_DECLINE_CUTOFF_DAYS = 7;
+
     public function __construct()
     {
         $this->bookingModel = $this->model('BookingModel');
@@ -1219,6 +1226,13 @@ class Booking extends Controller
             return;
         }
 
+        // This supplier's own service rows (one per package service line) — used
+        // for per-service decline / replacement display.
+        $myServiceRows = array_values(array_filter(
+            $suppliers,
+            static fn($s) => (int)($s['supplier_id'] ?? 0) === $supplierId
+        ));
+
         $items = $this->bookingModel->getBookingItemsForSupplier($bookingId, $supplierId);
         $booking['supplier_total_amount'] = array_sum(array_map(static function ($item) {
             return (float)($item['price'] ?? 0);
@@ -1242,6 +1256,9 @@ class Booking extends Controller
             'supplierId' => $supplierId,
             'depositPercent' => self::DEPOSIT_PERCENT,
             'packageSchedules' => $packageSchedules,
+            'isPackage' => $this->bookingModel->isPackageBooking($bookingId),
+            'declineCutoffDays' => self::PACKAGE_DECLINE_CUTOFF_DAYS,
+            'myServiceRows' => $myServiceRows,
         ]);
     }
 
@@ -1280,17 +1297,32 @@ class Booking extends Controller
             return;
         }
 
+        // A supplier may have several service rows on one booking (one per
+        // package service line). When the UI targets a specific service it
+        // sends booking_supplier_id; otherwise we act on the supplier's first
+        // row (custom pre-payment flow, where the booking is single-service).
+        $rowIdParam = (int)($_POST['booking_supplier_id'] ?? 0);
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $rowId = 0;
         $shopName = '';
         $supplierRow = [];
         foreach ($suppliers as $s) {
-            if ((int)$s['supplier_id'] === $supplierId) {
-                $rowId = (int)$s['id'];
-                $shopName = $s['shop_name'] ?? 'A supplier';
-                $supplierRow = $s;
-                break;
+            if ((int)$s['supplier_id'] !== $supplierId) {
+                continue;
             }
+            if ($rowIdParam > 0) {
+                if ((int)$s['id'] === $rowIdParam) {
+                    $rowId = (int)$s['id'];
+                    $shopName = $s['shop_name'] ?? 'A supplier';
+                    $supplierRow = $s;
+                    break;
+                }
+                continue;
+            }
+            $rowId = (int)$s['id'];
+            $shopName = $s['shop_name'] ?? 'A supplier';
+            $supplierRow = $s;
+            break;
         }
 
         if ($rowId <= 0) {
@@ -1307,6 +1339,25 @@ class Booking extends Controller
         $isReplaceFlow = $action === 'decline'
             && !$isPendingSupplierResponse
             && $this->bookingModel->isPackageBooking($bookingId);
+
+        // Rules for a supplier self-declining a confirmed package booking:
+        // reason is mandatory, and it must be far enough before the event that
+        // the admin can still arrange a replacement.
+        if ($isReplaceFlow) {
+            if ($declineReason === '') {
+                $this->jsonResponse(['error' => 'Please give a reason so the admin can arrange a replacement.'], 422);
+                return;
+            }
+
+            $daysUntilEvent = $this->bookingModel->daysUntilFirstEvent($bookingId);
+            if ($daysUntilEvent !== null && $daysUntilEvent < self::PACKAGE_DECLINE_CUTOFF_DAYS) {
+                $this->jsonResponse([
+                    'error' => 'This event is only ' . max(0, $daysUntilEvent) . ' day(s) away. Declines must be at least '
+                        . self::PACKAGE_DECLINE_CUTOFF_DAYS . ' days before the event — please contact admin directly.'
+                ], 422);
+                return;
+            }
+        }
 
         if ($isReplaceFlow && $activeRepl) {
             // A replacement supplier declined too — terminal for this row; the
@@ -1673,7 +1724,9 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Replacement not open for assignment'], 409);
         }
 
-        // Validate the chosen service is a real candidate (category, date, cap).
+        // Validate the chosen service is a real candidate (category, date,
+        // availability). Price is not capped — over-budget picks are allowed and
+        // routed to the customer-approval (propose + pay delta) path below.
         $candidates = $this->bookingModel->findReplacementCandidates($replacementId);
         $chosen = null;
         foreach ($candidates as $c) {

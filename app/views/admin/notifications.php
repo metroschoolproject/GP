@@ -4,7 +4,15 @@ $stats = $stats ?? ['total' => 0, 'unread' => 0, 'booking' => 0, 'payment' => 0,
 $filters = $filters ?? ['type' => 'all', 'state' => 'all', 'search' => ''];
 $message = $message ?? '';
 
-$dashboardTitle = 'Admin';
+$notificationRole = $notificationRole ?? 'admin';
+$notificationBaseUrl = URLROOT . '/' . $notificationRole . '/notifications';
+$notificationDetailUrl = URLROOT . '/' . $notificationRole . '/notification/';
+$notificationMarkAllUrl = URLROOT . '/' . $notificationRole . '/markAllNotificationsRead';
+$notificationSidebar = $notificationSidebar ?? APPROOT . '/views/dashboardLayout/adminsidebar.php';
+$notificationKicker = $notificationKicker ?? 'Operations inbox';
+$notificationSubtitle = $notificationSubtitle ?? 'Review payments, booking changes, supplier approvals, and system updates from one focused queue.';
+
+$dashboardTitle = $notificationRole === 'supplier' ? 'Supplier' : 'Admin';
 $dashboardCrumb = 'Notifications';
 $dashboardContentClass = 'notification-inbox-shell';
 
@@ -12,8 +20,8 @@ $h = static function ($value) {
     return htmlspecialchars(htmlspecialchars_decode((string)$value, ENT_QUOTES), ENT_QUOTES, 'UTF-8');
 };
 
-$notificationHref = static function ($item) {
-    return URLROOT . '/admin/notification/' . (int)($item['id'] ?? 0);
+$notificationHref = static function ($item) use ($notificationDetailUrl) {
+    return $notificationDetailUrl . (int)($item['id'] ?? 0);
 };
 
 $typeMeta = static function ($type) {
@@ -63,19 +71,19 @@ $queryParams = array_filter([
     'search' => $filters['search'] ?? '',
 ], static fn($value) => $value !== '');
 
-$tabUrl = static function ($type, $state = 'all') use ($filters) {
+$tabUrl = static function ($type, $state = 'all') use ($filters, $notificationBaseUrl) {
     $params = [];
     if ($type !== 'all') $params['type'] = $type;
     if ($state !== 'all') $params['state'] = $state;
     if (($filters['search'] ?? '') !== '') $params['search'] = $filters['search'];
-    return URLROOT . '/admin/notifications' . ($params ? '?' . http_build_query($params) : '');
+    return $notificationBaseUrl . ($params ? '?' . http_build_query($params) : '');
 };
 
 $clearSearchParams = array_filter([
     'type' => ($filters['type'] ?? 'all') !== 'all' ? $filters['type'] : '',
     'state' => ($filters['state'] ?? 'all') !== 'all' ? $filters['state'] : '',
 ], static fn($value) => $value !== '');
-$clearSearchUrl = URLROOT . '/admin/notifications' . ($clearSearchParams ? '?' . http_build_query($clearSearchParams) : '');
+$clearSearchUrl = $notificationBaseUrl . ($clearSearchParams ? '?' . http_build_query($clearSearchParams) : '');
 
 $dashboardContent = function () use (
     $notifications,
@@ -91,6 +99,10 @@ $dashboardContent = function () use (
     $queryParams,
     $tabUrl,
     $clearSearchUrl,
+    $notificationBaseUrl,
+    $notificationMarkAllUrl,
+    $notificationKicker,
+    $notificationSubtitle,
     $currentPage,
     $totalPages,
     $totalCount,
@@ -118,10 +130,10 @@ $dashboardContent = function () use (
     .inbox-search-form { display: flex; flex: 1; gap: 8px; }
     .inbox-search-wrap { position: relative; width: min(500px, 100%); }
     .inbox-search-icon { position: absolute; left: 13px; top: 50%; width: 16px; height: 16px; color: #9b7d89; transform: translateY(-50%); pointer-events: none; }
-    .inbox-search { width: 100%; min-height: 41px; box-sizing: border-box; border: 1px solid #e4d2c3; border-radius: 10px; background: #fff; padding: 0 38px; color: #34232b; font: 500 12px Poppins, sans-serif; }
+    .inbox-search { width: 100%; min-height: 41px; box-sizing: border-box; border: 1px solid #e4d2c3; border-radius: 10px; background: #fff; padding: 0 38px; color: #34232b; font: 500 12px Inter, sans-serif; }
     .inbox-search::placeholder { color: #b79c8b; }
     .inbox-clear { position: absolute; right: 7px; top: 50%; display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 7px; color: #9b7d89; text-decoration: none; transform: translateY(-50%); }
-    .inbox-search-button, .inbox-mark-all { display: inline-flex; min-height: 41px; align-items: center; justify-content: center; gap: 7px; border-radius: 10px; padding: 0 13px; font: 700 11px Poppins, sans-serif; cursor: pointer; }
+    .inbox-search-button, .inbox-mark-all { display: inline-flex; min-height: 41px; align-items: center; justify-content: center; gap: 7px; border-radius: 10px; padding: 0 13px; font: 700 11px Inter, sans-serif; cursor: pointer; }
     .inbox-search-button { border: 1px solid #6d4c5b; background: #6d4c5b; color: #fff; }
     .inbox-mark-all { border: 1px solid #e4d2c3; background: #fff; color: #7b5c69; white-space: nowrap; }
     .inbox-mark-all:disabled { cursor: default; opacity: .45; }
@@ -189,9 +201,9 @@ $dashboardContent = function () use (
 <div class="inbox-page">
     <header class="inbox-header">
         <div>
-            <p class="inbox-kicker">Operations inbox</p>
+            <p class="inbox-kicker"><?= $h($notificationKicker) ?></p>
             <h1 class="inbox-title">Notifications</h1>
-            <p class="inbox-subtitle">Review payments, booking changes, supplier approvals, and system updates from one focused queue.</p>
+            <p class="inbox-subtitle"><?= $h($notificationSubtitle) ?></p>
         </div>
         <span class="inbox-unread">
             <span class="inbox-unread-dot"></span>
@@ -227,7 +239,7 @@ $dashboardContent = function () use (
         </nav>
 
         <div class="inbox-tools">
-            <form class="inbox-search-form" method="get" action="<?= URLROOT ?>/admin/notifications">
+            <form class="inbox-search-form" method="get" action="<?= $h($notificationBaseUrl) ?>">
                 <?php if ($filters['type'] !== 'all'): ?><input type="hidden" name="type" value="<?= $h($filters['type']) ?>"><?php endif; ?>
                 <?php if ($filters['state'] !== 'all'): ?><input type="hidden" name="state" value="<?= $h($filters['state']) ?>"><?php endif; ?>
                 <div class="inbox-search-wrap">
@@ -239,7 +251,7 @@ $dashboardContent = function () use (
                 </div>
                 <button class="inbox-search-button" type="submit">Search</button>
             </form>
-            <form method="post" action="<?= URLROOT ?>/admin/markAllNotificationsRead">
+            <form method="post" action="<?= $h($notificationMarkAllUrl) ?>">
                 <button class="inbox-mark-all" type="submit" <?= (int)$stats['unread'] === 0 ? 'disabled' : '' ?>>
                     <i data-lucide="check-check" class="h-4 w-4"></i>
                     Mark all read
@@ -309,6 +321,6 @@ $dashboardContent = function () use (
     <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?>
 </head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">
-    <?php require APPROOT . '/views/dashboardLayout/adminsidebar.php'; ?>
+    <?php require $notificationSidebar; ?>
 </body>
 </html>

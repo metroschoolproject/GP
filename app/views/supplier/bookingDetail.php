@@ -120,10 +120,34 @@ $dashboardContent = function () use (
     $allSpecialRequests, $supplierTotal, $supplierPaid, $supplierRemaining,
     $paymentStatus, $daysUntil, $otherSuppliers, $bookingStatus,
     $customerName, $customerEmail, $customerPhone, $customerInitial,
-    $packageSchedules
+    $packageSchedules, $isPackage, $declineCutoffDays, $myServiceRows
 ) {
     $eventTime = trim($formatTime($firstStart) . ($firstEnd ? ' – ' . $formatTime($firstEnd) : ''), ' –');
     $needsResponse = $supplierStatus === 'pending';
+    $myServiceRows = $myServiceRows ?? [];
+    $hasPackageSchedule = false;
+    foreach ($packageSchedules as $scheduleRows) {
+        if (!empty($scheduleRows)) {
+            $hasPackageSchedule = true;
+            break;
+        }
+    }
+
+    // A supplier auto-accepts a package booking, so give them a bounded escape
+    // hatch: decline INDIVIDUAL services on a confirmed package booking (→ admin
+    // replacement) while the event is still at least $declineCutoffDays away.
+    $withinDeclineWindow = $isPackage && ($daysUntil === null || $daysUntil >= $declineCutoffDays);
+    $declinableRows = $withinDeclineWindow
+        ? array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['confirmed', 'in_progress'], true)))
+        : [];
+
+    // Services of this supplier already routed to replacement.
+    $replacementRows = array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['needs_replacement', 'rejected'], true)));
+    $inReplacement = !empty($replacementRows) || $bookingStatus === 'replacement_pending';
+    $ownTimelineServiceIds = array_values(array_unique(array_filter(array_map(
+        static fn($row) => (int)($row['service_id'] ?? 0),
+        $myServiceRows
+    ))));
 ?>
 <style>
   /* ── Supplier Booking Detail — Redesign ── */
@@ -271,6 +295,50 @@ $dashboardContent = function () use (
     flex-wrap: wrap;
     gap: 12px;
   }
+  .sup-selfdecline {
+    border-top: 1px solid var(--sup-border);
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+  .sup-selfdecline-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .sup-selfdecline-head > svg {
+    width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;
+    color: var(--sup-warn-text);
+  }
+  .sup-selfdecline-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .sup-selfdecline-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--sup-border);
+    border-radius: .75rem;
+    background: var(--sup-soft);
+  }
+  .sup-selfdecline-svc { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .sup-selfdecline-svc strong { font-weight: 700; color: var(--sup-text); font-size: 13px; }
+  .sup-selfdecline-svc span { font-size: 11px; color: var(--sup-muted); }
+  .sup-replace-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--sup-info-text);
+    border-radius: .75rem;
+    background: var(--sup-info-bg);
+    color: var(--sup-info-text);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .sup-replace-banner svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+  .sup-replace-banner strong { font-weight: 700; }
   .sup-response-info {
     display: flex;
     align-items: flex-start;
@@ -750,6 +818,501 @@ $dashboardContent = function () use (
     .sup-stats { grid-template-columns: 1fr; }
     .sup-response-bar { flex-direction: column; align-items: stretch; }
   }
+
+  /* ── Tabbed booking workspace ── */
+  .sup-booking-tabs {
+    position: sticky;
+    top: 76px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px;
+    border: 1px solid #e7e5e4;
+    border-radius: 14px;
+    background: rgba(250,249,248,.94);
+    box-shadow: 0 1px 2px rgba(28,25,23,.05);
+    backdrop-filter: blur(14px);
+  }
+  .sup-booking-tab-list {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .sup-booking-tab {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    gap: 7px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 9px;
+    color: #78716c;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .sup-booking-tab svg { width: 14px; height: 14px; }
+  .sup-booking-tab:hover { color: #673049; background: #fde8ef; }
+  .sup-booking-tab.is-active {
+    color: #673049;
+    background: #fff;
+    box-shadow: 0 2px 9px rgba(28,25,23,.08);
+  }
+  .sup-booking-tab:focus-visible {
+    outline: 3px solid rgba(103,48,73,.15);
+    outline-offset: 2px;
+  }
+  .sup-booking-tab-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding-right: 8px;
+    color: #78716c;
+    font-size: 10px;
+    font-weight: 650;
+  }
+  .sup-booking-tab-status i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: <?= $needsResponse ? '#d97706' : '#059669' ?>;
+  }
+  .sup-tabbed-body {
+    display: contents;
+  }
+  .sup-tabbed-body .sup-main,
+  .sup-tabbed-body .sup-side {
+    display: contents;
+  }
+  [data-booking-panel] {
+    display: none;
+    width: 100%;
+    animation: none;
+  }
+  [data-booking-panel].is-active {
+    display: block;
+    animation: supTabEnter .22s ease both;
+  }
+  @keyframes supTabEnter {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .sup-stats[data-booking-panel] {
+    grid-template-columns: repeat(4, minmax(0,1fr));
+  }
+  .sup-stats[data-booking-panel].is-active {
+    display: grid;
+  }
+  .sup-payment-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 12px;
+    padding: 20px;
+  }
+  .sup-payment-fact {
+    padding: 16px;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    background: #f9f8f6;
+  }
+  .sup-payment-fact small {
+    display: block;
+    color: #78716c;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .sup-payment-fact strong {
+    display: block;
+    margin-top: 5px;
+    color: #1c1917;
+    font-size: 18px;
+  }
+  .sup-payment-track {
+    height: 7px;
+    margin: 0 20px 20px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e7e5e4;
+  }
+  .sup-payment-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: #673049;
+  }
+  @media (max-width: 820px) {
+    .sup-booking-tabs { align-items: flex-start; flex-direction: column; }
+    .sup-booking-tab-list { width:100%; overflow-x:auto; }
+    .sup-booking-tab-status { padding:0 8px 4px; }
+    .sup-stats[data-booking-panel] { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .sup-payment-grid { grid-template-columns:1fr; }
+  }
+  @media (max-width: 520px) {
+    .sup-page { padding: 14px 12px; }
+    .sup-booking-tab span { display:none; }
+    .sup-booking-tab { min-width:42px; justify-content:center; padding:0 10px; }
+    .sup-stats[data-booking-panel] { grid-template-columns:1fr; }
+  }
+
+  /* ── Event run sheet layout ── */
+  .sup-runsheet-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 4px 2px;
+  }
+  .sup-runsheet-head span {
+    color: #673049;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+  }
+  .sup-runsheet-head h2 {
+    margin: 3px 0 0;
+    color: #34232b;
+    font-family: "Playfair Display", serif;
+    font-size: 27px;
+    font-weight: 650;
+    letter-spacing: -.025em;
+  }
+  .sup-runsheet-head p {
+    margin: 0;
+    color: #78716c;
+    font-size: 11px;
+  }
+  .sup-runsheet-layout {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+  .sup-runsheet-layout > .sup-stats {
+    grid-column: 1;
+    grid-row: 1;
+    grid-template-columns: 1fr;
+    position: sticky;
+    top: 84px;
+  }
+  .sup-runsheet-layout > .sup-body {
+    display: contents;
+  }
+  .sup-runsheet-layout .sup-main {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+  .sup-runsheet-layout .sup-side {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .sup-runsheet-layout > .sup-payment-card {
+    grid-column: 2;
+  }
+  .sup-runsheet-layout .sup-stat {
+    border-left-width: 1px;
+    border-color: #e7e5e4;
+    border-radius: 12px;
+    background: #fff;
+    padding: 14px;
+    box-shadow: 0 1px 2px rgba(28,25,23,.04);
+  }
+  .sup-runsheet-layout .sup-stat-value {
+    font-size: 18px;
+  }
+  .sup-runsheet-layout .sup-main > .sup-card {
+    position: relative;
+  }
+  .sup-runsheet-layout .sup-main > .sup-card + .sup-card {
+    margin-top: 0;
+  }
+  .sup-runsheet-layout .sup-main > .sup-card:not(:first-child)::before {
+    content: '';
+    position: absolute;
+    top: -19px;
+    left: 28px;
+    width: 2px;
+    height: 19px;
+    background: #eadce3;
+  }
+  .sup-runsheet-layout .sup-card {
+    border-color: #e7e5e4;
+    border-radius: 16px;
+  }
+  .sup-runsheet-layout .sup-card-title {
+    color: #1c1917;
+    font-size: 12px;
+    letter-spacing: -.01em;
+    text-transform: none;
+  }
+  .sup-runsheet-layout .sup-table thead {
+    background: #f9f8f6;
+  }
+  .sup-runsheet-layout .sup-table tr:hover td {
+    background: #f5f5f3;
+  }
+  .sup-timeline-row.is-mine td {
+    background: #fff8fb;
+    border-top: 1px solid #f3cddb;
+    border-bottom: 1px solid #f3cddb;
+  }
+  .sup-timeline-row.is-mine td:first-child {
+    border-left: 4px solid #673049;
+  }
+  .sup-timeline-row.is-mine:hover td {
+    background: #fdeef4;
+  }
+  .sup-timeline-row.is-clickable {
+    cursor: pointer;
+  }
+  .sup-timeline-row.is-clickable:focus {
+    outline: 3px solid rgba(103,48,73,.18);
+    outline-offset: -3px;
+  }
+  .sup-own-service {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    color: #673049;
+    background: #fde8ef;
+    font-size: 9px;
+    font-weight: 800;
+  }
+  .sup-own-service::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .sup-timeline-guest {
+    color: #1c1917;
+    font-size: 12px;
+    font-weight: 750;
+  }
+  .sup-service-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #673049;
+    font-size: 9px;
+    font-weight: 750;
+  }
+  .sup-service-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    visibility: hidden;
+    background: rgba(36,24,30,.2);
+    opacity: 0;
+    backdrop-filter: blur(2px);
+    transition: opacity .2s ease, visibility .2s ease;
+  }
+  .sup-service-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 80;
+    width: min(430px,92vw);
+    height: 100vh;
+    overflow-y: auto;
+    border-left: 1px solid #ead8c7;
+    background: #fff;
+    padding: 25px;
+    box-shadow: -20px 0 50px rgba(52,35,43,.13);
+    transform: translateX(105%);
+    transition: transform .24s ease;
+  }
+  body.sup-service-drawer-open .sup-service-drawer-backdrop {
+    visibility: visible;
+    opacity: 1;
+  }
+  body.sup-service-drawer-open .sup-service-drawer {
+    transform: translateX(0);
+  }
+  .sup-service-drawer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ead8c7;
+  }
+  .sup-service-drawer-kicker {
+    margin: 0 0 5px;
+    color: #9b7d89;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+  }
+  .sup-service-drawer-title {
+    margin: 0;
+    color: #34232b;
+    font: 700 21px "Playfair Display",serif;
+  }
+  .sup-service-drawer-close {
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ead8c7;
+    border-radius: 10px;
+    background: #faf5ef;
+    color: #7b5c69;
+    cursor: pointer;
+  }
+  .sup-service-detail-list {
+    display: grid;
+    margin: 12px 0 0;
+  }
+  .sup-service-detail {
+    padding: 15px 0;
+    border-bottom: 1px solid #f0e5dc;
+  }
+  .sup-service-detail dt {
+    color: #a58b96;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .sup-service-detail dd {
+    margin: 6px 0 0;
+    color: #34232b;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+  .sup-drawer-timeline {
+    margin-top: 22px;
+  }
+  .sup-drawer-timeline-head {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #ead8c7;
+  }
+  .sup-drawer-timeline-head span {
+    color: #9b7d89;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  .sup-drawer-timeline-head h3 {
+    margin: 4px 0 0;
+    color: #34232b;
+    font-size: 14px;
+    font-weight: 750;
+  }
+  .sup-drawer-timeline-list {
+    position: relative;
+    display: grid;
+    gap: 0;
+    padding-top: 14px;
+  }
+  .sup-drawer-timeline-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 52px 22px minmax(0,1fr);
+    gap: 9px;
+    padding-bottom: 15px;
+  }
+  .sup-drawer-timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 62px;
+    top: 21px;
+    bottom: -1px;
+    width: 1px;
+    background: #ead8c7;
+  }
+  .sup-drawer-time {
+    padding-top: 3px;
+    color: #9b7d89;
+    font-size: 9px;
+    font-weight: 750;
+    text-align: right;
+  }
+  .sup-drawer-dot {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border: 4px solid #fff;
+    border-radius: 50%;
+    background: #d6c8ce;
+  }
+  .sup-drawer-timeline-copy {
+    padding: 10px 11px;
+    border: 1px solid #ead8c7;
+    border-radius: 10px;
+    background: #fff;
+  }
+  .sup-drawer-timeline-copy strong {
+    display: block;
+    color: #34232b;
+    font-size: 11px;
+  }
+  .sup-drawer-timeline-copy small {
+    display: block;
+    margin-top: 3px;
+    color: #9b7d89;
+    font-size: 9px;
+  }
+  .sup-drawer-timeline-item.is-mine .sup-drawer-dot {
+    background: #b87994;
+  }
+  .sup-drawer-timeline-item.is-mine .sup-drawer-timeline-copy {
+    border-color: #e8bace;
+    background: #fff8fb;
+  }
+  .sup-drawer-timeline-item.is-current .sup-drawer-dot {
+    background: #673049;
+    box-shadow: 0 0 0 4px #fde8ef;
+  }
+  .sup-drawer-timeline-item.is-current .sup-drawer-timeline-copy {
+    border-color: #673049;
+    background: #fde8ef;
+    box-shadow: 0 4px 14px rgba(103,48,73,.1);
+  }
+  .sup-drawer-timeline-label {
+    display: inline-flex;
+    margin-top: 6px;
+    border-radius: 999px;
+    padding: 2px 7px;
+    color: #673049;
+    background: #fff;
+    font-size: 8px;
+    font-weight: 800;
+  }
+  @media (max-width: 980px) {
+    .sup-runsheet-layout { grid-template-columns: 1fr; }
+    .sup-runsheet-layout > .sup-stats,
+    .sup-runsheet-layout .sup-main,
+    .sup-runsheet-layout .sup-side,
+    .sup-runsheet-layout > .sup-payment-card {
+      grid-column: 1;
+      grid-row: auto;
+      position: static;
+    }
+    .sup-runsheet-layout > .sup-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  }
+  @media (max-width: 560px) {
+    .sup-runsheet-head { align-items:flex-start; flex-direction:column; }
+    .sup-runsheet-layout > .sup-stats { grid-template-columns:1fr; }
+  }
 </style>
 
 <div class="sup-page">
@@ -845,8 +1408,61 @@ $dashboardContent = function () use (
       </div>
     </div>
     <?php endif; ?>
+
+    <!-- Replacement-in-progress banner (after a decline) -->
+    <?php if ($inReplacement): ?>
+    <div class="sup-replace-banner">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 0110-4.5M14 8a6 6 0 01-10 4.5"/><path d="M12 2v3H9M4 14v-3h3"/></svg>
+      <div>
+        <strong>Replacement in progress.</strong>
+        <?php if (!empty($replacementRows)): ?>
+          You declined
+          <?= $h(implode(', ', array_map(static fn($r) => $r['service_name'] ?? ($r['category_name'] ?? 'a service'), $replacementRows))) ?>.
+        <?php endif; ?>
+        The admin is assigning another supplier for the affected service(s) — your other services on this booking are unchanged.
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Self-decline per service (confirmed package, before cutoff) -->
+    <?php if (!empty($declinableRows)): ?>
+    <div class="sup-selfdecline">
+      <div class="sup-selfdecline-head">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
+        <div>
+          <div class="sup-response-text">Can't take one of your services?</div>
+          <div class="sup-response-sub">Decline a specific service and admin will arrange a replacement for just that one. Allowed up to <?= (int)$declineCutoffDays ?> days before the event — the customer's booking stays intact.</div>
+        </div>
+      </div>
+      <ul class="sup-selfdecline-list">
+        <?php foreach ($declinableRows as $row): ?>
+          <li class="sup-selfdecline-item">
+            <div class="sup-selfdecline-svc">
+              <strong><?= $h($row['service_name'] ?? 'Service') ?></strong>
+              <?php if (!empty($row['category_name'])): ?><span><?= $h($row['category_name']) ?></span><?php endif; ?>
+            </div>
+            <button type="button" class="sup-btn sup-btn--decline selfdecline-btn"
+                    data-bsid="<?= (int)$row['id'] ?>"
+                    data-svc="<?= $h($row['service_name'] ?? 'this service') ?>">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+              Can't fulfill
+            </button>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    </div>
+    <?php endif; ?>
   </header>
 
+  <div class="sup-runsheet-head">
+    <div>
+      <span><?= $needsResponse ? 'Response required' : 'Event operations' ?></span>
+      <h2>Event run sheet</h2>
+    </div>
+    <p><?= $needsResponse ? 'Confirm availability before preparing the delivery plan.' : 'Everything you need to prepare and deliver this booking.' ?></p>
+  </div>
+
+  <div class="sup-runsheet-layout">
   <!-- ── Stats band ── -->
   <div class="sup-stats">
     <div class="sup-stat sup-stat--neutral">
@@ -959,9 +1575,32 @@ $dashboardContent = function () use (
       <!-- Package event timelines -->
       <?php foreach ($items as $item): ?>
         <?php $schedule = $packageSchedules[(int)($item['id'] ?? 0)] ?? []; if (empty($schedule)) continue; ?>
+        <?php
+          $packageDetail = $detailByItem[(int)($item['id'] ?? 0)] ?? [];
+          $scheduleGuests = (int)($packageDetail['guest_count'] ?? 0);
+          $scheduleContact = trim((string)($packageDetail['contact_name'] ?? ''));
+          $schedulePhone = trim((string)($packageDetail['contact_phone'] ?? ''));
+          $scheduleRequests = trim((string)($packageDetail['special_requests'] ?? ''));
+          $relatedTimeline = array_map(static function ($timelineEvent) use ($supplierId, $ownTimelineServiceIds, $scheduleGuests) {
+              $timelineServiceId = (int)($timelineEvent['service_id'] ?? 0);
+              return [
+                  'key' => (string)($timelineEvent['package_item_id'] ?? $timelineServiceId),
+                  'service' => $timelineEvent['service_name'] ?? 'Package service',
+                  'category' => $timelineEvent['category_name'] ?? 'Service',
+                  'supplier' => $timelineEvent['supplier_name'] ?? 'Golden Promise',
+                  'guests' => $scheduleGuests > 0 ? number_format($scheduleGuests) : 'Not specified',
+                  'start' => !empty($timelineEvent['start_time']) ? date('g:i A', strtotime($timelineEvent['start_time'])) : 'TBD',
+                  'end' => !empty($timelineEvent['end_time']) ? date('g:i A', strtotime($timelineEvent['end_time'])) : 'TBD',
+                  'venue' => $timelineEvent['venue_room_name'] ?? 'Not specified',
+                  'isMine' => (int)($timelineEvent['supplier_id'] ?? 0) === $supplierId
+                      || in_array($timelineServiceId, $ownTimelineServiceIds, true),
+              ];
+          }, $schedule);
+        ?>
         <div class="sup-card">
           <div class="sup-card-head">
             <span class="sup-card-title"><?= $h($item['service_name'] ?? 'Package') ?> — service schedule</span>
+            <span class="sup-badge sup-badge--neutral">Your services are highlighted</span>
           </div>
           <div class="sup-table-wrap">
             <table class="sup-table">
@@ -969,6 +1608,7 @@ $dashboardContent = function () use (
                 <tr>
                   <th>Service</th>
                   <th>Supplier</th>
+                  <th>Guests</th>
                   <th>Start</th>
                   <th>End</th>
                   <th>Hall / Room</th>
@@ -976,15 +1616,47 @@ $dashboardContent = function () use (
               </thead>
               <tbody>
                 <?php foreach ($schedule as $event): ?>
-                <tr>
+                <?php
+                  $isOwnTimelineService = (int)($event['supplier_id'] ?? 0) === $supplierId
+                      || in_array((int)($event['service_id'] ?? 0), $ownTimelineServiceIds, true);
+                  $serviceDetailPayload = [
+                      'title' => $event['service_name'] ?? 'Service detail',
+                      'category' => $event['category_name'] ?? 'Service',
+                      'supplier' => $event['supplier_name'] ?? 'Golden Promise',
+                      'guests' => $scheduleGuests > 0 ? number_format($scheduleGuests) : 'Not specified',
+                      'date' => $formatDate($event['event_date'] ?? $firstDate),
+                      'time' => (!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD')
+                          . ' – '
+                          . (!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : 'TBD'),
+                      'venue' => $event['venue_room_name'] ?? ($firstLocation !== '' ? $firstLocation : 'Not specified'),
+                      'contact' => $scheduleContact !== '' ? $scheduleContact : $customerName,
+                      'phone' => $schedulePhone !== '' ? $schedulePhone : ($customerPhone !== '' ? $customerPhone : 'Not provided'),
+                      'requests' => $scheduleRequests !== '' ? $scheduleRequests : 'No special requests',
+                      'currentKey' => (string)($event['package_item_id'] ?? ($event['service_id'] ?? '')),
+                      'timelineTitle' => $item['service_name'] ?? 'Event service timeline',
+                      'timeline' => $relatedTimeline,
+                  ];
+                ?>
+                <tr class="sup-timeline-row <?= $isOwnTimelineService ? 'is-mine is-clickable' : '' ?>"
+                    <?= $isOwnTimelineService ? 'tabindex="0" role="button" aria-label="View your service detail"' : '' ?>
+                    <?php if ($isOwnTimelineService): ?>
+                    data-service-detail="<?= $h(json_encode($serviceDetailPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>"
+                    <?php endif; ?>>
                   <td>
                     <div class="sup-svc-name"><?= $h($event['service_name'] ?? 'Package service') ?></div>
                     <div class="sup-svc-cat"><?= $h($event['category_name'] ?? 'Service') ?></div>
+                    <?php if ($isOwnTimelineService): ?>
+                      <span class="sup-own-service">Your service</span>
+                    <?php endif; ?>
                   </td>
                   <td style="color:var(--sup-body);font-size:12px"><?= $h($event['supplier_name'] ?? 'Golden Promise') ?></td>
+                  <td><span class="sup-timeline-guest"><?= $scheduleGuests > 0 ? number_format($scheduleGuests) : '—' ?></span></td>
                   <td style="font-weight:700"><?= $h(!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD') ?></td>
                   <td style="font-weight:700"><?= $h(!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '—') ?></td>
-                  <td style="color:var(--sup-muted);font-size:12px"><?= $h($event['venue_room_name'] ?? '—') ?></td>
+                  <td style="color:var(--sup-muted);font-size:12px">
+                    <?= $h($event['venue_room_name'] ?? '—') ?>
+                    <?php if ($isOwnTimelineService): ?><span class="sup-service-more">View detail →</span><?php endif; ?>
+                  </td>
                 </tr>
                 <?php endforeach; ?>
               </tbody>
@@ -992,6 +1664,12 @@ $dashboardContent = function () use (
           </div>
         </div>
       <?php endforeach; ?>
+      <?php if (!$hasPackageSchedule): ?>
+        <div class="sup-card">
+          <div class="sup-card-head"><span class="sup-card-title">Service schedule</span></div>
+          <div class="sup-empty">No detailed service schedule has been added for this booking yet.</div>
+        </div>
+      <?php endif; ?>
     </div>
 
     <!-- ── Sidebar ── -->
@@ -1070,6 +1748,53 @@ $dashboardContent = function () use (
     </aside>
   </div>
 
+  <div class="sup-card sup-payment-card">
+    <div class="sup-card-head">
+      <span class="sup-card-title">Payment and earnings</span>
+      <span class="sup-badge <?= $statusBadgeClass($paymentStatus) ?>"><?= $h(ucfirst($paymentStatus ?: 'pending')) ?></span>
+    </div>
+    <div class="sup-payment-grid">
+      <div class="sup-payment-fact"><small>Your total earnings</small><strong><?= $money($supplierTotal) ?></strong></div>
+      <div class="sup-payment-fact"><small>Paid to date</small><strong><?= $money($supplierPaid) ?></strong></div>
+      <div class="sup-payment-fact"><small>Remaining</small><strong><?= $money($supplierRemaining) ?></strong></div>
+    </div>
+    <div class="sup-payment-track" aria-label="Payment progress">
+      <div class="sup-payment-fill" style="width:<?= max(0, min(100, $paidFraction * 100)) ?>%"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="sup-service-drawer-backdrop" data-service-drawer-close></div>
+  <aside class="sup-service-drawer" id="supplier-service-detail-drawer" aria-hidden="true" aria-labelledby="supplier-service-drawer-title">
+    <div class="sup-service-drawer-head">
+      <div>
+        <p class="sup-service-drawer-kicker">Your assigned service</p>
+        <h2 class="sup-service-drawer-title" id="supplier-service-drawer-title">Service detail</h2>
+      </div>
+      <button type="button" class="sup-service-drawer-close" data-service-drawer-close aria-label="Close service detail">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <dl class="sup-service-detail-list">
+      <div class="sup-service-detail"><dt>Category</dt><dd data-service-field="category">—</dd></div>
+      <div class="sup-service-detail"><dt>Supplier</dt><dd data-service-field="supplier">—</dd></div>
+      <div class="sup-service-detail"><dt>Guests</dt><dd data-service-field="guests">—</dd></div>
+      <div class="sup-service-detail"><dt>Event date</dt><dd data-service-field="date">—</dd></div>
+      <div class="sup-service-detail"><dt>Service time</dt><dd data-service-field="time">—</dd></div>
+      <div class="sup-service-detail"><dt>Hall / room</dt><dd data-service-field="venue">—</dd></div>
+      <div class="sup-service-detail"><dt>On-site contact</dt><dd data-service-field="contact">—</dd></div>
+      <div class="sup-service-detail"><dt>Phone</dt><dd data-service-field="phone">—</dd></div>
+      <div class="sup-service-detail"><dt>Special requests</dt><dd data-service-field="requests">—</dd></div>
+    </dl>
+    <section class="sup-drawer-timeline" aria-labelledby="supplier-service-timeline-title">
+      <div class="sup-drawer-timeline-head">
+        <span>Related event timeline</span>
+        <h3 id="supplier-service-timeline-title">All package services</h3>
+      </div>
+      <div class="sup-drawer-timeline-list" data-service-timeline></div>
+    </section>
+  </aside>
+
   <!-- ── Reschedule Modal ── -->
   <div id="reschedule-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reschedule-modal-title">
     <div class="sup-modal">
@@ -1108,9 +1833,130 @@ $dashboardContent = function () use (
     </div>
   </div>
 
+  <!-- ── Decline (self-decline → replacement) Modal ── -->
+  <div id="decline-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="decline-modal-title">
+    <div class="sup-modal">
+      <div class="sup-modal-head">
+        <h2 id="decline-modal-title" class="sup-modal-title">Decline this booking</h2>
+        <button type="button" class="decline-close sup-modal-close" aria-label="Close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+      <form id="decline-form">
+        <div class="sup-modal-body">
+          <p class="sup-response-sub" style="margin-bottom:14px">
+            The customer keeps their booking — the admin will assign a replacement supplier in your place. This can't be undone.
+          </p>
+          <div class="sup-field" style="margin-bottom:0">
+            <label class="sup-label" for="dec-reason">Reason <span style="color:var(--sup-danger-text)">*</span></label>
+            <textarea id="dec-reason" name="reason" rows="3" required placeholder="e.g. Already booked another wedding on this date" class="sup-textarea"></textarea>
+          </div>
+        </div>
+        <div class="sup-modal-foot">
+          <button type="button" class="decline-close sup-btn sup-btn--ghost">Cancel</button>
+          <button type="submit" class="sup-btn sup-btn--decline">Confirm decline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </div>
 
 <script>
+/* ── Supplier service detail drawer ── */
+(function(){
+  var drawer = document.getElementById('supplier-service-detail-drawer');
+  var lastTrigger = null;
+
+  function closeDrawer() {
+    document.body.classList.remove('sup-service-drawer-open');
+    if (drawer) drawer.setAttribute('aria-hidden', 'true');
+    if (lastTrigger) lastTrigger.focus();
+  }
+
+  function openDrawer(row) {
+    if (!drawer) return;
+    var detail = {};
+    try { detail = JSON.parse(row.dataset.serviceDetail || '{}'); } catch (error) {}
+    lastTrigger = row;
+    document.getElementById('supplier-service-drawer-title').textContent = detail.title || 'Service detail';
+    drawer.querySelectorAll('[data-service-field]').forEach(function(node){
+      node.textContent = detail[node.dataset.serviceField] || '—';
+    });
+    var timelineTitle = document.getElementById('supplier-service-timeline-title');
+    var timelineList = drawer.querySelector('[data-service-timeline]');
+    if (timelineTitle) timelineTitle.textContent = detail.timelineTitle || 'All package services';
+    if (timelineList) {
+      timelineList.innerHTML = '';
+      var timeline = Array.isArray(detail.timeline) ? detail.timeline : [];
+      timeline.forEach(function(event){
+        var item = document.createElement('article');
+        var isCurrent = String(event.key || '') === String(detail.currentKey || '');
+        item.className = 'sup-drawer-timeline-item'
+          + (event.isMine ? ' is-mine' : '')
+          + (isCurrent ? ' is-current' : '');
+
+        var time = document.createElement('span');
+        time.className = 'sup-drawer-time';
+        time.textContent = event.start || 'TBD';
+
+        var dot = document.createElement('span');
+        dot.className = 'sup-drawer-dot';
+
+        var copy = document.createElement('div');
+        copy.className = 'sup-drawer-timeline-copy';
+        var service = document.createElement('strong');
+        service.textContent = event.service || 'Service';
+        var meta = document.createElement('small');
+        meta.textContent = [
+          event.category || 'Service',
+          event.supplier || 'Golden Promise',
+          event.guests && event.guests !== 'Not specified' ? event.guests + ' guests' : 'Guests not specified',
+          (event.start || 'TBD') + ' – ' + (event.end || 'TBD'),
+          event.venue || ''
+        ].filter(Boolean).join(' · ');
+        copy.appendChild(service);
+        copy.appendChild(meta);
+        if (isCurrent || event.isMine) {
+          var label = document.createElement('span');
+          label.className = 'sup-drawer-timeline-label';
+          label.textContent = isCurrent ? 'Selected service' : 'Your service';
+          copy.appendChild(label);
+        }
+        item.appendChild(time);
+        item.appendChild(dot);
+        item.appendChild(copy);
+        timelineList.appendChild(item);
+      });
+      if (!timeline.length) {
+        var empty = document.createElement('p');
+        empty.className = 'sup-empty';
+        empty.textContent = 'No related service timeline is available.';
+        timelineList.appendChild(empty);
+      }
+    }
+    document.body.classList.add('sup-service-drawer-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    drawer.querySelector('[data-service-drawer-close]')?.focus();
+  }
+
+  document.querySelectorAll('[data-service-detail]').forEach(function(row){
+    row.addEventListener('click', function(){ openDrawer(row); });
+    row.addEventListener('keydown', function(event){
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openDrawer(row);
+      }
+    });
+  });
+  document.querySelectorAll('[data-service-drawer-close]').forEach(function(button){
+    button.addEventListener('click', closeDrawer);
+  });
+  document.addEventListener('keydown', function(event){
+    if (event.key === 'Escape' && document.body.classList.contains('sup-service-drawer-open')) closeDrawer();
+  });
+})();
+
 /* ── Reschedule modal ── */
 (function(){
   var modal = document.getElementById('reschedule-modal');
@@ -1177,6 +2023,57 @@ $dashboardContent = function () use (
       button.innerHTML = original;
     });
   });
+
+  /* ── Self-decline per service (confirmed package → replacement) ── */
+  var declineModal = document.getElementById('decline-modal');
+  var declineBtns  = document.querySelectorAll('.selfdecline-btn');
+  var declineForm  = document.getElementById('decline-form');
+  var declineTitle = document.getElementById('decline-modal-title');
+  var declineTarget = null;
+
+  if (declineModal && declineForm && declineBtns.length) {
+    declineBtns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        declineTarget = btn.dataset.bsid || '';
+        if (declineTitle) declineTitle.textContent = 'Decline “' + (btn.dataset.svc || 'this service') + '”';
+        document.getElementById('dec-reason').value = '';
+        declineModal.classList.add('is-open');
+      });
+    });
+    document.querySelectorAll('.decline-close').forEach(function(b){
+      b.addEventListener('click', function(){ declineModal.classList.remove('is-open'); });
+    });
+    declineModal.addEventListener('click', function(e){ if (e.target === declineModal) declineModal.classList.remove('is-open'); });
+
+    declineForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      var reason = (document.getElementById('dec-reason').value || '').trim();
+      if (!reason) { alert('Please enter a reason.'); return; }
+      if (!declineTarget) { alert('No service selected.'); return; }
+
+      var submitBtn = declineForm.querySelector('button[type="submit"]');
+      var original = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Submitting…';
+
+      var formData = new FormData();
+      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+      formData.append('booking_supplier_id', declineTarget);
+      formData.append('action', 'decline');
+      formData.append('reason', reason);
+
+      try {
+        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (data.success) { window.location.reload(); return; }
+        alert(data.error || 'Could not submit your decline.');
+      } catch (err) {
+        alert('Network error. Please try again.');
+      }
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = original;
+    });
+  }
 })();
 </script>
 <?php

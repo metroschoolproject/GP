@@ -358,6 +358,11 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(SupplierNotifications::class, __FUNCTION__, func_get_args());
     }
 
+    public function markAllNotificationsRead()
+    {
+        return $this->forwardTo(SupplierNotifications::class, __FUNCTION__, func_get_args());
+    }
+
     public function notification($notificationId = null)
     {
         return $this->forwardTo(SupplierNotifications::class, __FUNCTION__, func_get_args());

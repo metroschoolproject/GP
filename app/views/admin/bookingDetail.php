@@ -84,6 +84,93 @@ sort($managedStarts);
 rsort($managedEnds);
 $displayEventStart = $managedStarts[0] ?? ($firstEvent['start_time'] ?? null);
 $displayEventEnd = $managedEnds[0] ?? ($firstEvent['end_time'] ?? null);
+
+$runSheetEvents = [];
+foreach ($items as $item) {
+    $itemId = (int)($item['id'] ?? 0);
+    if (!in_array($itemId, $nonAddonItemIds, true)) {
+        continue;
+    }
+
+    $parentEvent = $eventDetailsByItem[$itemId] ?? [];
+    $schedule = $packageSchedules[$itemId] ?? [];
+
+    if (!empty($schedule)) {
+        foreach ($schedule as $event) {
+            $runSheetEvents[] = [
+                'date' => $event['event_date'] ?? ($parentEvent['event_date'] ?? null),
+                'start' => $event['start_time'] ?? null,
+                'end' => $event['end_time'] ?? null,
+                'service' => $event['service_name'] ?? ($item['service_name'] ?? 'Package service'),
+                'category' => $event['category_name'] ?? 'Package service',
+                'supplier' => $event['supplier_name'] ?? ($item['supplier_name'] ?? 'Golden Promise'),
+                'location' => $parentEvent['location'] ?? '',
+                'guests' => $parentEvent['guest_count'] ?? null,
+                'contact_name' => $parentEvent['contact_name'] ?? ($booking['customer_name'] ?? ''),
+                'contact_phone' => $parentEvent['contact_phone'] ?? ($booking['customer_phone'] ?? ''),
+            ];
+        }
+        continue;
+    }
+
+    if (!empty($parentEvent)) {
+        $runSheetEvents[] = [
+            'date' => $parentEvent['event_date'] ?? ($item['booking_date'] ?? null),
+            'start' => $parentEvent['start_time'] ?? ($item['start_time'] ?? null),
+            'end' => $parentEvent['end_time'] ?? ($item['end_time'] ?? null),
+            'service' => $item['service_name'] ?? 'Service',
+            'category' => $item['category_name'] ?? 'Standalone service',
+            'supplier' => $item['supplier_name'] ?? 'Supplier',
+            'location' => $parentEvent['location'] ?? '',
+            'guests' => $parentEvent['guest_count'] ?? null,
+            'contact_name' => $parentEvent['contact_name'] ?? ($booking['customer_name'] ?? ''),
+            'contact_phone' => $parentEvent['contact_phone'] ?? ($booking['customer_phone'] ?? ''),
+        ];
+    }
+}
+
+if (empty($runSheetEvents) && !empty($firstEvent)) {
+    $runSheetEvents[] = [
+        'date' => $firstEvent['event_date'] ?? null,
+        'start' => $displayEventStart,
+        'end' => $displayEventEnd,
+        'service' => 'Main event',
+        'category' => 'Event',
+        'supplier' => 'Golden Promise',
+        'location' => $firstEvent['location'] ?? '',
+        'guests' => $firstEvent['guest_count'] ?? null,
+        'contact_name' => $firstEvent['contact_name'] ?? ($booking['customer_name'] ?? ''),
+        'contact_phone' => $firstEvent['contact_phone'] ?? ($booking['customer_phone'] ?? ''),
+    ];
+}
+
+usort($runSheetEvents, static function ($a, $b) {
+    return strcmp(
+        (string)($a['date'] ?? '') . ' ' . (string)($a['start'] ?? ''),
+        (string)($b['date'] ?? '') . ' ' . (string)($b['start'] ?? '')
+    );
+});
+
+$runSheetGroups = [];
+foreach ($runSheetEvents as $event) {
+    $dateKey = !empty($event['date']) ? (string)$event['date'] : 'unscheduled';
+    $runSheetGroups[$dateKey][] = $event;
+}
+
+foreach ($runSheetGroups as &$groupEvents) {
+    $previousEnd = null;
+    foreach ($groupEvents as &$event) {
+        $startTimestamp = !empty($event['start']) ? strtotime((string)$event['start']) : false;
+        $endTimestamp = !empty($event['end']) ? strtotime((string)$event['end']) : false;
+        $event['overlap'] = $previousEnd !== null && $startTimestamp !== false && $startTimestamp < $previousEnd;
+        if ($endTimestamp !== false) {
+            $previousEnd = $previousEnd === null ? $endTimestamp : max($previousEnd, $endTimestamp);
+        }
+    }
+    unset($event);
+}
+unset($groupEvents);
+
 $statusLabel = ucwords(str_replace('_', ' ', (string)($booking['status'] ?? 'draft')));
 $custName = (string)($booking['customer_name'] ?? 'Customer');
 $custInitials = strtoupper(mb_substr(trim($custName) !== '' ? $custName : 'C', 0, 1));
@@ -153,6 +240,7 @@ $dashboardContent = function () use (
     $eventDetails,
     $packageSchedules,
     $nonAddonItemIds,
+    $runSheetGroups,
     $statusLabel,
     $depositPercent,
     $custName,
@@ -174,7 +262,7 @@ $dashboardContent = function () use (
     min-height: 100%;
     background: #FBFBF9;
     padding: 32px 36px;
-    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: #111827;
     font-size: 13px;
     overflow-y: auto;
@@ -779,6 +867,438 @@ $dashboardContent = function () use (
     .bkd-kv-grid { grid-template-columns: 1fr; }
     .bkd-review-actions { grid-template-columns: 1fr; }
   }
+
+  /* ── Booking Command Center ── */
+  .admin-booking-detail-outlet {
+    padding: 30px;
+  }
+  .bkd-page {
+    --bkd-text: #34232b;
+    --bkd-body: #7b5c69;
+    --bkd-muted: #a58b96;
+    max-width: 1450px;
+  }
+  .bkd-header {
+    align-items: flex-end;
+    margin-bottom: 20px;
+  }
+  .bkd-eyebrow {
+    margin-bottom: 7px;
+    letter-spacing: .18em;
+    font-weight: 800;
+  }
+  .bkd-ref {
+    font-family: "Playfair Display", serif;
+    font-size: clamp(31px, 3vw, 43px);
+    font-weight: 650;
+    line-height: 1;
+    color: #34232b;
+  }
+  .bkd-ref em {
+    color: #7b5c69;
+    font-weight: 500;
+  }
+  .bkd-subtitle {
+    margin-top: 10px;
+    line-height: 1.6;
+  }
+  .bkd-header-status {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--bkd-border);
+    border-radius: 999px;
+    padding: 0 13px;
+    background: #fff;
+    color: var(--bkd-primary);
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 10px 28px rgba(52,35,43,.06);
+  }
+  .bkd-header-status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 10%, transparent);
+  }
+  .bkd-btn {
+    min-height: 40px;
+    height: 40px;
+    border-radius: 10px;
+    padding-inline: 14px;
+    font-size: 11px;
+  }
+  .bkd-stats {
+    gap: 0;
+    overflow: hidden;
+    margin-bottom: 14px;
+    border: 1px solid var(--bkd-border);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 18px 45px rgba(52,35,43,.055);
+  }
+  .bkd-stat {
+    min-height: 105px;
+    border: 0;
+    border-right: 1px solid var(--bkd-border);
+    border-radius: 0;
+    padding: 21px 23px;
+  }
+  .bkd-stat:last-child { border-right: 0; }
+  .bkd-stat-value {
+    font-family: "Inter", sans-serif;
+    font-size: 25px;
+    font-weight: 750;
+    color: #34232b;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.025em;
+  }
+  .bkd-stat-label {
+    letter-spacing: .13em;
+    font-weight: 800;
+  }
+  .bkd-command-nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    margin-bottom: 18px;
+    border: 1px solid var(--bkd-border);
+    border-radius: 13px;
+    padding: 8px;
+    background: #faf5ef;
+  }
+  .bkd-command-nav a {
+    display: inline-flex;
+    min-height: 34px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+    border-radius: 8px;
+    padding: 0 11px;
+    color: #8e727e;
+    font-size: 10px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: background .15s ease, color .15s ease;
+  }
+  .bkd-command-nav a:hover,
+  .bkd-command-nav a:focus-visible {
+    background: #fff;
+    color: var(--bkd-primary);
+    outline: none;
+  }
+  .bkd-command-nav svg { width: 13px; height: 13px; }
+  .bkd-body {
+    grid-template-columns: minmax(0,1fr) 370px;
+    gap: 20px;
+  }
+  .bkd-main { gap: 18px; min-width: 0; }
+  .bkd-side {
+    gap: 14px;
+  }
+  .bkd-card {
+    scroll-margin-top: 100px;
+    border-radius: 15px;
+    box-shadow: 0 16px 40px rgba(52,35,43,.05);
+  }
+  .bkd-card--highlight {
+    border-left: 1px solid var(--bkd-border);
+    border-top: 4px solid var(--bkd-warn-border);
+  }
+  .bkd-card-head {
+    min-height: 61px;
+    padding: 14px 18px;
+  }
+  .bkd-card-title {
+    color: #34232b;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .bkd-card-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+  .bkd-card-body { padding: 18px; }
+  .bkd-kv {
+    border-radius: 10px;
+    padding: 13px;
+  }
+  .bkd-kv-label { font-size: 9px; font-weight: 800; }
+  .bkd-table th { font-size: 9px; font-weight: 800; }
+  .bkd-table tbody tr:hover { background: #fdf9f5; }
+  .bkd-action-center {
+    position: sticky;
+    top: 100px;
+    z-index: 2;
+    border-color: #d8c1b1;
+    box-shadow: 0 20px 52px rgba(52,35,43,.09);
+  }
+  .bkd-action-center .bkd-card-head {
+    border-bottom-color: rgba(255,255,255,.12);
+    background: linear-gradient(145deg,#6d4c5b,#7b5c69);
+  }
+  .bkd-action-center .bkd-card-title,
+  .bkd-action-center .bkd-card-meta { color: #fff; }
+  .bkd-action-center .bkd-card-icon {
+    background: rgba(255,255,255,.13);
+    color: #fff;
+  }
+  .bkd-proof-link {
+    border-radius: 11px;
+    background: #faf5ef;
+  }
+  .bkd-proof-link img { max-height: 260px; }
+  .bkd-review-form {
+    border-color: #e1c69b;
+    border-radius: 11px;
+    background: #fff9ef;
+  }
+  .bkd-review-actions .bkd-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .bkd-side-person,
+  .bkd-side-row {
+    border-radius: 10px;
+  }
+  .bkd-danger-zone {
+    border-color: #efcaca;
+    box-shadow: none;
+  }
+  .bkd-danger-zone .bkd-card-head { background: #fff7f7; }
+
+  /* ── Event Day Run Sheet ── */
+  .bkd-run-sheet-card {
+    overflow: visible;
+  }
+  .bkd-run-sheet-card > .bkd-card-head {
+    overflow: hidden;
+    border-radius: 15px 15px 0 0;
+  }
+  .bkd-run-sheet {
+    padding: 0;
+  }
+  .bkd-run-day {
+    border-bottom: 1px solid var(--bkd-border);
+  }
+  .bkd-run-day:last-child { border-bottom: 0; }
+  .bkd-run-day-head {
+    display: grid;
+    grid-template-columns: 96px minmax(0,1fr);
+    gap: 18px;
+    align-items: stretch;
+    border-bottom: 1px solid var(--bkd-border-light);
+    background: linear-gradient(120deg,#f2e5d8,#faf5ef 55%,#fff);
+  }
+  .bkd-run-date {
+    display: flex;
+    min-height: 112px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #dcc5b4;
+    color: var(--bkd-primary);
+  }
+  .bkd-run-date-day {
+    font-family: "Playfair Display", serif;
+    font-size: 37px;
+    font-weight: 650;
+    line-height: 1;
+  }
+  .bkd-run-date-month {
+    margin-top: 5px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  .bkd-run-date-year {
+    margin-top: 2px;
+    color: #a58b96;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .bkd-run-summary {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    padding: 18px 20px 18px 0;
+  }
+  .bkd-run-summary-kicker {
+    color: #9b7d89;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  .bkd-run-summary-title {
+    margin: 5px 0 0;
+    color: #34232b;
+    font-family: "Playfair Display", serif;
+    font-size: 20px;
+    font-weight: 650;
+  }
+  .bkd-run-summary-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 15px;
+    margin-top: 10px;
+    color: #7b5c69;
+    font-size: 10px;
+    font-weight: 650;
+  }
+  .bkd-run-summary-meta span {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+  }
+  .bkd-run-summary-meta svg {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+    color: #9b7d89;
+  }
+  .bkd-run-events {
+    padding: 20px 22px 22px;
+  }
+  .bkd-run-event {
+    display: grid;
+    grid-template-columns: 74px 20px minmax(0,1fr);
+    gap: 12px;
+    min-height: 78px;
+  }
+  .bkd-run-time {
+    padding-top: 2px;
+    color: #34232b;
+    font-family: ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: right;
+  }
+  .bkd-run-time-end {
+    display: block;
+    margin-top: 3px;
+    color: #b79c8b;
+    font-size: 9px;
+    font-weight: 600;
+  }
+  .bkd-run-track {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .bkd-run-track::after {
+    content: "";
+    width: 1px;
+    flex: 1;
+    margin-top: 5px;
+    background: #ddcabb;
+  }
+  .bkd-run-event:last-child .bkd-run-track::after { display: none; }
+  .bkd-run-node {
+    width: 11px;
+    height: 11px;
+    flex: 0 0 11px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: var(--bkd-primary);
+    box-shadow: 0 0 0 2px #ceb4a3;
+  }
+  .bkd-run-event.has-overlap .bkd-run-node {
+    background: #b7792f;
+    box-shadow: 0 0 0 2px #e5c38f;
+  }
+  .bkd-run-event-body {
+    padding: 0 0 20px 2px;
+  }
+  .bkd-run-service {
+    color: #34232b;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.4;
+  }
+  .bkd-run-category {
+    display: inline-flex;
+    min-height: 19px;
+    align-items: center;
+    margin-left: 7px;
+    border-radius: 999px;
+    padding: 0 7px;
+    background: #faf5ef;
+    color: #9b7d89;
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    vertical-align: 1px;
+  }
+  .bkd-run-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-top: 6px;
+    color: #7b5c69;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .bkd-run-detail span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .bkd-run-detail svg {
+    width: 11px;
+    height: 11px;
+    color: #b79c8b;
+  }
+  .bkd-run-overlap {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    border-radius: 7px;
+    padding: 5px 8px;
+    background: #fff5e6;
+    color: #9a6527;
+    font-size: 8px;
+    font-weight: 800;
+  }
+  .bkd-run-overlap svg { width: 11px; height: 11px; }
+  .bkd-run-empty {
+    padding: 52px 22px;
+    text-align: center;
+    color: #9b7d89;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  @media (max-width: 1180px) {
+    .bkd-action-center { position: static; }
+    .bkd-stat:nth-child(2) { border-right: 0; }
+    .bkd-stat:nth-child(-n+2) { border-bottom: 1px solid var(--bkd-border); }
+  }
+  @media (max-width: 760px) {
+    .admin-booking-detail-outlet { padding: 20px 16px; }
+    .bkd-header { align-items: flex-start; }
+    .bkd-header-actions { width: 100%; }
+    .bkd-header-actions .bkd-btn { flex: 1; justify-content: center; }
+    .bkd-stats { grid-template-columns: 1fr; }
+    .bkd-stat,
+    .bkd-stat:nth-child(2) { border-right: 0; border-bottom: 1px solid var(--bkd-border); }
+    .bkd-stat:last-child { border-bottom: 0; }
+    .bkd-run-day-head { grid-template-columns: 78px minmax(0,1fr); }
+    .bkd-run-date-day { font-size: 31px; }
+    .bkd-run-event { grid-template-columns: 62px 18px minmax(0,1fr); gap: 9px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bkd-command-nav a { transition: none; }
+  }
 </style>
 
 <div class="bkd-page">
@@ -798,17 +1318,13 @@ $dashboardContent = function () use (
       </p>
     </div>
     <div class="bkd-header-actions">
+      <span class="bkd-header-status" id="booking-status-value"><?= $h($statusLabel) ?></span>
       <a href="<?= URLROOT ?>/admin/bookings" class="bkd-btn bkd-btn--ghost">
         <i data-lucide="chevron-left"></i> Back
       </a>
       <button type="button" id="copy-ref-btn" class="bkd-btn bkd-btn--ghost" data-ref="<?= $h($bookingRef) ?>">
         <i data-lucide="copy"></i> Copy ref
       </button>
-      <?php if ($isAwaitingReview): ?>
-        <button type="button" class="bkd-btn bkd-btn--success verify-payment-btn">
-          <i data-lucide="circle-check"></i> Approve payment + notify
-        </button>
-      <?php endif; ?>
       <a href="<?= URLROOT ?>/admin/paymentVerification" class="bkd-btn bkd-btn--ghost">
         <i data-lucide="receipt-text"></i> Payment review
       </a>
@@ -818,9 +1334,9 @@ $dashboardContent = function () use (
   <!-- ── Stats band ── -->
   <div class="bkd-stats">
     <div class="bkd-stat bkd-stat--primary">
-      <div class="bkd-stat-label">Status</div>
-      <div class="bkd-stat-value is-primary" id="booking-status-value"><?= $h($statusLabel) ?></div>
-      <div class="bkd-stat-sub">Current booking state</div>
+      <div class="bkd-stat-label">Event date</div>
+      <div class="bkd-stat-value is-primary"><?= $h($dateOnly($firstEvent['event_date'] ?? null)) ?></div>
+      <div class="bkd-stat-sub"><?= $h($timeOnly($displayEventStart)) ?> – <?= $h($timeOnly($displayEventEnd)) ?></div>
     </div>
     <div class="bkd-stat bkd-stat--neutral">
       <div class="bkd-stat-label">Total amount</div>
@@ -839,12 +1355,20 @@ $dashboardContent = function () use (
     </div>
   </div>
 
+  <nav class="bkd-command-nav" aria-label="Booking detail sections">
+    <a href="#booking-payment"><i data-lucide="wallet-cards"></i>Payment</a>
+    <a href="#booking-services"><i data-lucide="calendar-check"></i>Services</a>
+    <a href="#booking-event"><i data-lucide="map-pin"></i>Event</a>
+    <a href="#booking-suppliers"><i data-lucide="store"></i>Suppliers</a>
+    <a href="#booking-activity"><i data-lucide="history"></i>Activity</a>
+  </nav>
+
   <!-- ── 2-column body ── -->
   <div class="bkd-body">
     <main class="bkd-main">
       <?php if ($isAwaitingReview): ?>
       <!-- Priority: Payment review (when awaiting) -->
-      <div class="bkd-card bkd-card--highlight">
+      <div class="bkd-card bkd-card--highlight" id="booking-payment">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon bkd-card-icon--warn">
@@ -893,7 +1417,7 @@ $dashboardContent = function () use (
       </div>
       <?php else: ?>
       <!-- Non-urgent: Payment summary -->
-      <div class="bkd-card">
+      <div class="bkd-card" id="booking-payment">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
@@ -943,7 +1467,7 @@ $dashboardContent = function () use (
       <?php endif; ?>
 
       <!-- Services table -->
-      <div class="bkd-card">
+      <div class="bkd-card" id="booking-services">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
@@ -1005,72 +1529,83 @@ $dashboardContent = function () use (
       </div>
 
       <!-- Event information -->
-      <div class="bkd-card">
+      <div class="bkd-card bkd-run-sheet-card" id="booking-event">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
-              <i data-lucide="map-pin"></i>
+              <i data-lucide="route"></i>
             </div>
-            <span class="bkd-card-title">Event information</span>
+            <span class="bkd-card-title">Event day run sheet</span>
           </div>
+          <span class="bkd-card-meta"><?= count($runSheetGroups) ?> event <?= count($runSheetGroups) === 1 ? 'date' : 'dates' ?></span>
         </div>
-        <div class="bkd-card-body">
-          <?php
-            $hasStandaloneEvent = false;
-            foreach ($items as $item):
-              $itemId = (int)($item['id'] ?? 0);
-              if (!in_array($itemId, $nonAddonItemIds, true)) continue;
-              $itemEvent = $eventDetailsByItem[$itemId] ?? [];
-              if (empty($itemEvent)) continue;
-              $hasStandaloneEvent = true;
-          ?>
-            <div class="bkd-table-name" style="margin-bottom:10px;"><?= $h($item['service_name'] ?? 'Service') ?></div>
-            <div class="bkd-kv-grid" style="margin-bottom:18px;">
-              <div class="bkd-kv"><div class="bkd-kv-label">Date</div><div class="bkd-kv-value"><?= $h($dateOnly($itemEvent['event_date'] ?? null)) ?></div></div>
-              <div class="bkd-kv"><div class="bkd-kv-label">Time</div><div class="bkd-kv-value"><?= $h($timeOnly($itemEvent['start_time'] ?? null)) ?> – <?= $h($timeOnly($itemEvent['end_time'] ?? null)) ?></div></div>
-              <div class="bkd-kv"><div class="bkd-kv-label">Guests</div><div class="bkd-kv-value"><?= $h($itemEvent['guest_count'] ?? '—') ?></div></div>
-              <div class="bkd-kv"><div class="bkd-kv-label">Location</div><div class="bkd-kv-value"><?= $h($itemEvent['location'] ?? '—') ?></div></div>
-              <div class="bkd-kv"><div class="bkd-kv-label">Contact</div><div class="bkd-kv-value"><?= $h($itemEvent['contact_name'] ?? ($booking['customer_name'] ?? '—')) ?></div><div class="bkd-kv-sub"><?= $h($itemEvent['contact_phone'] ?? ($booking['customer_phone'] ?? '—')) ?></div></div>
-            </div>
-          <?php endforeach; ?>
-          <?php if (!$hasStandaloneEvent): ?>
-            <div class="bkd-kv-grid">
-              <div class="bkd-kv"><div class="bkd-kv-label">Date</div><div class="bkd-kv-value"><?= $h($dateOnly($firstEvent['event_date'] ?? null)) ?></div></div>
-              <div class="bkd-kv"><div class="bkd-kv-label">Time</div><div class="bkd-kv-value"><?= $h($timeOnly($displayEventStart)) ?> – <?= $h($timeOnly($displayEventEnd)) ?></div></div>
-              <div class="bkd-kv"><div class="bkd-kv-label">Guests</div><div class="bkd-kv-value"><?= $h($firstEvent['guest_count'] ?? '—') ?></div></div>
-              <div class="bkd-kv"><div class="bkd-kv-label">Location</div><div class="bkd-kv-value"><?= $h($firstEvent['location'] ?? '—') ?></div></div>
-              <div class="bkd-kv"><div class="bkd-kv-label">Contact</div><div class="bkd-kv-value"><?= $h($firstEvent['contact_name'] ?? ($booking['customer_name'] ?? '—')) ?></div><div class="bkd-kv-sub"><?= $h($firstEvent['contact_phone'] ?? ($booking['customer_phone'] ?? '—')) ?></div></div>
-            </div>
+        <div class="bkd-run-sheet">
+          <?php if (empty($runSheetGroups)): ?>
+            <div class="bkd-run-empty">No event schedule has been recorded for this booking.</div>
           <?php endif; ?>
 
-          <?php foreach ($items as $item): ?>
+          <?php foreach ($runSheetGroups as $dateKey => $events): ?>
             <?php
-              $schedule = $packageSchedules[(int)($item['id'] ?? 0)] ?? [];
-              if (empty($schedule)) continue;
+              $scheduledDate = $dateKey !== 'unscheduled' ? strtotime($dateKey) : false;
+              $dayLocation = '';
+              $dayGuests = null;
+              $dayContact = '';
+              $dayPhone = '';
+              foreach ($events as $event) {
+                  if ($dayLocation === '' && !empty($event['location'])) $dayLocation = (string)$event['location'];
+                  if ($dayGuests === null && isset($event['guests'])) $dayGuests = $event['guests'];
+                  if ($dayContact === '' && !empty($event['contact_name'])) $dayContact = (string)$event['contact_name'];
+                  if ($dayPhone === '' && !empty($event['contact_phone'])) $dayPhone = (string)$event['contact_phone'];
+              }
+              $dayStart = $events[0]['start'] ?? null;
+              $dayEndValues = array_values(array_filter(array_column($events, 'end')));
+              sort($dayEndValues);
+              $dayEnd = $dayEndValues ? end($dayEndValues) : null;
             ?>
-            <div style="margin-top:16px">
-              <div class="bkd-card-title" style="margin-bottom:8px"><?= $h($item['service_name'] ?? 'Package') ?> — event timeline</div>
-              <div class="bkd-table-wrap" style="border:1px solid var(--bkd-border-light);border-radius:.75rem">
-                <table class="bkd-table">
-                  <thead>
-                    <tr><th>Package service</th><th>Supplier</th><th>Event date</th><th>Managed time</th></tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach ($schedule as $event): ?>
-                      <tr>
-                        <td>
-                          <div class="bkd-table-name"><?= $h($event['service_name'] ?? 'Service') ?></div>
-                          <div class="bkd-table-sub"><?= $h($event['category_name'] ?? 'Package service') ?></div>
-                        </td>
-                        <td><span class="bkd-table-name"><?= $h($event['supplier_name'] ?? 'Golden Promise') ?></span></td>
-                        <td><span class="bkd-table-name"><?= $h($dateOnly($event['event_date'] ?? null)) ?></span></td>
-                        <td><span class="bkd-table-name"><?= $h($timeOnly($event['start_time'] ?? null)) ?> – <?= $h($timeOnly($event['end_time'] ?? null)) ?></span></td>
-                      </tr>
-                    <?php endforeach; ?>
-                  </tbody>
-                </table>
+            <section class="bkd-run-day">
+              <header class="bkd-run-day-head">
+                <div class="bkd-run-date">
+                  <span class="bkd-run-date-day"><?= $scheduledDate ? date('d', $scheduledDate) : '—' ?></span>
+                  <span class="bkd-run-date-month"><?= $scheduledDate ? date('M', $scheduledDate) : 'TBD' ?></span>
+                  <span class="bkd-run-date-year"><?= $scheduledDate ? date('Y', $scheduledDate) : '' ?></span>
+                </div>
+                <div class="bkd-run-summary">
+                  <span class="bkd-run-summary-kicker"><?= $scheduledDate ? date('l', $scheduledDate) : 'Schedule pending' ?></span>
+                  <h3 class="bkd-run-summary-title"><?= count($events) ?> scheduled <?= count($events) === 1 ? 'service' : 'services' ?></h3>
+                  <div class="bkd-run-summary-meta">
+                    <span><i data-lucide="clock-3"></i><?= $h($timeOnly($dayStart)) ?> – <?= $h($timeOnly($dayEnd)) ?></span>
+                    <?php if ($dayGuests !== null): ?><span><i data-lucide="users"></i><?= $h($dayGuests) ?> guests</span><?php endif; ?>
+                    <?php if ($dayLocation !== ''): ?><span><i data-lucide="map-pin"></i><?= $h($dayLocation) ?></span><?php endif; ?>
+                    <?php if ($dayContact !== ''): ?><span><i data-lucide="phone"></i><?= $h($dayContact) ?><?= $dayPhone !== '' ? ' · ' . $h($dayPhone) : '' ?></span><?php endif; ?>
+                  </div>
+                </div>
+              </header>
+
+              <div class="bkd-run-events">
+                <?php foreach ($events as $event): ?>
+                  <article class="bkd-run-event <?= !empty($event['overlap']) ? 'has-overlap' : '' ?>">
+                    <time class="bkd-run-time">
+                      <?= $h($timeOnly($event['start'])) ?>
+                      <span class="bkd-run-time-end"><?= $h($timeOnly($event['end'])) ?></span>
+                    </time>
+                    <div class="bkd-run-track"><span class="bkd-run-node"></span></div>
+                    <div class="bkd-run-event-body">
+                      <div class="bkd-run-service">
+                        <?= $h($event['service'] ?? 'Service') ?>
+                        <span class="bkd-run-category"><?= $h($event['category'] ?? 'Event') ?></span>
+                      </div>
+                      <div class="bkd-run-detail">
+                        <span><i data-lucide="store"></i><?= $h($event['supplier'] ?? 'Supplier') ?></span>
+                        <?php if (!empty($event['location'])): ?><span><i data-lucide="map-pin"></i><?= $h($event['location']) ?></span><?php endif; ?>
+                      </div>
+                      <?php if (!empty($event['overlap'])): ?>
+                        <span class="bkd-run-overlap"><i data-lucide="triangle-alert"></i>Overlaps another scheduled service</span>
+                      <?php endif; ?>
+                    </div>
+                  </article>
+                <?php endforeach; ?>
               </div>
-            </div>
+            </section>
           <?php endforeach; ?>
         </div>
       </div>
@@ -1079,13 +1614,13 @@ $dashboardContent = function () use (
     <!-- ── Sidebar ── -->
     <aside class="bkd-side">
       <!-- Payment proof -->
-      <div class="bkd-card">
+      <div class="bkd-card bkd-action-center">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
               <i data-lucide="image"></i>
             </div>
-            <span class="bkd-card-title">Payment proof</span>
+            <span class="bkd-card-title"><?= $isAwaitingReview ? 'Action center · Payment review' : 'Payment proof' ?></span>
           </div>
         </div>
         <div class="bkd-card-body">
@@ -1111,6 +1646,9 @@ $dashboardContent = function () use (
                 <button class="bkd-btn bkd-btn--danger reject-payment-btn" type="button">
                   <i data-lucide="x-circle"></i> Reject
                 </button>
+                <button class="bkd-btn bkd-btn--success verify-payment-btn" type="button">
+                  <i data-lucide="circle-check"></i> Verify
+                </button>
               </div>
             </form>
           <?php endif; ?>
@@ -1119,7 +1657,7 @@ $dashboardContent = function () use (
       </div>
 
       <!-- Customer card -->
-      <div class="bkd-card">
+      <div class="bkd-card" id="booking-suppliers">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
@@ -1144,7 +1682,7 @@ $dashboardContent = function () use (
       </div>
 
       <!-- Suppliers list -->
-      <div class="bkd-card">
+      <div class="bkd-card" id="booking-activity">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
@@ -1178,7 +1716,7 @@ $dashboardContent = function () use (
       </div>
 
       <!-- Audit trail -->
-      <div class="bkd-card">
+      <div class="bkd-card bkd-danger-zone">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">

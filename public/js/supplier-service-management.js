@@ -924,6 +924,30 @@ function validateCreateEssentials() {
   return true;
 }
 
+function validateDefaultEventTime(prefix) {
+  const start = document.getElementById(prefix + 'DefaultStartTime');
+  const end = document.getElementById(prefix + 'DefaultEndTime');
+  if (!start || !end) return true;
+
+  const startValue = start.value.trim();
+  const endValue = end.value.trim();
+  if (!startValue && !endValue) return true;
+
+  if (!startValue || !endValue) {
+    showToast('Add both default event start and end time, or leave both blank.', 'error');
+    (startValue ? end : start).focus();
+    return false;
+  }
+
+  if (startValue >= endValue) {
+    showToast('Default event end time must be later than the start time.', 'error');
+    end.focus();
+    return false;
+  }
+
+  return true;
+}
+
 function nextCreateStep() {
   if (currentCreateStep === 1 && !currentCreateCategory) {
     showToast('Choose a service category first.', 'error');
@@ -947,6 +971,7 @@ async function saveCreateService() {
   var category = document.getElementById('csCategory').value || currentCreateCategory;
   var name = document.getElementById('csName').value.trim();
   if (!name) { showCreateStep(2); showToast('Please fill in the service name.', 'error'); return; }
+  if (!validateDefaultEventTime('cs')) { showCreateStep(3); return; }
 
   if (category === 'Venue') {
     if (!validateVenueRooms('cs')) return;
@@ -1423,6 +1448,7 @@ async function updateService() {
   const isDecoUpd = item.category === 'Decoration';
   const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
   if (!isVenueUpd && !isDecoUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
+  if (!validateDefaultEventTime('es')) return;
   if (isVenueUpd && !validateVenueRooms('es')) return;
   if (isDecoUpd && !validateDecorationStyles('es')) return;
   if (isRentalUpd && !validateAttireItems('es')) return;

@@ -24,6 +24,7 @@ $calendarConfig = [
         'data' => URLROOT . '/supplier/serviceCalendarData/' . $serviceId,
         'overrideSave' => URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $serviceId,
         'overrideDelete' => URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/',
+        'preview' => URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId,
         'detail' => URLROOT . '/supplier/serviceDetail/' . $serviceId,
     ],
     'service' => [
@@ -122,6 +123,8 @@ $dashboardContent = function () use ($h, $serviceId, $serviceNameRaw, $serviceCa
       <input type="hidden" id="overrideId">
 
       <div id="modalBookings" class="booking-list" hidden></div>
+
+      <div id="modalCapacity" class="capacity-list" hidden></div>
 
       <label class="field">
         <span>Status</span>

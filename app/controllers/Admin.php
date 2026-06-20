@@ -703,23 +703,45 @@ class Admin extends Controller
 
     private function supplierApplications()
     {
-        $status = $_GET['status'] ?? 'pending';
+        $status = $_GET['status'] ?? 'all';
         $allowedStatuses = ['pending', 'approved', 'verified', 'rejected', 'banned', 'all'];
 
         if (!in_array($status, $allowedStatuses, true)) {
-            $status = 'pending';
+            $status = 'all';
         }
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
         $offset = ($page - 1) * $perPage;
+        $search = trim((string)($_GET['search'] ?? ''));
+        $categoryId = max(0, (int)($_GET['category'] ?? 0));
+        $paymentStatus = (string)($_GET['payment'] ?? 'all');
+        if (!in_array($paymentStatus, ['all', 'paid', 'unpaid'], true)) {
+            $paymentStatus = 'all';
+        }
 
-        $suppliers = $this->supplierProfileModel->getApplications($status, $perPage, $offset);
-        $totalCount = $this->supplierProfileModel->getApplicationsCount($status);
+        $suppliers = $this->supplierProfileModel->getApplications(
+            $status,
+            $perPage,
+            $offset,
+            $search,
+            $categoryId,
+            $paymentStatus
+        );
+        $totalCount = $this->supplierProfileModel->getApplicationsCount(
+            $status,
+            $search,
+            $categoryId,
+            $paymentStatus
+        );
 
         $this->view('admin/suppliers', [
             'suppliers' => $suppliers,
             'status' => $status,
+            'search' => $search,
+            'categoryId' => $categoryId,
+            'paymentStatus' => $paymentStatus,
+            'categories' => $this->supplierProfileModel->getCategories(),
             'stats' => $this->supplierProfileModel->getSupplierStats(),
             'topSuppliers' => $status === 'all' ? $this->supplierProfileModel->getTopSuppliers(5) : [],
             'currentPage' => $page,
@@ -1325,8 +1347,8 @@ class Admin extends Controller
                 : 'Could not update hall assignment. The room may not belong to this service.';
         } else {
             $_SESSION['admin_flash'] = $updated
-                ? 'Package food guest count and base price updated.'
-                : 'Only food or catering services can use guest count.';
+                ? 'Included guest count and base price updated.'
+                : 'Only per-guest services can use included guest count.';
         }
         redirect($packageId > 0 ? 'admin/packageDetail/' . $packageId : 'admin/packages');
     }

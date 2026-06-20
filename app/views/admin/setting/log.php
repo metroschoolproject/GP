@@ -105,14 +105,14 @@ $dashboardContent = function () use (
     .log-stat:last-child { border-right: 0; }
     .log-stat::after { content: ""; position: absolute; right: 18px; top: 20px; width: 7px; height: 7px; border-radius: 50%; background: var(--stat-color); box-shadow: 0 0 0 5px color-mix(in srgb, var(--stat-color) 12%, transparent); }
     .log-stat-label { color: #9b7d89; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .log-stat-value { display: block; margin-top: 8px; color: #34232b; font-family: "Playfair Display", serif; font-size: 28px; line-height: 1; }
+    .log-stat-value { display: block; margin-top: 8px; color: #34232b; font-family: Inter, sans-serif; font-size: 28px; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.025em; }
     .log-stat-note { display: block; margin-top: 7px; color: #a58b96; font-size: 11px; }
 
     .log-panel { overflow: hidden; border: 1px solid #ead8c7; border-radius: 15px; background: #fff; box-shadow: 0 18px 45px rgba(52,35,43,.06); }
     .log-filters { display: grid; grid-template-columns: minmax(240px, 1.6fr) repeat(4, minmax(135px, .7fr)) auto; gap: 10px; padding: 16px; border-bottom: 1px solid #ead8c7; background: #faf5ef; }
     .log-search-wrap { position: relative; }
     .log-search-icon { position: absolute; left: 13px; top: 50%; width: 16px; height: 16px; color: #9b7d89; transform: translateY(-50%); pointer-events: none; }
-    .log-control { width: 100%; min-height: 42px; box-sizing: border-box; border: 1px solid #e4d2c3; border-radius: 10px; background: #fff; padding: 0 12px; color: #34232b; font: 500 12px Poppins, sans-serif; }
+    .log-control { width: 100%; min-height: 42px; box-sizing: border-box; border: 1px solid #e4d2c3; border-radius: 10px; background: #fff; padding: 0 12px; color: #34232b; font: 500 12px Inter, sans-serif; }
     .log-search { padding-left: 39px; }
     .log-control::placeholder { color: #b79c8b; }
     .log-filter-actions { display: flex; gap: 8px; }
@@ -142,7 +142,7 @@ $dashboardContent = function () use (
     .log-more { color: #b79c8b; }
     .log-empty { padding: 70px 24px; text-align: center; }
     .log-empty-icon { display: inline-flex; width: 52px; height: 52px; align-items: center; justify-content: center; border-radius: 16px; background: #faf5ef; color: #9b7d89; }
-    .log-empty h2 { margin: 15px 0 6px; color: #34232b; font: 700 17px Poppins, sans-serif; }
+    .log-empty h2 { margin: 15px 0 6px; color: #34232b; font: 700 17px Inter, sans-serif; }
     .log-empty p { margin: 0; color: #9b7d89; font-size: 12px; }
 
     .pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 18px; background: #faf5ef; }

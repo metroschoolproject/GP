@@ -456,10 +456,11 @@
           <label class="fm-label" for="csPriceMax">Customize price (MMK) <span class="fm-required">*</span></label>
           <input id="csPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 1500" class="fm-input"/>
         </div>
-        <div>
-          <label class="fm-label" for="csCapacity">Max concurrent</label>
-          <input id="csCapacity" type="number" min="1" step="1" placeholder="e.g. 50" class="fm-input"/>
-        </div>
+	        <div>
+	          <label class="fm-label" for="csCapacity">Bookings per time slot</label>
+	          <input id="csCapacity" type="number" min="1" step="1" placeholder="e.g. 4" class="fm-input"/>
+	          <p class="fm-hint">How many bookings you can handle in the same slot. This is not a daily limit.</p>
+	        </div>
       </div>
       </section>
 
@@ -581,15 +582,15 @@
             <input id="csMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0" class="fm-input" style="max-width:160px"/>
             <p class="fm-hint">How many days in advance customers must book. 0 = same day.</p>
           </div>
-          <div>
-            <label class="fm-label">Default service hours <span style="font-weight:400;color:var(--fm-text-muted)">— optional</span></label>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-              <input id="csDefaultStartTime" type="time" class="fm-input" style="max-width:150px"/>
-              <span style="color:var(--fm-text-soft);flex-shrink:0;font-size:13px">to</span>
-              <input id="csDefaultEndTime" type="time" class="fm-input" style="max-width:150px"/>
-            </div>
-            <p class="fm-hint">Leave blank to use category defaults. Used for full-day package bookings.</p>
-          </div>
+	          <div>
+	            <label class="fm-label">Default event time <span style="font-weight:400;color:var(--fm-text-muted)">— optional</span></label>
+	            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+	              <input id="csDefaultStartTime" type="time" class="fm-input" style="max-width:150px"/>
+	              <span style="color:var(--fm-text-soft);flex-shrink:0;font-size:13px">to</span>
+	              <input id="csDefaultEndTime" type="time" class="fm-input" style="max-width:150px"/>
+	            </div>
+	            <p class="fm-hint">Fallback time for package/full-day bookings. This does not open your weekly calendar.</p>
+	          </div>
         </div>
       </div>
       </section>
@@ -645,15 +646,15 @@
         <input id="esMinLeadDays" type="number" min="0" max="365" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
         <div style="font-size:12px;color:#666;margin-top:4px">How many days in advance must customers book this service?</div>
       </div>
-      <div id="esDefaultTimeRow">
-        <label class="fm-label">Default service hours <span style="font-weight:400;color:#9a8b82">(optional)</span></label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input id="esDefaultStartTime" type="time" class="fm-input" style="max-width:130px"/>
-          <span style="color:#9a8b82;flex-shrink:0">to</span>
-          <input id="esDefaultEndTime" type="time" class="fm-input" style="max-width:130px"/>
-        </div>
-        <div style="font-size:12px;color:#666;margin-top:4px">Leave blank to use category defaults. Used for full-day package bookings.</div>
-      </div>
+	      <div id="esDefaultTimeRow">
+	        <label class="fm-label">Default event time <span style="font-weight:400;color:#9a8b82">(optional)</span></label>
+	        <div style="display:flex;align-items:center;gap:8px">
+	          <input id="esDefaultStartTime" type="time" class="fm-input" style="max-width:130px"/>
+	          <span style="color:#9a8b82;flex-shrink:0">to</span>
+	          <input id="esDefaultEndTime" type="time" class="fm-input" style="max-width:130px"/>
+	        </div>
+	        <div style="font-size:12px;color:#666;margin-top:4px">Fallback time for package/full-day bookings. Weekly availability is set separately.</div>
+	      </div>
       <div id="esVenueExtras" class="hidden space-y-4">
         <div class="modal-grid-2">
           <div>

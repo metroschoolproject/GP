@@ -1,225 +1,329 @@
 <?php
 $dashboardTitle = 'Suppliers';
-$dashboardCrumb = 'Applications';
+$dashboardCrumb = 'Directory';
+$suppliers = $suppliers ?? [];
+$status = $status ?? 'all';
+$search = $search ?? '';
+$categoryId = (int)($categoryId ?? 0);
+$paymentStatus = $paymentStatus ?? 'all';
+$categories = $categories ?? [];
 $topSuppliers = $topSuppliers ?? [];
 $stats = $stats ?? [];
-$dashboardContentClass = 'supplier-admin-content px-6 py-6';
-$money = fn($v) => 'MMK ' . number_format((float)$v, 0);
-$dashboardContent = function () use ($suppliers, $status, $topSuppliers, $stats, $money) {
-    $supplierTotal = count($suppliers ?? []);
-    $supplierPending = (int)($stats['pending'] ?? 0);
-    $supplierApproved = (int)($stats['approved'] ?? 0);
-    $supplierRejected = (int)($stats['rejected'] ?? 0);
-    $supplierBanned = (int)($stats['banned'] ?? 0);
-    $hasTopSuppliers = ($status === 'all' && !empty($topSuppliers));
+$dashboardContentClass = 'supplier-directory-shell';
+
+$h = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+$money = static fn($value) => number_format((float)$value, 0) . ' MMK';
+
+$statusMeta = static function ($value) {
+    return match (strtolower((string)$value)) {
+        'pending' => ['Pending review', '#b7792f', 'clock-3'],
+        'approved' => ['Approved', '#4f7c69', 'circle-check'],
+        'verified' => ['Verified', '#39708a', 'badge-check'],
+        'rejected' => ['Rejected', '#b94b4b', 'circle-x'],
+        'banned' => ['Banned', '#8c3941', 'ban'],
+        default => [ucfirst((string)$value ?: 'Unknown'), '#7b5c69', 'circle'],
+    };
+};
+
+$paymentMeta = static function ($value) {
+    $normalized = strtolower((string)$value);
+    if (in_array($normalized, ['paid', 'verified', 'success'], true)) {
+        return ['Paid', 'is-paid'];
+    }
+    if (in_array($normalized, ['pending', 'submitted'], true)) {
+        return ['Pending payment', 'is-pending'];
+    }
+    return [ucfirst($normalized ?: 'Not recorded'), 'is-unpaid'];
+};
+
+$filterUrl = static function ($filter, $searchTerm = '', $selectedCategory = 0, $selectedPayment = 'all') {
+    $params = ['status' => $filter];
+    if ($searchTerm !== '') $params['search'] = $searchTerm;
+    if ($selectedCategory > 0) $params['category'] = $selectedCategory;
+    if ($selectedPayment !== 'all') $params['payment'] = $selectedPayment;
+    return URLROOT . '/admin/suppliers?' . http_build_query($params);
+};
+
+$dashboardContent = function () use (
+    $suppliers,
+    $status,
+    $search,
+    $categoryId,
+    $paymentStatus,
+    $categories,
+    $topSuppliers,
+    $stats,
+    $h,
+    $money,
+    $statusMeta,
+    $paymentMeta,
+    $filterUrl,
+    $currentPage,
+    $totalPages,
+    $totalCount,
+    $perPage
+) {
+    $counts = [
+        'all' => (int)($stats['total'] ?? 0),
+        'pending' => (int)($stats['pending'] ?? 0),
+        'approved' => (int)($stats['approved'] ?? 0),
+        'verified' => (int)($stats['verified'] ?? 0),
+        'rejected' => (int)($stats['rejected'] ?? 0),
+        'banned' => (int)($stats['banned'] ?? 0),
+    ];
 ?>
-    <style>
-        .supplier-admin-content{min-height:100%;background:#FBFBF9;padding:28px 32px;color:#111827;font-size:13px}
-        .supplier-admin-shell{--surface:#ffffff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#d1fae5;--success-text:#065f46;--warn-bg:#fef3c7;--warn-text:#92400e;--danger-bg:#fee2e2;--danger-text:#991b1b;--neutral-bg:#f3f4f6;--neutral-text:#57534e;max-width:1600px;margin:0 auto}
-        .supplier-admin-shell *{box-sizing:border-box}
-        .page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
-        .eyebrow,.stat-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-        .page-header h1{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin:0}
-        .page-sub{margin-top:4px;color:var(--body);font-size:13px}
-        .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
-        .filters{display:flex;gap:6px;flex-wrap:wrap}
-        .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;transition:all .12s;white-space:nowrap;text-decoration:none}
-        .filter:hover{border-color:var(--border);background:var(--hover);color:var(--primary)}
-        .filter.active{border-color:var(--primary);background:var(--primary);color:#fff}
-        .summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
-        .stat{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:14px 16px}
-        .stat-value{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.3px}
-        .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
-        .stat-value.success{color:var(--success-text)}
-        .stat-value.warn{color:var(--warn-text)}
-        .stat-value.danger{color:var(--danger-text)}
-        .card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.04)}
-        .card-head{padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
-        .card-head-left{display:flex;align-items:center;gap:8px}
-        .card-head-icon{width:28px;height:28px;border-radius:.75rem;background:var(--hover);display:flex;align-items:center;justify-content:center;color:var(--primary)}
-        .card-head-title{font-size:13px;font-weight:700;color:var(--text)}
-        .card-count{font-size:11px;color:var(--muted);font-weight:600}
-        .supplier-table-wrap{overflow-x:auto}
-        .supplier-table{width:100%;border-collapse:collapse;text-align:left;font-size:13px}
-        .supplier-table thead tr{background:var(--soft)}
-        .supplier-table th{padding:9px 20px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
-        .supplier-table th:last-child,.supplier-table td:last-child{text-align:right}
-        .supplier-table tbody tr{border-top:1px solid var(--border-light);transition:background .1s}
-        .supplier-table tbody tr:hover{background:var(--soft)}
-        .supplier-table td{padding:13px 20px;vertical-align:middle}
-        .supplier-empty{padding:34px 20px;text-align:center;color:var(--muted)}
-        .biz-name{font-weight:600;color:var(--text);font-size:13px}
-        .biz-email,.muted-text{font-size:11px;color:var(--muted);margin-top:2px}
-        .body-text{font-size:12px;color:var(--body)}
-        .badge{display:inline-flex;align-items:center;border-radius:20px;padding:3px 9px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-        .admin-badge-pending{background:var(--warn-bg);color:var(--warn-text)}
-        .admin-badge-approved{background:var(--success-bg);color:var(--success-text)}
-        .admin-badge-rejected{background:var(--danger-bg);color:var(--danger-text)}
-        .admin-badge-muted{background:var(--neutral-bg);color:var(--neutral-text)}
-        .review-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;border:0;border-radius:.75rem;background:var(--primary);padding:0 10px;color:#fff;font-size:11px;font-weight:800;text-decoration:none;transition:background .12s}
-        .review-btn:hover{background:var(--primary-hover)}
-        @media(max-width:1100px){.summary-row{grid-template-columns:repeat(3,1fr)}}
-        @media(max-width:760px){.supplier-admin-content{padding:20px 16px}.summary-row{grid-template-columns:1fr}}
-    </style>
-    <div class="supplier-admin-shell">
-        <div class="page-header flex justify-between">
-            <div>
-                <p class="eyebrow">Suppliers</p>
-                <h1>Supplier Management</h1>
-                <p class="page-sub">Review, approve, warn, or ban suppliers. Monitor top performers.</p>
-            </div>
-            <div class="toolbar">
-                <div class="filters">
-                    <?php foreach (['all', 'pending', 'approved', 'verified', 'rejected', 'banned'] as $filter): ?>
-                        <a href="<?= URLROOT ?>/admin/suppliers?status=<?= $filter ?>" class="filter <?= ($status ?? '') === $filter ? 'active' : '' ?>">
-                            <?= ucfirst($filter) ?>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
+<style>
+  .supplier-directory-shell{min-height:100%;padding:30px;background:#fbfbf9}
+  .supplier-directory{--ink:#34232b;--body:#7b5c69;--muted:#a58b96;--line:#ead8c7;--paper:#fff;--wash:#faf5ef;--wine:#6d4c5b;max-width:1380px;margin:0 auto;color:var(--ink)}
+  .sd-head{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin-bottom:22px}
+  .sd-kicker{margin:0 0 7px;color:#9b7d89;font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase}
+  .sd-title{margin:0;color:var(--ink);font:650 clamp(30px,3vw,42px)/1 "Playfair Display",serif}
+  .sd-copy{max-width:620px;margin:10px 0 0;color:var(--body);font-size:12px;line-height:1.6}
+  .sd-total{display:inline-flex;min-height:40px;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:0 14px;background:#fff;color:var(--wine);font-size:11px;font-weight:800;box-shadow:0 10px 28px rgba(52,35,43,.06)}
+  .sd-total strong{font-size:15px;font-variant-numeric:tabular-nums}
 
-        <div class="summary-row">
-            <div class="stat">
-                <div class="stat-label">Total</div>
-                <div class="stat-value"><?= $supplierTotal ?></div>
-                <div class="stat-sub">All suppliers</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">Pending</div>
-                <div class="stat-value warn"><?= $supplierPending ?></div>
-                <div class="stat-sub">Awaiting review</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">Approved</div>
-                <div class="stat-value success"><?= $supplierApproved ?></div>
-                <div class="stat-sub">Active suppliers</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">Rejected</div>
-                <div class="stat-value danger"><?= $supplierRejected ?></div>
-                <div class="stat-sub">Declined</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">Banned</div>
-                <div class="stat-value danger"><?= $supplierBanned ?></div>
-                <div class="stat-sub">Restricted</div>
-            </div>
-        </div>
+  .sd-toolbar{overflow:hidden;margin-bottom:18px;border:1px solid var(--line);border-radius:15px;background:#fff;box-shadow:0 18px 45px rgba(52,35,43,.055)}
+  .sd-search-row{padding:14px}
+  .sd-search-form{display:grid;grid-template-columns:minmax(260px,1.5fr) minmax(135px,.55fr) minmax(170px,.65fr) minmax(145px,.55fr) auto;gap:8px;align-items:center}
+  .sd-search-wrap{position:relative;min-width:0}
+  .sd-search-icon{position:absolute;left:13px;top:50%;width:16px;height:16px;color:#9b7d89;transform:translateY(-50%)}
+  .sd-search{width:100%;min-height:42px;box-sizing:border-box;border:1px solid #e4d2c3;border-radius:10px;background:#fff;padding:0 39px;color:var(--ink);font:500 12px Inter,sans-serif}
+  .sd-search::placeholder{color:#b79c8b}
+  .sd-search:focus-visible,.sd-select:focus-visible,.sd-search-btn:focus-visible,.sd-filter:focus-visible,.sd-action:focus-visible,.page-btn:focus-visible{outline:3px solid rgba(109,76,91,.2);outline-offset:2px}
+  .sd-clear{position:absolute;right:7px;top:50%;display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;border-radius:7px;color:#9b7d89;text-decoration:none;transform:translateY(-50%)}
+  .sd-search-btn{display:inline-flex;min-height:42px;align-items:center;justify-content:center;border:1px solid var(--wine);border-radius:10px;padding:0 15px;background:var(--wine);color:#fff;font:750 11px Inter,sans-serif;cursor:pointer}
+  .sd-select-wrap{position:relative;min-width:0}
+  .sd-select-icon{position:absolute;left:12px;top:50%;width:14px;height:14px;color:#9b7d89;transform:translateY(-50%);pointer-events:none}
+  .sd-select{width:100%;min-height:42px;box-sizing:border-box;appearance:none;border:1px solid #e4d2c3;border-radius:10px;background:#fff;padding:0 31px 0 34px;color:#5f4651;font:650 10px Inter,sans-serif;cursor:pointer}
+  .sd-select-chevron{position:absolute;right:10px;top:50%;width:13px;height:13px;color:#9b7d89;transform:translateY(-50%);pointer-events:none}
+  .sd-active-filters{display:flex;flex-wrap:wrap;align-items:center;gap:7px;border-top:1px solid var(--line);padding:10px 13px;background:#fff}
+  .sd-active-label{margin-right:2px;color:#a58b96;font-size:8px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+  .sd-active-chip{display:inline-flex;min-height:27px;align-items:center;gap:6px;border-radius:999px;padding:0 9px;background:#f2e8e1;color:#6d4c5b;font-size:9px;font-weight:750;text-decoration:none}
+  .sd-active-chip:hover{background:#e9d8cc}
+  .sd-active-chip svg{width:11px;height:11px}
+  .sd-clear-all{margin-left:auto;color:#8e727e;font-size:9px;font-weight:750;text-decoration:none}
+  .sd-clear-all:hover{color:var(--wine);text-decoration:underline}
+  .sd-filter-row{display:flex;gap:4px;overflow-x:auto;border-top:1px solid var(--line);padding:9px 12px;background:var(--wash)}
+  .sd-filter{display:inline-flex;min-height:35px;flex:0 0 auto;align-items:center;gap:7px;border-radius:9px;padding:0 11px;color:#8e727e;font-size:10px;font-weight:750;text-decoration:none}
+  .sd-filter:hover{background:#fff;color:var(--wine)}
+  .sd-filter.active{background:var(--wine);color:#fff;box-shadow:0 8px 18px rgba(109,76,91,.17)}
+  .sd-filter-count{display:inline-flex;min-width:20px;height:20px;align-items:center;justify-content:center;border-radius:999px;padding:0 5px;background:rgba(109,76,91,.09);font-size:8px;font-variant-numeric:tabular-nums}
+  .sd-filter.active .sd-filter-count{background:rgba(255,255,255,.16)}
 
-        <?php if ($hasTopSuppliers): ?>
-        <section class="card" style="margin-bottom:20px">
-            <div class="card-head">
-                <div class="card-head-left">
-                    <span class="card-head-icon"><i data-lucide="trophy" class="h-4 w-4"></i></span>
-                    <span class="card-head-title">Top Performing Suppliers</span>
-                </div>
-                <span class="card-count">By revenue</span>
-            </div>
-            <div class="supplier-table-wrap">
-                <table class="supplier-table">
-                    <thead>
-                        <tr><th>Supplier</th><th>Bookings</th><th>Revenue</th><th>Rating</th><th>Status</th><th>Action</th></tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($topSuppliers as $top): ?>
-                        <tr>
-                            <td>
-                                <p class="biz-name"><?= htmlspecialchars($top['shop_name'] ?? 'Supplier', ENT_QUOTES, 'UTF-8') ?></p>
-                            </td>
-                            <td class="body-text"><?= (int)($top['completed_bookings'] ?? 0) ?> completed</td>
-                            <td class="body-text" style="font-weight:700"><?= $money($top['revenue_earned'] ?? 0) ?></td>
-                            <td class="body-text"><?= round((float)($top['avg_rating'] ?? 0), 1) ?> ★ (<?= (int)($top['review_count'] ?? 0) ?>)</td>
-                            <td>
-                                <?php $ts = $top['status'] ?? ''; $tsClass = 'admin-badge-' . (strtolower($ts) ?: 'muted'); ?>
-                                <span class="badge <?= $tsClass ?>"><?= htmlspecialchars($ts, ENT_QUOTES, 'UTF-8') ?></span>
-                                <?php if ((int)($top['warning_level'] ?? 0) > 0): ?>
-                                    <span class="badge admin-badge-rejected" style="margin-left:4px">W<?= (int)$top['warning_level'] ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td><a href="<?= URLROOT ?>/admin/supplier/<?= (int)$top['supplier_id'] ?>" class="review-btn">Manage</a></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-        <?php endif; ?>
+  .sd-featured{margin-bottom:18px;border:1px solid var(--line);border-radius:15px;background:#fff;box-shadow:0 16px 40px rgba(52,35,43,.05)}
+  .sd-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 17px;border-bottom:1px solid var(--line)}
+  .sd-section-title{display:flex;align-items:center;gap:8px;margin:0;color:var(--ink);font-size:11px;font-weight:800}
+  .sd-section-title svg{width:15px;height:15px;color:#b7792f}
+  .sd-section-note{color:#a58b96;font-size:9px;font-weight:700}
+  .sd-featured-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0}
+  .sd-featured-item{min-width:0;padding:15px;border-right:1px solid #f0e5dc;text-decoration:none;transition:background .15s ease}
+  .sd-featured-item:last-child{border-right:0}
+  .sd-featured-item:hover{background:#fdf9f5}
+  .sd-featured-rank{color:#b7792f;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .sd-featured-name{margin-top:5px;overflow:hidden;color:var(--ink);font-size:11px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
+  .sd-featured-stats{margin-top:6px;color:#8e727e;font-size:9px;font-weight:650;line-height:1.5}
 
-        <section class="card">
-            <div class="card-head">
-                <div class="card-head-left">
-                    <span class="card-head-icon"><i data-lucide="store" class="h-4 w-4"></i></span>
-                    <span class="card-head-title"><?= $status === 'all' ? 'All Suppliers' : ucfirst($status) . ' Suppliers' ?></span>
-                </div>
-                <span class="card-count"><?= $supplierTotal ?> records</span>
-            </div>
-            <div class="supplier-table-wrap">
-                <table class="supplier-table">
-                    <thead>
-                        <tr>
-                            <th>Business</th>
-                            <th>Owner</th>
-                            <th>Categories</th>
-                            <th>Status</th>
-                            <th>Payment</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($suppliers)): ?>
-                            <tr>
-                                <td colspan="6" class="supplier-empty">No supplier applications found.</td>
-                            </tr>
-                        <?php endif; ?>
-                        <?php foreach (($suppliers ?? []) as $supplier): ?>
-                            <tr>
-                                <td>
-                                    <p class="biz-name"><?= htmlspecialchars($supplier['shop_name'] ?? 'Supplier', ENT_QUOTES, 'UTF-8') ?></p>
-                                    <p class="biz-email max-w-xs truncate"><?= htmlspecialchars($supplier['verify_url'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
-                                </td>
-                                <td>
-                                    <p class="biz-name"><?= htmlspecialchars($supplier['owner_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                                    <p class="muted-text"><?= htmlspecialchars($supplier['owner_email'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-                                </td>
-                                <td class="body-text"><?= htmlspecialchars($supplier['category_names'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
-                                <td>
-                                    <?php $statusClass = 'admin-badge-' . strtolower($supplier['status'] ?? 'muted'); ?>
-                                    <span class="badge <?= htmlspecialchars($statusClass, ENT_QUOTES, 'UTF-8') ?>">
-                                        <?= htmlspecialchars($supplier['status'] ?? '-', ENT_QUOTES, 'UTF-8') ?>
-                                    </span>
-                                </td>
-                                <td class="body-text"><?= htmlspecialchars($supplier['payment_status'] ?? '-', ENT_QUOTES, 'UTF-8') ?></td>
-                                <td>
-                                    <a href="<?= URLROOT ?>/admin/supplier/<?= (int)$supplier['supplier_id'] ?>" class="review-btn">
-                                        <i data-lucide="clipboard-check" class="h-4 w-4"></i>
-                                        <span>Review</span>
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+  .sd-directory-list{display:grid;gap:10px}
+  .sd-row{position:relative;display:grid;grid-template-columns:minmax(250px,1.35fr) minmax(190px,.9fr) minmax(255px,1.1fr) auto;gap:18px;align-items:center;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#fff;padding:17px 18px 17px 22px;box-shadow:0 10px 28px rgba(52,35,43,.04);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+  .sd-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--status-color)}
+  .sd-row:hover{transform:translateY(-1px);border-color:#d8c1b1;box-shadow:0 16px 34px rgba(52,35,43,.075)}
+  .sd-business{display:flex;min-width:0;align-items:center;gap:12px}
+  .sd-avatar{display:inline-flex;width:44px;height:44px;flex:0 0 44px;align-items:center;justify-content:center;border-radius:12px;background:color-mix(in srgb,var(--status-color) 10%,white);color:var(--status-color);font-size:14px;font-weight:800}
+  .sd-business-copy{min-width:0}
+  .sd-name{overflow:hidden;color:var(--ink);font-size:13px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
+  .sd-owner{margin-top:3px;overflow:hidden;color:#8e727e;font-size:10px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+  .sd-category{display:flex;flex-wrap:wrap;gap:5px}
+  .sd-chip{display:inline-flex;min-height:24px;align-items:center;border-radius:999px;padding:0 8px;background:#faf5ef;color:#7b5c69;font-size:8px;font-weight:750}
+  .sd-chip-more{background:#f0e6df;color:#6d4c5b}
+  .sd-signals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .sd-signal{min-width:0;border-left:1px solid #f0e5dc;padding-left:10px}
+  .sd-signal:first-child{border-left:0;padding-left:0}
+  .sd-signal-label{color:#a58b96;font-size:7px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  .sd-signal-value{display:block;margin-top:4px;overflow:hidden;color:var(--ink);font-size:10px;font-weight:750;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .sd-state{display:grid;min-width:125px;gap:8px;justify-items:end}
+  .sd-badge{display:inline-flex;min-height:25px;align-items:center;gap:6px;border-radius:999px;padding:0 9px;color:var(--status-color);background:color-mix(in srgb,var(--status-color) 10%,white);font-size:8px;font-weight:800;text-transform:uppercase}
+  .sd-badge svg{width:11px;height:11px}
+  .sd-payment{display:inline-flex;align-items:center;gap:5px;color:#8e727e;font-size:9px;font-weight:700}
+  .sd-payment::before{content:"";width:6px;height:6px;border-radius:50%;background:#a58b96}
+  .sd-payment.is-paid::before{background:#4f7c69}.sd-payment.is-pending::before{background:#b7792f}.sd-payment.is-unpaid::before{background:#b94b4b}
+  .sd-warning{color:#b94b4b;font-size:8px;font-weight:800}
+  .sd-action{display:inline-flex;min-height:34px;align-items:center;gap:6px;border:1px solid #ddc8b9;border-radius:9px;padding:0 10px;background:#fff;color:var(--wine);font-size:9px;font-weight:800;text-decoration:none}
+  .sd-action:hover{background:var(--wine);color:#fff;border-color:var(--wine)}
+  .sd-action svg{width:12px;height:12px}
+  .sd-empty{border:1px dashed #decbbb;border-radius:15px;background:#faf5ef;padding:70px 24px;text-align:center}
+  .sd-empty-icon{display:inline-flex;width:52px;height:52px;align-items:center;justify-content:center;border-radius:16px;background:#fff;color:#9b7d89;box-shadow:0 10px 25px rgba(52,35,43,.06)}
+  .sd-empty h2{margin:15px 0 6px;color:var(--ink);font-size:16px}
+  .sd-empty p{margin:0;color:#9b7d89;font-size:11px}
 
-            <?php
-            if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
-                $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
-                $baseParams = 'status=' . urlencode($status ?? 'pending');
-                require APPROOT . '/views/partials/_pagination.php';
-            }
-            ?>
-        </section>
+  .pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:17px;border:1px solid var(--line);border-radius:12px;background:#faf5ef;padding:13px 15px}
+  .page-info{color:#9b7d89;font-size:10px;font-weight:650}.page-btns{display:flex;align-items:center;gap:5px}.page-btn{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border:1px solid #e4d2c3;border-radius:8px;background:#fff;color:#7b5c69;font-size:10px;font-weight:700;text-decoration:none}.page-btn.active{border-color:var(--wine);background:var(--wine);color:#fff}
+
+  @media(max-width:1150px){.sd-search-form{grid-template-columns:1fr 1fr 1fr}.sd-search-wrap{grid-column:1/-1}.sd-search-btn{grid-column:3}.sd-featured-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.sd-featured-item:nth-child(3){border-right:0}.sd-row{grid-template-columns:minmax(230px,1.2fr) minmax(170px,.8fr) minmax(220px,1fr)}.sd-state{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end}}
+  @media(max-width:780px){.supplier-directory-shell{padding:20px}.sd-head{align-items:flex-start;flex-direction:column}.sd-search-form{grid-template-columns:1fr}.sd-search-wrap,.sd-search-btn{grid-column:auto}.sd-active-filters{align-items:flex-start}.sd-clear-all{width:100%;margin:2px 0 0}.sd-featured-grid{grid-template-columns:1fr}.sd-featured-item{border-right:0;border-bottom:1px solid #f0e5dc}.sd-featured-item:last-child{border-bottom:0}.sd-row{grid-template-columns:1fr;gap:14px;padding:17px 16px 17px 20px}.sd-state{grid-column:auto;justify-content:flex-start}.sd-signals{padding-top:12px;border-top:1px solid #f0e5dc}.pagination{align-items:flex-start;flex-direction:column}}
+  @media(prefers-reduced-motion:reduce){.sd-row,.sd-featured-item{transition:none}}
+</style>
+
+<div class="supplier-directory">
+  <header class="sd-head">
+    <div>
+      <p class="sd-kicker">Partner operations</p>
+      <h1 class="sd-title">Supplier directory</h1>
+      <p class="sd-copy">Review applications, monitor account health, and open each supplier’s operational record.</p>
     </div>
+    <span class="sd-total"><strong><?= number_format($counts['all']) ?></strong> suppliers</span>
+  </header>
+
+  <section class="sd-toolbar" aria-label="Supplier filters">
+    <div class="sd-search-row">
+      <form class="sd-search-form" method="get" action="<?= URLROOT ?>/admin/suppliers">
+        <div class="sd-search-wrap">
+          <i data-lucide="search" class="sd-search-icon"></i>
+          <input class="sd-search" type="search" name="search" value="<?= $h($search) ?>" placeholder="Search suppliers">
+        </div>
+        <div class="sd-select-wrap">
+          <i data-lucide="activity" class="sd-select-icon"></i>
+          <select class="sd-select" name="status" aria-label="Supplier status">
+            <?php foreach (['all' => 'All statuses', 'pending' => 'Pending', 'approved' => 'Approved', 'verified' => 'Verified', 'rejected' => 'Rejected', 'banned' => 'Banned'] as $value => $label): ?>
+              <option value="<?= $value ?>" <?= $status === $value ? 'selected' : '' ?>><?= $label ?></option>
+            <?php endforeach; ?>
+          </select>
+          <i data-lucide="chevron-down" class="sd-select-chevron"></i>
+        </div>
+        <div class="sd-select-wrap">
+          <i data-lucide="tags" class="sd-select-icon"></i>
+          <select class="sd-select" name="category" aria-label="Supplier category">
+            <option value="0">All categories</option>
+            <?php foreach ($categories as $category): ?>
+              <option value="<?= (int)$category['id'] ?>" <?= $categoryId === (int)$category['id'] ? 'selected' : '' ?>><?= $h($category['name'] ?? '') ?></option>
+            <?php endforeach; ?>
+          </select>
+          <i data-lucide="chevron-down" class="sd-select-chevron"></i>
+        </div>
+        <div class="sd-select-wrap">
+          <i data-lucide="wallet-cards" class="sd-select-icon"></i>
+          <select class="sd-select" name="payment" aria-label="Payment status">
+            <option value="all" <?= $paymentStatus === 'all' ? 'selected' : '' ?>>All payments</option>
+            <option value="paid" <?= $paymentStatus === 'paid' ? 'selected' : '' ?>>Paid</option>
+            <option value="unpaid" <?= $paymentStatus === 'unpaid' ? 'selected' : '' ?>>Unpaid</option>
+          </select>
+          <i data-lucide="chevron-down" class="sd-select-chevron"></i>
+        </div>
+        <button class="sd-search-btn" type="submit"><i data-lucide="sliders-horizontal" class="h-3.5 w-3.5"></i>Apply</button>
+      </form>
+    </div>
+    <?php
+      $activeCategoryName = '';
+      foreach ($categories as $category) {
+          if ((int)$category['id'] === $categoryId) $activeCategoryName = (string)($category['name'] ?? '');
+      }
+      $hasActiveFilters = $search !== '' || $status !== 'all' || $categoryId > 0 || $paymentStatus !== 'all';
+    ?>
+    <?php if ($hasActiveFilters): ?>
+      <div class="sd-active-filters">
+        <span class="sd-active-label">Active filters</span>
+        <?php if ($search !== ''): ?>
+          <a class="sd-active-chip" href="<?= $h($filterUrl($status, '', $categoryId, $paymentStatus)) ?>">Search: “<?= $h($search) ?>” <i data-lucide="x"></i></a>
+        <?php endif; ?>
+        <?php if ($status !== 'all'): ?>
+          <a class="sd-active-chip" href="<?= $h($filterUrl('all', $search, $categoryId, $paymentStatus)) ?>"><?= $h(ucfirst($status)) ?> <i data-lucide="x"></i></a>
+        <?php endif; ?>
+        <?php if ($categoryId > 0): ?>
+          <a class="sd-active-chip" href="<?= $h($filterUrl($status, $search, 0, $paymentStatus)) ?>"><?= $h($activeCategoryName) ?> <i data-lucide="x"></i></a>
+        <?php endif; ?>
+        <?php if ($paymentStatus !== 'all'): ?>
+          <a class="sd-active-chip" href="<?= $h($filterUrl($status, $search, $categoryId, 'all')) ?>"><?= $h(ucfirst($paymentStatus)) ?> <i data-lucide="x"></i></a>
+        <?php endif; ?>
+        <a class="sd-clear-all" href="<?= URLROOT ?>/admin/suppliers">Clear all</a>
+      </div>
+    <?php endif; ?>
+  </section>
+
+  <?php if ($status === 'all' && $search === '' && $categoryId === 0 && $paymentStatus === 'all' && !empty($topSuppliers)): ?>
+    <section class="sd-featured">
+      <div class="sd-section-head">
+        <h2 class="sd-section-title"><i data-lucide="trophy"></i> Top-performing partners</h2>
+        <span class="sd-section-note">Ranked by confirmed revenue</span>
+      </div>
+      <div class="sd-featured-grid">
+        <?php foreach ($topSuppliers as $index => $top): ?>
+          <a class="sd-featured-item" href="<?= URLROOT ?>/admin/supplier/<?= (int)$top['supplier_id'] ?>">
+            <div class="sd-featured-rank">Rank <?= $index + 1 ?></div>
+            <div class="sd-featured-name"><?= $h($top['shop_name'] ?? 'Supplier') ?></div>
+            <div class="sd-featured-stats"><?= $money($top['revenue_earned'] ?? 0) ?><br><?= (int)($top['completed_bookings'] ?? 0) ?> bookings · <?= number_format((float)($top['avg_rating'] ?? 0), 1) ?> ★</div>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </section>
+  <?php endif; ?>
+
+  <?php if (empty($suppliers)): ?>
+    <div class="sd-empty">
+      <span class="sd-empty-icon"><i data-lucide="store"></i></span>
+      <h2>No suppliers found</h2>
+      <p>Adjust the status filter or clear the search.</p>
+    </div>
+  <?php else: ?>
+    <section class="sd-directory-list" aria-label="Supplier directory results">
+      <?php foreach ($suppliers as $supplier): ?>
+        <?php
+        [$statusLabel, $statusColor, $statusIcon] = $statusMeta($supplier['status'] ?? '');
+        [$paymentLabel, $paymentClass] = $paymentMeta($supplier['payment_status'] ?? '');
+        $supplierCategories = array_values(array_filter(array_map('trim', explode(',', (string)($supplier['category_names'] ?? '')))));
+        $initial = mb_strtoupper(mb_substr(trim((string)($supplier['shop_name'] ?? 'S')), 0, 1));
+        $warningLevel = (int)($supplier['warning_level'] ?? 0);
+        ?>
+        <article class="sd-row" style="--status-color:<?= $h($statusColor) ?>">
+          <div class="sd-business">
+            <span class="sd-avatar"><?= $h($initial) ?></span>
+            <div class="sd-business-copy">
+              <div class="sd-name"><?= $h($supplier['shop_name'] ?? 'Supplier') ?></div>
+              <div class="sd-owner"><?= $h($supplier['owner_name'] ?? 'Unknown owner') ?> · <?= $h($supplier['owner_email'] ?? 'No email') ?></div>
+            </div>
+          </div>
+
+          <div class="sd-category">
+            <?php if (empty($supplierCategories)): ?><span class="sd-chip">Uncategorized</span><?php endif; ?>
+            <?php foreach (array_slice($supplierCategories, 0, 2) as $category): ?><span class="sd-chip"><?= $h($category) ?></span><?php endforeach; ?>
+            <?php if (count($supplierCategories) > 2): ?><span class="sd-chip sd-chip-more">+<?= count($supplierCategories) - 2 ?></span><?php endif; ?>
+          </div>
+
+          <div class="sd-signals">
+            <div class="sd-signal"><span class="sd-signal-label">Bookings</span><strong class="sd-signal-value"><?= number_format((int)($supplier['booking_count'] ?? 0)) ?></strong></div>
+            <div class="sd-signal"><span class="sd-signal-label">Rating</span><strong class="sd-signal-value"><?= (int)($supplier['review_count'] ?? 0) > 0 ? number_format((float)$supplier['avg_rating'], 1) . ' ★' : 'New' ?></strong></div>
+            <div class="sd-signal"><span class="sd-signal-label">Payment</span><strong class="sd-signal-value"><?= $h($paymentLabel) ?></strong></div>
+          </div>
+
+          <div class="sd-state">
+            <span class="sd-badge"><i data-lucide="<?= $h($statusIcon) ?>"></i><?= $h($statusLabel) ?></span>
+            <span class="sd-payment <?= $h($paymentClass) ?>"><?= $h($paymentLabel) ?></span>
+            <?php if ($warningLevel > 0): ?><span class="sd-warning">Warning level <?= $warningLevel ?></span><?php endif; ?>
+            <a class="sd-action" href="<?= URLROOT ?>/admin/supplier/<?= (int)$supplier['supplier_id'] ?>">
+              <?= strtolower((string)($supplier['status'] ?? '')) === 'pending' ? 'Review' : 'Manage' ?>
+              <i data-lucide="arrow-up-right"></i>
+            </a>
+          </div>
+        </article>
+      <?php endforeach; ?>
+    </section>
+  <?php endif; ?>
+
+  <?php
+  $baseParams = http_build_query(array_filter([
+      'status' => $status,
+      'search' => $search,
+      'category' => $categoryId > 0 ? $categoryId : '',
+      'payment' => $paymentStatus !== 'all' ? $paymentStatus : '',
+  ], static fn($value) => $value !== ''));
+  require APPROOT . '/views/partials/_pagination.php';
+  ?>
+</div>
 <?php
 };
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <?php require_once APPROOT . '/views/dashboardLayout/head.php' ?>
-</head>
-<body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">
-    <?php require_once APPROOT . '/views/dashboardLayout/sidebar.php' ?>
+<head><?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
+<body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns:280px 1fr">
+  <?php require APPROOT . '/views/dashboardLayout/adminsidebar.php'; ?>
 </body>
 </html>
