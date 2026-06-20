@@ -2159,6 +2159,19 @@ const packageScheduleState = new Map();
       .then(data => {
         if (data.success && data.redirect) {
           window.location.href = data.redirect;
+        } else if (Array.isArray(data.unavailable) && data.unavailable.length) {
+          const lines = data.unavailable.map(u => {
+            let line = (u.service_name || 'A package service') + ': ' + (u.message || 'not available');
+            if (Array.isArray(u.alternatives) && u.alternatives.length) {
+              const dates = u.alternatives.map(a => a.label || a.date).join(', ');
+              line += ' — try ' + dates;
+            }
+            return line;
+          });
+          showBookingReminder(lines, "These package services aren't available on your date:");
+          showToast(lines[0], 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalSubmitHtml;
         } else {
           const error = data.error || 'Something went wrong. Please try again.';
           showBookingReminder([error], 'Please fix this before proceeding.');
