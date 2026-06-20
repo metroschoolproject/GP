@@ -157,7 +157,7 @@ a{color:inherit;text-decoration:none}
         </strong>
         <span style="color:#7b5c69;font-size:13px">
           <?= $h($pendingReplacement['new_shop_name'] ?? 'A new supplier') ?> is available, but costs
-          <strong><?= number_format((float)($pendingReplacement['price_delta'] ?? 0), 0) ?> MMK</strong> more.
+          <strong>RM <?= number_format((float)($pendingReplacement['price_delta'] ?? 0), 0) ?></strong> more.
           <?= $replacementProofSubmitted
               ? 'Your payment proof was submitted. The booking service will change after admin verification.'
               : 'Approve and pay the difference to confirm it.' ?>
@@ -227,7 +227,7 @@ a{color:inherit;text-decoration:none}
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Payment reference</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
       <?php endif; ?>
       <?php if (!empty($depositPayment['paid_amount'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;">RM <?= number_format((float)$depositPayment['paid_amount'], 0) ?></div></div>
       <?php endif; ?>
       <?php if (!empty($depositPayment['paid_at'])): ?>
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transfer Date</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>

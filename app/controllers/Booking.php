@@ -1651,6 +1651,12 @@ class Booking extends Controller
             // Package booking: keep the booking alive and route to admin re-pick.
             if ($activeRepl) {
                 // A replacement supplier backed out — reopen the existing request.
+                // Reverse any already-paid price difference and remember the
+                // rejected service so it isn't offered again (must run BEFORE we
+                // clear new_service_id / price_delta below).
+                $rejectedServiceId = (int)($activeRepl['new_service_id'] ?? 0);
+                $this->bookingModel->reverseReplacementDeltaIfPaid((int)$activeRepl['id']);
+                $this->bookingModel->appendRejectedService((int)$activeRepl['id'], $rejectedServiceId);
                 $this->bookingModel->updateReplacement((int)$activeRepl['id'], [
                     'status' => 'declined_again',
                     'new_supplier_id' => null,
@@ -1982,12 +1988,17 @@ class Booking extends Controller
                 $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
             }
             $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
-            $this->notificationModel->notifyBookingSuppliers(
-                $bookingId,
-                'New Package Booking — Please Respond',
-                'You have been assigned to a package booking as a replacement. Please accept or decline within 48 hours.',
-                'booking'
-            );
+            $newSupplierUserId = $this->bookingModel->getSupplierUserId((int)$chosen['supplier_id']);
+            if ($newSupplierUserId > 0) {
+                $this->notificationModel->notifyUser(
+                    $newSupplierUserId,
+                    'New Package Booking — Please Respond',
+                    'You have been assigned to a package booking as a replacement. Please accept or decline within 48 hours.',
+                    'booking',
+                    'booking',
+                    $bookingId
+                );
+            }
             $this->notificationModel->notifyBookingCustomer(
                 $bookingId,
                 'Replacement Arranged',
@@ -2059,12 +2070,17 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Payment was already reviewed.'], 409);
         }
         $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
-        $this->notificationModel->notifyBookingSuppliers(
-            $bookingId,
-            'New Package Booking — Please Respond',
-            'You have been assigned to a package booking as a replacement. Please accept or decline within 48 hours.',
-            'booking'
-        );
+        $newSupplierUserId = $this->bookingModel->getSupplierUserId((int)($replacement['new_supplier_id'] ?? 0));
+        if ($newSupplierUserId > 0) {
+            $this->notificationModel->notifyUser(
+                $newSupplierUserId,
+                'New Package Booking — Please Respond',
+                'You have been assigned to a package booking as a replacement. Please accept or decline within 48 hours.',
+                'booking',
+                'booking',
+                $bookingId
+            );
+        }
         $this->notificationModel->notifyBookingCustomer(
             $bookingId,
             'Replacement Confirmed',

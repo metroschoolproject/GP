@@ -20,16 +20,16 @@ define('DB_PASS', '');
 define('DB_NAME', 'goldenpromise');
 
 define('GOOGLE_CLIENT_ID', '453132170855-j9npo21t5tr7n6c874ml66ta1l96km1j.apps.googleusercontent.com');
-define('GOOGLE_CLIENT_SECRET', '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');
+define('GOOGLE_CLIENT_SECRET', env('GOOGLE_CLIENT_SECRET', ''));
 define('GOOGLE_REDIRECT_URI', 'http://localhost/GP/users/googleCallback');
 
 define('FACEBOOK_APP_ID', '26938920369127434');
-define('FACEBOOK_APP_SECRET', '0b24838fe93fdae640f11a882f1a298c');
+define('FACEBOOK_APP_SECRET', env('FACEBOOK_APP_SECRET', ''));
 define('FACEBOOK_REDIRECT_URI', 'http://localhost/GP/users/facebookCallback');
 
 
 
-define('GEMINI_API_KEY', 'AQ.Ab8RN6K4xV4_5A_Gq4vIRxK4gH0hnTZgyseqwUjKbyCgXWqNlg');
+define('GEMINI_API_KEY', env('GEMINI_API_KEY', ''));
 
 
 // Email Configuration
@@ -48,8 +48,8 @@ define('PLATFORM_BANK_ACCOUNTS', [
     'Visa / MasterCard' => ['account' => 'XXXX-XXXX-XXXX-XXXX', 'name' => 'Golden Promise Co., Ltd.'],
 ]);
 
-// Cron Security
-define('CRON_TOKEN', 'your-secret-cron-token');
+// Cron Security — set a strong CRON_TOKEN in .env before relying on cron auth
+define('CRON_TOKEN', env('CRON_TOKEN', ''));
 
 // Default service time windows by category (used for fullday package bookings).
 // Priority: service_schedules open/close > services.default_start/end_time > this fallback.

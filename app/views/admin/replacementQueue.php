@@ -2,7 +2,7 @@
 $replacements = $replacements ?? [];
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-$money = fn($v) => number_format((float)$v, 0) . ' MMK';
+$money = fn($v) => 'RM ' . number_format((float)$v, 0);
 $dateOnly = static function ($value, string $fallback = '-') {
     if (empty($value)) return $fallback;
     $ts = strtotime((string)$value);

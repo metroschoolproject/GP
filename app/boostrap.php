@@ -1,6 +1,8 @@
 <?php
 
 
+require_once 'helpers/env.php';
+loadEnv(dirname(__DIR__) . '/.env');
 require_once 'config/config.php';
 require_once 'helpers/Pagination.php';
 require_once 'helpers/flashmessage.php';

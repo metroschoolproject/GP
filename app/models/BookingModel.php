@@ -1829,6 +1829,13 @@ class BookingModel
         $oldPrice = (float)($r['old_price'] ?? 0);
         $eventDate = $r['event_date'] ?? null;
 
+        // Services already rejected for this replacement (by the customer or a
+        // backed-out supplier) must not be offered again on re-pick.
+        $rejectedIds = array_values(array_filter(array_map(
+            'intval',
+            explode(',', (string)($r['rejected_service_ids'] ?? ''))
+        )));
+
         $cap = defined('MAX_REPLACEMENT_UPCHARGE_PCT') ? (float)MAX_REPLACEMENT_UPCHARGE_PCT : 25.0;
         $ceiling = $oldPrice > 0 ? $oldPrice * (1 + $cap / 100) : null;
 
@@ -1847,6 +1854,11 @@ class BookingModel
                    AND sup.is_available = 1
                    AND sup.status IN ('approved','verified')
                    AND sup.payment_status = 'paid'";
+        // Exclude services already rejected on a previous pick for this request.
+        if ($rejectedIds) {
+            $placeholders = implode(',', array_map(static fn($i) => ':rej' . $i, array_keys($rejectedIds)));
+            $sql .= " AND s.id NOT IN ($placeholders)";
+        }
         // Price ceiling is NOT enforced — admins may pick an over-budget
         // replacement; those are flagged below and routed through the customer
         // approval (propose + pay delta) flow.
@@ -1875,6 +1887,9 @@ class BookingModel
         $this->db->dbquery($sql);
         $this->db->dbbind(':cat', $categoryId, PDO::PARAM_INT);
         $this->db->dbbind(':old_sup', $oldSupplier, PDO::PARAM_INT);
+        foreach ($rejectedIds as $i => $sid) {
+            $this->db->dbbind(':rej' . $i, $sid, PDO::PARAM_INT);
+        }
         if ($dayOfWeek !== null) {
             $this->db->dbbind(':dow', $dayOfWeek, PDO::PARAM_INT);
         }
@@ -1903,7 +1918,7 @@ class BookingModel
         $allowed = [
             'new_supplier_id','new_service_id','new_price','price_delta',
             'requires_customer_approval','customer_approved_at','proposed_at','delta_payment_id',
-            'status','chosen_by_admin_id','assigned_at','resolved_at',
+            'status','chosen_by_admin_id','assigned_at','resolved_at','rejected_service_ids',
         ];
         $sets = [];
         foreach ($fields as $k => $v) {
@@ -2143,6 +2158,89 @@ class BookingModel
         return (int)$this->db->lastinsertid();
     }
 
+    /**
+     * Map a supplier to its owning user id (for targeted notifications).
+     */
+    public function getSupplierUserId(int $supplierId): int
+    {
+        if ($supplierId <= 0) {
+            return 0;
+        }
+        $this->db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return (int)($row['user_id'] ?? 0);
+    }
+
+    /**
+     * Append a service id to a replacement's rejected list (deduped) so the
+     * candidate finder won't re-offer it on the next pick.
+     */
+    public function appendRejectedService(int $replacementId, int $serviceId): bool
+    {
+        if ($serviceId <= 0) {
+            return false;
+        }
+        $r = $this->getReplacement($replacementId);
+        if (!$r) {
+            return false;
+        }
+        $ids = array_values(array_filter(array_map('intval', explode(',', (string)($r['rejected_service_ids'] ?? '')))));
+        if (!in_array($serviceId, $ids, true)) {
+            $ids[] = $serviceId;
+        }
+        return $this->updateReplacement($replacementId, ['rejected_service_ids' => implode(',', $ids)]);
+    }
+
+    /**
+     * Reverse a replacement price-delta that was already paid (payment in
+     * 'success') when the replacement later falls through. Refunds the payment
+     * and subtracts the delta from the booking totals — exactly once.
+     * Safe to call when nothing was paid (returns false, no-op).
+     */
+    public function reverseReplacementDeltaIfPaid(int $replacementId): bool
+    {
+        $r = $this->getReplacement($replacementId);
+        if (!$r) {
+            return false;
+        }
+        $paymentId = (int)($r['delta_payment_id'] ?? 0);
+        $delta = round((float)($r['price_delta'] ?? 0), 2);
+        if ($paymentId <= 0 || $delta <= 0) {
+            return false;
+        }
+
+        // Only reverse a payment that is currently 'success' (idempotent: a
+        // second call finds it 'refunded' and rowcount is 0).
+        $this->db->dbquery(
+            "UPDATE payments
+                SET status = 'refunded', verified_at = NOW()
+              WHERE id = :pid AND type = 'replacement_delta' AND status = 'success'"
+        );
+        $this->db->dbbind(':pid', $paymentId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        if ($this->db->rowcount() !== 1) {
+            return false; // nothing to reverse (not paid, or already refunded)
+        }
+
+        $this->db->dbquery(
+            "UPDATE bookings
+                SET total_amount = GREATEST(COALESCE(total_amount,0) - :d, 0),
+                    paid_amount  = GREATEST(COALESCE(paid_amount,0) - :d2, 0)
+              WHERE id = :bid"
+        );
+        $this->db->dbbind(':d', $delta);
+        $this->db->dbbind(':d2', $delta);
+        $this->db->dbbind(':bid', (int)$r['booking_id'], PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        $this->logStatusChange(
+            (int)$r['booking_id'], null, 'replacement_delta_refunded', null,
+            'Refunded paid price-difference of ' . number_format($delta, 0) . ' after replacement fell through'
+        );
+        return true;
+    }
+
     public function rejectReplacementByCustomer(int $replacementId, int $userId): array|false
     {
         $replacement = $this->getReplacementForCustomer($replacementId);
@@ -2156,6 +2254,9 @@ class BookingModel
 
         $this->db->beginTransaction();
         try {
+            // Remember the rejected service so the admin's re-pick won't re-offer it.
+            $this->appendRejectedService($replacementId, (int)($replacement['new_service_id'] ?? 0));
+
             $paymentId = (int)($replacement['delta_payment_id'] ?? 0);
             if ($paymentId > 0) {
                 $this->db->dbquery(
@@ -2969,7 +3070,7 @@ class BookingModel
 
         // A) Assigned replacement supplier missed the deadline.
         $this->db->dbquery(
-            "SELECT r.id AS rid, r.booking_id, r.new_supplier_id
+            "SELECT r.id AS rid, r.booking_id, r.new_supplier_id, r.new_service_id
                FROM booking_supplier_replacements r
                INNER JOIN bookings b ON b.id = r.booking_id
                INNER JOIN booking_suppliers bs
@@ -2994,6 +3095,12 @@ class BookingModel
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
             $this->db->dbbind(':sup', $newSupplier, PDO::PARAM_INT);
             $this->db->dbexecute();
+
+            // Refund any already-paid delta and remember the rejected service
+            // before clearing the pick (must run before updateReplacement).
+            $rejectedServiceId = (int)($row['new_service_id'] ?? 0);
+            $this->reverseReplacementDeltaIfPaid($rid);
+            $this->appendRejectedService($rid, $rejectedServiceId);
 
             // Re-open the request for admin.
             $this->updateReplacement($rid, [

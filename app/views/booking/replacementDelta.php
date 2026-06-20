@@ -4,7 +4,7 @@ $delta       = (float)($delta ?? 0);
 $bookingRef  = $bookingRef ?? '';
 $flash       = $flash ?? null;
 
-$money = fn($v) => number_format((float)$v, 0) . ' MMK';
+$money = fn($v) => 'RM ' . number_format((float)$v, 0);
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 
 $replacementId = (int)($replacement['id'] ?? 0);
@@ -94,7 +94,7 @@ $banks = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / Ma
         <input type="text" name="transaction_ref" id="transaction_ref" required>
       </div>
       <div>
-        <label for="paid_amount">Amount paid (MMK)</label>
+        <label for="paid_amount">Amount paid (RM)</label>
         <input type="text" name="paid_amount" id="paid_amount" value="<?= (int)$delta ?>" required>
       </div>
     </div>
