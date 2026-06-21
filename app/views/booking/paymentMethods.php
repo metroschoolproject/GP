@@ -8,6 +8,9 @@ $balance = (float)($balance ?? 0);
 $bookingRef = $bookingRef ?? '';
 
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
+$platformFee = (float)($platformFee ?? 0);
+$platformFeePercent = (int)($platformFeePercent ?? PLATFORM_FEE_PERCENT);
+$depositWithFee = (float)($depositWithFee ?? $deposit);
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -189,8 +192,14 @@ a{color:inherit;text-decoration:none}
           </div>
           <?php endforeach; ?>
           <div class="gp-divider" style="margin:4px 0"></div>
-          <div class="gp-row total"><span>Total</span><span><?= $money($total) ?></span></div>
-          <div class="gp-row deposit"><span>Deposit to pay (<?= $depositPercent ?>%)</span><span><?= $money($deposit) ?></span></div>
+          <div class="gp-row total"><span>Booking subtotal</span><span><?= $money($total) ?></span></div>
+          <?php if ($platformFee > 0): ?>
+          <div class="gp-row" style="color:var(--muted)"><span>Platform service fee (<?= $platformFeePercent ?>%)</span><span><?= $money($platformFee) ?></span></div>
+          <?php endif; ?>
+          <div class="gp-row deposit"><span>Deposit to pay (<?= $depositPercent ?>% of subtotal)</span><span><?= $money($deposit) ?></span></div>
+          <?php if ($platformFee > 0): ?>
+          <div class="gp-row" style="color:var(--muted)"><span>Total with fee</span><span><?= $money($depositWithFee) ?></span></div>
+          <?php endif; ?>
           <div class="gp-row balance"><span>Balance due before event</span><span><?= $money($balance) ?></span></div>
         </div>
       </div>
@@ -218,12 +227,16 @@ a{color:inherit;text-decoration:none}
       <?php foreach ($banks as $bankName => $bankInfo): ?>
       <?php $safeId = preg_replace('/[^a-z0-9]/', '-', strtolower($bankName)); ?>
       <div class="gp-account-box" id="acct-<?= $safeId ?>">
-        <div class="gp-account-title">Transfer <?= $money($deposit) ?> to this account</div>
+        <div class="gp-account-title">Transfer <?= $money($depositWithFee) ?> to this account</div>
         <dl class="gp-account-rows">
           <div class="gp-account-row"><dt>Bank</dt><dd><?= $h($bankName) ?></dd></div>
           <div class="gp-account-row"><dt>Account Name</dt><dd><?= $h($bankInfo['name'] ?? '') ?></dd></div>
           <div class="gp-account-row"><dt>Account / Number</dt><dd><?= $h($bankInfo['account'] ?? '') ?></dd></div>
-          <div class="gp-account-row"><dt>Amount</dt><dd><?= $money($deposit) ?></dd></div>
+          <div class="gp-account-row"><dt>Deposit (<?= $depositPercent ?>%)</dt><dd><?= $money($deposit) ?></dd></div>
+          <?php if ($platformFee > 0): ?>
+          <div class="gp-account-row"><dt>Platform Fee (<?= $platformFeePercent ?>%)</dt><dd><?= $money($platformFee) ?></dd></div>
+          <?php endif; ?>
+          <div class="gp-account-row"><dt>Total to Pay</dt><dd><?= $money($depositWithFee) ?></dd></div>
         </dl>
       </div>
       <?php endforeach; ?>
@@ -264,7 +277,7 @@ a{color:inherit;text-decoration:none}
           </div>
           <div class="gp-field">
             <label for="paid_amount">Amount Paid (MMK) <span class="req">*</span></label>
-            <input type="number" id="paid_amount" name="paid_amount" placeholder="<?= (int)$deposit ?>" min="1" step="1" required>
+            <input type="number" id="paid_amount" name="paid_amount" placeholder="<?= (int)$depositWithFee ?>" value="<?= (int)$depositWithFee ?>" min="1" step="1" required>
           </div>
           <div class="gp-field">
             <label for="remark">Remark <span class="opt">(optional)</span></label>

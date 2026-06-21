@@ -11,6 +11,7 @@ $canReview = $canReview ?? false;
 $existingReview = $existingReview ?? null;
 $canEditReview = $canEditReview ?? false;
 $pendingReplacement = $pendingReplacement ?? null;
+$replacementHistory = is_array($replacementHistory ?? null) ? $replacementHistory : [];
 
 $statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled','cancellation_requested'=>'Cancellation Requested'];
 $money = fn($v) => number_format((float)$v,0) . ' MMK';
@@ -148,31 +149,91 @@ a{color:inherit;text-decoration:none}
 <main class="gp-page">
   <div class="gp-back"><a href="<?=URLROOT?>/booking/myBookings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back to Bookings</a></div>
 
-  <?php if ($pendingReplacement): ?>
-    <?php $replacementProofSubmitted = !empty($pendingReplacement['customer_approved_at']) && !empty($pendingReplacement['delta_payment_slip']); ?>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;background:#fffbeb;border:1px solid #fcd34d;border-radius:14px;padding:16px 20px;margin-bottom:20px">
-      <div>
-        <strong style="display:block;color:#92400e;font-size:14px">
-          <?= $replacementProofSubmitted ? 'Replacement approval is being verified' : 'Replacement supplier needs your approval' ?>
-        </strong>
-        <span style="color:#7b5c69;font-size:13px">
-          <?= $h($pendingReplacement['new_shop_name'] ?? 'A new supplier') ?> is available, but costs
-          <strong><?= number_format((float)($pendingReplacement['price_delta'] ?? 0), 0) ?> MMK</strong> more.
-          <?= $replacementProofSubmitted
-              ? 'Your payment proof was submitted. The booking service will change after admin verification.'
-              : 'Approve and pay the difference to confirm it.' ?>
-        </span>
+  <?php if (!empty($replacementHistory)): ?>
+    <?php
+    $replStatusLabels = [
+        'pending_admin' => 'Finding replacement',
+        'declined_again' => 'Finding another replacement',
+        'rejected_by_customer' => 'You declined this option',
+        'pending_customer' => 'Waiting for your approval',
+        'assigned' => 'New supplier assigned',
+    ];
+    $badgeColor = function ($status) {
+        return match ($status) {
+            'pending_customer' => 'background:#fef3c7;color:#92400e;border-color:#fcd34d',
+            'assigned' => 'background:#dbeafe;color:#1e40af;border-color:#bfdbfe',
+            'rejected_by_customer' => 'background:#fee2e2;color:#991b1b;border-color:#fecaca',
+            'declined_again' => 'background:#fef3c7;color:#92400e;border-color:#fcd34d',
+            default => 'background:#f3f4f6;color:#57534e;border-color:#e5e7eb',
+        };
+    };
+    ?>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d4c5b" stroke-width="2"><path d="M16 3l5 5-5 5M21 8H8a5 5 0 0 0 0 10h1"/></svg>
+        <strong style="font-size:14px;color:#1f2937">Service Replacement</strong>
       </div>
-      <?php if (!$replacementProofSubmitted): ?>
-        <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$pendingReplacement['id'] ?>"
-           style="white-space:nowrap;background:#6d4c5b;color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none">
-          Approve &amp; pay difference →
-        </a>
-      <?php else: ?>
-        <span style="white-space:nowrap;background:#fff;color:#92400e;border:1px solid #fcd34d;padding:9px 16px;border-radius:999px;font-size:12px;font-weight:700">
-          Awaiting verification
-        </span>
-      <?php endif; ?>
+      <div style="padding:0 18px">
+      <?php foreach ($replacementHistory as $idx => $repl):
+        $isLast = $idx === count($replacementHistory) - 1;
+        $status = (string)($repl['status'] ?? '');
+        $oldService = $repl['old_service_name'] ?? 'A service';
+        $oldSupplier = $repl['old_shop_name'] ?? $repl['old_supplier_name'] ?? 'Original supplier';
+        $newSupplier = $repl['new_shop_name'] ?? $repl['new_service_name'] ?? 'New supplier';
+        $newPrice = (float)($repl['new_price'] ?? 0);
+        $oldPrice = (float)($repl['old_price'] ?? 0);
+        $delta = (float)($repl['price_delta'] ?? 0);
+        $reason = $repl['decline_reason'] ?? '';
+        $proofSubmitted = !empty($repl['customer_approved_at']) && !empty($repl['delta_payment_slip']);
+        $proposedAt = $repl['proposed_at'] ?? null;
+        $createdAt = $repl['created_at'] ?? null;
+        $deadline = $proposedAt ? date('M d', strtotime($proposedAt . ' + 3 days')) : null;
+        $daysLeft = $proposedAt ? max(0, (int)((strtotime($proposedAt) + 3*86400) - time()) / 86400) : null;
+      ?>
+        <div style="display:flex;gap:12px;padding:14px 0;<?= $isLast ? '' : 'border-bottom:1px solid #f3f4f6' ?>">
+          <!-- Timeline dot + line -->
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+            <div style="width:10px;height:10px;border-radius:50%;border:2px solid <?= $status === 'pending_customer' ? '#f59e0b' : ($status === 'rejected_by_customer' ? '#dc2626' : '#6d4c5b') ?>;background:<?= $status === 'pending_customer' ? '#fef3c7' : ($status === 'rejected_by_customer' ? '#fee2e2' : '#6d4c5b') ?>"></div>
+            <?php if (!$isLast): ?><div style="width:2px;flex:1;min-height:20px;background:#e5e7eb"></div><?php endif; ?>
+          </div>
+          <!-- Content -->
+          <div style="flex:1;min-width:0;padding-bottom:2px">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+              <strong style="font-size:13px;color:#1f2937"><?= $h($oldService) ?> — <?= $h($oldSupplier) ?></strong>
+              <span style="display:inline-flex;align-items:center;border:1px solid;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;<?= $badgeColor($status) ?>"><?= $h($replStatusLabels[$status] ?? $status) ?></span>
+            </div>
+            <?php if ($reason !== ''): ?>
+            <div style="font-size:12px;color:#991b1b;margin-bottom:4px">Reason: <?= $h($reason) ?></div>
+            <?php endif; ?>
+            <?php if ($status === 'pending_customer'): ?>
+              <div style="font-size:12px;color:#7b5c69;margin-bottom:6px">
+                <?= $h($newSupplier) ?> is available<?= $newPrice > 0 ? ' at ' . number_format($newPrice, 0) . ' MMK' : '' ?>.
+                <?php if ($delta > 0): ?><strong style="color:#dc2626">+<?= number_format($delta, 0) ?> MMK more.</strong><?php endif; ?>
+                <?php if ($deadline): ?>⏰ Respond by <strong><?= $deadline ?></strong><?php endif; ?>
+              </div>
+              <?php if (!$proofSubmitted): ?>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$repl['id'] ?>" style="background:#6d4c5b;color:#fff;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">Approve &amp; Pay →</a>
+                <form method="POST" action="<?=URLROOT?>/booking/rejectReplacement/<?= (int)$repl['id'] ?>" style="margin:0" onsubmit="return confirm('Decline this replacement? Admin will find another option.')">
+                  <input type="hidden" name="csrf_token" value="<?= $h(csrf_token()) ?>">
+                  <button type="submit" style="background:#fff;color:#991b1b;border:1px solid #fecaca;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer">Decline</button>
+                </form>
+              </div>
+              <?php else: ?>
+              <div style="font-size:12px;color:#92400e">⏳ Payment proof submitted — admin is verifying</div>
+              <?php endif; ?>
+            <?php elseif ($status === 'rejected_by_customer'): ?>
+              <div style="font-size:12px;color:#7b5c69">You declined this replacement. Admin will find another option.</div>
+            <?php elseif ($status === 'assigned'): ?>
+              <div style="font-size:12px;color:#1e40af"><?= $h($newSupplier) ?> has been assigned. Waiting for them to confirm.</div>
+            <?php else: ?>
+              <div style="font-size:12px;color:#7b5c69">Admin is finding a replacement supplier.</div>
+            <?php endif; ?>
+            <?php if ($createdAt): ?><div style="font-size:10px;color:#9ca3af;margin-top:4px"><?= date('M d, H:i', strtotime((string)$createdAt)) ?></div><?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+      </div>
     </div>
   <?php endif; ?>
 

@@ -2343,12 +2343,16 @@ class BookingModel
             "SELECT r.*, b.user_id, b.total_amount,
                     sup.shop_name AS new_shop_name,
                     s.name AS new_service_name,
+                    sup_old.shop_name AS old_shop_name,
+                    svc_old.name AS old_service_name,
                     p.status AS delta_payment_status,
                     p.payment_slip_path AS delta_payment_slip
                FROM booking_supplier_replacements r
                INNER JOIN bookings b ON b.id = r.booking_id
                LEFT JOIN suppliers sup ON sup.supplier_id = r.new_supplier_id
-               LEFT JOIN services  s   ON s.id = r.new_service_id
+               LEFT JOIN suppliers sup_old ON sup_old.supplier_id = r.old_supplier_id
+               LEFT JOIN services s ON s.id = r.new_service_id
+               LEFT JOIN services svc_old ON svc_old.id = r.old_service_id
                LEFT JOIN payments p ON p.id = r.delta_payment_id
               WHERE r.id = :id LIMIT 1"
         );
@@ -2397,6 +2401,38 @@ class BookingModel
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         return $this->db->getsingledata();
+    }
+
+    /**
+     * Get all replacement history for a booking (for customer-facing timeline).
+     */
+    public function getReplacementHistory(int $bookingId): array
+    {
+        $this->db->dbquery(
+            "SELECT r.id, r.status, r.new_service_id, r.new_price, r.price_delta,
+                    r.old_supplier_id, r.new_supplier_id,
+                    svc_old.name AS old_service_name,
+                    sp_old.shop_name AS old_supplier_name,
+                    r.old_price,
+                    r.decline_reason,
+                    r.proposed_at, r.resolved_at, r.created_at,
+                    r.customer_approved_at,
+                    sp_old.shop_name AS old_shop_name,
+                    sp_new.shop_name AS new_shop_name,
+                    svc_new.name AS new_service_name,
+                    p.status AS delta_payment_status,
+                    p.payment_slip_path AS delta_payment_slip
+             FROM booking_supplier_replacements r
+             LEFT JOIN suppliers sp_old ON sp_old.supplier_id = r.old_supplier_id
+             LEFT JOIN suppliers sp_new ON sp_new.supplier_id = r.new_supplier_id
+             LEFT JOIN services svc_new ON svc_new.id = r.new_service_id
+             LEFT JOIN services svc_old ON svc_old.id = r.old_service_id
+             LEFT JOIN payments p ON p.id = r.delta_payment_id
+             WHERE r.booking_id = :bid
+             ORDER BY r.id ASC"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
     }
 
     /**
@@ -3346,7 +3382,9 @@ class BookingModel
         string $accountName = '',
         string $mobileNumber = '',
         float $paidAmount = 0.0,
-        string $paidAt = ''
+        string $paidAt = '',
+        float $platformFee = 0.0,
+        float $supplierAmount = 0.0
     ): bool {
         $columns = ['booking_id', 'amount', 'type', 'method', 'status', 'transaction_ref', 'escrow_status'];
         $values = [':bid', ':amount', "'deposit'", ':method', "'pending'", ':ref', "'held'"];
@@ -3356,6 +3394,16 @@ class BookingModel
             ':method' => [$method, PDO::PARAM_STR],
             ':ref' => [$reference, PDO::PARAM_STR],
         ];
+
+        // Platform fee column
+        $columns[] = 'platform_fee';
+        $values[] = ':pfee';
+        $bindings[':pfee'] = [number_format($platformFee, 2, '.', '')];
+
+        // Supplier amount column
+        $columns[] = 'supplier_amount';
+        $values[] = ':samt';
+        $bindings[':samt'] = [number_format($supplierAmount, 2, '.', '')];
 
         $optionalColumns = [
             'bank_name' => [$method, PDO::PARAM_STR],
@@ -3598,17 +3646,27 @@ class BookingModel
                 throw new RuntimeException('Booking is no longer awaiting payment.');
             }
 
+            // Calculate platform fee and supplier amount from the booking
+            $this->db->dbquery("SELECT total_amount FROM bookings WHERE id = :bid LIMIT 1");
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $booking = $this->db->getsingledata();
+            $totalAmount = (float)($booking['total_amount'] ?? 0);
+            $pfee = round($totalAmount * (PLATFORM_FEE_PERCENT / 100), 2);
+            $supplierReceived = round($totalAmount * (BOOKING_DEPOSIT_PERCENT / 100), 2);
+
             $this->db->dbquery(
                 "INSERT INTO payments
-                    (booking_id, amount, paid_amount, type, method, status,
-                     transaction_ref, escrow_status, paid_at, verified_at)
+                    (booking_id, amount, paid_amount, platform_fee, supplier_amount,
+                     type, method, status, transaction_ref, escrow_status, paid_at, verified_at)
                  VALUES
-                    (:bid, :amount, :paid, 'deposit', :method, 'success',
-                     :txn, 'held', NOW(), NOW())"
+                    (:bid, :amount, :paid, :pfee, :samt,
+                     'deposit', :method, 'success', :txn, 'held', NOW(), NOW())"
             );
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
             $this->db->dbbind(':amount', number_format($amount, 2, '.', ''));
             $this->db->dbbind(':paid', number_format($amount, 2, '.', ''));
+            $this->db->dbbind(':pfee', number_format($pfee, 2, '.', ''));
+            $this->db->dbbind(':samt', number_format($supplierReceived, 2, '.', ''));
             $this->db->dbbind(':method', $method, PDO::PARAM_STR);
             $this->db->dbbind(':txn', $transactionId, PDO::PARAM_STR);
             $this->db->dbexecute();
@@ -3917,6 +3975,43 @@ class BookingModel
         $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    /**
+     * Get all payment transactions related to a supplier's bookings (deposits, remaining, full).
+     * This is the supplier's payment history — what customers paid toward their services.
+     */
+    public function getSupplierPaymentHistory(int $supplierId, int $limit = 20, int $offset = 0): array
+    {
+        $this->db->dbquery(
+            "SELECT p.id, p.booking_id, p.amount, p.platform_fee, p.supplier_amount,
+                    p.type, p.status, p.method, p.created_at, p.paid_at,
+                    u.name AS customer_name
+             FROM payments p
+             JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid1
+             JOIN bookings b ON b.id = p.booking_id
+             JOIN users u ON u.user_id = b.user_id
+             WHERE p.type IN ('deposit','remaining','full')
+             ORDER BY p.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $this->db->dbbind(':sid1', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    public function getSupplierPaymentHistoryCount(int $supplierId): int
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(DISTINCT p.id)
+             FROM payments p
+             JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid
+             WHERE p.type IN ('deposit','remaining','full')"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return (int)($row['COUNT(DISTINCT p.id)'] ?? 0);
     }
 
     public function getCustomerForBooking(int $bookingId): array
