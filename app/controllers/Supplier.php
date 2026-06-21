@@ -393,6 +393,11 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(Booking::class, 'supplierCancellationRespond', func_get_args());
     }
 
+    public function paymentHistory()
+    {
+        return $this->forwardTo(Booking::class, 'supplierPaymentHistory', func_get_args());
+    }
+
     public function reviews()
     {
         $supplier = $this->authorizedSupplierForServicePage();

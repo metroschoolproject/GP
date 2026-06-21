@@ -416,6 +416,10 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                 <i data-lucide="banknote" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">Earnings</span>
             </a>
+            <a href="<?= URLROOT ?>/supplier/paymentHistory" title="Customer payment history" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
+                <i data-lucide="receipt" class="h-4 w-4 text-app-header-muted"></i>
+                <span class="supplier-sidebar-label flex-1">Payment History</span>
+            </a>
         </nav>
 
         <div class="mt-auto border-t border-app-panel-border px-4 py-4">

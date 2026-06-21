@@ -337,6 +337,7 @@ class Booking extends Controller
         // open a transaction. Advisory only — reserveServiceSlot() is still
         // the authoritative race guard inside the transaction below.
         $unavailable = [];
+        $packageServices = []; // full service list per package for UX
         foreach ($items as $i => $item) {
             if (($item['item_type'] ?? '') !== 'package') {
                 continue;
@@ -348,9 +349,38 @@ class Booking extends Controller
             if ($pkgDate === '') {
                 continue;
             }
-            foreach ($this->cartModel->getUnavailablePackageServices((int)($item['item_id'] ?? 0), $pkgDate) as $u) {
+            $pkgId = (int)($item['item_id'] ?? 0);
+            // Full schedule for all services in this package
+            $schedule = $this->cartModel->getPackageEventSchedule($pkgId, $pkgDate);
+            $services = [];
+            foreach ($schedule as $s) {
+                $isAvailable = (bool)($s['is_available'] ?? false);
+                $srv = [
+                    'service_id' => (int)($s['service_id'] ?? 0),
+                    'service_name' => (string)($s['service_name'] ?? 'Service'),
+                    'is_available' => $isAvailable,
+                    'booking_type' => (string)($s['booking_type'] ?? ''),
+                ];
+                if (!$isAvailable) {
+                    $srv['message'] = $s['availability_message'] ?? 'No time slots available on this date';
+                    $srv['alternatives'] = $this->cartModel->findAlternativePackageDates(
+                        $pkgId,
+                        (int)$s['service_id'],
+                        $pkgDate
+                    );
+                }
+                $services[] = $srv;
+            }
+            $packageServices[] = [
+                'package_id' => $pkgId,
+                'package_name' => (string)($item['name'] ?? $item['service_name'] ?? 'Package'),
+                'date' => $pkgDate,
+                'services' => $services,
+            ];
+
+            foreach ($this->cartModel->getUnavailablePackageServices($pkgId, $pkgDate) as $u) {
                 $u['alternatives'] = $this->cartModel->findAlternativePackageDates(
-                    (int)($item['item_id'] ?? 0),
+                    $pkgId,
                     (int)$u['service_id'],
                     $pkgDate
                 );
@@ -361,6 +391,7 @@ class Booking extends Controller
             $this->jsonResponse([
                 'error'       => "Some package services aren't available on your selected date.",
                 'unavailable' => $unavailable,
+                'packageServices' => $packageServices,
             ], 422);
         }
 
@@ -547,6 +578,8 @@ class Booking extends Controller
         $items = $this->bookingModel->getBookingItems($bookingId);
         $total = (float)$booking['total_amount'];
         $deposit = $total * (BOOKING_DEPOSIT_PERCENT / 100);
+        $platformFee = round($total * (PLATFORM_FEE_PERCENT / 100), 2);
+        $depositWithFee = round($deposit + $platformFee, 2);
 
         // Update booking to pending_payment
         if ($booking['status'] === 'draft') {
@@ -562,6 +595,9 @@ class Booking extends Controller
             'depositPercent' => BOOKING_DEPOSIT_PERCENT,
             'balance' => $total - $deposit,
             'bookingRef' => $this->bookingModel->generateBookingRef($bookingId),
+            'platformFee' => $platformFee,
+            'platformFeePercent' => PLATFORM_FEE_PERCENT,
+            'depositWithFee' => $depositWithFee,
         ]);
     }
 
@@ -613,8 +649,10 @@ class Booking extends Controller
         }
 
         $expectedDeposit = round((float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100), 2);
-        if (abs($paidAmount - $expectedDeposit) > 0.01) {
-            $_SESSION['booking_payment_flash'] = 'The payment amount must match the required deposit.';
+        $platformFee = round((float)$booking['total_amount'] * (PLATFORM_FEE_PERCENT / 100), 2);
+        $totalDue = round($expectedDeposit + $platformFee, 2);
+        if (abs($paidAmount - $totalDue) > 0.01) {
+            $_SESSION['booking_payment_flash'] = 'The payment amount must include the deposit (' . number_format($expectedDeposit, 0) . ' MMK) + platform fee (' . number_format($platformFee, 0) . ' MMK).';
             redirect('booking/pay/' . $bookingId);
             return;
         }
@@ -638,7 +676,9 @@ class Booking extends Controller
             $accountName,
             $mobileNumber,
             $paidAmount,
-            $paidAt
+            $paidAt,
+            $platformFee,
+            $expectedDeposit
         );
 
         if (!$ok) {
@@ -1113,6 +1153,7 @@ class Booking extends Controller
 
         // Pricier supplier replacement awaiting the customer's approval + payment.
         $pendingReplacement = $this->bookingModel->getPendingCustomerReplacement($bookingId);
+        $replacementHistory = $this->bookingModel->getReplacementHistory($bookingId);
 
         $this->view('booking/detail', [
             'booking' => $booking,
@@ -1129,6 +1170,7 @@ class Booking extends Controller
             'existingReview' => $existingReview,
             'canEditReview' => $canEditReview,
             'pendingReplacement' => $pendingReplacement ?: null,
+            'replacementHistory' => $replacementHistory,
         ]);
     }
 
@@ -2369,6 +2411,8 @@ class Booking extends Controller
 
         // Submit payment slip
         $expectedDeposit = round((float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100), 2);
+        $platformFee = round((float)$booking['total_amount'] * (PLATFORM_FEE_PERCENT / 100), 2);
+        $totalWithFee = round($expectedDeposit + $platformFee, 2);
         if (!$this->bookingModel->submitPaymentSlip(
             $bookingId,
             $slipPath,
@@ -2376,8 +2420,10 @@ class Booking extends Controller
             $paymentMethod,
             '',
             '',
-            $expectedDeposit,
-            date('Y-m-d H:i:s')
+            $totalWithFee,
+            date('Y-m-d H:i:s'),
+            $platformFee,
+            $expectedDeposit
         )) {
             $this->jsonResponse(['error' => 'Failed to submit payment. Please try again.'], 500);
             return;
@@ -2449,6 +2495,56 @@ class Booking extends Controller
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalPayouts' => $totalPayouts,
+        ]);
+    }
+
+    /**
+     * Supplier payment history page — all customer payments for their bookings.
+     */
+    public function supplierPaymentHistory(): void
+    {
+        $this->ensureAuthenticated();
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            redirect('supplier/dashboard');
+            return;
+        }
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
+        $payments = $this->bookingModel->getSupplierPaymentHistory($supplierId, $perPage, $offset);
+        $totalCount = $this->bookingModel->getSupplierPaymentHistoryCount($supplierId);
+        $totalPages = (int)ceil($totalCount / $perPage);
+
+        // Summary stats
+        $totalReceived = 0;
+        $totalFees = 0;
+        $approvedCount = 0;
+        $pendingCount = 0;
+        foreach ($payments as $p) {
+            $amt = (float)($p['amount'] ?? 0);
+            if (($p['status'] ?? '') === 'success') {
+                $totalReceived += $amt;
+                $approvedCount++;
+            } elseif (($p['status'] ?? '') === 'pending') {
+                $pendingCount++;
+            }
+            $totalFees += (float)($p['platform_fee'] ?? 0);
+        }
+
+        $this->view('supplier/paymentHistory', [
+            'payments' => $payments,
+            'supplierId' => $supplierId,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalCount' => $totalCount,
+            'totalReceived' => $totalReceived,
+            'totalFees' => $totalFees,
+            'approvedCount' => $approvedCount,
+            'pendingCount' => $pendingCount,
         ]);
     }
 
@@ -2538,9 +2634,11 @@ class Booking extends Controller
             return;
         }
 
-        // Verify amount matches expected deposit
+        // Verify amount matches expected deposit + platform fee
         $expectedDeposit = (float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
-        if (abs($amount - $expectedDeposit) > 0.01) { // Allow 1 cent tolerance
+        $platformFee = round((float)$booking['total_amount'] * (PLATFORM_FEE_PERCENT / 100), 2);
+        $expectedTotal = round($expectedDeposit + $platformFee, 2);
+        if (abs($amount - $expectedTotal) > 0.01) { // Allow 1 cent tolerance
             $this->jsonResponse(['error' => 'Payment amount mismatch.'], 400);
             return;
         }
