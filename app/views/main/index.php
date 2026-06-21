@@ -2159,51 +2159,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         </div>
       </section>
 
-      <?php
-      // Recently Viewed Services
-      $recentlyViewedIds = getRecentlyViewedIds();
-      if (!empty($recentlyViewedIds)):
-          $recentServices = [];
-          foreach ($recentlyViewedIds as $rid) {
-              $db->dbquery("SELECT service_id, name, category, cover_image, starting_price FROM services WHERE service_id = :id AND status = 'published'");
-              $db->dbbind(':id', $rid);
-              $r = $db->getsingledata();
-              if ($r) $recentServices[] = $r;
-              if (count($recentServices) >= 6) break;
-          }
-          if (!empty($recentServices)):
-      ?>
-      <section id="recently-viewed" class="relative z-10 w-full bg-[#F5E8D9] px-4 py-16" aria-label="Recently Viewed Services">
-        <div class="mx-auto w-[min(100%,1240px)]">
-          <h2 class="font-serif text-center text-[clamp(28px,3.5vw,48px)] font-semibold leading-[1] text-[#211d1a] mb-2">Recently Viewed</h2>
-          <p class="text-center text-[#6f625a] mb-10">Services you've explored recently</p>
-          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <?php foreach ($recentServices as $rs): ?>
-            <a href="<?= URLROOT ?>/customerServices/detail/<?= (int)$rs['service_id'] ?>" class="group block overflow-hidden rounded-xl bg-white shadow-md transition hover:shadow-lg">
-              <div class="aspect-[4/3] overflow-hidden bg-[#ead8c7]">
-                <?php if (!empty($rs['cover_image'])): ?>
-                  <img src="<?= URLROOT ?>/<?= htmlspecialchars($rs['cover_image']) ?>" alt="<?= htmlspecialchars($rs['name']) ?>" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
-                <?php else: ?>
-                  <div class="flex h-full items-center justify-center text-[#b8a89a] text-3xl">📷</div>
-                <?php endif; ?>
-              </div>
-              <div class="p-3">
-                <p class="text-xs uppercase tracking-wider text-[#b8860b]"><?= htmlspecialchars($rs['category'] ?? '') ?></p>
-                <h3 class="mt-1 truncate font-semibold text-[#211d1a] text-sm"><?= htmlspecialchars($rs['name']) ?></h3>
-                <?php if (!empty($rs['starting_price'])): ?>
-                  <p class="mt-1 text-xs text-[#6f625a]">From <?= number_format((float)$rs['starting_price']) ?> MMK</p>
-                <?php endif; ?>
-              </div>
-            </a>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      </section>
-      <?php
-          endif;
-      endif;
-      ?>
-
       <section id="how-it-works" aria-label="How It Works">
         <div class="hiw-sticky">
           <div class="hiw-section-title">

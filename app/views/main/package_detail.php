@@ -750,6 +750,49 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.gp-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
   });
 });
+
+// Package cart form - check login
+document.querySelector('.gp-package-cart-form')?.addEventListener('submit', function(e) {
+  var isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
+  if (!isLoggedIn) {
+    e.preventDefault();
+    showAuthModal();
+    return false;
+  }
+});
+</script>
+
+<!-- Auth Required Modal -->
+<div id="authRequiredModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
+  <div style="background:#fdf8f3;border-radius:16px;padding:32px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;position:relative;animation:modalIn 0.3s ease-out;">
+    <button onclick="closeAuthModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:#7a6255;">&times;</button>
+    <div style="font-size:48px;margin-bottom:16px;">💍</div>
+    <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:#211d1a;margin:0 0 8px;">Sign in to Book</h2>
+    <p style="color:#7a6255;font-size:14px;margin:0 0 24px;line-height:1.5;">Create an account or sign in to add this package to your cart and complete your booking.</p>
+    <a href="<?= URLROOT ?>/users/auth" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,#b8860b,#d4a574);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;margin-bottom:10px;font-family:'Poppins',sans-serif;">Sign In</a>
+    <a href="<?= URLROOT ?>/users/register" style="display:block;width:100%;padding:14px;background:transparent;color:#7a6255;border:1.5px solid #d4a574;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;font-family:'Poppins',sans-serif;">Create Account</a>
+  </div>
+</div>
+<style>
+@keyframes modalIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+</style>
+<script>
+function showAuthModal() {
+  var modal = document.getElementById('authRequiredModal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeAuthModal() {
+  var modal = document.getElementById('authRequiredModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('authRequiredModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuthModal();
+});
 </script>
 </body>
 </html>

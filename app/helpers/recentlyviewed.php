@@ -72,7 +72,7 @@ function addRecentlyViewed(int $serviceId): void
 /**
  * Fetch recently viewed services from DB.
  * @param object $db Database instance
- * @return array Service rows (id, name, category, cover_image, starting_price)
+ * @return array Service rows (service_id, name, category, cover_image, starting_price)
  */
 function fetchRecentlyViewedServices(object $db): array
 {
@@ -81,28 +81,35 @@ function fetchRecentlyViewedServices(object $db): array
         return [];
     }
 
-    // Build placeholders
-    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-
-    // Fetch services, preserving cookie order
-    $sql = "SELECT s.service_id, s.name, s.category, s.cover_image, s.starting_price,
-                   s.supplier_id, u.name AS supplier_name
-            FROM services s
-            LEFT JOIN users u ON s.supplier_id = u.user_id
-            WHERE s.service_id IN ($placeholders)
-              AND s.status = 'published'";
-
-    $db->dbquery($sql);
-    foreach ($ids as $id) {
-        $db->dbbind(':id' . $id, $id);
-    }
-
-    // Note: dbbind uses named params, but we need positional for IN clause
-    // Let's use a simpler approach with the DB wrapper
     $results = [];
     foreach ($ids as $id) {
-        $db->dbquery("SELECT service_id, name, category, cover_image, starting_price
-                       FROM services WHERE service_id = :id AND status = 'published'");
+        $db->dbquery(
+            "SELECT s.id AS service_id,
+                    s.name,
+                    c.name AS category,
+                    COALESCE(
+                        NULLIF(s.thumbnail_url, ''),
+                        (
+                            SELECT sm.file_url
+                            FROM service_media sm
+                            WHERE sm.service_id = s.id
+                              AND TRIM(COALESCE(sm.file_url, '')) <> ''
+                            ORDER BY sm.id ASC
+                            LIMIT 1
+                        )
+                    ) AS cover_image,
+                    COALESCE(s.price_min, s.price) AS starting_price
+             FROM services s
+             INNER JOIN suppliers sup ON sup.supplier_id = s.supplier_id
+             LEFT JOIN categories c ON c.id = s.category_id
+             WHERE s.id = :id
+               AND s.is_active = 1
+               AND sup.deleted_at IS NULL
+               AND sup.is_available = 1
+               AND sup.status IN ('approved', 'verified')
+               AND sup.payment_status = 'paid'
+             LIMIT 1"
+        );
         $db->dbbind(':id', $id);
         $row = $db->getsingledata();
         if ($row) {
