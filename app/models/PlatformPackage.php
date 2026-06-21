@@ -127,6 +127,9 @@ class PlatformPackage
         }
 
         $package['items'] = $this->getPackageItems($packageId);
+        $package['included_total'] = array_reduce($package['items'], static function ($total, $item) {
+            return $total + (float)($item['default_price'] ?? 0);
+        }, 0.0);
         return $this->withCustomerPackagePrice($package);
     }
 
@@ -220,7 +223,7 @@ class PlatformPackage
         );
         $this->db->dbbind(':package_id', (int)$packageId);
 
-        return $this->db->getmultidata();
+        return array_map([$this, 'normalizePackageItemPricing'], $this->db->getmultidata());
     }
 
     /**
@@ -591,11 +594,17 @@ class PlatformPackage
 
         $attireItem = null;
         $attireItemId = (int)($attireItemId ?? 0);
-        if ($attireItemId > 0) {
-            $attireItem = $this->getAttireItemById($attireItemId);
+        $isAttireService = $this->isAttireCategory(
+            $service['category_slug'] ?? '',
+            $service['category_name'] ?? ''
+        );
+        if ($isAttireService && $attireItemId > 0) {
+            $attireItem = $this->getAttireItemForService($attireItemId, (int)$serviceId);
             if (!$attireItem) {
                 return false;
             }
+        } elseif ($isAttireService) {
+            return false;
         }
 
         $decorationStyle = null;
@@ -609,8 +618,19 @@ class PlatformPackage
 
         $packagePrice = $this->servicePackagePrice($service);
         $customizePrice = $this->serviceCustomizePrice($service);
+        if ($attireItem) {
+            $borrowPackagePrice = (float)($attireItem['borrow_package_price'] ?? 0);
+            $buyPackagePrice = (float)($attireItem['buy_package_price'] ?? 0);
+            $packagePrice = $borrowPackagePrice > 0 ? $borrowPackagePrice : $buyPackagePrice;
+
+            $borrowCustomizePrice = (float)($attireItem['borrow_customize_price'] ?? 0);
+            $buyCustomizePrice = (float)($attireItem['buy_customize_price'] ?? 0);
+            $customizePrice = $borrowPackagePrice > 0
+                ? ($borrowCustomizePrice > 0 ? $borrowCustomizePrice : $packagePrice)
+                : ($buyCustomizePrice > 0 ? $buyCustomizePrice : $packagePrice);
+        }
         $price = $room ? (float)($room['price'] ?? 0)
-            : ($attireItem ? ($attireItem['borrow_package_price'] ?? $attireItem['buy_package_price'] ?? 0)
+            : ($attireItem ? $packagePrice
             : ($decorationStyle ? (float)($decorationStyle['package_price'] ?? $decorationStyle['price'] ?? 0)
             : $packagePrice));
         $isGuestPriced = $this->isGuestPricedCategory($service['category_slug'] ?? '', $service['category_name'] ?? '');
@@ -666,10 +686,17 @@ class PlatformPackage
         return $this->db->dbexecute();
     }
 
-    private function getAttireItemById(int $attireItemId): ?array
+    private function getAttireItemForService(int $attireItemId, int $serviceId): ?array
     {
-        $this->db->dbquery('SELECT * FROM attire_items WHERE id = :id LIMIT 1');
+        $this->db->dbquery(
+            'SELECT *
+             FROM attire_items
+             WHERE id = :id
+               AND service_id = :service_id
+             LIMIT 1'
+        );
         $this->db->dbbind(':id', $attireItemId);
+        $this->db->dbbind(':service_id', $serviceId);
         return $this->db->getsingledata();
     }
 
@@ -1113,7 +1140,7 @@ class PlatformPackage
              ORDER BY c.name ASC, svc.name ASC'
         );
         $this->db->dbbind(':package_id', (int)$package['package_id']);
-        $items = $this->db->getmultidata();
+        $items = array_map([$this, 'normalizePackageItemPricing'], $this->db->getmultidata());
         $package['items'] = $items;
         $package['included_total'] = array_reduce($items, static function ($total, $item) {
             return $total + (float)($item['default_price'] ?? 0);
@@ -1622,15 +1649,37 @@ class PlatformPackage
     private function isGuestPricedCategory($slug, $name)
     {
         $label = strtolower(trim((string)$slug . ' ' . (string)$name));
-        // Food, catering, decoration, music, photography, makeup, attire, studio — all guest-driven
+        // Only services whose price scales with attendee count are guest-driven.
+        // Attire is priced per selected outfit/item, so it remains fixed.
         return strpos($label, 'food') !== false
             || strpos($label, 'cater') !== false
             || strpos($label, 'decor') !== false
             || strpos($label, 'music') !== false
             || strpos($label, 'photo') !== false
             || strpos($label, 'makeup') !== false
-            || strpos($label, 'attire') !== false
             || strpos($label, 'studio') !== false;
+    }
+
+    private function isAttireCategory($slug, $name): bool
+    {
+        return strpos(strtolower(trim((string)$slug . ' ' . (string)$name)), 'attire') !== false;
+    }
+
+    private function normalizePackageItemPricing(array $item): array
+    {
+        $isGuestPriced = $this->isGuestPricedCategory(
+            $item['category_slug'] ?? '',
+            $item['category_name'] ?? ''
+        );
+
+        // Keep legacy attire rows from displaying or totaling as per-guest items.
+        if (!$isGuestPriced && ($item['quantity_type'] ?? '') === 'guests') {
+            $item['quantity_type'] = 'fixed';
+            $item['quantity'] = 1;
+            $item['default_price'] = (float)($item['unit_price'] ?? $item['default_price'] ?? 0);
+        }
+
+        return $item;
     }
 
     private function serviceCustomizePrice($service)

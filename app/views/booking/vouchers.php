@@ -3,7 +3,7 @@ $vouchers = $vouchers ?? [];
 $activeFilter = $activeFilter ?? 'all';
 
 $filterLabels = ['all' => 'Active', 'used' => 'Used', 'expired' => 'Expired'];
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function($v){ $t=(string)$v; for($i=0;$i<10;$i++){$d=html_entity_decode($t,ENT_QUOTES|ENT_HTML5,'UTF-8');if($d===$t)break;$t=$d;}return $t; };
 $h = fn($v)=>htmlspecialchars($plain($v),ENT_QUOTES,'UTF-8');
 

@@ -338,6 +338,18 @@
   color: var(--primary);
 }
 
+#supplier-service-detail .sd-unpublish-btn {
+  border-color: #f0c9c5;
+  background: #fff;
+  color: var(--danger);
+}
+
+#supplier-service-detail .sd-unpublish-btn:hover {
+  border-color: #dfa9a4;
+  background: #fff6f5;
+  color: #9f3128;
+}
+
 #supplier-service-detail .btn-ghost {
   background: transparent;
   border-color: transparent;

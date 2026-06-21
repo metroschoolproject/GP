@@ -128,4 +128,16 @@ class SupplierAvailability extends SupplierControllerSupport
 
         $this->jsonResponse(['status' => $released ? 'success' : 'error']);
     }
+
+    public function allServicesCapacityPreview()
+    {
+        $supplier = $this->authorizedSupplierForServiceManagement();
+        $payload = $this->jsonPayload();
+        $capacity = $this->serviceManagementModel->fetchAllServicesCapacity(
+            (int)$supplier['supplier_id'],
+            $payload['date'] ?? ''
+        );
+
+        $this->jsonResponse(['status' => 'success', 'capacity' => $capacity]);
+    }
 }

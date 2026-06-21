@@ -398,7 +398,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
         </section>
 
         <!-- PAYMENT STATUS -->
-        <section class="mb-4">
+        <section id="payment-status" class="mb-4" style="scroll-margin-top:76px">
             <div class="<?= $dashboardCardClass ?> supplier-admin-animate" style="animation-delay:.56s">
                 <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div>

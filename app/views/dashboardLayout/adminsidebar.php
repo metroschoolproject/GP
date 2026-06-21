@@ -5,6 +5,7 @@ $adminInitials = strtoupper(substr(trim($adminName) !== '' ? $adminName : 'Admin
 $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
 $paymentStatusFilter = $_GET['status'] ?? 'pending';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, suppliers...';
+$dashboardSearchAction = $dashboardSearchAction ?? URLROOT . '/admin/bookings';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'admin',
     'reviewUrl' => URLROOT . '/admin/notifications',
@@ -127,18 +128,19 @@ if (!function_exists('dashboard_admin_nav_class')) {
             </a>
 
             <div class="space-y-1">
-                <button type="button" data-subnav-toggle="customers" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+                <?php $customersActive = strpos($currentPath, 'admin/customer') !== false; ?>
+                <button type="button" data-subnav-toggle="customers" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition <?= $customersActive ? 'bg-app-primary text-app-white shadow-sm' : 'text-app-text hover:bg-app-input hover:shadow-sm' ?>">
                     <i data-lucide="users" class="h-4 w-4 text-app-header-muted"></i>
                     <span class="flex-1 text-left">Customers</span>
                     <i data-chevron="customers" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div data-subnav-panel="customers" class="hidden pl-6">
+                <div data-subnav-panel="customers" class="<?= $customersActive ? '' : 'hidden' ?> pl-6">
                     <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                        <a href="#" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
+                        <a href="<?= URLROOT ?>/admin/customers" class="<?= dashboard_admin_subnav_class('admin/customers', $currentPath) ?>">
                             <i data-lucide="users" class="h-3.5 w-3.5 text-app-header-muted"></i>
                             <span>All customers</span>
                         </a>
-                        <a href="#" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
+                        <a href="<?= URLROOT ?>/admin/customers?status=banned" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
                             <i data-lucide="user-x" class="h-3.5 w-3.5 text-app-danger"></i>
                             <span>Suspended / Banned</span>
                         </a>
@@ -240,6 +242,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
         </div>
 
         <div class="admin-topbar-actions flex flex-wrap items-center gap-3">
+            <?php require APPROOT . '/views/dashboardLayout/dashboardSearch.php'; ?>
             <?php require APPROOT . '/views/dashboardLayout/notification.php'; ?>
         </div>
     </div>

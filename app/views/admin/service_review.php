@@ -26,7 +26,7 @@ $h = static function ($value) {
 };
 
 $money = static function ($value) {
-    return 'RM ' . number_format((float)$value, 0);
+    return number_format((float)$value, 0) . ' MMK';
 };
 
 $dayNames = [

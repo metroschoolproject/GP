@@ -132,7 +132,7 @@ $h = function ($value) use ($plain) {
 };
 
 $money = function ($value) {
-    return 'MMK ' . number_format((float)$value, 0);
+    return number_format((float)$value, 0) . ' MMK';
 };
 
 $moneyRange = function ($service) use ($money) {

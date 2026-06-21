@@ -78,6 +78,31 @@ class SupplierProfile
         return $this->db->getsingledata();
     }
 
+    public function getById(int $supplierId): array|false
+    {
+        $this->db->dbquery(
+            'SELECT suppliers.supplier_id,
+                    suppliers.user_id,
+                    suppliers.shop_name,
+                    suppliers.description,
+                    suppliers.status,
+                    suppliers.payment_status,
+                    suppliers.is_available,
+                    suppliers.bank_code,
+                    suppliers.bank_account,
+                    users.name AS owner_name,
+                    users.email AS owner_email,
+                    users.phone AS owner_phone
+               FROM suppliers
+               LEFT JOIN users ON users.user_id = suppliers.user_id
+              WHERE suppliers.supplier_id = :supplier_id
+              LIMIT 1'
+        );
+        $this->db->dbbind(':supplier_id', $supplierId, PDO::PARAM_INT);
+
+        return $this->db->getsingledata();
+    }
+
     public function getCategories()
     {
         $this->db->dbquery('SELECT id, name FROM categories ORDER BY name ASC');

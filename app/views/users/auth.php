@@ -881,6 +881,15 @@
                                 return;
                             }
 
+                            // Account suspended / banned / deleted by an admin
+                            if(res.status == 'account_blocked'){
+                                setAuthLoading(false);
+                                accountnotfound_warning_bar.textContent = res.message || 'Your account is not active. Please contact support.';
+                                accountnotfound_warning_bar.classList.replace('hidden','show');
+                                accountnotfound_warning_bar.style.display = 'block';
+                                return;
+                            }
+
                             if (res.status !== 'success') {
                                 setAuthLoading(false);
                             }

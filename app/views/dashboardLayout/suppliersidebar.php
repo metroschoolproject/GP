@@ -25,6 +25,7 @@ $servicesPathActive = strpos($currentPath, 'supplier/services') !== false
 $profilePathActive = strpos($currentPath, 'supplier/profile') !== false;
 $servicesPackageTabActive = strpos($currentPath, 'supplier/services') !== false && ($_GET['tab'] ?? '') === 'packages';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, services...';
+$dashboardSearchAction = $dashboardSearchAction ?? URLROOT . '/supplier/bookings';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'supplier',
     'reviewUrl' => URLROOT . '/supplier/notifications',
@@ -83,6 +84,84 @@ if (!function_exists('dashboard_supplier_path_matches')) {
 }
 ?>
 <style>
+    .supplier-sidebar,
+    .supplier-main {
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .supplier-sidebar {
+        color: #111827;
+        scrollbar-width: thin;
+        scrollbar-color: #d8c8bb transparent;
+    }
+
+    .supplier-profile-panel {
+        padding: 20px;
+    }
+
+    .supplier-profile-shell > img,
+    .supplier-profile-shell > div:first-child {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+    }
+
+    .supplier-sidebar-name {
+        font-size: 14px;
+        line-height: 1.35;
+    }
+
+    .supplier-sidebar-email {
+        margin-top: 0;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+
+    .supplier-sidebar-section {
+        padding: 20px 20px 0;
+    }
+
+    .supplier-sidebar-section p {
+        padding: 0 12px;
+        color: #b79c8b;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .2em;
+    }
+
+    .supplier-sidebar-nav {
+        display: grid;
+        gap: 6px;
+        padding: 12px 16px;
+    }
+
+    .supplier-sidebar-nav > a,
+    .supplier-sidebar-group-trigger {
+        min-height: 44px;
+        border-radius: 12px;
+        padding: 0 16px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .supplier-sidebar-nav > a:hover,
+    .supplier-sidebar-group-trigger:hover {
+        box-shadow: none;
+    }
+
+    .supplier-sidebar-nav svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .supplier-topbar-title {
+        display: flex;
+        min-width: 0;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
     .supplier-mobile-menu-btn,
     .supplier-sidebar-backdrop {
         display: none;
@@ -139,17 +218,9 @@ if (!function_exists('dashboard_supplier_path_matches')) {
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
         }
 
-        .supplier-dashboard-topbar {
-            gap: 0.5rem;
-            padding: 0.75rem 0.75rem;
-        }
+        .supplier-dashboard-topbar { gap:8px; padding:12px; }
 
-        .supplier-topbar-title {
-            display: flex;
-            min-width: 0;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
+        .supplier-topbar-title { align-items:center; gap:10px; }
 
         .supplier-topbar-actions {
             width: 100%;
@@ -165,7 +236,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
             width: 100%;
         }
 
-        .supplier-topbar-actions .relative .rounded-md {
+        .supplier-topbar-actions .dashboard-search-shortcut {
             display: none;
         }
 
@@ -183,25 +254,25 @@ if (!function_exists('dashboard_supplier_path_matches')) {
 
     .supplier-sidebar-subnav {
         display: none;
-        margin: 0.25rem 0 0.5rem 2.15rem;
-        padding-left: 0.75rem;
-        border-left: 1px solid var(--color-app-border, #e5e7eb);
+        margin: 4px 0 8px 34px;
+        padding: 4px 0 4px 12px;
+        border-left: 1px solid var(--color-app-panel-border, #e5e7eb);
     }
 
     .supplier-sidebar-group[data-open="true"] .supplier-sidebar-subnav {
         display: grid;
-        gap: 0.25rem;
+        gap: 2px;
     }
 
     .supplier-sidebar-subnav a {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        min-height: 34px;
-        border-radius: 0.75rem;
-        padding: 0 0.75rem;
-        font-size: 12px;
-        font-weight: 700;
+        min-height: 36px;
+        border-radius: 8px;
+        padding: 0 12px;
+        font-size: 14px;
+        font-weight: 400;
         color: var(--color-app-muted, #6b7280);
         transition: background 160ms ease, color 160ms ease;
     }
@@ -210,6 +281,8 @@ if (!function_exists('dashboard_supplier_path_matches')) {
     .supplier-sidebar-subnav a.is-active {
         background: var(--color-app-input, #fcf8f5);
         color: var(--color-app-text, #1f2937);
+        background: var(--color-app-input, #fff);
+        color: var(--color-app-primary, #6d4c5b);
     }
 
     .supplier-sidebar-group[data-open="true"] .supplier-sidebar-group-chevron {
@@ -236,76 +309,19 @@ if (!function_exists('dashboard_supplier_path_matches')) {
     }
 
     @media (min-width: 1025px) {
-        .supplier-collapse-btn {
-            display: inline-flex;
-        }
-
-        body.supplier-sidebar-collapsed {
-            grid-template-columns: 84px 1fr !important;
-        }
-
         .supplier-sidebar {
             position: sticky;
             top: 0;
             height: 100vh;
             width: 280px;
             overflow-y: auto;
-            transition: width 180ms ease;
-        }
-
-        body.supplier-sidebar-collapsed .supplier-sidebar {
-            width: 84px;
-        }
-
-        body.supplier-sidebar-collapsed .supplier-sidebar-label,
-        body.supplier-sidebar-collapsed .supplier-sidebar-section,
-        body.supplier-sidebar-collapsed .supplier-sidebar-email,
-        body.supplier-sidebar-collapsed .supplier-sidebar-chevron,
-        body.supplier-sidebar-collapsed .supplier-sidebar-subnav,
-        body.supplier-sidebar-collapsed .supplier-sidebar-badge {
-            display: none;
-        }
-
-        body.supplier-sidebar-collapsed .supplier-sidebar-name {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-        }
-
-        body.supplier-sidebar-collapsed .supplier-sidebar nav {
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
-        }
-
-        body.supplier-sidebar-collapsed .supplier-sidebar a {
-            justify-content: center;
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
-        }
-
-        body.supplier-sidebar-collapsed .supplier-sidebar-group-trigger {
-            justify-content: center;
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
-        }
-
-        body.supplier-sidebar-collapsed .supplier-profile-shell {
-            justify-content: center;
-        }
-
-        body.supplier-sidebar-collapsed .supplier-collapse-btn {
-            right: -14px;
-            transform: rotate(180deg);
         }
     }
 </style>
 
 <aside id="supplierSidebar" class="supplier-sidebar border-r border-r-app-sidebar bg-app-sidebar">
     <div class="flex h-full flex-col">
-        <div class="relative border-b border-b-app-panel-border bg-app-panel px-5 py-5">
+        <div class="supplier-profile-panel relative border-b border-b-app-panel-border bg-app-panel">
             <div class="supplier-profile-shell flex items-center gap-3">
                 <?php $sidebarAvatar = $_SESSION['session_avatar'] ?? null; ?>
                 <?php if (!empty($sidebarAvatar)): ?>
@@ -323,41 +339,41 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         
         </div>
 
-        <div class="supplier-sidebar-section px-5 pt-5">
-            <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-app-header-muted">Profile</p>
+        <div class="supplier-sidebar-section">
+            <p class="uppercase text-app-header-muted">Profile</p>
         </div>
 
-        <nav class="px-4 py-3 space-y-1.5">
-            <a href="<?= URLROOT ?>/supplier/profile" title="My Profile" class="<?= $profilePathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm' ?>">
+        <nav class="supplier-sidebar-nav">
+            <a href="<?= URLROOT ?>/supplier/profile" title="My Profile" class="<?= $profilePathActive ? 'flex items-center gap-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 text-app-text transition hover:bg-app-input' ?>">
                 <i data-lucide="circle-user" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">My Profile</span>
                 <i data-lucide="chevron-right" class="supplier-sidebar-chevron h-4 w-4 text-app-header-muted"></i>
             </a>
         </nav>
 
-        <div class="supplier-sidebar-section px-5 pt-5">
-            <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-app-header-muted">Workspace</p>
+        <div class="supplier-sidebar-section">
+            <p class="uppercase text-app-header-muted">Workspace</p>
         </div>
 
-        <nav class="px-4 py-3 space-y-1.5">
+        <nav class="supplier-sidebar-nav">
             <a href="<?= URLROOT ?>/supplier/dashboard" title="Dashboard" class="<?= dashboard_supplier_nav_class('supplier/dashboard', $currentPath, true) ?>">
                 <i data-lucide="layout-dashboard" class="h-4 w-4"></i>
                 <span class="supplier-sidebar-label flex-1">Dashboard</span>
             </a>
-            <a href="<?= URLROOT ?>/supplier/bookings" title="Bookings" class="<?= $bookingsPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm' ?>">
+            <a href="<?= URLROOT ?>/supplier/bookings" title="Bookings" class="<?= $bookingsPathActive ? 'flex items-center gap-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 text-app-text transition hover:bg-app-input' ?>">
                 <i data-lucide="calendar-check" class="h-4 w-4 <?= $bookingsPathActive ? '' : 'text-app-header-muted' ?>"></i>
                 <span class="supplier-sidebar-label flex-1">Bookings</span>
                 <?php if ($pendingBookings > 0): ?>
                     <span class="supplier-sidebar-badge rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-warning"><?= $pendingBookings ?></span>
                 <?php endif; ?>
             </a>
-            <a href="<?= URLROOT ?>/supplier/notifications" title="Notifications" class="<?= $notificationsPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm' ?>">
+            <a href="<?= URLROOT ?>/supplier/notifications" title="Notifications" class="<?= $notificationsPathActive ? 'flex items-center gap-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 text-app-text transition hover:bg-app-input' ?>">
                 <i data-lucide="bell" class="h-4 w-4 <?= $notificationsPathActive ? '' : 'text-app-header-muted' ?>"></i>
                 <span class="supplier-sidebar-label flex-1">Notifications</span>
             </a>
             <div class="supplier-sidebar-group" data-open="<?= $servicesPathActive ? 'true' : 'false' ?>">
                 <button type="button"
-                        class="supplier-sidebar-group-trigger <?= $servicesPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition text-app-text hover:bg-app-input hover:shadow-sm' ?>"
+                        class="supplier-sidebar-group-trigger <?= $servicesPathActive ? 'flex items-center gap-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 transition text-app-text hover:bg-app-input' ?>"
                         aria-expanded="<?= $servicesPathActive ? 'true' : 'false' ?>"
                         aria-controls="supplierServicesSubnav"
                         title="Services">
@@ -383,32 +399,28 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                     </a>
                 </div>
             </div>
-            <a href="#" title="Portfolio" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
-                <i data-lucide="image" class="h-4 w-4 text-app-header-muted"></i>
-                <span class="supplier-sidebar-label flex-1">Portfolio</span>
-            </a>
-            <a href="<?= URLROOT ?>/supplier/reviews" title="Reviews" class="<?= $reviewsPathActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm' ?>">
+            <a href="<?= URLROOT ?>/supplier/reviews" title="Reviews" class="<?= $reviewsPathActive ? 'flex items-center gap-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 text-app-text transition hover:bg-app-input' ?>">
                 <i data-lucide="star" class="h-4 w-4 <?= $reviewsPathActive ? '' : 'text-app-header-muted' ?>"></i>
                 <span class="supplier-sidebar-label flex-1">Reviews</span>
             </a>
         </nav>
 
-        <div class="supplier-sidebar-section px-5 pt-5">
-            <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-app-header-muted">Finance</p>
+        <div class="supplier-sidebar-section">
+            <p class="uppercase text-app-header-muted">Finance</p>
         </div>
 
-        <nav class="px-4 py-3 space-y-1.5">
-            <a href="#" title="Wallet" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
-                <i data-lucide="wallet" class="h-4 w-4 text-app-header-muted"></i>
-                <span class="supplier-sidebar-label flex-1">Wallet</span>
-            </a>
-            <a href="#" title="Payments" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+        <nav class="supplier-sidebar-nav">
+            <a href="<?= URLROOT ?>/supplier/dashboard#payment-status" title="Payments" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
                 <i data-lucide="receipt-text" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">Payments</span>
             </a>
-            <a href="#" title="Withdrawals" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-app-text transition hover:bg-app-input hover:shadow-sm">
+            <a href="<?= URLROOT ?>/booking/supplierEarnings" title="Earnings and withdrawals" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
                 <i data-lucide="banknote" class="h-4 w-4 text-app-header-muted"></i>
-                <span class="supplier-sidebar-label flex-1">Withdrawals</span>
+                <span class="supplier-sidebar-label flex-1">Earnings</span>
+            </a>
+            <a href="<?= URLROOT ?>/supplier/paymentHistory" title="Customer payment history" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
+                <i data-lucide="receipt" class="h-4 w-4 text-app-header-muted"></i>
+                <span class="supplier-sidebar-label flex-1">Payment History</span>
             </a>
         </nav>
 
@@ -459,7 +471,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         </div>
 
         <div class="supplier-topbar-actions flex flex-wrap items-center gap-3">
-
+            <?php require APPROOT . '/views/dashboardLayout/dashboardSearch.php'; ?>
             <?php require APPROOT . '/views/dashboardLayout/notification.php'; ?>
         </div>
     </div>
@@ -470,21 +482,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         const dashboardSearch = document.getElementById('dashboard-search');
         const supplierSidebarToggle = document.getElementById('supplierSidebarToggle');
         const supplierSidebarBackdrop = document.getElementById('supplierSidebarBackdrop');
-        const supplierSidebarCollapse = document.getElementById('supplierSidebarCollapse');
         const supplierSidebarServiceTrigger = document.querySelector('.supplier-sidebar-group-trigger');
-
-        function setSupplierSidebarCollapsed(isCollapsed) {
-            document.body.classList.toggle('supplier-sidebar-collapsed', isCollapsed);
-            supplierSidebarCollapse?.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-            supplierSidebarCollapse?.setAttribute('aria-label', isCollapsed ? 'Expand supplier navigation' : 'Collapse supplier navigation');
-            try {
-                localStorage.setItem('supplierSidebarCollapsed', isCollapsed ? '1' : '0');
-            } catch (error) {}
-        }
-
-        try {
-            setSupplierSidebarCollapsed(localStorage.getItem('supplierSidebarCollapsed') === '1');
-        } catch (error) {}
 
         function setSupplierSidebarOpen(isOpen) {
             document.body.classList.toggle('supplier-sidebar-open', isOpen);
@@ -499,20 +497,11 @@ if (!function_exists('dashboard_supplier_path_matches')) {
             setSupplierSidebarOpen(false);
         });
 
-        supplierSidebarCollapse?.addEventListener('click', () => {
-            if (window.matchMedia('(min-width: 1025px)').matches) {
-                setSupplierSidebarCollapsed(!document.body.classList.contains('supplier-sidebar-collapsed'));
-            }
-        });
-
         supplierSidebarServiceTrigger?.addEventListener('click', () => {
             const group = supplierSidebarServiceTrigger.closest('.supplier-sidebar-group');
             const nextOpen = group?.dataset.open !== 'true';
             if (group) group.dataset.open = nextOpen ? 'true' : 'false';
             supplierSidebarServiceTrigger.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
-            if (document.body.classList.contains('supplier-sidebar-collapsed')) {
-                setSupplierSidebarCollapsed(false);
-            }
         });
 
         document.querySelectorAll('#supplierSidebar a').forEach((link) => {

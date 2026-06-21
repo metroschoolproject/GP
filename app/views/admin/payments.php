@@ -22,12 +22,14 @@ $visiblePending = 0;
 $approvedAmount = 0;
 $rejectedAmount = 0;
 $pendingAmount = 0;
+$totalPlatformFee = 0;
 
 foreach ($payments as $payment) {
     $amount = (float)($payment['amount'] ?? 0);
     $paymentStatus = strtolower($payment['status'] ?? 'pending');
 
     $visibleTotal += $amount;
+    $totalPlatformFee += (float)($payment['platform_fee'] ?? 0);
 
     if ($paymentStatus === 'success') {
         $visibleApproved++;
@@ -57,6 +59,7 @@ $dashboardContent = function () use (
     $approvedAmount,
     $rejectedAmount,
     $pendingAmount,
+    $totalPlatformFee,
     $dateFrom,
     $dateTo
 ) {
@@ -204,11 +207,16 @@ $dashboardContent = function () use (
     </button>
   </div>
 
-  <div class="summary-row">
+  <div class="summary-row" style="grid-template-columns:repeat(5,1fr)">
     <div class="stat">
       <div class="stat-label">Total Collected</div>
       <div class="stat-value"><?= number_format($visibleTotal) ?></div>
       <div class="stat-sub">MMK · <?= count($payments) ?> payments</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Platform Fees</div>
+      <div class="stat-value" style="color:#6d4c5b"><?= number_format($totalPlatformFee) ?></div>
+      <div class="stat-sub">MMK · 5% per booking</div>
     </div>
     <div class="stat">
       <div class="stat-label">Approved</div>
@@ -242,6 +250,7 @@ $dashboardContent = function () use (
           <tr>
             <th>Transaction</th>
             <th>Amount</th>
+            <th>Fee</th>
             <th>Bank</th>
             <th>Sender Name</th>
             <th>Payment reference</th>
@@ -254,7 +263,7 @@ $dashboardContent = function () use (
         <tbody>
           <?php if (empty($payments)): ?>
             <tr>
-              <td colspan="9" class="empty-row">No payment transactions found.</td>
+              <td colspan="10" class="empty-row">No payment transactions found.</td>
             </tr>
           <?php endif; ?>
 
@@ -300,6 +309,7 @@ $dashboardContent = function () use (
                 <div class="biz-email"><?= htmlspecialchars($transactionEmail, ENT_QUOTES, 'UTF-8') ?></div>
               </td>
               <td><span class="amount"><?= number_format((float)($payment['amount'] ?? 0)) ?> MMK</span></td>
+              <td><span class="amount" style="color:var(--primary)"><?= ((float)($payment['platform_fee'] ?? 0) > 0) ? number_format((float)$payment['platform_fee'], 0) . ' MMK' : '—' ?></span></td>
               <td><span class="method-text"><?= $bankDisplay ?></span></td>
               <td><span class="method-text"><?= $senderName ?></span></td>
               <td>

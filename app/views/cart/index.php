@@ -9,7 +9,7 @@ $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$money = fn($v) => 'MMK ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -1736,9 +1736,9 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               <span class="gp-line-val"><?= $money($total) ?></span>
             </div>
             <div class="gp-line">
-              <span class="gp-line-name">Deposit (10%)</span>
+              <span class="gp-line-name">Deposit (<?= BOOKING_DEPOSIT_PERCENT ?>%)</span>
               <span class="gp-line-dots" aria-hidden="true"></span>
-              <span class="gp-line-val"><?= $money($total * 0.10) ?></span>
+              <span class="gp-line-val"><?= $money($total * BOOKING_DEPOSIT_PERCENT / 100) ?></span>
             </div>
           </div>
 

@@ -11,7 +11,7 @@ function escapeHtml(value) {
   }[char]));
 }
 
-function showMessage(elementId, text, success = false) {
+function showMessage(elementId, text, success = false, title = '') {
   const element = document.getElementById(elementId);
   if (!element) return;
 
@@ -19,7 +19,7 @@ function showMessage(elementId, text, success = false) {
     element.innerHTML = `
       <div class="sd-publish-toast-icon"><i class="ti ${success ? 'ti-send' : 'ti-alert-triangle'}"></i></div>
       <div class="sd-publish-toast-copy">
-        <strong>${success ? 'Publish request sent' : 'Request needs attention'}</strong>
+        <strong>${escapeHtml(title || (success ? 'Changes saved' : 'Request needs attention'))}</strong>
         <p>${escapeHtml(text)}</p>
       </div>
       <button type="button" class="sd-publish-toast-close" aria-label="Dismiss notification">&times;</button>
@@ -75,23 +75,33 @@ async function jsonGet(url) {
 
 let publishPollTimer = null;
 
-function setPublishedState(isLive) {
-  const topnav = document.querySelector('#supplier-service-detail .sd-topnav');
+function setPublishedState(isLive, readinessText = '') {
+  const detail = document.getElementById('supplier-service-detail');
   const dot = document.getElementById('publishStatusDot');
   const text = document.getElementById('publishStatusText');
   const button = document.getElementById('publishServiceBtn');
   const buttonText = document.getElementById('publishServiceBtnText');
   const buttonIcon = button?.querySelector('i');
+  const infoStatus = document.getElementById('serviceInfoStatus');
 
-  if (topnav) topnav.dataset.serviceStatus = isLive ? 'active' : 'inactive';
+  if (detail) detail.dataset.serviceStatus = isLive ? 'active' : 'inactive';
   dot?.classList.toggle('is-live', Boolean(isLive));
 
-  if (text) text.textContent = isLive ? 'Live' : text.textContent;
-  if (button) button.disabled = Boolean(isLive);
-  if (buttonText && isLive) buttonText.textContent = 'Published';
-  if (buttonIcon && isLive) {
-    buttonIcon.className = 'ti ti-circle-check';
+  if (text) text.textContent = isLive ? 'Live' : (readinessText || 'Draft');
+  if (button) {
+    button.disabled = false;
+    button.classList.toggle('btn-primary', !isLive);
+    button.classList.toggle('btn-outline', isLive);
+    button.classList.toggle('sd-unpublish-btn', isLive);
+  }
+  if (buttonText) buttonText.textContent = isLive ? 'Unpublish' : 'Request publish';
+  if (buttonIcon) {
+    buttonIcon.className = isLive ? 'ti ti-eye-off' : 'ti ti-send';
     buttonIcon.style.fontSize = '13px';
+  }
+  if (infoStatus) {
+    infoStatus.style.color = isLive ? 'var(--success)' : 'var(--text-3)';
+    infoStatus.innerHTML = `<i class="ti ${isLive ? 'ti-circle-check-filled' : 'ti-file-pencil'}" style="font-size:13px"></i><span>${isLive ? 'Published' : 'Draft'}</span>`;
   }
 }
 
@@ -124,19 +134,32 @@ function startPublishStatusPolling() {
 
 document.getElementById('publishServiceBtn')?.addEventListener('click', async event => {
   const button = event.currentTarget;
+  const detail = document.getElementById('supplier-service-detail');
+  const isLive = detail?.dataset.serviceStatus === 'active';
   showMessage('publishMessage', '');
+
+  if (isLive && !window.confirm('Unpublish this service? Customers will no longer see or book it until admin approves a new publish request.')) {
+    return;
+  }
+
   button.disabled = true;
 
   try {
-    const result = await jsonPost(urls.publishRequest);
-    showMessage('publishMessage', result.message || 'Publish request sent to admin.', true);
-    startPublishStatusPolling();
+    if (isLive) {
+      const result = await jsonPost(urls.serviceStatus, { status: 'inactive' });
+      const draftReady = detail?.dataset.draftReadiness === 'ready';
+      setPublishedState(false, draftReady ? 'Draft · Ready to publish' : 'Draft · Needs attention');
+      stopPublishStatusPolling();
+      showMessage('publishMessage', result.message || 'Service unpublished.', true, 'Moved to draft');
+    } else {
+      const result = await jsonPost(urls.publishRequest);
+      showMessage('publishMessage', result.message || 'Publish request sent to admin.', true, 'Publish request sent');
+      startPublishStatusPolling();
+    }
   } catch (error) {
     showMessage('publishMessage', error.message);
   } finally {
-    if (button.closest('.sd-topnav')?.dataset.serviceStatus !== 'active') {
-      button.disabled = false;
-    }
+    button.disabled = false;
   }
 });
 
