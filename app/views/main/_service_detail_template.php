@@ -2,6 +2,12 @@
 $service = $service ?? [];
 $media = $service['media'] ?? [];
 $availability = $service['availability'] ?? ['weekly' => [], 'overrides' => [], 'upcoming' => []];
+
+// Track recently viewed service
+if (!empty($service['id'])) {
+    addRecentlyViewed((int)$service['id']);
+}
+
 $fallbackImage = IMG_ROOT . '/uploads/suppliers/20/service-management/service/20260610150543-6e1176d1.jpg';
 $heroImage = trim((string)($media[0]['file_url'] ?? $service['image'] ?? '')) ?: $fallbackImage;
 $upcoming = $availability['upcoming'] ?? [];
@@ -261,6 +267,7 @@ $heroItems = array_values(array_filter($media, function ($m) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $h($service['name'] ?? 'Service') ?> | <?= APPNAME ?></title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $appCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $appCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4026,5 +4033,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 })();
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

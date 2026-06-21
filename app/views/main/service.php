@@ -134,6 +134,7 @@ $resetUrl = URLROOT . '/customerServices/service';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Services — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2247,6 +2248,52 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 </main>
 
+<?php
+// Recently Viewed Services
+$recentlyViewedIds = getRecentlyViewedIds();
+if (!empty($recentlyViewedIds)):
+    $recentServices = [];
+    $db->dbquery("SELECT 1"); // Reset DB state
+    foreach ($recentlyViewedIds as $rid) {
+        $db->dbquery("SELECT service_id, name, category, cover_image, starting_price FROM services WHERE service_id = :id AND status = 'published'");
+        $db->dbbind(':id', $rid);
+        $r = $db->getsingledata();
+        if ($r) $recentServices[] = $r;
+        if (count($recentServices) >= 6) break;
+    }
+    if (!empty($recentServices)):
+?>
+<section id="recently-viewed" class="w-full bg-[#F5E8D9] px-4 py-12" aria-label="Recently Viewed Services">
+  <div class="mx-auto w-[min(100%,1240px)]">
+    <h2 class="font-serif text-center text-[clamp(24px,3vw,40px)] font-semibold leading-[1] text-[#211d1a] mb-2">Recently Viewed</h2>
+    <p class="text-center text-[#6f625a] mb-8 text-sm">Services you've explored recently</p>
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <?php foreach ($recentServices as $rs): ?>
+      <a href="<?= URLROOT ?>/customerServices/detail/<?= (int)$rs['service_id'] ?>" class="group block overflow-hidden rounded-xl bg-white shadow-md transition hover:shadow-lg">
+        <div class="aspect-[4/3] overflow-hidden bg-[#ead8c7]">
+          <?php if (!empty($rs['cover_image'])): ?>
+            <img src="<?= URLROOT ?>/<?= htmlspecialchars($rs['cover_image']) ?>" alt="<?= htmlspecialchars($rs['name']) ?>" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+          <?php else: ?>
+            <div class="flex h-full items-center justify-center text-[#b8a89a] text-3xl">📷</div>
+          <?php endif; ?>
+        </div>
+        <div class="p-3">
+          <p class="text-xs uppercase tracking-wider text-[#b8860b]"><?= htmlspecialchars($rs['category'] ?? '') ?></p>
+          <h3 class="mt-1 truncate font-semibold text-[#211d1a] text-sm"><?= htmlspecialchars($rs['name']) ?></h3>
+          <?php if (!empty($rs['starting_price'])): ?>
+            <p class="mt-1 text-xs text-[#6f625a]">From <?= number_format((float)$rs['starting_price']) ?> MMK</p>
+          <?php endif; ?>
+        </div>
+      </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+<?php
+    endif;
+endif;
+?>
+
 <div class="service-calendar-popover" id="serviceCalendarPopover" hidden></div>
 <footer class="gp-footer">
   <div>© 2026 Golden Promise</div>
@@ -2742,5 +2789,6 @@ if('IntersectionObserver' in window){
   });
 })();
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

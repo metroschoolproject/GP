@@ -312,3 +312,4 @@ if (!function_exists('dashboard_admin_nav_class')) {
         color: var(--admin-primary);
     }
 </style>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>

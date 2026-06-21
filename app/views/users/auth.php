@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- don't forget to change this after sign in to sign up -->
   <title>Sign In</title>
+  <?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1273,5 +1274,6 @@
 
 
 
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>
