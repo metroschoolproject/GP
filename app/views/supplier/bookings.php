@@ -2,7 +2,7 @@
 $bookings = $bookings ?? [];
 $stats = $stats ?? [];
 $activeFilter = $activeFilter ?? 'all';
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $filters = [
     'all'       => ['label' => 'All',       'icon' => 'list'],

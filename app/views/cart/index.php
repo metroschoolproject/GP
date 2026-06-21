@@ -9,7 +9,7 @@ $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -893,46 +893,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   <div class="gp-orb gp-orb-3"></div>
 </div>
 
-<!-- ─── Header ─────────────────────────────────────────── -->
-<header class="gp-header">
-  <a class="gp-brand" href="<?= URLROOT ?>/main/index">
-    <span class="gp-brand-mark">G</span>
-    <span>Golden Promise</span>
-  </a>
-  <nav class="gp-header-nav" aria-label="Main navigation">
-    <a href="<?= URLROOT ?>/main/index">Home</a>
-    <a href="<?= URLROOT ?>/customerServices/service">Services</a>
-    <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
-  </nav>
-  <div class="gp-header-actions">
-    <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart (<?= $cartCount ?> items)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      <?php if ($cartCount > 0): ?><span class="gp-cart-count"><?= $cartCount ?></span><?php endif; ?>
-    </a>
-    <?php if ($isLoggedIn): ?>
-    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
-    <div class="gp-profile-dropdown">
-      <button class="gp-profile-btn" type="button" aria-expanded="false">
-        <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
-        <span class="gp-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
-        <svg class="gp-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="gp-profile-menu" aria-hidden="true">
-        <a class="gp-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          My Bookings
-        </a>
-        <a class="gp-profile-menu-item gp-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Logout
-        </a>
-      </div>
-    </div>
-    <?php else: ?>
-    <a class="gp-cta-header" href="<?= URLROOT ?>/users/auth">Sign in</a>
-    <?php endif; ?>
-  </div>
-</header>
+<?php $gpNavActive = 'cart'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <!-- ─── Main ──────────────────────────────────────────── -->
 <main class="gp-page">
@@ -1260,9 +1221,9 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               <span class="gp-line-val"><?= $money($total) ?></span>
             </div>
             <div class="gp-line">
-              <span class="gp-line-name">Deposit (10%)</span>
+              <span class="gp-line-name">Deposit (<?= BOOKING_DEPOSIT_PERCENT ?>%)</span>
               <span class="gp-line-dots" aria-hidden="true"></span>
-              <span class="gp-line-val"><?= $money($total * 0.10) ?></span>
+              <span class="gp-line-val"><?= $money($total * BOOKING_DEPOSIT_PERCENT / 100) ?></span>
             </div>
           </div>
 

@@ -10,6 +10,7 @@ class SupplierServiceManager
     private $hasRentalPriceMatrixColumns = null;
     private $rentalPricingColumns = null;
     private $hasDecorationStylePhotoColumn = null;
+    private $tableExistsCache = [];
 
     public function __construct()
     {
@@ -31,6 +32,7 @@ class SupplierServiceManager
             'meta' => [
                 'services' => $this->paginationMeta($serviceLimit, $serviceOffset, $this->countServices($supplierId, $search)),
                 'packages' => $this->paginationMeta($packageLimit, $packageOffset, $this->countPackages($supplierId, $search)),
+                'supplier_packages_available' => $this->supplierPackageTablesAvailable(),
             ],
         ];
     }
@@ -119,6 +121,10 @@ class SupplierServiceManager
 
     public function getPackages($supplierId, $limit = null, $offset = 0, string $search = '')
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return [];
+        }
+
         $query = 'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
                   FROM supplier_packages
                   WHERE supplier_id = :supplier_id
@@ -285,6 +291,9 @@ class SupplierServiceManager
             ];
 
             foreach ($childTables as $table) {
+                if (!$this->tableExists($table)) {
+                    continue;
+                }
                 $this->db->dbquery("DELETE FROM {$table} WHERE service_id = :service_id");
                 $this->db->dbbind(':service_id', $serviceId);
                 $this->db->dbexecute();
@@ -402,6 +411,7 @@ class SupplierServiceManager
 
     public function createPackage($supplierId, $data)
     {
+        $this->requireSupplierPackageTables();
         $categories = $this->normalizeCategories($data['categories'] ?? []);
 
         $this->db->dbquery(
@@ -416,6 +426,7 @@ class SupplierServiceManager
 
     public function updatePackage($supplierId, $packageId, $data)
     {
+        $this->requireSupplierPackageTables();
         $package = $this->getPackageById($packageId, $supplierId);
 
         if (!$package) {
@@ -445,9 +456,14 @@ class SupplierServiceManager
 
     public function deletePackage($supplierId, $packageId)
     {
-        $this->db->dbquery('DELETE FROM supplier_package_items WHERE package_id = :package_id');
-        $this->db->dbbind(':package_id', (int)$packageId);
-        $this->db->dbexecute();
+        if (!$this->tableExists('supplier_packages')) {
+            return false;
+        }
+        if ($this->tableExists('supplier_package_items')) {
+            $this->db->dbquery('DELETE FROM supplier_package_items WHERE package_id = :package_id');
+            $this->db->dbbind(':package_id', (int)$packageId);
+            $this->db->dbexecute();
+        }
 
         $this->db->dbquery(
             'UPDATE supplier_packages
@@ -463,6 +479,10 @@ class SupplierServiceManager
 
     public function setPackageStatus($supplierId, $packageId, $isActive)
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return null;
+        }
+
         $this->db->dbquery(
             'UPDATE supplier_packages
              SET is_active = :is_active
@@ -536,6 +556,10 @@ class SupplierServiceManager
 
     private function countPackages($supplierId, string $search = '')
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return 0;
+        }
+
         $query = 'SELECT COUNT(*) AS total FROM supplier_packages WHERE supplier_id = :supplier_id AND deleted_at IS NULL';
         if ($search !== '') {
             $query .= ' AND (name LIKE :search OR description LIKE :search2)';
@@ -999,6 +1023,138 @@ class SupplierServiceManager
     }
 
     /**
+     * Read-only: fetch remaining capacity for all services on a given date.
+     * Does NOT create or modify time_slot rows — only reads existing data.
+     */
+    public function fetchAllServicesCapacity(int $supplierId, string $date): array
+    {
+        $date = $this->normalizeDate($date);
+        if (!$date) {
+            return ['date' => '', 'services' => []];
+        }
+
+        $services = $this->getServices($supplierId);
+        if (empty($services)) {
+            return ['date' => $date, 'services' => []];
+        }
+
+        $dayOfWeek = (int)date('N', strtotime($date));
+        $serviceIds = array_map(fn($s) => (int)$s['id'], $services);
+        $inPlaceholders = implode(',', array_map(fn($i) => ':sid_' . $i, array_keys($serviceIds)));
+
+        // Fetch all time slots for this date in one query
+        $this->db->dbquery(
+            "SELECT service_id, start_time, end_time,
+                    confirmed_count, max_concurrent,
+                    confirmed_package_count, confirmed_customize_count,
+                    max_concurrent_package, max_concurrent_customize, status
+             FROM service_time_slots
+             WHERE date = :date AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':date', $date);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $slotsByService = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $slotsByService[(int)$row['service_id']][] = $row;
+        }
+
+        // Fetch overrides for this date
+        $this->db->dbquery(
+            "SELECT service_id, type FROM service_availability WHERE date = :date AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':date', $date);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $overrides = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $overrides[(int)$row['service_id']] = $row['type'];
+        }
+
+        // Fetch weekly schedule for this day-of-week
+        $this->db->dbquery(
+            "SELECT service_id, is_available FROM service_schedules WHERE day_of_week = :dow AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':dow', $dayOfWeek);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $scheduleMap = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $scheduleMap[(int)$row['service_id']] = !empty($row['is_available']);
+        }
+
+        $result = [];
+        foreach ($services as $service) {
+            $sid = (int)$service['id'];
+            $overrideType = $overrides[$sid] ?? null;
+            $hasSlots = !empty($slotsByService[$sid]);
+
+            // Skip explicitly unavailable services with no existing slots
+            if ($overrideType === 'unavailable' && !$hasSlots) {
+                continue;
+            }
+
+            // Skip closed days (no override + weekly schedule says closed) with no slots
+            if (!$overrideType && empty($scheduleMap[$sid]) && !$hasSlots) {
+                continue;
+            }
+
+            if ($hasSlots) {
+                $slots = [];
+                $totalMax = 0;
+                $totalConfirmed = 0;
+                foreach ($slotsByService[$sid] as $slot) {
+                    $mc = (int)$slot['max_concurrent'];
+                    $cc = (int)$slot['confirmed_count'];
+                    $totalMax += $mc;
+                    $totalConfirmed += $cc;
+                    $left = max(0, $mc - $cc);
+                    $slots[] = [
+                        'start_time' => substr($slot['start_time'], 0, 5),
+                        'end_time' => substr($slot['end_time'], 0, 5),
+                        'max_concurrent' => $mc,
+                        'confirmed_count' => $cc,
+                        'remaining' => $left,
+                        'status' => $slot['status'],
+                    ];
+                }
+                $result[] = [
+                    'id' => $sid,
+                    'name' => $service['name'],
+                    'category' => $service['category'] ?? 'Service',
+                    'img' => $service['img'] ?? '',
+                    'status' => $service['status'],
+                    'booking_type' => $service['timeslot'] ? 'slot' : 'fullday',
+                    'total_capacity' => $totalMax,
+                    'total_confirmed' => $totalConfirmed,
+                    'total_remaining' => max(0, $totalMax - $totalConfirmed),
+                    'slots' => $slots,
+                ];
+            } else {
+                // No time slots generated yet — use service-level default
+                $mc = (int)($service['capacity'] ?? 1);
+                $result[] = [
+                    'id' => $sid,
+                    'name' => $service['name'],
+                    'category' => $service['category'] ?? 'Service',
+                    'img' => $service['img'] ?? '',
+                    'status' => $service['status'],
+                    'booking_type' => $service['timeslot'] ? 'slot' : 'fullday',
+                    'total_capacity' => $mc,
+                    'total_confirmed' => 0,
+                    'total_remaining' => $mc,
+                    'slots' => [],
+                ];
+            }
+        }
+
+        return ['date' => $date, 'services' => array_values($result)];
+    }
+
+    /**
      * Reserve a slot for a booking.
      * @param string $source 'package' or 'custom'
      */
@@ -1043,12 +1199,14 @@ class SupplierServiceManager
     {
         $poolColumn = $source === 'package' ? 'confirmed_package_count' : 'confirmed_customize_count';
 
+        // CAST to SIGNED before subtracting — confirmed_* are UNSIGNED, so 0 - 1
+        // underflows and errors under strict SQL mode before GREATEST applies.
         $this->db->dbquery(
             "UPDATE service_time_slots
-             SET confirmed_count = GREATEST(confirmed_count - 1, 0),
-                 {$poolColumn} = GREATEST({$poolColumn} - 1, 0),
+             SET confirmed_count = GREATEST(CAST(confirmed_count AS SIGNED) - 1, 0),
+                 {$poolColumn} = GREATEST(CAST({$poolColumn} AS SIGNED) - 1, 0),
                  status = CASE
-                    WHEN GREATEST(confirmed_count - 1, 0) >= max_concurrent THEN 'full'
+                    WHEN GREATEST(CAST(confirmed_count AS SIGNED) - 1, 0) >= max_concurrent THEN 'full'
                     ELSE 'available'
                  END
              WHERE id = :id"
@@ -1203,6 +1361,10 @@ class SupplierServiceManager
 
     private function getPackageById($packageId, $supplierId)
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return null;
+        }
+
         $this->db->dbquery(
             'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
              FROM supplier_packages
@@ -1216,6 +1378,40 @@ class SupplierServiceManager
         $package = $this->db->getsingledata();
 
         return $package ? $this->formatPackage($package) : null;
+    }
+
+    private function tableExists(string $table): bool
+    {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+               FROM information_schema.TABLES
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = :table'
+        );
+        $this->db->dbbind(':table', $table);
+        $row = $this->db->getsingledata();
+        $this->tableExistsCache[$table] = (int)($row['total'] ?? 0) > 0;
+
+        return $this->tableExistsCache[$table];
+    }
+
+    private function requireSupplierPackageTables(): void
+    {
+        if (!$this->supplierPackageTablesAvailable()) {
+            throw new RuntimeException(
+                'Supplier package management is unavailable because its database migration has not been applied.'
+            );
+        }
+    }
+
+    private function supplierPackageTablesAvailable(): bool
+    {
+        return $this->tableExists('supplier_packages')
+            && $this->tableExists('supplier_package_items');
     }
 
     private function bindServiceFields($supplierId, $categoryId, $data)

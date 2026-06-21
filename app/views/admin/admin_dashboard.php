@@ -539,7 +539,7 @@
         let isLoading = false;
         let currentFilter = "week";
 
-        function currency(value) { return `$${value.toLocaleString()}`; }
+        function currency(value) { return `MMK ${value.toLocaleString()}`; }
         function formatDateInputValue(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, "0");

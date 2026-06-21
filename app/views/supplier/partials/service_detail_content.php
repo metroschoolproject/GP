@@ -1,4 +1,4 @@
-<div id="supplier-service-detail" class="is-tabbed-layout">
+<div id="supplier-service-detail" class="is-tabbed-layout" data-service-status="<?= $h($serviceStatus) ?>" data-draft-readiness="<?= $isReady ? 'ready' : 'incomplete' ?>">
 
 <?php
 // Derived rental pricing variables (used in stats bar and rental card below)
@@ -55,8 +55,8 @@ if (!empty($attentionItems[0]['label'])) {
       <h1><?= $h($serviceNameRaw) ?></h1>
       <p><?= $serviceDescriptionRaw !== '' ? $h($serviceDescriptionRaw) : 'Add a description so customers understand this service.' ?></p>
       <div class="sd-service-readiness <?= $isReady ? 'is-ready' : '' ?>">
-        <span class="sd-status-dot <?= $serviceStatus === 'active' || $isReady ? 'is-live' : '' ?>" id="publishStatusDot"></span>
-        <strong id="publishStatusText"><?= $serviceStatus === 'active' ? 'Live' : ($isReady ? 'Ready to publish' : 'Needs attention') ?></strong>
+        <span class="sd-status-dot <?= $serviceStatus === 'active' ? 'is-live' : '' ?>" id="publishStatusDot"></span>
+        <strong id="publishStatusText"><?= $serviceStatus === 'active' ? 'Live' : ($isReady ? 'Draft · Ready to publish' : 'Draft · Needs attention') ?></strong>
         <span class="sd-service-readiness-divider"></span>
         <span><?= $isReady ? 'All required sections are complete' : count($attentionItems) . ' ' . (count($attentionItems) === 1 ? 'task remains' : 'tasks remain') ?></span>
         <?php if (!$isReady): ?>
@@ -68,9 +68,9 @@ if (!empty($attentionItems[0]['label'])) {
       <a href="<?= URLROOT ?>/main/service/<?= (int)$serviceId ?>" target="_blank" class="btn btn-outline btn-sm">
         <i class="ti ti-eye" style="font-size:13px"></i> Preview
       </a>
-      <button type="button" id="publishServiceBtn" class="btn btn-primary btn-sm" <?= $serviceStatus === 'active' ? 'disabled' : '' ?>>
-        <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check' : 'ti-send' ?>" style="font-size:13px"></i>
-        <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Published' : 'Request publish' ?></span>
+      <button type="button" id="publishServiceBtn" class="btn <?= $serviceStatus === 'active' ? 'btn-outline sd-unpublish-btn' : 'btn-primary' ?> btn-sm">
+        <i class="ti <?= $serviceStatus === 'active' ? 'ti-eye-off' : 'ti-send' ?>" style="font-size:13px"></i>
+        <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Unpublish' : 'Request publish' ?></span>
       </button>
     </div>
   </header>
@@ -526,8 +526,9 @@ if (!empty($attentionItems[0]['label'])) {
           <div class="sd-info-row">
             <span class="sd-info-key">Status</span>
             <span class="sd-info-val">
-              <span style="display:inline-flex;align-items:center;gap:4px;color:<?= $serviceStatus === 'active' ? 'var(--success)' : 'var(--text-3)' ?>;font-size:12px">
-                <i class="ti ti-circle-check-filled" style="font-size:13px"></i> <?= $h(ucfirst($serviceStatus)) ?>
+              <span id="serviceInfoStatus" style="display:inline-flex;align-items:center;gap:4px;color:<?= $serviceStatus === 'active' ? 'var(--success)' : 'var(--text-3)' ?>;font-size:12px">
+                <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check-filled' : 'ti-file-pencil' ?>" style="font-size:13px"></i>
+                <span><?= $serviceStatus === 'active' ? 'Published' : 'Draft' ?></span>
               </span>
             </span>
           </div>

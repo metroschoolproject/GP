@@ -7,7 +7,7 @@ $logs = $logs ?? [];
 $payments = $payments ?? [];
 $packageSchedules = $packageSchedules ?? [];
 $bookingRef = $bookingRef ?? '';
-$depositPercent = (float)($depositPercent ?? 10);
+$depositPercent = (float)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
@@ -108,6 +108,8 @@ foreach ($items as $item) {
                 'guests' => $parentEvent['guest_count'] ?? null,
                 'contact_name' => $parentEvent['contact_name'] ?? ($booking['customer_name'] ?? ''),
                 'contact_phone' => $parentEvent['contact_phone'] ?? ($booking['customer_phone'] ?? ''),
+                'supplier_status' => $event['supplier_status'] ?? null,
+                'is_replacement' => !empty($event['is_replacement']),
             ];
         }
         continue;
@@ -188,11 +190,26 @@ $badgeClass = static function (string $status): string {
 $supplierStatusDot = static function (string $status): string {
     return match (strtolower($status)) {
         'confirmed', 'accepted' => 'bkd-dot--success',
-        'pending', 'pending_supplier_response' => 'bkd-dot--warn',
+        'pending', 'pending_supplier_response', 'needs_replacement' => 'bkd-dot--warn',
         'rejected', 'cancelled' => 'bkd-dot--danger',
         default => 'bkd-dot--neutral',
     };
 };
+
+$suppliersById = [];
+$replacementSourceById = [];
+foreach ($suppliers as $supplier) {
+    $supplierRowId = (int)($supplier['id'] ?? 0);
+    if ($supplierRowId > 0) {
+        $suppliersById[$supplierRowId] = $supplier;
+    }
+}
+foreach ($suppliers as $supplier) {
+    $replacementRowId = (int)($supplier['replaced_by_id'] ?? 0);
+    if ($replacementRowId > 0) {
+        $replacementSourceById[$replacementRowId] = $supplier;
+    }
+}
 
 $logDot = static function (string $status): string {
     return match (strtolower($status)) {
@@ -247,6 +264,8 @@ $dashboardContent = function () use (
     $custInitials,
     $badgeClass,
     $supplierStatusDot,
+    $suppliersById,
+    $replacementSourceById,
     $logDot,
     $showAllLogs,
     $visibleLogs
@@ -725,22 +744,33 @@ $dashboardContent = function () use (
     flex-shrink: 0;
   }
   .bkd-side-row {
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 8px minmax(0, 1fr);
+    align-items: start;
     gap: 10px;
     border: 1px solid var(--bkd-border-light);
     border-radius: .75rem;
     background: var(--bkd-soft);
-    padding: 9px 12px;
+    padding: 11px 12px;
+  }
+  .bkd-side-row > .bkd-dot { margin-top: 5px; }
+  .bkd-side-row--attention {
+    border-color: #e8b66f;
+    background: #fff8ed;
+  }
+  .bkd-side-row--replacement {
+    border-color: #b9d8ce;
+    background: #f4fbf8;
+  }
+  .bkd-side-row--replaced {
+    background: #f8f6f4;
   }
   .bkd-side-row-main { flex: 1; min-width: 0; }
   .bkd-side-row-title {
     font-size: 12px;
     font-weight: 700;
     color: var(--bkd-text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
   }
   .bkd-side-row-sub {
     font-size: 10px;
@@ -749,6 +779,64 @@ $dashboardContent = function () use (
     text-transform: uppercase;
     letter-spacing: .04em;
   }
+  .bkd-side-service {
+    margin-top: 4px;
+    color: var(--bkd-body);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .bkd-side-service-label {
+    color: var(--bkd-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+  }
+  .bkd-replacement-flow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr);
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--bkd-border);
+  }
+  .bkd-replacement-party {
+    min-width: 0;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .bkd-replacement-party strong {
+    display: block;
+    color: var(--bkd-text);
+    font-size: 10px;
+    overflow-wrap: anywhere;
+  }
+  .bkd-replacement-party span {
+    color: var(--bkd-muted);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .bkd-replacement-arrow {
+    display: grid;
+    place-items: center;
+    color: var(--bkd-primary);
+  }
+  .bkd-replacement-arrow svg { width: 13px; height: 13px; }
+  .bkd-side-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 9px;
+    color: var(--bkd-warn-text);
+    font-size: 10px;
+    font-weight: 800;
+    text-decoration: none;
+  }
+  .bkd-side-action:hover { text-decoration: underline; }
+  .bkd-side-action svg { width: 12px; height: 12px; }
 
   /* ── Status dots ── */
   .bkd-dot {
@@ -1239,6 +1327,29 @@ $dashboardContent = function () use (
     text-transform: uppercase;
     vertical-align: 1px;
   }
+  .bkd-run-state {
+    display: inline-flex;
+    min-height: 19px;
+    align-items: center;
+    gap: 4px;
+    margin-left: 5px;
+    border-radius: 999px;
+    padding: 0 7px;
+    font-size: 7px;
+    font-weight: 850;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    vertical-align: 1px;
+  }
+  .bkd-run-state svg { width: 9px; height: 9px; }
+  .bkd-run-state--replacement {
+    background: #e7f6f0;
+    color: #08715a;
+  }
+  .bkd-run-state--attention {
+    background: #fff0d8;
+    color: #9a5c12;
+  }
   .bkd-run-detail {
     display: flex;
     flex-wrap: wrap;
@@ -1593,6 +1704,15 @@ $dashboardContent = function () use (
                       <div class="bkd-run-service">
                         <?= $h($event['service'] ?? 'Service') ?>
                         <span class="bkd-run-category"><?= $h($event['category'] ?? 'Event') ?></span>
+                        <?php if (($event['supplier_status'] ?? '') === 'needs_replacement'): ?>
+                          <span class="bkd-run-state bkd-run-state--attention">
+                            <i data-lucide="triangle-alert"></i> Needs replacement
+                          </span>
+                        <?php elseif (!empty($event['is_replacement'])): ?>
+                          <span class="bkd-run-state bkd-run-state--replacement">
+                            <i data-lucide="refresh-cw"></i> Replacement service
+                          </span>
+                        <?php endif; ?>
                       </div>
                       <div class="bkd-run-detail">
                         <span><i data-lucide="store"></i><?= $h($event['supplier'] ?? 'Supplier') ?></span>
@@ -1657,7 +1777,7 @@ $dashboardContent = function () use (
       </div>
 
       <!-- Customer card -->
-      <div class="bkd-card" id="booking-suppliers">
+      <div class="bkd-card">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
@@ -1682,7 +1802,7 @@ $dashboardContent = function () use (
       </div>
 
       <!-- Suppliers list -->
-      <div class="bkd-card" id="booking-activity">
+      <div class="bkd-card" id="booking-suppliers">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
@@ -1701,12 +1821,83 @@ $dashboardContent = function () use (
                 <?php
                   $sName = (string)($supplier['shop_name'] ?? 'Supplier');
                   $sStatus = (string)($supplier['status'] ?? 'pending');
+                  $serviceName = (string)($supplier['service_name'] ?? $supplier['category_name'] ?? 'Unspecified service');
+                  $replacementTarget = $suppliersById[(int)($supplier['replaced_by_id'] ?? 0)] ?? null;
+                  $replacementSource = $replacementSourceById[(int)($supplier['id'] ?? 0)] ?? null;
+                  $isNeedsReplacement = $sStatus === 'needs_replacement';
+                  $isReplaced = $sStatus === 'replaced';
+                  $isReplacement = $replacementSource !== null;
+                  $replacementStatus = (string)($supplier['replacement_status'] ?? '');
+                  $replacementRequestId = (int)(
+                      $supplier['originated_replacement_request_id']
+                      ?? $supplier['replacement_request_id']
+                      ?? 0
+                  );
+                  $rowClass = $isNeedsReplacement
+                      ? 'bkd-side-row--attention'
+                      : ($isReplacement ? 'bkd-side-row--replacement' : ($isReplaced ? 'bkd-side-row--replaced' : ''));
+                  $stateLabel = $isNeedsReplacement
+                      ? 'Needs replacement'
+                      : ($isReplacement
+                          ? ($replacementStatus === 'accepted'
+                              ? 'Replacement accepted'
+                              : 'Replacement assigned · Awaiting supplier response')
+                          : ($isReplaced ? 'Original service replaced' : ucwords(str_replace('_', ' ', $sStatus))));
                 ?>
-                <div class="bkd-side-row">
+                <div class="bkd-side-row <?= $rowClass ?>">
                   <span class="bkd-dot <?= $supplierStatusDot($sStatus) ?>"></span>
                   <div class="bkd-side-row-main">
                     <div class="bkd-side-row-title"><?= $h($sName) ?></div>
-                    <div class="bkd-side-row-sub"><?= $h(ucwords(str_replace('_', ' ', $sStatus))) ?></div>
+                    <div class="bkd-side-row-sub"><?= $h($stateLabel) ?></div>
+                    <div class="bkd-side-service">
+                      <span class="bkd-side-service-label"><?= $isReplacement ? 'Replacement for' : 'Service' ?></span><br>
+                      <?= $h($isReplacement
+                          ? ($replacementSource['service_name'] ?? $replacementSource['category_name'] ?? $serviceName)
+                          : $serviceName) ?>
+                    </div>
+
+                    <?php if ($isNeedsReplacement): ?>
+                      <div class="bkd-replacement-flow">
+                        <div class="bkd-replacement-party">
+                          <span>Unavailable</span>
+                          <strong><?= $h($sName) ?></strong>
+                        </div>
+                        <span class="bkd-replacement-arrow"><i data-lucide="arrow-right"></i></span>
+                        <div class="bkd-replacement-party">
+                          <span>Next</span>
+                          <strong>Choose supplier</strong>
+                        </div>
+                      </div>
+                      <?php if ($replacementRequestId > 0): ?>
+                        <a class="bkd-side-action" href="<?= URLROOT ?>/admin/replacementPicker/<?= $replacementRequestId ?>">
+                          Choose replacement <i data-lucide="arrow-up-right"></i>
+                        </a>
+                      <?php endif; ?>
+                    <?php elseif ($isReplaced): ?>
+                      <div class="bkd-replacement-flow">
+                        <div class="bkd-replacement-party">
+                          <span>Original</span>
+                          <strong><?= $h($sName) ?></strong>
+                        </div>
+                        <span class="bkd-replacement-arrow"><i data-lucide="arrow-right"></i></span>
+                        <div class="bkd-replacement-party">
+                          <span>Replaced by</span>
+                          <strong><?= $h($replacementTarget['shop_name'] ?? 'Replacement pending') ?></strong>
+                        </div>
+                      </div>
+                    <?php elseif ($isReplacement): ?>
+                      <div class="bkd-replacement-flow">
+                        <div class="bkd-replacement-party">
+                          <span>Replaces</span>
+                          <strong><?= $h($replacementSource['shop_name'] ?? 'Original supplier') ?></strong>
+                        </div>
+                        <span class="bkd-replacement-arrow"><i data-lucide="arrow-right"></i></span>
+                        <div class="bkd-replacement-party">
+                          <span>Now assigned</span>
+                          <strong><?= $h($sName) ?></strong>
+                        </div>
+                      </div>
+                    <?php endif; ?>
                   </div>
                 </div>
               <?php endforeach; ?>
@@ -1716,7 +1907,7 @@ $dashboardContent = function () use (
       </div>
 
       <!-- Audit trail -->
-      <div class="bkd-card bkd-danger-zone">
+      <div class="bkd-card bkd-danger-zone" id="booking-activity">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon">
@@ -1841,6 +2032,7 @@ $dashboardContent = function () use (
       ? '<?= URLROOT ?>/admin/verifyPaymentPost'
       : '<?= URLROOT ?>/admin/rejectPaymentSlipPost';
     var formData = new FormData();
+    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
     formData.append('booking_id', bookingId);
     formData.append('note', note);
 
@@ -1919,7 +2111,9 @@ $dashboardContent = function () use (
     cancelForm.addEventListener('submit', async function(event){
       event.preventDefault();
       if (!confirm('Are you sure you want to cancel this booking? This may not be reversible.')) return;
-      var response = await fetch('<?= URLROOT ?>/admin/bookingCancel', { method: 'POST', body: new FormData(cancelForm) });
+      var cancelData = new FormData(cancelForm);
+      cancelData.set('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+      var response = await fetch('<?= URLROOT ?>/admin/bookingCancel', { method: 'POST', body: cancelData });
       var data = await response.json().catch(function(){ return {}; });
       if (data.success) window.location.reload();
       else showToast(data.error || 'Could not cancel booking.', 'error');

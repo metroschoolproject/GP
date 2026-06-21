@@ -6,7 +6,7 @@
   "scripts": {
     "build:css": "postcss resources/css/app.css -o public/css/app.css",
     "watch:css": "postcss resources/css/app.css -o public/css/app.css --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/run-static-checks.js"
   },
   "keywords": [],
   "author": "",

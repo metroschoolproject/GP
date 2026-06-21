@@ -148,10 +148,15 @@ class User
 
     public function login($data)
     {
-        $this->db->dbquery("SELECT user_id,password,name FROM users WHERE email = :email");
+        $this->db->dbquery("SELECT user_id,password,name,status,deleted_at,avatar FROM users WHERE email = :email");
         $this->db->dbbind(":email", $data['email']);
         $row = $this->db->getsingledata();
         if (!$row) return false;
+
+        // Defense-in-depth: never authenticate a moderated/soft-deleted account.
+        if (!empty($row['deleted_at']) || in_array(($row['status'] ?? ''), ['suspended', 'banned'], true)) {
+            return false;
+        }
 
         $pw_sha = $data['pw_sha'];
         $response = $data['response'];

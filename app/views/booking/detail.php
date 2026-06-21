@@ -6,14 +6,14 @@ $suppliers = $suppliers ?? [];
 $logs = $logs ?? [];
 $vouchers = $vouchers ?? [];
 $bookingRef = $bookingRef ?? '';
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 $canReview = $canReview ?? false;
 $existingReview = $existingReview ?? null;
 $canEditReview = $canEditReview ?? false;
 $pendingReplacement = $pendingReplacement ?? null;
 
 $statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled','cancellation_requested'=>'Cancellation Requested'];
-$money = fn($v) => 'RM '.number_format((float)$v,0);
+$money = fn($v) => number_format((float)$v,0) . ' MMK';
 $plain = function($v){ $t=(string)$v; for($i=0;$i<10;$i++){$d=html_entity_decode($t,ENT_QUOTES|ENT_HTML5,'UTF-8');if($d===$t)break;$t=$d;}return $t; };
 $h = fn($v)=>htmlspecialchars($plain($v),ENT_QUOTES,'UTF-8');
 $depositPayment = $depositPayment ?? [];
@@ -143,52 +143,36 @@ a{color:inherit;text-decoration:none}
 </style>
 </head><body>
 
-<header class="gp-header">
-  <a class="gp-brand" href="<?=URLROOT?>/main/index"><span class="gp-brand-mark">G</span>Golden Promise</a>
-  <nav class="gp-header-nav"><a href="<?=URLROOT?>/main/index">Home</a><a href="<?=URLROOT?>/booking/myBookings">Bookings</a><a href="<?=URLROOT?>/review/my">My Reviews</a></nav>
-  <div class="gp-header-actions">
-    <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
-    <div class="gp-profile-dropdown">
-      <button class="gp-profile-btn" type="button" aria-expanded="false">
-        <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
-        <span class="gp-profile-name"><?= htmlspecialchars(explode(' ', $_SESSION['session_name'] ?? 'User')[0], ENT_QUOTES, 'UTF-8') ?></span>
-        <svg class="gp-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="gp-profile-menu" aria-hidden="true">
-        <a class="gp-profile-menu-item" href="<?=URLROOT?>/booking/myBookings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          My Bookings
-        </a>
-        <a class="gp-profile-menu-item" href="<?=URLROOT?>/review/my">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          My Reviews
-        </a>
-        <a class="gp-profile-menu-item gp-profile-menu-item--danger" href="<?=URLROOT?>/users/logout">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Logout
-        </a>
-      </div>
-    </div>
-  </div>
-</header>
+<?php $gpNavActive = 'bookings'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <main class="gp-page">
   <div class="gp-back"><a href="<?=URLROOT?>/booking/myBookings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back to Bookings</a></div>
 
   <?php if ($pendingReplacement): ?>
+    <?php $replacementProofSubmitted = !empty($pendingReplacement['customer_approved_at']) && !empty($pendingReplacement['delta_payment_slip']); ?>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;background:#fffbeb;border:1px solid #fcd34d;border-radius:14px;padding:16px 20px;margin-bottom:20px">
       <div>
-        <strong style="display:block;color:#92400e;font-size:14px">Replacement supplier needs your approval</strong>
+        <strong style="display:block;color:#92400e;font-size:14px">
+          <?= $replacementProofSubmitted ? 'Replacement approval is being verified' : 'Replacement supplier needs your approval' ?>
+        </strong>
         <span style="color:#7b5c69;font-size:13px">
           <?= $h($pendingReplacement['new_shop_name'] ?? 'A new supplier') ?> is available, but costs
           <strong><?= number_format((float)($pendingReplacement['price_delta'] ?? 0), 0) ?> MMK</strong> more.
-          Approve and pay the difference to confirm it.
+          <?= $replacementProofSubmitted
+              ? 'Your payment proof was submitted. The booking service will change after admin verification.'
+              : 'Approve and pay the difference to confirm it.' ?>
         </span>
       </div>
-      <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$pendingReplacement['id'] ?>"
-         style="white-space:nowrap;background:#6d4c5b;color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none">
-        Approve &amp; pay difference →
-      </a>
+      <?php if (!$replacementProofSubmitted): ?>
+        <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$pendingReplacement['id'] ?>"
+           style="white-space:nowrap;background:#6d4c5b;color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none">
+          Approve &amp; pay difference →
+        </a>
+      <?php else: ?>
+        <span style="white-space:nowrap;background:#fff;color:#92400e;border:1px solid #fcd34d;padding:9px 16px;border-radius:999px;font-size:12px;font-weight:700">
+          Awaiting verification
+        </span>
+      <?php endif; ?>
     </div>
   <?php endif; ?>
 
@@ -220,7 +204,7 @@ a{color:inherit;text-decoration:none}
     <svg style="flex-shrink:0;margin-top:2px;color:#16a34a" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     <div>
       <div style="font-weight:700;font-size:13px;color:#166534;margin-bottom:2px;">Supplier accepted — please complete payment</div>
-      <div style="font-size:12px;color:#15803d;">Your booking request was accepted! Please pay your 10% deposit below to lock in your booking.</div>
+      <div style="font-size:12px;color:#15803d;">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
     </div>
   </div>
   <?php endif; ?>
@@ -495,6 +479,29 @@ a{color:inherit;text-decoration:none}
     <?php endif; ?>
     <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
     <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
+    <?php endif; ?>
+    <?php if (($booking['status'] ?? '') === 'cancellation_requested'): ?>
+      <?php
+      $supplierApproved = false;
+      $supplierPending = false;
+      foreach ($suppliers as $sup) {
+        if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
+        if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
+      }
+      ?>
+      <?php if ($supplierPending): ?>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:8px">
+        <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
+      </div>
+      <?php elseif ($supplierApproved): ?>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;font-size:13px;color:#166534;margin-top:8px">
+        <strong>Supplier approved</strong> — Your supplier has approved the cancellation. Admin will review and process your refund.
+      </div>
+      <?php else: ?>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;color:#1e40af;margin-top:8px">
+        <strong>Cancellation requested</strong> — Your cancellation request is being reviewed.
+      </div>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
 </main>

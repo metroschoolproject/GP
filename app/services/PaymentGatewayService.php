@@ -25,6 +25,11 @@ class PaymentGatewayService
             : 'https://pgw.2c2p.com';
     }
 
+    public function isConfigured(): bool
+    {
+        return $this->merchantId !== '' && $this->apiSecret !== '';
+    }
+
     /**
      * Create a 2C2P hosted payment page token.
      * Returns webPaymentUrl for redirect checkout when successful.
@@ -118,13 +123,40 @@ class PaymentGatewayService
             return ['success' => false, 'error' => 'Gateway verification failed'];
         }
 
+        $responseCode = (string)($response['respCode'] ?? '');
+        $status = (string)($response['status'] ?? $response['paymentStatus'] ?? $response['transactionStatus'] ?? '');
+        $success = ($response['success'] ?? false)
+            || $responseCode === '0000'
+            || in_array(strtolower($status), ['success', 'paid', 'completed'], true);
+
         return [
-            'success' => $response['success'] ?? false,
-            'status' => $response['status'] ?? '',
-            'amount' => $response['amount'] ?? 0,
-            'method' => $response['method'] ?? '',
+            'success' => $success,
+            'status' => $status !== '' ? $status : $responseCode,
+            'amount' => $response['amount'] ?? $response['paidAmount'] ?? 0,
+            'method' => $response['method'] ?? $response['paymentChannel'] ?? '',
             'verified_at' => $response['timestamp'] ?? '',
         ];
+    }
+
+    public function methodMatches(string $expectedMethod, mixed $gatewayMethod): bool
+    {
+        $expected = strtolower(trim($expectedMethod));
+        $actual = strtolower(trim(is_array($gatewayMethod) ? implode(' ', $gatewayMethod) : (string)$gatewayMethod));
+        if ($actual === '') {
+            return false;
+        }
+
+        $aliases = [
+            'mm qr' => ['mm qr', 'mmqr', 'qr', 'promptpay'],
+            'visa' => ['visa', 'card', 'credit card'],
+            'mastercard' => ['mastercard', 'master card', 'card', 'credit card'],
+        ];
+        foreach ($aliases[$expected] ?? [$expected] as $alias) {
+            if ($alias !== '' && str_contains($actual, $alias)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -157,8 +189,18 @@ class PaymentGatewayService
      * Create payout to supplier bank account.
      * Gateway handles settlement/disbursement.
      */
-    public function createSupplierPayout(int $supplierId, float $amount, string $bankAccount, string $bankCode): array
+    public function createSupplierPayout(
+        int $supplierId,
+        float $amount,
+        string $bankAccount,
+        string $bankCode,
+        string $batchId = ''
+    ): array
     {
+        if (!$this->isConfigured()) {
+            return ['success' => false, 'error' => 'Payout gateway credentials are not configured.'];
+        }
+
         $payload = [
             'supplier_id' => (string)$supplierId,
             'amount' => (int)round($amount),
@@ -166,7 +208,8 @@ class PaymentGatewayService
             'bank_code' => $bankCode, // 'AYA', 'KBZ', 'AGD', etc.
             'account_number' => $bankAccount,
             'description' => 'Golden Promise - Booking Payout #' . $supplierId,
-            'notification_url' => url('/webhook/payoutCallback'),
+            'merchant_reference' => $batchId,
+            'notification_url' => URLROOT . '/webhook/payoutCallback?batch_id=' . rawurlencode($batchId),
         ];
 
         $response = $this->httpPost('/payout/create', $payload);

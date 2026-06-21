@@ -3,7 +3,7 @@ $booking = $booking ?? [];
 $items = $items ?? [];
 $bookingRef = $bookingRef ?? '';
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {

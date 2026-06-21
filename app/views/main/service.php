@@ -46,13 +46,21 @@ $durationText = function ($s) {
     return $type === 'flexible' ? 'Flexible' : 'Full day';
 };
 $pricingUnit = fn($s) => ($s['pricing_unit'] ?? 'per_session') === 'per_hour' ? '/hr' : '/session';
+$serviceLocation = function ($s) {
+    $location = trim((string)($s['venue_location'] ?? $s['service_location'] ?? $s['location'] ?? ''));
+    return $location !== '' ? $location : 'Location available after booking';
+};
 
 $activeCategory = $filters['category']  ?? 'all';
 $activeSort     = $filters['sort']      ?? 'featured';
 $activeDate     = $filters['date']      ?? '';
+$activeDateLabel = $activeDate !== ''
+    ? ($activeDate === date('Y-m-d') ? 'Today' : date('M j', strtotime($activeDate)))
+    : 'Today';
 $activePriceMin = $filters['price_min'] ?? '';
 $activePriceMax = $filters['price_max'] ?? '';
 $detailDateQuery = $activeDate !== '' ? '?date=' . rawurlencode($activeDate) : '';
+$fromFilterRequest = ($_GET['from_filter'] ?? '') === '1';
 
 $serviceUrl = function (array $overrides = []) use ($filters) {
     $params = [
@@ -63,6 +71,7 @@ $serviceUrl = function (array $overrides = []) use ($filters) {
         'price_min' => $filters['price_min'] ?? '',
         'price_max' => $filters['price_max'] ?? '',
         'page' => $_GET['page'] ?? 1,
+        'from_filter' => 1,
     ];
     foreach ($overrides as $key => $value) {
         if ($value === null) {
@@ -127,39 +136,232 @@ a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%}
 button,input,select{font-family:var(--font-body);outline:none}
 
-/* ══ HEADER ══════════════════════════════════════════════ */
-.gp-header{
-  position:sticky;top:0;z-index:100;
-  display:grid;grid-template-columns:auto 1fr auto;
-  align-items:center;gap:24px;
-  padding:16px var(--pad-x);
-  border-bottom:1px solid rgba(184,154,109,.2);
-  background:rgba(255,248,239,.94);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+/* ══ HOME-STYLE HEADER ═══════════════════════════════════ */
+.site-header{
+  position:fixed;
+  inset:0 0 auto;
+  z-index:1000;
+  padding:0;
+  pointer-events:none;
+  font-family:var(--font-display);
 }
-.gp-brand{display:flex;align-items:center;gap:12px;color:#211b17;font-size:18px;font-weight:800;white-space:nowrap}
-.gp-brand-mark{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--c-strong);color:#fff4e6;font-size:14px;letter-spacing:1px}
-.gp-header-nav{display:flex;align-items:center;justify-content:center;gap:4px}
-.gp-header-nav a{padding:8px 18px;border-radius:999px;font-size:13px;font-weight:700;color:#51483f;transition:all .2s}
-.gp-header-nav a:hover,.gp-header-nav a.active{color:var(--c-red);background:rgba(185,74,72,.08)}
-.gp-header-actions{display:flex;align-items:center;gap:12px;justify-content:flex-end}
-.gp-cart-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 14px 8px 10px;border-radius:999px;border:1px solid var(--c-rule);background:var(--c-white);color:var(--c-strong);font-size:13px;font-weight:700;transition:all .2s}
-.gp-cart-badge:hover{border-color:var(--c-red);color:var(--c-red)}
-.gp-cart-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--c-strong);color:#fff;font-size:10px;font-weight:700}
-.gp-header-cta{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 20px;border-radius:999px;border:none;background:var(--c-strong);color:#fffaf3;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(118,90,70,.22);transition:all .2s}
-.gp-header-cta:hover{background:var(--c-red);transform:translateY(-1px)}
-.gp-profile-wrap{position:relative}
-.gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--c-rule);background:var(--c-white);cursor:pointer;color:var(--c-strong);font-family:var(--font-body);font-size:13px;font-weight:600;transition:all .2s}
-.gp-profile-btn:hover{border-color:var(--c-red);color:var(--c-red)}
-.gp-profile-avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--c-strong);color:#fff4e6;font-size:12px;font-weight:800}
-.gp-chevron{opacity:.6;transition:transform .2s}
-.gp-profile-btn[aria-expanded="true"] .gp-chevron{transform:rotate(180deg)}
-.gp-profile-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:180px;padding:6px;border-radius:12px;border:1px solid var(--c-rule);background:var(--c-white);box-shadow:0 12px 35px rgba(15,23,42,.10);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s var(--ease);z-index:200}
-.gp-profile-btn[aria-expanded="true"]+.gp-profile-menu{opacity:1;visibility:visible;transform:translateY(0)}
-.gp-menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--c-text);transition:background .15s}
-.gp-menu-item:hover{background:rgba(185,74,72,.06)}
-.gp-menu-item--danger{color:var(--c-red)}
-.gp-menu-item--danger:hover{background:rgba(185,74,72,.08)}
+.navbar{
+  position:fixed;
+  top:0;
+  left:0;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  min-height:58px;
+  padding:9px 18px;
+  border-radius:0 0 6px 6px;
+  border-bottom:0;
+  background:transparent;
+  box-shadow:none;
+  pointer-events:auto;
+}
+.nav-left-spacer{width:82px;height:36px;flex:0 0 82px}
+.nav-center-logo{
+  position:absolute;
+  left:24px;
+  top:50%;
+  z-index:2;
+  display:grid;
+  width:68px;
+  height:68px;
+  place-items:center;
+  overflow:hidden;
+  border-radius:50%;
+  transform:translateY(-50%);
+}
+.nav-center-logo img{width:100%;height:100%;object-fit:cover}
+.nav-links{
+  position:absolute;
+  left:50%;
+  top:50%;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:4px;
+  border-radius:8px;
+  background:rgba(0,0,0,.52);
+  transform:translate(-50%,-50%);
+  color:#fff4e6;
+  font-size:12px;
+  font-weight:700;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+}
+.nav-links a{
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  padding:6px 15px;
+  color:#fff4e6;
+  font:inherit;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:all .2s ease;
+}
+.nav-links a:hover,
+.nav-links a.active{background:rgba(255,255,255,.92);color:#3f2f24}
+.nav-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.nav-partner,
+.nav-login{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:31px;
+  border-radius:7px;
+  font-size:12px;
+  font-weight:800;
+  transition:all .2s ease;
+}
+.nav-partner{
+  padding:5px 12px;
+  background:#3f241a;
+  color:#fff8ef;
+  box-shadow:none;
+}
+.nav-partner:hover{transform:translateY(-1px);background:#4a2d22;color:#fff8ef}
+.nav-login{
+  padding:5px 11px;
+  background:#fff8ef;
+  color:#3f2f24;
+}
+.nav-login:hover{background:#f3d9a4;color:#3f2f24}
+.home-profile-dropdown{position:relative}
+.home-profile-btn{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:3px 10px 3px 3px;
+  border-radius:7px;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.08);
+  cursor:pointer;
+  color:#fff4e6;
+  font-family:var(--font-display);
+  font-size:12px;
+  font-weight:600;
+  transition:all .2s;
+}
+.home-profile-btn:hover{background:rgba(255,255,255,.15)}
+.home-profile-avatar{
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:#d8b46a;
+  color:#3f2f24;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.5px;
+}
+.home-profile-name{max-width:86px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-profile-chevron{opacity:.7;transition:transform .2s}
+.home-profile-btn[aria-expanded="true"] .home-profile-chevron{transform:rotate(180deg)}
+.nav-actions .gp-customer-notification{z-index:1100}
+.nav-actions .gp-customer-notification #dashboardNotificationBtn{
+  width:31px;
+  height:31px;
+  border-radius:7px;
+  border-color:rgba(255,248,239,.22);
+  background:#fff8ef;
+  color:#3f2f24;
+  box-shadow:none;
+}
+.nav-actions .gp-customer-notification #dashboardNotificationBtn svg{
+  width:15px;
+  height:15px;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel{
+  right:0;
+  top:calc(100% + 9px);
+}
+.home-profile-menu{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  z-index:1100;
+  min-width:180px;
+  padding:6px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.10);
+  background:#765a46;
+  box-shadow:0 12px 35px rgba(92,67,48,.25);
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(-4px);
+  transition:all .15s ease;
+}
+.home-profile-btn[aria-expanded="true"]+.home-profile-menu{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+}
+.home-profile-menu-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:10px;
+  color:#fff4e6;
+  font-size:13px;
+  font-weight:600;
+  transition:all .15s;
+}
+.home-profile-menu-item:hover{background:rgba(216,180,106,.16);color:#f3d9a4}
+.home-profile-menu-item--danger{color:#f5a0a0}
+.home-profile-menu-item--danger:hover{background:rgba(185,75,75,.20);color:#ffcccc}
+.mobile-menu-btn{
+  display:none;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:0 14px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:rgba(255,255,255,.10);
+  color:#fff4e6;
+  cursor:pointer;
+  font-family:var(--font-display);
+  font-size:13px;
+  font-weight:800;
+  box-shadow:0 6px 18px rgba(92,67,48,.14);
+}
+.mobile-menu{
+  position:fixed;
+  top:74px;
+  left:50%;
+  z-index:999;
+  display:none;
+  width:min(calc(100% - 24px),1152px);
+  padding:10px;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:#765a46;
+  box-shadow:0 18px 36px rgba(92,67,48,.18);
+  transform:translateX(-50%);
+  pointer-events:auto;
+}
+.mobile-menu.open{display:grid}
+.mobile-menu a{
+  padding:12px 14px;
+  border-radius:8px;
+  color:#fff4e6;
+  font-weight:800;
+}
+.mobile-menu a:hover{background:rgba(216,180,106,.16);color:#f3d9a4}
+.mobile-menu .mobile-partner{background:#3f241a;color:#fff8ef}
+.mobile-menu .mobile-partner:hover{background:#4a2d22;color:#fff8ef}
+.mobile-menu .mobile-login{background:#fff8ef;color:#3f2f24}
+.mobile-menu .mobile-login:hover{background:#f3d9a4;color:#3f2f24}
 
 /* ══ SERVICES SEARCH + GRID ══════════════════════════════ */
 .gp-scene{
@@ -169,7 +371,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .hero-banner{
     position:relative;
-    min-height:calc(100vh - var(--header-h) - 70px);
+    min-height:calc(100vh - var(--header-h) - 1px);
     background:url('../public/uploads/serviceHero1.png');
     background-size:cover;
     background-position:center;
@@ -212,16 +414,16 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 .hero-overlay h1{
     font-family:'Playfair Display', serif;
-    font-size:70px;
+    font-size:clamp(42px, 5.5vw, 62px);
     font-weight:500;
-    letter-spacing:6px;
-    margin-bottom:10px;
+    letter-spacing:4px;
+    margin-bottom:8px;
 }
 
 .hero-overlay p{
-    font-size:16px;
-    letter-spacing:2px;
-    margin-bottom:28px;
+    font-size:14px;
+    letter-spacing:1.4px;
+    margin-bottom:20px;
 }
 
 .hero-overlay .gp-float-bar{
@@ -235,6 +437,16 @@ button,input,select{font-family:var(--font-body);outline:none}
 .hero-overlay .fb-controls > *{
   opacity:0;
   transform:translateY(18px) scale(.94);
+}
+
+.hero-overlay.no-pop h1,
+.hero-overlay.no-pop p,
+.hero-overlay.no-pop .gp-float-bar,
+.hero-overlay.no-pop .fb-search,
+.hero-overlay.no-pop .fb-controls > *{
+  opacity:1;
+  transform:none;
+  animation:none !important;
 }
 
 .hero-overlay.is-in h1{
@@ -306,7 +518,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   box-shadow:none;
 }
 .supplier-marquee{
-    height:70px;
+    height:58px;
     display:flex;
     align-items:center;
     overflow:hidden;
@@ -318,13 +530,13 @@ button,input,select{font-family:var(--font-body);outline:none}
 .supplier-track{
     display:flex;
     width:max-content;
-    animation:supplierScroll 28s linear infinite;
+    animation:supplierScroll var(--marquee-duration, 34s) linear infinite;
 }
 
 .supplier-item{
     flex-shrink:0;
-    margin:0 50px;
-    font-size:14px;
+    margin:0 42px;
+    font-size:12px;
     font-weight:600;
     color:#765a46;
     letter-spacing:.08em;
@@ -333,7 +545,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 .supplier-item::after{
     content:"•";
-    margin-left:50px;
+    margin-left:42px;
     color:#d8b46a;
 }
 
@@ -402,7 +614,97 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .fb-chip:hover{background:rgba(255,248,239,.94);color:#4f382a}
 .fb-chip.on{background:rgba(216,180,106,.88);border-color:rgba(255,248,239,.58);color:#4f382a}
+.fb-date-chip{
+  position:relative;
+  min-height:32px;
+  gap:8px;
+  border-radius:6px;
+  background:#FFF8EF;
+  color:#3F241A;
+  padding:0 10px;
+  font-size:12px;
+  font-weight:800;
+  box-shadow:0 4px 14px rgba(63,36,26,.06);
+}
+.fb-date-chip.on{
+  background:#FFF8EF;
+  border-color:rgba(154,104,127,.34);
+  color:#3F241A;
+}
+.fb-date-chip svg{flex:0 0 auto;stroke:#7A4E3D}
+.fb-date-chip input{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  pointer-events:none;
+}
+.service-calendar-popover{
+  position:fixed;
+  z-index:10010;
+  width:min(250px,calc(100vw - 32px));
+  padding:12px;
+  border:1px solid rgba(63,36,26,.14);
+  border-radius:10px;
+  background:rgba(255,248,239,.98);
+  box-shadow:0 24px 60px rgba(63,36,26,.18);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.service-calendar-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  color:#3F241A;font-size:12px;font-weight:900;margin-bottom:9px;
+}
+.service-calendar-nav{
+  width:22px;height:22px;display:inline-grid;place-items:center;
+  border:0;border-radius:7px;background:transparent;color:#7A4E3D;cursor:pointer;
+}
+.service-calendar-nav svg{width:16px;height:16px;stroke:currentColor}
+.service-calendar-nav:hover{background:rgba(63,36,26,.08)}
+.service-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.service-calendar-day-name,
+.service-calendar-day{
+  display:grid;place-items:center;height:24px;color:#6F5448;font-size:11px;
+}
+.service-calendar-day-name{color:rgba(63,36,26,.52);font-weight:800}
+.service-calendar-day{
+  border:0;border-radius:6px;background:transparent;font-weight:800;cursor:pointer;
+}
+.service-calendar-day:hover{background:rgba(122,78,61,.12)}
+.service-calendar-day.is-selected{background:#3F241A;color:#FFF8EF}
+.service-calendar-day.is-today:not(.is-selected){outline:1px solid rgba(63,36,26,.28)}
+.service-calendar-day.is-disabled{color:rgba(63,36,26,.24);cursor:not-allowed}
 .fb-budget{gap:6px}
+.fb-budget:has(input:invalid){
+  position:relative;
+  background:#fff8ef;
+  border-color:rgba(154,104,127,.45);
+  color:#3F241A;
+}
+.fb-budget:has(input:invalid)::after{
+  content:"Enter a valid MMK amount";
+  position:absolute;
+  left:50%;
+  top:calc(100% + 8px);
+  z-index:80;
+  width:max-content;
+  max-width:210px;
+  transform:translateX(-50%);
+  padding:8px 10px;
+  border:1px solid rgba(154,104,127,.22);
+  border-radius:8px;
+  background:#fff8ef;
+  color:#7E4F65;
+  font-size:10px;
+  font-weight:800;
+  box-shadow:0 12px 28px rgba(63,36,26,.14);
+}
+.fb-number-wrap{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+}
 .fb-budget input{
   width:72px;
   border:none;
@@ -410,24 +712,181 @@ button,input,select{font-family:var(--font-body);outline:none}
   color:#4f382a;
   font-size:11px;
   font-weight:600;
+  padding-right:12px;
+  -moz-appearance:textfield;
+}
+.fb-budget input::-webkit-outer-spin-button,
+.fb-budget input::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
 }
 .fb-budget input::placeholder{color:rgba(118,90,70,.58)}
 .fb-budget input:focus{outline:none}
+.fb-budget input:invalid{color:#9A687F}
+.fb-number-stepper{
+  position:absolute;
+  right:-3px;
+  top:50%;
+  transform:translateY(-50%);
+  display:grid;
+  gap:2px;
+  color:#9A687F;
+}
+.fb-number-stepper button{
+  width:14px;
+  height:10px;
+  display:grid;
+  place-items:center;
+  border:0;
+  padding:0;
+  border-radius:3px;
+  background:rgba(154,104,127,.10);
+  color:inherit;
+  cursor:pointer;
+}
+.fb-number-stepper button:hover{background:rgba(154,104,127,.20)}
+.fb-number-stepper svg{
+  width:9px;
+  height:9px;
+  stroke:currentColor;
+}
 .fb-budget-sep{color:rgba(118,90,70,.54);font-size:10px}
 
-.fb-select{
+.fb-select-wrap{
+  position:relative;
   flex-shrink:0;
-  background:rgba(245,232,217,.82);
+  display:inline-flex;
+  align-items:center;
+  z-index:45;
+}
+.fb-select{
+  background-color:rgba(245,232,217,.82);
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6' stroke='%239A687F' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  background-size:12px 12px;
   border:0.5px solid rgba(118,90,70,.20);
   border-radius:999px;
-  padding:7px 28px 7px 14px;
+  padding:7px 34px 7px 14px;
   color:#765a46;
   font-size:11px;font-weight:600;
-  cursor:pointer;appearance:none;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance:none;
   min-width:128px;max-width:172px;
   box-shadow:0 10px 24px rgba(43,31,24,.12);
+  accent-color:#9A687F;
 }
+.fb-select:hover,
+.fb-select:focus{
+  background-color:#FFF8EF;
+  border-color:rgba(154,104,127,.36);
+  color:#4f382a;
+}
+.fb-select option{
+  background:#FFF8EF;
+  color:#4f382a;
+  font-weight:700;
+}
+.fb-select option:hover,
+.fb-select option:focus{
+  background:#ead7df !important;
+  color:#3F241A;
+}
+.fb-select option:checked{
+  background:#9A687F !important;
+  color:#fff8ef;
+}
+.fb-select.is-native-hidden{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  pointer-events:none;
+}
+.fb-select-trigger{
+  min-width:112px;
+  max-width:148px;
+  min-height:32px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:0.5px solid rgba(118,90,70,.20);
+  border-radius:8px;
+  padding:7px 12px 7px 14px;
+  background:rgba(245,232,217,.90);
+  color:#765a46;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:0 10px 24px rgba(43,31,24,.12);
+}
+.fb-select-trigger:hover,
+.fb-select-wrap.is-open .fb-select-trigger{
+  background:#FFF8EF;
+  border-color:rgba(154,104,127,.36);
+  color:#4f382a;
+}
+.fb-select-trigger-text{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.fb-select-trigger svg{
+  width:12px;
+  height:12px;
+  flex:0 0 12px;
+  stroke:#9A687F;
+}
+.fb-select-popover{
+  position:fixed;
+  left:0;
+  top:0;
+  z-index:10020;
+  min-width:136px;
+  padding:6px;
+  border:1px solid rgba(154,104,127,.20);
+  border-radius:9px;
+  background:#FFF8EF;
+  box-shadow:0 18px 40px rgba(63,36,26,.18);
+}
+.fb-select-item{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:0;
+  border-radius:7px;
+  padding:8px 10px;
+  background:transparent;
+  color:#5b3b2d;
+  font-size:11px;
+  font-weight:700;
+  text-align:left;
+  cursor:pointer;
+}
+.fb-select-item:hover,
+.fb-select-item:focus{
+  background:rgba(154,104,127,.14);
+  color:#3F241A;
+}
+.fb-select-item.is-selected{
+  background:#9A687F;
+  color:#fff8ef;
+}
+.fb-select-dot{
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  background:currentColor;
+  opacity:0;
+}
+.fb-select-item.is-selected .fb-select-dot{opacity:1}
 .fb-sort{min-width:108px;max-width:132px}
+.fb-sort ~ .fb-select-trigger{min-width:96px;max-width:118px}
 .fb-find{
     display:flex;
     justify-content:center;
@@ -467,34 +926,31 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-track-wrap{
     position:relative;
     width:100%;
-    padding:64px var(--pad-x);
+    padding:46px var(--pad-x) 34px;
     z-index:1;
 
     /* Theme gradient */
     background:linear-gradient(
         180deg,
-        #fff8ef 0%,
-        #f5e8d9 35%,
-        #eee0d0 70%,
-        #e7d5c1 100%
+        #ead8c8 0%,
+        #dfc9b7 48%,
+        #d2bba8 100%
     );
 }
 .gp-track{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:24px 20px;
+    gap:20px 18px;
     align-items:start;
 }
 
 
 .gp-card{
-    background:rgba(74,48,33,.84);
-    border-radius:18px;
-    padding:18px;
+    background:#fff8ef;
+    border-radius:16px;
+    padding:10px;
     overflow:hidden;
     cursor:pointer;
-    backdrop-filter:blur(14px);
-    -webkit-backdrop-filter:blur(14px);
 
     display:flex;
     flex-direction:column;
@@ -502,14 +958,19 @@ button,input,select{font-family:var(--font-body);outline:none}
     height:360px;
     min-height:360px;
 
-    border:none;
+    border:2px solid rgba(216,180,106,.46);
     box-shadow:
-        0 10px 30px rgba(0,0,0,.12);
+        0 14px 34px rgba(63,36,26,.12);
 
-    transition:.35s ease;
+    transition:transform .22s var(--ease), box-shadow .22s var(--ease), border-color .22s var(--ease);
+}
+.gp-card:hover{
+    transform:translateY(-6px);
+    border-color:rgba(216,180,106,.72);
+    box-shadow:0 20px 42px rgba(63,36,26,.16);
 }
 .gp-card:focus-visible{
-    outline:2px solid rgba(216,180,106,.78);
+    outline:2px solid rgba(154,104,127,.62);
     outline-offset:3px;
 }
 
@@ -562,7 +1023,8 @@ button,input,select{font-family:var(--font-body);outline:none}
     height:100%;
 }
 .gc-top{
-    margin-bottom:12px;
+    order:2;
+    margin:10px 2px 0;
 }
 .gc-head{
     display:block;
@@ -583,61 +1045,68 @@ button,input,select{font-family:var(--font-body);outline:none}
     min-width:0;
 }
 .gc-sup{
-    color:#d7c7b8;
-    font-size:11px;
-    letter-spacing:.08em;
-    text-transform:uppercase;
+    color:#6f625a;
+    font-size:12px;
+    letter-spacing:0;
+    text-transform:none;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
 }
 .gc-name{
-    font-family:'Playfair Display', serif;
-    font-size:24px;
-    line-height:1.1;
-    font-weight:600;
-    color:#f8efe5;
-    margin-bottom:6px;
+    font-family:var(--font-body);
+    font-size:13px;
+    line-height:1.35;
+    font-weight:800;
+    color:#211d1a;
+    margin-bottom:3px;
     display:-webkit-box;
     -webkit-line-clamp:2;
     -webkit-box-orient:vertical;
     overflow:hidden;
 }
 .gc-tags{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-    margin-bottom:12px;
+    order:3;
+    display:block;
+    margin:7px 2px 0;
 }
 .gc-tag{
-    background:rgba(255,255,255,.08);
-    color:#efe4d7;
+    display:none;
+}
+.gc-tag:first-child{
+    display:inline-flex;
+    background:#f0dfe7;
+    color:#7E4F65;
 
-    padding:5px 9px;
-    border-radius:999px;
+    padding:4px 8px;
+    border-radius:7px;
 
     font-size:10px;
-    font-weight:500;
+    font-weight:800;
 
-    border:1px solid rgba(255,255,255,.08);
+    border:1px solid rgba(154,104,127,.14);
 }
 .gc-stats{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:6px;
-
-    margin-bottom:12px;
+    order:4;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin:10px 2px 0;
 }
 .gc-stat{
     background:transparent;
     border-radius:0;
-    padding:4px 6px;
-
-    text-align:center;
+    padding:0;
+    text-align:left;
     border:none;
 }
-.gc-stat+.gc-stat{border-left:1px solid rgba(255,255,255,.20)}
+.gc-stat+.gc-stat{border-left:0}
 .gc-stat strong{
-    color:#fff5eb;
-    font-size:12px;
-    font-weight:600;
+    color:#211d1a;
+    font-size:13px;
+    font-weight:900;
     display:block;
     overflow:hidden;
     text-overflow:ellipsis;
@@ -645,18 +1114,21 @@ button,input,select{font-family:var(--font-body);outline:none}
     
 }
 .gc-stat span{
-    color:#cdbba8;
-    font-size:9px;
+    color:#8f7666;
+    font-size:10px;
+    font-weight:700;
 }
 .gc-stat svg{flex:0 0 auto;color:#020304}
 .gc-image-frame{
-    margin-top:auto;
+    order:1;
+    position:relative;
+    margin-top:0;
 
-    border:1px solid rgba(255,255,255,.16);
-    border-radius:10px;
+    border:1px solid rgba(216,180,106,.46);
+    border-radius:13px;
     overflow:hidden;
 
-    height:170px;
+    height:178px;
 
     padding:0;
 }
@@ -666,8 +1138,37 @@ button,input,select{font-family:var(--font-body);outline:none}
     height:100%;
     object-fit:cover;
 
-    border-radius:9px;
+    border-radius:12px;
+    transition:transform .45s var(--ease);
 }
+.gp-card:hover .gc-image-frame img{transform:scale(1.035)}
+.gc-location{
+    order:3;
+    margin:5px 2px 0;
+    color:#7f6758;
+    font-size:11px;
+    font-weight:600;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+.gc-book-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:32px;
+    padding:0 12px;
+    border:1px solid rgba(154,104,127,.22);
+    border-radius:8px;
+    background:#9A687F;
+    color:#fff8ef;
+    font-size:11px;
+    font-weight:800;
+    white-space:nowrap;
+    cursor:pointer;
+    transition:background .18s var(--ease), transform .18s var(--ease);
+}
+.gc-book-btn:hover{background:#7E4F65;transform:translateY(-1px)}
 @media (prefers-reduced-motion:reduce){
   .gp-card{
     opacity:1;
@@ -681,7 +1182,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   justify-content:center;
   align-items:center;
   gap:8px;
-  padding:0 var(--pad-x) 76px;
+  padding:26px 0 0;
   flex-wrap:wrap;
 }
 .gp-page-link{
@@ -691,7 +1192,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   min-width:38px;
   height:38px;
   padding:0 13px;
-  border-radius:12px;
+  border-radius:9px;
   border:1px solid rgba(118,90,70,.16);
   background:rgba(255,248,239,.74);
   color:#6f625a;
@@ -699,9 +1200,10 @@ button,input,select{font-family:var(--font-body);outline:none}
   font-weight:700;
   transition:transform .18s var(--ease), background .18s, color .18s, border-color .18s;
 }
-.gp-page-link:hover{transform:translateY(-2px);background:#fff;border-color:rgba(118,90,70,.28);color:#4f382a}
-.gp-page-link.is-active{background:#211d1a;border-color:#211d1a;color:#fff}
-.gp-page-link.is-edge{padding:0 16px}
+.gp-page-link svg{width:15px;height:15px;stroke:currentColor}
+.gp-page-link:hover{transform:translateY(-2px);background:#fff;border-color:rgba(154,104,127,.28);color:#7E4F65}
+.gp-page-link.is-active{background:#9A687F;border-color:#9A687F;color:#fff}
+.gp-page-link.is-edge{padding:0;width:38px}
 
 
 /* ── BOTTOM HUD: cats + dots ── */
@@ -825,30 +1327,33 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
-  .gp-header{grid-template-columns:auto auto;justify-content:space-between}
-  .gp-header-nav{display:none}
+  .nav-links,.nav-actions{display:none}
+  .mobile-menu-btn{display:inline-flex}
   .gp-scene{min-height:calc(100svh - 65px)}
+  .hero-banner{min-height:calc(100svh - 76px)}
 }
 @media(max-width:700px){
-  .gp-header{padding:12px var(--pad-x)}
-  .gp-brand-mark{width:34px;height:34px;font-size:12px}
-  .gp-brand{font-size:15px}
+  .navbar{min-height:59px;padding:10px 12px}
+  .nav-left-spacer{width:70px;flex-basis:70px}
+  .nav-center-logo{left:12px;width:64px;height:64px}
+  .mobile-menu{top:68px}
   .gp-scene{min-height:calc(100svh - 59px);padding:28px 12px 44px}
+  .hero-banner{min-height:calc(100svh - 28px)}
   .gp-float-bar{border-radius:12px;width:100%;padding:8px}
   .fb-search{min-height:46px;padding:0 16px}
   .fb-search input{font-size:14px}
   .fb-controls{justify-content:flex-start}
   .gp-track{grid-template-columns:1fr;gap:16px}
-  .gp-card{height:330px;min-height:330px;padding:16px;border-radius:16px}
-  .gc-top{margin-bottom:10px}
-  .gc-name{font-size:23px}
-  .gc-tags{gap:6px;margin-bottom:10px}
+  .gp-card{height:330px;min-height:330px;padding:10px;border-radius:16px}
+  .gc-top{margin:9px 2px 0}
+  .gc-name{font-size:15px}
+  .gc-tags{gap:6px;margin:7px 2px 0}
   .gc-tag{padding:5px 9px;font-size:10px}
-  .gc-stats{margin-bottom:10px}
-  .gc-stat{padding:4px 5px}
-  .gc-stat strong{font-size:12px}
-  .gc-stat span{font-size:9px}
-  .gc-image-frame{height:150px}
+  .gc-stats{margin:10px 2px 0}
+  .gc-stat{padding:0}
+  .gc-stat strong{font-size:13px}
+  .gc-stat span{font-size:10px}
+  .gc-image-frame{height:160px}
 }
 @media(max-width:480px){
   :root{--pad-x:16px}
@@ -911,57 +1416,66 @@ button,input,select{font-family:var(--font-body);outline:none}
 <body>
 
 <!-- HEADER -->
-<header class="gp-header">
-  <a class="gp-brand" href="<?= URLROOT ?>/main/index">
-    <span class="gp-brand-mark">G</span>
-    <span>Golden Promise</span>
-  </a>
-  <nav class="gp-header-nav" aria-label="Main navigation">
-    <a href="<?= URLROOT ?>/main/index">Home</a>
-    <a class="active" href="<?= URLROOT ?>/customerServices/service">Services</a>
-    <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
-  </nav>
-  <div class="gp-header-actions">
-    <?php if ($isLoggedIn && $wishlistCount > 0): ?>
-    <a class="gp-cart-badge" href="<?= $wishlistPageUrl ?>" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18);background:rgba(229,91,91,.04)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      <span class="gp-cart-count" style="background:#e55b5b"><?= $wishlistCount ?></span>
+<header class="site-header">
+  <nav class="navbar" aria-label="Main navigation">
+    <div class="nav-left-spacer" aria-hidden="true"></div>
+
+    <a class="nav-center-logo" href="<?= URLROOT ?>/main/index#top" aria-label="Golden Promise home">
+      <img src="<?= URLROOT ?>/public/images/home/gp_logo.png" alt="Golden Promise logo">
     </a>
-    <?php elseif ($isLoggedIn): ?>
-    <a class="gp-cart-badge" href="<?= $wishlistPageUrl ?>" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    </a>
-    <?php endif; ?>
-    <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      <?php if ($cartCount > 0): ?>
-        <span class="gp-cart-count"><?= $cartCount ?></span>
-      <?php endif; ?>
-    </a>
-    <?php if ($isLoggedIn): ?>
-    <div class="gp-profile-wrap">
-      <button class="gp-profile-btn" type="button" aria-expanded="false">
-        <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
-        <span style="white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis"><?= $h(explode(' ', $_SESSION['session_name'] ?? 'User')[0]) ?></span>
-        <svg class="gp-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="gp-profile-menu">
-        <a class="gp-menu-item" href="<?= URLROOT ?>/main/wishlist">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          My Wishlist<?php if ($wishlistCount > 0): ?> · <?= $wishlistCount ?><?php endif; ?>
-        </a>
-        <a class="gp-menu-item" href="<?= URLROOT ?>/booking/myBookings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          My Bookings
-        </a>
-        <a class="gp-menu-item gp-menu-item--danger" href="<?= URLROOT ?>/users/logout">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Logout
-        </a>
-      </div>
+
+    <div class="nav-links">
+      <a href="<?= URLROOT ?>/main/index#top">Home</a>
+      <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
+
+      <a class="active" href="<?= URLROOT ?>/customerServices/service">Services</a>
     </div>
+
+    <div class="nav-actions">
+      <a class="nav-partner" href="<?= URLROOT ?>/users/register?type=supplier">Be a Partner</a>
+      <?php if ($isLoggedIn): ?>
+      <?php if (defined('APPROOT') && file_exists(APPROOT . '/views/dashboardLayout/customerNotification.php')) require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
+      <div class="home-profile-dropdown">
+        <button class="home-profile-btn" type="button" aria-expanded="false">
+          <span class="home-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
+          <span class="home-profile-name"><?= $h(explode(' ', $_SESSION['session_name'] ?? 'User')[0]) ?></span>
+          <svg class="home-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="home-profile-menu" aria-hidden="true">
+          <a class="home-profile-menu-item" href="<?= URLROOT ?>/main/wishlist">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            My Wishlist<?php if ($wishlistCount > 0): ?> · <?= $wishlistCount ?><?php endif; ?>
+          </a>
+          <a class="home-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            My Bookings
+          </a>
+          <a class="home-profile-menu-item home-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Logout
+          </a>
+        </div>
+      </div>
+      <?php else: ?>
+      <a class="nav-login" href="<?= URLROOT ?>/users/auth">Log In</a>
+      <?php endif; ?>
+    </div>
+
+    <button class="mobile-menu-btn" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false">
+      Menu
+    </button>
+  </nav>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="<?= URLROOT ?>/main/index#top">Home</a>
+    <a href="<?= URLROOT ?>/customerServices/service">Our Service</a>
+    <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
+    <a class="mobile-partner" href="<?= URLROOT ?>/users/register?type=supplier">Be a Partner</a>
+    <?php if ($isLoggedIn): ?>
+    <a href="<?= URLROOT ?>/booking/myBookings">My Bookings</a>
+    <a href="<?= URLROOT ?>/users/logout">Logout</a>
     <?php else: ?>
-    <a class="gp-header-cta" href="<?= URLROOT ?>/users/auth">Sign in</a>
+    <a class="mobile-login" href="<?= URLROOT ?>/users/auth">Log In</a>
     <?php endif; ?>
   </div>
 </header>
@@ -976,6 +1490,7 @@ button,input,select{font-family:var(--font-body);outline:none}
       <p>Create unforgettable moments with Golden Promise</p>
       <!-- Filter bar -->
       <form class="gp-float-bar" method="GET" action="<?= URLROOT ?>/customerServices/service" role="search">
+        <input type="hidden" name="from_filter" value="1">
         <div class="fb-search">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input type="search" name="q" value="<?= $h($filters['search'] ?? '') ?>" placeholder="Search services…" aria-label="Search">
@@ -992,36 +1507,53 @@ button,input,select{font-family:var(--font-body);outline:none}
 </button>
         </div>
         <div class="fb-controls">
-          <label class="fb-chip <?= $activeDate !== '' ? 'on' : '' ?>">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span><?= $activeDate !== '' ? $h(date('M j', strtotime($activeDate))) : 'Date' ?></span>
+          <label class="fb-chip fb-date-chip <?= $activeDate !== '' ? 'on' : '' ?>" id="serviceDateChip">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span><?= $h($activeDateLabel) ?></span>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             <input type="date" name="date" value="<?= $h($activeDate) ?>" min="<?= date('Y-m-d') ?>" id="datePick" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px">
           </label>
           <label class="fb-chip fb-budget <?= ($activePriceMin !== '' || $activePriceMax !== '') ? 'on' : '' ?>">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            <input type="number" name="price_min" value="<?= $h($activePriceMin) ?>" min="0" step="1000" placeholder="Min" aria-label="Minimum budget">
+            <span class="fb-number-wrap">
+              <input type="number" name="price_min" value="<?= $h($activePriceMin) ?>" min="0" step="1000" placeholder="Min" aria-label="Minimum budget">
+              <span class="fb-number-stepper">
+                <button type="button" tabindex="-1" data-number-step="up" aria-label="Increase minimum budget"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
+                <button type="button" tabindex="-1" data-number-step="down" aria-label="Decrease minimum budget"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+              </span>
+            </span>
             <span class="fb-budget-sep">–</span>
-            <input type="number" name="price_max" value="<?= $h($activePriceMax) ?>" min="0" step="1000" placeholder="Max" aria-label="Maximum budget">
+            <span class="fb-number-wrap">
+              <input type="number" name="price_max" value="<?= $h($activePriceMax) ?>" min="0" step="1000" placeholder="Max" aria-label="Maximum budget">
+              <span class="fb-number-stepper">
+                <button type="button" tabindex="-1" data-number-step="up" aria-label="Increase maximum budget"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
+                <button type="button" tabindex="-1" data-number-step="down" aria-label="Decrease maximum budget"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+              </span>
+            </span>
           </label>
           <div class="fb-div"></div>
           <?php if (!empty($categories)): ?>
-          <select class="fb-select" name="category">
-            <option value="all" <?= $activeCategory === 'all' ? 'selected' : '' ?>>All categories</option>
-            <?php foreach ($categories as $cat):
-              $slug = $cat['slug'] ?? strtolower($cat['name'] ?? '');
-            ?>
-              <option value="<?= $h($slug) ?>" <?= $activeCategory === $slug ? 'selected' : '' ?>><?= $h($cat['name'] ?? '') ?></option>
-            <?php endforeach; ?>
-          </select>
+          <span class="fb-select-wrap">
+            <select class="fb-select" name="category">
+              <option value="all" <?= $activeCategory === 'all' ? 'selected' : '' ?>>All categories</option>
+              <?php foreach ($categories as $cat):
+                $slug = $cat['slug'] ?? strtolower($cat['name'] ?? '');
+              ?>
+                <option value="<?= $h($slug) ?>" <?= $activeCategory === $slug ? 'selected' : '' ?>><?= $h($cat['name'] ?? '') ?></option>
+              <?php endforeach; ?>
+            </select>
+          </span>
           <div class="fb-div"></div>
           <?php endif; ?>
-          <select class="fb-select fb-sort" name="sort" aria-label="Sort services">
-            <option value="featured" <?= $activeSort === 'featured' ? 'selected' : '' ?>>Featured</option>
-            <option value="price_low" <?= $activeSort === 'price_low' ? 'selected' : '' ?>>Price low</option>
-            <option value="price_high" <?= $activeSort === 'price_high' ? 'selected' : '' ?>>Price high</option>
-            <option value="newest" <?= $activeSort === 'newest' ? 'selected' : '' ?>>Newest</option>
-            <option value="rating" <?= $activeSort === 'rating' ? 'selected' : '' ?>>Rating</option>
-          </select>
+          <span class="fb-select-wrap">
+            <select class="fb-select fb-sort" name="sort" aria-label="Sort services">
+              <option value="featured" <?= $activeSort === 'featured' ? 'selected' : '' ?>>Featured</option>
+              <option value="price_low" <?= $activeSort === 'price_low' ? 'selected' : '' ?>>Price low</option>
+              <option value="price_high" <?= $activeSort === 'price_high' ? 'selected' : '' ?>>Price high</option>
+              <option value="newest" <?= $activeSort === 'newest' ? 'selected' : '' ?>>Newest</option>
+              <option value="rating" <?= $activeSort === 'rating' ? 'selected' : '' ?>>Rating</option>
+            </select>
+          </span>
           <div class="fb-div"></div>
           
         </div>
@@ -1030,7 +1562,6 @@ button,input,select{font-family:var(--font-body);outline:none}
 
   </div>
   <section class="supplier-marquee">
-    <div class="supplier-track">
         <?php
         $supplierNames = [];
         foreach ($services as $service) {
@@ -1041,7 +1572,9 @@ button,input,select{font-family:var(--font-body);outline:none}
         }
 
         $supplierNames = array_keys($supplierNames);
+        $marqueeDuration = max(34, count($supplierNames) * 7);
         ?>
+    <div class="supplier-track" style="--marquee-duration: <?= (int)$marqueeDuration ?>s">
 
         <?php for ($i = 0; $i < 2; $i++): ?>
             <?php foreach ($supplierNames as $supplier): ?>
@@ -1092,12 +1625,21 @@ button,input,select{font-family:var(--font-body);outline:none}
     
     <?php foreach ($visibleServices as $ci => $svc):
       $dUrl = URLROOT . '/customerServices/detail/' . (int)$svc['id'] . $detailDateQuery;
+      $svcCategoryKey = strtolower(trim((string)($svc['category_slug'] ?? $svc['category'] ?? '')));
+      $availabilityAnchor = (strpos($svcCategoryKey, 'venue') !== false || strpos($svcCategoryKey, 'hall') !== false) ? 'available-halls' : 'availability';
+      $bookUrl = $dUrl . '#' . $availabilityAnchor;
       $svcId   = (int)$svc['id'];
       $isSaved = in_array($svcId, $wishlistServiceIds, true);
     ?>
       <article class="gp-card" data-idx="<?= $ci ?>" data-url="<?= $h($dUrl) ?>" data-img="<?= $h(trim((string)($svc['image'] ?? ''))) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($svc['name'] ?? 'service') ?>">
         <button class="gp-heart <?= $isSaved ? 'is-saved' : '' ?>" aria-label="<?= $isSaved ? 'Remove from wishlist' : 'Add to wishlist' ?>" data-item-type="service" data-item-id="<?= $svcId ?>" data-saved="<?= $isSaved ? '1' : '0' ?>"><?= $isSaved ? '♥' : '♡' ?></button>
         <div class="gc-body">
+          <div class="gc-image-frame">
+            <?php if(trim((string)($svc['image'] ?? '')) !== ''): ?>
+              <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>">
+            <?php endif; ?>
+          </div>
+
           <div class="gc-top">
             <div class="gc-head">
               <div class="gc-head-text">
@@ -1107,51 +1649,41 @@ button,input,select{font-family:var(--font-body);outline:none}
             </div>
           </div>
 
+          <div class="gc-location"><?= $h($serviceLocation($svc)) ?></div>
+
           <div class="gc-tags">
             <span class="gc-tag"><?= $h($svc['category'] ?? 'Service') ?></span>
-            <span class="gc-tag"><?= $h($durationText($svc)) ?></span>
-            <span class="gc-tag"><?= $pricingUnit($svc) === '/hr' ? 'Per Hour' : 'Per Session' ?></span>
           </div>
 
           <div class="gc-stats">
             <div class="gc-stat">
-              <strong><?= (float)($svc['rating'] ?? 0) > 0 ? number_format((float)$svc['rating'],1) : 'New' ?></strong>
-              <span>Rating</span>
-            </div>
-            <div class="gc-stat">
               <strong><?= $moneyRange($svc) ?></strong>
-              <span>Price</span>
+              <span><?= $h($durationText($svc)) ?></span>
             </div>
-            <div class="gc-stat">
-              <strong><?= $pricingUnit($svc) === '/hr' ? '/hr' : 'Each' ?></strong>
-              <span>Rate</span>
-            </div>
-          </div>
-
-          <div class="gc-image-frame">
-            <?php if(trim((string)($svc['image'] ?? '')) !== ''): ?>
-              <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>">
-            <?php endif; ?>
+            <a class="gc-book-btn" href="<?= $h($bookUrl) ?>">Book now</a>
           </div>
         </div>
       </article>
-    <?php endforeach; ?> </div> </div> <?php if ($totalPages > 1): ?>
-<nav class="gp-pagination" aria-label="Service pages">
+    <?php endforeach; ?>
+  </div>
+  <?php if ($totalPages > 1): ?>
+  <nav class="gp-pagination" aria-label="Service pages">
   <?php if ($currentPage > 1): ?>
-    <a class="gp-page-link is-edge" href="<?= $h($serviceUrl(['page' => $currentPage - 1])) ?>">Previous</a>
+    <a class="gp-page-link is-edge" href="<?= $h($serviceUrl(['page' => $currentPage - 1]) . '#trackWrap') ?>" aria-label="Previous page">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+    </a>
   <?php endif; ?>
   <?php for ($page = 1; $page <= $totalPages; $page++): ?>
-    <a class="gp-page-link <?= $page === $currentPage ? 'is-active' : '' ?>" href="<?= $h($serviceUrl(['page' => $page])) ?>" aria-label="Page <?= $page ?>" <?= $page === $currentPage ? 'aria-current="page"' : '' ?>><?= $page ?></a>
+    <a class="gp-page-link <?= $page === $currentPage ? 'is-active' : '' ?>" href="<?= $h($serviceUrl(['page' => $page]) . '#trackWrap') ?>" aria-label="Page <?= $page ?>" <?= $page === $currentPage ? 'aria-current="page"' : '' ?>><?= $page ?></a>
   <?php endfor; ?>
   <?php if ($currentPage < $totalPages): ?>
-    <a class="gp-page-link is-edge" href="<?= $h($serviceUrl(['page' => $currentPage + 1])) ?>">Next</a>
+    <a class="gp-page-link is-edge" href="<?= $h($serviceUrl(['page' => $currentPage + 1]) . '#trackWrap') ?>" aria-label="Next page">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    </a>
   <?php endif; ?>
-</nav>
-<?php endif; ?>
-
-<div class="gp-dots" id="gpDots" aria-hidden="true"></div>
-
-
+  </nav>
+  <?php endif; ?>
+</div>
 
 <!-- Empty state -->
 <?php $remaining = []; ?>
@@ -1215,30 +1747,255 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 </main>
 
+<div class="service-calendar-popover" id="serviceCalendarPopover" hidden></div>
 
 <script>
 (function(){
 'use strict';
 
-/* ── profile dropdown ─────────────────────── */
-document.querySelectorAll('.gp-profile-btn').forEach(btn=>{
-  btn.addEventListener('click',e=>{
-    e.stopPropagation();
-    const was=btn.getAttribute('aria-expanded')==='true';
-    document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
-    btn.setAttribute('aria-expanded',String(!was));
+/* ── navigation toggles ───────────────────── */
+const menuButton=document.getElementById('menuButton');
+const mobileMenu=document.getElementById('mobileMenu');
+
+menuButton?.addEventListener('click',e=>{
+  e.stopPropagation();
+  const isOpen=mobileMenu.classList.toggle('open');
+  menuButton.setAttribute('aria-expanded',String(isOpen));
+});
+
+document.addEventListener('click',e=>{
+  const profileBtn=e.target.closest('.home-profile-btn');
+  if(profileBtn){
+    const expanded=profileBtn.getAttribute('aria-expanded')==='true';
+    document.querySelectorAll('.home-profile-btn').forEach(btn=>btn.setAttribute('aria-expanded','false'));
+    profileBtn.setAttribute('aria-expanded',String(!expanded));
+    mobileMenu?.classList.remove('open');
+    menuButton?.setAttribute('aria-expanded','false');
+    return;
+  }
+
+  document.querySelectorAll('.home-profile-btn').forEach(btn=>btn.setAttribute('aria-expanded','false'));
+  mobileMenu?.classList.remove('open');
+  menuButton?.setAttribute('aria-expanded','false');
+});
+
+mobileMenu?.querySelectorAll('a').forEach(link=>{
+  link.addEventListener('click',()=>{
+    mobileMenu.classList.remove('open');
+    menuButton?.setAttribute('aria-expanded','false');
   });
 });
-document.addEventListener('click',()=>document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false')));
 
 /* ── date picker chip ─────────────────────── */
 const datePick=document.getElementById('datePick');
-document.querySelectorAll('.fb-chip').forEach(chip=>{
-  if(chip.contains(datePick)){
-    chip.addEventListener('click',()=>datePick.showPicker?.());
-    datePick.addEventListener('change',()=>chip.closest('form').submit());
+const serviceDateChip=document.getElementById('serviceDateChip');
+const serviceCalendar=document.getElementById('serviceCalendarPopover');
+let serviceCalendarMonth=null;
+function svcDateValue(date){
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,'0');
+  const d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function svcParseDate(value){
+  if(!value) return null;
+  const parts=value.split('-').map(Number);
+  if(parts.length!==3 || parts.some(Number.isNaN)) return null;
+  return new Date(parts[0],parts[1]-1,parts[2]);
+}
+function svcPositionCalendar(){
+  if(!serviceCalendar || !serviceDateChip) return;
+  const rect=serviceDateChip.getBoundingClientRect();
+  const width=Math.min(250,window.innerWidth-32);
+  const left=Math.max(16,Math.min(rect.left,window.innerWidth-width-16));
+  serviceCalendar.style.width=width+'px';
+  serviceCalendar.style.left=left+'px';
+  serviceCalendar.style.top=(rect.bottom+10)+'px';
+}
+function svcRenderCalendar(){
+  if(!serviceCalendar || !datePick || !serviceCalendarMonth) return;
+  const monthStart=new Date(serviceCalendarMonth.getFullYear(),serviceCalendarMonth.getMonth(),1);
+  const selected=datePick.value;
+  const today=svcDateValue(new Date());
+  const min=datePick.min || '';
+  const daysInMonth=new Date(monthStart.getFullYear(),monthStart.getMonth()+1,0).getDate();
+  const leading=monthStart.getDay();
+  const title=monthStart.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const names=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let html='<div class="service-calendar-head">'+
+    '<button class="service-calendar-nav" type="button" data-svc-prev aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>'+
+    '<span>'+title+'</span>'+
+    '<button class="service-calendar-nav" type="button" data-svc-next aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>'+
+    '</div><div class="service-calendar-grid">';
+  names.forEach(day=>{html+='<div class="service-calendar-day-name">'+day+'</div>';});
+  for(let i=0;i<leading;i++) html+='<span></span>';
+  for(let day=1;day<=daysInMonth;day++){
+    const value=svcDateValue(new Date(monthStart.getFullYear(),monthStart.getMonth(),day));
+    const disabled=min && value<min;
+    const classes=['service-calendar-day'];
+    if(value===selected) classes.push('is-selected');
+    if(value===today) classes.push('is-today');
+    if(disabled) classes.push('is-disabled');
+    html+='<button class="'+classes.join(' ')+'" type="button" data-svc-date="'+value+'"'+(disabled?' disabled':'')+'>'+day+'</button>';
   }
+  html+='</div>';
+  serviceCalendar.innerHTML=html;
+}
+function svcOpenCalendar(){
+  if(!datePick || !serviceCalendar) return;
+  serviceCalendarMonth=svcParseDate(datePick.value) || svcParseDate(datePick.min) || new Date();
+  svcRenderCalendar();
+  serviceCalendar.hidden=false;
+  svcPositionCalendar();
+}
+if(datePick && serviceDateChip && serviceCalendar){
+  serviceDateChip.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    svcOpenCalendar();
+  });
+  serviceCalendar.addEventListener('click',event=>{
+    event.stopPropagation();
+    const prev=event.target.closest('[data-svc-prev]');
+    const next=event.target.closest('[data-svc-next]');
+    const day=event.target.closest('[data-svc-date]');
+    if(prev){serviceCalendarMonth=new Date(serviceCalendarMonth.getFullYear(),serviceCalendarMonth.getMonth()-1,1);svcRenderCalendar();return;}
+    if(next){serviceCalendarMonth=new Date(serviceCalendarMonth.getFullYear(),serviceCalendarMonth.getMonth()+1,1);svcRenderCalendar();return;}
+    if(day){
+      datePick.value=day.dataset.svcDate;
+      serviceCalendar.hidden=true;
+      datePick.closest('form').submit();
+    }
+  });
+  serviceCalendar.addEventListener('mousedown',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  document.addEventListener('click',event=>{
+    if(serviceCalendar.hidden) return;
+    if(event.target.closest('.service-calendar-popover') || event.target.closest('#serviceDateChip')) return;
+    serviceCalendar.hidden=true;
+  });
+  window.addEventListener('resize',()=>{if(!serviceCalendar.hidden) svcPositionCalendar();});
+  window.addEventListener('scroll',()=>{if(!serviceCalendar.hidden) serviceCalendar.hidden=true;},{passive:true});
+}
+document.querySelectorAll('.fb-number-stepper button').forEach(button=>{
+  button.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    const wrap=button.closest('.fb-number-wrap');
+    const input=wrap?.querySelector('input[type="number"]');
+    if(!input) return;
+    const direction=button.dataset.numberStep === 'down' ? -1 : 1;
+    const step=Number(input.step) || 1;
+    const min=input.min === '' ? null : Number(input.min);
+    const max=input.max === '' ? null : Number(input.max);
+    let value=input.value === '' ? (min ?? 0) : Number(input.value);
+    if(Number.isNaN(value)) value=min ?? 0;
+    value+=direction*step;
+    if(direction<0 && input.value === '') value=min ?? 0;
+    if(min !== null) value=Math.max(min,value);
+    if(max !== null) value=Math.min(max,value);
+    input.value=Number.isInteger(step) ? String(Math.round(value)) : String(value);
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    input.dispatchEvent(new Event('change',{bubbles:true}));
+  });
 });
+
+function closeServiceSelects(exceptWrap=null){
+  document.querySelectorAll('.fb-select-wrap.is-open').forEach(wrap=>{
+    if(wrap===exceptWrap) return;
+    wrap.classList.remove('is-open');
+    wrap.querySelector('.fb-select-trigger')?.setAttribute('aria-expanded','false');
+    if(wrap._serviceSelectMenu) wrap._serviceSelectMenu.hidden=true;
+  });
+  document.querySelectorAll('.fb-select-popover').forEach(menu=>{
+    if(exceptWrap && exceptWrap._serviceSelectMenu===menu) return;
+    menu.hidden=true;
+  });
+}
+function positionServiceSelect(wrap){
+  const trigger=wrap.querySelector('.fb-select-trigger');
+  const menu=wrap._serviceSelectMenu;
+  if(!trigger || !menu) return;
+  const rect=trigger.getBoundingClientRect();
+  const width=Math.max(rect.width,136);
+  const left=Math.max(12,Math.min(rect.left,window.innerWidth-width-12));
+  menu.style.width=width+'px';
+  menu.style.left=left+'px';
+  menu.style.top=(rect.bottom+8)+'px';
+}
+document.querySelectorAll('.fb-select-wrap').forEach((wrap,index)=>{
+  const select=wrap.querySelector('.fb-select');
+  if(!select) return;
+  select.classList.add('is-native-hidden');
+
+  const trigger=document.createElement('button');
+  trigger.type='button';
+  trigger.className='fb-select-trigger';
+  trigger.setAttribute('aria-haspopup','listbox');
+  trigger.setAttribute('aria-expanded','false');
+  trigger.innerHTML='<span class="fb-select-trigger-text"></span><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
+  const menu=document.createElement('div');
+  menu.className='fb-select-popover';
+  menu.hidden=true;
+  menu.id='serviceFilterSelect'+index;
+  menu.setAttribute('role','listbox');
+  trigger.setAttribute('aria-controls',menu.id);
+  wrap._serviceSelectMenu=menu;
+
+  const syncSelectDisplay=()=>{
+    const chosen=select.options[select.selectedIndex];
+    trigger.querySelector('.fb-select-trigger-text').textContent=chosen?.textContent || '';
+    menu.querySelectorAll('.fb-select-item').forEach(item=>{
+      const selected=item.dataset.value===select.value;
+      item.classList.toggle('is-selected',selected);
+      item.setAttribute('aria-selected',selected ? 'true' : 'false');
+    });
+  };
+
+  Array.from(select.options).forEach(option=>{
+    const item=document.createElement('button');
+    item.type='button';
+    item.className='fb-select-item';
+    item.dataset.value=option.value;
+    item.setAttribute('role','option');
+    item.innerHTML='<span></span><span class="fb-select-dot" aria-hidden="true"></span>';
+    item.querySelector('span').textContent=option.textContent;
+    item.addEventListener('click',event=>{
+      event.preventDefault();
+      select.value=option.value;
+      syncSelectDisplay();
+      closeServiceSelects();
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+    });
+    menu.appendChild(item);
+  });
+
+  trigger.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    const opening=menu.hidden;
+    closeServiceSelects(wrap);
+    wrap.classList.toggle('is-open',opening);
+    menu.hidden=!opening;
+    if(opening) positionServiceSelect(wrap);
+    trigger.setAttribute('aria-expanded',opening ? 'true' : 'false');
+  });
+  menu.addEventListener('click',event=>event.stopPropagation());
+
+  wrap.append(trigger);
+  document.body.appendChild(menu);
+  syncSelectDisplay();
+});
+document.addEventListener('click',()=>closeServiceSelects());
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape') closeServiceSelects();
+});
+window.addEventListener('resize',()=>closeServiceSelects());
+window.addEventListener('scroll',()=>closeServiceSelects(),{passive:true});
+
 document.querySelectorAll('.fb-select').forEach(select=>{
   select.addEventListener('change',()=>select.closest('form').submit());
 });
@@ -1249,7 +2006,10 @@ document.querySelectorAll('.gp-card[data-url]').forEach(card=>{
     const url=card.dataset.url;
     if(url) window.location.href=url;
   };
-  card.addEventListener('click',openCard);
+  card.addEventListener('click',event=>{
+    if(event.target.closest('a,button,input,select,textarea')) return;
+    openCard();
+  });
   card.addEventListener('keydown',event=>{
     if(event.key==='Enter' || event.key===' '){
       event.preventDefault();
@@ -1260,17 +2020,46 @@ document.querySelectorAll('.gp-card[data-url]').forEach(card=>{
 
 /* ── hero pop-out reveal ──────────────────── */
 const heroOverlay=document.querySelector('.hero-overlay');
+const fromFilterRequest=<?= $fromFilterRequest ? 'true' : 'false' ?>;
+if(fromFilterRequest && 'scrollRestoration' in history){
+  history.scrollRestoration='manual';
+}
+function jumpToFilteredCards(){
+  const target=document.getElementById('trackWrap') || document.getElementById('filterHolder') || document.getElementById('gpTrack');
+  if(!target) return;
+  const header=document.querySelector('.navbar');
+  const offset=(header?.getBoundingClientRect().height || 0) + 10;
+  const top=Math.max(0,target.getBoundingClientRect().top + window.scrollY - offset);
+  window.scrollTo({top,behavior:'auto'});
+}
+if(fromFilterRequest){
+  jumpToFilteredCards();
+  requestAnimationFrame(jumpToFilteredCards);
+  window.addEventListener('load',jumpToFilteredCards,{once:true});
+}
 if(heroOverlay){
+  if(fromFilterRequest){
+    heroOverlay.classList.add('no-pop');
+  }
+
   if('IntersectionObserver' in window){
+    const heroTarget=document.querySelector('.hero-banner') || heroOverlay;
+    let hasLeftHero=false;
     const heroIo=new IntersectionObserver(entries=>entries.forEach(entry=>{
-      if(entry.isIntersecting){
+      if(fromFilterRequest && !entry.isIntersecting){
+        hasLeftHero=true;
+        return;
+      }
+
+      if(entry.isIntersecting && (!fromFilterRequest || hasLeftHero)){
+        heroOverlay.classList.remove('no-pop');
         heroOverlay.classList.add('is-in');
         heroIo.disconnect();
       }
     }),{threshold:.35});
-    heroIo.observe(heroOverlay);
+    heroIo.observe(heroTarget);
   } else {
-    heroOverlay.classList.add('is-in');
+    heroOverlay.classList.add(fromFilterRequest ? 'no-pop' : 'is-in');
   }
 }
 
