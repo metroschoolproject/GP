@@ -16,7 +16,7 @@ $statusColors = [
 ];
 $filterLabels = ['all' => 'All', 'pending_payment' => 'Pending', 'paid' => 'Paid', 'confirmed' => 'Confirmed', 'completed' => 'Completed', 'cancelled' => 'Cancelled', 'cancellation_requested' => 'Cancellation Requested'];
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) { $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8'); if ($decoded === $text) break; $text = $decoded; }

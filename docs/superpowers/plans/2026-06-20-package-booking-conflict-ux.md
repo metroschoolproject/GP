@@ -8,6 +8,8 @@
 
 **Tech Stack:** PHP 8 custom MVC, PDO via `app/libraries/Database.php`, MySQL, vanilla JS (`fetch`) in `app/views/booking/create.php`. No test framework — verification uses CLI sanity scripts under `database/` (the established pattern, same as `seed_*.php`) plus manual browser checks.
 
+**Implementation status (2026-06-21):** All six implementation tasks are present in the codebase and were committed in `fa1ff7c2` through `c18a0692`. The unchecked task-level boxes below are retained as the original execution record; remaining work is environment-backed CLI/browser verification.
+
 ## Global Constraints
 
 - No new Composer/npm dependencies. No test framework — verify with CLI scripts (`php database/verify_*.php`) and manual browser checks.
@@ -126,14 +128,19 @@ function findSlotPackageService(): ?array {
     return $row ? [(int)$row['package_id'], (int)$row['service_id'], (string)$row['name']] : null;
 }
 
-/** Force the service's package-resolved slot on $date to FULL (creates the row at capacity). */
+/**
+ * Force the service's package-resolved slot on $date to FULL.
+ * Creates the slot row with capacity 1 already consumed (total + package pool),
+ * so availability is exhausted regardless of the service's real max_concurrent
+ * — which can exceed the slot counter column's UNSIGNED range for high-capacity
+ * venues. The slot row's own caps govern getPackageServiceSlotAvailability().
+ */
 function forceSlotFull(CartModel $cart, int $packageId, int $serviceId, string $date): void {
-    $start = '09:00:00'; $end = '17:00:00'; $cap = 1;
+    $start = '09:00:00'; $end = '17:00:00';
     foreach ($cart->getPackageEventSchedule($packageId, $date) as $r) {
         if ((int)($r['service_id'] ?? 0) === $serviceId) {
             $start = (string)$r['start_time'];
             $end   = (string)$r['end_time'];
-            $cap   = max(1, (int)($r['max_concurrent'] ?? 1));
             break;
         }
     }
@@ -145,8 +152,8 @@ function forceSlotFull(CartModel $cart, int $packageId, int $serviceId, string $
             (service_id, date, start_time, end_time, confirmed_count, max_concurrent,
              confirmed_package_count, confirmed_customize_count,
              max_concurrent_package, max_concurrent_customize, status)
-         VALUES (:s,:d,:st,:et, :c,:c, :c,0, :c,0, 'full')"
-    )->execute([':s' => $serviceId, ':d' => $date, ':st' => $start, ':et' => $end, ':c' => $cap]);
+         VALUES (:s,:d,:st,:et, 1,1, 1,0, 1,0, 'full')"
+    )->execute([':s' => $serviceId, ':d' => $date, ':st' => $start, ':et' => $end]);
 }
 
 /** Remove every slot row for a service on a date (teardown). */

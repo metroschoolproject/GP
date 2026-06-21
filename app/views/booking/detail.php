@@ -13,7 +13,7 @@ $canEditReview = $canEditReview ?? false;
 $pendingReplacement = $pendingReplacement ?? null;
 
 $statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled','cancellation_requested'=>'Cancellation Requested'];
-$money = fn($v) => 'RM '.number_format((float)$v,0);
+$money = fn($v) => number_format((float)$v,0) . ' MMK';
 $plain = function($v){ $t=(string)$v; for($i=0;$i<10;$i++){$d=html_entity_decode($t,ENT_QUOTES|ENT_HTML5,'UTF-8');if($d===$t)break;$t=$d;}return $t; };
 $h = fn($v)=>htmlspecialchars($plain($v),ENT_QUOTES,'UTF-8');
 $depositPayment = $depositPayment ?? [];
@@ -157,7 +157,7 @@ a{color:inherit;text-decoration:none}
         </strong>
         <span style="color:#7b5c69;font-size:13px">
           <?= $h($pendingReplacement['new_shop_name'] ?? 'A new supplier') ?> is available, but costs
-          <strong>RM <?= number_format((float)($pendingReplacement['price_delta'] ?? 0), 0) ?></strong> more.
+          <strong><?= number_format((float)($pendingReplacement['price_delta'] ?? 0), 0) ?> MMK</strong> more.
           <?= $replacementProofSubmitted
               ? 'Your payment proof was submitted. The booking service will change after admin verification.'
               : 'Approve and pay the difference to confirm it.' ?>
@@ -227,7 +227,7 @@ a{color:inherit;text-decoration:none}
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Payment reference</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
       <?php endif; ?>
       <?php if (!empty($depositPayment['paid_amount'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;">RM <?= number_format((float)$depositPayment['paid_amount'], 0) ?></div></div>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
       <?php endif; ?>
       <?php if (!empty($depositPayment['paid_at'])): ?>
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transfer Date</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
@@ -479,6 +479,29 @@ a{color:inherit;text-decoration:none}
     <?php endif; ?>
     <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
     <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
+    <?php endif; ?>
+    <?php if (($booking['status'] ?? '') === 'cancellation_requested'): ?>
+      <?php
+      $supplierApproved = false;
+      $supplierPending = false;
+      foreach ($suppliers as $sup) {
+        if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
+        if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
+      }
+      ?>
+      <?php if ($supplierPending): ?>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:8px">
+        <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
+      </div>
+      <?php elseif ($supplierApproved): ?>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;font-size:13px;color:#166534;margin-top:8px">
+        <strong>Supplier approved</strong> — Your supplier has approved the cancellation. Admin will review and process your refund.
+      </div>
+      <?php else: ?>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;color:#1e40af;margin-top:8px">
+        <strong>Cancellation requested</strong> — Your cancellation request is being reviewed.
+      </div>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
 </main>

@@ -5,6 +5,7 @@ $adminInitials = strtoupper(substr(trim($adminName) !== '' ? $adminName : 'Admin
 $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
 $paymentStatusFilter = $_GET['status'] ?? 'pending';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, suppliers...';
+$dashboardSearchAction = $dashboardSearchAction ?? URLROOT . '/admin/bookings';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'admin',
     'reviewUrl' => URLROOT . '/admin/notifications',
@@ -241,6 +242,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
         </div>
 
         <div class="admin-topbar-actions flex flex-wrap items-center gap-3">
+            <?php require APPROOT . '/views/dashboardLayout/dashboardSearch.php'; ?>
             <?php require APPROOT . '/views/dashboardLayout/notification.php'; ?>
         </div>
     </div>

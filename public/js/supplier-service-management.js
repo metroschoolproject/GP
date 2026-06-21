@@ -1,6 +1,4 @@
 // ── DATA ──────────────────────────────────────────────────────
-const BADGE = { Venue:'badge-venue', Accessories:'badge-decor', Dress:'badge-makeup', Decoration:'badge-decor', Food:'badge-catering', Package:'badge-others', Studio:'badge-photo', Makeup:'badge-makeup', Photography:'badge-photo', Catering:'badge-catering', Decor:'badge-decor', Music:'badge-music', Others:'badge-others' };
-const GRAD  = { Venue:'from-amber-50 to-orange-50', Accessories:'from-yellow-50 to-amber-50', Dress:'from-rose-50 to-orange-50', Decoration:'from-pink-50 to-rose-50', Food:'from-stone-50 to-emerald-50', Package:'from-stone-50 to-zinc-50', Studio:'from-blue-50 to-stone-50', Makeup:'from-rose-50 to-orange-50', Photography:'from-blue-50 to-stone-50', Catering:'from-stone-50 to-emerald-50', Decor:'from-yellow-50 to-amber-50', Music:'from-red-50 to-stone-50', Others:'from-stone-50 to-zinc-50' };
 const ICON  = { Venue:'🏛️', Accessories:'✨', Dress:'👗', Decoration:'🌸', Food:'🍽️', Package:'🎀', Studio:'📸', Makeup:'💄', Photography:'📸', Catering:'🍽️', Decor:'🌸', Music:'🎵', Others:'✨' };
 
 const serviceManagementConfig = window.serviceManagementConfig || {};
@@ -796,6 +794,18 @@ function serviceDetailUrl(id) {
   return (serviceManagementUrls.serviceDetail || '#') + encodeURIComponent(id);
 }
 
+function navigateToServiceDetail(id) {
+  const url = serviceDetailUrl(id);
+  if (!url || url === '#') return;
+
+  if (window.top && window.top !== window) {
+    window.top.location.href = url;
+    return;
+  }
+
+  window.location.href = url;
+}
+
 // ── UNIFIED CREATE SERVICE MODAL ─────────────────────────────
 let currentCreateCategory = '';
 let currentCreateStep = 1;
@@ -1028,15 +1038,10 @@ function render() {
   const sortWrap = document.getElementById('smSortWrap');
   if (sortWrap) sortWrap.classList.toggle('hidden', items.length === 0);
   // Highlight active sort
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('bg-[#6e4e58]','text-white','border-[#6e4e58]'));
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('is-active'));
   const activeSortBtn = document.getElementById('sort-'+currentSort.replace('_','-'));
   if (activeSortBtn) {
-    activeSortBtn.classList.add('bg-[#6e4e58]','text-white','border-[#6e4e58]');
-    activeSortBtn.classList.remove('bg-white','text-gray-700');
-  }
-
-  if (currentTab === 'services') {
-    grid.insertAdjacentHTML('beforeend', plusCard());
+    activeSortBtn.classList.add('is-active');
   }
 
   if (!items.length) {
@@ -1044,14 +1049,6 @@ function render() {
       if (emptyMessage) emptyMessage.textContent = 'No results for “' + searchQuery + '”';
       if (emptyActionLabel) {
         emptyActionLabel.textContent = 'Clear search';
-        emptyActionLabel.onclick = function(){
-          var si = document.getElementById('searchInput');
-          if (si) si.value = '';
-          searchQuery = '';
-          services = []; packages = []; pagingMeta = {};
-          renderEmpty(); loadMoreCurrentTab();
-        };
-        emptyActionLabel.style.cursor = 'pointer';
       }
     } else if (currentTab === 'packages') {
       if (emptyMessage) emptyMessage.textContent = 'How about creating a package right now?';
@@ -1067,22 +1064,18 @@ function render() {
   updateLoadMoreControl();
 }
 
-function plusCard() {
-  return `
-  <div onclick="openCreateServiceModal()" class="service-card rounded-xl border-2 border-dashed border-gray-300 overflow-hidden cursor-pointer transition hover:border-[#6e4e58] hover:bg-[#fbf9f6] flex items-center justify-center" style="box-shadow:0 1px 4px rgba(74,59,50,0.05); background: rgba(255,255,255,0.5); min-height:300px;">
-    <div class="flex flex-col items-center justify-center gap-3 p-6">
-      <div class="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center transition group-hover:border-[#6e4e58]">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </div>
-      <span class="text-sm font-semibold text-gray-400">Add Service</span>
-    </div>
-  </div>`;
-}
-
 document.getElementById('emptyStateAction')?.addEventListener('click', () => {
+  if (searchQuery) {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+    searchQuery = '';
+    services = [];
+    packages = [];
+    pagingMeta = {};
+    renderEmpty();
+    loadMoreCurrentTab();
+    return;
+  }
   if (currentTab === 'packages') {
     openPackageModal();
     return;
@@ -1185,94 +1178,82 @@ function renderEmpty() {
 function svcCard(item) {
   item = normalizeServiceItem(item);
   if (!item) return '';
-  const grad = GRAD[item.category]||'from-stone-100 to-stone-200';
-  const icon = ICON[item.category]||'✨';
+  const icon = ICON[item.category] || '✨';
   const isActive = item.status === 'active';
-  const imgInner = item.img
-    ? `<img src="${item.img}" alt="${item.name}"/>`
-    : `<div class="card-icon"><span style="font-size:2.8rem;line-height:1">${icon}</span></div>`;
+  const name = escapeHtml(item.name || 'Untitled service');
+  const category = escapeHtml(item.category || 'Service');
+  const description = escapeHtml(item.desc || 'No description added yet.');
+  const media = item.img
+    ? `<img src="${escapeHtml(item.img)}" alt="${name}"/>`
+    : `<div class="sm-card-placeholder" aria-hidden="true">${icon}</div>`;
+
   return `
-  <div onclick="window.location='${serviceDetailUrl(item.id)}'" class="service-card rounded-xl border border-gray-100 overflow-hidden cursor-pointer" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
-    <div class="card-img-wrap bg-gradient-to-br ${grad}">
-      ${imgInner}
+  <article role="link" tabindex="0" onclick="navigateToServiceDetail(${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();navigateToServiceDetail(${item.id})}" class="service-card sm-service-card cursor-pointer">
+    <div class="sm-card-media">
+      ${media}
+      <span class="sm-card-status ${isActive ? 'is-active' : ''}">${isActive ? 'Published' : 'Draft'}</span>
     </div>
-    <div class="card-img-overlay"></div>
-    <button onclick="event.stopPropagation();openEditService(${item.id})" class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-    </button>
-    <button onclick="event.stopPropagation();deleteService(${item.id})" class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete service">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-    </button>
-    <!-- Status pill top-right -->
-    <span class="status-pill ${isActive?'active-pill':'inactive-pill'} absolute top-2.5 right-2.5 z-10">
-      <span class="status-dot ${isActive?'dot-green':'dot-gray'}"></span>
-      ${isActive?'Active':'Inactive'}
-    </span>
-    <div class="card-content p-4 flex flex-col gap-2.5 justify-end">
-      <div class="flex-1 flex flex-col justify-end">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE[item.category]||''}">${item.category}</span>
+    <div class="sm-card-body">
+      <div class="sm-card-topline">
+        <span class="sm-card-category">${category}</span>
+        <span class="sm-card-price">MMK ${formatPriceRange(item)}</span>
+      </div>
+      <h3 class="sm-card-title">${name}</h3>
+      <p class="sm-card-description line-clamp-2">${description}</p>
+      <div class="sm-card-footer">
+        <a href="${serviceDetailUrl(item.id)}" class="sm-card-link" onclick="event.stopPropagation()">Manage details →</a>
+        <div class="sm-card-actions">
+          <button type="button" onclick="event.stopPropagation();openEditService(${item.id})" class="sm-icon-btn" title="Edit service" aria-label="Edit ${name}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button type="button" onclick="event.stopPropagation();deleteService(${item.id})" class="sm-icon-btn is-danger" title="Delete service" aria-label="Delete ${name}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </button>
         </div>
-        <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
-        <p class="text-custom-primary font-bold text-sm mt-0.5">MMK ${formatPriceRange(item)}</p>
-        ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
-      </div>
-      <div class="pt-2.5 border-t border-gray-100">
-        <a href="${serviceDetailUrl(item.id)}"
-          class="btn-card flex w-full items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-semibold bg-white/90 text-gray-800 border border-white/30 hover:bg-white">
-          Manage details
-        </a>
       </div>
     </div>
-  </div>`;
+  </article>`;
 }
 
 function pkgCard(item) {
   item = normalizePackageItem(item);
   if (!item) return '';
-  const cats = item.categories||[];
-  const grad = cats.length ? (GRAD[cats[0]]||'from-stone-50 to-stone-100') : 'from-stone-50 to-stone-100';
-  const icons = cats.map(c=>ICON[c]||'🎀').join(' ');
+  const categories = item.categories || [];
+  const icons = categories.map(category => ICON[category] || '🎀').join(' ');
   const isActive = item.status === 'active';
-  const badges = cats.map(c=>`<span class="text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE[c]||''}">${c}</span>`).join('');
-  const imgInner = item.img
-    ? `<img src="${item.img}" alt="${item.name}"/>`
-    : `<div class="card-icon"><span style="font-size:2.4rem;line-height:1;letter-spacing:0.1em">${icons||'🎀'}</span></div>`;
+  const name = escapeHtml(item.name || 'Untitled package');
+  const description = escapeHtml(item.desc || 'No description added yet.');
+  const categorySummary = escapeHtml(categories.length ? categories.join(' · ') : 'Package');
+  const media = item.img
+    ? `<img src="${escapeHtml(item.img)}" alt="${name}"/>`
+    : `<div class="sm-card-placeholder" aria-hidden="true">${icons || '🎀'}</div>`;
+
   return `
-  <div onclick="event.preventDefault();" class="service-card rounded-xl border border-gray-100 overflow-hidden cursor-pointer" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
-    <div class="card-img-wrap bg-gradient-to-br ${grad}">
-      ${imgInner}
+  <article class="service-card sm-service-card">
+    <div class="sm-card-media">
+      ${media}
+      <span class="sm-card-status ${isActive ? 'is-active' : ''}">${isActive ? 'Published' : 'Draft'}</span>
     </div>
-    <div class="card-img-overlay"></div>
-    <button onclick="event.stopPropagation();openEditPackage(${item.id})" class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-    </button>
-    <button onclick="event.stopPropagation();deletePackage(${item.id})" class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete package">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-    </button>
-    <!-- Status pill top-right -->
-    <span class="status-pill ${isActive?'active-pill':'inactive-pill'} absolute top-2.5 right-2.5 z-10">
-      <span class="status-dot ${isActive?'dot-green':'dot-gray'}"></span>
-      ${isActive?'Active':'Inactive'}
-    </span>
-    <div class="card-content p-4 flex flex-col gap-2.5 justify-end">
-      <div class="flex-1 flex flex-col justify-end">
-        <div class="mb-1.5">
-          <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-stone-100 text-stone-700">Package</span>
+    <div class="sm-card-body">
+      <div class="sm-card-topline">
+        <span class="sm-card-category">${categorySummary}</span>
+        <span class="sm-card-price">MMK ${formatPrice(item.price)}</span>
+      </div>
+      <h3 class="sm-card-title">${name}</h3>
+      <p class="sm-card-description line-clamp-2">${description}</p>
+      <div class="sm-card-footer">
+        <button type="button" class="sm-card-link" onclick="openEditPackage(${item.id})">Manage package →</button>
+        <div class="sm-card-actions">
+          <button type="button" onclick="openEditPackage(${item.id})" class="sm-icon-btn" title="Edit package" aria-label="Edit ${name}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button type="button" onclick="deletePackage(${item.id})" class="sm-icon-btn is-danger" title="Delete package" aria-label="Delete ${name}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </button>
         </div>
-        <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
-        <p class="text-custom-primary font-bold text-sm mt-0.5">MMK ${formatPrice(item.price)}</p>
-        ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
-        <div class="flex flex-wrap gap-1 mt-2">${badges}</div>
-      </div>
-      <div class="pt-2.5 border-t border-gray-100">
-        <button type="button"
-          class="btn-card w-full py-1.5 rounded-lg text-xs font-semibold bg-white/90 text-gray-800 border border-white/30">
-          Package details
-        </button>
       </div>
     </div>
-  </div>`;
+  </article>`;
 }
 
 // ── TABS ──────────────────────────────────────────────────────
@@ -1290,6 +1271,9 @@ function switchTab(tab) {
     el.classList.add('active','text-gray-800','border-gray-800');
     el.classList.remove('text-gray-400','border-transparent');
   }
+  document.querySelectorAll('[role="tab"]').forEach(tabButton => {
+    tabButton.setAttribute('aria-selected', String(tabButton === el));
+  });
   const btnLabel = document.getElementById('headerCreateBtnLabel');
   if (btnLabel) {
     btnLabel.textContent = tab === 'packages' ? 'Create Package' : 'Add Service';

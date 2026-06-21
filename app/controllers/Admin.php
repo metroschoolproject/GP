@@ -2,6 +2,7 @@
 
 require_once APPROOT . '/services/UploadService.php';
 require_once APPROOT . '/services/PaymentGatewayService.php';
+require_once APPROOT . '/services/PayoutService.php';
 require_once APPROOT . '/services/EmailService.php';
 require_once APPROOT . '/controllers/Booking.php';
 require_once APPROOT . '/services/EmailService.php';
@@ -1914,9 +1915,8 @@ class Admin extends Controller
      * Process supplier payouts via 2C2P.
      * Call via: curl https://goldenpromise.com/admin/cronProcessPayouts?token=SECRET_CRON_TOKEN
      *
-     * Payouts are created when supplier fee is paid. This cron processes pending payouts.
-     * For now, suppliers need to provide bank details during onboarding.
-     * TODO: Add bank_account and bank_code columns to suppliers table.
+     * Payouts are created after booking completion. This cron submits each
+     * supplier's full available balance as one provider batch.
      */
     public function cronProcessPayouts(): void
     {
@@ -1929,54 +1929,43 @@ class Admin extends Controller
             exit;
         }
 
-        $this->db->dbquery(
-            "SELECT p.*, s.supplier_id, s.bank_account, s.bank_code
-             FROM payments p
-             JOIN suppliers s ON p.supplier_id = s.supplier_id
-             WHERE p.type = 'payout' AND p.status = 'pending'"
+        $db = new Database();
+        $db->dbquery(
+            "SELECT p.supplier_id,
+                    SUM(p.amount) AS amount,
+                    s.bank_account,
+                    s.bank_code
+               FROM payments p
+               JOIN suppliers s ON p.supplier_id = s.supplier_id
+              WHERE p.type = 'payout'
+                AND p.status = 'pending'
+              GROUP BY p.supplier_id, s.bank_account, s.bank_code"
         );
-        $payouts = $this->db->getmultidata();
+        $payouts = $db->getmultidata();
 
         $processed = 0;
         $failed = 0;
+        $payoutService = new PayoutService($this->paymentGateway);
 
         foreach ($payouts as $payout) {
             $bankAccount = $payout['bank_account'] ?? '';
             $bankCode = $payout['bank_code'] ?? 'AYA';
 
             if (!$bankAccount) {
-                $this->db->dbquery(
-                    "UPDATE payments SET status = 'failed', verified_at = NOW()
-                     WHERE id = :id LIMIT 1"
-                );
-                $this->db->dbbind(':id', (int)$payout['id']);
-                $this->db->dbexecute();
                 $failed++;
                 continue;
             }
 
-            $result = $this->paymentGateway->createSupplierPayout(
+            $result = $payoutService->requestAvailableBalance(
                 (int)$payout['supplier_id'],
-                (float)$payout['amount'],
                 $bankAccount,
-                $bankCode
+                $bankCode,
+                (float)$payout['amount']
             );
 
             if ($result['success'] ?? false) {
-                $this->db->dbquery(
-                    "UPDATE payments SET status = 'processing', verified_at = NOW()
-                     WHERE id = :id LIMIT 1"
-                );
-                $this->db->dbbind(':id', (int)$payout['id']);
-                $this->db->dbexecute();
                 $processed++;
             } else {
-                $this->db->dbquery(
-                    "UPDATE payments SET status = 'failed', verified_at = NOW()
-                     WHERE id = :id LIMIT 1"
-                );
-                $this->db->dbbind(':id', (int)$payout['id']);
-                $this->db->dbexecute();
                 $failed++;
             }
         }

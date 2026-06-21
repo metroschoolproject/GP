@@ -12,7 +12,7 @@ $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $formatDate = function ($value) {
     $timestamp = strtotime((string)$value);
     return $timestamp ? date('M j, Y', $timestamp) : '';
@@ -1881,7 +1881,7 @@ const packageScheduleState = new Map();
   const depositPercent = <?= (int)$depositPercent ?>;
 
   function money(value) {
-    return 'RM ' + Math.round(Number(value) || 0).toLocaleString('en-US');
+    return 'MMK ' + Math.round(Number(value) || 0).toLocaleString('en-US');
   }
 
   function inputNumber(selector) {

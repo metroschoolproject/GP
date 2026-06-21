@@ -11,7 +11,7 @@
 
 -- ── payments: add 'refunded' state ──────────────────────────────
 ALTER TABLE payments
-  MODIFY COLUMN `status` enum('pending','success','failed','refunded') DEFAULT NULL;
+  MODIFY COLUMN `status` enum('pending','processing','success','failed','refunded') DEFAULT NULL;
 
 -- ── booking_supplier_replacements: remember rejected services ───
 ALTER TABLE booking_supplier_replacements
@@ -20,5 +20,5 @@ ALTER TABLE booking_supplier_replacements
 -- ═══════════════════════════════════════════════════════════════
 -- ROLLBACK (manual):
 --   ALTER TABLE booking_supplier_replacements DROP COLUMN rejected_service_ids;
---   ALTER TABLE payments MODIFY COLUMN status enum('pending','success','failed') DEFAULT NULL;
+--   ALTER TABLE payments MODIFY COLUMN status enum('pending','processing','success','failed') DEFAULT NULL;
 -- ═══════════════════════════════════════════════════════════════

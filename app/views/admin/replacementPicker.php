@@ -5,7 +5,7 @@ $bookingRef  = $bookingRef ?? ('#' . ($replacement['booking_id'] ?? ''));
 $maxUpchargePct = $maxUpchargePct ?? 25;
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $dateOnly = static function ($value, string $fallback = '-') {
     if (empty($value)) return $fallback;
     $ts = strtotime((string)$value);

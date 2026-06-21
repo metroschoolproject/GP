@@ -3,6 +3,7 @@
 require_once APPROOT . '/traits/JsonResponseTrait.php';
 require_once APPROOT . '/services/EmailService.php';
 require_once APPROOT . '/services/PaymentGatewayService.php';
+require_once APPROOT . '/services/PayoutService.php';
 
 class Booking extends Controller
 {
@@ -1215,37 +1216,53 @@ class Booking extends Controller
         $customer = $this->getUserData();
         $customerName = $customer['name'] ?? 'A customer';
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $isPackage = $this->bookingModel->isPackageBooking($bookingId);
 
-        // In-app notification to all admins
-        $this->notificationModel->notifyAdmins(
-            'Cancellation Request — ' . $bookingRef,
-            $customerName . ' has requested cancellation of booking ' . $bookingRef . '. Reason: ' . $reason,
-            'booking',
-            'booking',
-            $bookingId
-        );
+        if ($isPackage) {
+            // Package bookings: admin-mediated (existing flow)
+            $this->notificationModel->notifyAdmins(
+                'Cancellation Request — ' . $bookingRef,
+                $customerName . ' has requested cancellation of booking ' . $bookingRef . '. Reason: ' . $reason,
+                'booking', 'booking', $bookingId
+            );
 
-        // In-app notification to all suppliers linked to this booking
-        // (includes package service suppliers and add-on suppliers)
-        $this->notificationModel->notifyBookingSuppliers(
-            $bookingId,
-            'Cancellation Request — ' . $bookingRef,
-            $customerName . ' has requested cancellation of booking ' . $bookingRef . '. Reason: ' . $reason . '. Please stop any work in progress. Admin will review and finalize.',
-            'booking'
-        );
+            $this->notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'Cancellation Request — ' . $bookingRef,
+                $customerName . ' has requested cancellation of booking ' . $bookingRef . '. Reason: ' . $reason . '. Please stop any work in progress. Admin will review and finalize.',
+                'booking'
+            );
 
-        $emailService = new EmailService();
+            $emailService = new EmailService();
+            $admins = $this->bookingModel->getAdminEmails();
+            foreach ($admins as $admin) {
+                $emailService->sendAdminCancellationRequest($admin, $customer, $booking, $reason);
+            }
+            $suppliers = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
+            foreach ($suppliers as $supplier) {
+                $emailService->sendSupplierCancellationRequest($supplier, $customer, $booking, $reason);
+            }
+        } else {
+            // Customize bookings: supplier reviews first
+            $this->notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'Cancellation Request — ' . $bookingRef,
+                $customerName . ' has requested cancellation of booking ' . $bookingRef . '. Reason: ' . $reason . '. Please review and approve or decline this request.',
+                'booking'
+            );
 
-        // Email admins
-        $admins = $this->bookingModel->getAdminEmails();
-        foreach ($admins as $admin) {
-            $emailService->sendAdminCancellationRequest($admin, $customer, $booking, $reason);
-        }
+            // Notify admin for awareness (they'll act after supplier approves)
+            $this->notificationModel->notifyAdmins(
+                'Cancellation Request (Pending Supplier Review) — ' . $bookingRef,
+                $customerName . ' has requested cancellation of customize booking ' . $bookingRef . '. The supplier has been asked to review first.',
+                'booking', 'booking', $bookingId
+            );
 
-        // Email each supplier on the booking
-        $suppliers = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
-        foreach ($suppliers as $supplier) {
-            $emailService->sendSupplierCancellationRequest($supplier, $customer, $booking, $reason);
+            $emailService = new EmailService();
+            $suppliers = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
+            foreach ($suppliers as $supplier) {
+                $emailService->sendSupplierCancellationRequest($supplier, $customer, $booking, $reason);
+            }
         }
 
         $this->jsonResponse([
@@ -1410,6 +1427,12 @@ class Booking extends Controller
         $allItems = $this->bookingModel->getBookingItems($bookingId);
         $packageSchedules = $this->buildPackageSchedules($allItems, $eventDetails);
 
+        // Fetch cancellation reason if booking is in cancellation_requested
+        $cancellationReason = '';
+        if (($booking['status'] ?? '') === 'cancellation_requested') {
+            $cancellationReason = $this->bookingModel->getCancellationReason($bookingId);
+        }
+
         $this->view('supplier/bookingDetail', [
             'booking' => $booking,
             'items' => $items,
@@ -1424,6 +1447,7 @@ class Booking extends Controller
             'isPackage' => $this->bookingModel->isPackageBooking($bookingId),
             'declineCutoffDays' => self::PACKAGE_DECLINE_CUTOFF_DAYS,
             'myServiceRows' => $myServiceRows,
+            'cancellationReason' => $cancellationReason,
         ]);
     }
 
@@ -1705,6 +1729,93 @@ class Booking extends Controller
             'message' => $action === 'accept'
                 ? 'Booking accepted!'
                 : ($isReplaceFlow ? 'Declined. A replacement will be arranged.' : 'Booking declined.'),
+        ]);
+    }
+
+    /**
+     * Supplier responds to a customer cancellation request (customize bookings).
+     * POST: booking_id, action ('approve'|'decline'), optional reason
+     */
+    public function supplierCancellationRespond(): void
+    {
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $action = trim($_POST['action'] ?? '');
+        $reason = trim($_POST['reason'] ?? '');
+
+        if ($bookingId <= 0 || !in_array($action, ['approve', 'decline'], true)) {
+            $this->jsonResponse(['error' => 'Invalid request'], 400);
+        }
+
+        if ($action === 'decline' && $reason === '') {
+            $this->jsonResponse(['error' => 'Please provide a reason for declining the cancellation.'], 422);
+        }
+
+        $result = $this->bookingModel->supplierRespondToCancellation($bookingId, $supplierId, $action, $reason);
+        if ($result === '') {
+            $this->jsonResponse(['error' => 'Could not process your response. The cancellation may have already been handled.'], 400);
+        }
+
+        $customerInfo = $this->bookingModel->getCustomerForBooking($bookingId);
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+
+        if ($result === 'approved') {
+            // Notify customer
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Cancellation Approved by Supplier — ' . $bookingRef,
+                'Your supplier has approved your cancellation request for booking ' . $bookingRef . '. Admin will review and process your refund.',
+                'booking'
+            );
+
+            // Notify admin to finalize
+            $this->notificationModel->notifyAdmins(
+                'Supplier Approved Cancellation — ' . $bookingRef,
+                'The supplier has approved the cancellation for booking ' . $bookingRef . '. Please review and finalize.',
+                'booking', 'booking', $bookingId
+            );
+
+            if (!empty($customerInfo['email'])) {
+                $emailService = new EmailService();
+                $emailService->sendSupplierApprovedCancellation($customerInfo, $bookingId, $bookingRef);
+            }
+        } else {
+            // Declined
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Cancellation Declined by Supplier — ' . $bookingRef,
+                'Your supplier has declined your cancellation request for booking ' . $bookingRef . '. Reason: ' . $reason,
+                'booking'
+            );
+
+            // Notify admin for awareness
+            $this->notificationModel->notifyAdmins(
+                'Supplier Declined Cancellation — ' . $bookingRef,
+                'The supplier declined the cancellation for booking ' . $bookingRef . '. Reason: ' . $reason,
+                'booking', 'booking', $bookingId
+            );
+
+            if (!empty($customerInfo['email'])) {
+                $emailService = new EmailService();
+                $emailService->sendSupplierDeclinedCancellation($customerInfo, $bookingId, $bookingRef, $reason);
+            }
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'result' => $result,
+            'message' => $result === 'approved'
+                ? 'You have approved the cancellation request.'
+                : 'You have declined the cancellation request.',
         ]);
     }
 
@@ -2376,43 +2487,20 @@ class Booking extends Controller
             return;
         }
 
-        // Get pending payouts amount
-        $this->db = new Database();
-        $this->db->dbquery(
-            "SELECT COALESCE(SUM(amount), 0) as pending_amount FROM payments
-             WHERE supplier_id = :sid AND type = 'payout' AND status = 'pending'"
+        $result = (new PayoutService())->requestAvailableBalance(
+            $supplierId,
+            $bankAccount,
+            $bankCode,
+            $amount
         );
-        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $result = $this->db->getsingledata();
-        $pendingAmount = (float)($result['pending_amount'] ?? 0);
 
-        if ($amount > $pendingAmount) {
-            $this->jsonResponse(['error' => 'Requested amount exceeds pending payouts'], 400);
+        if (empty($result['success'])) {
+            $this->jsonResponse($result, 409);
             return;
         }
 
-        // Create payout request (mark payments as processing)
-        $this->db->dbquery(
-            "UPDATE payments SET status = 'processing'
-             WHERE supplier_id = :sid AND type = 'payout' AND status = 'pending'
-             LIMIT :limit"
-        );
-        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $this->db->dbbind(':limit', (int)ceil($amount / 1000), PDO::PARAM_INT); // Approximate count
-
-        if (!$this->db->dbexecute()) {
-            $this->jsonResponse(['error' => 'Failed to create payout request'], 500);
-            return;
-        }
-
-        // TODO: Integrate with payment gateway for actual disbursement
-        // $gatewayService = new PaymentGatewayService();
-        // $result = $gatewayService->createSupplierPayout($supplierId, $amount, $bankAccount, $bankCode);
-
-        $this->jsonResponse([
-            'success' => true,
+        $this->jsonResponse($result + [
             'message' => 'Payout request submitted. You will receive funds within 1-2 business days.',
-            'payout_id' => uniqid('PAYOUT_'),
         ]);
     }
 

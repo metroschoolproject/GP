@@ -818,6 +818,81 @@ HTML;
         return URLROOT . '/booking/detail/' . $bookingId;
     }
 
+    /**
+     * Notify customer that supplier approved their cancellation request.
+     */
+    public function sendSupplierApprovedCancellation(array $customer, int $bookingId, string $bookingRef): bool
+    {
+        if (empty($customer['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($customer['email'], $customer['name'] ?? 'Customer');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Cancellation Approved by Supplier — ' . $bookingRef;
+            $bookingUrl = $this->getBookingUrl($bookingId);
+            $customerName = htmlspecialchars($customer['name'] ?? 'Customer', ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#166534;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Cancellation Approved</h1>
+        <p style="margin:8px 0 0;opacity:.85;">{$bookingRef}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>Dear {$customerName},</p>
+        <p>Your supplier has <strong>approved</strong> your cancellation request. The admin team will now review and process your refund.</p>
+        <p>You'll receive another notification once the cancellation is finalized.</p>
+        <p><a href="{$bookingUrl}" style="display:inline-block;padding:12px 30px;background:#166534;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">View Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "Your cancellation request for {$bookingRef} has been approved by the supplier. Admin will process your refund. View: {$bookingUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (supplier approved cancel): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Notify customer that supplier declined their cancellation request.
+     */
+    public function sendSupplierDeclinedCancellation(array $customer, int $bookingId, string $bookingRef, string $reason): bool
+    {
+        if (empty($customer['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($customer['email'], $customer['name'] ?? 'Customer');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Cancellation Declined by Supplier — ' . $bookingRef;
+            $bookingUrl = $this->getBookingUrl($bookingId);
+            $customerName = htmlspecialchars($customer['name'] ?? 'Customer', ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#92400e;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Cancellation Declined</h1>
+        <p style="margin:8px 0 0;opacity:.85;">{$bookingRef}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>Dear {$customerName},</p>
+        <p>Your supplier has <strong>declined</strong> your cancellation request. Your booking remains active.</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #92400e;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">SUPPLIER'S REASON</p>
+          <p style="margin:0;color:#92400e;">{$reasonHtml}</p>
+        </div>
+        <p>If you believe this cancellation should still proceed, please contact the admin team.</p>
+        <p><a href="{$bookingUrl}" style="display:inline-block;padding:12px 30px;background:#92400e;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">View Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "Your cancellation request for {$bookingRef} was declined by the supplier. Reason: {$reason}. View: {$bookingUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (supplier declined cancel): ' . $e->getMessage());
+            return false;
+        }
+    }
+
     private function getBookingUrl(int $bookingId): string
     {
         return URLROOT . '/booking/detail/' . $bookingId;

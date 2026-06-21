@@ -137,6 +137,7 @@ $isReady = empty($attentionItems);
 $mediaCreateUrl = URLROOT . '/supplier/serviceMediaCreate/' . $serviceId;
 $mediaDeleteUrl = URLROOT . '/supplier/serviceMediaDelete/' . $serviceId . '/';
 $serviceUpdateUrl = URLROOT . '/supplierServices/serviceUpdate/' . $serviceId;
+$serviceStatusUrl = URLROOT . '/supplierServices/serviceStatus/' . $serviceId;
 $publishRequestUrl = URLROOT . '/supplier/servicePublishRequest/' . $serviceId;
 $publishStatusUrl = URLROOT . '/supplier/servicePublishStatus/' . $serviceId;
 $availabilitySaveUrl = URLROOT . '/supplier/serviceAvailabilitySave/' . $serviceId;
@@ -144,7 +145,7 @@ $overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $ser
 $overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
 $previewUrl = URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId;
 
-$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $attireItems, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $maxConcurrentPackage, $maxConcurrentCustomize, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
+$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $attireItems, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $maxConcurrentPackage, $maxConcurrentCustomize, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $serviceStatusUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
 ?>
 <?php
 $serviceDetailCssVersion = file_exists(APPROOT . '/../public/css/supplier-service-detail.css') ? filemtime(APPROOT . '/../public/css/supplier-service-detail.css') : time();
@@ -154,6 +155,7 @@ $serviceDetailConfig = [
         'mediaCreate' => $mediaCreateUrl,
         'mediaDelete' => $mediaDeleteUrl,
         'serviceUpdate' => $serviceUpdateUrl,
+        'serviceStatus' => $serviceStatusUrl,
         'publishRequest' => $publishRequestUrl,
         'publishStatus' => $publishStatusUrl,
         'availabilitySave' => $availabilitySaveUrl,

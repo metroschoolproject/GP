@@ -25,6 +25,11 @@ class PaymentGatewayService
             : 'https://pgw.2c2p.com';
     }
 
+    public function isConfigured(): bool
+    {
+        return $this->merchantId !== '' && $this->apiSecret !== '';
+    }
+
     /**
      * Create a 2C2P hosted payment page token.
      * Returns webPaymentUrl for redirect checkout when successful.
@@ -184,8 +189,18 @@ class PaymentGatewayService
      * Create payout to supplier bank account.
      * Gateway handles settlement/disbursement.
      */
-    public function createSupplierPayout(int $supplierId, float $amount, string $bankAccount, string $bankCode): array
+    public function createSupplierPayout(
+        int $supplierId,
+        float $amount,
+        string $bankAccount,
+        string $bankCode,
+        string $batchId = ''
+    ): array
     {
+        if (!$this->isConfigured()) {
+            return ['success' => false, 'error' => 'Payout gateway credentials are not configured.'];
+        }
+
         $payload = [
             'supplier_id' => (string)$supplierId,
             'amount' => (int)round($amount),
@@ -193,7 +208,8 @@ class PaymentGatewayService
             'bank_code' => $bankCode, // 'AYA', 'KBZ', 'AGD', etc.
             'account_number' => $bankAccount,
             'description' => 'Golden Promise - Booking Payout #' . $supplierId,
-            'notification_url' => url('/webhook/payoutCallback'),
+            'merchant_reference' => $batchId,
+            'notification_url' => URLROOT . '/webhook/payoutCallback?batch_id=' . rawurlencode($batchId),
         ];
 
         $response = $this->httpPost('/payout/create', $payload);

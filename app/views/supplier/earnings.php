@@ -18,7 +18,7 @@ $date = fn($v) => date('M d, Y', strtotime($v ?? 'now'));
   </div>
 
   <!-- Earnings Summary Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
     <!-- Pending Earnings -->
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
       <div class="p-6 border-b border-gray-200">
@@ -28,6 +28,18 @@ $date = fn($v) => date('M d, Y', strtotime($v ?? 'now'));
         <div class="text-4xl font-bold text-amber-600"><?= $money($earnings['pending_amount'] ?? 0) ?></div>
         <p class="text-sm text-gray-600 mt-2"><?= (int)($earnings['pending_count'] ?? 0) ?> booking<?= ($earnings['pending_count'] ?? 0) !== 1 ? 's' : '' ?></p>
         <p class="text-xs text-gray-500 mt-4">From completed bookings waiting for cash out</p>
+      </div>
+    </div>
+
+    <!-- Processing Earnings -->
+    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      <div class="p-6 border-b border-gray-200">
+        <p class="text-sm text-gray-500 font-semibold uppercase tracking-wide">Processing</p>
+      </div>
+      <div class="p-6">
+        <div class="text-4xl font-bold text-blue-600"><?= $money($earnings['processing_amount'] ?? 0) ?></div>
+        <p class="text-sm text-gray-600 mt-2"><?= (int)($earnings['processing_count'] ?? 0) ?> payout item<?= ($earnings['processing_count'] ?? 0) !== 1 ? 's' : '' ?></p>
+        <p class="text-xs text-gray-500 mt-4">Submitted to the payout provider</p>
       </div>
     </div>
 
@@ -51,7 +63,7 @@ $date = fn($v) => date('M d, Y', strtotime($v ?? 'now'));
       <div class="p-6">
         <div class="text-4xl font-bold text-purple-600"><?= $money($earnings['total_earned'] ?? 0) ?></div>
         <p class="text-sm text-gray-600 mt-2">All time</p>
-        <p class="text-xs text-gray-500 mt-4">Pending + Paid</p>
+        <p class="text-xs text-gray-500 mt-4">Pending + Processing + Paid</p>
       </div>
     </div>
   </div>
@@ -165,25 +177,26 @@ $date = fn($v) => date('M d, Y', strtotime($v ?? 'now'));
       <?= csrf_field() ?>
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">Bank Account Number</label>
-        <input type="text" name="bank_account" placeholder="e.g., 1234567890" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500">
+        <input type="text" name="bank_account" value="<?= $h($supplier['bank_account'] ?? '') ?>" placeholder="e.g., 1234567890" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500">
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">Bank</label>
         <select name="bank_code" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500">
           <option value="">Select bank...</option>
-          <option value="AYA">AYA Bank</option>
-          <option value="KBZ">KBZ Bank</option>
-          <option value="AGD">Agile Bank</option>
-          <option value="CBD">CB Bank</option>
-          <option value="MYBANK">MyBank</option>
+          <?php $selectedBank = (string)($supplier['bank_code'] ?? ''); ?>
+          <option value="AYA" <?= $selectedBank === 'AYA' ? 'selected' : '' ?>>AYA Bank</option>
+          <option value="KBZ" <?= $selectedBank === 'KBZ' ? 'selected' : '' ?>>KBZ Bank</option>
+          <option value="AGD" <?= $selectedBank === 'AGD' ? 'selected' : '' ?>>AGD Bank</option>
+          <option value="CBD" <?= $selectedBank === 'CBD' ? 'selected' : '' ?>>CB Bank</option>
+          <option value="MYBANK" <?= $selectedBank === 'MYBANK' ? 'selected' : '' ?>>MyBank</option>
         </select>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">Amount</label>
-        <input type="number" name="amount" min="0" max="<?= (int)($earnings['pending_amount'] ?? 0) ?>" placeholder="Amount in MMK" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500">
-        <p class="text-xs text-gray-600 mt-1">Available: <?= $money($earnings['pending_amount'] ?? 0) ?></p>
+        <input type="number" name="amount" value="<?= number_format((float)($earnings['pending_amount'] ?? 0), 2, '.', '') ?>" readonly required class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+        <p class="text-xs text-gray-600 mt-1">The full available balance is submitted as one payout batch.</p>
       </div>
 
       <div class="bg-blue-50 p-4 rounded-lg">

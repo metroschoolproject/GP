@@ -728,6 +728,20 @@ class BookingModel
         // The uniq_booking_pkg_item (booking_id, package_item_id) key keeps
         // package lines idempotent; direct/supplier-package lines (NULL
         // package_item_id) are distinct per service within a single insert.
+
+        $hasSupplierPackageItems = $this->tableExists('supplier_package_items');
+
+        $supplierPackageUnion = $hasSupplierPackageItems ? "
+                UNION ALL
+
+                -- Supplier-package service lines
+                SELECT bi.booking_id, s2.supplier_id, s2.id, s2.category_id, NULL, spi.price
+                FROM booking_items bi
+                INNER JOIN supplier_package_items spi
+                    ON spi.package_id = bi.item_id AND bi.item_type = 'supplier_package'
+                INNER JOIN services s2 ON spi.service_id = s2.id
+                WHERE bi.booking_id = :supplier_package_items_bid" : '';
+
         $this->db->dbquery(
             "INSERT IGNORE INTO booking_suppliers
                 (booking_id, supplier_id, service_id, category_id, package_item_id, item_price)
@@ -754,22 +768,15 @@ class BookingModel
                 FROM booking_items bi
                 INNER JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
                 WHERE bi.booking_id = :service_bid
-
-                UNION ALL
-
-                -- Supplier-package service lines
-                SELECT bi.booking_id, s2.supplier_id, s2.id, s2.category_id, NULL, spi.price
-                FROM booking_items bi
-                INNER JOIN supplier_package_items spi
-                    ON spi.package_id = bi.item_id AND bi.item_type = 'supplier_package'
-                INNER JOIN services s2 ON spi.service_id = s2.id
-                WHERE bi.booking_id = :supplier_package_items_bid
+                {$supplierPackageUnion}
              ) svc_lines
              WHERE svc_lines.supplier_id IS NOT NULL"
         );
         $this->db->dbbind(':package_bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':service_bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':supplier_package_items_bid', $bookingId, PDO::PARAM_INT);
+        if ($hasSupplierPackageItems) {
+            $this->db->dbbind(':supplier_package_items_bid', $bookingId, PDO::PARAM_INT);
+        }
 
         return $this->db->dbexecute();
     }
@@ -2711,6 +2718,8 @@ class BookingModel
 
     /**
      * Submit a cancellation request.
+     * For customize (non-package) bookings, also sets the supplier row to
+     * 'cancellation_pending' so the supplier can accept/decline.
      */
     public function requestCancellation(int $bookingId, string $reason): bool
     {
@@ -2731,7 +2740,136 @@ class BookingModel
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
 
-        return $this->db->dbexecute();
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // For customize bookings, set the supplier row to cancellation_pending
+        // so the supplier can review and accept/decline the cancellation.
+        if (!$this->isPackageBooking($bookingId)) {
+            $this->db->dbquery(
+                "UPDATE booking_suppliers
+                 SET status = 'cancellation_pending'
+                 WHERE booking_id = :bid AND status IN ('confirmed', 'in_progress', 'pending')"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+        }
+
+        return true;
+    }
+
+    /**
+     * Supplier responds to a cancellation request (customize bookings only).
+     * @return string 'approved' or 'declined', or '' on failure
+     */
+    public function supplierRespondToCancellation(int $bookingId, int $supplierId, string $action, string $reason = ''): string
+    {
+        if (!in_array($action, ['approve', 'decline'], true)) {
+            return '';
+        }
+
+        // Verify booking is in cancellation_requested status
+        $this->db->dbquery("SELECT status FROM bookings WHERE id = :bid LIMIT 1");
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+        if (!$booking || ($booking['status'] ?? '') !== 'cancellation_requested') {
+            return '';
+        }
+
+        // Find the supplier's row in cancellation_pending
+        $this->db->dbquery(
+            "SELECT id, status FROM booking_suppliers
+             WHERE booking_id = :bid AND supplier_id = :sid AND status = 'cancellation_pending'
+             LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $supplierRow = $this->db->getsingledata();
+
+        if (!$supplierRow) {
+            return '';
+        }
+
+        $supplierRowId = (int)$supplierRow['id'];
+
+        // Resolve supplier's user_id for logging (changed_by references users.user_id)
+        $this->db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $supplierUser = $this->db->getsingledata();
+        $changedBy = (int)($supplierUser['user_id'] ?? 0) ?: null;
+
+        if ($action === 'approve') {
+            // Supplier approves: mark their row as cancellation_approved
+            $this->db->dbquery(
+                "UPDATE booking_suppliers SET status = 'cancellation_approved' WHERE id = :id"
+            );
+            $this->db->dbbind(':id', $supplierRowId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            $this->logStatusChange(
+                $bookingId,
+                'cancellation_requested',
+                'supplier_cancellation_approved',
+                $changedBy,
+                'Supplier approved cancellation request.' . ($reason !== '' ? ' Note: ' . $reason : '')
+            );
+
+            return 'approved';
+        }
+
+        // Decline: revert booking status and supplier status
+        // Get the old_status from the cancellation_requested log entry
+        $this->db->dbquery(
+            "SELECT old_status FROM booking_status_logs
+             WHERE booking_id = :bid AND new_status = 'cancellation_requested'
+             ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $log = $this->db->getsingledata();
+        $previousStatus = ($log['old_status'] ?? '') ?: 'confirmed';
+
+        // Revert booking status
+        $this->db->dbquery(
+            "UPDATE bookings SET status = :status WHERE id = :bid LIMIT 1"
+        );
+        $this->db->dbbind(':status', $previousStatus);
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        // Revert supplier row to confirmed
+        $this->db->dbquery(
+            "UPDATE booking_suppliers SET status = 'confirmed' WHERE id = :id"
+        );
+        $this->db->dbbind(':id', $supplierRowId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        $this->logStatusChange(
+            $bookingId,
+            'cancellation_requested',
+            $previousStatus,
+            $changedBy,
+            'Supplier declined cancellation. Reason: ' . $reason
+        );
+
+        return 'declined';
+    }
+
+    /**
+     * Get the cancellation reason from booking_status_logs.
+     */
+    public function getCancellationReason(int $bookingId): string
+    {
+        $this->db->dbquery(
+            "SELECT note FROM booking_status_logs
+             WHERE booking_id = :bid AND new_status = 'cancellation_requested'
+             ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $log = $this->db->getsingledata();
+        $note = $log['note'] ?? '';
+        // Strip the "Cancellation requested: " prefix
+        return preg_replace('/^Cancellation requested:\s*/i', '', $note);
     }
 
     /**
@@ -3735,8 +3873,10 @@ class BookingModel
         $this->db->dbquery(
             "SELECT
                 COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as pending_amount,
+                COALESCE(SUM(CASE WHEN status = 'processing' THEN amount ELSE 0 END), 0) as processing_amount,
                 COALESCE(SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END), 0) as paid_amount,
                 COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+                COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_count,
                 COUNT(CASE WHEN status = 'success' THEN 1 END) as paid_count
              FROM payments
              WHERE supplier_id = :sid AND type = 'payout'"
@@ -3746,10 +3886,16 @@ class BookingModel
 
         return [
             'pending_amount' => (float)($result['pending_amount'] ?? 0),
+            'processing_amount' => (float)($result['processing_amount'] ?? 0),
             'paid_amount' => (float)($result['paid_amount'] ?? 0),
             'pending_count' => (int)($result['pending_count'] ?? 0),
+            'processing_count' => (int)($result['processing_count'] ?? 0),
             'paid_count' => (int)($result['paid_count'] ?? 0),
-            'total_earned' => (float)(($result['pending_amount'] ?? 0) + ($result['paid_amount'] ?? 0)),
+            'total_earned' => (float)(
+                ($result['pending_amount'] ?? 0)
+                + ($result['processing_amount'] ?? 0)
+                + ($result['paid_amount'] ?? 0)
+            ),
         ];
     }
 

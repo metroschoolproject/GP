@@ -2,7 +2,7 @@
 $submitted = $submitted ?? [];
 $pending   = $pending ?? [];
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $stars = fn($n) => str_repeat('★', max(0, min(5, (int)$n))) . str_repeat('☆', 5 - max(0, min(5, (int)$n)));
 ?>
 <!DOCTYPE html>

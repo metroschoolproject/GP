@@ -60,6 +60,7 @@ class SupplierServices extends SupplierControllerSupport
             'payment' => $access['payment'],
             'dashboardData' => $this->supplierProfileModel->getDashboardData((int)$supplier['supplier_id']),
             'services' => $this->serviceManagementModel->getServices((int)$supplier['supplier_id']),
+            'allCapacityUrl' => URLROOT . '/supplier/allServicesCapacityPreview',
         ]);
     }
 

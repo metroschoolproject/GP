@@ -875,15 +875,15 @@ class CartModel
                     {$venueRoomSelect}
                     {$resolvedTimeSelect}
 
-                    COALESCE(s.name, p.name, sp.name) AS service_name,
-                    COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
-                    COALESCE(s.price_min, p.base_price * 1.05, sp.total_price) AS price_min,
-                    COALESCE(s.price_max, p.base_price * 1.05, sp.total_price) AS price_max,
+                    COALESCE(s.name, p.name) AS service_name,
+                    COALESCE(s.thumbnail_url, p.image_url) AS thumbnail_url,
+                    COALESCE(s.price_min, p.base_price * 1.05) AS price_min,
+                    COALESCE(s.price_max, p.base_price * 1.05) AS price_max,
                     COALESCE(s.booking_type, 'fullday') AS booking_type,
                     {$minLeadSelect} AS min_lead_days,
 
-                    COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
-                    COALESCE(sup.supplier_id, sp_sup.supplier_id) AS supplier_id,
+                    COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name,
+                    sup.supplier_id AS supplier_id,
                     
                     COALESCE(cat.name, package_cat.name) AS category_name,
                     COALESCE(cat.id, package_cat.id) AS category_id,
@@ -903,9 +903,7 @@ class CartModel
             LEFT JOIN venues selected_venue ON selected_venue.id = selected_vr.venue_id
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
             {$packageParentJoin}
-            LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
-            LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
             LEFT JOIN categories cat ON s.category_id = cat.id
             LEFT JOIN categories package_cat ON package_cat.slug = 'package'
             WHERE ci.user_id = :uid
@@ -979,14 +977,13 @@ class CartModel
             "SELECT COALESCE(SUM(
                 CASE
                     WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
-                    ELSE COALESCE(ci.price, s.price_min, s.price, sp.total_price, 0)
+                    ELSE COALESCE(ci.price, s.price_min, s.price, 0)
                 END
              ), 0) AS total
              FROM cart_items ci
              LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
              LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
-             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
-             WHERE ci.user_id = :uid"
+              WHERE ci.user_id = :uid"
         );
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         $row = $this->db->getsingledata();

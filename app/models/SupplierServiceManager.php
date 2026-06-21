@@ -1023,6 +1023,138 @@ class SupplierServiceManager
     }
 
     /**
+     * Read-only: fetch remaining capacity for all services on a given date.
+     * Does NOT create or modify time_slot rows — only reads existing data.
+     */
+    public function fetchAllServicesCapacity(int $supplierId, string $date): array
+    {
+        $date = $this->normalizeDate($date);
+        if (!$date) {
+            return ['date' => '', 'services' => []];
+        }
+
+        $services = $this->getServices($supplierId);
+        if (empty($services)) {
+            return ['date' => $date, 'services' => []];
+        }
+
+        $dayOfWeek = (int)date('N', strtotime($date));
+        $serviceIds = array_map(fn($s) => (int)$s['id'], $services);
+        $inPlaceholders = implode(',', array_map(fn($i) => ':sid_' . $i, array_keys($serviceIds)));
+
+        // Fetch all time slots for this date in one query
+        $this->db->dbquery(
+            "SELECT service_id, start_time, end_time,
+                    confirmed_count, max_concurrent,
+                    confirmed_package_count, confirmed_customize_count,
+                    max_concurrent_package, max_concurrent_customize, status
+             FROM service_time_slots
+             WHERE date = :date AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':date', $date);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $slotsByService = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $slotsByService[(int)$row['service_id']][] = $row;
+        }
+
+        // Fetch overrides for this date
+        $this->db->dbquery(
+            "SELECT service_id, type FROM service_availability WHERE date = :date AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':date', $date);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $overrides = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $overrides[(int)$row['service_id']] = $row['type'];
+        }
+
+        // Fetch weekly schedule for this day-of-week
+        $this->db->dbquery(
+            "SELECT service_id, is_available FROM service_schedules WHERE day_of_week = :dow AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':dow', $dayOfWeek);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $scheduleMap = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $scheduleMap[(int)$row['service_id']] = !empty($row['is_available']);
+        }
+
+        $result = [];
+        foreach ($services as $service) {
+            $sid = (int)$service['id'];
+            $overrideType = $overrides[$sid] ?? null;
+            $hasSlots = !empty($slotsByService[$sid]);
+
+            // Skip explicitly unavailable services with no existing slots
+            if ($overrideType === 'unavailable' && !$hasSlots) {
+                continue;
+            }
+
+            // Skip closed days (no override + weekly schedule says closed) with no slots
+            if (!$overrideType && empty($scheduleMap[$sid]) && !$hasSlots) {
+                continue;
+            }
+
+            if ($hasSlots) {
+                $slots = [];
+                $totalMax = 0;
+                $totalConfirmed = 0;
+                foreach ($slotsByService[$sid] as $slot) {
+                    $mc = (int)$slot['max_concurrent'];
+                    $cc = (int)$slot['confirmed_count'];
+                    $totalMax += $mc;
+                    $totalConfirmed += $cc;
+                    $left = max(0, $mc - $cc);
+                    $slots[] = [
+                        'start_time' => substr($slot['start_time'], 0, 5),
+                        'end_time' => substr($slot['end_time'], 0, 5),
+                        'max_concurrent' => $mc,
+                        'confirmed_count' => $cc,
+                        'remaining' => $left,
+                        'status' => $slot['status'],
+                    ];
+                }
+                $result[] = [
+                    'id' => $sid,
+                    'name' => $service['name'],
+                    'category' => $service['category'] ?? 'Service',
+                    'img' => $service['img'] ?? '',
+                    'status' => $service['status'],
+                    'booking_type' => $service['timeslot'] ? 'slot' : 'fullday',
+                    'total_capacity' => $totalMax,
+                    'total_confirmed' => $totalConfirmed,
+                    'total_remaining' => max(0, $totalMax - $totalConfirmed),
+                    'slots' => $slots,
+                ];
+            } else {
+                // No time slots generated yet — use service-level default
+                $mc = (int)($service['capacity'] ?? 1);
+                $result[] = [
+                    'id' => $sid,
+                    'name' => $service['name'],
+                    'category' => $service['category'] ?? 'Service',
+                    'img' => $service['img'] ?? '',
+                    'status' => $service['status'],
+                    'booking_type' => $service['timeslot'] ? 'slot' : 'fullday',
+                    'total_capacity' => $mc,
+                    'total_confirmed' => 0,
+                    'total_remaining' => $mc,
+                    'slots' => [],
+                ];
+            }
+        }
+
+        return ['date' => $date, 'services' => array_values($result)];
+    }
+
+    /**
      * Reserve a slot for a booking.
      * @param string $source 'package' or 'custom'
      */

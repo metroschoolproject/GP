@@ -51,6 +51,14 @@ define('PLATFORM_BANK_ACCOUNTS', [
 // Cron Security — set a strong CRON_TOKEN in .env before relying on cron auth
 define('CRON_TOKEN', env('CRON_TOKEN', ''));
 
+// 2C2P payment and payout gateway. Keep credentials in .env.
+define('PAYMENT_GATEWAY_SANDBOX', filter_var(env('PAYMENT_GATEWAY_SANDBOX', 'true'), FILTER_VALIDATE_BOOL));
+define('MERCHANT_ID', env('MERCHANT_ID', ''));
+define('PAYMENT_GATEWAY_SECRET', env('PAYMENT_GATEWAY_SECRET', ''));
+define('PAYMENT_GATEWAY_CURRENCY', env('PAYMENT_GATEWAY_CURRENCY', 'MMK'));
+define('PAYMENT_GATEWAY_MMQR_CHANNEL', env('PAYMENT_GATEWAY_MMQR_CHANNEL', ''));
+define('PAYMENT_GATEWAY_CARD_CHANNEL', env('PAYMENT_GATEWAY_CARD_CHANNEL', 'CC'));
+
 // Default service time windows by category (used for fullday package bookings).
 // Priority: service_schedules open/close > services.default_start/end_time > this fallback.
 define('CATEGORY_DEFAULT_TIMES', [

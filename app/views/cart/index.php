@@ -9,7 +9,7 @@ $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
