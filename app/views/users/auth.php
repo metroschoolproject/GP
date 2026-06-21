@@ -243,7 +243,7 @@
     font-weight: 600; 
     cursor: pointer;
     background-color: var(--accent);
-    color: white;
+    color: #fcf8f5;
     letter-spacing: 0.2px;
     transition: transform 0.15s, box-shadow 0.15s, opacity 0.4s, filter 0.4s;
     box-shadow:5px 5px 8px rgba(0, 0, 0, 0.628);
@@ -278,7 +278,7 @@
   .btn-shimmer {
     position:absolute;
     inset:0;
-    background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.18) 50%,transparent 100%);
+    background:linear-gradient(90deg,transparent 0%,rgba(252,248,245,0.18) 50%,transparent 100%);
     transform:translateX(-100%);
     transition:transform 0.5s;
   }
@@ -342,7 +342,7 @@
   /* divider */
   .divider {
     height:1px;
-    background:rgba(255,255,255,0.08);
+    background:rgba(252,248,245,0.08);
     margin:20px 0;
     position:relative;
     opacity: 1; 
@@ -573,7 +573,7 @@
   </div>
 
   <!-- card -->
-  <div class="relative w-full max-w-[420px] rounded-[24px] border border-white/14 bg-[var(--paper)] backdrop-blur-[24px] shadow-[0_8px_48px_rgba(80,40,180,0.18),inset_0_1px_0_rgba(255,255,255,0.12)]" style="min-height: 580px; height: auto;">
+  <div class="relative w-full max-w-[420px] rounded-[24px] border border-white/14 bg-[var(--paper)] backdrop-blur-[24px] shadow-[0_8px_48px_rgba(80,40,180,0.18),inset_0_1px_0_rgba(252,248,245,0.12)]" style="min-height: 580px; height: auto;">
     <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
     <div class="auth-loading-overlay" id="authLoadingOverlay" aria-hidden="true">
       <div class="auth-loading-panel" role="status" aria-live="polite">

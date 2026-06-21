@@ -20,12 +20,12 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
 <style>
   .admin-pkg-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
   .admin-pkg-page *{box-sizing:border-box}
-  .admin-pkg-page{--bg:#FBFBF9;--surface:#ffffff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--danger:#991b1b;--danger-bg:#fee2e2;max-width:1600px;margin:0 auto}
+  .admin-pkg-page{--bg:#FBFBF9;--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--danger:#991b1b;--danger-bg:#fee2e2;max-width:1600px;margin:0 auto}
 
   .page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
   .admin-pkg-page h1{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin:0}
 
-  .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
+  .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#fcf8f5;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-primary:hover{background:var(--primary-hover)}
   .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--primary);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-ghost:hover{background:var(--primary-soft)}
@@ -39,7 +39,7 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
   .filters{display:flex;gap:6px;flex-wrap:wrap}
   .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s;white-space:nowrap;text-decoration:none}
   .filter:hover{border-color:var(--border);background:var(--hover);color:var(--primary)}
-  .filter.active{border-color:var(--primary);background:var(--primary);color:#fff}
+  .filter.active{border-color:var(--primary);background:var(--primary);color:#fcf8f5}
 
   .flash{border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:12px 14px;margin-bottom:18px;color:var(--body);font-size:13px;font-weight:600}
 
@@ -58,7 +58,7 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
   .pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px}
   .page-link{padding:6px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--surface);color:var(--body);font-size:12px;font-weight:600;text-decoration:none;transition:all .12s}
   .page-link:hover{background:var(--soft);color:var(--primary)}
-  .page-link.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .page-link.active{background:var(--primary);color:#fcf8f5;border-color:var(--primary)}
   .page-link.disabled{opacity:.4;pointer-events:none}
 
   .actions{display:flex;gap:4px}

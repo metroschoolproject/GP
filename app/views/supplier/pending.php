@@ -19,7 +19,7 @@ $emailAddress = htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8');
             --paper: #faf5ef;
             --accent: #6d4c5b;
             --accent-hover: #7b5c69;
-            --surface: #ffffff;
+            --surface: #fcf8f5;
             --soft-hover: #eddecc;
             --muted: #b79c8b;
             --body: #7b5c69;
@@ -90,7 +90,7 @@ $emailAddress = htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8');
 
         .supplier-primary-btn {
             background: var(--accent);
-            color: white;
+            color: #fcf8f5;
             box-shadow: 0 1px 2px rgba(28, 25, 23, 0.05);
         }
 

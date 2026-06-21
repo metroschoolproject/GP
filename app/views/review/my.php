@@ -15,7 +15,7 @@ $stars = fn($n) => str_repeat('★', max(0, min(5, (int)$n))) . str_repeat('☆'
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2e4d4;--card:#fff;--rule:rgba(178,143,110,0.22);--rule-strong:rgba(178,143,110,0.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px)}
+:root{--bg:#f2e4d4;--card:#fcf8f5;--rule:rgba(178,143,110,0.22);--rule-strong:rgba(178,143,110,0.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
 a{color:inherit;text-decoration:none}
@@ -30,10 +30,10 @@ a{color:inherit;text-decoration:none}
 .gp-page-sub{font-size:13px;color:var(--muted);margin-bottom:32px}
 .gp-btn-sm{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;border:1px solid var(--rule-strong);font-size:11px;font-weight:600;color:var(--text2);transition:all .2s;text-decoration:none;cursor:pointer;background:none}
 .gp-btn-sm:hover{border-color:var(--plum);color:var(--plum)}
-.gp-btn-sm.primary{background:var(--plum);color:#fff;border-color:var(--plum)}
+.gp-btn-sm.primary{background:var(--plum);color:#fcf8f5;border-color:var(--plum)}
 .gp-btn-sm.primary:hover{background:var(--plum-dk)}
 .gp-btn-sm.danger{color:var(--danger);border-color:rgba(185,75,75,0.2)}
-.gp-btn-sm.danger:hover{background:var(--danger);color:#fff}
+.gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5}
 .gp-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);margin-bottom:4px}
 .gp-section-title{font-family:var(--font-d);font-size:20px;font-weight:600;margin-bottom:16px}
 .gp-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px}

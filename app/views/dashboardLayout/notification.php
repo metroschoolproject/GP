@@ -55,7 +55,16 @@ $notificationReviewLabel = $notificationConfig['reviewLabel'] ?? 'Review all';
         max-height: 24rem;
         gap: 0.5rem;
         overflow-y: auto;
+        overflow-x: hidden;
         padding-top: 0.75rem;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .dashboard-notification-list::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
     }
 
     .dashboard-notification-empty {
@@ -92,6 +101,21 @@ $notificationReviewLabel = $notificationConfig['reviewLabel'] ?? 'Review all';
         font-size: 0.75rem;
         line-height: 1.45;
         overflow-wrap: anywhere;
+    }
+
+    .dashboard-notification-meta {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+
+    .dashboard-notification-time {
+        flex: 0 0 auto;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--color-app-muted, #8a7180);
+        white-space: nowrap;
     }
 </style>
 
@@ -161,6 +185,72 @@ $notificationReviewLabel = $notificationConfig['reviewLabel'] ?? 'Review all';
             .replace(/'/g, '&#039;');
     }
 
+    function shouldShowMore(value) {
+        return String(value || '').trim().length > 86;
+    }
+
+    function notificationIcon(type) {
+        const key = String(type || '').toLowerCase();
+        if (key.includes('payment')) {
+            return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18"></path><path d="M7 15h4"></path></svg>';
+        }
+        if (key.includes('booking')) {
+            return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4"></path><path d="M16 3v4"></path><path d="M4 10h16"></path><path d="m9 15 2 2 4-5"></path></svg>';
+        }
+        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7v6c0 5 3.5 7.5 8 8 4.5-.5 8-3 8-8V7l-8-4Z"></path><path d="m9 12 2 2 4-4"></path></svg>';
+    }
+
+    function notificationTone(item) {
+        const text = [
+            item?.type,
+            item?.reference_type,
+            item?.title,
+            item?.message
+        ].join(' ').toLowerCase();
+
+        if (/\b(pending|waiting|awaiting|review|processing|unpaid|unverified)\b/.test(text)) {
+            return 'pending';
+        }
+
+        if (/\b(cancel|cancelled|canceled|decline|declined|reject|rejected|failed|fail|expired|overdue|unavailable|denied|error|problem)\b/.test(text)) {
+            return 'negative';
+        }
+
+        if (/\b(approved|confirm|confirmed|success|successful|paid|verified|complete|completed|accepted|available)\b/.test(text)) {
+            return 'positive';
+        }
+
+        return 'default';
+    }
+
+    function notificationTimeLabel(value) {
+        if (!value) return '';
+
+        const normalized = String(value).replace(' ', 'T');
+        const created = new Date(normalized);
+        if (Number.isNaN(created.getTime())) return '';
+
+        const now = new Date();
+        const diffMs = now.getTime() - created.getTime();
+        const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+        if (diffMinutes < 1) return 'now';
+        if (diffMinutes < 60) return diffMinutes + ' ' + (diffMinutes === 1 ? 'minute' : 'minutes') + ' ago';
+
+        const diffHours = Math.floor(diffMinutes / 60);
+        if (diffHours < 24 && created.toDateString() === now.toDateString()) {
+            return diffHours + ' ' + (diffHours === 1 ? 'hour' : 'hours') + ' ago';
+        }
+
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        if (created.toDateString() === yesterday.toDateString()) {
+            return 'yesterday';
+        }
+
+        return created.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+    }
+
     function renderNotifications(payload) {
         const unreadCount = Number(payload.unread_count || 0);
 
@@ -183,12 +273,24 @@ $notificationReviewLabel = $notificationConfig['reviewLabel'] ?? 'Review all';
         }
 
         notificationList.innerHTML = items.map((item) => `
-            <a href="${notificationHref(item)}" data-notification-id="${item.id}" class="dashboard-notification-item rounded-xl border ${Number(item.is_read) ? 'border-app-border bg-app-soft' : 'border-app-focus bg-app-surface'} hover:border-app-focus hover:bg-app-input hover:shadow-card">
-                <span class="dashboard-notification-type text-app-muted">${escapeNotificationText(item.type || 'system')}</span>
-                <strong class="dashboard-notification-item-title text-app-text">${escapeNotificationText(item.title || 'Notification')}</strong>
-                <span class="dashboard-notification-message text-app-secondary">${escapeNotificationText(item.message || '')}</span>
+            <a href="${notificationHref(item)}" data-notification-id="${item.id}" data-unread="${Number(item.is_read) ? '0' : '1'}" class="dashboard-notification-item rounded-xl border ${Number(item.is_read) ? 'border-app-border bg-app-soft' : 'is-unread border-app-focus bg-app-surface'} hover:border-app-focus hover:bg-app-input hover:shadow-card">
+                <span class="dashboard-notification-icon is-${notificationTone(item)}">${notificationIcon(item.type || item.reference_type)}</span>
+                <span class="dashboard-notification-content">
+                    <span class="dashboard-notification-meta">
+                        <span class="dashboard-notification-type text-app-muted">${escapeNotificationText(item.type || 'system')}</span>
+                        <time class="dashboard-notification-time" datetime="${escapeNotificationText(item.created_at || '')}">${escapeNotificationText(notificationTimeLabel(item.created_at))}</time>
+                    </span>
+                    <strong class="dashboard-notification-item-title text-app-text">${escapeNotificationText(item.title || 'Notification')}</strong>
+                    <span class="dashboard-notification-message text-app-secondary">${escapeNotificationText(item.message || '')}</span>
+                    ${shouldShowMore(item.message) ? '<span class="dashboard-notification-more">see more</span>' : ''}
+                </span>
             </a>
         `).join('');
+    }
+
+    function closeNotificationPanel() {
+        notificationBtn?.setAttribute('aria-expanded', 'false');
+        notificationPanel?.classList.add('invisible', 'opacity-0', 'scale-95');
     }
 
     async function pollNotifications() {
@@ -206,12 +308,32 @@ $notificationReviewLabel = $notificationConfig['reviewLabel'] ?? 'Review all';
         }
     }
 
-    notificationBtn?.addEventListener('click', () => {
+    notificationBtn?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        document.querySelectorAll('.home-profile-btn, .tb-profile-btn').forEach((btn) => {
+            btn.setAttribute('aria-expanded', 'false');
+        });
         const isOpen = notificationBtn.getAttribute('aria-expanded') === 'true';
         notificationBtn.setAttribute('aria-expanded', String(!isOpen));
         notificationPanel?.classList.toggle('invisible', isOpen);
         notificationPanel?.classList.toggle('opacity-0', isOpen);
         notificationPanel?.classList.toggle('scale-95', isOpen);
+    });
+
+    notificationPanel?.addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+
+    document.addEventListener('click', () => {
+        if (notificationBtn?.getAttribute('aria-expanded') === 'true') {
+            closeNotificationPanel();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeNotificationPanel();
+        }
     });
 
     notificationList?.addEventListener('click', (event) => {

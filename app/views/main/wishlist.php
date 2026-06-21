@@ -35,7 +35,7 @@ $wishlistPageUrl = URLROOT . '/main/wishlist';
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --c-bg:#f5e8d9;--c-white:#ffffff;--c-rule:#ead8c7;
+  --c-bg:#f5e8d9;--c-white:#fcf8f5;--c-rule:#ead8c7;
   --c-strong:#765a46;--c-accent:#6f625a;--c-muted:#9b7d6b;
   --c-text:#211d1a;--c-pale:#b79c8b;
   --c-gold:#d8b46a;--c-red:#b94a48;--c-heart:#e55b5b;
@@ -69,7 +69,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-header-actions{display:flex;align-items:center;gap:12px;justify-content:flex-end}
 .gp-cart-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 14px 8px 10px;border-radius:999px;border:1px solid var(--c-rule);background:var(--c-white);color:var(--c-strong);font-size:13px;font-weight:700;transition:all .2s}
 .gp-cart-badge:hover{border-color:var(--c-red);color:var(--c-red)}
-.gp-cart-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--c-strong);color:#fff;font-size:10px;font-weight:700}
+.gp-cart-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--c-strong);color:#fcf8f5;font-size:10px;font-weight:700}
 .gp-header-cta{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 20px;border-radius:999px;border:none;background:var(--c-strong);color:#fffaf3;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(118,90,70,.22);transition:all .2s}
 .gp-header-cta:hover{background:var(--c-red);transform:translateY(-1px)}
 .gp-profile-wrap{position:relative}
@@ -133,7 +133,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 .wl-col-add-form button{
   flex:1;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;
 }
-.wl-col-save{background:var(--c-strong);color:#fff}
+.wl-col-save{background:var(--c-strong);color:#fcf8f5}
 .wl-col-cancel{background:rgba(118,90,70,.08);color:var(--c-accent)}
 
 /* Rename form */
@@ -145,7 +145,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .wl-col-rename-form button{
   padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;
-  background:var(--c-strong);color:#fff;
+  background:var(--c-strong);color:#fcf8f5;
 }
 
 /* ── ITEMS GRID ── */
@@ -156,7 +156,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 .wl-empty p{color:var(--c-accent);font-size:14px;max-width:400px;margin:0 auto 20px}
 .wl-empty-btn{
   display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:999px;
-  border:none;background:var(--c-strong);color:#fff;font-size:13px;font-weight:700;
+  border:none;background:var(--c-strong);color:#fcf8f5;font-size:13px;font-weight:700;
   cursor:pointer;transition:all .2s;text-decoration:none;
 }
 .wl-empty-btn:hover{background:var(--c-red);transform:translateY(-1px)}
@@ -186,7 +186,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   border:1px solid var(--c-rule);background:var(--c-white);color:var(--c-strong);
   font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;text-decoration:none;
 }
-.wl-card-btn:hover{background:var(--c-red);color:#fff;border-color:var(--c-red)}
+.wl-card-btn:hover{background:var(--c-red);color:#fcf8f5;border-color:var(--c-red)}
 
 /* ── CARD OVERLAYS ── */
 .wl-card-heart{
@@ -194,11 +194,11 @@ button,input,select{font-family:var(--font-body);outline:none}
   display:grid;place-items:center;width:36px;height:36px;
   border-radius:50%;border:none;background:rgba(0,0,0,.35);
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  color:#fff;cursor:pointer;font-size:16px;
+  color:#fcf8f5;cursor:pointer;font-size:16px;
   transition:all .2s var(--ease);
 }
 .wl-card-heart:hover{transform:scale(1.12)}
-.wl-card-heart.is-saved{background:var(--c-heart);color:#fff}
+.wl-card-heart.is-saved{background:var(--c-heart);color:#fcf8f5}
 .wl-card-heart.is-loading{pointer-events:none;opacity:.6}
 
 .wl-card-badge{
@@ -232,7 +232,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .wl-card-note-inline button{
   padding:6px 12px;border-radius:8px;border:none;font-size:11px;font-weight:600;
-  background:var(--c-strong);color:#fff;cursor:pointer;
+  background:var(--c-strong);color:#fcf8f5;cursor:pointer;
 }
 
 /* ── TOAST ── */
@@ -240,7 +240,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
   z-index:9999;display:flex;align-items:center;gap:10px;
   padding:12px 20px;border-radius:999px;
-  background:#211d1a;color:#fff;font-size:13px;font-weight:600;
+  background:#211d1a;color:#fcf8f5;font-size:13px;font-weight:600;
   box-shadow:0 12px 40px rgba(0,0,0,.18);
   opacity:0;transition:all .3s var(--ease);
   pointer-events:none;
@@ -267,61 +267,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 </head>
 <body>
 
-<!-- HEADER -->
-<header class="gp-header">
-  <a class="gp-brand" href="<?= URLROOT ?>/main/index">
-    <span class="gp-brand-mark">G</span>
-    <span>Golden Promise</span>
-  </a>
-  <nav class="gp-header-nav" aria-label="Main navigation">
-    <a href="<?= URLROOT ?>/main/index">Home</a>
-    <a href="<?= URLROOT ?>/customerServices/service">Services</a>
-    <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
-  </nav>
-  <div class="gp-header-actions">
-    <?php if ($isLoggedIn && $wishlistCount > 0): ?>
-    <a class="gp-cart-badge" href="<?= $wishlistPageUrl ?>" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18);background:rgba(229,91,91,.04)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      <span class="gp-cart-count" style="background:var(--c-heart)"><?= $wishlistCount ?></span>
-    </a>
-    <?php elseif ($isLoggedIn): ?>
-    <a class="gp-cart-badge" href="<?= $wishlistPageUrl ?>" aria-label="Wishlist" style="border-color:rgba(229,91,91,.18)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    </a>
-    <?php endif; ?>
-    <a class="gp-cart-badge" href="<?= URLROOT ?>/cart" aria-label="Cart">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      <?php if ($cartCount > 0): ?>
-        <span class="gp-cart-count"><?= $cartCount ?></span>
-      <?php endif; ?>
-    </a>
-    <?php if ($isLoggedIn): ?>
-    <div class="gp-profile-wrap">
-      <button class="gp-profile-btn" type="button" aria-expanded="false">
-        <span class="gp-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
-        <span style="white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis"><?= $h(explode(' ', $_SESSION['session_name'] ?? 'User')[0]) ?></span>
-        <svg class="gp-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="gp-profile-menu">
-        <a class="gp-menu-item" href="<?= URLROOT ?>/main/wishlist">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          My Wishlist<?php if ($wishlistCount > 0): ?> · <?= $wishlistCount ?><?php endif; ?>
-        </a>
-        <a class="gp-menu-item" href="<?= URLROOT ?>/booking/myBookings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          My Bookings
-        </a>
-        <a class="gp-menu-item gp-menu-item--danger" href="<?= URLROOT ?>/users/logout">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Logout
-        </a>
-      </div>
-    </div>
-    <?php else: ?>
-    <a class="gp-header-cta" href="<?= URLROOT ?>/users/auth">Sign in</a>
-    <?php endif; ?>
-  </div>
-</header>
+<?php $gpNavActive = 'wishlist'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <!-- PAGE -->
 <div class="wl-page">

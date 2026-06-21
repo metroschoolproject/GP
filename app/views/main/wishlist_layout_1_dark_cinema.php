@@ -38,7 +38,7 @@ $cartCount = 3;
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --c-bg:#f5e8d9;--c-white:#ffffff;--c-rule:#ead8c7;--c-strong:#765a46;--c-accent:#6f625a;--c-muted:#9b7d6b;
+  --c-bg:#f5e8d9;--c-white:#fcf8f5;--c-rule:#ead8c7;--c-strong:#765a46;--c-accent:#6f625a;--c-muted:#9b7d6b;
   --c-text:#211d1a;--c-pale:#b79c8b;--c-gold:#d8b46a;--c-red:#b94a48;--c-heart:#e55b5b;
   --font-display:'Playfair Display',Georgia,serif;--font-body:'Poppins',system-ui,sans-serif;
   --pad-x:clamp(20px,5vw,72px);--ease:cubic-bezier(.19,1,.22,1);
@@ -80,7 +80,7 @@ a{color:inherit;text-decoration:none} img{display:block;max-width:100%} button,i
 .wl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px 20px;align-items:start}
 .wl-card{position:relative;background:rgba(74,48,33,.84);border-radius:18px;padding:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;flex-direction:column;height:340px;box-shadow:0 10px 30px rgba(0,0,0,.12);transition:.35s ease;cursor:pointer}
 .wl-card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.18)}
-.wl-card-ribbon{position:absolute;top:0;left:20px;background:var(--c-red);color:#fff;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px 6px;border-radius:0 0 6px 6px}
+.wl-card-ribbon{position:absolute;top:0;left:20px;background:var(--c-red);color:#fcf8f5;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px 6px;border-radius:0 0 6px 6px}
 .wl-card-body{display:flex;flex-direction:column;height:100%}
 .wl-card-sup{color:#d7c7b8;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:6px}
 .wl-card-col{font-size:9px;padding:2px 8px;border-radius:999px;border:1px solid rgba(216,180,106,.28);color:var(--c-gold)}
@@ -88,10 +88,10 @@ a{color:inherit;text-decoration:none} img{display:block;max-width:100%} button,i
 .wl-card-desc{font-size:11px;color:rgba(248,239,229,.45);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1;margin-bottom:8px}
 .wl-card-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 .wl-stat{text-align:center;padding:6px 4px}
-.wl-stat+.wl-stat{border-left:1px solid rgba(255,255,255,.16)}
+.wl-stat+.wl-stat{border-left:1px solid rgba(252,248,245,.16)}
 .wl-stat strong{color:#fff5eb;font-size:12px;display:block}
 .wl-stat span{color:#cdbba8;font-size:9px}
-.wl-card-thumb{border:1px solid rgba(255,255,255,.14);border-radius:10px;overflow:hidden;height:130px;flex-shrink:0;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(0,0,0,.10))}
+.wl-card-thumb{border:1px solid rgba(252,248,245,.14);border-radius:10px;overflow:hidden;height:130px;flex-shrink:0;background:linear-gradient(160deg,rgba(252,248,245,.05),rgba(0,0,0,.10))}
 .wl-card-thumb img{width:100%;height:100%;object-fit:cover}
 .wl-card-note{margin-top:6px;font-size:10px;color:rgba(216,180,106,.8);font-style:italic}
 
@@ -115,7 +115,7 @@ a{color:inherit;text-decoration:none} img{display:block;max-width:100%} button,i
   <nav class="gp-header-nav"><a href="#">Home</a><a href="#">Services</a><a href="#">Packages</a></nav>
   <div class="gp-header-actions">
     <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid rgba(229,91,91,.18);background:rgba(229,91,91,.04);color:var(--c-heart);font-size:13px;font-weight:700">♥ <?= $wishlistCount ?></span>
-    <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid #ead8c7;background:#fff;color:#765a46;font-size:13px;font-weight:700">🛒 <?= $cartCount ?></span>
+    <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid #ead8c7;background:#fcf8f5;color:#765a46;font-size:13px;font-weight:700">🛒 <?= $cartCount ?></span>
     <span style="display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#765a46;color:#fff4e6;font-size:12px;font-weight:800">H</span>
   </div>
 </header>
@@ -161,7 +161,7 @@ a{color:inherit;text-decoration:none} img{display:block;max-width:100%} button,i
         <div class="wl-stat"><strong><?= $item['review_count'] ?></strong><span>Reviews</span></div>
       </div>
       <?php if($item['notes']): ?><div class="wl-card-note">💬 <?= $h($item['notes']) ?></div><?php endif; ?>
-      <div class="wl-card-thumb"><div style="display:grid;place-items:center;height:100%;color:rgba(255,255,255,.12);font-size:40px">🖼</div></div>
+      <div class="wl-card-thumb"><div style="display:grid;place-items:center;height:100%;color:rgba(252,248,245,.12);font-size:40px">🖼</div></div>
     </div>
   </article>
   <?php endforeach; ?>

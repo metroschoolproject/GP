@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $paymentCssVersion ?>">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root{--surface:#fff;--content:#FBFBF9;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--danger:#b94b4b;--danger-soft:#f9dede}
+        :root{--surface:#fcf8f5;--content:#FBFBF9;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--danger:#b94b4b;--danger-soft:#f9dede}
         *{box-sizing:border-box}
         body{min-height:100vh;margin:0;background:#f3f6fb;color:var(--text);font-family:Poppins,system-ui,-apple-system,sans-serif}
         .payment-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 18px;background:#f3f6fb}
@@ -39,13 +39,13 @@
         .method-option input{position:absolute;opacity:0;pointer-events:none}
         .method-option span{display:flex;min-height:42px;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:9px 12px;color:var(--body);font-size:12px;font-weight:800;transition:border-color .12s,box-shadow .12s,background .12s,color .12s}
         .method-option span:hover{background:var(--soft);color:var(--primary)}
-        .method-option input:checked + span{border-color:var(--primary);background:var(--primary);color:#fff;box-shadow:0 0 0 3px rgba(232,215,202,.7)}
+        .method-option input:checked + span{border-color:var(--primary);background:var(--primary);color:#fcf8f5;box-shadow:0 0 0 3px rgba(232,215,202,.7)}
         .payment-form input[type="text"],.payment-form textarea{width:100%;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:12px 13px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .12s,box-shadow .12s,background .12s}
         .payment-form input[type="text"]::placeholder,.payment-form textarea::placeholder{color:var(--muted)}
-        .payment-form input[type="text"]:focus,.payment-form textarea:focus{border-color:#c8b1a1;background:#fff;box-shadow:0 0 0 3px #e8d7ca}
+        .payment-form input[type="text"]:focus,.payment-form textarea:focus{border-color:#c8b1a1;background:#fcf8f5;box-shadow:0 0 0 3px #e8d7ca}
         .payment-form textarea{margin-bottom:12px;resize:vertical}
         .payment-slip-upload{display:flex;min-height:76px;align-items:center;gap:12px;border:1px dashed var(--border);border-radius:.75rem;background:var(--soft);padding:14px;cursor:pointer;transition:all .12s}
-        .payment-slip-upload:hover{border-color:var(--primary);background:#fff}
+        .payment-slip-upload:hover{border-color:var(--primary);background:#fcf8f5}
         .payment-slip-upload strong{display:block;color:var(--text);font-size:13px;font-weight:800;line-height:1.35}
         .payment-slip-upload small{display:block;margin-top:3px;color:var(--muted);font-size:11px;line-height:1.35}
         .payment-slip-icon{display:flex;width:44px;height:44px;flex:0 0 44px;align-items:center;justify-content:center;border-radius:.75rem;background:var(--hover);color:var(--primary);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
@@ -61,15 +61,15 @@
         .bank-detail-list dd{margin:0;max-width:58%;text-align:right;color:var(--text);font-size:12px;font-weight:800;word-break:break-word}
         .gateway-panel{grid-template-columns:minmax(0,1fr) 220px;align-items:center}
         .gateway-link{display:block;margin-top:10px;color:var(--primary);font-size:12px;font-weight:700;line-height:1.45;overflow-wrap:anywhere;text-decoration:none}
-        .qr-card{display:grid;justify-items:center;gap:8px;border:1px solid var(--border);border-radius:.75rem;background:#fff;padding:12px}
+        .qr-card{display:grid;justify-items:center;gap:8px;border:1px solid var(--border);border-radius:.75rem;background:#fcf8f5;padding:12px}
         .qr-card img{display:block;width:100%;max-width:196px;height:auto}
         .qr-card span{color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
         .payment-note{margin:0;color:var(--body);font-size:12px;line-height:1.55}
         .payment-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:2px}
         .payment-back,.payment-submit{display:inline-flex;height:38px;align-items:center;justify-content:center;border-radius:.75rem;padding:0 14px;font-family:inherit;font-size:12px;font-weight:800;text-decoration:none;transition:all .12s}
-        .payment-back{border:1px solid var(--border);background:#fff;color:var(--body)}
+        .payment-back{border:1px solid var(--border);background:#fcf8f5;color:var(--body)}
         .payment-back:hover{background:var(--soft);color:var(--primary)}
-        .payment-submit{border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;box-shadow:0 10px 20px rgba(109,76,91,.12)}
+        .payment-submit{border:1px solid var(--primary);background:var(--primary);color:#fcf8f5;cursor:pointer;box-shadow:0 10px 20px rgba(109,76,91,.12)}
         .payment-submit:hover{border-color:var(--primary-hover);background:var(--primary-hover)}
         .payment-side{padding:16px}
         .side-heading{display:flex;align-items:center;gap:8px;margin:0 0 12px;color:var(--text);font-size:13px;font-weight:700}

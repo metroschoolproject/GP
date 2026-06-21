@@ -21,7 +21,7 @@ $expiredCount = count(array_filter($vouchers, fn($v)=>($v['status']??'')==='expi
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2e4d4;--card:#fff;--rule:rgba(178,143,110,0.22);--plum:#6b4459;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
+:root{--bg:#f2e4d4;--card:#fcf8f5;--rule:rgba(178,143,110,0.22);--plum:#6b4459;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
 a{color:inherit;text-decoration:none}
@@ -31,7 +31,7 @@ a{color:inherit;text-decoration:none}
 .gp-brand-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--plum);color:#fffaf3;font-size:13px;font-weight:700}
 .gp-btn-sm{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;border:1px solid var(--rule-strong);font-size:11px;font-weight:600;color:var(--text2);transition:all .2s}
 .gp-btn-sm:hover{border-color:var(--plum);color:var(--plum)}
-.gp-btn-sm.primary{background:var(--plum);color:#fff;border-color:var(--plum)}
+.gp-btn-sm.primary{background:var(--plum);color:#fcf8f5;border-color:var(--plum)}
 .gp-profile-dropdown{position:relative}
 .gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--card);cursor:pointer;transition:all .2s;color:var(--plum);font-family:var(--font-b);font-size:13px;font-weight:600}
 .gp-profile-btn:hover{border-color:var(--plum);background:rgba(107,68,89,.06)}
@@ -57,7 +57,7 @@ a{color:inherit;text-decoration:none}
 .gp-filters{display:flex;gap:6px;margin-bottom:28px}
 .gp-filter{padding:6px 16px;border-radius:999px;border:1px solid var(--rule-strong);font-size:12px;font-weight:600;color:var(--text2);transition:all .2s;white-space:nowrap}
 .gp-filter:hover{border-color:var(--plum);color:var(--plum)}
-.gp-filter.active{background:var(--plum);color:#fff;border-color:var(--plum)}
+.gp-filter.active{background:var(--plum);color:#fcf8f5;border-color:var(--plum)}
 
 .gp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
 .gp-voucher{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden;position:relative;opacity:0;transform:translateY(20px);transition:all .5s var(--ease-expo)}
@@ -91,9 +91,9 @@ a{color:inherit;text-decoration:none}
 .gp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; margin-top: 20px; border-top: 1px solid rgba(178,143,110,0.22); }
 .gp-pagination-info { font-size: 12px; color: var(--muted, #a08878); }
 .gp-pagination-btns { display: flex; align-items: center; gap: 5px; }
-.gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid rgba(178,143,110,0.22); border-radius: 8px; background: #fff; color: #5c4a54; font-size: 12px; font-weight: 600; font-family: inherit; text-decoration: none; transition: all 0.15s; cursor: pointer; }
+.gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid rgba(178,143,110,0.22); border-radius: 8px; background: #fcf8f5; color: #5c4a54; font-size: 12px; font-weight: 600; font-family: inherit; text-decoration: none; transition: all 0.15s; cursor: pointer; }
 .gp-pagination-btn:hover { background: #f2e4d4; color: #1a1118; border-color: #b8924a; }
-.gp-pagination-btn-cur { background: #6b4459; color: #fff; border-color: #6b4459; }
+.gp-pagination-btn-cur { background: #6b4459; color: #fcf8f5; border-color: #6b4459; }
 .gp-pagination-btn-disabled { opacity: 0.3; pointer-events: none; }
 </style>
 </head><body>

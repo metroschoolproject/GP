@@ -35,7 +35,7 @@ $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
 :root {
   --bg:          #f2e4d4;
   --surface:     #faf6f1;
-  --card:        #ffffff;
+  --card:        #fcf8f5;
   --rule:        rgba(178,143,110,0.22);
   --rule-strong: rgba(178,143,110,0.45);
   --plum:        #6b4459;
@@ -102,7 +102,7 @@ a { color: inherit; text-decoration: none; }
 #stripe-card-element.StripeElement--focus { border-color: var(--plum); box-shadow: 0 0 0 3px rgba(107,68,89,0.1); }
 #stripe-card-element.StripeElement--invalid { border-color: var(--danger); }
 #card-errors { font-size: 12px; color: var(--danger); margin-top: 6px; min-height: 18px; }
-#payment-overlay { display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.7); z-index: 10; border-radius: var(--r-lg); place-items: center; }
+#payment-overlay { display: none; position: absolute; inset: 0; background: rgba(252,248,245,0.7); z-index: 10; border-radius: var(--r-lg); place-items: center; }
 #payment-overlay.show { display: grid; }
 
 .gp-pay-btn {
@@ -133,7 +133,7 @@ a { color: inherit; text-decoration: none; }
 .gp-trust-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
 .gp-trust-icon { width: 14px; height: 14px; flex-shrink: 0; }
 
-.gp-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+.gp-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(252,248,245,0.3); border-top-color: #fcf8f5; border-radius: 50%; animation: spin 0.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .gp-toast { position: fixed; top: 20px; right: 20px; z-index: 999; padding: 14px 20px; border-radius: var(--r-md); box-shadow: 0 12px 40px rgba(0,0,0,0.12); font-size: 13px; font-weight: 500; max-width: 380px; opacity: 0; transform: translateY(-12px); transition: all 0.35s var(--ease-expo); pointer-events: none; }

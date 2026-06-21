@@ -88,7 +88,7 @@ $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(
 :root {
   --c-bg:        #f5e8d9;
   --c-surface:   #faf5ef;
-  --c-white:     #ffffff;
+  --c-white:     #fcf8f5;
   --c-card:      #faf5ef;
   --c-rule:      #ead8c7;
   --c-strong:    #6d4c5b;
@@ -169,7 +169,7 @@ img { display: block; max-width: 100%; }
 .gp-cart-badge-count {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 20px; height: 20px; padding: 0 6px;
-  border-radius: 999px; background: var(--c-strong); color: #fff;
+  border-radius: 999px; background: var(--c-strong); color: #fcf8f5;
   font-size: 10px; font-weight: 700;
 }
 .gp-header-cta {
@@ -303,7 +303,7 @@ img { display: block; max-width: 100%; }
 .gp-package-cart-form{margin-top:18px}
 .gp-package-cart-btn{
   display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 22px;border:0;border-radius:999px;
-  background:var(--c-strong);color:#fff;font-size:13px;font-weight:800;cursor:pointer;
+  background:var(--c-strong);color:#fcf8f5;font-size:13px;font-weight:800;cursor:pointer;
   box-shadow:0 14px 30px rgba(109,76,91,.18);transition:all .2s var(--ease-out-expo)
 }
 .gp-package-cart-btn:hover{background:#5a3d4a;transform:translateY(-1px)}
@@ -326,7 +326,7 @@ img { display: block; max-width: 100%; }
   display: grid; place-items: center;
   width: 48px; height: 48px; margin: 0 auto 12px;
   border-radius: 50%;
-  background: var(--c-strong); color: #fff;
+  background: var(--c-strong); color: #fcf8f5;
 }
 .gp-how-step h3 {
   font-size: 13px; font-weight: 700; color: var(--c-text);
@@ -505,7 +505,7 @@ img { display: block; max-width: 100%; }
   transition: all 0.2s var(--ease-out-expo); white-space: nowrap;
 }
 .gp-svc-add-btn:hover {
-  background: var(--c-strong); color: #fff; border-color: var(--c-strong);
+  background: var(--c-strong); color: #fcf8f5; border-color: var(--c-strong);
 }
 
 /* ─── EMPTY SERVICE ──────────────────────── */

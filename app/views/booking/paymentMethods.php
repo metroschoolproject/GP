@@ -43,7 +43,7 @@ unset($_SESSION['booking_payment_flash']);
 :root {
   --bg:      #f2e4d4;
   --surface: #faf6f1;
-  --card:    #ffffff;
+  --card:    #fcf8f5;
   --rule:    rgba(178,143,110,0.22);
   --rule-s:  rgba(178,143,110,0.45);
   --plum:    #6b4459;

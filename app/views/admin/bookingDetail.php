@@ -270,7 +270,7 @@ $dashboardContent = function () use (
   }
 
   .bkd-page {
-    --bkd-surface: #ffffff;
+    --bkd-surface: #fcf8f5;
     --bkd-soft: #faf5ef;
     --bkd-border: #ead8c7;
     --bkd-border-light: #eddecc;
@@ -372,7 +372,7 @@ $dashboardContent = function () use (
   .bkd-btn--primary {
     border: 1px solid var(--bkd-primary);
     background: var(--bkd-primary);
-    color: #fff;
+    color: #fcf8f5;
     font-weight: 800;
   }
   .bkd-btn--primary:hover {
@@ -382,7 +382,7 @@ $dashboardContent = function () use (
   .bkd-btn--success {
     border: 1px solid var(--bkd-success-border);
     background: var(--bkd-success-text);
-    color: #fff;
+    color: #fcf8f5;
     font-weight: 800;
   }
   .bkd-btn--success:hover {
@@ -392,7 +392,7 @@ $dashboardContent = function () use (
   .bkd-btn--danger {
     border: 1px solid var(--bkd-danger-border);
     background: var(--bkd-danger-text);
-    color: #fff;
+    color: #fcf8f5;
     font-weight: 800;
   }
   .bkd-btn--danger:hover {
@@ -657,7 +657,7 @@ $dashboardContent = function () use (
     width: 100%;
     max-height: 220px;
     object-fit: contain;
-    background: #fff;
+    background: #fcf8f5;
   }
   .bkd-proof-file {
     display: flex;
@@ -910,7 +910,7 @@ $dashboardContent = function () use (
     border: 1px solid var(--bkd-border);
     border-radius: 999px;
     padding: 0 13px;
-    background: #fff;
+    background: #fcf8f5;
     color: var(--bkd-primary);
     font-size: 10px;
     font-weight: 800;
@@ -938,7 +938,7 @@ $dashboardContent = function () use (
     margin-bottom: 14px;
     border: 1px solid var(--bkd-border);
     border-radius: 15px;
-    background: #fff;
+    background: #fcf8f5;
     box-shadow: 0 18px 45px rgba(52,35,43,.055);
   }
   .bkd-stat {
@@ -987,7 +987,7 @@ $dashboardContent = function () use (
   }
   .bkd-command-nav a:hover,
   .bkd-command-nav a:focus-visible {
-    background: #fff;
+    background: #fcf8f5;
     color: var(--bkd-primary);
     outline: none;
   }
@@ -1039,14 +1039,14 @@ $dashboardContent = function () use (
     box-shadow: 0 20px 52px rgba(52,35,43,.09);
   }
   .bkd-action-center .bkd-card-head {
-    border-bottom-color: rgba(255,255,255,.12);
+    border-bottom-color: rgba(252,248,245,.12);
     background: linear-gradient(145deg,#6d4c5b,#7b5c69);
   }
   .bkd-action-center .bkd-card-title,
-  .bkd-action-center .bkd-card-meta { color: #fff; }
+  .bkd-action-center .bkd-card-meta { color: #fcf8f5; }
   .bkd-action-center .bkd-card-icon {
-    background: rgba(255,255,255,.13);
-    color: #fff;
+    background: rgba(252,248,245,.13);
+    color: #fcf8f5;
   }
   .bkd-proof-link {
     border-radius: 11px;
@@ -1093,7 +1093,7 @@ $dashboardContent = function () use (
     gap: 18px;
     align-items: stretch;
     border-bottom: 1px solid var(--bkd-border-light);
-    background: linear-gradient(120deg,#f2e5d8,#faf5ef 55%,#fff);
+    background: linear-gradient(120deg,#f2e5d8,#faf5ef 55%,#fcf8f5);
   }
   .bkd-run-date {
     display: flex;
@@ -1206,7 +1206,7 @@ $dashboardContent = function () use (
     width: 11px;
     height: 11px;
     flex: 0 0 11px;
-    border: 3px solid #fff;
+    border: 3px solid #fcf8f5;
     border-radius: 50%;
     background: var(--bkd-primary);
     box-shadow: 0 0 0 2px #ceb4a3;

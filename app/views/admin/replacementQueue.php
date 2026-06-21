@@ -23,7 +23,7 @@ $dashboardContent = function () use ($replacements, $h, $money, $dateOnly, $stat
 ?>
 <style>
   .admin-booking-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#111827;font-size:13px;overflow-y:auto}
-  .repl-page{--surface:#fff;--border:#ead8c7;--primary:#6d4c5b;--muted:#b79c8b;max-width:1300px;margin:0 auto}
+  .repl-page{--surface:#fcf8f5;--border:#ead8c7;--primary:#6d4c5b;--muted:#b79c8b;max-width:1300px;margin:0 auto}
   .repl-page h1{font-size:22px;font-weight:700;margin:0 0 4px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
   .repl-card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden;margin-top:18px}
@@ -32,7 +32,7 @@ $dashboardContent = function () use ($replacements, $h, $money, $dateOnly, $stat
   table.repl td{padding:13px 16px;border-bottom:1px solid #f0e6da;font-size:12.5px}
   table.repl tr:last-child td{border-bottom:none}
   .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;background:#fef3c7;color:#92400e}
-  .btn-pick{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 13px;border-radius:.6rem;background:var(--primary);color:#fff;font-size:11.5px;font-weight:700;text-decoration:none}
+  .btn-pick{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 13px;border-radius:.6rem;background:var(--primary);color:#fcf8f5;font-size:11.5px;font-weight:700;text-decoration:none}
   .btn-pick:hover{opacity:.92}
   .empty{padding:48px;text-align:center;color:var(--muted)}
 </style>

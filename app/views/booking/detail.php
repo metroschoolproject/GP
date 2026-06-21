@@ -29,7 +29,7 @@ $packageSchedules = $packageSchedules ?? [];
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2e4d4;--card:#fff;--rule:rgba(178,143,110,0.22);--rule-strong:rgba(178,143,110,0.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
+:root{--bg:#f2e4d4;--card:#fcf8f5;--rule:rgba(178,143,110,0.22);--rule-strong:rgba(178,143,110,0.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
 a{color:inherit;text-decoration:none}
@@ -42,10 +42,10 @@ a{color:inherit;text-decoration:none}
 .gp-header-actions{display:flex;align-items:center;gap:10px}
 .gp-btn-sm{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;border:1px solid var(--rule-strong);font-size:11px;font-weight:600;color:var(--text2);transition:all .2s;text-decoration:none}
 .gp-btn-sm:hover{border-color:var(--plum);color:var(--plum)}
-.gp-btn-sm.primary{background:var(--plum);color:#fff;border-color:var(--plum)}
+.gp-btn-sm.primary{background:var(--plum);color:#fcf8f5;border-color:var(--plum)}
 .gp-btn-sm.primary:hover{background:var(--plum-dk)}
 .gp-btn-sm.danger{color:var(--danger);border-color:rgba(185,75,75,0.2)}
-.gp-btn-sm.danger:hover{background:var(--danger);color:#fff}
+.gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5}
 .gp-profile-dropdown{position:relative}
 .gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--card);cursor:pointer;transition:all .2s;color:var(--plum);font-family:var(--font-b);font-size:13px;font-weight:600}
 .gp-profile-btn:hover{border-color:var(--plum);background:rgba(107,68,89,.06)}
@@ -98,8 +98,8 @@ a{color:inherit;text-decoration:none}
 .gp-tl-item{display:flex;gap:12px;padding:10px 0;position:relative}
 .gp-tl-item:not(:last-child)::after{content:'';position:absolute;left:12px;top:30px;bottom:-4px;width:2px;background:var(--rule)}
 .gp-tl-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
-.gp-tl-dot.past{background:var(--plum);color:#fff}
-.gp-tl-dot.current{background:var(--rose);color:#fff;animation:pulse 2s ease-in-out infinite}
+.gp-tl-dot.past{background:var(--plum);color:#fcf8f5}
+.gp-tl-dot.current{background:var(--rose);color:#fcf8f5;animation:pulse 2s ease-in-out infinite}
 .gp-tl-dot.future{background:rgba(107,68,89,0.1);color:var(--muted)}
 .gp-tl-c{padding-top:2px}
 .gp-tl-t{font-size:13px;font-weight:500;color:var(--text)}
@@ -159,7 +159,7 @@ a{color:inherit;text-decoration:none}
         </span>
       </div>
       <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$pendingReplacement['id'] ?>"
-         style="white-space:nowrap;background:#6d4c5b;color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none">
+         style="white-space:nowrap;background:#6d4c5b;color:#fcf8f5;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none">
         Approve &amp; pay difference →
       </a>
     </div>

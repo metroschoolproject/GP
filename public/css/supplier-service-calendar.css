@@ -590,7 +590,7 @@
   border-radius: 8px;
   padding: 0 11px;
   color: var(--calendar-ink);
-  background: #fff;
+  background: #fcf8f5;
   outline: none;
 }
 
@@ -659,7 +659,7 @@
   gap: 1px;
   padding: 6px 11px;
   border-radius: 10px;
-  background: #fff;
+  background: #fcf8f5;
   border: 1px solid var(--calendar-line);
   font-size: 11.5px;
   font-weight: 600;

@@ -48,8 +48,23 @@ $firstVenueRoom = $availableVenueRooms[0] ?? null;
 $hasInitialBookOption = $isVenue
     ? $firstVenueRoom !== null
     : ($isSlotBooking ? $firstSlot !== null : $firstAvailable !== null);
+$selectedDateHasBookOption = $hasInitialBookOption;
+if ($selectedDate !== '') {
+    if ($isVenue) {
+        $selectedDateHasBookOption = $firstVenueRoom !== null;
+    } else {
+        $selectedDateHasBookOption = false;
+        foreach ($upcoming as $day) {
+            $isSelectedDay = (!empty($day['is_selected_date']) || (($day['date'] ?? '') === $selectedDate));
+            if ($isSelectedDay && !empty($day['slots'])) {
+                $selectedDateHasBookOption = true;
+                break;
+            }
+        }
+    }
+}
 $initialBookingHref = $hasInitialBookOption ? URLROOT . '/users/auth' : '#detail-date';
-$initialBookingLabel = $hasInitialBookOption ? 'Add to cart' : (($isVenue || !$isSlotBooking) ? 'Choose date' : 'Choose slot');
+$initialBookingLabel = $hasInitialBookOption ? 'Book now' : (($isVenue || !$isSlotBooking) ? 'Choose date' : 'Choose slot');
 $venueCapacity = !empty($venueRooms) ? max(array_map(function ($room) {
     return (int)($room['capacity'] ?? 1);
 }, $venueRooms)) : (int)($service['max_concurrent'] ?? 1);
@@ -89,6 +104,7 @@ if ($isVenue) {
     $summaryCapacityMetricValue = $pluralizeMetric($metricCount, 'event') . ' per day';
 }
 $isLoggedIn = !empty($_SESSION['session_uid']);
+$cartCount = (int)($cartCount ?? 0);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
@@ -116,11 +132,15 @@ $h = function ($value) use ($plain) {
 };
 
 $money = function ($value) {
-    return 'RM ' . number_format((float)$value, 0);
+    return 'MMK ' . number_format((float)$value, 0);
 };
 
 $moneyRange = function ($service) use ($money) {
     return $money($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
+};
+$serviceLocation = function ($service) {
+    $location = trim((string)($service['venue_location'] ?? $service['service_location'] ?? $service['location'] ?? ''));
+    return $location !== '' ? $location : 'Location available after booking';
 };
 $isRentalCategory = in_array(strtolower(trim((string)($service['category_slug'] ?? ''))), ['attire'], true)
     || in_array(strtolower(trim((string)($service['category'] ?? ''))), ['attire'], true);
@@ -254,13 +274,13 @@ $heroItems = array_values(array_filter($media, function ($m) {
   --page: #F5E8D9;
   --page-dark: #EADCCD;
   --panel: #FFF8EF;
-  --panel-strong: #FFFFFF;
+  --panel-strong: #fcf8f5;
   --cream: #F8F2EC;
   --ink: #211D1A;
   --ink-soft: #3A2E29;
   --muted: #6F625A;
   --muted-light: #9A8C84;
-  --wine: #9A687F;
+  --wine: #6D4C5B;
   --wine-dark: #7E4F65;
   --wine-glow: rgba(154, 104, 127, 0.12);
   --gold: #D8B46A;
@@ -271,7 +291,7 @@ $heroItems = array_values(array_filter($media, function ($m) {
 
   --glass-bg: rgba(255, 248, 239, 0.72);
   --glass-strong: rgba(255, 248, 239, 0.92);
-  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-border: rgba(252,248,245, 0.35);
   --glass-shadow: 0 8px 32px rgba(74, 52, 47, 0.10);
 
   --shadow-sm: 0 4px 12px rgba(74, 52, 47, 0.06);
@@ -410,7 +430,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   height: 34px; padding: 0 16px;
   border-radius: 999px;
   background: var(--wine);
-  color: #fff;
+  color: #fcf8f5;
   font-size: 11px; font-weight: 800;
   white-space: nowrap;
   transition: background 0.15s, transform 0.2s var(--ease-spring);
@@ -523,7 +543,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   background: var(--glass-strong);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(252,248,245, 0.4);
 }
 
 .section-label {
@@ -573,7 +593,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   display: flex; align-items: center; gap: 8px;
   font-family: var(--font-serif);
   font-size: 20px; font-weight: 700;
-  color: #fff; letter-spacing: 0.01em;
+  color: #fcf8f5; letter-spacing: 0.01em;
   text-shadow: 0 2px 8px rgba(0,0,0,0.2);
   transition: color 0.3s ease, text-shadow 0.3s ease;
 }
@@ -591,15 +611,15 @@ button, input, select, textarea { font-family: var(--font-sans); }
   display: inline-flex; align-items: center; justify-content: center;
   padding: 0 16px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.12);
+  background: rgba(252,248,245,0.12);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: #fff;
+  border: 1px solid rgba(252,248,245,0.18);
+  color: #fcf8f5;
   font-size: 12px; font-weight: 700;
   text-shadow: 0 1px 4px rgba(0,0,0,0.15);
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
-.top-pill:hover { background: rgba(255,255,255,0.22); }
+.top-pill:hover { background: rgba(252,248,245,0.22); }
 
 .top-bar.scrolled .top-pill {
   background: var(--cream);
@@ -617,57 +637,53 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .tb-profile-dropdown { position: relative; }
 
 .tb-profile-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 2px 10px 2px 2px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.12);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.18);
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  padding: 3px;
+  border-radius: 7px;
+  background: transparent;
+  border: 0;
   cursor: pointer;
   transition: all 0.2s;
-  color: #fff;
+  color: #fcf8f5;
   font-family: 'Poppins', system-ui, -apple-system, sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
-.tb-profile-btn:hover { background: rgba(255,255,255,0.22); }
+.tb-profile-btn:hover { background: rgba(252,248,245,0.22); }
+.tb-profile-btn[aria-expanded="true"] { background: rgba(252,248,245,0.16); }
 
 .top-bar.scrolled .tb-profile-btn {
-  background: var(--cream);
-  border-color: var(--line);
+  background: transparent;
   color: var(--muted);
   text-shadow: none;
 }
 .top-bar.scrolled .tb-profile-btn:hover {
-  background: var(--panel);
+  background: rgba(109,76,91,0.07);
   color: var(--wine);
-  border-color: rgba(185,74,72,0.24);
 }
 
 .tb-profile-avatar {
   display: grid; place-items: center;
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
   border-radius: 50%;
   background: #D8B46A;
   color: #3F2F24;
   font-size: 11px;
   font-weight: 800;
+  overflow: hidden;
+  transition: box-shadow 0.18s ease;
 }
-.top-bar.scrolled .tb-profile-avatar { background: var(--wine); color: #fff; }
-
-.tb-profile-name { white-space: nowrap; max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
-
-.tb-profile-chevron { opacity: 0.7; transition: transform 0.2s; }
-.tb-profile-btn[aria-expanded="true"] .tb-profile-chevron { transform: rotate(180deg); }
+.tb-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.top-bar.scrolled .tb-profile-avatar { background: var(--wine); color: #fcf8f5; }
+.tb-profile-btn[aria-expanded="true"] .tb-profile-avatar { box-shadow: 0 0 0 2px #fff8ef, 0 0 0 4px rgba(216,180,106,0.76); }
 
 .tb-profile-menu {
-  position: absolute; top: calc(100% + 6px); right: 0; z-index: 100;
-  min-width: 170px;
-  padding: 6px;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 12px 35px rgba(15,23,42,0.12);
+  position: absolute; top: calc(100% + 10px); right: 0; z-index: 100;
+  width: min(330px, calc(100vw - 24px));
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(107,68,89,0.12);
+  background: #eef2f8;
+  box-shadow: 0 18px 48px rgba(43,27,36,0.18);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
@@ -682,18 +698,32 @@ button, input, select, textarea { font-family: var(--font-sans); }
   transform: translateY(0);
 }
 
+.tb-profile-menu-top { position: relative; display: grid; place-items: center; padding: 8px 38px 10px; text-align: center; }
+.tb-profile-email { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 700; color: var(--text); }
+.tb-profile-close { position: absolute; right: 0; top: 0; display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; color: #4f454b; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+.tb-profile-close:hover { background: rgba(43,27,36,0.08); color: var(--text); }
+.tb-profile-hero { display: grid; place-items: center; gap: 9px; padding: 10px 0 14px; text-align: center; }
+.tb-profile-photo { display: grid; place-items: center; width: 74px; height: 74px; border-radius: 50%; background: #D8B46A; color: #3F2F24; font-size: 27px; font-weight: 800; overflow: hidden; }
+.tb-profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.tb-profile-greeting { font-size: 23px; font-weight: 500; color: var(--text); line-height: 1.15; }
+.tb-profile-edit { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 28px; border: 1px solid rgba(107,68,89,0.46); border-radius: 8px; color: var(--wine); background: transparent; font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
+.tb-profile-edit:hover { background: rgba(154,104,127,0.09); color: var(--wine-dark); border-color: var(--wine); }
+.tb-profile-activity { margin-top: 14px; padding: 10px; border-radius: 18px; background: #fcf8f5; border: 1px solid rgba(107,68,89,0.08); }
+.tb-profile-activity-title { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 10px; color: var(--text); font-size: 15px; font-weight: 700; }
 .tb-profile-menu-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px;
+  padding: 10px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text);
+  color: #4f454b;
   transition: all 0.15s;
 }
+.tb-profile-menu-item svg { width: 15px; height: 15px; color: var(--wine); }
 .tb-profile-menu-item:hover { background: rgba(109,76,91,0.06); color: var(--wine); }
 
-.tb-profile-menu-item--danger { color: var(--danger); }
+.tb-profile-menu-item--danger { margin-top: 10px; color: var(--danger); }
+.tb-profile-menu-item--danger svg { color: var(--danger); }
 .tb-profile-menu-item--danger:hover { background: rgba(185,75,75,0.08); }
 
 .package-context-strip {
@@ -815,10 +845,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .hero-category {
   display: inline-block;
   font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
-  color: rgba(255,255,255,0.7);
+  color: rgba(252,248,245,0.7);
   margin-bottom: 16px;
   padding: 6px 14px;
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(252,248,245,0.15);
   border-radius: 999px;
   backdrop-filter: blur(4px);
 }
@@ -827,7 +857,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   font-family: var(--font-serif);
   font-size: clamp(42px, 6vw, 88px);
   font-weight: 600;
-  color: #fff;
+  color: #fcf8f5;
   line-height: 1.0;
   letter-spacing: -0.02em;
   text-shadow: 0 2px 40px rgba(0,0,0,0.25);
@@ -837,7 +867,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   margin-top: 20px;
   display: flex; align-items: center; justify-content: center; gap: 24px;
   flex-wrap: wrap;
-  color: rgba(255,255,255,0.75);
+  color: rgba(252,248,245,0.75);
   font-size: 14px; font-weight: 500;
 }
 
@@ -851,12 +881,12 @@ button, input, select, textarea { font-family: var(--font-sans); }
   bottom: 32px; left: 50%;
   transform: translateX(-50%);
   z-index: 3;
-  color: rgba(255,255,255,0.5);
+  color: rgba(252,248,245,0.5);
   animation: bounceDown 2s ease-in-out infinite;
   cursor: pointer;
   transition: color 0.2s;
 }
-.hero-scroll-indicator:hover { color: rgba(255,255,255,0.85); }
+.hero-scroll-indicator:hover { color: rgba(252,248,245,0.85); }
 
 /* ─── PAGE SHELL ────────────────────────────────────── */
 .page-shell {
@@ -1029,7 +1059,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   height: 17px;
   border-radius: 50%;
   background: #1f9d55;
-  color: #fff;
+  color: #fcf8f5;
   font-size: 11px;
   font-weight: 900;
   line-height: 1;
@@ -1107,27 +1137,27 @@ button, input, select, textarea { font-family: var(--font-sans); }
   width: 64px; height: 64px;
   display: grid; place-items: center;
   border-radius: 50%;
-  background: rgba(255,255,255,0.88);
+  background: rgba(252,248,245,0.88);
   color: var(--wine);
   font-size: 28px;
   box-shadow: 0 8px 28px rgba(0,0,0,0.20);
   transition: transform 0.3s var(--ease-spring), background 0.2s;
 }
-.gallery-play-btn:hover { transform: scale(1.08); background: #fff; }
+.gallery-play-btn:hover { transform: scale(1.08); background: #fcf8f5; }
 
 .gallery-nav-btn {
   position: absolute; top: 50%; transform: translateY(-50%); z-index: 5;
   width: 38px; height: 38px;
   display: grid; place-items: center;
   border: 0; border-radius: 50%;
-  background: rgba(255,255,255,0.80);
+  background: rgba(252,248,245,0.80);
   color: var(--ink);
   cursor: pointer;
   box-shadow: 0 2px 12px rgba(0,0,0,0.10);
   opacity: 0;
   transition: opacity 0.25s, background 0.15s, transform 0.15s;
 }
-.gallery-nav-btn:hover { background: #fff; transform: translateY(-50%) scale(1.08); }
+.gallery-nav-btn:hover { background: #fcf8f5; transform: translateY(-50%) scale(1.08); }
 .gallery-frame:hover .gallery-nav-btn { opacity: 1; }
 .gallery-nav-btn.prev { left: 14px; }
 .gallery-nav-btn.next { right: 14px; }
@@ -1139,11 +1169,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
 .gallery-dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: rgba(255,255,255,0.45);
+  background: rgba(252,248,245,0.45);
   border: 0; cursor: pointer; padding: 0;
   transition: background 0.15s, width 0.2s var(--ease-spring);
 }
-.gallery-dot.active { background: #fff; width: 22px; border-radius: 4px; }
+.gallery-dot.active { background: #fcf8f5; width: 22px; border-radius: 4px; }
 
 .gallery-thumbs {
   display: flex; gap: 8px; padding: 10px 14px 14px;
@@ -1166,7 +1196,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .gallery-thumb-video {
   position: absolute; inset: 0;
   display: grid; place-items: center;
-  background: rgba(0,0,0,0.15); color: #fff; font-size: 13px;
+  background: rgba(0,0,0,0.15); color: #fcf8f5; font-size: 13px;
 }
 
 /* Quick stats strip below gallery */
@@ -1307,7 +1337,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   padding: 12px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
-  background: rgba(255,255,255,0.56);
+  background: rgba(252,248,245,0.56);
 }
 .rental-price-card .rental-icon {
   width: 36px;
@@ -1392,7 +1422,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   position: absolute; inset: 0;
   display: grid; place-items: center;
   background: rgba(0,0,0,0.12);
-  color: #fff; font-size: 30px;
+  color: #fcf8f5; font-size: 30px;
   pointer-events: none;
   transition: background 0.25s;
 }
@@ -1417,18 +1447,17 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .date-picker-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: end;
-  margin-top: 22px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: var(--glass-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(154,104,127,0.14);
+  border-radius: 14px;
+  background: rgba(255,250,247,0.78);
+  box-shadow: 0 14px 34px rgba(63,36,26,0.08);
 }
 
 .date-picker-copy {
@@ -1454,35 +1483,16 @@ button, input, select, textarea { font-family: var(--font-sans); }
   gap: 10px;
 }
 
-.date-picker-control input {
-  min-height: 42px;
-  min-width: 170px;
-  border: 1px solid rgba(63, 36, 26, .18);
-  border-radius: 14px;
-  background: #FFF8EF;
-  color: #3F241A;
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 800;
-  outline: none;
-  cursor: pointer;
-}
-
-.date-picker-control input:focus {
-  border-color: rgba(185,74,72,0.38);
-  box-shadow: 0 0 0 4px rgba(185,74,72,0.08);
-}
-
 .date-picker-btn {
-  min-height: 42px;
-  display: inline-flex;
+  min-height: 32px;
+  display: none;
   align-items: center;
   justify-content: center;
   gap: 7px;
   border: 0;
   border-radius: 999px;
   background: var(--wine);
-  color: #fff;
+  color: #fcf8f5;
   padding: 0 16px;
   font-size: 12px;
   font-weight: 800;
@@ -1493,6 +1503,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .date-picker-btn:hover {
   background: var(--wine-dark);
   transform: translateY(-1px);
+}
+
+.date-picker-card .venue-date-input-wrap {
+  min-width: 172px;
 }
 
 .venue-date-form {
@@ -1667,7 +1681,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   margin-top: 14px;
 }
 
-.booking-section.is-venue-booking .section-title {
+.booking-section .section-title {
   font-size: clamp(26px, 3vw, 38px);
   margin: 0;
 }
@@ -1680,26 +1694,38 @@ button, input, select, textarea { font-family: var(--font-sans); }
   padding-top: 10px;
 }
 
-.booking-section.is-venue-booking .venue-date-change {
+.booking-section .venue-date-change {
   margin-top: 8px;
 }
 
-.booking-section.is-venue-booking .venue-date-change .venue-date-input-wrap {
+.booking-section .venue-date-change .venue-date-input-wrap {
   min-width: 172px;
 }
 
-.booking-section.is-venue-booking .booking-grid {
+.booking-section .booking-grid {
   gap: 20px;
   margin-top: 0;
 }
 
+.booking-section .booking-grid {
+  align-items: start;
+}
+
+.availability-list,
+.sticky-summary {
+  border: 1px solid rgba(154,104,127,0.14);
+  border-radius: 14px;
+  background: rgba(255,250,247,0.78);
+  box-shadow: 0 18px 44px rgba(63,36,26,0.08);
+}
+
 .booking-section.is-venue-booking .availability-list {
-  gap: 10px;
+  gap: 14px;
 }
 
 .booking-section.is-venue-booking .availability-row {
-  min-height: 64px;
-  padding: 12px 14px;
+  min-height: 72px;
+  padding: 14px 16px;
 }
 
 .booking-grid.is-date-pending .availability-row,
@@ -1723,6 +1749,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .availability-list {
   display: grid;
   gap: 14px;
+  padding: 14px;
 }
 
 .availability-row {
@@ -1732,18 +1759,35 @@ button, input, select, textarea { font-family: var(--font-sans); }
   grid-template-columns: 24px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--panel-strong);
+  overflow: hidden;
+  border: 1px solid rgba(154,104,127,0.18);
+  border-radius: 10px;
+  background: #fff8ef;
   padding: 14px 16px;
   transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s ease, border-color 0.2s ease;
   cursor: pointer;
 }
 .availability-row:hover,
 .availability-row.is-selected {
-  border-color: rgba(185,74,72,0.30);
+  border-color: rgba(154,104,127,0.34);
   box-shadow: 0 12px 28px rgba(74,52,47,0.10);
   transform: translateY(-2px);
+}
+.availability-row.is-available {
+  background: #fff8ef;
+  border-color: rgba(45,190,114,0.56);
+}
+.availability-row.is-selected,
+.availability-row.is-selected.is-available {
+  border-color: #6D4C5B;
+  background: #faebdd;
+  box-shadow: 0 12px 28px rgba(74,52,47,0.10), inset 0 0 0 1px rgba(154,104,127,0.42);
+}
+
+.availability-row.is-available:hover,
+.availability-row.is-selected.is-available {
+  border-color: rgba(45,190,114,0.78);
+  box-shadow: none;
 }
 
 .availability-row.is-requested-date {
@@ -1754,6 +1798,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .availability-row.is-unavailable {
   cursor: default;
   opacity: 0.82;
+  background: linear-gradient(135deg, rgba(185,74,72,0.10), #fff8ef 52%);
+  border-color: rgba(185,74,72,0.26);
 }
 
 .availability-row.is-unavailable:hover {
@@ -1761,10 +1807,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .availability-row.is-package-selected {
-  border-color: rgba(185,74,72,0.38);
+  border-color: rgba(154,104,127,0.38);
   background:
-    linear-gradient(135deg, rgba(185,74,72,0.10), rgba(216,180,106,0.11)),
-    var(--panel-strong);
+    linear-gradient(135deg, rgba(154,104,127,0.10), rgba(216,180,106,0.11)),
+    rgba(255,248,239,0.92);
 }
 
 .hall-row-body {
@@ -1781,7 +1827,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   border: 1px solid rgba(118,90,70,0.14);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(216,180,106,0.14), rgba(185,74,72,0.10)),
+    linear-gradient(135deg, rgba(216,180,106,0.14), rgba(154,104,127,0.08)),
     rgba(255,250,247,0.8);
 }
 
@@ -1790,6 +1836,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
   height: 100%;
   display: block;
   object-fit: cover;
+}
+.availability-row.is-unavailable .hall-photo:not(.is-empty) img {
+  filter: blur(2px) saturate(.82);
+  transform: scale(1.03);
 }
 
 .hall-photo.is-empty {
@@ -1817,7 +1867,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   place-items: center;
   color: rgba(118,90,70,0.45);
   background:
-    linear-gradient(135deg, rgba(216,180,106,0.14), rgba(185,74,72,0.10)),
+    linear-gradient(135deg, rgba(216,180,106,0.14), rgba(154,104,127,0.08)),
     rgba(255,250,247,0.8);
 }
 
@@ -1849,7 +1899,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   width: 20px; height: 20px;
   border: 2px solid rgba(185,74,72,0.22);
   border-radius: 50%;
-  background: #fff;
+  background: #fcf8f5;
   margin-top: 5px;
   transition: border-width 0.15s;
   flex-shrink: 0;
@@ -1882,13 +1932,30 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .availability-status {
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(216,180,106,0.20);
   color: var(--sage);
   padding: 6px 10px;
   font-size: 12px; font-weight: 800;
   white-space: nowrap;
   flex-shrink: 0;
+}
+.availability-status.is-available {
+  background: rgba(42,122,75,0.16);
+  color: var(--green);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.availability-row.is-available .availability-status {
+  background: rgba(42,122,75,0.16);
+  color: var(--green);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.availability-status.is-closed,
+.availability-row.is-unavailable .availability-status {
+  background: #b94a48;
+  color: #fff8ef;
 }
 
 .package-hall-badge {
@@ -1906,7 +1973,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .slot-options {
-  display: flex; flex-wrap: wrap; gap: 8px;
+  display: flex !important; flex-wrap: wrap; gap: 8px;
   margin-top: 12px;
 }
 
@@ -1914,7 +1981,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   min-height: 34px;
   display: inline-flex; align-items: center;
   border: 1px solid rgba(185,74,72,0.18);
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(185,74,72,0.05);
   color: var(--wine);
   padding: 0 12px;
@@ -1925,7 +1992,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .slot-chip:hover { background: rgba(185,74,72,0.12); transform: scale(1.03); }
 .slot-chip input { position: absolute; opacity: 0; pointer-events: none; }
 .slot-chip:has(input:checked) {
-  background: var(--wine); border-color: var(--wine);
+  background: var(--wine); border-color: #6D4C5B;
+  box-shadow: 0 0 0 2px rgba(154,104,127,0.18);
   color: #fffaf7; transform: scale(1.03);
 }
 .slot-chip.is-locked {
@@ -1954,19 +2022,24 @@ button, input, select, textarea { font-family: var(--font-sans); }
 /* ─── STICKY SUMMARY ────────────────────────────────── */
 .sticky-summary {
   position: sticky; top: 90px;
-  background: var(--glass-strong);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
-  padding: clamp(20px, 3vw, 28px);
-  box-shadow: var(--glass-shadow);
+  background: rgba(255,250,247,0.88);
+  border: 1px solid rgba(154,104,127,0.14);
+  border-radius: 14px;
+  padding: clamp(18px, 2.5vw, 24px);
+  box-shadow: 0 18px 44px rgba(63,36,26,0.08);
+}
+.sticky-summary.is-unavailable {
+  filter: blur(1.2px);
+  opacity: .62;
+  pointer-events: none;
+  user-select: none;
 }
 
 .summary-fields {
-  border-radius: var(--radius-lg);
-  background: var(--cream);
-  padding: 20px;
+  border-radius: 10px;
+  background: #fff8ef;
+  border: 1px solid rgba(154,104,127,0.12);
+  padding: 16px;
 }
 
 .summary-line {
@@ -1994,7 +2067,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .estimated-row strong {
   color: var(--wine-dark);
   font-family: var(--font-serif);
-  font-size: 26px; font-weight: 700;
+  font-size: 17px; font-weight: 700;
 }
 
 .package-price-panel {
@@ -2011,17 +2084,17 @@ button, input, select, textarea { font-family: var(--font-sans); }
   justify-content: space-between;
   gap: 12px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 .package-price-line strong {
   color: var(--ink);
-  font-size: 14px;
+  font-size: 12px;
 }
 .package-price-line.is-package strong {
   color: var(--wine-dark);
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: 15px;
 }
 .package-price-line.is-saving {
   color: var(--sage);
@@ -2113,7 +2186,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .rating-summary-card {
-  background: #fff;
+  background: #fcf8f5;
   border: 1px solid rgba(63, 36, 26, .10);
   border-radius: 8px;
   padding: 20px 22px;
@@ -2254,67 +2327,209 @@ button, input, select, textarea { font-family: var(--font-sans); }
   margin-top: var(--pad-section);
 }
 
-.related-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+.related-carousel {
+  position: relative;
   margin-top: 28px;
 }
 
+.related-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 36px) / 3);
+  gap: 20px 18px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  padding: 8px 0 14px;
+  scrollbar-color: rgba(154,104,127,.55) transparent;
+  scrollbar-width: thin;
+}
+
+.related-grid::-webkit-scrollbar {
+  height: 7px;
+}
+
+.related-grid::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.related-grid::-webkit-scrollbar-thumb {
+  background: rgba(154,104,127,.55);
+  border-radius: 999px;
+}
+
 .related-item {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
+  position: relative;
+  scroll-snap-align: start;
+  height: 360px;
+  min-height: 360px;
+  background: #fff8ef;
+  border: 1.5px solid #D8B46A;
+  border-radius: 16px;
+  padding: 10px;
   overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: transform 0.4s var(--ease-out-expo), box-shadow 0.4s ease;
+  box-shadow: 0 14px 34px rgba(63,36,26,.12);
+  transition: transform 0.22s var(--ease-out-expo), box-shadow 0.22s ease, border-color 0.22s ease;
+  cursor: pointer;
 }
 .related-item:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-6px);
+  border-color: rgba(216,180,106,.72);
+  box-shadow: 0 20px 42px rgba(63,36,26,.16);
 }
 
 .related-img {
-  display: block; height: 200px; overflow: hidden;
+  display: block;
+  height: 178px;
+  overflow: hidden;
+  border: 1px solid rgba(216,180,106,.46);
+  border-radius: 13px;
   background: var(--cream);
 }
-.related-img img { transition: transform 0.5s var(--ease-out-expo); }
-.related-item:hover .related-img img { transform: scale(1.06); }
+.related-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  transition: transform 0.45s var(--ease-out-expo);
+}
+.related-item:hover .related-img img { transform: scale(1.035); }
 
-.related-body { padding: 20px; }
+.related-body {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 178px);
+  padding: 10px 2px 2px;
+}
 .related-cat {
   display: inline-block;
-  border-radius: 999px;
-  background: var(--wine-glow);
-  color: var(--wine);
-  padding: 3px 10px;
+  align-self: flex-start;
+  order: 4;
+  margin-top: 7px;
+  border-radius: 7px;
+  background: #f0dfe7;
+  color: #7E4F65;
+  padding: 4px 8px;
   font-size: 10px; font-weight: 800;
-  letter-spacing: 0.06em; text-transform: uppercase;
+  letter-spacing: 0; text-transform: uppercase;
+  border: 1px solid rgba(154,104,127,.14);
 }
 .related-name {
-  font-family: var(--font-serif);
-  font-size: 20px; font-weight: 600;
+  order: 1;
+  font-family: var(--font-sans);
+  font-size: 13px; font-weight: 800;
   color: var(--ink);
-  margin: 10px 0 4px;
+  margin: 0 0 3px;
+  line-height: 1.35;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
-.related-rating {
-  display: flex; align-items: center; gap: 4px;
-  color: var(--gold); font-size: 13px; font-weight: 700;
-  margin-bottom: 8px;
+
+.related-supplier {
+  order: 2;
+  color: #6f625a;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.related-location {
+  order: 3;
+  margin-top: 5px;
+  color: #7f6758;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.related-stats {
+  order: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
 .related-price {
-  color: var(--muted); font-size: 13px; font-weight: 600;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
 }
+
+.related-duration {
+  display: block;
+  color: #8f7666;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .related-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-top: 14px;
-  height: 36px; padding: 0 18px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 12px; font-weight: 700; color: var(--wine);
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 34px; padding: 4px 5px 4px 14px;
+  border: 1px solid rgba(154,104,127,.22);
+  border-radius: 16px;
+  background: #6D4C5B;
+  font-size: 11px; font-weight: 800; color: #fff8ef;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.related-btn:hover { background: var(--wine); color: #fff; border-color: var(--wine); }
+.related-btn:hover { background: #7E4F65; color: #fff8ef; border-color: #7E4F65; transform: translateY(-1px); }
+
+.related-btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff8ef;
+  color: #6D4C5B;
+  flex: 0 0 auto;
+}
+
+.related-btn-icon svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+}
+
+.related-next {
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(216,180,106,.62);
+  border-radius: 50%;
+  background: #6D4C5B;
+  color: #fff8ef;
+  box-shadow: 0 12px 28px rgba(63,36,26,.18);
+  transform: translateY(-50%);
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+}
+
+.related-next:hover {
+  transform: translateY(-50%) translateX(2px);
+  box-shadow: 0 16px 34px rgba(63,36,26,.22);
+}
+
+.related-next:focus-visible {
+  outline: 2px solid rgba(154,104,127,.55);
+  outline-offset: 3px;
+}
 
 /* ─── FLOATING CART ─────────────────────────────────── */
 .floating-cart {
@@ -2330,11 +2545,38 @@ button, input, select, textarea { font-family: var(--font-sans); }
   box-shadow: 0 12px 36px rgba(74,52,47,0.15);
   color: var(--wine);
   font-size: 20px;
-  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s ease;
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .floating-cart:hover {
   transform: translateY(-3px);
+  background: #6D4C5B;
+  color: #fcf8f5;
+  border-color: #6D4C5B;
   box-shadow: 0 18px 44px rgba(74,52,47,0.18);
+}
+.floating-cart-count {
+  position: absolute;
+  right: -6px;
+  top: -7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border: 2px solid var(--panel-strong);
+  border-radius: 999px;
+  background: #6D4C5B;
+  color: #fff8ef;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.floating-cart-count:empty,
+.floating-cart-count[hidden] {
+  display: none;
 }
 
 /* ─── MOBILE BOTTOM BAR ─────────────────────────────── */
@@ -2370,7 +2612,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .mobile-book-btn {
   flex: 0 0 auto; min-height: 44px; padding: 0 22px;
   border: 0; border-radius: 999px;
-  background: var(--wine); color: #fff;
+  background: var(--wine); color: #fcf8f5;
   font-size: 13px; font-weight: 800;
   display: inline-flex; align-items: center; gap: 8px;
   cursor: pointer;
@@ -2395,11 +2637,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
   width: 40px; height: 40px;
   display: grid; place-items: center;
   border: 0; border-radius: 50%;
-  background: rgba(255,255,255,0.10);
-  color: #fff; cursor: pointer; font-size: 22px;
+  background: rgba(252,248,245,0.10);
+  color: #fcf8f5; cursor: pointer; font-size: 22px;
   transition: background 0.15s;
 }
-.lightbox-close:hover { background: rgba(255,255,255,0.20); }
+.lightbox-close:hover { background: rgba(252,248,245,0.20); }
 
 .lightbox img, .lightbox video {
   max-width: min(90vw, 900px);
@@ -2413,11 +2655,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
   width: 44px; height: 44px;
   display: grid; place-items: center;
   border: 0; border-radius: 50%;
-  background: rgba(255,255,255,0.10);
-  color: #fff; cursor: pointer; font-size: 20px;
+  background: rgba(252,248,245,0.10);
+  color: #fcf8f5; cursor: pointer; font-size: 20px;
   transition: background 0.15s;
 }
-.lightbox-prev:hover, .lightbox-next:hover { background: rgba(255,255,255,0.20); }
+.lightbox-prev:hover, .lightbox-next:hover { background: rgba(252,248,245,0.20); }
 .lightbox-prev { left: 16px; }
 .lightbox-next { right: 16px; }
 
@@ -2478,7 +2720,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .reviews-grid { grid-template-columns: 1fr; }
   .portfolio-grid { grid-template-columns: repeat(2, 1fr); }
   .portfolio-item:first-child { grid-column: span 2; grid-row: span 1; }
-  .related-grid { gap: 18px; }
+  .related-grid { grid-auto-columns: calc((100% - 36px) / 3); gap: 18px; }
   .floating-cart { width: 48px; height: 48px; font-size: 18px; border-radius: 14px; }
 }
 
@@ -2514,9 +2756,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .portfolio-item:first-child { grid-column: span 2; grid-row: span 1; }
   .booking-grid { grid-template-columns: 1fr; }
   .date-picker-card { grid-template-columns: 1fr; padding: 14px; }
-  .date-picker-control { display: grid; grid-template-columns: 1fr; }
-  .date-picker-control input,
-  .date-picker-btn { width: 100%; }
+  .date-picker-control { display: flex; width: 100%; }
+  .date-picker-control .venue-date-input-wrap { width: 100%; }
   .sticky-summary { display: none; }
   .mobile-book-bar { display: block; }
   .availability-row { grid-template-columns: 1fr; gap: 8px; padding: 12px; }
@@ -2526,8 +2767,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .reviews-grid { grid-template-columns: 1fr; }
   .review-item { grid-template-columns: 1fr; }
   .supplier-spotlight { flex-direction: column; padding: 24px; }
-  .related-grid { grid-template-columns: 1fr; }
-  .related-img { height: 180px; }
+  .related-grid { grid-auto-columns: minmax(240px, 82vw); }
+  .related-item { height: 330px; min-height: 330px; }
+  .related-img { height: 160px; }
+  .related-next { right: 4px; width: 34px; height: 34px; }
   .floating-cart { width: 44px; height: 44px; font-size: 16px; border-radius: 12px; bottom: 80px; }
 }
 
@@ -2547,13 +2790,13 @@ button, input, select, textarea { font-family: var(--font-sans); }
 /* ── WISHLIST HEART (detail page) ── */
 .dt-heart{
   display:inline-flex;align-items:center;gap:8px;
-  padding:10px 18px;border-radius:999px;border:1px solid rgba(255,255,255,.28);
+  padding:10px 18px;border-radius:999px;border:1px solid rgba(252,248,245,.28);
   background:rgba(0,0,0,.22);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  color:rgba(255,255,255,.82);cursor:pointer;
+  color:rgba(252,248,245,.82);cursor:pointer;
   font-family:var(--font-body);font-size:13px;font-weight:600;
   transition:all .2s var(--ease);margin-top:12px;
 }
-.dt-heart:hover{background:rgba(0,0,0,.38);border-color:rgba(255,255,255,.48)}
+.dt-heart:hover{background:rgba(0,0,0,.38);border-color:rgba(252,248,245,.48)}
 .dt-heart.is-saved{color:#ff7b7b;border-color:rgba(229,91,91,.28);background:rgba(0,0,0,.32)}
 .dt-heart.is-loading{pointer-events:none;opacity:.6}
 .dt-heart-emoji{font-size:16px;line-height:1}
@@ -2561,7 +2804,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 </head>
 <body>
 
-<?php $gpNavActive = 'services'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
+<?php $gpNavActive = 'services'; $gpShowFloatingCart = false; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <?php if ($isPackageContext): ?>
 <section class="package-context-strip" aria-label="Package context">
@@ -2678,57 +2921,31 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
   <!-- SECTION: AVAILABILITY / BOOKING -->
   <section class="booking-section <?= $isVenue ? 'is-venue-booking' : '' ?>" id="<?= $isVenue ? 'available-halls' : 'availability' ?>" data-aos="fade-up" data-aos-duration="800">
-    <?php if (!$isVenue): ?>
-    <span class="section-label">Pick a date</span>
-    <?php endif; ?>
-    <?php if (!$isVenue): ?>
-    <h2 class="section-title"><?= $isSlotBooking ? 'Available Dates &amp; Times' : 'Available Dates' ?></h2>
-    <?php endif; ?>
-    <?php if (!$isVenue): ?>
-    <p class="section-sub">
-      <?= $selectedDateLabel !== ''
-        ? $h(($isSlotBooking ? 'Available times for ' : 'Available range for ') . $selectedDateLabel)
-        : ($isSlotBooking ? 'Choose your preferred date and time' : 'Choose an available date') ?>
-    </p>
-    <?php endif; ?>
-
-    <?php if (!$isVenue): ?>
-    <form class="date-picker-card" method="GET" action="<?= $h($datePickerAction) ?>">
-      <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
-        <?php if ($fieldValue > 0): ?>
-          <input type="hidden" name="<?= $h($fieldName) ?>" value="<?= (int)$fieldValue ?>">
-        <?php endif; ?>
-      <?php endforeach; ?>
-      <div class="date-picker-copy">
-        <strong><?= $selectedDateLabel !== '' ? 'Wedding date selected' : 'Start with your wedding date' ?></strong>
-        <span>
-          <?= $selectedDateLabel !== ''
-            ? $h('Showing availability for ' . $selectedDateLabel . '. You can change the date anytime.')
-            : ($isSlotBooking ? 'If you came from the service list, that date is prefilled here.' : 'Full-day services show one available time range for each open date.') ?>
-        </span>
-      </div>
-      <div class="date-picker-control">
-        <span class="venue-date-input-wrap">
-          <i class="venue-date-icon" data-lucide="calendar-days" size="8"></i>
-          <span class="venue-date-display"><?= $h($selectedDate !== '' ? date('M j, Y', strtotime($selectedDate)) : 'Today') ?></span>
-          <i class="venue-date-chevron" data-lucide="chevron-down" size="8"></i>
-          <input class="gp-calendar-input" type="date" id="detail-date" name="date" value="<?= $h($selectedDate) ?>" min="<?= $h($datePickerMin) ?>" max="<?= $h($datePickerMax) ?>" aria-label="Wedding date">
-        </span>
-        <button class="date-picker-btn" type="submit">
-          <i data-lucide="calendar-check" size="15"></i>
-          Check
-        </button>
-      </div>
-      <?php if ((int)($service['min_lead_days'] ?? 0) > 0): ?>
-      <div class="date-picker-copy" style="grid-column:1 / -1">
-        <span>Earliest booking date: <?= $h(date('M j, Y', strtotime($datePickerMin))) ?>.</span>
-      </div>
-      <?php endif; ?>
-    </form>
-    <?php endif; ?>
-
-    <div class="booking-grid <?= $isVenue && $selectedDate === '' ? 'is-date-pending' : '' ?>">
+    <div class="booking-grid <?= ($isVenue && $selectedDate === '') || (!$isVenue && $selectedDate === $todayDate && !$selectedDateHasBookOption) ? 'is-date-pending' : '' ?>">
       <div class="availability-list">
+        <?php if (!$isVenue): ?>
+          <div class="venue-halls-heading">
+            <h2 class="section-title"><?= $isSlotBooking ? 'Available Dates &amp; Times' : 'Available Dates' ?></h2>
+            <form class="venue-date-form venue-date-change" method="GET" action="<?= $h($datePickerAction) ?>#availability">
+              <?php foreach ($packageQueryFields as $fieldName => $fieldValue): ?>
+                <?php if ($fieldValue > 0): ?>
+                  <input type="hidden" name="<?= $h($fieldName) ?>" value="<?= (int)$fieldValue ?>">
+                <?php endif; ?>
+              <?php endforeach; ?>
+              <span class="venue-date-input-wrap">
+                <i class="venue-date-icon" data-lucide="calendar-days" size="8"></i>
+                <span class="venue-date-display"><?= $h($selectedDate !== '' ? date('M j, Y', strtotime($selectedDate)) : 'Today') ?></span>
+                <i class="venue-date-chevron" data-lucide="chevron-down" size="8"></i>
+                <input class="gp-calendar-input" type="date" id="detail-date-inline" name="date" value="<?= $h($selectedDate !== '' ? $selectedDate : $venueDateInputValue) ?>" min="<?= $h($datePickerMin) ?>" max="<?= $h($datePickerMax) ?>" aria-label="Wedding date">
+              </span>
+            </form>
+          </div>
+          <?php if ($selectedDateLabel === '' && (int)($service['min_lead_days'] ?? 0) > 0): ?>
+            <div class="date-picker-copy">
+              <span>Earliest booking date: <?= $h(date('M j, Y', strtotime($datePickerMin))) ?>.</span>
+            </div>
+          <?php endif; ?>
+        <?php endif; ?>
         <?php if ($isVenue): ?>
           <div class="venue-halls-heading">
             <h2 class="section-title">Available Halls</h2>
@@ -2787,7 +3004,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                 $checked = !$hasSelectedRoom && $roomAvailable;
                 if ($checked) { $hasSelectedRoom = true; }
               ?>
-              <div class="availability-row <?= $checked ? 'is-selected' : '' ?> <?= $isPackageHallRow ? 'is-package-selected' : '' ?> <?= $roomAvailable ? '' : 'is-unavailable' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($index * 80, 300) ?>">
+              <div class="availability-row <?= $checked ? 'is-selected' : '' ?> <?= $isPackageHallRow ? 'is-package-selected' : '' ?> <?= $roomAvailable ? 'is-available' : 'is-unavailable' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($index * 80, 300) ?>">
                 <span class="radio-dot"></span>
                 <div class="hall-row-body">
                   <div class="hall-photo <?= $roomPhotoUrl === '' ? 'is-empty' : '' ?>">
@@ -2808,7 +3025,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                           <?= $selectedDateLabel !== '' ? ' · ' . $h($selectedDateLabel) : '' ?>
                         </span>
                       </span>
-                      <span class="availability-status"><?= $h($roomStatus) ?></span>
+                      <span class="availability-status <?= !$roomAvailable ? 'is-closed' : '' ?>"><?= $h($roomStatus) ?></span>
                     </div>
                     <?php if ($isPackageHallRow): ?>
                       <span class="package-hall-badge"><i data-lucide="badge-check" size="13"></i>Selected for your package</span>
@@ -2856,14 +3073,14 @@ button, input, select, textarea { font-family: var(--font-sans); }
               $firstDaySlot = $slots[0] ?? null;
               $slotSummary = $isSlotBooking
                 ? (count($slots) > 1
-                  ? count($slots) . ' time slots'
+                  ? count($slots) . ' available times'
                   : ($firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'No available time on your selected date' : ($day['date'] ?? '')))))
                 : ($firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'Not available on your selected date' : ($day['date'] ?? ''))));
               $rowSelected = !$hasSelectedSlot && !empty($slots);
               $isRequestedDate = !empty($day['is_selected_date']);
             ?>
             <?php if ($isSlotBooking): ?>
-            <div class="availability-row <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?> <?= empty($slots) ? 'is-unavailable' : '' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
+            <div class="availability-row <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?> <?= empty($slots) ? 'is-unavailable' : 'is-available' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
               <span class="radio-dot"></span>
               <div>
                 <div class="availability-head">
@@ -2871,7 +3088,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
                     <?= $h($dayLabel) ?>
                     <span><?= $h($slotSummary) ?></span>
                   </span>
-                  <span class="availability-status"><?= $h($day['status'] ?? (empty($slots) ? 'Booked' : 'Available')) ?></span>
+                  <?php $dayStatus = $day['status'] ?? (empty($slots) ? 'Booked' : 'Available'); ?>
+                  <span class="availability-status <?= empty($slots) ? 'is-closed' : '' ?>"><?= $h($dayStatus) ?></span>
                 </div>
                 <?php if (!empty($slots)): ?>
                   <div class="slot-options">
@@ -2898,7 +3116,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
             <?php else: ?>
             <?php if (!empty($slots)): ?>
               <?php $checked = !$hasSelectedSlot; if ($checked) { $hasSelectedSlot = true; } ?>
-              <div class="availability-row is-fullday <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?>" data-fullday-row data-date="<?= $h($day['date'] ?? '') ?>" data-date-label="<?= $h($day['day_label'] ?? $day['date']) ?>" data-price-value="<?= $h($isPackageContext ? $packageServicePrice : $activeServicePrice) ?>" data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
+              <div class="availability-row is-fullday is-available <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?>" data-fullday-row data-date="<?= $h($day['date'] ?? '') ?>" data-date-label="<?= $h($day['day_label'] ?? $day['date']) ?>" data-price-value="<?= $h($isPackageContext ? $packageServicePrice : $activeServicePrice) ?>" data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
                 <span class="radio-dot"></span>
                 <div>
                   <div class="availability-head">
@@ -2920,7 +3138,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                       <?= $h($dayLabel) ?>
                       <span><?= $h($slotSummary) ?></span>
                     </span>
-                    <span class="availability-status"><?= $h($day['status'] ?? 'Booked') ?></span>
+                    <span class="availability-status is-closed"><?= $h($day['status'] ?? 'Booked') ?></span>
                   </div>
                 </div>
               </div>
@@ -2931,7 +3149,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
       </div>
 
       <!-- Sticky booking summary (desktop) -->
-      <aside class="sticky-summary" id="desktopSummary">
+      <aside class="sticky-summary <?= !$selectedDateHasBookOption ? 'is-unavailable' : '' ?>" id="desktopSummary">
         <div class="summary-fields">
           <div class="summary-line">
             <?= $isVenue ? 'Wedding date' : 'Wedding date' ?>
@@ -3037,8 +3255,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
               <input type="hidden" name="addon_package_id" value="<?= (int)$addonContext['package_id'] ?>">
             <?php endif; ?>
             <button class="btn-cart" id="addCartLink" type="submit">
-              <i data-lucide="shopping-cart" size="16"></i>
-              <?= $isAddonContext ? 'Add to package' : 'Add to cart' ?>
+              <?= $isAddonContext ? 'Add to package' : 'Book now' ?>
             </button>
           </form>
           <?php else: ?>
@@ -3079,7 +3296,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
       <div>
         <div class="review-sort-tabs" style="display:flex;gap:6px;margin-bottom:14px;">
-          <button class="review-sort-btn active" data-sort="recent" onclick="sortReviews('recent',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--wine-dark);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Most Recent</button>
+          <button class="review-sort-btn active" data-sort="recent" onclick="sortReviews('recent',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--wine-dark);color:#fcf8f5;font-size:11px;font-weight:600;cursor:pointer;">Most Recent</button>
           <button class="review-sort-btn" data-sort="highest" onclick="sortReviews('highest',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);">Highest Rated</button>
           <button class="review-sort-btn" data-sort="lowest" onclick="sortReviews('lowest',this)" style="padding:5px 14px;border-radius:999px;border:1px solid var(--rule-strong);background:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);">Lowest Rated</button>
         </div>
@@ -3088,7 +3305,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <?php foreach ($reviews as $idx => $review): ?>
             <?php $rName = $review['customer_name'] ?? 'Customer'; $rInitial = mb_strtoupper(mb_substr($rName, 0, 1)); ?>
             <article class="review-item" data-aos="fade-up" data-aos-delay="<?= min($idx * 80, 200) ?>">
-              <div class="review-avatar" style="background:var(--wine-dark);color:#fff;font-weight:700;display:grid;place-items:center;"><?= $h($rInitial) ?></div>
+              <div class="review-avatar" style="background:var(--wine-dark);color:#fcf8f5;font-weight:700;display:grid;place-items:center;"><?= $h($rInitial) ?></div>
               <div class="review-text">
                 <strong><?= $h($rName) ?></strong>
                 <span><?= $h(date('Y.m.d', strtotime($review['created_at'] ?? 'now'))) ?></span>
@@ -3126,7 +3343,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
       b.style.background = 'none'; b.style.color = 'var(--text2)';
       b.classList.remove('active');
     });
-    btn.style.background = 'var(--wine-dark)'; btn.style.color = '#fff';
+    btn.style.background = 'var(--wine-dark)'; btn.style.color = '#fcf8f5';
     btn.classList.add('active');
     fetch('<?= URLROOT ?>/review/service/' + serviceId + '?sort=' + sort + '&offset=0&limit=4')
       .then(r => r.json()).then(d => {
@@ -3153,37 +3370,58 @@ button, input, select, textarea { font-family: var(--font-sans); }
   <section class="related-section" data-aos="fade-up" data-aos-duration="800">
     <span class="related-kicker">you may also like</span>
     <h2 class="section-title">Explore Our Related Service</h2>
-    <div class="related-grid">
-      <?php foreach (array_slice($related, 0, 2) as $idx => $item): ?>
-        <article class="related-item" data-aos="flip-up" data-aos-delay="<?= $idx * 100 ?>">
-          <a class="related-img" href="<?= URLROOT ?>/customerServices/detail/<?= (int)$item['id'] ?><?= $h($detailDateQuery) ?>">
-            <img src="<?= $h($item['image'] ?: $fallbackImage) ?>" alt="<?= $h($item['name'] ?? 'Related service') ?>">
-          </a>
-          <div class="related-body">
-            <span class="related-cat"><?= $h($item['category'] ?? 'Service') ?></span>
-            <div class="related-name"><?= $h($item['name'] ?? '') ?></div>
-            <?php if ((float)($item['rating'] ?? 0) > 0): ?>
-            <div class="related-rating">
-              &#9733; <?= number_format((float)$item['rating'], 1) ?>
+    <div class="related-carousel">
+      <div class="related-grid" id="relatedGrid">
+        <?php foreach ($related as $idx => $item): ?>
+          <?php
+            $relatedUrl = URLROOT . '/customerServices/detail/' . (int)$item['id'] . $detailDateQuery;
+            $relatedCategoryKey = strtolower(trim((string)($item['category_slug'] ?? $item['category'] ?? '')));
+            $relatedAvailabilityAnchor = (strpos($relatedCategoryKey, 'venue') !== false || strpos($relatedCategoryKey, 'hall') !== false) ? 'available-halls' : 'availability';
+            $relatedBookUrl = $relatedUrl . '#' . $relatedAvailabilityAnchor;
+          ?>
+          <article class="related-item" data-url="<?= $h($relatedUrl) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($item['name'] ?? 'related service') ?>" data-aos="flip-up" data-aos-delay="<?= min($idx, 3) * 100 ?>">
+            <div class="related-img">
+              <img src="<?= $h($item['image'] ?: $fallbackImage) ?>" alt="<?= $h($item['name'] ?? 'Related service') ?>">
             </div>
-            <?php endif; ?>
-            <div class="related-price"><?= $moneyRange($item) ?></div>
-            <a class="related-btn" href="<?= URLROOT ?>/customerServices/detail/<?= (int)$item['id'] ?><?= $h($detailDateQuery) ?>">
-              View detail <i data-lucide="arrow-right" size="12"></i>
-            </a>
-          </div>
-        </article>
-      <?php endforeach; ?>
+            <div class="related-body">
+              <div class="related-name"><?= $h($item['name'] ?? '') ?></div>
+              <div class="related-supplier"><?= $h($item['supplier_name'] ?? 'Golden Promise supplier') ?></div>
+              <div class="related-location"><?= $h($serviceLocation($item)) ?></div>
+              <span class="related-cat"><?= $h($item['category'] ?? 'Service') ?></span>
+              <div class="related-stats">
+                <div>
+                  <div class="related-price"><?= $moneyRange($item) ?></div>
+                  <span class="related-duration"><?= $h($durationText($item)) ?></span>
+                </div>
+                <a class="related-btn" href="<?= $h($relatedBookUrl) ?>">
+                  <span>Book Now</span>
+                  <span class="related-btn-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
+                  </span>
+                </a>
+              </div>
+            </div>
+          </article>
+        <?php endforeach; ?>
+      </div>
+      <?php if (count($related) > 3): ?>
+        <button class="related-next" type="button" aria-label="Show more related services" data-related-next>
+          <i data-lucide="arrow-right" size="18"></i>
+        </button>
+      <?php endif; ?>
     </div>
   </section>
   <?php endif; ?>
 
 </main>
 
+<?php if ($isLoggedIn): ?>
 <!-- Floating cart -->
-<a class="floating-cart" href="<?= URLROOT ?>/cart" aria-label="Open cart">
+<a class="floating-cart" href="<?= URLROOT ?>/cart" aria-label="Open cart<?= $cartCount > 0 ? ' with ' . $cartCount . ' selected service' . ($cartCount === 1 ? '' : 's') : '' ?>">
   <i data-lucide="shopping-bag" size="20"></i>
+  <span class="floating-cart-count" data-cart-count-badge<?= $cartCount > 0 ? '' : ' hidden' ?>><?= $cartCount > 0 ? ($cartCount > 99 ? '99+' : $cartCount) : '' ?></span>
 </a>
+<?php endif; ?>
 
 <div class="cart-feedback" id="cartFeedback" role="status" aria-live="polite">
   <i data-lucide="check-circle" size="16"></i>
@@ -3208,8 +3446,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
       <div class="mobile-book-label"><?= $isAddonContext ? 'Package add-on' : $pricingUnitLabel($service) ?></div>
     </div>
     <a class="mobile-book-btn <?= $hasInitialBookOption ? '' : 'is-guidance' ?>" id="mobileBookBtn" href="<?= URLROOT ?>/cart">
-      <i data-lucide="shopping-cart" size="16"></i>
-      <?= $isAddonContext ? 'Add to package' : 'Add to cart' ?>
+      <?= $isAddonContext ? 'Add to package' : 'Book now' ?>
     </a>
     <?php endif; ?>
   </div>
@@ -3432,7 +3669,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gpCalendar && !gpCalendar.hidden) gpCalendar.hidden = true;
   }, { passive: true });
 
-  document.querySelectorAll('.venue-date-form input[name="date"]').forEach(input => {
+  document.querySelectorAll('.venue-date-form input[name="date"], .date-picker-card input[name="date"]').forEach(input => {
     input.addEventListener('change', () => {
       if (input.value && input.form) {
         if (typeof input.form.requestSubmit === 'function') input.form.requestSubmit();
@@ -3443,14 +3680,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateSelectedSlot(input) {
     if (!input) return;
+    const formatPriceLabel = (value) => {
+      const numeric = String(value || '').replace(/[^0-9.]/g, '');
+      if (!numeric) return '';
+      return 'MMK ' + Number(numeric).toLocaleString();
+    };
     document.querySelectorAll('[data-slot-row]').forEach(row => {
       row.classList.toggle('is-selected', row.contains(input));
     });
     if (selectedDate) selectedDate.textContent = input.dataset.dateLabel || 'Selected date';
     if (selectedTime) selectedTime.textContent = input.dataset.timeLabel || 'Selected time';
     if (selectedHall && input.dataset.hallLabel) selectedHall.textContent = input.dataset.hallLabel;
-    if (estimatedTotal && input.dataset.priceLabel) estimatedTotal.textContent = input.dataset.priceLabel;
-    if (mobileBookPrice && input.dataset.priceLabel) mobileBookPrice.textContent = input.dataset.priceLabel;
+    const slotPriceLabel = input.dataset.priceLabel || formatPriceLabel(input.dataset.priceValue);
+    if (estimatedTotal && slotPriceLabel) estimatedTotal.textContent = slotPriceLabel;
+    if (mobileBookPrice && slotPriceLabel) mobileBookPrice.textContent = slotPriceLabel;
 
     // Update hidden form fields for cart
     if (cartDate) cartDate.value = input.dataset.date || '';
@@ -3466,12 +3709,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateSelectedFulldayRow(row) {
     if (!row) return;
+    const formatPriceLabel = (value) => {
+      const numeric = String(value || '').replace(/[^0-9.]/g, '');
+      if (!numeric) return '';
+      return 'MMK ' + Number(numeric).toLocaleString();
+    };
     document.querySelectorAll('[data-fullday-row]').forEach(r => r.classList.remove('is-selected'));
     row.classList.add('is-selected');
     if (selectedDate) selectedDate.textContent = row.dataset.dateLabel || 'Selected date';
     if (selectedTime) selectedTime.textContent = summaryCapacityText || 'Full day';
-    if (estimatedTotal && row.dataset.priceValue) estimatedTotal.textContent = row.dataset.priceValue;
-    if (mobileBookPrice && row.dataset.priceValue) mobileBookPrice.textContent = row.dataset.priceValue;
+    const rowPriceLabel = formatPriceLabel(row.dataset.priceValue);
+    if (estimatedTotal && rowPriceLabel) estimatedTotal.textContent = rowPriceLabel;
+    if (mobileBookPrice && rowPriceLabel) mobileBookPrice.textContent = rowPriceLabel;
 
     if (cartDate) cartDate.value = row.dataset.date || '';
     if (cartSlotId) cartSlotId.value = '';
@@ -3676,8 +3925,55 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  document.querySelectorAll('[data-related-next]').forEach((btn) => {
+    const grid = btn.closest('.related-carousel')?.querySelector('.related-grid');
+    if (!grid) return;
+    btn.addEventListener('click', () => {
+      const card = grid.querySelector('.related-item');
+      const gap = parseFloat(getComputedStyle(grid).columnGap || '18') || 18;
+      const step = card ? card.getBoundingClientRect().width + gap : grid.clientWidth;
+      grid.scrollBy({ left: step, behavior: 'smooth' });
+    });
+  });
+
+  document.querySelectorAll('.related-item[data-url]').forEach((card) => {
+    card.addEventListener('click', (event) => {
+      if (event.target.closest('a, button')) return;
+      window.location.href = card.dataset.url;
+    });
+
+    card.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      if (event.target.closest('a, button')) return;
+      event.preventDefault();
+      window.location.href = card.dataset.url;
+    });
+  });
+
+  const cartBadge = document.querySelector('[data-cart-count-badge]');
+  if (cartBadge) {
+    fetch('<?= URLROOT ?>/cart/cartCount', {headers: {'Accept': 'application/json'}})
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        if (!data || typeof data.count === 'undefined') return;
+        const count = parseInt(data.count, 10) || 0;
+        cartBadge.textContent = count > 0 ? (count > 99 ? '99+' : String(count)) : '';
+        cartBadge.hidden = count <= 0;
+        const cartLink = cartBadge.closest('.floating-cart');
+        if (cartLink) {
+          cartLink.setAttribute('aria-label', count > 0 ? 'Open cart with ' + count + ' selected service' + (count === 1 ? '' : 's') : 'Open cart');
+        }
+      })
+      .catch(() => {});
+  }
+
   // Profile dropdown toggle
   document.addEventListener('click', (e) => {
+    const closeBtn = e.target.closest('[data-profile-close], .tb-profile-close');
+    if (closeBtn) {
+      closeBtn.closest('.tb-profile-dropdown')?.querySelector('.tb-profile-btn')?.setAttribute('aria-expanded', 'false');
+      return;
+    }
     const btn = e.target.closest('.tb-profile-btn');
     if (btn) {
       const expanded = btn.getAttribute('aria-expanded') === 'true';

@@ -21,7 +21,7 @@ $bankIcons = [
 .bank-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
 .bank-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);cursor:pointer;transition:all .12s;font-family:inherit}
 .bank-btn:hover{border-color:var(--primary);background:var(--hover)}
-.bank-btn.active{border-color:var(--primary);background:var(--primary);color:#fff}
+.bank-btn.active{border-color:var(--primary);background:var(--primary);color:#fcf8f5}
 .bank-icon{font-size:22px}
 .bank-label{font-size:11px;font-weight:800;text-align:center;line-height:1.3;color:inherit}
 .bank-account-info{border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:14px 16px;margin-bottom:14px;display:none}
@@ -39,7 +39,7 @@ $bankIcons = [
 .form-field label .req{color:#b94b4b}
 .form-field label .opt{font-weight:400}
 .form-field input[type=text],.form-field input[type=number],.form-field input[type=datetime-local]{width:100%;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .12s,box-shadow .12s}
-.form-field input:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(109,76,91,.1)}
+.form-field input:focus{border-color:var(--primary);background:#fcf8f5;box-shadow:0 0 0 3px rgba(109,76,91,.1)}
 @media(max-width:640px){.bank-grid{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr}}
 </style>
 

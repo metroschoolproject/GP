@@ -38,7 +38,7 @@
 
         /* ── Cards ── */
         .card {
-            background: #ffffff;
+            background: #fcf8f5;
             border: 1px solid var(--dashboard-border);
             border-radius: 1.2rem;
             box-shadow: var(--dashboard-shadow-sm);
@@ -122,7 +122,7 @@
         .progress-track {
             height: 6px;
             border-radius: 9999px;
-            background: rgba(255,255,255,0.10);
+            background: rgba(252,248,245,0.10);
             overflow: hidden;
         }
         .progress-fill {
@@ -186,7 +186,7 @@
 
         /* ── Package cards ── */
         .pkg-card {
-            background: #ffffff;
+            background: #fcf8f5;
             border-radius: 1.2rem;
             border: 1px solid var(--dashboard-border);
             overflow: hidden;
@@ -259,7 +259,7 @@
             transition: all 0.12s ease;
         }
         .filter-tab-btn:hover { background: #fde8ef; color: var(--accent-color); }
-        .filter-tab-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
+        .filter-tab-btn.active { background: var(--accent-color); color: #fcf8f5; border-color: var(--accent-color); }
 
         /* ── Dropdown menu ── */
         .dropdown-menu {
@@ -268,7 +268,7 @@
             top: calc(100% + 6px);
             z-index: 30;
             width: 9rem;
-            background: #ffffff;
+            background: #fcf8f5;
             border: 1px solid var(--dashboard-border);
             border-radius: 0.75rem;
             padding: 0.375rem;
@@ -602,23 +602,23 @@
                         <img src="${pkg.image}" alt="${pkg.name}">
 
                         <!-- Rating badge — always visible top-right -->
-                        <div class="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full px-2 py-0.5 font-bold" style="font-size:10px;background:rgba(255,255,255,0.95);color:#673049;box-shadow:0 2px 8px rgba(0,0,0,0.14);z-index:2">
+                        <div class="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full px-2 py-0.5 font-bold" style="font-size:10px;background:rgba(252,248,245,0.95);color:#673049;box-shadow:0 2px 8px rgba(0,0,0,0.14);z-index:2">
                             ★ ${pkg.rating}
                         </div>
 
                         <!-- Caption — always visible bottom, fades on hover -->
                         <div class="pkg-caption">
-                            <p class="font-semibold" style="font-size:12px;color:#ffffff;text-shadow:0 1px 4px rgba(0,0,0,0.5)">${pkg.name}</p>
+                            <p class="font-semibold" style="font-size:12px;color:#fcf8f5;text-shadow:0 1px 4px rgba(0,0,0,0.5)">${pkg.name}</p>
                         </div>
 
                         <!-- Hover overlay: slides up from bottom -->
                         <div class="pkg-overlay">
                             <div>
-                                <p class="stat-label" style="color:rgba(255,255,255,0.55)">Bookings</p>
-                                <p class="font-bold" style="font-size:13px;color:#ffffff;margin-top:2px">${pkg.bookings.toLocaleString()}</p>
+                                <p class="stat-label" style="color:rgba(252,248,245,0.55)">Bookings</p>
+                                <p class="font-bold" style="font-size:13px;color:#fcf8f5;margin-top:2px">${pkg.bookings.toLocaleString()}</p>
                             </div>
                             <div class="text-right">
-                                <p class="stat-label" style="color:rgba(255,255,255,0.55)">Revenue</p>
+                                <p class="stat-label" style="color:rgba(252,248,245,0.55)">Revenue</p>
                                 <p class="font-bold" style="font-size:13px;color:#6ee7b7;margin-top:2px">${currency(pkg.revenue)}</p>
                             </div>
                         </div>
@@ -644,7 +644,7 @@
                         pointRadius: 3,
                         pointHoverRadius: 5,
                         pointBackgroundColor: "#673049",
-                        pointBorderColor: "#fff",
+                        pointBorderColor: "#fcf8f5",
                         pointBorderWidth: 2,
                         borderWidth: 2
                     }]
@@ -723,7 +723,7 @@
                         const x = arc.x + Math.cos(angle) * radius;
                         const y = arc.y + Math.sin(angle) * radius;
 
-                        ctx.fillStyle = "#FFFFFF";
+                        ctx.fillStyle = "#fcf8f5";
                         ctx.font = "700 10px Inter, sans-serif";
                         ctx.fillText(`${percent}%`, x, y);
                     });
@@ -739,7 +739,7 @@
                     datasets: [{
                         data: data.supplierCategories.values,
                         backgroundColor: ["#90bed7", "#d89aa0", "#e9ab91", "#8bca9d"],
-                        borderColor: "#FFFFFF",
+                        borderColor: "#fcf8f5",
                         borderRadius: 5,
                         borderWidth: 3,
                         hoverBorderWidth: 5,

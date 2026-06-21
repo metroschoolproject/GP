@@ -8,7 +8,7 @@
 
 #supplier-service-detail {
   --bg-page:       #fbfbf9;
-  --surface:       #ffffff;
+  --surface:       #fcf8f5;
   --surface-soft:  #faf5ef;
   --surface-warm:  #faf5ef;
   --primary:       #6d4c5b;
@@ -125,7 +125,7 @@
   gap: 6px;
   padding: 8px 14px;
   border-radius: var(--radius);
-  background: rgba(255,255,255,0.85);
+  background: rgba(252,248,245,0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
@@ -150,7 +150,7 @@
   gap: 6px;
   padding: 5px 12px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.85);
+  background: rgba(252,248,245,0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
@@ -321,7 +321,7 @@
 #supplier-service-detail .btn-primary {
   background: var(--primary);
   border-color: var(--primary);
-  color: #fff;
+  color: #fcf8f5;
 }
 
 #supplier-service-detail .btn-primary:hover { background: var(--primary-dark); }
@@ -392,7 +392,7 @@
   gap: 12px;
   padding: 16px 18px 16px 16px;
   border-radius: 14px;
-  background: #fff;
+  background: #fcf8f5;
   box-shadow: 0 22px 70px rgba(44, 31, 40, 0.18), 0 2px 10px rgba(44, 31, 40, 0.08);
   animation: sdToastIn 0.22s ease;
 }
@@ -416,7 +416,7 @@
   flex: 0 0 34px;
   place-items: center;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(252,248,245, 0.72);
   font-size: 17px;
 }
 
@@ -500,7 +500,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: #fff;
+  background: #fcf8f5;
   color: var(--warning);
   font-size: 14px;
 }
@@ -532,7 +532,7 @@
   gap: 8px;
   padding: 8px 10px;
   border-radius: var(--radius);
-  background: #fff;
+  background: #fcf8f5;
 }
 
 .sd-attention-item i {
@@ -695,7 +695,7 @@
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: rgba(255,255,255,0.9);
+  background: rgba(252,248,245,0.9);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   border: none;
@@ -747,7 +747,7 @@
   position: relative;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #fff;
+  background: #fcf8f5;
   overflow: hidden;
   transition: box-shadow 0.2s, transform 0.2s;
 }
@@ -803,7 +803,7 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(255,255,255,0.92);
+  background: rgba(252,248,245,0.92);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1222,7 +1222,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #fff;
+  background: #fcf8f5;
   transition: transform 0.25s cubic-bezier(0.34, 1.3, 0.64, 1);
   pointer-events: none;
   box-shadow: 0 1px 2px rgba(0,0,0,0.12);
@@ -1756,7 +1756,7 @@
 .sd-card-foot {
   position: sticky;
   bottom: 0;
-  background: var(--surface, #fff);
+  background: var(--surface, #fcf8f5);
   border-top: 1px solid var(--border-light, #eddecc);
   z-index: 2;
   margin-top: auto;
@@ -1936,7 +1936,7 @@
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, .94);
+  background: rgba(252,248,245, .94);
   box-shadow: var(--shadow-sm);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);

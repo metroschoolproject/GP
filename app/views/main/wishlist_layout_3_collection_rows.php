@@ -37,7 +37,7 @@ foreach($mockItems as $item) {
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --c-bg:#f5e8d9;--c-white:#fff;--c-rule:#ead8c7;--c-strong:#765a46;--c-accent:#6f625a;--c-muted:#9b7d6b;
+  --c-bg:#f5e8d9;--c-white:#fcf8f5;--c-rule:#ead8c7;--c-strong:#765a46;--c-accent:#6f625a;--c-muted:#9b7d6b;
   --c-text:#211d1a;--c-pale:#b79c8b;--c-gold:#d8b46a;--c-red:#b94a48;--c-heart:#e55b5b;
   --font-display:'Playfair Display',Georgia,serif;--font-body:'Poppins',system-ui,sans-serif;
   --pad-x:clamp(20px,5vw,72px);--ease:cubic-bezier(.19,1,.22,1);
@@ -63,7 +63,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%}button,inp
 .wl-hero-shelf p{font-size:13px;color:var(--c-pale);margin-bottom:20px}
 .wl-hero-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .wl-hbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;border:none}
-.wl-hbtn--primary{background:var(--c-strong);color:#fff;box-shadow:0 8px 24px rgba(118,90,70,.18)}
+.wl-hbtn--primary{background:var(--c-strong);color:#fcf8f5;box-shadow:0 8px 24px rgba(118,90,70,.18)}
 .wl-hbtn--primary:hover{background:var(--c-red);transform:translateY(-1px)}
 .wl-hbtn--ghost{border:1.5px solid var(--c-rule);background:transparent;color:var(--c-strong)}
 .wl-hbtn--ghost:hover{border-color:var(--c-gold)}
@@ -112,7 +112,7 @@ a{color:inherit;text-decoration:none}img{display:block;max-width:100%}button,inp
   <nav class="gp-header-nav"><a href="#">Home</a><a href="#">Services</a><a href="#">Packages</a></nav>
   <div class="gp-header-actions">
     <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid rgba(229,91,91,.15);background:rgba(229,91,91,.04);color:var(--c-heart);font-size:13px;font-weight:700">♥ <?= $wishlistCount ?></span>
-    <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid #ead8c7;background:#fff;color:#765a46;font-size:13px;font-weight:700">🛒 <?= $cartCount ?></span>
+    <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid #ead8c7;background:#fcf8f5;color:#765a46;font-size:13px;font-weight:700">🛒 <?= $cartCount ?></span>
     <span style="display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#765a46;color:#fff4e6;font-size:12px;font-weight:800">H</span>
   </div>
 </header>

@@ -23,7 +23,7 @@ $dashboardContent = function () use ($replacement, $candidates, $bookingRef, $ma
 ?>
 <style>
   .admin-booking-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#111827;font-size:13px;overflow-y:auto}
-  .repl-page{--surface:#fff;--border:#ead8c7;--primary:#6d4c5b;--muted:#b79c8b;max-width:1100px;margin:0 auto}
+  .repl-page{--surface:#fcf8f5;--border:#ead8c7;--primary:#6d4c5b;--muted:#b79c8b;max-width:1100px;margin:0 auto}
   .repl-page h1{font-size:22px;font-weight:700;margin:0 0 4px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
   .back{color:#6d4c5b;font-size:12px;font-weight:700;text-decoration:none}
@@ -37,7 +37,7 @@ $dashboardContent = function () use ($replacement, $candidates, $bookingRef, $ma
   .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
   .pill.auto{background:#d1fae5;color:#065f46}
   .pill.appr{background:#fef3c7;color:#92400e}
-  .btn{height:30px;padding:0 13px;border:none;border-radius:.6rem;background:#6d4c5b;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer}
+  .btn{height:30px;padding:0 13px;border:none;border-radius:.6rem;background:#6d4c5b;color:#fcf8f5;font-size:11.5px;font-weight:700;cursor:pointer}
   .btn:hover{opacity:.92}
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .btn-verify{background:#065f46}

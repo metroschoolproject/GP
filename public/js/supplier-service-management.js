@@ -30,7 +30,7 @@ function showToast(message, type) {
   toast.style.opacity = '1';
   toast.style.transform = 'translateX(-50%) translateY(0)';
   toast.style.background = type === 'success' ? '#166534' : type === 'info' ? '#1e40af' : '#991b1b';
-  toast.style.color = '#fff';
+  toast.style.color = '#fcf8f5';
   clearTimeout(toast._timer);
   toast._timer = setTimeout(function(){
     toast.style.opacity = '0';
@@ -1068,7 +1068,7 @@ function render() {
 
 function plusCard() {
   return `
-  <div onclick="openCreateServiceModal()" class="service-card rounded-xl border-2 border-dashed border-gray-300 overflow-hidden cursor-pointer transition hover:border-[#6e4e58] hover:bg-[#fbf9f6] flex items-center justify-center" style="box-shadow:0 1px 4px rgba(74,59,50,0.05); background: rgba(255,255,255,0.5); min-height:300px;">
+  <div onclick="openCreateServiceModal()" class="service-card rounded-xl border-2 border-dashed border-gray-300 overflow-hidden cursor-pointer transition hover:border-[#6e4e58] hover:bg-[#fbf9f6] flex items-center justify-center" style="box-shadow:0 1px 4px rgba(74,59,50,0.05); background: rgba(252,248,245,0.5); min-height:300px;">
     <div class="flex flex-col items-center justify-center gap-3 p-6">
       <div class="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center transition group-hover:border-[#6e4e58]">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

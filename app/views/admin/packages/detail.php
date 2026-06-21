@@ -104,7 +104,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .admin-pkg-detail{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
 .admin-pkg-page *{box-sizing:border-box}
 .admin-pkg-page{
-  --bg:#FBFBF9;--surface:#ffffff;--soft:#faf5ef;--hover:#eddecc;
+  --bg:#FBFBF9;--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;
   --border:#ead8c7;--border-light:#eddecc;
   --primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;
   --text:#111827;--muted:#b79c8b;--body:#7b5c69;
@@ -128,7 +128,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
 .flash{border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:12px 14px;margin-bottom:18px;color:var(--body);font-size:13px;font-weight:600}
 
-.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#fcf8f5;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
 .btn-primary:hover{background:var(--primary-hover)}
 .btn-primary:disabled{opacity:.45;cursor:not-allowed;background:var(--muted)}
 .btn-primary:disabled:hover{background:var(--muted)}
@@ -152,7 +152,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .toggle{position:relative;width:40px;height:22px;border-radius:999px;border:none;cursor:pointer;transition:background .2s}
 .toggle.on{background:var(--primary)}
 .toggle.off{background:var(--border)}
-.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fcf8f5;transition:transform .2s}
 .toggle.on::after{transform:translateX(18px)}
 
 .summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
@@ -180,7 +180,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .included-card-total span{display:block;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .included-card-total strong{display:block;margin-top:3px;color:var(--primary);font-size:16px}
 .included-list{display:flex;flex-direction:column}
-.included-item{padding:22px 24px;border-bottom:1px solid var(--border-light);background:#fff}
+.included-item{padding:22px 24px;border-bottom:1px solid var(--border-light);background:#fcf8f5}
 .included-item:last-child{border-bottom:0}
 .included-item:hover{background:#fffdfb}
 .included-item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}
@@ -198,10 +198,10 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .included-panel-value{color:var(--text);font-size:12px;font-weight:700}
 .included-panel-note{margin-top:3px;color:var(--muted);font-size:10px;line-height:1.45}
 .included-panel .guest-form{align-items:stretch;margin-top:10px}
-.included-panel .guest-input{width:100%!important;min-width:0;background:#fff}
+.included-panel .guest-input{width:100%!important;min-width:0;background:#fcf8f5}
 .included-panel .guest-form .btn-ghost{flex-shrink:0}
 .included-hall-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}
-.included-hall-form .guest-input{width:100%!important;background:#fff}
+.included-hall-form .guest-input{width:100%!important;background:#fcf8f5}
 .included-rental{margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light)}
 .rental-option+.rental-option{margin-top:9px;padding-top:9px;border-top:1px solid var(--border-light)}
 .rental-option-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
@@ -212,7 +212,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .rental-price-row span{color:var(--muted);font-size:9px}
 .rental-price-row b{display:block;margin-top:2px;color:var(--text);font-size:11px}
 .included-prices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.included-price{padding:13px;border-radius:9px;background:#fff;border:1px solid var(--border-light)}
+.included-price{padding:13px;border-radius:9px;background:#fcf8f5;border:1px solid var(--border-light)}
 .included-price span{display:block;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .included-price strong{display:block;margin-top:5px;color:var(--text);font-size:14px;line-height:1.25}
 .included-price small{display:block;margin-top:4px;color:var(--muted);font-size:10px;line-height:1.4}
@@ -233,35 +233,35 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .cover-upload-title{display:block;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px}
 .cover-upload-title span{color:var(--primary)}
 .cover-upload-help{display:block;font-size:12px;color:var(--muted);margin-bottom:18px}
-.cover-upload-button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 16px;border:1px solid var(--border);border-radius:.65rem;background:#fff;color:var(--text);font-size:12px;font-weight:700;box-shadow:0 1px 2px rgba(17,24,39,.04)}
+.cover-upload-button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 16px;border:1px solid var(--border);border-radius:.65rem;background:#fcf8f5;color:var(--text);font-size:12px;font-weight:700;box-shadow:0 1px 2px rgba(17,24,39,.04)}
 .cover-uploader-preview{position:absolute;inset:0;display:none}
 .cover-uploader.has-image .cover-uploader-preview{display:block}
 .cover-uploader.has-image .cover-uploader-empty{display:none}
 .cover-uploader-preview img{width:100%;height:100%;object-fit:cover}
-.cover-preview-shade{position:absolute;inset:auto 0 0;padding:54px 20px 18px;background:linear-gradient(transparent,rgba(18,13,15,.82));display:flex;align-items:flex-end;justify-content:space-between;gap:16px;color:#fff}
+.cover-preview-shade{position:absolute;inset:auto 0 0;padding:54px 20px 18px;background:linear-gradient(transparent,rgba(18,13,15,.82));display:flex;align-items:flex-end;justify-content:space-between;gap:16px;color:#fcf8f5}
 .cover-preview-name{min-width:0;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cover-preview-change{flex-shrink:0;border:1px solid rgba(255,255,255,.55);border-radius:.6rem;background:rgba(255,255,255,.14);color:#fff;padding:8px 12px;font-family:inherit;font-size:11px;font-weight:700;backdrop-filter:blur(8px);cursor:pointer}
+.cover-preview-change{flex-shrink:0;border:1px solid rgba(252,248,245,.55);border-radius:.6rem;background:rgba(252,248,245,.14);color:#fcf8f5;padding:8px 12px;font-family:inherit;font-size:11px;font-weight:700;backdrop-filter:blur(8px);cursor:pointer}
 .cover-upload-error{display:none;margin-top:7px;color:#b42318;font-size:12px;font-weight:600}
 .cover-upload-error.is-visible{display:block}
 
 /* ── Category badge strip ─────────────────────────────────────────────── */
 .pkg-category-strip{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:12px 16px;background:var(--soft);border:1px solid var(--border-light);border-radius:.75rem}
 .pkg-category-icon{width:32px;height:32px;border-radius:50%;background:var(--primary);display:grid;place-items:center;flex-shrink:0}
-.pkg-category-icon svg{stroke:#fff}
+.pkg-category-icon svg{stroke:#fcf8f5}
 .pkg-category-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:1px}
 .pkg-category-name{font-size:14px;font-weight:700;color:var(--text)}
 .pkg-category-note{margin-left:auto;font-size:11px;color:var(--muted)}
 
 /* ── Add-service panel ────────────────────────────────────────────────── */
 .add-svc-panel{margin-top:18px;padding-top:18px;border-top:1px solid var(--border-light)}
-.included-card .add-svc-panel{margin:0;padding:24px;border-top:1px solid var(--border-light);background:#fff}
+.included-card .add-svc-panel{margin:0;padding:24px;border-top:1px solid var(--border-light);background:#fcf8f5}
 .add-svc-panel-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px}
 
 /* Step indicator */
 .add-svc-steps{display:flex;align-items:center;gap:0;margin-bottom:18px}
 .add-svc-step{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0}
 .add-svc-step-num{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg);display:grid;place-items:center;font-size:11px;font-weight:700;transition:all .2s}
-.add-svc-step.active .add-svc-step-num{border-color:var(--primary);background:var(--primary);color:#fff}
+.add-svc-step.active .add-svc-step-num{border-color:var(--primary);background:var(--primary);color:#fcf8f5}
 .add-svc-step.done .add-svc-step-num{border-color:#065f46;background:#d1fae5;color:#065f46}
 .add-svc-step.active{color:var(--text)}
 .add-svc-step-connector{flex:1;height:1px;background:var(--border-light);margin:0 8px}
@@ -289,9 +289,9 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .hall-card-img{height:100px;background:linear-gradient(135deg,#ede0d0,#ddcebb);position:relative;overflow:hidden}
 .hall-card-img img{width:100%;height:100%;object-fit:cover}
 .hall-card-img-placeholder{width:100%;height:100%;display:grid;place-items:center;color:var(--muted)}
-.hall-card-check{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:#fff;border:1.5px solid var(--border);display:grid;place-items:center;transition:all .15s;opacity:0}
+.hall-card-check{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:#fcf8f5;border:1.5px solid var(--border);display:grid;place-items:center;transition:all .15s;opacity:0}
 .hall-card.selected .hall-card-check{opacity:1;background:var(--primary);border-color:var(--primary)}
-.hall-card-check svg{stroke:#fff}
+.hall-card-check svg{stroke:#fcf8f5}
 .hall-card-body{padding:10px 12px 12px}
 .hall-card-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
 .hall-card-meta{display:flex;flex-direction:column;gap:3px}
@@ -304,7 +304,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 /* Step 2 — guest count row (food/catering) */
 .guest-count-row{display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px 14px;background:var(--soft);border:1px solid var(--border-light);border-radius:.5rem}
 .guest-count-row label{font-size:12px;font-weight:700;color:var(--text);flex-shrink:0}
-.guest-count-row input{width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:.375rem;background:#fff;font-size:13px;outline:none}
+.guest-count-row input{width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:.375rem;background:#fcf8f5;font-size:13px;outline:none}
 .guest-count-row input:focus{border-color:var(--primary)}
 .guest-count-note{font-size:11px;color:var(--muted)}
 
@@ -514,7 +514,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
             <label class="cover-uploader-label" for="packageCoverInput">
               <span class="cover-uploader-empty">
                 <span class="cover-upload-icon" aria-hidden="true">
-                  <svg width="58" height="44" viewBox="0 0 58 44" fill="none"><path d="M46.5 19.2A14.5 14.5 0 0 0 18.7 14 10.5 10.5 0 0 0 20 35h25.5a8 8 0 0 0 1-15.8Z" fill="currentColor"/><path d="m29 14-7 8h4v8h6v-8h4l-7-8Z" fill="#fff"/></svg>
+                  <svg width="58" height="44" viewBox="0 0 58 44" fill="none"><path d="M46.5 19.2A14.5 14.5 0 0 0 18.7 14 10.5 10.5 0 0 0 20 35h25.5a8 8 0 0 0 1-15.8Z" fill="currentColor"/><path d="m29 14-7 8h4v8h6v-8h4l-7-8Z" fill="#fcf8f5"/></svg>
                 </span>
                 <span class="cover-upload-title">Choose an image or <span>drag &amp; drop it here</span></span>
                 <span class="cover-upload-help">JPG, PNG or WebP · Up to 6MB</span>

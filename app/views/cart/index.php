@@ -9,7 +9,7 @@ $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => 'MMK ' . number_format((float)$v, 0);
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -55,7 +55,7 @@ $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(
   --bg:          #f2e4d4;
   --bg2:         #ede0cf;
   --surface:     #faf6f1;
-  --card:        #ffffff;
+  --card:        #fcf8f5;
   --rule:        rgba(178,143,110,0.22);
   --rule-strong: rgba(178,143,110,0.45);
   --plum:        #6b4459;
@@ -102,6 +102,11 @@ img { display: block; max-width: 100%; }
 button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 /* ─── Ambient background orbs ───────────────────────── */
+.gp-cart-page .gp-floating-cart,
+.gp-cart-page .floating-cart {
+  display: none !important;
+}
+
 .gp-orbs {
   position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
 }
@@ -170,7 +175,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-brand-mark::after {
   content: '';
   position: absolute; inset: 0; border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(252,248,245,0.18) 0%, transparent 60%);
 }
 
 .gp-header-nav {
@@ -190,7 +195,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 13px 7px 9px; border-radius: 999px;
   border: 1px solid var(--rule-strong);
-  background: rgba(255,255,255,0.7);
+  background: rgba(252,248,245,0.7);
   color: var(--plum); font-size: 13px; font-weight: 700;
   backdrop-filter: blur(8px);
   transition: all 0.22s;
@@ -199,7 +204,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-cart-count {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
-  background: var(--plum); color: #fff;
+  background: var(--plum); color: #fcf8f5;
   font-size: 10px; font-weight: 700;
 }
 
@@ -283,9 +288,10 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 /* ─── Page shell ─────────────────────────────────────── */
 .gp-page {
-  position: relative; z-index: 1;
+  position: relative;
+  z-index: 1;
   flex: 1;
-  padding: 52px var(--pad-x) 80px;
+  padding: 0 var(--pad-x) 80px;   /* remove top space */
   max-width: 1180px;
   margin: 0 auto;
   width: 100%;
@@ -293,49 +299,74 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 /* ─── Page header ────────────────────────────────────── */
 .gp-page-head {
-  margin-bottom: 44px;
-  opacity: 0;
-  animation: fadeUp 0.7s var(--ease-expo) 0.1s forwards;
-}
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  margin-top: -68px;   /* pull it upward behind the navbar */
+  margin-bottom: 34px;
+  padding: 0;
+  border-radius: 0;
+  background: #f4eee9;
+  text-align: center;
 
-.gp-page-eyebrow {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--gold); margin-bottom: 10px;
+  width: calc(100% + (var(--pad-x) * 2));
+  margin-left: calc(var(--pad-x) * -1);
+  margin-right: calc(var(--pad-x) * -1);
 }
-.gp-page-eyebrow::before {
-  content: ''; display: block; width: 24px; height: 1px; background: var(--gold);
+.gp-page-eyebrow {
+  order: 2;
+  display: block;
+  margin-top: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text2);
+
+  position: relative;
+  top: -18px;
 }
 
 .gp-page-title {
   font-family: var(--font-d);
-  font-size: clamp(38px, 5vw, 58px); font-weight: 600;
-  color: var(--text); line-height: 0.92;
-  letter-spacing: -0.02em;
-}
-.gp-page-title em {
-  font-style: italic; color: var(--plum-lt);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.05;
+  letter-spacing: 0;
+
+  margin-top: 34px;   /* move only "Selected Services" downward */
 }
 
 /* ─── Two-column layout ──────────────────────────────── */
 .gp-layout {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr 380px;
   gap: 28px;
   align-items: start;
 }
 
 /* ─── Cart items ─────────────────────────────────────── */
-.gp-items { display: flex; flex-direction: column; gap: 14px; }
+.gp-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 640px;
+}
 
 .gp-item {
   display: grid;
-  grid-template-columns: 110px 1fr auto;
-  gap: 0;
-  background: var(--card);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-lg);
-  overflow: hidden;
+  grid-template-columns: 138px minmax(0, 1fr);
+  min-height: 128px;
+  gap: 12px;
+  align-items: stretch;
+  position: relative;
+  padding: 8px 14px 10px 8px;
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(255,255,255,0.78);
+  border-radius: 16px;
+  overflow: visible;
+  box-shadow: 0 18px 44px rgba(26,17,24,0.08);
   opacity: 0;
   transform: translateY(24px);
   transition: box-shadow 0.35s var(--ease-expo), border-color 0.25s, transform 0.35s var(--ease-expo);
@@ -344,15 +375,19 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   opacity: 1; transform: translateY(0);
 }
 .gp-item:hover {
-  box-shadow: 0 24px 56px rgba(26,17,24,0.10);
-  border-color: var(--rule-strong);
+  box-shadow: 0 24px 60px rgba(26,17,24,0.12);
+  border-color: rgba(184,146,74,0.24);
   transform: translateY(-2px);
 }
 
 /* Image column */
 .gp-item-thumb {
+  grid-column: 1;
   position: relative; overflow: hidden;
-  width: 110px;
+  width: 100%;
+  height: 100%;
+  min-height: 112px;
+  border-radius: 9px;
   background: linear-gradient(160deg, #e8d9c8, #d9c8b5);
   flex-shrink: 0;
 }
@@ -366,38 +401,68 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   width: 100%; height: 100%;
   display: grid; place-items: center;
   color: var(--muted);
-  min-height: 120px;
+  min-height: 112px;
 }
 
 /* category ribbon on image */
 .gp-item-cat-ribbon {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  padding: 20px 8px 6px;
-  background: linear-gradient(to top, rgba(26,17,24,0.55) 0%, transparent 100%);
-  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
-  text-transform: uppercase; color: rgba(255,255,255,0.85);
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  display: block;
+  align-items: center;
+  width: auto;
+  max-width: calc(100% - 18px);
+  padding: 4px 7px;
+  border: 1px solid rgba(255,248,237,0.12);
+  border-radius: 5px;
+  background: rgba(26,17,24,0.22);
+  backdrop-filter: blur(7px) saturate(1.04);
+  -webkit-backdrop-filter: blur(7px) saturate(1.04);
+  transform: translateX(-50%);
+  color: #fff8ed;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 8px rgba(26,17,24,0.45);
+  text-transform: uppercase;
+  z-index: 1;
+}
+.gp-item-cat-ribbon::before,
+.gp-item-cat-ribbon::after {
+  content: none;
 }
 
 /* Body */
 .gp-item-body {
-  padding: 16px 14px 16px 18px;
-  display: flex; flex-direction: column; gap: 3px;
+  grid-column: 2;
+  padding: 6px 44px 0 0;
+  display: flex; flex-direction: column; gap: 6px;
   min-width: 0;
 }
 
 .gp-item-name {
-  font-family: var(--font-d);
-  font-size: 19px; font-weight: 600;
-  color: var(--text); line-height: 1.1;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--font-b);
+  font-size: 14px; font-weight: 800;
+  color: #20151f; line-height: 1.18;
+  letter-spacing: 0;
 }
 .gp-item-name a { transition: color 0.2s; }
 .gp-item-name a:hover { color: var(--plum); }
 
 .gp-item-supplier {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 500; color: var(--plum-lt);
-  margin-top: 2px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500; color: #40353e;
+}
+.gp-item-supplier svg,
+.gp-item-date-line svg {
+  width: 12px;
+  height: 12px;
+  color: #7b5b28;
+  stroke-width: 1.9;
+  flex-shrink: 0;
 }
 
 .gp-item-meta {
@@ -410,6 +475,32 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   background: rgba(107,68,89,0.07);
   font-size: 11px; font-weight: 600; color: var(--plum);
   border: 1px solid rgba(107,68,89,0.12);
+}
+.gp-item-date-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: #40353e;
+  font-size: 11px;
+  font-weight: 500;
+}
+.gp-item-date-line span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.gp-item-meta-separator {
+  color: rgba(107,68,89,0.42);
+  font-weight: 300;
+}
+.gp-item-category-divider {
+  display: none;
+}
+.gp-item-category-divider::before,
+.gp-item-category-divider::after {
+  content: '';
+  border-top: 1px dotted rgba(184,129,53,0.72);
 }
 
 .gp-package-includes {
@@ -447,7 +538,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   padding: 7px;
   border: 1px solid rgba(107,68,89,0.09);
   border-radius: 10px;
-  background: rgba(255,255,255,0.72);
+  background: rgba(252,248,245,0.72);
 }
 .gp-package-service-thumb {
   display: grid; place-items: center;
@@ -505,25 +596,39 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 
 .gp-edit-form {
-  margin-top: 10px;
-  border-top: 1px solid rgba(178,143,110,0.18);
-  padding-top: 10px;
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+.gp-edit-form.is-open {
+  margin-top: 2px;
 }
 .gp-edit-toggle {
-  display: inline-flex; align-items: center; gap: 5px;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px;
+  height: 32px;
   border: 0;
-  background: transparent;
-  color: var(--plum);
-  font-size: 11px;
-  font-weight: 700;
+  border-radius: 12px;
+  background: #f2eeec;
+  color: #170f16;
   padding: 0;
+  transition: background 0.2s, transform 0.2s;
 }
+.gp-edit-toggle:hover { background: #ece4df; transform: translateY(-1px); }
+.gp-edit-toggle svg { width: 15px; height: 15px; stroke-width: 2.1; }
 .gp-edit-fields {
   display: none;
-  grid-template-columns: repeat(4, minmax(96px, 1fr)) auto;
-  gap: 8px;
-  align-items: end;
-  margin-top: 10px;
+  grid-template-columns: minmax(150px, 0.85fr) minmax(260px, 1.8fr) minmax(110px, 0.7fr);
+  gap: 10px;
+  align-items: start;
+  position: relative;
+  margin-top: 8px;
+  padding: 16px 84px 56px 16px;
+  border-top: 1px solid rgba(178,143,110,0.18);
+  border-radius: 0 0 12px 12px;
+  background: rgba(252,248,245,0.78);
 }
 .gp-edit-form.is-open .gp-edit-fields { display: grid; }
 .gp-edit-field {
@@ -532,9 +637,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   gap: 4px;
   min-width: 0;
 }
-.gp-edit-field.is-wide {
-  grid-column: span 2;
-}
+.gp-edit-field.is-wide { min-width: 0; }
 .gp-edit-field label {
   font-size: 10px;
   font-weight: 700;
@@ -546,12 +649,51 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   width: 100%;
   min-height: 36px;
   border: 1px solid var(--rule-strong);
-  border-radius: 10px;
+  border-radius: 7px;
   background: #fffaf7;
   color: var(--text);
   font: inherit;
   font-size: 12px;
   padding: 7px 9px;
+}
+.gp-edit-date-control {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 7px;
+  background: #fffaf7;
+  color: var(--text);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(63,36,26,0.06);
+}
+.gp-edit-date-control svg {
+  width: 14px;
+  height: 14px;
+  color: var(--plum);
+  stroke-width: 2;
+}
+.gp-edit-date-display {
+  min-width: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gp-edit-date-control input[type="date"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 100%;
+  opacity: 0;
+  pointer-events: none;
 }
 .gp-edit-field input[readonly] {
   background: rgba(107,68,89,0.05);
@@ -560,72 +702,167 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-edit-slots {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  min-height: 36px;
+  gap: 5px;
+  min-height: 34px;
+  align-content: flex-start;
 }
 .gp-edit-slot-option {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-height: 32px;
-  padding: 6px 9px;
+  justify-content: center;
+  gap: 0;
+  min-width: 72px;
+  min-height: 24px;
+  padding: 4px 6px;
   border: 1px solid rgba(107,68,89,0.14);
-  border-radius: 999px;
+  border-radius: 6px;
   background: rgba(107,68,89,0.05);
   color: var(--plum);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
 }
-.gp-edit-slot-option input { width: auto; min-height: auto; padding: 0; }
+.gp-edit-slot-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.gp-edit-slot-option:has(input:checked) {
+  border-color: var(--plum);
+  background: var(--plum);
+  color: #fffaf3;
+}
 .gp-edit-slot-note {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 }
 .gp-save-btn {
+  position: absolute;
+  top: auto;
+  right: 14px;
+  bottom: 14px;
   min-height: 36px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 7px;
   background: var(--plum);
   color: #fffaf3;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
-  padding: 0 14px;
+  padding: 0 16px;
   white-space: nowrap;
 }
 .gp-save-btn:hover { background: var(--plum-dk); }
 
+.gp-calendar-popover {
+  position: fixed;
+  z-index: 10010;
+  width: min(250px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid rgba(63,36,26,0.14);
+  border-radius: 10px;
+  background: rgba(255,248,239,0.98);
+  box-shadow: 0 24px 60px rgba(63,36,26,0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.gp-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #3f241a;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 9px;
+}
+.gp-calendar-nav {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #7a4e3d;
+  cursor: pointer;
+}
+.gp-calendar-nav svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+.gp-calendar-nav:hover { background: rgba(63,36,26,0.08); }
+.gp-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.gp-calendar-day-name,
+.gp-calendar-day {
+  display: grid;
+  place-items: center;
+  height: 24px;
+  color: #6f5448;
+  font-size: 11px;
+}
+.gp-calendar-day-name {
+  color: rgba(63,36,26,0.52);
+  font-weight: 800;
+}
+.gp-calendar-day {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+.gp-calendar-day:hover { background: rgba(122,78,61,0.12); }
+.gp-calendar-day.is-selected {
+  background: #3f241a;
+  color: #fff8ef;
+}
+.gp-calendar-day.is-today:not(.is-selected) { outline: 1px solid rgba(63,36,26,0.28); }
+.gp-calendar-day.is-disabled {
+  color: rgba(63,36,26,0.24);
+  cursor: not-allowed;
+}
+
 /* Right column */
 .gp-item-right {
-  display: flex; flex-direction: column;
-  align-items: flex-end; justify-content: space-between;
-  padding: 16px 16px 16px 8px;
-  gap: 12px; flex-shrink: 0;
+  display: contents;
 }
 
 .gp-item-price {
-  font-family: var(--font-d);
-  font-size: 22px; font-weight: 600;
+  font-family: var(--font-b);
+  margin-top: 2px;
+  font-size: 14px; font-weight: 800;
   color: var(--plum);
   white-space: nowrap;
   line-height: 1;
 }
-.gp-item-price-label {
-  font-size: 10px; font-weight: 500; color: var(--muted);
-  text-align: right; margin-top: 2px;
-  font-family: var(--font-b);
-}
+.gp-item-price-label { display: none; }
 
 .gp-remove-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 5px 11px; border-radius: 999px;
-  border: 1px solid rgba(185,75,75,0.2);
-  background: rgba(185,75,75,0.04);
-  color: var(--danger);
-  font-size: 11px; font-weight: 600;
-  transition: all 0.2s;
+  position: absolute;
+  right: 14px;
+  top: 88px;
+  bottom: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  border: 0;
+  background: #ee2f2b;
+  color: #fff;
+  transition: background 0.2s, transform 0.2s;
 }
-.gp-remove-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.gp-remove-btn svg { width: 14px; height: 14px; stroke-width: 2.2; }
+.gp-remove-btn:hover { background: #d92522; transform: translateY(-1px); }
 
 /* ─── Sticky sidebar ─────────────────────────────────── */
 .gp-sidebar {
@@ -635,79 +872,171 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 
 .gp-summary-card {
-  background: var(--card);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-xl);
+  background: rgba(252,248,245,0.96);
+  border: 1px solid rgba(178,143,110,0.18);
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(26,17,24,0.08);
+  box-shadow: 0 18px 52px rgba(26,17,24,0.09);
 }
 
-/* Summary header with decorative band */
 .gp-summary-head {
-  padding: 24px 24px 20px;
-  border-bottom: 1px solid var(--rule);
-  position: relative; overflow: hidden;
-}
-.gp-summary-head::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, var(--plum) 0%, var(--rose) 50%, var(--gold) 100%);
+  padding: 24px 26px 14px;
 }
 
 .gp-summary-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+  color: #817476;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 .gp-summary-title {
-  font-family: var(--font-d);
-  font-size: 22px; font-weight: 600; color: var(--text);
+  color: #0f0c12;
+  font-family: var(--font-b);
+  font-size: clamp(21px, 2.1vw, 27px);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.05;
 }
 .gp-summary-subtitle {
-  font-size: 12px; color: var(--muted); margin-top: 2px;
+  margin-top: 8px;
+  color: #817476;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 /* Line items */
-.gp-summary-body { padding: 20px 24px; }
+.gp-summary-body { padding: 6px 26px 20px; }
 
-.gp-line-items { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.gp-line-items {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.gp-summary-service {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  padding: 10px 0 14px;
+}
+
+.gp-summary-service-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  background: rgba(107,68,89,0.09);
+  color: var(--plum);
+}
+.gp-summary-service-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.7;
+}
+
+.gp-summary-service-main {
+  min-width: 0;
+}
+
+.gp-summary-service-name {
+  color: #111016;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.gp-summary-service-date {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  color: #8d8187;
+  font-size: 10px;
+  font-weight: 500;
+}
+.gp-summary-service-date svg {
+  width: 13px;
+  height: 13px;
+  color: #9b8d98;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+.gp-summary-service-price {
+  color: #111016;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.gp-summary-divider {
+  height: 1px;
+  background: rgba(178,143,110,0.20);
+  margin: 0 0 14px;
+}
 
 .gp-line {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
 }
-.gp-line-name { font-size: 13px; color: var(--text2); font-weight: 400; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gp-line-dots { flex: 1; border-bottom: 1px dashed var(--rule-strong); margin: 0 6px 3px; }
-.gp-line-val { font-size: 13px; color: var(--text); font-weight: 500; white-space: nowrap; }
-.gp-line-meta {
-  margin-top: -8px;
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 1.45;
+.gp-line-name {
+  color: #1f1a21;
+  font-size: 12px;
+  font-weight: 500;
+}
+.gp-line-dots { display: none; }
+.gp-line-val {
+  color: #1f1a21;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.gp-line-divider { height: 1px; background: var(--rule); margin: 4px 0; }
+.gp-line-divider { height: 1px; background: rgba(178,143,110,0.20); margin: 10px 0 4px; }
 
 .gp-total-row {
-  display: flex; justify-content: space-between; align-items: baseline;
-  padding: 16px 0 0;
-  border-top: 1px solid var(--rule-strong);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 20px 0 0;
+  border-top: 1px solid rgba(178,143,110,0.20);
 }
-.gp-total-label { font-size: 13px; font-weight: 600; color: var(--text2); }
+.gp-total-label {
+  color: #111016;
+  font-size: 12px;
+  font-weight: 800;
+}
 .gp-total-amount {
-  font-family: var(--font-d);
-  font-size: 30px; font-weight: 600; color: var(--plum);
+  color: var(--plum);
+  font-family: var(--font-b);
+  font-size: clamp(18px, 1.8vw, 22px);
+  font-weight: 800;
   line-height: 1;
+  white-space: nowrap;
 }
 
 /* CTAs */
-.gp-summary-footer { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 10px; }
+.gp-summary-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 0 26px 22px;
+}
 
 .gp-btn-book {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  height: 52px; border-radius: var(--r-md); border: none;
+  height: 48px; border-radius: 5px; border: none;
   background: var(--plum); color: #fffaf3;
-  font-size: 14px; font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 12px; font-weight: 800;
+  letter-spacing: 0;
   box-shadow: 0 10px 28px rgba(107,68,89,0.28);
   transition: all 0.3s var(--ease-expo);
   position: relative; overflow: hidden;
@@ -715,7 +1044,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-btn-book::before {
   content: '';
   position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  background: linear-gradient(90deg, transparent, rgba(252,248,245,0.12), transparent);
   transition: left 0.5s var(--ease-expo);
 }
 .gp-btn-book:hover { background: var(--plum-dk); transform: translateY(-2px); box-shadow: 0 18px 40px rgba(107,68,89,0.32); }
@@ -723,28 +1052,54 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-btn-book:active { transform: translateY(0); }
 
 .gp-btn-more {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  height: 42px; border-radius: var(--r-md);
-  border: 1px solid var(--rule-strong);
-  background: transparent; color: var(--text2);
-  font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 44px; border-radius: 7px;
+  border: 1px solid rgba(107,68,89,0.48);
+  background: transparent; color: var(--plum);
+  font-size: 12px; font-weight: 800;
   transition: all 0.22s;
 }
 .gp-btn-more:hover { border-color: var(--plum); color: var(--plum); background: rgba(107,68,89,0.05); }
 
 /* Trust badges */
 .gp-trust {
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 20px 26px 22px;
+  border-top: 1px solid rgba(178,143,110,0.16);
 }
 .gp-trust-item {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 11px; color: var(--muted);
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 11px;
+  align-items: center;
 }
 .gp-trust-icon {
-  width: 16px; height: 16px; flex-shrink: 0;
-  color: var(--gold);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(107,68,89,0.07);
+  color: var(--plum);
+}
+.gp-trust-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.9;
+}
+.gp-trust-title {
+  color: #3e353b;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.gp-trust-copy {
+  margin-top: 2px;
+  color: #8d8187;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
 /* ─── Empty state ────────────────────────────────────── */
@@ -767,7 +1122,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-btn-browse {
   display: inline-flex; align-items: center; gap: 8px;
   height: 50px; padding: 0 32px; border-radius: 999px; border: none;
-  background: var(--plum); color: #fff;
+  background: var(--plum); color: #fcf8f5;
   font-size: 14px; font-weight: 700;
   box-shadow: 0 8px 24px rgba(107,68,89,0.22);
   transition: all 0.25s var(--ease-expo);
@@ -839,6 +1194,99 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 .gp-included-btn.secondary:hover { color: var(--plum); border-color: var(--plum); }
 
+/* ─── Remove confirmation modal ──────────────────────── */
+.gp-remove-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(26,17,24,0.38);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.gp-remove-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.gp-remove-dialog {
+  width: min(100%, 360px);
+  padding: 24px;
+  border: 1px solid rgba(178,143,110,0.24);
+  border-radius: 14px;
+  background: #fcf8f5;
+  box-shadow: 0 24px 70px rgba(26,17,24,0.20);
+  text-align: center;
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.22s var(--ease-expo);
+}
+.gp-remove-modal.is-open .gp-remove-dialog {
+  transform: translateY(0) scale(1);
+}
+.gp-remove-dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: rgba(185,75,75,0.10);
+  color: var(--danger);
+}
+.gp-remove-dialog-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.2;
+}
+.gp-remove-dialog h2 {
+  color: var(--text);
+  font-family: var(--font-b);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.gp-remove-dialog p {
+  margin-top: 8px;
+  color: var(--text2);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.gp-remove-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+.gp-remove-dialog-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: 8px;
+  border: 1px solid rgba(107,68,89,0.22);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.gp-remove-dialog-btn.cancel {
+  background: transparent;
+  color: var(--text2);
+}
+.gp-remove-dialog-btn.confirm {
+  border-color: #d92522;
+  background: #d92522;
+  color: #fffaf3;
+}
+.gp-remove-dialog-btn.cancel:hover {
+  border-color: var(--plum);
+  color: var(--plum);
+}
+.gp-remove-dialog-btn.confirm:hover {
+  background: #bd211f;
+}
+
 /* ─── Keyframes ──────────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
@@ -861,15 +1309,71 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   .gp-included-reminder { grid-template-columns: 40px 1fr; }
   .gp-included-actions { grid-column: 1 / -1; justify-content: flex-start; }
   .gp-edit-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .gp-save-btn { grid-column: 1 / -1; }
+  .gp-item {
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .gp-item-name { font-size: 14px; }
 }
 @media (max-width: 640px) {
-  .gp-item { grid-template-columns: 88px 1fr; }
-  .gp-item-right { display: none; }
-  .gp-item-body { padding: 12px; }
-  .gp-item-name { white-space: normal; }
+  .gp-summary-head,
+  .gp-summary-body,
+  .gp-summary-footer,
+  .gp-trust {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .gp-summary-service {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .gp-summary-service-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .gp-summary-service-price {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: -4px;
+  }
+  .gp-total-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .gp-items { max-width: none; }
+  .gp-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+  .gp-item-thumb { min-height: 124px; aspect-ratio: 16 / 10; }
+  .gp-item-body {
+    grid-column: auto;
+    padding: 0 92px 0 0;
+    gap: 6px;
+  }
+  .gp-item-name { font-size: 14px; }
+  .gp-item-supplier,
+  .gp-item-date-line { font-size: 11px; }
+  .gp-item-right {
+    display: contents;
+  }
+  .gp-item-price { font-size: 13px; }
+  .gp-edit-toggle { top: 12px; right: 12px; bottom: auto; width: 32px; height: 32px; }
+  .gp-remove-btn { top: auto; right: 12px; bottom: 12px; width: 32px; height: 32px; }
+  .gp-edit-toggle svg { width: 15px; height: 15px; }
+  .gp-remove-btn svg { width: 14px; height: 14px; }
   .gp-package-service-list { grid-template-columns: 1fr; }
-  .gp-edit-fields { grid-template-columns: 1fr; }
+  .gp-edit-fields {
+    grid-template-columns: 1fr;
+    padding: 12px 12px 56px;
+  }
+  .gp-save-btn {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+  }
   .gp-header-nav { display: none; }
   .gp-included-reminder { grid-template-columns: 1fr; }
   .gp-included-actions { flex-direction: column; }
@@ -884,7 +1388,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 </style>
 </head>
-<body>
+<body class="gp-cart-page">
 
 <!-- Ambient orbs -->
 <div class="gp-orbs" aria-hidden="true">
@@ -900,8 +1404,8 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
   <!-- Page heading -->
   <div class="gp-page-head">
-    <div class="gp-page-eyebrow">Your Selection</div>
-    <h1 class="gp-page-title">My <em>Cart</em></h1>
+    <h1 class="gp-page-title">Selected Services</h1>
+    <div class="gp-page-eyebrow">YOUR SELECTION</div>
   </div>
 
   <?php if ($addonError !== ''): ?>
@@ -956,7 +1460,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
     <div class="gp-empty-icon">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
     </div>
-    <h2>Your cart is empty</h2>
+    <h2>No services selected yet</h2>
     <p>Browse our curated collection of wedding services and add the ones that make your day perfect.</p>
     <a class="gp-btn-browse" href="<?= URLROOT ?>/customerServices/service">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -1018,7 +1522,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             <a href="<?= $h($detailUrl) ?>"><?= $h($displayName) ?></a>
           </h2>
           <div class="gp-item-supplier">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <?= $h($supplier) ?>
           </div>
           <?php if ($addonPackageName !== ''): ?>
@@ -1038,21 +1542,26 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
           </div>
           <?php endif; ?>
           <?php if ($selectedDate || $timeRange): ?>
-          <div class="gp-item-meta">
+          <div class="gp-item-date-line">
             <?php if ($selectedDate): ?>
-            <span class="gp-item-pill">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <?= $h($formatDate($selectedDate)) ?>
             </span>
             <?php endif; ?>
+            <?php if ($selectedDate && $timeRange): ?>
+            <span class="gp-item-meta-separator" aria-hidden="true">|</span>
+            <?php endif; ?>
             <?php if ($timeRange): ?>
-            <span class="gp-item-pill">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <?= $h($timeRange) ?>
             </span>
             <?php endif; ?>
           </div>
           <?php endif; ?>
+
+          <div class="gp-item-price"><?= $money($price) ?></div>
 
           <?php if ($itemType === 'package'): ?>
           <section class="gp-package-includes" aria-label="Services included in <?= $h($name) ?>">
@@ -1121,54 +1630,54 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
           </section>
           <?php endif; ?>
 
-          <?php if ($itemType === 'service'): ?>
-          <form class="gp-edit-form" method="POST" action="<?= URLROOT ?>/cart/update">
-            <input type="hidden" name="cart_item_id" value="<?= $itemId ?>">
-            <button class="gp-edit-toggle" type="button" aria-expanded="false">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-              Edit details
-            </button>
-            <div class="gp-edit-fields">
-              <div class="gp-edit-field">
-                <label for="cart-date-<?= $itemId ?>">Date</label>
-                <input id="cart-date-<?= $itemId ?>" type="date" name="date" value="<?= $h($selectedDate) ?>"
+        </div>
+
+        <?php if ($itemType === 'service'): ?>
+        <form class="gp-edit-form" method="POST" action="<?= URLROOT ?>/cart/update">
+          <input type="hidden" name="cart_item_id" value="<?= $itemId ?>">
+          <button class="gp-edit-toggle" type="button" aria-expanded="false" aria-label="Edit <?= $h($name) ?> details" title="Edit details">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+          <div class="gp-edit-fields">
+            <div class="gp-edit-field">
+              <label for="cart-date-<?= $itemId ?>">Date</label>
+              <span class="gp-edit-date-control">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span class="gp-edit-date-display" data-date-display><?= $h($selectedDate !== '' ? $formatDate($selectedDate) : 'Choose date') ?></span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                <input class="gp-calendar-input" id="cart-date-<?= $itemId ?>" type="date" name="date" value="<?= $h($selectedDate) ?>"
                        min="<?= $h($earliestBookingDate) ?>"
                        data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
                        data-current-start="<?= $h($startTime) ?>"
                        data-current-end="<?= $h($endTime) ?>">
-                <?php if ($minLeadDays > 0): ?>
-                  <span class="gp-edit-slot-note">Earliest: <?= $h(date('M j, Y', strtotime($earliestBookingDate))) ?></span>
-                <?php endif; ?>
-              </div>
-              <div class="gp-edit-field is-wide">
-                <label>Available time slots</label>
-                <div class="gp-edit-slots" data-slot-container>
-                  <span class="gp-edit-slot-note">Open edit details to load available slots.</span>
-                </div>
-                <input type="hidden" name="end_time" value="<?= $h(substr((string)$endTime, 0, 5)) ?>" data-end-time-field>
-                <input type="hidden" name="slot_id" value="<?= $h($item['slot_id'] ?? '') ?>" data-slot-id-field>
-              </div>
-              <div class="gp-edit-field">
-                <label for="cart-price-<?= $itemId ?>">Price</label>
-                <input id="cart-price-<?= $itemId ?>" type="number" name="price" min="0" step="0.01" value="<?= $h($price) ?>" readonly>
-              </div>
-              <button class="gp-save-btn" type="submit">Save</button>
+              </span>
+              <?php if ($minLeadDays > 0): ?>
+                <span class="gp-edit-slot-note">Earliest: <?= $h(date('M j, Y', strtotime($earliestBookingDate))) ?></span>
+              <?php endif; ?>
             </div>
-          </form>
-          <?php endif; ?>
-        </div>
+            <div class="gp-edit-field is-wide">
+              <label>Available times</label>
+              <div class="gp-edit-slots" data-slot-container>
+                <span class="gp-edit-slot-note">Open edit details to load available times.</span>
+              </div>
+              <input type="hidden" name="end_time" value="<?= $h(substr((string)$endTime, 0, 5)) ?>" data-end-time-field>
+              <input type="hidden" name="slot_id" value="<?= $h($item['slot_id'] ?? '') ?>" data-slot-id-field>
+            </div>
+            <div class="gp-edit-field">
+              <label for="cart-price-<?= $itemId ?>">Price</label>
+              <input id="cart-price-<?= $itemId ?>" type="number" name="price" min="0" step="0.01" value="<?= $h($price) ?>" readonly>
+            </div>
+            <button class="gp-save-btn" type="submit">Save</button>
+          </div>
+        </form>
+        <?php endif; ?>
 
         <!-- Right: price + remove -->
         <div class="gp-item-right">
-          <div>
-            <div class="gp-item-price"><?= $money($price) ?></div>
-            <div class="gp-item-price-label">est. price</div>
-          </div>
-          <form method="POST" action="<?= URLROOT ?>/cart/remove" onsubmit="return confirm('Remove this item?');">
+          <form class="gp-remove-form" method="POST" action="<?= URLROOT ?>/cart/remove">
             <input type="hidden" name="cart_item_id" value="<?= $itemId ?>">
-            <button class="gp-remove-btn" type="submit" aria-label="Remove <?= $h($name) ?> from cart">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              Remove
+            <button class="gp-remove-btn" type="submit" aria-label="Remove <?= $h($name) ?> from cart" title="Remove">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
           </form>
         </div>
@@ -1202,18 +1711,24 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               if ($lineHall !== '') $lineName .= ' · ' . $lineHall;
               if ($lineDate !== '') $lineMetaParts[] = $formatDate($lineDate);
               if ($lineTime !== '') $lineMetaParts[] = $lineTime;
+              $lineDetail = !empty($lineMetaParts) ? implode(' · ', $lineMetaParts) : 'Date to be confirmed';
             ?>
-            <div class="gp-line">
-              <span class="gp-line-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></span>
-              <span class="gp-line-dots" aria-hidden="true"></span>
-              <span class="gp-line-val"><?= $money($linePrice) ?></span>
+            <div class="gp-summary-service">
+              <div class="gp-summary-service-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M6 18a6 6 0 0 1 12 0"/><path d="M12 8v-2"/><path d="M9 6h6"/><path d="M4 21h16"/></svg>
+              </div>
+              <div class="gp-summary-service-main">
+                <div class="gp-summary-service-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></div>
+                <div class="gp-summary-service-date">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <?= $h($lineDetail) ?>
+                </div>
+              </div>
+              <div class="gp-summary-service-price"><?= $money($linePrice) ?></div>
             </div>
-            <?php if (!empty($lineMetaParts)): ?>
-            <div class="gp-line-meta"><?= $h(implode(' · ', $lineMetaParts)) ?></div>
-            <?php endif; ?>
             <?php endforeach; ?>
 
-            <div class="gp-line-divider"></div>
+            <div class="gp-summary-divider"></div>
 
             <div class="gp-line">
               <span class="gp-line-name">Subtotal</span>
@@ -1237,7 +1752,6 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         <!-- CTAs -->
         <div class="gp-summary-footer">
           <a class="gp-btn-book" href="<?= URLROOT ?>/booking/create">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Proceed to Booking
           </a>
           <a class="gp-btn-more" href="<?= URLROOT ?>/customerServices/service">
@@ -1249,16 +1763,31 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         <!-- Trust badges -->
         <div class="gp-trust" aria-label="Assurances">
           <div class="gp-trust-item">
-            <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Secure booking — your data is protected
+            <div class="gp-trust-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <div>
+              <div class="gp-trust-title">Secure booking</div>
+              <div class="gp-trust-copy">Your data is protected</div>
+            </div>
           </div>
           <div class="gp-trust-item">
-            <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            Verified suppliers, reviewed by couples
+            <div class="gp-trust-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 14.2 7.5 19 8.2 15.5 11.7 16.4 16.5 12 14.1 7.6 16.5 8.5 11.7 5 8.2 9.8 7.5 12 3Z"/><path d="m9.6 11.8 1.5 1.5 3.2-3.5"/></svg>
+            </div>
+            <div>
+              <div class="gp-trust-title">Verified suppliers</div>
+              <div class="gp-trust-copy">Reviewed by couples</div>
+            </div>
           </div>
           <div class="gp-trust-item">
-            <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Free cancellation within 48 hours
+            <div class="gp-trust-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="gp-trust-title">Free cancellation</div>
+              <div class="gp-trust-copy">Within 48 hours</div>
+            </div>
           </div>
         </div>
 
@@ -1269,6 +1798,22 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   <?php endif; ?>
 
 </main>
+
+<div class="gp-calendar-popover" id="cartCalendarPopover" hidden></div>
+
+<div class="gp-remove-modal" id="removeConfirmModal" aria-hidden="true">
+  <div class="gp-remove-dialog" role="dialog" aria-modal="true" aria-labelledby="removeConfirmTitle" aria-describedby="removeConfirmText">
+    <div class="gp-remove-dialog-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    </div>
+    <h2 id="removeConfirmTitle">Remove item?</h2>
+    <p id="removeConfirmText">Are you sure you want to delete this service from your cart?</p>
+    <div class="gp-remove-dialog-actions">
+      <button class="gp-remove-dialog-btn cancel" type="button" data-remove-cancel>Cancel</button>
+      <button class="gp-remove-dialog-btn confirm" type="button" data-remove-confirm>Remove</button>
+    </div>
+  </div>
+</div>
 
 <footer class="gp-footer">
   <span>&copy; <?= date('Y') ?> Golden Promise</span>
@@ -1310,6 +1855,88 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
     return String(value || '').slice(0, 5);
   }
 
+  const cartCalendar = document.getElementById('cartCalendarPopover');
+  let cartCalendarInput = null;
+  let cartCalendarMonth = null;
+
+  function formatDateValue(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
+  }
+
+  function parseDateValue(value) {
+    if (!value) return null;
+    const parts = String(value).split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function formatEditDateLabel(value) {
+    if (!value) return 'Choose date';
+    const date = parseDateValue(value);
+    if (!date) return value;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function updateEditDateDisplay(input) {
+    const display = input.closest('.gp-edit-date-control')?.querySelector('[data-date-display]');
+    if (display) display.textContent = formatEditDateLabel(input.value);
+  }
+
+  function positionCartCalendar(anchor) {
+    if (!cartCalendar || !anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const width = Math.min(250, window.innerWidth - 32);
+    const left = Math.max(16, Math.min(rect.left, window.innerWidth - width - 16));
+    cartCalendar.style.width = width + 'px';
+    cartCalendar.style.left = left + 'px';
+    cartCalendar.style.top = (rect.bottom + 10) + 'px';
+  }
+
+  function renderCartCalendar() {
+    if (!cartCalendar || !cartCalendarInput || !cartCalendarMonth) return;
+    const monthStart = new Date(cartCalendarMonth.getFullYear(), cartCalendarMonth.getMonth(), 1);
+    const selectedValue = cartCalendarInput.value;
+    const todayValue = formatDateValue(new Date());
+    const minValue = cartCalendarInput.min || '';
+    const maxValue = cartCalendarInput.max || '';
+    const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+    const leadingBlanks = monthStart.getDay();
+    const monthTitle = monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+    let html = '<div class="gp-calendar-head">' +
+      '<button class="gp-calendar-nav" type="button" data-cart-cal-prev aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>' +
+      '<span>' + monthTitle + '</span>' +
+      '<button class="gp-calendar-nav" type="button" data-cart-cal-next aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>' +
+      '</div><div class="gp-calendar-grid">';
+
+    dayNames.forEach((day) => { html += '<div class="gp-calendar-day-name">' + day + '</div>'; });
+    for (let i = 0; i < leadingBlanks; i++) html += '<span></span>';
+    for (let day = 1; day <= daysInMonth; day++) {
+      const value = formatDateValue(new Date(monthStart.getFullYear(), monthStart.getMonth(), day));
+      const disabled = (minValue && value < minValue) || (maxValue && value > maxValue);
+      const classes = ['gp-calendar-day'];
+      if (value === selectedValue) classes.push('is-selected');
+      if (value === todayValue) classes.push('is-today');
+      if (disabled) classes.push('is-disabled');
+      html += '<button class="' + classes.join(' ') + '" type="button" data-cart-date="' + value + '"' + (disabled ? ' disabled' : '') + '>' + day + '</button>';
+    }
+    html += '</div>';
+    cartCalendar.innerHTML = html;
+  }
+
+  function openCartCalendar(input) {
+    if (!cartCalendar || !input) return;
+    cartCalendarInput = input;
+    cartCalendarMonth = parseDateValue(input.value) || parseDateValue(input.min) || new Date();
+    renderCartCalendar();
+    cartCalendar.hidden = false;
+    positionCartCalendar(input.closest('.gp-edit-date-control') || input);
+  }
+
   async function loadCartSlots(form) {
     const dateInput = form.querySelector('input[name="date"]');
     const container = form.querySelector('[data-slot-container]');
@@ -1339,7 +1966,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
       const slots = Array.isArray(data.slots) ? data.slots : [];
 
       if (!slots.length) {
-        container.innerHTML = '<span class="gp-edit-slot-note">' + (data.message || 'No available slots for this date.') + '</span>';
+        container.innerHTML = '<span class="gp-edit-slot-note">No available times for this date.</span>';
         if (endTimeField) endTimeField.value = '';
         if (slotIdField) slotIdField.value = '';
         return;
@@ -1359,7 +1986,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
                  data-end-time="${escapeHtml(slot.end_time)}"
                  data-slot-id="${escapeHtml(slot.slot_id || '')}"
                  ${index === selectedIndex ? 'checked' : ''}>
-          <span>${escapeHtml(slot.display)}${slot.available ? ' · ' + Number(slot.available) + ' available' : ''}</span>
+          <span>${escapeHtml(slot.display)}</span>
         </label>
       `).join('');
 
@@ -1392,12 +2019,108 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   });
 
   document.querySelectorAll('.gp-edit-form input[name="date"]').forEach((input) => {
+    updateEditDateDisplay(input);
+    input.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openCartCalendar(input);
+    });
+    input.addEventListener('focus', () => openCartCalendar(input));
     input.addEventListener('change', () => {
+      updateEditDateDisplay(input);
       input.dataset.currentStart = '';
       input.dataset.currentEnd = '';
       const form = input.closest('.gp-edit-form');
       if (form?.classList.contains('is-open')) loadCartSlots(form);
     });
+  });
+
+  document.querySelectorAll('.gp-edit-date-control').forEach((control) => {
+    const input = control.querySelector('.gp-calendar-input');
+    if (!input) return;
+    control.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openCartCalendar(input);
+    });
+  });
+
+  cartCalendar?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const prev = event.target.closest('[data-cart-cal-prev]');
+    const next = event.target.closest('[data-cart-cal-next]');
+    const day = event.target.closest('[data-cart-date]');
+    if (prev) {
+      cartCalendarMonth = new Date(cartCalendarMonth.getFullYear(), cartCalendarMonth.getMonth() - 1, 1);
+      renderCartCalendar();
+      return;
+    }
+    if (next) {
+      cartCalendarMonth = new Date(cartCalendarMonth.getFullYear(), cartCalendarMonth.getMonth() + 1, 1);
+      renderCartCalendar();
+      return;
+    }
+    if (day && cartCalendarInput) {
+      cartCalendarInput.value = day.dataset.cartDate;
+      updateEditDateDisplay(cartCalendarInput);
+      cartCalendar.hidden = true;
+      cartCalendarInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+
+  cartCalendar?.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+
+  /* Remove item confirmation */
+  const removeModal = document.getElementById('removeConfirmModal');
+  const removeConfirmBtn = removeModal?.querySelector('[data-remove-confirm]');
+  const removeCancelBtn = removeModal?.querySelector('[data-remove-cancel]');
+  let pendingRemoveForm = null;
+  let allowRemoveSubmit = false;
+
+  function openRemoveModal(form) {
+    pendingRemoveForm = form;
+    removeModal?.classList.add('is-open');
+    removeModal?.setAttribute('aria-hidden', 'false');
+    removeCancelBtn?.focus();
+  }
+
+  function closeRemoveModal() {
+    removeModal?.classList.remove('is-open');
+    removeModal?.setAttribute('aria-hidden', 'true');
+    pendingRemoveForm = null;
+    allowRemoveSubmit = false;
+  }
+
+  document.querySelectorAll('.gp-remove-form').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      if (allowRemoveSubmit) return;
+      event.preventDefault();
+      openRemoveModal(form);
+    });
+  });
+
+  removeConfirmBtn?.addEventListener('click', () => {
+    if (!pendingRemoveForm) return;
+    allowRemoveSubmit = true;
+    pendingRemoveForm.submit();
+  });
+
+  removeCancelBtn?.addEventListener('click', closeRemoveModal);
+
+  removeModal?.addEventListener('click', (event) => {
+    if (event.target === removeModal) closeRemoveModal();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && removeModal?.classList.contains('is-open')) {
+      closeRemoveModal();
+    }
+    if (event.key === 'Escape' && cartCalendar && !cartCalendar.hidden) {
+      cartCalendar.hidden = true;
+    }
   });
 
   /* Shimmer effect on Book button hover — already handled by CSS ::before */
@@ -1414,6 +2137,12 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
   /* Profile dropdown toggle */
   document.addEventListener('click', (e) => {
+    if (cartCalendar && !cartCalendar.hidden) {
+      if (!e.target.closest('.gp-calendar-popover') && !e.target.closest('.gp-edit-date-control')) {
+        cartCalendar.hidden = true;
+      }
+    }
+
     const btn = e.target.closest('.gp-profile-btn');
     if (btn) {
       const expanded = btn.getAttribute('aria-expanded') === 'true';
@@ -1423,6 +2152,15 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
     }
     document.querySelectorAll('.gp-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
   });
+
+  window.addEventListener('resize', () => {
+    if (cartCalendar && !cartCalendar.hidden && cartCalendarInput) {
+      positionCartCalendar(cartCalendarInput.closest('.gp-edit-date-control') || cartCalendarInput);
+    }
+  });
+  window.addEventListener('scroll', () => {
+    if (cartCalendar && !cartCalendar.hidden) cartCalendar.hidden = true;
+  }, { passive: true });
 })();
 </script>
 </body>

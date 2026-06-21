@@ -35,7 +35,7 @@ $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(
 :root {
   --c-bg:        #f5e8d9;
   --c-surface:   #faf5ef;
-  --c-white:     #ffffff;
+  --c-white:     #fcf8f5;
   --c-card:      #faf5ef;
   --c-rule:      #ead8c7;
   --c-strong:    #6d4c5b;
@@ -132,7 +132,7 @@ img { display: block; max-width: 100%; }
   min-width: 20px; height: 20px; padding: 0 6px;
   border-radius: 999px;
   background: var(--c-strong);
-  color: #fff;
+  color: #fcf8f5;
   font-size: 10px; font-weight: 700;
 }
 .gp-header-cta {
@@ -281,7 +281,7 @@ img { display: block; max-width: 100%; }
   border-radius: 20px;
   box-shadow:
     0 20px 50px -12px rgba(109,76,91,0.12),
-    inset 0 1px 0 rgba(255,255,255,0.60);
+    inset 0 1px 0 rgba(252,248,245,0.60);
   padding: 24px 28px;
   transition: box-shadow 0.3s;
 }
@@ -314,20 +314,20 @@ img { display: block; max-width: 100%; }
   padding: 0 14px;
   border-radius: 10px;
   border: 1px solid rgba(212,160,71,0.12);
-  background: rgba(255,255,255,0.72);
+  background: rgba(252,248,245,0.72);
   font-size: 13px; font-weight: 500; color: var(--c-text);
   width: 100%; appearance: none;
   transition: border-color 0.2s, background 0.2s;
 }
 .gp-search-field-boutique input:hover,
 .gp-search-field-boutique select:hover {
-  background: rgba(255,255,255,0.90);
+  background: rgba(252,248,245,0.90);
   border-color: rgba(212,160,71,0.25);
 }
 .gp-search-field-boutique input:focus,
 .gp-search-field-boutique select:focus {
   border-color: var(--c-gold);
-  background: #fff;
+  background: #fcf8f5;
   box-shadow: 0 0 0 3px rgba(212,160,71,0.10);
 }
 .gp-search-field-boutique input::placeholder { color: var(--c-pale); font-weight: 400; }
@@ -377,7 +377,7 @@ img { display: block; max-width: 100%; }
 }
 .gp-filter-chip-boutique-remove:hover {
   background: var(--c-gold);
-  color: #fff;
+  color: #fcf8f5;
   box-shadow: 0 2px 6px rgba(212,160,71,0.25);
 }
 
@@ -429,8 +429,8 @@ img { display: block; max-width: 100%; }
   line-height: 1;
 }
 .gp-cat-card.active .gp-cat-count {
-  background: rgba(255,255,255,0.18);
-  color: #fff;
+  background: rgba(252,248,245,0.18);
+  color: #fcf8f5;
 }
 .gp-cat-icon {
   font-size: 16px; line-height: 1;
@@ -526,7 +526,7 @@ img { display: block; max-width: 100%; }
   text-decoration: none;
 }
 .gp-pkg-btn:hover {
-  background: var(--c-strong); color: #fff; border-color: var(--c-strong);
+  background: var(--c-strong); color: #fcf8f5; border-color: var(--c-strong);
   transform: translateX(2px);
   box-shadow: 0 2px 10px rgba(109,76,91,0.18);
 }
@@ -563,7 +563,7 @@ img { display: block; max-width: 100%; }
   font-size: 14px; font-weight: 700; cursor: pointer; border: none;
   transition: all 0.2s var(--ease-out-expo);
 }
-.gp-pkg-empty-btn.primary { background: var(--c-strong); color: #fff; box-shadow: 0 2px 8px rgba(109,76,91,0.18); }
+.gp-pkg-empty-btn.primary { background: var(--c-strong); color: #fcf8f5; box-shadow: 0 2px 8px rgba(109,76,91,0.18); }
 .gp-pkg-empty-btn.primary:hover { background: #5a3d4a; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(109,76,91,0.20); }
 .gp-pkg-empty-btn.secondary { background: var(--c-card); color: var(--c-accent); border: 1px solid var(--c-rule); }
 .gp-pkg-empty-btn.secondary:hover { border-color: var(--c-strong); color: var(--c-strong); background: rgba(109,76,91,0.06); }

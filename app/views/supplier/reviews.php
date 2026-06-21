@@ -22,7 +22,7 @@ $dashboardContent = function () use ($supplier, $stats, $reviews, $total, $avg, 
 <div style="max-width:960px;">
 
   <!-- Header card -->
-  <header style="background:#fff;border:1px solid #e7e5e4;border-radius:1.2rem;padding:20px;margin-bottom:20px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
+  <header style="background:#fcf8f5;border:1px solid #e7e5e4;border-radius:1.2rem;padding:20px;margin-bottom:20px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center;">
       <div style="background:#fcefe8;border-radius:1rem;padding:20px;">
         <p style="font-size:12px;font-weight:700;color:#1c1917;">Customer Rating Summary</p>
@@ -53,22 +53,22 @@ $dashboardContent = function () use ($supplier, $stats, $reviews, $total, $avg, 
 
   <!-- Stats cards -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
-    <article style="background:#fff;border:1px solid #e7e5e4;border-radius:1.2rem;padding:16px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
+    <article style="background:#fcf8f5;border:1px solid #e7e5e4;border-radius:1.2rem;padding:16px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
       <p style="font-size:11px;color:#78716c;font-weight:500;">Total Reviews</p>
       <h2 style="font-size:28px;font-weight:800;margin-top:6px;"><?= $total ?></h2>
     </article>
-    <article style="background:#fff;border:1px solid #e7e5e4;border-radius:1.2rem;padding:16px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
+    <article style="background:#fcf8f5;border:1px solid #e7e5e4;border-radius:1.2rem;padding:16px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
       <p style="font-size:11px;color:#78716c;font-weight:500;">Average Rating</p>
       <h2 style="font-size:28px;font-weight:800;margin-top:6px;color:#673049;"><?= number_format($avg, 1) ?></h2>
     </article>
-    <article style="background:#fff;border:1px solid #e7e5e4;border-radius:1.2rem;padding:16px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
+    <article style="background:#fcf8f5;border:1px solid #e7e5e4;border-radius:1.2rem;padding:16px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
       <p style="font-size:11px;color:#78716c;font-weight:500;">5-Star Reviews</p>
       <h2 style="font-size:28px;font-weight:800;margin-top:6px;color:#d6a72d;"><?= (int)($dist[5] ?? 0) ?></h2>
     </article>
   </div>
 
   <!-- Review feed -->
-  <div style="background:#fff;border:1px solid #e7e5e4;border-radius:1.2rem;padding:20px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
+  <div style="background:#fcf8f5;border:1px solid #e7e5e4;border-radius:1.2rem;padding:20px;box-shadow:0 1px 2px rgba(28,25,23,.05);">
     <p style="font-size:11px;font-weight:700;color:#1c1917;margin-bottom:16px;text-transform:uppercase;letter-spacing:.08em;">Recent Reviews</p>
 
     <?php if (empty($reviews)): ?>
@@ -84,7 +84,7 @@ $dashboardContent = function () use ($supplier, $stats, $reviews, $total, $avg, 
           ?>
           <article style="border:1px solid #e7e5e4;border-radius:1rem;padding:14px;">
             <div style="display:flex;align-items:flex-start;gap:12px;">
-              <div style="width:36px;height:36px;border-radius:50%;background:#673049;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex-shrink:0;"><?= $h($rInitial) ?></div>
+              <div style="width:36px;height:36px;border-radius:50%;background:#673049;color:#fcf8f5;display:grid;place-items:center;font-weight:700;font-size:13px;flex-shrink:0;"><?= $h($rInitial) ?></div>
               <div style="flex:1;">
                 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
                   <strong style="font-size:13px;"><?= $rName ?></strong>

@@ -52,7 +52,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     margin-bottom: 16px;
 }
 .bk-kpi {
-    background: #fff;
+    background: #fcf8f5;
     border: 1px solid #e7e5e4;
     border-radius: 1.2rem;
     padding: 20px;
@@ -126,7 +126,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 
 /* Section card */
 .bk-section {
-    background: #fff;
+    background: #fcf8f5;
     border: 1px solid #e7e5e4;
     border-radius: 1.2rem;
     overflow: hidden;
@@ -169,27 +169,27 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 }
 .bk-pill-active-all {
     background: #673049;
-    color: #fff;
+    color: #fcf8f5;
     border-color: #673049;
 }
 .bk-pill-active-pending {
     background: #92400e;
-    color: #fff;
+    color: #fcf8f5;
     border-color: #92400e;
 }
 .bk-pill-active-confirmed {
     background: #065f46;
-    color: #fff;
+    color: #fcf8f5;
     border-color: #065f46;
 }
 .bk-pill-active-completed {
     background: #1e40af;
-    color: #fff;
+    color: #fcf8f5;
     border-color: #1e40af;
 }
 .bk-pill-active-rejected {
     background: #991b1b;
-    color: #fff;
+    color: #fcf8f5;
     border-color: #991b1b;
 }
 
@@ -214,7 +214,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     padding: 0 10px 0 30px;
     border-radius: 8px;
     border: 1px solid #e7e5e4;
-    background: #fff;
+    background: #fcf8f5;
     color: #1c1917;
     width: 220px;
     transition: border-color 0.12s;
@@ -346,7 +346,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 }
 .bk-btn-view {
     color: #673049;
-    background: #fff;
+    background: #fcf8f5;
     border-color: #e7e5e4;
 }
 .bk-btn-view:hover {
@@ -408,7 +408,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     font-weight: 600;
     text-decoration: none;
     color: #57534e;
-    background: #fff;
+    background: #fcf8f5;
     transition: all 0.1s;
 }
 .bk-page-btn:hover:not(.bk-page-btn-cur):not(.bk-page-btn-disabled) {
@@ -417,7 +417,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 }
 .bk-page-btn-cur {
     background: #673049;
-    color: #fff;
+    color: #fcf8f5;
     border-color: #673049;
 }
 .bk-page-btn-disabled { opacity: 0.35; pointer-events: none; }

@@ -11,7 +11,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
 <style>
   .supplier-dashboard-overview {
     --supplier-admin-bg: #fbfbf9;
-    --supplier-admin-card: #ffffff;
+    --supplier-admin-card: #fcf8f5;
     --supplier-admin-border: #e7e5e4;
     --supplier-admin-text: #1c1917;
     --supplier-admin-muted: #78716c;
@@ -72,7 +72,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   }
   .supplier-dashboard-overview .supplier-admin-control {
     border-color: var(--supplier-admin-border) !important;
-    background: #fff !important;
+    background: #fcf8f5 !important;
     color: var(--supplier-admin-accent) !important;
   }
   .supplier-dashboard-overview .filter-tab {
@@ -83,7 +83,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   .supplier-dashboard-overview .filter-tab.bg-app-primary {
     border-color: var(--supplier-admin-accent) !important;
     background: var(--supplier-admin-accent) !important;
-    color: #fff !important;
+    color: #fcf8f5 !important;
   }
   .supplier-dashboard-overview table thead {
     background: #f9f8f6;
@@ -158,7 +158,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     animation: supplierAdminFadeUp .35s ease both;
   }
   .scroll-hint { position: relative; }
-  .scroll-hint.can-scroll::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 32px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.9)); pointer-events: none; z-index: 2; }
+  .scroll-hint.can-scroll::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 32px; background: linear-gradient(to right, transparent, rgba(252,248,245,0.9)); pointer-events: none; z-index: 2; }
   @media (max-width: 1100px) {
     .supplier-dashboard-overview .supplier-admin-charts {
       grid-column: 1 / span 7;

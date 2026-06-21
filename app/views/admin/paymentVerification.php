@@ -45,7 +45,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
 <style>
   .admin-payment-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
   .admin-payment-page *{box-sizing:border-box}
-  .admin-payment-page{--surface:#fff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#d1fae5;--success-text:#065f46;--warn-bg:#fef3c7;--warn-text:#92400e;--danger-bg:#fee2e2;--danger-text:#991b1b;--neutral-bg:#f3f4f6;--neutral-text:#57534e;max-width:1600px;margin:0 auto}
+  .admin-payment-page{--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#d1fae5;--success-text:#065f46;--warn-bg:#fef3c7;--warn-text:#92400e;--danger-bg:#fee2e2;--danger-text:#991b1b;--neutral-bg:#f3f4f6;--neutral-text:#57534e;max-width:1600px;margin:0 auto}
 
   .page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
@@ -58,7 +58,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
   .filters{display:flex;gap:6px;flex-wrap:wrap}
   .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none}
-  .filter.active{border-color:var(--primary);background:var(--primary);color:#fff}
+  .filter.active{border-color:var(--primary);background:var(--primary);color:#fcf8f5}
   .divider{width:1px;height:20px;background:var(--border);margin:0 4px}
   .queue-note{height:34px;display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:0 12px;color:var(--body);font-size:12px;font-weight:700}
 
@@ -112,7 +112,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   .note-input{width:150px;height:30px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--text);font-size:11px;font-family:inherit;font-weight:600;padding:0 9px;outline:none}
   .note-input:focus{border-color:var(--primary)}
   .payment-actions{display:inline-flex;gap:6px;justify-content:flex-end}
-  .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#fff;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap}
+  .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#fcf8f5;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap}
   .action-approve{background:var(--primary)}
   .action-approve:hover{background:#7b5c69}
   .action-reject{background:#991b1b}
@@ -123,7 +123,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   .page-info{font-size:12px;color:var(--muted)}
   .page-btns{display:flex;gap:4px}
   .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
-  .page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .page-btn.active{background:var(--primary);color:#fcf8f5;border-color:var(--primary)}
   .page-btn:disabled{opacity:.4;cursor:default}
 
   .toast{position:fixed;right:16px;top:16px;z-index:50;max-width:360px;opacity:0;pointer-events:none;transition:all .2s;border-radius:.75rem;border:1px solid var(--border);background:var(--surface);padding:12px 14px;font-size:12px;font-weight:800;color:var(--body)}
