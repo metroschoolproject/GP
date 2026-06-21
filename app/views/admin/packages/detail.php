@@ -109,7 +109,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   --primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;
   --text:#111827;--muted:#b79c8b;--body:#7b5c69;
   --danger:#991b1b;--danger-bg:#fee2e2;
-  max-width:1000px;margin:0 auto
+  max-width:1180px;margin:0 auto
 }
 
 /* ── Common atoms ─────────────────────────────────────────────────────── */
@@ -176,6 +176,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .included-card-head{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 24px;border-bottom:1px solid var(--border-light)}
 .included-card-title{margin:0;color:var(--text);font-size:15px;font-weight:800}
 .included-card-sub{margin-top:3px;color:var(--muted);font-size:11px}
+.included-card-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px}
 .included-card-total{text-align:right}
 .included-card-total span{display:block;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .included-card-total strong{display:block;margin-top:3px;color:var(--primary);font-size:16px}
@@ -223,6 +224,26 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .draft-actions-copy span{display:block;margin-top:2px;color:var(--muted);font-size:10px}
 .draft-actions-buttons{display:flex;gap:8px}
 
+/* ── Publish confirmation ────────────────────────────────────────────── */
+.publish-modal{
+  --surface:#fff;--soft:#faf5ef;--border:#ead8c7;--border-light:#eddecc;
+  --primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;
+  --text:#111827;--body:#7b5c69;
+  position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;
+  font-family:'DM Sans',system-ui,-apple-system,sans-serif
+}
+.publish-modal.is-open{display:flex}
+.publish-modal-backdrop{position:absolute;inset:0;background:rgba(17,24,39,.48);backdrop-filter:blur(3px)}
+.publish-modal-dialog{position:relative;width:min(100%,440px);overflow:hidden;border:1px solid var(--border);border-radius:1rem;background:var(--surface);box-shadow:0 24px 70px rgba(17,24,39,.22);animation:publish-modal-in .18s ease-out}
+.publish-modal-body{padding:26px 26px 20px}
+.publish-modal-icon{width:46px;height:46px;display:grid;place-items:center;margin-bottom:16px;border-radius:.75rem;background:var(--primary-soft);color:var(--primary)}
+.publish-modal-title{margin:0;color:var(--text);font-size:18px;font-weight:800}
+.publish-modal-copy{margin:8px 0 0;color:var(--body);font-size:13px;line-height:1.55}
+.publish-modal-note{display:flex;align-items:flex-start;gap:9px;margin-top:18px;padding:12px;border:1px solid var(--border-light);border-radius:.65rem;background:var(--soft);color:var(--body);font-size:11px;line-height:1.45}
+.publish-modal-note svg{flex:0 0 auto;margin-top:1px;color:var(--primary)}
+.publish-modal-actions{display:flex;justify-content:flex-end;gap:9px;padding:16px 26px 22px}
+@keyframes publish-modal-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+
 .cover-uploader{position:relative;min-height:250px;border:1.5px dashed #d8d5d2;border-radius:14px;background:#fcfcfb;overflow:hidden;transition:border-color .18s,background .18s,box-shadow .18s}
 .cover-uploader:hover,.cover-uploader.is-dragging{border-color:var(--primary);background:#fbf7f8;box-shadow:0 0 0 3px rgba(109,76,91,.07)}
 .cover-uploader.has-image{border-style:solid;background:#161214}
@@ -253,9 +274,25 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .pkg-category-note{margin-left:auto;font-size:11px;color:var(--muted)}
 
 /* ── Add-service panel ────────────────────────────────────────────────── */
-.add-svc-panel{margin-top:18px;padding-top:18px;border-top:1px solid var(--border-light)}
-.included-card .add-svc-panel{margin:0;padding:24px;border-top:1px solid var(--border-light);background:#fff}
-.add-svc-panel-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px}
+.service-catalog-modal{
+  --surface:#fff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;
+  --primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;
+  --text:#111827;--muted:#b79c8b;--body:#7b5c69;
+  position:fixed;inset:0;z-index:1100;display:none;align-items:center;justify-content:center;padding:24px;
+  font-family:'DM Sans',system-ui,-apple-system,sans-serif
+}
+.service-catalog-modal.is-open{display:flex}
+.service-catalog-modal-backdrop{position:absolute;inset:0;background:rgba(17,24,39,.52);backdrop-filter:blur(4px)}
+.add-svc-panel{position:relative;width:min(1180px,100%);max-height:calc(100vh - 48px);overflow:auto;padding:22px;border:1px solid var(--border);border-radius:1rem;background:#fff;box-shadow:0 28px 90px rgba(17,24,39,.28);animation:service-modal-in .18s ease-out}
+.included-card .add-svc-panel{margin:0;padding:22px;border:1px solid var(--border);background:#fff}
+.add-svc-panel-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.add-svc-panel-head-actions{display:flex;align-items:center;gap:9px}
+.add-svc-panel-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--primary);margin-bottom:4px}
+.add-svc-panel-copy{font-size:12px;color:var(--muted)}
+.add-svc-panel-count{font-size:11px;font-weight:800;color:var(--primary);padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:var(--soft);white-space:nowrap}
+.service-modal-close{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--border);border-radius:.65rem;background:#fff;color:var(--primary);font-size:20px;line-height:1;cursor:pointer}
+.service-modal-close:hover{background:var(--soft)}
+@keyframes service-modal-in{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 /* Step indicator */
 .add-svc-steps{display:flex;align-items:center;gap:0;margin-bottom:18px}
@@ -266,14 +303,52 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .add-svc-step.active{color:var(--text)}
 .add-svc-step-connector{flex:1;height:1px;background:var(--border-light);margin:0 8px}
 
-/* Step 1 — service selector */
-.svc-select-row{display:flex;gap:10px;align-items:flex-end}
-.svc-select-row select{flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .12s}
-.svc-select-row select:focus{border-color:var(--primary)}
-.svc-selected-preview{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--soft);border:1px solid var(--border-light);border-radius:.5rem;margin-top:10px}
-.svc-selected-preview-icon{width:36px;height:36px;border-radius:.375rem;background:var(--hover);display:grid;place-items:center;flex-shrink:0;color:var(--primary)}
-.svc-selected-preview-name{font-size:13px;font-weight:700;color:var(--text)}
-.svc-selected-preview-meta{font-size:11px;color:var(--muted);margin-top:1px}
+/* Searchable service catalog */
+.service-catalog{display:grid;grid-template-columns:minmax(280px,36%) minmax(0,1fr);min-height:520px;border:1px solid var(--border);border-radius:.8rem;overflow:hidden;background:var(--surface)}
+.service-catalog-browser{display:flex;flex-direction:column;min-width:0;background:#fcfaf7;border-right:1px solid var(--border)}
+.service-catalog-tools{padding:14px;border-bottom:1px solid var(--border-light)}
+.service-search-wrap{position:relative}
+.service-search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.service-search{width:100%;height:42px;padding:0 36px;border:1px solid var(--border);border-radius:.65rem;background:#fff;color:var(--text);font:inherit;outline:none;transition:border-color .15s,box-shadow .15s}
+.service-search:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(109,76,91,.1)}
+.service-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:none;width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer}
+.service-search-clear.visible{display:grid;place-items:center}
+.service-search-clear:hover{background:var(--soft);color:var(--primary)}
+.service-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.service-filter{min-width:0;height:34px;padding:0 28px 0 10px;border:1px solid var(--border);border-radius:.55rem;background:#fff;color:var(--body);font:600 11px/1 'DM Sans',system-ui,sans-serif;outline:none}
+.service-filter:focus{border-color:var(--primary)}
+.service-results-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px 8px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.service-results{display:flex;flex-direction:column;gap:6px;max-height:440px;padding:0 10px 12px;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.service-result{width:100%;display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px;border:1px solid transparent;border-radius:.65rem;background:transparent;color:inherit;text-align:left;font-family:inherit;cursor:pointer;transition:background .12s,border-color .12s,transform .12s}
+.service-result[hidden],.service-detail-empty[hidden]{display:none}
+.service-result:hover{background:#fff;border-color:var(--border);transform:translateX(2px)}
+.service-result:focus-visible{outline:2px solid var(--primary);outline-offset:1px;background:#fff}
+.service-result.selected{background:#fff;border-color:var(--primary);box-shadow:0 4px 16px rgba(109,76,91,.08)}
+.service-result-mark{width:38px;height:38px;border-radius:.55rem;display:grid;place-items:center;background:var(--hover);color:var(--primary);font-size:11px;font-weight:900;overflow:hidden}
+.service-result-mark img{width:100%;height:100%;object-fit:cover}
+.service-result-main{min-width:0}
+.service-result-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:12px;font-weight:800}
+.service-result-supplier{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;color:var(--body);font-size:10px}
+.service-result-tags{display:flex;align-items:center;gap:5px;margin-top:5px}
+.service-result-tag{display:inline-flex;max-width:110px;padding:2px 6px;border-radius:999px;background:var(--soft);color:var(--muted);font-size:9px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.service-result-status{align-self:start;padding-top:2px;color:var(--muted);font-size:9px;font-weight:800;white-space:nowrap}
+.service-result-status.ready{color:#087443}
+.service-results-empty{display:none;margin:8px 4px;padding:28px 16px;border:1px dashed var(--border);border-radius:.65rem;text-align:center;color:var(--muted);font-size:11px;line-height:1.5}
+.service-results-empty.visible{display:block}
+.service-catalog-detail{min-width:0;padding:18px;background:#fff}
+.service-detail-empty{height:100%;min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px;text-align:center}
+.service-detail-empty-icon{width:54px;height:54px;display:grid;place-items:center;margin-bottom:14px;border:1px solid var(--border);border-radius:50%;background:var(--soft);color:var(--primary)}
+.service-detail-empty strong{color:var(--text);font-size:14px}
+.service-detail-empty span{max-width:330px;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.5}
+.service-detail-workspace{display:none}
+.service-detail-workspace.visible{display:block}
+.svc-selected-preview{display:flex;align-items:flex-start;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border-light)}
+.svc-selected-preview-icon{width:42px;height:42px;border-radius:.55rem;background:var(--hover);display:grid;place-items:center;flex-shrink:0;color:var(--primary)}
+.svc-selected-preview-copy{min-width:0;flex:1}
+.svc-selected-preview-eyebrow{margin-bottom:3px;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.svc-selected-preview-name{font-size:14px;font-weight:800;color:var(--text)}
+.svc-selected-preview-meta{font-size:11px;color:var(--body);margin-top:2px}
+.svc-selected-preview-price{margin-left:auto;color:var(--primary);font-size:11px;font-weight:800;text-align:right}
 
 /* Step 2 — hall picker (venue only) */
 .hall-picker{display:none;margin-top:16px}
@@ -314,11 +389,16 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 @media(max-width:760px){
   .two-col,.summary-row{grid-template-columns:1fr}
   .edit-form input[type=number],.guest-input{width:100%!important}
-  .svc-select-row{flex-direction:column;align-items:stretch}
+  .service-catalog{grid-template-columns:1fr}
+  .service-catalog-browser{border-right:0;border-bottom:1px solid var(--border)}
+  .service-results{max-height:300px}
+  .service-detail-empty{min-height:220px}
   .hall-grid{grid-template-columns:1fr 1fr}
   .add-svc-steps{font-size:11px}
   .included-grid{grid-template-columns:1fr}
   .included-card-head,.included-item{padding-left:18px;padding-right:18px}
+  .included-card-head{align-items:flex-start}
+  .included-card-actions{align-items:flex-end;flex-direction:column}
   .draft-actions{align-items:flex-start;flex-direction:column}
 }
 @media(max-width:480px){
@@ -328,6 +408,16 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   .included-prices{grid-template-columns:1fr}
   .draft-actions-buttons{width:100%;flex-direction:column}
   .draft-actions-buttons form,.draft-actions-buttons button{width:100%}
+  .service-filter-row{grid-template-columns:1fr}
+  .service-catalog-detail{padding:14px}
+  .add-svc-panel-head{align-items:flex-start;flex-direction:column}
+  .service-catalog-modal{padding:0}
+  .add-svc-panel,.included-card .add-svc-panel{width:100%;height:100%;max-height:none;border:0;border-radius:0;padding:16px}
+  .add-svc-panel-head-actions{width:100%;justify-content:space-between}
+  .included-card-actions{width:100%;align-items:stretch}
+  .included-card-actions .btn-primary{justify-content:center}
+  .publish-modal-actions{flex-direction:column-reverse}
+  .publish-modal-actions button{width:100%;justify-content:center}
 }
 </style>
 
@@ -558,16 +648,24 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         <h2 class="included-card-title">Included Services</h2>
         <div class="included-card-sub">Review suppliers, selected options, quantities, and pricing.</div>
       </div>
-      <?php if (!empty($package['items'])): ?>
-        <div class="included-card-total">
-          <span><?= count($package['items']) ?> services · Package cost</span>
-          <strong><?= $money($includedTotal) ?></strong>
-        </div>
-      <?php endif; ?>
+      <div class="included-card-actions">
+        <?php if (!empty($package['items'])): ?>
+          <div class="included-card-total">
+            <span><?= count($package['items']) ?> services · Package cost</span>
+            <strong><?= $money($includedTotal) ?></strong>
+          </div>
+        <?php endif; ?>
+        <?php if ($isDraft && !empty($addableServices)): ?>
+          <button class="btn-primary" id="openServiceCatalog" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add service
+          </button>
+        <?php endif; ?>
+      </div>
     </div>
 
     <?php if (empty($package['items'])): ?>
-      <div class="service-empty" style="margin:24px">No services added yet.<?= $isDraft ? ' Use the form below to add services to this package.' : '' ?></div>
+      <div class="service-empty" style="margin:24px">No services added yet.<?= $isDraft ? ' Use Add service to build this package.' : '' ?></div>
     <?php else: ?>
       <div class="included-list">
         <?php foreach (($package['items'] ?? []) as $itemIndex => $item):
@@ -695,8 +793,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
           <span>Publishing replaces the current package version.</span>
         </div>
         <div class="draft-actions-buttons">
-          <form method="POST" action="<?= URLROOT ?>/admin/packagePublishDraft/<?= (int)$package['package_id'] ?>"
-                onsubmit="return confirm('Publish this draft? It will replace the currently published version.')">
+          <form id="publishPackageForm" method="POST" action="<?= URLROOT ?>/admin/packagePublishDraft/<?= (int)$package['package_id'] ?>">
             <button class="btn-primary" type="submit">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               Publish package
@@ -712,8 +809,33 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
     <!-- ── Add-service panel ──────────────────────────────────────────── -->
     <?php if ($isDraft && !empty($addableServices)): ?>
-    <div class="add-svc-panel">
-      <div class="add-svc-panel-title">Add a Service</div>
+    <div class="service-catalog-modal" id="serviceCatalogModal" aria-hidden="true">
+      <div class="service-catalog-modal-backdrop" data-close-service-catalog></div>
+      <section class="add-svc-panel" role="dialog" aria-modal="true" aria-labelledby="serviceCatalogTitle">
+      <?php
+        $catalogCategories = [];
+        $catalogSuppliers = [];
+        foreach ($addableServices as $catalogService) {
+          $categoryName = trim((string)($catalogService['category_name'] ?? 'Other')) ?: 'Other';
+          $supplierName = trim((string)($catalogService['supplier_name'] ?? 'Unknown supplier')) ?: 'Unknown supplier';
+          $catalogCategories[$categoryName] = true;
+          $catalogSuppliers[$supplierName] = true;
+        }
+        $catalogCategories = array_keys($catalogCategories);
+        $catalogSuppliers = array_keys($catalogSuppliers);
+        natcasesort($catalogCategories);
+        natcasesort($catalogSuppliers);
+      ?>
+      <div class="add-svc-panel-head">
+        <div>
+          <div class="add-svc-panel-title" id="serviceCatalogTitle">Service catalog</div>
+          <div class="add-svc-panel-copy">Find a service, review its available options, then add it to this package.</div>
+        </div>
+        <div class="add-svc-panel-head-actions">
+          <div class="add-svc-panel-count"><?= count($addableServices) ?> available</div>
+          <button class="service-modal-close" type="button" data-close-service-catalog aria-label="Close service catalog">×</button>
+        </div>
+      </div>
 
       <!-- Step indicators -->
       <div class="add-svc-steps">
@@ -736,22 +858,26 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       <form id="addServiceForm" method="POST"
             action="<?= URLROOT ?>/admin/packageAddItem/<?= (int)$package['package_id'] ?>">
 
-        <!-- Step 1: select service -->
-        <div class="svc-select-row">
-          <select name="service_id" id="serviceSelect" required onchange="onServiceChange(this)">
+        <!-- Native field retained as the submitted source of truth. -->
+        <select name="service_id" id="serviceSelect" hidden onchange="onServiceChange(this)">
             <option value="">Select a service…</option>
             <?php foreach ($addableServices as $svc):
               $svcId = (int)($svc['id'] ?? 0);
               $categoryLabel = strtolower((string)($svc['category_slug'] ?? '') . ' ' . (string)($svc['category_name'] ?? ''));
+              $isAttireSvc = str_contains($categoryLabel, 'attire');
+              $attireCount = count($attireOptionsByService[$svcId] ?? []);
               $isGuestPricedSvc = str_contains($categoryLabel, 'food')
                         || str_contains($categoryLabel, 'cater')
                         || str_contains($categoryLabel, 'decor')
                         || str_contains($categoryLabel, 'music')
                         || str_contains($categoryLabel, 'photo')
                         || str_contains($categoryLabel, 'makeup')
-                        || str_contains($categoryLabel, 'attire')
                         || str_contains($categoryLabel, 'studio');
-              $priceLabel = $money($svc['display_price'] ?? 0) . ($isGuestPricedSvc ? ' per guest' : '');
+              $priceLabel = $isAttireSvc
+                ? ($attireCount > 0
+                  ? $attireCount . ' dress ' . ($attireCount === 1 ? 'design' : 'designs') . ' available'
+                  : 'No dress designs added')
+                : $money($svc['display_price'] ?? 0) . ($isGuestPricedSvc ? ' per guest' : '');
             ?>
               <option value="<?= $svcId ?>"
                       data-name="<?= $h($svc['name'] ?? '') ?>"
@@ -760,27 +886,123 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
                       data-category-id="<?= (int)($svc['category_id'] ?? 0) ?>"
                       data-category-name="<?= $h($svc['category_name'] ?? 'this category') ?>"
                       data-guest-priced="<?= $isGuestPricedSvc ? '1' : '0' ?>"
+                      data-attire="<?= $isAttireSvc ? '1' : '0' ?>"
                       data-room-count="<?= count($hallOptionsByService[$svcId] ?? []) ?>"
-                      data-attire-count="<?= count($attireOptionsByService[$svcId] ?? []) ?>"
+                      data-attire-count="<?= $attireCount ?>"
                       data-deco-count="<?= count($decoOptionsByService[$svcId] ?? []) ?>">
-                <?= $h(($svc['category_name'] ?? 'Service') . ' — ' . ($svc['name'] ?? '') . ' — ' . ($svc['supplier_name'] ?? '') . ' — ' . $priceLabel) ?>
+                <?= $h(
+                  ($svc['category_name'] ?? 'Service')
+                  . ' — #' . $svcId
+                  . ' — ' . ($svc['name'] ?? '')
+                  . ' — ' . ($svc['supplier_name'] ?? '')
+                  . ' — ' . $priceLabel
+                ) ?>
               </option>
             <?php endforeach; ?>
-          </select>
-        </div>
+        </select>
 
-        <!-- Selected service preview -->
-        <div id="svcPreview" style="display:none">
-          <div class="svc-selected-preview">
+        <div class="service-catalog">
+          <aside class="service-catalog-browser" aria-label="Available services">
+            <div class="service-catalog-tools">
+              <div class="service-search-wrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input class="service-search" id="serviceCatalogSearch" type="search"
+                       placeholder="Search service or supplier…" autocomplete="off"
+                       aria-label="Search available services">
+                <button class="service-search-clear" id="serviceSearchClear" type="button" aria-label="Clear search">×</button>
+              </div>
+              <div class="service-filter-row">
+                <select class="service-filter" id="serviceCategoryFilter" aria-label="Filter by category">
+                  <option value="">All categories</option>
+                  <?php foreach ($catalogCategories as $categoryName): ?>
+                    <option value="<?= $h(strtolower($categoryName)) ?>"><?= $h($categoryName) ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <select class="service-filter" id="serviceSupplierFilter" aria-label="Filter by supplier">
+                  <option value="">All suppliers</option>
+                  <?php foreach ($catalogSuppliers as $supplierName): ?>
+                    <option value="<?= $h(strtolower($supplierName)) ?>"><?= $h($supplierName) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+
+            <div class="service-results-meta">
+              <span>Services</span>
+              <span id="serviceResultCount"><?= count($addableServices) ?> results</span>
+            </div>
+
+            <div class="service-results" id="serviceCatalogResults">
+              <?php foreach ($addableServices as $svc):
+                $svcId = (int)($svc['id'] ?? 0);
+                $serviceName = trim((string)($svc['name'] ?? 'Service'));
+                $supplierName = trim((string)($svc['supplier_name'] ?? 'Unknown supplier'));
+                $categoryName = trim((string)($svc['category_name'] ?? 'Other')) ?: 'Other';
+                $categoryLabel = strtolower((string)($svc['category_slug'] ?? '') . ' ' . $categoryName);
+                $isAttireSvc = str_contains($categoryLabel, 'attire');
+                $attireCount = count($attireOptionsByService[$svcId] ?? []);
+                $roomCount = count($hallOptionsByService[$svcId] ?? []);
+                $decoCount = count($decoOptionsByService[$svcId] ?? []);
+                $optionCount = $attireCount + $roomCount + $decoCount;
+                $statusLabel = $isAttireSvc
+                  ? ($attireCount > 0 ? $attireCount . ' design' . ($attireCount === 1 ? '' : 's') : 'No designs')
+                  : ($optionCount > 0 ? $optionCount . ' option' . ($optionCount === 1 ? '' : 's') : $money($svc['display_price'] ?? 0));
+                $searchText = strtolower(implode(' ', [
+                  $serviceName, $supplierName, $categoryName, (string)$svcId,
+                ]));
+                $thumbnail = trim((string)($svc['thumbnail_url'] ?? $svc['image'] ?? ''));
+              ?>
+                <button class="service-result" type="button"
+                        data-service-id="<?= $svcId ?>"
+                        data-search="<?= $h($searchText) ?>"
+                        data-category="<?= $h(strtolower($categoryName)) ?>"
+                        data-supplier="<?= $h(strtolower($supplierName)) ?>"
+                        aria-pressed="false">
+                  <span class="service-result-mark">
+                    <?php if ($thumbnail !== ''): ?>
+                      <img src="<?= $h($thumbnail) ?>" alt="">
+                    <?php else: ?>
+                      <?= $h(strtoupper(substr($categoryName, 0, 2))) ?>
+                    <?php endif; ?>
+                  </span>
+                  <span class="service-result-main">
+                    <span class="service-result-name"><?= $h($serviceName) ?></span>
+                    <span class="service-result-supplier"><?= $h($supplierName) ?> · #<?= $svcId ?></span>
+                    <span class="service-result-tags">
+                      <span class="service-result-tag"><?= $h($categoryName) ?></span>
+                    </span>
+                  </span>
+                  <span class="service-result-status <?= $optionCount > 0 ? 'ready' : '' ?>"><?= $h($statusLabel) ?></span>
+                </button>
+              <?php endforeach; ?>
+              <div class="service-results-empty" id="serviceResultsEmpty">
+                No services match these filters.<br>Try a shorter name or clear one of the filters.
+              </div>
+            </div>
+          </aside>
+
+          <section class="service-catalog-detail" aria-live="polite">
+            <div class="service-detail-empty" id="serviceDetailEmpty">
+              <div class="service-detail-empty-icon">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M7 4v6M17 4v6M5 10h14v10H5z"/><path d="M9 14h6"/></svg>
+              </div>
+              <strong>Choose a service to review</strong>
+              <span>Search by service name or supplier, then select a result to see dress designs, halls, styles, and pricing details.</span>
+            </div>
+
+            <!-- Selected service workspace -->
+            <div id="svcPreview" class="service-detail-workspace">
+              <div class="svc-selected-preview">
             <div class="svc-selected-preview-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <div>
+            <div class="svc-selected-preview-copy">
+              <div class="svc-selected-preview-eyebrow">Selected service</div>
               <div class="svc-selected-preview-name" id="svcPreviewName"></div>
               <div class="svc-selected-preview-meta" id="svcPreviewMeta"></div>
             </div>
+            <div class="svc-selected-preview-price" id="svcPreviewPrice"></div>
           </div>
-        </div>
 
         <!-- ── Step 2 for VENUE: Hall picker ──────────────────────────── -->
         <div class="hall-picker" id="hallPicker">
@@ -804,7 +1026,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         <div class="hall-picker" id="attirePicker">
           <div class="hall-picker-label">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="1"/><path d="M6 10h2l1 4h6l1-4h2"/></svg>
-            Select an attire item
+            Select a dress design and its listed price
           </div>
           <div class="hall-grid" id="attireCards"></div>
           <input type="hidden" name="attire_item_id" id="attireItemIdHidden" value="">
@@ -844,7 +1066,11 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
           <span id="addSvcHint" style="font-size:11px;color:var(--muted)">Select a service above to continue.</span>
         </div>
 
+            </div><!-- /service-detail-workspace -->
+          </section>
+        </div><!-- /service-catalog -->
       </form>
+      </section>
     </div>
     <?php endif; ?><!-- /addableServices + isDraft check -->
 
@@ -852,8 +1078,85 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
 </div><!-- /admin-pkg-page -->
 
+<?php if ($isDraft): ?>
+  <div class="publish-modal" id="publishPackageModal" aria-hidden="true">
+    <div class="publish-modal-backdrop" data-close-publish-modal></div>
+    <section class="publish-modal-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="publishModalTitle" aria-describedby="publishModalDescription">
+      <div class="publish-modal-body">
+        <div class="publish-modal-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        </div>
+        <h2 class="publish-modal-title" id="publishModalTitle">Publish this package?</h2>
+        <p class="publish-modal-copy" id="publishModalDescription">
+          <strong><?= $h($package['name'] ?? 'This package') ?></strong> will become visible to customers immediately.
+        </p>
+        <div class="publish-modal-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          <span>This draft will replace the currently published version. Review the package details before continuing.</span>
+        </div>
+      </div>
+      <div class="publish-modal-actions">
+        <button class="btn-ghost" type="button" data-close-publish-modal>Keep editing</button>
+        <button class="btn-primary" id="confirmPublishPackage" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Publish now
+        </button>
+      </div>
+    </section>
+  </div>
+<?php endif; ?>
+
 <script>
 (function () {
+  /* ── Publish confirmation ───────────────────────────────────────────── */
+  const publishForm = document.getElementById('publishPackageForm');
+  const publishModal = document.getElementById('publishPackageModal');
+  const confirmPublishButton = document.getElementById('confirmPublishPackage');
+  let publishConfirmed = false;
+  let publishTrigger = null;
+
+  function openPublishModal() {
+    if (!publishModal) return;
+    publishTrigger = document.activeElement;
+    publishModal.classList.add('is-open');
+    publishModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    confirmPublishButton?.focus();
+  }
+
+  function closePublishModal() {
+    if (!publishModal) return;
+    publishModal.classList.remove('is-open');
+    publishModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    publishTrigger?.focus();
+  }
+
+  publishForm?.addEventListener('submit', event => {
+    if (publishConfirmed) return;
+    event.preventDefault();
+    openPublishModal();
+  });
+
+  confirmPublishButton?.addEventListener('click', () => {
+    if (!publishForm) return;
+    publishConfirmed = true;
+    confirmPublishButton.disabled = true;
+    confirmPublishButton.textContent = 'Publishing…';
+    publishForm.requestSubmit();
+  });
+
+  publishModal?.querySelectorAll('[data-close-publish-modal]').forEach(element => {
+    element.addEventListener('click', closePublishModal);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && publishModal?.classList.contains('is-open')) {
+      closePublishModal();
+    }
+  });
+
   /* ── Price card live update ─────────────────────────────────────────── */
   const priceInput = document.getElementById('packagePriceInput');
   const priceCardVal = document.getElementById('packagePriceCardValue');
@@ -950,10 +1253,41 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   }
 
   /* ── Add-service panel ──────────────────────────────────────────────── */
+  const serviceCatalogModal = document.getElementById('serviceCatalogModal');
+  const openServiceCatalogButton = document.getElementById('openServiceCatalog');
+  let serviceCatalogTrigger = null;
+  if (serviceCatalogModal) {
+    document.body.appendChild(serviceCatalogModal);
+  }
+
+  function openServiceCatalog() {
+    if (!serviceCatalogModal) return;
+    serviceCatalogTrigger = document.activeElement;
+    serviceCatalogModal.classList.add('is-open');
+    serviceCatalogModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    window.setTimeout(() => catalogSearch?.focus(), 0);
+  }
+
+  function closeServiceCatalog() {
+    if (!serviceCatalogModal) return;
+    serviceCatalogModal.classList.remove('is-open');
+    serviceCatalogModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    serviceCatalogTrigger?.focus();
+  }
+
+  openServiceCatalogButton?.addEventListener('click', openServiceCatalog);
+  serviceCatalogModal?.querySelectorAll('[data-close-service-catalog]').forEach(element => {
+    element.addEventListener('click', closeServiceCatalog);
+  });
+
   const serviceSelect = document.getElementById('serviceSelect');
   const svcPreview    = document.getElementById('svcPreview');
+  const serviceDetailEmpty = document.getElementById('serviceDetailEmpty');
   const svcPreviewName = document.getElementById('svcPreviewName');
   const svcPreviewMeta = document.getElementById('svcPreviewMeta');
+  const svcPreviewPrice = document.getElementById('svcPreviewPrice');
   const addSvcBtn     = document.getElementById('addSvcBtn');
   const addSvcHint    = document.getElementById('addSvcHint');
   const hallPicker    = document.getElementById('hallPicker');
@@ -966,6 +1300,19 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   const attireOptionsByService = <?= json_encode($attireOptionsByService, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
   const decoOptionsByService = <?= json_encode($decoOptionsByService, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
   const includedCategoryNames = <?= json_encode($includedCategoryNames, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+  const catalogSearch = document.getElementById('serviceCatalogSearch');
+  const catalogSearchClear = document.getElementById('serviceSearchClear');
+  const catalogCategoryFilter = document.getElementById('serviceCategoryFilter');
+  const catalogSupplierFilter = document.getElementById('serviceSupplierFilter');
+  const catalogResultCount = document.getElementById('serviceResultCount');
+  const catalogEmpty = document.getElementById('serviceResultsEmpty');
+  const catalogResults = Array.from(document.querySelectorAll('.service-result'));
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && serviceCatalogModal?.classList.contains('is-open')) {
+      closeServiceCatalog();
+    }
+  });
 
   const stepEl = (n) => document.getElementById('stepIndicator' + n);
 
@@ -978,6 +1325,53 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       else if (i === n) el.classList.add('active');
     });
   }
+
+  function filterServiceCatalog() {
+    const query = (catalogSearch?.value || '').trim().toLocaleLowerCase();
+    const category = catalogCategoryFilter?.value || '';
+    const supplier = catalogSupplierFilter?.value || '';
+    let visibleCount = 0;
+
+    catalogResults.forEach(result => {
+      const matchesSearch = !query || (result.dataset.search || '').includes(query);
+      const matchesCategory = !category || result.dataset.category === category;
+      const matchesSupplier = !supplier || result.dataset.supplier === supplier;
+      const visible = matchesSearch && matchesCategory && matchesSupplier;
+      result.hidden = !visible;
+      if (visible) visibleCount++;
+    });
+
+    if (catalogResultCount) {
+      catalogResultCount.textContent = visibleCount + (visibleCount === 1 ? ' result' : ' results');
+    }
+    catalogEmpty?.classList.toggle('visible', visibleCount === 0);
+    catalogSearchClear?.classList.toggle('visible', Boolean(catalogSearch?.value));
+  }
+
+  function chooseCatalogService(serviceId) {
+    if (!serviceSelect) return;
+    serviceSelect.value = String(serviceId);
+    catalogResults.forEach(result => {
+      const selected = result.dataset.serviceId === String(serviceId);
+      result.classList.toggle('selected', selected);
+      result.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    serviceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  catalogResults.forEach(result => {
+    result.addEventListener('click', () => chooseCatalogService(result.dataset.serviceId));
+  });
+  [catalogSearch, catalogCategoryFilter, catalogSupplierFilter].forEach(control => {
+    control?.addEventListener(control === catalogSearch ? 'input' : 'change', filterServiceCatalog);
+  });
+  catalogSearchClear?.addEventListener('click', () => {
+    if (!catalogSearch) return;
+    catalogSearch.value = '';
+    catalogSearch.focus();
+    filterServiceCatalog();
+  });
+  filterServiceCatalog();
 
   function renderHallOptions(serviceId) {
     if (!hallCards) return;
@@ -1071,14 +1465,17 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   window.onServiceChange = function (sel) {
     const opt = sel.options[sel.selectedIndex];
     const hasVal = !!sel.value;
-    const isFood = hasVal && opt.dataset.food === '1';
+    const isGuestPriced = hasVal && opt.dataset.guestPriced === '1';
 
     if (hasVal) {
       svcPreviewName.textContent = opt.dataset.name || '';
-      svcPreviewMeta.textContent = (opt.dataset.supplier || '') + ' · ' + (opt.dataset.price || '');
-      svcPreview.style.display = 'block';
+      svcPreviewMeta.textContent = (opt.dataset.supplier || '') + ' · Service #' + sel.value + ' · ' + (opt.dataset.categoryName || 'Service');
+      svcPreviewPrice.textContent = opt.dataset.price || '';
+      svcPreview.classList.add('visible');
+      serviceDetailEmpty?.setAttribute('hidden', '');
     } else {
-      svcPreview.style.display = 'none';
+      svcPreview.classList.remove('visible');
+      serviceDetailEmpty?.removeAttribute('hidden');
     }
 
     const roomCount = parseInt(opt.dataset.roomCount || '0', 10);
@@ -1098,6 +1495,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     /* attire services: show attire picker */
     const attireCount = parseInt(opt.dataset.attireCount || '0', 10);
     const hasAttire = hasVal && attireCount > 0;
+    const isAttire = hasVal && opt.dataset.attire === '1';
     if (attirePicker) {
       if (hasAttire) {
         attirePicker.classList.add('visible');
@@ -1123,11 +1521,11 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
     /* show guest count only when it affects per-guest pricing */
     if (guestCountRow) {
-      guestCountRow.style.display = hasVal && isFood ? 'flex' : 'none';
+      guestCountRow.style.display = isGuestPriced ? 'flex' : 'none';
       if (guestCountInput && guestCountHidden) {
-        guestCountInput.name = hasVal && isFood ? 'guest_count' : '';
-        guestCountHidden.name = hasVal && !isFood ? 'guest_count' : '';
-        guestCountHidden.value = hasVal && !isFood ? '1' : '';
+        guestCountInput.name = isGuestPriced ? 'guest_count' : '';
+        guestCountHidden.name = hasVal && !isGuestPriced ? 'guest_count' : '';
+        guestCountHidden.value = hasVal && !isGuestPriced ? '1' : '';
       }
     }
 
@@ -1139,8 +1537,12 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
     if (hasVal) {
       setStep(hasRooms ? 3 : 2);
-      addSvcBtn.disabled = false;
-      addSvcHint.textContent = hasRooms
+      addSvcBtn.disabled = isAttire;
+      addSvcHint.textContent = hasAttire
+        ? 'Select a dress design before adding this attire service.'
+        : isAttire
+        ? 'This attire service has no dress designs. Add designs from the supplier service first.'
+        : hasRooms
         ? 'Optionally pick a hall, then click Add to Package.'
         : 'Click Add to Package to confirm.';
     } else {
@@ -1202,22 +1604,17 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       const borrow = Number(item.borrow_package_price || 0) > 0 ? 'MMK ' + Number(item.borrow_package_price).toLocaleString() : '';
       const buy = Number(item.buy_package_price || 0) > 0 ? 'MMK ' + Number(item.buy_package_price).toLocaleString() : '';
       const priceText = [borrow ? 'Borrow ' + borrow : '', buy ? 'Buy ' + buy : ''].filter(Boolean).join(' · ');
+      const attireVisual = item.photo_url
+        ? '<img src="' + String(item.photo_url).replace(/"/g, '&quot;') + '" alt="">'
+        : '<div class="hall-card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="1"/><path d="M5 8h14M5 12h14"/></svg></div>';
       card.innerHTML = '<input type="radio" name="attire_radio" value="' + id + '" style="position:absolute;opacity:0;pointer-events:none">' +
-        '<div class="hall-card-img"><div class="hall-card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="1"/><path d="M5 8h14M5 12h14"/></svg></div><div class="hall-card-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div></div>' +
+        '<div class="hall-card-img">' + attireVisual + '<div class="hall-card-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div></div>' +
         '<div class="hall-card-body"><div class="hall-card-name">' + (item.name || 'Item') + '</div>' +
         '<div class="hall-card-meta">' + (priceText ? '<div class="hall-card-meta-row">' + priceText + '</div>' : '') +
         (item.return_days ? '<div class="hall-card-meta-row">Return: ' + item.return_days + (item.return_days === 1 ? ' day' : ' days') + '</div>' : '') +
         '</div></div>';
       attireCards.appendChild(card);
     });
-    // "No specific item" option
-    const noneOpt = document.createElement('label');
-    noneOpt.className = 'hall-none-option selected';
-    noneOpt.id = 'attireNoneOption';
-    noneOpt.addEventListener('click', () => selectAttireItem(null));
-    noneOpt.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> No specific item assigned';
-    noneOpt.style.gridColumn = '1 / -1';
-    attireCards.appendChild(noneOpt);
     selectAttireItem(null);
   }
 
@@ -1227,11 +1624,20 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     if (itemId === null) {
       if (noneOpt) noneOpt.classList.add('selected');
       if (attireItemHidden) attireItemHidden.value = '';
+      const selectedOption = serviceSelect?.options[serviceSelect.selectedIndex];
+      if (selectedOption?.dataset.attire === '1') {
+        addSvcBtn.disabled = true;
+        addSvcHint.textContent = 'Select a dress design before adding this attire service.';
+        setStep(2);
+      }
     } else {
       if (noneOpt) noneOpt.classList.remove('selected');
       const card = document.querySelector('#attireCards .hall-card[data-attire-id="' + itemId + '"]');
       if (card) { card.classList.add('selected'); }
       if (attireItemHidden) attireItemHidden.value = itemId;
+      addSvcBtn.disabled = false;
+      addSvcHint.textContent = 'Dress design selected. Click Add to Package.';
+      setStep(3);
     }
   };
 
@@ -1296,6 +1702,11 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   if (addServiceForm && serviceSelect) {
     addServiceForm.addEventListener('submit', event => {
       const opt = serviceSelect.options[serviceSelect.selectedIndex];
+      if (parseInt(opt?.dataset.attireCount || '0', 10) > 0 && !attireItemHidden?.value) {
+        event.preventDefault();
+        addSvcHint.textContent = 'Select a dress design before adding this attire service.';
+        return;
+      }
       const categoryId = opt?.dataset.categoryId || '';
       if (!categoryId || !includedCategoryNames[categoryId]) return;
 

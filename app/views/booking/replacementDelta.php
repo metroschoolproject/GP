@@ -65,6 +65,7 @@ $banks = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / Ma
   </div>
 
   <form class="card" action="<?= URLROOT ?>/booking/submitReplacementDelta" method="post" enctype="multipart/form-data">
+    <?= csrf_field() ?>
     <div class="card-label">Bank transfer proof</div>
     <input type="hidden" name="replacement_id" value="<?= $replacementId ?>">
 
@@ -106,6 +107,14 @@ $banks = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / Ma
 
     <button type="submit" class="btn">Submit payment &amp; approve replacement</button>
     <p class="muted">Our team verifies the transfer, then confirms your replacement supplier. You'll be notified.</p>
+  </form>
+
+  <form action="<?= URLROOT ?>/booking/rejectReplacement/<?= $replacementId ?>" method="post"
+        onsubmit="return confirm('Decline this replacement? We will ask the admin to find another option.')">
+    <?= csrf_field() ?>
+    <button type="submit" class="btn" style="background:#fff;color:#991b1b;border:1px solid #fecaca;margin-top:12px">
+      Decline this replacement
+    </button>
   </form>
 
   <div style="margin-top:16px"><a class="back" href="<?= URLROOT ?>/booking/detail/<?= (int)($replacement['booking_id'] ?? 0) ?>">← Back to booking</a></div>

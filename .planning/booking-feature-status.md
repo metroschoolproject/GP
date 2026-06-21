@@ -154,15 +154,15 @@ Important fields to verify:
 - Payment statuses: `pending`, `success`, `failed`.
 - Voucher statuses: `active`, `used`, `expired`.
 
-### 2. Verify Stripe Configuration
+### 2. Verify 2C2P Configuration
 
 Needed work:
 
-- Move Stripe keys to environment/config if not already done.
-- Avoid hard-coded fallback secret keys in production.
+- Add sandbox `MERCHANT_ID` and `PAYMENT_GATEWAY_SECRET` values to `.env`.
+- Apply `database/migrations/2026_08_payout_lifecycle.sql`.
 - Test successful card payment.
 - Test failed card payment.
-- Test 3D Secure flow.
+- Test MM QR and card callback signature validation.
 - Confirm payment record and booking status update correctly.
 
 ### 3. Run End-To-End Booking Test
@@ -207,7 +207,7 @@ Still needed:
 
 1. Database/schema verification against the live MySQL database.
 2. Full end-to-end booking test.
-3. Stripe success/failure/3D Secure test.
+3. 2C2P success/failure/MM QR callback test.
 4. Browser pass for customer, supplier, and admin booking pages.
 5. Production safety pass for Stripe keys and admin/supplier authorization.
 

@@ -1,6 +1,6 @@
 # Review Feature — Design Document
 
-> **Status**: Planning (decisions finalized)  
+> **Status**: Implemented through supplier dashboard; admin moderation and supplier replies remain
 > **Date**: 2026-06-17  
 > **Context**: Wedding service marketplace (Golden Promise) — customers book services from suppliers, events happen, customers should be able to review their overall booking experience.
 
@@ -433,26 +433,26 @@ CREATE TABLE review_replies (
 
 ### Phase 1: Core Submission (MVP)
 
-- [ ] **Schema migration** — fix nullable columns, add `updated_at`, `deleted_at`, unique key
-- [ ] **`ReviewModel.php`** — `canReview()`, `create()`, `exists()`, `getByBooking()`, `getAverageRating()`
-- [ ] **`Review.php` controller** — `submit()`, `myReviews()` methods
-- [ ] **Booking Detail view** — add "Write a Review" section when booking is `completed`
-- [ ] **My Reviews page** (`app/views/review/my.php`) — list submitted reviews
-- [ ] **Refactor `CustomerServiceCatalog`** — move rating aggregation to `ReviewModel::getAverageRating()`
-- [ ] **Route registration** — add `/review/*` routes in `Core.php`
+- [x] **Schema migration** — fix nullable columns, add `updated_at`, `deleted_at`, unique key
+- [x] **`ReviewModel.php`** — `canReview()`, `create()`, `exists()`, `getByBooking()`, `getAverageRating()`
+- [x] **`Review.php` controller** — `submit()`, `myReviews()` methods
+- [x] **Booking Detail view** — add "Write a Review" section when booking is `completed`
+- [x] **My Reviews page** (`app/views/review/my.php`) — list submitted reviews
+- [x] **Refactor `CustomerServiceCatalog`** — move rating aggregation to `ReviewModel::getAverageRating()`
+- [x] **Route registration** — controller-based `/review/*` routes are handled by `Core.php`
 
 ### Phase 2: Management & Display
 
-- [ ] **Edit review** — `update()` method, 7-day window check
-- [ ] **Soft-delete review** — `delete()` method, re-submit after delete
-- [ ] **"Load more" pagination** — AJAX endpoint + append logic on service detail page
-- [ ] **Sort controls** — recent / highest / lowest on service detail page
+- [x] **Edit review** — `update()` method, 7-day window check
+- [x] **Soft-delete review** — `delete()` method, re-submit after delete
+- [x] **"Load more" pagination** — AJAX endpoint + append logic on service detail page
+- [x] **Sort controls** — recent / highest / lowest on service detail page
 - [ ] **Pending Reviews card** — customer dashboard widget
-- [ ] **Real customer names** — update `_service_detail_template.php` to JOIN `users` table for reviewer name
+- [x] **Real customer names** — review queries join customer identity
 
 ### Phase 3: Supplier & Admin
 
-- [ ] **Supplier review dashboard** — all reviews for this supplier's services, aggregate stats
+- [x] **Supplier review dashboard** — all reviews for this supplier's services, aggregate stats
 - [ ] **Admin review management** — list, filter, hide/flag inappropriate reviews
 - [ ] **Supplier reply to reviews** (future — table already designed in section 6.3)
 

@@ -18,6 +18,8 @@ $dashboardContent = function () use ($serviceManagementData, $initialServiceTab)
     $serviceManagementHtml = file_exists($serviceManagementPath) ? file_get_contents($serviceManagementPath) : '';
     $serviceManagementStylesheet = URLROOT . '/public/css/supplier-service-management.css?v='
         . rawurlencode((string)@filemtime(dirname(APPROOT) . '/public/css/supplier-service-management.css'));
+    $dashboardStylesheet = URLROOT . '/public/css/app.css?v='
+        . rawurlencode((string)@filemtime(dirname(APPROOT) . '/public/css/app.css'));
     $serviceManagementScript = '<script src="' . URLROOT . '/public/js/supplier-service-management.js?v=' . rawurlencode((string)@filemtime(dirname(APPROOT) . '/public/js/supplier-service-management.js')) . '"></script>';
 
     $serviceManagementConfigScript = '<script>window.serviceManagementConfig = ' . json_encode([
@@ -45,6 +47,11 @@ $dashboardContent = function () use ($serviceManagementData, $initialServiceTab)
         $serviceManagementStylesheet,
         $serviceManagementHtml
     );
+    $serviceManagementHtml = str_replace(
+        '/GP/public/css/app.css',
+        $dashboardStylesheet,
+        $serviceManagementHtml
+    );
 
     if (preg_match('/<head\b[^>]*>/i', $serviceManagementHtml)) {
         $serviceManagementHtml = preg_replace('/<head\b[^>]*>/i', '$0' . $serviceManagementConfigScript, $serviceManagementHtml, 1);
@@ -52,7 +59,7 @@ $dashboardContent = function () use ($serviceManagementData, $initialServiceTab)
         $serviceManagementHtml = $serviceManagementConfigScript . $serviceManagementHtml;
     }
 
-    echo '<iframe title="Service management" srcdoc="' . htmlspecialchars($serviceManagementHtml, ENT_QUOTES, 'UTF-8') . '" class="block w-full border-0" style="height:calc(100vh - 78px);min-height:760px;background:#f7f3ed;"></iframe>';
+    echo '<iframe title="Service management" srcdoc="' . htmlspecialchars($serviceManagementHtml, ENT_QUOTES, 'UTF-8') . '" class="block w-full border-0" style="height:calc(100vh - 78px);min-height:760px;background:#fbfbf9;"></iframe>';
 };
 ?>
 <!DOCTYPE html>

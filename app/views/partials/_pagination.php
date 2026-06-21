@@ -9,6 +9,7 @@
  *   $perPage      int   Items per page
  *   $baseParams   string  Existing query string (e.g. 'status=pending&search=foo')
  *   $classPrefix  string  'admin' (default) or 'supplier' — controls CSS class set
+ *   $showSinglePage bool  Render the footer even when there is only one page
  *   $h            callable  HTML-escape function (optional, defaults to htmlspecialchars)
  *
  * CSS classes required on page:
@@ -16,7 +17,7 @@
  *   supplier: .bk-pagination, .bk-page-info, .bk-page-btns, .bk-page-btn, .bk-page-btn-cur, .bk-page-btn-disabled
  */
 
-if (!isset($totalPages) || $totalPages <= 1) {
+if (!isset($totalPages) || ($totalPages <= 1 && empty($showSinglePage))) {
     return;
 }
 

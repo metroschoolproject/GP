@@ -6,13 +6,13 @@ $items = $items ?? [];
 $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
 $user = $user ?? ['name' => '', 'email' => '', 'phone' => ''];
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $formatDate = function ($value) {
     $timestamp = strtotime((string)$value);
     return $timestamp ? date('M j, Y', $timestamp) : '';
@@ -1345,6 +1345,7 @@ input[type="date"]:invalid {
   </div>
 
   <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
+    <?= csrf_field() ?>
     <div class="gp-layout">
 
       <!-- LEFT: item cards -->
@@ -1880,7 +1881,7 @@ const packageScheduleState = new Map();
   const depositPercent = <?= (int)$depositPercent ?>;
 
   function money(value) {
-    return 'RM ' + Math.round(Number(value) || 0).toLocaleString('en-US');
+    return 'MMK ' + Math.round(Number(value) || 0).toLocaleString('en-US');
   }
 
   function inputNumber(selector) {
@@ -2158,6 +2159,19 @@ const packageScheduleState = new Map();
       .then(data => {
         if (data.success && data.redirect) {
           window.location.href = data.redirect;
+        } else if (Array.isArray(data.unavailable) && data.unavailable.length) {
+          const lines = data.unavailable.map(u => {
+            let line = (u.service_name || 'A package service') + ': ' + (u.message || 'not available');
+            if (Array.isArray(u.alternatives) && u.alternatives.length) {
+              const dates = u.alternatives.map(a => a.label || a.date).join(', ');
+              line += ' — try ' + dates;
+            }
+            return line;
+          });
+          showBookingReminder(lines, "These package services aren't available on your date:");
+          showToast(lines[0], 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalSubmitHtml;
         } else {
           const error = data.error || 'Something went wrong. Please try again.';
           showBookingReminder([error], 'Please fix this before proceeding.');

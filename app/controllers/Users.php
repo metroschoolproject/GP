@@ -342,6 +342,16 @@ public function register()
                         exit;
                     }
 
+                    // Block moderated accounts (suspended / banned / soft-deleted).
+                    // 'locked' is a timed lock handled separately below, so it is excluded here.
+                    if ($user && (!empty($user['deleted_at']) || in_array(($user['status'] ?? ''), ['suspended', 'banned'], true))) {
+                        echo json_encode([
+                            'status' => 'account_blocked',
+                            'message' => 'Your account has been ' . (!empty($user['deleted_at']) ? 'deactivated' : $user['status']) . '. Please contact support.'
+                        ]);
+                        exit;
+                    }
+
                     $lockResponse = $this->getPasswordLockResponse($input['email']);
                     if ($lockResponse) {
                         echo json_encode($lockResponse);

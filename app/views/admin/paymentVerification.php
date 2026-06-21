@@ -17,7 +17,7 @@ $missingCount = 0;
 
 foreach ($pendingPayments as $payment) {
     $totalAmount = (float)($payment['total_amount'] ?? 0);
-    $expectedDeposit = $totalAmount * 0.1;
+    $expectedDeposit = $totalAmount * (BOOKING_DEPOSIT_PERCENT / 100);
     $paidAmountRaw = $payment['paid_amount'] ?? $payment['payment_amount'] ?? null;
     $paidAmount = $paidAmountRaw !== null && $paidAmountRaw !== '' ? (float)$paidAmountRaw : $expectedDeposit;
 
@@ -170,7 +170,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
     <div class="stat">
       <div class="stat-label">Expected Deposit</div>
       <div class="stat-value"><?= $money($expectedTotal) ?></div>
-      <div class="stat-sub">10% booking deposits</div>
+      <div class="stat-sub"><?= BOOKING_DEPOSIT_PERCENT ?>% booking deposits</div>
     </div>
     <?php if ($isPending): ?>
     <div class="stat">
@@ -220,7 +220,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               $customerName = (string)($payment['name'] ?? 'Unknown customer');
               $customerEmail = (string)($payment['email'] ?? '');
               $totalAmount = (float)($payment['total_amount'] ?? 0);
-              $expectedDeposit = $totalAmount * 0.1;
+              $expectedDeposit = $totalAmount * (BOOKING_DEPOSIT_PERCENT / 100);
               $paidAmountRaw = $payment['paid_amount'] ?? $payment['payment_amount'] ?? null;
               $paidAmount = $paidAmountRaw !== null && $paidAmountRaw !== '' ? (float)$paidAmountRaw : $expectedDeposit;
               $method = (string)($payment['bank_name'] ?? $payment['method'] ?? '-');

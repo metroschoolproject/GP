@@ -2,9 +2,9 @@
 $booking = $booking ?? [];
 $items = $items ?? [];
 $bookingRef = $bookingRef ?? '';
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -58,6 +58,7 @@ $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
         </div>
 
         <form id="cancel-form" method="POST" action="<?= URLROOT ?>/booking/submitCancellation">
+          <?= csrf_field() ?>
           <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
           <div class="gp-field">
             <label class="gp-label" for="reason">Reason for cancellation</label>

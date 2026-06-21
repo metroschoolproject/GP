@@ -333,6 +333,11 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
     }
 
+    public function allServicesCapacityPreview()
+    {
+        return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
+    }
+
     public function serviceSlotReserve($slotId = null)
     {
         return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
@@ -381,6 +386,11 @@ class Supplier extends SupplierControllerSupport
     public function bookingRespond()
     {
         return $this->forwardTo(Booking::class, 'supplierRespond', func_get_args());
+    }
+
+    public function bookingCancellationRespond()
+    {
+        return $this->forwardTo(Booking::class, 'supplierCancellationRespond', func_get_args());
     }
 
     public function reviews()
