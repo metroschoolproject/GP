@@ -30,7 +30,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 ?>
 <style>
 .supplier-review-content{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#111827;font-size:13px}
-.sr-shell{--s:#ffffff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--b-light:#eddecc;--p:#6d4c5b;--ph:#7b5c69;--ps:#eddecc;--t:#111827;--m:#b79c8b;--b:#7b5c69;--sb:#d1fae5;--st:#065f46;--wb:#fef3c7;--wt:#92400e;--db:#fee2e2;--dt:#991b1b;--nb:#f3f4f6;max-width:1600px;margin:0 auto}
+.sr-shell{--s:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--b-light:#eddecc;--p:#6d4c5b;--ph:#7b5c69;--ps:#eddecc;--t:#111827;--m:#b79c8b;--b:#7b5c69;--sb:#d1fae5;--st:#065f46;--wb:#fef3c7;--wt:#92400e;--db:#fee2e2;--dt:#991b1b;--nb:#f3f4f6;max-width:1600px;margin:0 auto}
 .sr-shell *{box-sizing:border-box}
 .sr-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
 .sr-eyebrow,.sr-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m)}
@@ -83,11 +83,11 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 .sr-empty{border:1px dashed var(--border);border-radius:.75rem;background:var(--soft);padding:18px;color:var(--m);text-align:center}
 
 .btn,.sr-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:38px;border:none;border-radius:.75rem;padding:0 14px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;transition:background .12s,transform .12s}
-.btn-primary,.sr-btn-primary{background:var(--p);color:#fff}
+.btn-primary,.sr-btn-primary{background:var(--p);color:#fcf8f5}
 .btn-primary:hover,.sr-btn-primary:hover{background:var(--ph);transform:translateY(-1px)}
-.btn-danger,.sr-btn-danger{background:var(--dt);color:#fff}
+.btn-danger,.sr-btn-danger{background:var(--dt);color:#fcf8f5}
 .btn-danger:hover,.sr-btn-danger:hover{background:#7f1d1d;transform:translateY(-1px)}
-.btn-warn,.sr-btn-warn{background:var(--wt);color:#fff}
+.btn-warn,.sr-btn-warn{background:var(--wt);color:#fcf8f5}
 .btn-warn:hover,.sr-btn-warn:hover{background:#78350f;transform:translateY(-1px)}
 .btn-outline,.sr-btn-outline{border:1px solid var(--border);background:var(--s);color:var(--t)}
 .btn-outline:hover,.sr-btn-outline:hover{background:var(--soft)}
@@ -96,12 +96,12 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 .sr-reviewed{border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:14px;color:var(--b);line-height:1.6}
 .sr-field{margin-bottom:14px}
 .sr-field label{display:block;font-size:11px;font-weight:700;color:var(--m);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
-.sr-field input,.sr-field textarea,.sr-field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:#fff;color:var(--t);font-size:13px;font-family:inherit;outline:none;resize:vertical}
+.sr-field input,.sr-field textarea,.sr-field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:#fcf8f5;color:var(--t);font-size:13px;font-family:inherit;outline:none;resize:vertical}
 .sr-field input:focus,.sr-field textarea:focus,.sr-field select:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(109,76,91,.08)}
 .sr-field textarea{min-height:70px}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
-.modal-box{background:#fff;border-radius:1rem;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-box{background:#fcf8f5;border-radius:1rem;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
 
 @media(max-width:1100px){.sr-layout{grid-template-columns:1fr}.sr-rail{position:static;grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.supplier-review-content{padding:20px 16px}.sr-rail{grid-template-columns:1fr}.sr-stats,.sr-perf{grid-template-columns:1fr 1fr}.sr-detail-row{grid-template-columns:1fr}}

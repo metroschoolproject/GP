@@ -458,7 +458,7 @@
             margin: 0;
             border: 0;
             border-radius: 0;
-            background: #fff;
+            background: #fcf8f5;
             padding: 28px 32px;
             font-size: 15px;
             line-height: 1.95;
@@ -501,7 +501,7 @@
         .agreement-summary-item {
             border: 1px solid var(--env-border);
             border-radius: 12px;
-            background: #fff;
+            background: #fcf8f5;
             padding: 10px;
         }
         .agreement-summary-item span {

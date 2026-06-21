@@ -51,9 +51,9 @@
             padding: 38px 40px 40px;
             position: relative;
             border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(252,248,245, 0.14);
             background: var(--paper);
-            box-shadow: 0 8px 48px rgba(80, 40, 180, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 48px rgba(80, 40, 180, 0.18), inset 0 1px 0 rgba(252,248,245, 0.12);
             overflow: hidden;
         }
 
@@ -177,7 +177,7 @@
             border: none;
             border-radius: 12px;
             background-color: var(--accent);
-            color: white;
+            color: #fcf8f5;
             font-size: 15px;
             font-weight: 600;
             letter-spacing: 0.2px;
@@ -201,7 +201,7 @@
         .btn-shimmer {
             position: absolute;
             inset: 0;
-            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
+            background: linear-gradient(90deg, transparent 0%, rgba(252,248,245,0.18) 50%, transparent 100%);
             transform: translateX(-100%);
             transition: transform 0.5s;
         }

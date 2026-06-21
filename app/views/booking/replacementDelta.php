@@ -33,7 +33,7 @@ $banks = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / Ma
   .eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#b79c8b}
   h1{font-size:24px;font-weight:700;margin:6px 0 0}
   h1 em{font-style:italic;color:#6d4c5b}
-  .card{background:#fff;border:1px solid #ead8c7;border-radius:14px;padding:20px;margin-top:18px}
+  .card{background:#fcf8f5;border:1px solid #ead8c7;border-radius:14px;padding:20px;margin-top:18px}
   .card-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#b79c8b;margin-bottom:10px}
   .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0e6da;font-size:14px}
   .row:last-child{border-bottom:none}
@@ -42,11 +42,11 @@ $banks = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / Ma
   .flash{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:10px;padding:11px 14px;margin-top:16px;font-size:13px;font-weight:600}
   .context-banner{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:6px;font-size:13px;color:#1e40af;line-height:1.5}
   label{display:block;font-size:12px;font-weight:700;color:#57534e;margin:14px 0 5px}
-  input,select{width:100%;height:42px;padding:0 12px;border:1px solid #ead8c7;border-radius:10px;font-size:14px;font-family:inherit;background:#fff;outline:none}
+  input,select{width:100%;height:42px;padding:0 12px;border:1px solid #ead8c7;border-radius:10px;font-size:14px;font-family:inherit;background:#fcf8f5;outline:none}
   input:focus,select:focus{border-color:#6d4c5b}
   .file{display:flex;align-items:center;gap:8px;height:auto;padding:14px;border:1.5px dashed #ead8c7;border-radius:10px;cursor:pointer;color:#7b5c69;font-size:13px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
-  .btn{width:100%;height:48px;border:none;border-radius:12px;background:#6d4c5b;color:#fff;font-size:15px;font-weight:700;margin-top:20px;cursor:pointer}
+  .btn{width:100%;height:48px;border:none;border-radius:12px;background:#6d4c5b;color:#fcf8f5;font-size:15px;font-weight:700;margin-top:20px;cursor:pointer}
   .btn:hover{opacity:.93}
   .muted{font-size:12.5px;color:#7b5c69;margin-top:10px;line-height:1.5}
   a.back{color:#6d4c5b;font-size:13px;font-weight:700;text-decoration:none}

@@ -118,7 +118,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       inset: 0;
       z-index: -1;
       background:
-        radial-gradient(ellipse at 16% 20%, rgba(255,255,255,0.72) 0 12%, transparent 27%),
+        radial-gradient(ellipse at 16% 20%, rgba(252,248,245,0.72) 0 12%, transparent 27%),
         radial-gradient(ellipse at 82% 10%, rgba(233,171,145,0.12), transparent 28%),
         radial-gradient(ellipse at 52% 88%, rgba(245,232,217,0.56), transparent 44%);
       pointer-events: none;
@@ -136,7 +136,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       border-radius: 0;
       background:
         url("<?= $homeImageRoot ?>/hero-bg.png") center / cover no-repeat,
-        radial-gradient(ellipse at 18% 18%, rgba(255,255,255,0.92), transparent 34%),
+        radial-gradient(ellipse at 18% 18%, rgba(252,248,245,0.92), transparent 34%),
         linear-gradient(180deg, #fff6ec 0%, #f5e4d7 100%);
       isolation: isolate;
     }
@@ -292,7 +292,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
   box-shadow:
     0 10px 30px rgba(74, 52, 47, 0.08),
-    inset 0 1px 0 rgba(255,255,255,0.4);
+    inset 0 1px 0 rgba(252,248,245,0.4);
 }
 .navbar::before { display: none; }
     .nav-left-spacer {
@@ -325,7 +325,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       padding: 5px;
       border-radius: 10px;
       background: rgba(0, 0, 0, 0.52);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      box-shadow: inset 0 1px 0 rgba(252,248,245, 0.14);
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
     }
@@ -338,7 +338,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .home-nav-pill a:first-child {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(252,248,245, 0.92);
       color: #3F2F24;
     }
     /* dropdown */
@@ -415,13 +415,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       justify-content: center;
       padding: 0 18px;
       place-items: center;
-      border: 1px solid rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(252,248,245, 0.92);
       border-radius: 10px;
       background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(255, 241, 236, 0.9));
+        linear-gradient(145deg, rgba(252,248,245, 0.98), rgba(255, 241, 236, 0.9));
       color: var(--icon-color);
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        inset 0 1px 0 rgba(252,248,245, 0.86),
         0 18px 38px rgba(92, 55, 72, 0.18);
       -webkit-backdrop-filter: blur(18px);
       backdrop-filter: blur(18px);
@@ -642,7 +642,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       overflow: visible;
       padding: 0 16px;
       background:
-        radial-gradient(ellipse at 15% 18%, rgba(255,255,255,0.78), transparent 32%),
+        radial-gradient(ellipse at 15% 18%, rgba(252,248,245,0.78), transparent 32%),
         radial-gradient(ellipse at 82% 12%, rgba(185,74,72,0.12), transparent 28%),
         linear-gradient(135deg, #fff8ef 0%, #f8f2ec 48%, #f5e8d9 100%);
       color: #4a342f;
@@ -780,7 +780,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       z-index: 3;
       height: 50%;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(154,126,112,0.28) 34%, rgba(74,62,59,0.48) 100%),
+        linear-gradient(180deg, rgba(252,248,245,0) 0%, rgba(154,126,112,0.28) 34%, rgba(74,62,59,0.48) 100%),
         radial-gradient(ellipse at 18% 72%, rgba(210,132,96,0.18), transparent 56%);
       -webkit-backdrop-filter: blur(12px) saturate(1.05);
       backdrop-filter: blur(12px) saturate(1.05);
@@ -796,7 +796,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       width: calc(100% - 44px);
       margin: 0;
       padding: 0;
-      color: #fff;
+      color: #fcf8f5;
       font-family: Arial, sans-serif;
       font-size: 21px;
       font-weight: 800;
@@ -823,7 +823,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       margin: 0;
       padding: 0;
       overflow: hidden;
-      color: rgba(255,255,255,0.92);
+      color: rgba(252,248,245,0.92);
       font-family: Arial, sans-serif;
       font-size: 15px;
       font-weight: 700;
@@ -852,7 +852,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       position: absolute;
       right: -26px;
       top: 50%;
-      color: rgba(255,255,255,0.82);
+      color: rgba(252,248,245,0.82);
       font-size: 34px;
       font-weight: 400;
       line-height: 1;
@@ -1493,8 +1493,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       padding: clamp(22px, 3vw, 34px);
       border: 1px solid rgba(216, 180, 106, 0.20);
       border-radius: 26px;
-      background: rgba(255, 255, 255, 0.08);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      background: rgba(252,248,245, 0.08);
+      box-shadow: inset 0 1px 0 rgba(252,248,245, 0.12);
     }
 
     .contact-form label {
@@ -1578,7 +1578,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       place-items: center;
       padding: clamp(18px, 2.2vw, 28px) 24px 18px;
       background: #2A1710;
-      color: #fff;
+      color: #fcf8f5;
       scroll-snap-align: start;
       scroll-snap-stop: always;
     }
@@ -1607,8 +1607,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 }
 
 .contact-btn{
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(252,248,245,0.05);
+    border: 1px solid rgba(252,248,245,0.16);
     border-radius: 10px;
     cursor: pointer;
     color: #999;
@@ -1627,9 +1627,9 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 .contact-btn:hover,
 .contact-btn.active{
-    background: rgba(255,255,255,0.16);
-    border-color: rgba(255,255,255,0.4);
-    color: #ffffff;
+    background: rgba(252,248,245,0.16);
+    border-color: rgba(252,248,245,0.4);
+    color: #fcf8f5;
 }
 
 .text-changing{
@@ -1646,7 +1646,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     .footer-brand {
       margin: 0;
-      color: #fff;
+      color: #fcf8f5;
       font-family: Arial, Helvetica, sans-serif;
       font-size: clamp(30px, 5.4vw, 76px);
       font-weight: 800;
@@ -1663,7 +1663,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .footer-nav a {
-      color: rgba(255, 255, 255, 0.84);
+      color: rgba(252,248,245, 0.84);
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.22em;
@@ -1674,7 +1674,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     .footer-nav a:hover,
     .footer-nav a:focus-visible {
-      color: #fff;
+      color: #fcf8f5;
       opacity: 1;
       outline: none;
     }
@@ -1691,9 +1691,9 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       width: 46px;
       height: 46px;
       place-items: center;
-      border: 1px solid #fff;
+      border: 1px solid #fcf8f5;
       border-radius: 50%;
-      background: #fff;
+      background: #fcf8f5;
       color: #2A1710;
       text-decoration: none;
       transition:
@@ -1705,7 +1705,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     .footer-social:hover,
     .footer-social:focus-visible {
       background: #2A1710;
-      color: #fff;
+      color: #fcf8f5;
       transform: translateY(-3px);
       outline: none;
     }
@@ -1719,7 +1719,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     .footer-copy {
       margin: clamp(18px, 2.4vw, 28px) 0 0;
-      color: rgba(255, 255, 255, 0.78);
+      color: rgba(252,248,245, 0.78);
       font-family: Arial, Helvetica, sans-serif;
       font-size: 12px;
       font-weight: 500;
@@ -1801,8 +1801,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       inset: -28%;
       z-index: 0;
       background:
-        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.9), transparent 28%),
-        radial-gradient(circle at 24% 24%, rgba(255, 255, 255, 0.72), transparent 44%),
+        radial-gradient(circle at 50% 50%, rgba(252,248,245, 0.9), transparent 28%),
+        radial-gradient(circle at 24% 24%, rgba(252,248,245, 0.72), transparent 44%),
         radial-gradient(circle at 74% 34%, rgba(255, 238, 242, 0.18), transparent 56%),
         radial-gradient(circle at 50% 72%, rgba(255, 250, 240, 0.26), transparent 62%),
         linear-gradient(135deg, rgba(255, 252, 247, 0.34), rgba(255, 249, 244, 0.3)),
@@ -2078,7 +2078,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
             </figure>
 
             <div class="mx-auto max-w-[520px] py-8 text-center max-[767px]:py-0">
-              <p class="text-[12px] font-extrabold uppercase tracking-[0.28em] text-[#9A687F]">Curated Vendor Network</p>
+              <p class="text-[12px] font-extrabold uppercase tracking-[0.28em] text-[#6D4C5B]">Curated Vendor Network</p>
               <p class="mt-3 text-sm leading-[1.7] text-[#6f625a]">
                 Planning, florals, photography, catering, music, beauty, attire, decor, venue styling, and day-of coordination partners gathered in one graceful place for an easier wedding journey.
               </p>

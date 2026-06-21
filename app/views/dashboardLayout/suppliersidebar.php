@@ -213,7 +213,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
             justify-content: center;
             border-radius: 0.75rem;
             border: 1px solid var(--color-app-border, #e5e7eb);
-            background: var(--color-app-input, #fff);
+            background: var(--color-app-input, #fcf8f5);
             color: var(--color-app-text, #1f2937);
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
         }
@@ -279,6 +279,8 @@ if (!function_exists('dashboard_supplier_path_matches')) {
 
     .supplier-sidebar-subnav a:hover,
     .supplier-sidebar-subnav a.is-active {
+        background: var(--color-app-input, #fcf8f5);
+        color: var(--color-app-text, #1f2937);
         background: var(--color-app-input, #fff);
         color: var(--color-app-primary, #6d4c5b);
     }

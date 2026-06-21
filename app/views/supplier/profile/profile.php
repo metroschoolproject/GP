@@ -165,11 +165,11 @@ $dashboardContent = function () use (
 .avatar-inner {
     width: 100%; height: 100%; border-radius: 50%;
     background: linear-gradient(145deg, var(--rose-deep), var(--rose));
-    color: #fff; font-family: 'Playfair Display', serif;
+    color: #fcf8f5; font-family: 'Playfair Display', serif;
     font-size: 40px; font-weight: 500;
     display: flex; align-items: center; justify-content: center;
     letter-spacing: -2px; user-select: none;
-    box-shadow: inset 0 2px 8px rgba(255,255,255,.15);
+    box-shadow: inset 0 2px 8px rgba(252,248,245,.15);
 }
 .identity-card .shop-name {
     font-family: 'Playfair Display', serif;
@@ -191,7 +191,7 @@ $dashboardContent = function () use (
 .avatar-img {
     width: 100%; height: 100%; border-radius: 50%;
     object-fit: cover; display: block;
-    box-shadow: inset 0 2px 8px rgba(255,255,255,.15);
+    box-shadow: inset 0 2px 8px rgba(252,248,245,.15);
 }
 .id-meta { text-align: left; }
 .id-meta .meta-row {
@@ -234,7 +234,7 @@ $dashboardContent = function () use (
     transition: border-color .15s, box-shadow .15s, background .15s;
 }
 .form-input:focus {
-    outline: none; border-color: var(--rose); background: #fff;
+    outline: none; border-color: var(--rose); background: #fcf8f5;
     box-shadow: 0 0 0 4px rgba(155,93,115,.06);
 }
 textarea.form-input { height: auto; min-height: 90px; padding: 14px 16px; resize: vertical; }
@@ -255,7 +255,7 @@ textarea.form-input { height: auto; min-height: 90px; padding: 14px 16px; resize
 }
 .btn-primary {
     background: linear-gradient(135deg, var(--rose-deep), var(--rose));
-    color: #fff; box-shadow: 0 2px 8px rgba(103,48,73,.25);
+    color: #fcf8f5; box-shadow: 0 2px 8px rgba(103,48,73,.25);
 }
 .btn-primary:hover {
     box-shadow: 0 4px 16px rgba(103,48,73,.35);

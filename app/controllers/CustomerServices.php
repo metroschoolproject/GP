@@ -86,8 +86,12 @@ class CustomerServices extends Controller
         // Wishlist state for the detail page
         $isWishlisted = false;
         $wishlistCount = 0;
+        $cartCount = 0;
         $userId = $_SESSION['session_uid'] ?? null;
         if ($userId) {
+            $cartModel = $this->model('CartModel');
+            $cartCount = $cartModel->getCartCount((int)$userId);
+
             $wishlistModel = $this->model('WishlistModel');
             $isWishlisted = $wishlistModel->isFavorited((int)$userId, 'service', $serviceId);
             $wishlistCount = $wishlistModel->getWishlistCount((int)$userId);
@@ -102,6 +106,7 @@ class CustomerServices extends Controller
             'selectedDate' => $service['selected_date'] ?? '',
             'isWishlisted' => $isWishlisted,
             'wishlistCount' => $wishlistCount,
+            'cartCount' => $cartCount,
         ]);
     }
 

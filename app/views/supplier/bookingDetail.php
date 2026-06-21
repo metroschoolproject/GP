@@ -202,7 +202,7 @@ $dashboardContent = function () use (
 <style>
   /* ── Supplier Booking Detail — Redesign ── */
   .sup-page {
-    --sup-surface: #ffffff;
+    --sup-surface: #fcf8f5;
     --sup-soft: #faf5ef;
     --sup-border: #ead8c7;
     --sup-border-light: #eddecc;
@@ -444,7 +444,7 @@ $dashboardContent = function () use (
   .sup-btn:disabled { cursor: wait; opacity: .55; }
   .sup-btn--accept  {
     background: var(--sup-success-text);
-    color: #fff;
+    color: #fcf8f5;
     border: 1px solid var(--sup-success-border);
   }
   .sup-btn--accept:hover {
@@ -910,7 +910,7 @@ $dashboardContent = function () use (
   .sup-booking-tab:hover { color: #673049; background: #fde8ef; }
   .sup-booking-tab.is-active {
     color: #673049;
-    background: #fff;
+    background: #fcf8f5;
     box-shadow: 0 2px 9px rgba(28,25,23,.08);
   }
   .sup-booking-tab:focus-visible {
@@ -1067,7 +1067,7 @@ $dashboardContent = function () use (
     border-left-width: 1px;
     border-color: #e7e5e4;
     border-radius: 12px;
-    background: #fff;
+    background: #fcf8f5;
     padding: 14px;
     box-shadow: 0 1px 2px rgba(28,25,23,.04);
   }
@@ -1174,7 +1174,7 @@ $dashboardContent = function () use (
     height: 100vh;
     overflow-y: auto;
     border-left: 1px solid #ead8c7;
-    background: #fff;
+    background: #fcf8f5;
     padding: 25px;
     box-shadow: -20px 0 50px rgba(52,35,43,.13);
     transform: translateX(105%);
@@ -1300,7 +1300,7 @@ $dashboardContent = function () use (
     width: 22px;
     height: 22px;
     place-items: center;
-    border: 4px solid #fff;
+    border: 4px solid #fcf8f5;
     border-radius: 50%;
     background: #d6c8ce;
   }
@@ -1308,7 +1308,7 @@ $dashboardContent = function () use (
     padding: 10px 11px;
     border: 1px solid #ead8c7;
     border-radius: 10px;
-    background: #fff;
+    background: #fcf8f5;
   }
   .sup-drawer-timeline-copy strong {
     display: block;
@@ -1343,7 +1343,7 @@ $dashboardContent = function () use (
     border-radius: 999px;
     padding: 2px 7px;
     color: #673049;
-    background: #fff;
+    background: #fcf8f5;
     font-size: 8px;
     font-weight: 800;
   }

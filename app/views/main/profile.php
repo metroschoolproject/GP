@@ -34,7 +34,7 @@ $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --c-bg: #f5e8d9; --c-surface: #faf5ef; --c-white: #ffffff;
+  --c-bg: #f5e8d9; --c-surface: #faf5ef; --c-white: #fcf8f5;
   --c-card: #faf5ef; --c-rule: #ead8c7; --c-strong: #6d4c5b;
   --c-accent: #7b5c69; --c-muted: #b79c8b; --c-text: #111827;
   --c-danger: #b94b4b; --c-pale: #b79c8b; --c-gold: #d4a047;
@@ -94,7 +94,7 @@ button { font-family: var(--font-body); cursor: pointer; }
 
 /* ══ PROFILE CARD (boutique panel style) ════ */
 .gp-profile-section { padding: 0 var(--pad-x) 64px; max-width: 620px; margin: 0 auto; }
-.gp-boutique-panel { background: linear-gradient(145deg, rgba(250,245,239,0.95), rgba(245,232,217,0.92)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(212,160,71,0.15); border-radius: 20px; box-shadow: 0 20px 50px -12px rgba(109,76,91,0.12), inset 0 1px 0 rgba(255,255,255,0.60); overflow: hidden; margin-bottom: 20px; }
+.gp-boutique-panel { background: linear-gradient(145deg, rgba(250,245,239,0.95), rgba(245,232,217,0.92)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(212,160,71,0.15); border-radius: 20px; box-shadow: 0 20px 50px -12px rgba(109,76,91,0.12), inset 0 1px 0 rgba(252,248,245,0.60); overflow: hidden; margin-bottom: 20px; }
 .gp-boutique-panel:focus-within { border-color: rgba(212,160,71,0.30); box-shadow: 0 0 0 4px rgba(212,160,71,0.08), 0 20px 50px -12px rgba(109,76,91,0.16); }
 .gp-panel-head { padding: 22px 28px 0; display: flex; align-items: center; gap: 16px; }
 .gp-panel-avatar { width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--c-strong), #8b5e6f); color: #fffaf3; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 28px; font-weight: 500; letter-spacing: -1px; overflow: hidden; box-shadow: 0 0 0 4px rgba(109,76,91,0.06), 0 8px 24px rgba(109,76,91,0.10); }
@@ -111,9 +111,9 @@ button { font-family: var(--font-body); cursor: pointer; }
 .gp-field-row:last-child { margin-bottom: 0; }
 .gp-field-boutique { display: flex; flex-direction: column; gap: 4px; }
 .gp-field-boutique label { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-strong); padding-left: 2px; }
-.gp-field-boutique input { height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(212,160,71,0.12); background: rgba(255,255,255,0.72); font-size: 13px; font-weight: 500; color: var(--c-text); width: 100%; transition: border-color 0.2s, background 0.2s; font-family: var(--font-body); }
-.gp-field-boutique input:hover { background: rgba(255,255,255,0.90); border-color: rgba(212,160,71,0.25); }
-.gp-field-boutique input:focus { border-color: var(--c-gold); background: #fff; box-shadow: 0 0 0 3px rgba(212,160,71,0.10); outline: none; }
+.gp-field-boutique input { height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(212,160,71,0.12); background: rgba(252,248,245,0.72); font-size: 13px; font-weight: 500; color: var(--c-text); width: 100%; transition: border-color 0.2s, background 0.2s; font-family: var(--font-body); }
+.gp-field-boutique input:hover { background: rgba(252,248,245,0.90); border-color: rgba(212,160,71,0.25); }
+.gp-field-boutique input:focus { border-color: var(--c-gold); background: #fcf8f5; box-shadow: 0 0 0 3px rgba(212,160,71,0.10); outline: none; }
 .gp-field-boutique input::placeholder { color: var(--c-pale); }
 
 /* ══ PASSWORD INPUT WITH EYE ═══════════════ */
@@ -141,7 +141,7 @@ button { font-family: var(--font-body); cursor: pointer; }
 .gp-toggle-desc { font-size: 11px; color: var(--c-muted); margin-top: 2px; }
 .gp-toggle { width: 48px; height: 28px; border-radius: 14px; background: rgba(212,160,71,0.18); cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
 .gp-toggle.on { background: var(--c-strong); }
-.gp-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.gp-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fcf8f5; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 .gp-toggle.on::after { transform: translateX(20px); }
 
 /* ══ BUTTONS ═════════════════════════════ */
@@ -179,30 +179,7 @@ button { font-family: var(--font-body); cursor: pointer; }
 <body>
 <div class="gp-texture" aria-hidden="true"></div>
 
-<!-- HEADER =============================================== -->
-<header class="gp-header">
-  <a class="gp-brand" href="<?= URLROOT ?>/main/home"><span class="gp-brand-mark">G</span>Golden Promise</a>
-  <nav class="gp-header-nav">
-    <a href="<?= URLROOT ?>/main/home">Home</a>
-    <a href="<?= URLROOT ?>/customerServices/service">Services</a>
-    <a href="<?= URLROOT ?>/main/profile" class="active">Profile</a>
-  </nav>
-  <div class="gp-header-actions">
-    <div class="gp-profile-dropdown">
-      <button class="gp-profile-btn" type="button" aria-expanded="false">
-        <span class="gp-profile-avatar" id="hdAvatar"><?php if (!empty($profileAvatar)): ?><img src="<?= $h($profileAvatar) ?>" alt=""><?php else: ?><?= $initials ?><?php endif; ?></span>
-        <span class="gp-profile-name"><?= $h($firstName ?: 'Account') ?></span>
-        <svg class="gp-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <div class="gp-profile-menu" aria-hidden="true">
-        <a class="gp-menu-item" href="<?= URLROOT ?>/main/profile"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> My Profile</a>
-        <a class="gp-menu-item" href="<?= URLROOT ?>/main/wishlist"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> My Wishlist</a>
-        <a class="gp-menu-item" href="<?= URLROOT ?>/booking/myBookings"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> My Bookings</a>
-        <a class="gp-menu-item gp-menu-item--danger" href="<?= URLROOT ?>/users/logout"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout</a>
-      </div>
-    </div>
-  </div>
-</header>
+<?php $gpNavActive = 'profile'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <!-- HERO ================================================= -->
 <section class="gp-boutique-hero">

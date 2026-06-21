@@ -141,7 +141,7 @@ body {
     padding: 24px;
     border: 1px solid #e6d8c8;
     border-radius: 8px;
-    background: #ffffff;
+    background: #fcf8f5;
     color: #2b2520;
     text-decoration: none;
 }
@@ -564,7 +564,7 @@ body {
     z-index: -1;
     background:
         linear-gradient(90deg, rgba(246, 241, 233, 0.96), rgba(246, 241, 233, 0.38) 36%, rgba(246, 241, 233, 0.86)),
-        radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.2), transparent 35%);
+        radial-gradient(circle at 50% 46%, rgba(252,248,245, 0.2), transparent 35%);
 }
 
 .hero-intro {
@@ -635,7 +635,7 @@ body {
 }
 
 .hero-search a {
-    background: rgba(255, 255, 255, 0.54);
+    background: rgba(252,248,245, 0.54);
     color: #302920;
     text-decoration: none;
     transition: 0.22s ease;

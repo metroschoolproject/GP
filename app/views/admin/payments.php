@@ -67,7 +67,7 @@ $dashboardContent = function () use (
 <style>
   .admin-payment-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
   .admin-payment-page *{box-sizing:border-box}
-  .admin-payment-page{--bg:#FBFBF9;--surface:#ffffff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#d1fae5;--success-text:#065f46;--warn-bg:#fef3c7;--warn-text:#92400e;--danger-bg:#fee2e2;--danger-text:#991b1b;--neutral-bg:#f3f4f6;--neutral-text:#57534e;max-width:1600px;margin:0 auto}
+  .admin-payment-page{--bg:#FBFBF9;--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#d1fae5;--success-text:#065f46;--warn-bg:#fef3c7;--warn-text:#92400e;--danger-bg:#fee2e2;--danger-text:#991b1b;--neutral-bg:#f3f4f6;--neutral-text:#57534e;max-width:1600px;margin:0 auto}
 
   .page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
@@ -80,7 +80,7 @@ $dashboardContent = function () use (
   .filters{display:flex;gap:6px;flex-wrap:wrap}
   .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s;white-space:nowrap;text-decoration:none}
   .filter:hover{border-color:var(--border);background:var(--hover);color:var(--primary)}
-  .filter.active{border-color:var(--primary);background:var(--primary);color:#fff}
+  .filter.active{border-color:var(--primary);background:var(--primary);color:#fcf8f5}
 
   .divider{width:1px;height:20px;background:var(--border);margin:0 4px}
   .date-range{display:flex;align-items:center;gap:6px}
@@ -142,7 +142,7 @@ $dashboardContent = function () use (
   .badge-refunded{background:#e0e7ff;color:#3730a3}
 
   .payment-actions{display:inline-flex;gap:6px;justify-content:flex-end}
-  .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#fff;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer}
+  .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#fcf8f5;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer}
   .action-approve{background:var(--primary)}
   .action-reject{background:#991b1b}
   .empty-row{padding:34px 20px;text-align:center;color:var(--muted)}
@@ -152,7 +152,7 @@ $dashboardContent = function () use (
   .page-btns{display:flex;gap:4px}
   .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
   .page-btn:hover{background:var(--soft)}
-  .page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .page-btn.active{background:var(--primary);color:#fcf8f5;border-color:var(--primary)}
   .page-btn:disabled{opacity:.4;cursor:default}
 
   @media(max-width:1100px){.summary-row{grid-template-columns:repeat(2,1fr)}}

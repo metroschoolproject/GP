@@ -143,7 +143,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       inset: 0;
       z-index: -1;
       background:
-        radial-gradient(ellipse at 16% 20%, rgba(255,255,255,0.72) 0 12%, transparent 27%),
+        radial-gradient(ellipse at 16% 20%, rgba(252,248,245,0.72) 0 12%, transparent 27%),
         radial-gradient(ellipse at 82% 10%, rgba(233,171,145,0.12), transparent 28%),
         radial-gradient(ellipse at 52% 88%, rgba(245,232,217,0.56), transparent 44%);
       pointer-events: none;
@@ -161,7 +161,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       border-radius: 0;
       background:
         url("images/hero-bg.png") center / cover no-repeat,
-        radial-gradient(ellipse at 18% 18%, rgba(255,255,255,0.92), transparent 34%),
+        radial-gradient(ellipse at 18% 18%, rgba(252,248,245,0.92), transparent 34%),
         linear-gradient(180deg, #fff6ec 0%, #f5e4d7 100%);
       isolation: isolate;
     }
@@ -313,7 +313,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       padding: 5px;
       border-radius: 10px;
       background: rgba(0, 0, 0, 0.52);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      box-shadow: inset 0 1px 0 rgba(252,248,245, 0.14);
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
     }
@@ -325,7 +325,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
     }
 
     .home-nav-pill a:first-child {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(252,248,245, 0.92);
       color: #3F2F24;
     }
 
@@ -338,8 +338,8 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       display: flex; align-items: center; gap: 8px;
       padding: 4px 12px 4px 4px;
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(252,248,245,0.15);
+      background: rgba(252,248,245,0.08);
       cursor: pointer;
       transition: all 0.2s;
       color: #FFF4E6;
@@ -347,7 +347,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       font-size: 13px;
       font-weight: 600;
     }
-    .home-profile-btn:hover { background: rgba(255,255,255,0.15); }
+    .home-profile-btn:hover { background: rgba(252,248,245,0.15); }
 
     .home-profile-avatar {
       display: grid; place-items: center;
@@ -370,7 +370,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       min-width: 180px;
       padding: 6px;
       border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(252,248,245,0.1);
       background: #765A46;
       box-shadow: 0 12px 35px rgba(92,67,48,0.25);
       opacity: 0;
@@ -546,7 +546,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       overflow: visible;
       padding: 0 16px;
       background:
-        radial-gradient(ellipse at 15% 18%, rgba(255,255,255,0.78), transparent 32%),
+        radial-gradient(ellipse at 15% 18%, rgba(252,248,245,0.78), transparent 32%),
         radial-gradient(ellipse at 82% 12%, rgba(185,74,72,0.12), transparent 28%),
         linear-gradient(135deg, #fff8ef 0%, #f8f2ec 48%, #f5e8d9 100%);
       color: #4a342f;
@@ -681,7 +681,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       z-index: 3;
       height: 56%;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(154,126,112,0.44) 34%, rgba(74,62,59,0.72) 100%),
+        linear-gradient(180deg, rgba(252,248,245,0) 0%, rgba(154,126,112,0.44) 34%, rgba(74,62,59,0.72) 100%),
         radial-gradient(ellipse at 18% 72%, rgba(210,132,96,0.34), transparent 56%);
       -webkit-backdrop-filter: blur(18px) saturate(1.18);
       backdrop-filter: blur(18px) saturate(1.18);
@@ -697,7 +697,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       width: calc(100% - 44px);
       margin: 0;
       padding: 0;
-      color: #fff;
+      color: #fcf8f5;
       font-family: Arial, sans-serif;
       font-size: 21px;
       font-weight: 800;
@@ -717,7 +717,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       margin: 0;
       padding: 0;
       overflow: hidden;
-      color: rgba(255,255,255,0.92);
+      color: rgba(252,248,245,0.92);
       font-family: Arial, sans-serif;
       font-size: 15px;
       font-weight: 700;
@@ -735,7 +735,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       position: absolute;
       right: -26px;
       top: 50%;
-      color: rgba(255,255,255,0.82);
+      color: rgba(252,248,245,0.82);
       font-size: 34px;
       font-weight: 400;
       line-height: 1;
@@ -1293,8 +1293,8 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       padding: clamp(22px, 3vw, 34px);
       border: 1px solid rgba(216, 180, 106, 0.20);
       border-radius: 26px;
-      background: rgba(255, 255, 255, 0.08);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      background: rgba(252,248,245, 0.08);
+      box-shadow: inset 0 1px 0 rgba(252,248,245, 0.12);
     }
 
     .contact-form label {
@@ -1432,8 +1432,8 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
       inset: -28%;
       z-index: 0;
       background:
-        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.9), transparent 28%),
-        radial-gradient(circle at 24% 24%, rgba(255, 255, 255, 0.72), transparent 44%),
+        radial-gradient(circle at 50% 50%, rgba(252,248,245, 0.9), transparent 28%),
+        radial-gradient(circle at 24% 24%, rgba(252,248,245, 0.72), transparent 44%),
         radial-gradient(circle at 74% 34%, rgba(255, 238, 242, 0.18), transparent 56%),
         radial-gradient(circle at 50% 72%, rgba(255, 250, 240, 0.26), transparent 62%),
         linear-gradient(135deg, rgba(255, 252, 247, 0.34), rgba(255, 249, 244, 0.3)),
@@ -1731,7 +1731,7 @@ $h = fn($value) => htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
             </figure>
 
             <div class="mx-auto max-w-[520px] py-8 text-center max-[767px]:py-0">
-              <p class="text-[12px] font-extrabold uppercase tracking-[0.28em] text-[#9A687F]">Curated Vendor Network</p>
+              <p class="text-[12px] font-extrabold uppercase tracking-[0.28em] text-[#6D4C5B]">Curated Vendor Network</p>
               <p class="mt-3 text-sm leading-[1.7] text-[#6f625a]">
                 Planning, florals, photography, catering, music, beauty, attire, decor, venue styling, and day-of coordination partners gathered in one graceful place for an easier wedding journey.
               </p>

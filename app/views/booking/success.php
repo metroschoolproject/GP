@@ -28,7 +28,7 @@ $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f2e4d4; --card: #ffffff; --rule: rgba(178,143,110,0.22);
+  --bg: #f2e4d4; --card: #fcf8f5; --rule: rgba(178,143,110,0.22);
   --plum: #6b4459; --plum-lt: #9b7289; --rose: #c27a8e; --gold: #b8924a;
   --muted: #a08878; --text: #1a1118; --text2: #5c4a54;
   --r-md: 14px; --r-lg: 20px;
@@ -59,7 +59,7 @@ a { color: inherit; text-decoration: none; }
 .gp-step { display: flex; gap: 14px; padding: 12px 0; position: relative; }
 .gp-step:not(:last-child)::after { content: ''; position: absolute; left: 13px; top: 36px; bottom: -4px; width: 2px; background: var(--rule); }
 .gp-step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-.gp-step.active .gp-step-num { background: var(--plum); color: #fff; }
+.gp-step.active .gp-step-num { background: var(--plum); color: #fcf8f5; }
 .gp-step.future .gp-step-num { background: rgba(107,68,89,0.1); color: var(--muted); }
 .gp-step-content { padding-top: 3px; }
 .gp-step-title { font-size: 13px; font-weight: 600; color: var(--text); }

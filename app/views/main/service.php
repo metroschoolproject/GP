@@ -92,12 +92,34 @@ $serviceUrl = function (array $overrides = []) use ($filters) {
     return URLROOT . '/customerServices/service' . ($query !== '' ? '?' . $query : '');
 };
 
+$displayServices = $services;
+if (!$hasActiveFilters) {
+    $byCategory = [];
+    foreach ($services as $svc) {
+        $key = strtolower(trim((string)($svc['category_slug'] ?? $svc['category'] ?? 'other')));
+        $key = $key !== '' ? $key : 'other';
+        $byCategory[$key][] = $svc;
+    }
+
+    $displayServices = [];
+    while (!empty($byCategory)) {
+        foreach (array_keys($byCategory) as $key) {
+            if (!empty($byCategory[$key])) {
+                $displayServices[] = array_shift($byCategory[$key]);
+            }
+            if (empty($byCategory[$key])) {
+                unset($byCategory[$key]);
+            }
+        }
+    }
+}
+
 $servicesPerPage = 9;
-$totalServices   = count($services);
+$totalServices   = count($displayServices);
 $totalPages      = max(1, (int)ceil($totalServices / $servicesPerPage));
 $currentPage     = max(1, min($totalPages, (int)($_GET['page'] ?? 1)));
 $pageOffset      = ($currentPage - 1) * $servicesPerPage;
-$visibleServices = array_slice($services, $pageOffset, $servicesPerPage);
+$visibleServices = array_slice($displayServices, $pageOffset, $servicesPerPage);
 
 $isLoggedIn       = !empty($_SESSION['session_uid']);
 $cartCount        = (int)($cartCount ?? 0);
@@ -119,7 +141,7 @@ $resetUrl = URLROOT . '/customerServices/service';
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --c-bg:#f5e8d9;--c-white:#ffffff;--c-rule:#ead8c7;
+  --c-bg:#f5e8d9;--c-white:#fcf8f5;--c-rule:#ead8c7;
   --c-strong:#765a46;--c-accent:#6f625a;--c-muted:#9b7d6b;
   --c-text:#211d1a;--c-pale:#b79c8b;
   --c-gold:#d8b46a;--c-red:#b94a48;
@@ -192,11 +214,27 @@ button,input,select{font-family:var(--font-body);outline:none}
   color:#fff4e6;
   font-size:12px;
   font-weight:700;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(252,248,245,.14);
   -webkit-backdrop-filter:blur(12px);
   backdrop-filter:blur(12px);
 }
+.nav-runner{
+  position:absolute;
+  left:0;
+  top:4px;
+  z-index:0;
+  width:0;
+  height:calc(100% - 8px);
+  border-radius:7px;
+  background:rgba(252,248,245,.92);
+  opacity:0;
+  transform:translateX(4px);
+  transition:transform .34s cubic-bezier(.22,1,.36,1),width .34s cubic-bezier(.22,1,.36,1),opacity .18s ease;
+  pointer-events:none;
+}
 .nav-links a{
+  position:relative;
+  z-index:1;
   border:0;
   border-radius:7px;
   background:transparent;
@@ -208,7 +246,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   transition:all .2s ease;
 }
 .nav-links a:hover,
-.nav-links a.active{background:rgba(255,255,255,.92);color:#3f2f24}
+.nav-links a.active{background:transparent;color:#3f2f24}
 .nav-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
 .nav-partner,
 .nav-login{
@@ -236,36 +274,38 @@ button,input,select{font-family:var(--font-body);outline:none}
 .nav-login:hover{background:#f3d9a4;color:#3f2f24}
 .home-profile-dropdown{position:relative}
 .home-profile-btn{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  padding:3px 10px 3px 3px;
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  padding:3px;
   border-radius:7px;
-  border:1px solid rgba(255,255,255,.15);
-  background:rgba(255,255,255,.08);
+  border:0;
+  background:transparent;
   cursor:pointer;
   color:#fff4e6;
   font-family:var(--font-display);
-  font-size:12px;
-  font-weight:600;
   transition:all .2s;
 }
-.home-profile-btn:hover{background:rgba(255,255,255,.15)}
+.home-profile-btn:hover{background:rgba(252,248,245,.22)}
+.home-profile-btn[aria-expanded="true"]{background:rgba(252,248,245,.16)}
 .home-profile-avatar{
   display:grid;
   place-items:center;
-  width:28px;
-  height:28px;
+  width:30px;
+  height:30px;
   border-radius:50%;
   background:#d8b46a;
   color:#3f2f24;
   font-size:12px;
   font-weight:800;
   letter-spacing:.5px;
+  overflow:hidden;
+  box-shadow:0 0 0 0 rgba(216,180,106,0);
+  transition:box-shadow .18s ease;
 }
-.home-profile-name{max-width:86px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.home-profile-chevron{opacity:.7;transition:transform .2s}
-.home-profile-btn[aria-expanded="true"] .home-profile-chevron{transform:rotate(180deg)}
+.home-profile-avatar img{width:100%;height:100%;object-fit:cover}
+.home-profile-btn[aria-expanded="true"] .home-profile-avatar{box-shadow:0 0 0 2px #fff8ef,0 0 0 4px rgba(216,180,106,.76)}
 .nav-actions .gp-customer-notification{z-index:1100}
 .nav-actions .gp-customer-notification #dashboardNotificationBtn{
   width:31px;
@@ -286,39 +326,58 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .home-profile-menu{
   position:absolute;
-  top:calc(100% + 8px);
+  top:calc(100% + 10px);
   right:0;
   z-index:1100;
-  min-width:180px;
-  padding:6px;
-  border-radius:10px;
-  border:1px solid rgba(255,255,255,.10);
-  background:#765a46;
-  box-shadow:0 12px 35px rgba(92,67,48,.25);
+  width:min(232px,calc(100vw - 24px));
+  padding:10px;
+  border-radius:12px;
+  border:1px solid rgba(107,68,89,.12);
+  background:#fcf8f5;
+  box-shadow:0 18px 48px rgba(43,27,36,.18);
   opacity:0;
   visibility:hidden;
   transform:translateY(-4px);
   transition:all .15s ease;
+  color:#2b1b24;
+  font-family:var(--font-body);
 }
 .home-profile-btn[aria-expanded="true"]+.home-profile-menu{
   opacity:1;
   visibility:visible;
   transform:translateY(0);
 }
+.home-profile-menu-top{display:none}
+.home-profile-email{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700;color:#2b1b24}
+.home-profile-close{position:absolute;right:0;top:0;display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#4f454b;cursor:pointer;transition:background .15s ease,color .15s ease}
+.home-profile-close:hover{background:rgba(43,27,36,.08);color:#2b1b24}
+.home-profile-hero{display:grid;grid-template-columns:38px minmax(0,1fr);align-items:start;gap:6px 8px;padding:3px 1px 5px;text-align:left}
+.home-profile-photo{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#d8b46a;color:#3f2f24;font-size:15px;font-weight:800;overflow:hidden}
+.home-profile-photo img{width:100%;height:100%;object-fit:cover}
+.home-profile-profile-copy{min-width:0}
+.home-profile-greeting{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:600;color:#2b1b24;line-height:1.15}
+.home-profile-inline-email{display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:500;color:#7d6f76;line-height:1.15}
+.home-profile-edit{display:inline-flex;grid-column:2;align-items:center;justify-content:flex-start;min-height:16px;margin-top:-10px;padding:0;border:0;border-radius:5px;color:#6D4C5B;background:transparent;font-size:10px;font-weight:600;text-decoration:underline;text-underline-offset:2px;transition:all .15s ease}
+.home-profile-edit:hover{background:rgba(154,104,127,.09);color:#3f241a;border-color:#6D4C5B}
+.home-profile-activity{margin-top:5px;padding:5px;border-radius:10px;background:#f4eee9;border:1px solid rgba(107,68,89,.08)}
+.home-profile-activity-title{display:flex;align-items:center;justify-content:space-between;padding:3px 5px 5px;color:#2b1b24;font-size:11px;font-weight:700}
 .home-profile-menu-item{
   display:flex;
   align-items:center;
   gap:10px;
-  padding:10px 12px;
-  border-radius:10px;
-  color:#fff4e6;
-  font-size:13px;
+  padding:6px 5px;
+  border-radius:8px;
+  color:#4f454b;
+  font-size:10px;
   font-weight:600;
+  text-decoration:none;
   transition:all .15s;
 }
-.home-profile-menu-item:hover{background:rgba(216,180,106,.16);color:#f3d9a4}
-.home-profile-menu-item--danger{color:#f5a0a0}
-.home-profile-menu-item--danger:hover{background:rgba(185,75,75,.20);color:#ffcccc}
+.home-profile-menu-item svg{width:15px;height:15px;color:#6D4C5B}
+.home-profile-menu-item:hover{background:rgba(154,104,127,.08);color:#3f241a}
+.home-profile-menu-item--danger{margin-top:8px;color:#b94a48}
+.home-profile-menu-item--danger svg{color:#b94a48}
+.home-profile-menu-item--danger:hover{background:rgba(185,75,75,.08);color:#8f2e2d}
 .mobile-menu-btn{
   display:none;
   align-items:center;
@@ -327,7 +386,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   padding:0 14px;
   border:1px solid transparent;
   border-radius:8px;
-  background:rgba(255,255,255,.10);
+  background:rgba(252,248,245,.10);
   color:#fff4e6;
   cursor:pointer;
   font-family:var(--font-display);
@@ -367,7 +426,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-scene{
     position:relative;
     padding:0;
-    background:#fff;
+    background:#fcf8f5;
 }
 .hero-banner{
     position:relative;
@@ -398,7 +457,7 @@ button,input,select{font-family:var(--font-body);outline:none}
     align-items:center;
 
     text-align:center;
-    color:white;
+    color:#fcf8f5;
     z-index:2;
 }
 .hero-banner::before{
@@ -573,6 +632,12 @@ button,input,select{font-family:var(--font-body);outline:none}
     border-radius:14px;
     overflow:hidden;
 }
+.fb-search:focus-within,
+.fb-search.is-active{
+    background:#fcf8f5;
+    border-color:rgba(154,104,127,.42);
+    box-shadow:0 10px 26px rgba(63,36,26,.10);
+}
 
 .fb-search svg{flex-shrink:0;opacity:.72;color:#765a46}
 .fb-search input{
@@ -586,6 +651,11 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .fb-search input::placeholder{color:rgba(118,90,70,.58)}
 .fb-search input:focus{outline:none}
+.fb-search input[type="search"]::-webkit-search-cancel-button{
+  opacity:.42;
+  cursor:pointer;
+  transform:scale(.82);
+}
 
 .fb-controls{
   display:flex;
@@ -595,7 +665,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   width:100%;
   min-width:0;
   white-space:nowrap;
-  overflow-x:auto;
+  overflow:visible;
   scrollbar-width:none;
   padding:0 2px;
 }
@@ -643,8 +713,8 @@ button,input,select{font-family:var(--font-body);outline:none}
 .service-calendar-popover{
   position:fixed;
   z-index:10010;
-  width:min(250px,calc(100vw - 32px));
-  padding:12px;
+  width:min(228px,calc(100vw - 32px));
+  padding:10px;
   border:1px solid rgba(63,36,26,.14);
   border-radius:10px;
   background:rgba(255,248,239,.98);
@@ -653,19 +723,19 @@ button,input,select{font-family:var(--font-body);outline:none}
   -webkit-backdrop-filter:blur(18px);
 }
 .service-calendar-head{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-  color:#3F241A;font-size:12px;font-weight:900;margin-bottom:9px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  color:#3F241A;font-size:11px;font-weight:900;margin-bottom:8px;
 }
 .service-calendar-nav{
-  width:22px;height:22px;display:inline-grid;place-items:center;
-  border:0;border-radius:7px;background:transparent;color:#7A4E3D;cursor:pointer;
+  width:20px;height:20px;display:inline-grid;place-items:center;
+  border:0;border-radius:6px;background:transparent;color:#7A4E3D;cursor:pointer;
 }
-.service-calendar-nav svg{width:16px;height:16px;stroke:currentColor}
+.service-calendar-nav svg{width:14px;height:14px;stroke:currentColor}
 .service-calendar-nav:hover{background:rgba(63,36,26,.08)}
-.service-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.service-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .service-calendar-day-name,
 .service-calendar-day{
-  display:grid;place-items:center;height:24px;color:#6F5448;font-size:11px;
+  display:grid;place-items:center;height:22px;color:#6F5448;font-size:10px;
 }
 .service-calendar-day-name{color:rgba(63,36,26,.52);font-weight:800}
 .service-calendar-day{
@@ -675,31 +745,47 @@ button,input,select{font-family:var(--font-body);outline:none}
 .service-calendar-day.is-selected{background:#3F241A;color:#FFF8EF}
 .service-calendar-day.is-today:not(.is-selected){outline:1px solid rgba(63,36,26,.28)}
 .service-calendar-day.is-disabled{color:rgba(63,36,26,.24);cursor:not-allowed}
-.fb-budget{gap:6px}
-.fb-budget:has(input:invalid){
-  position:relative;
-  background:#fff8ef;
-  border-color:rgba(154,104,127,.45);
+.fb-budget{position:relative;gap:6px}
+.fb-budget.is-range-error{
+  background:#fffaf4;
+  border-color:rgba(154,104,127,.58);
   color:#3F241A;
+  box-shadow:0 10px 24px rgba(63,36,26,.12),0 0 0 3px rgba(154,104,127,.10);
 }
-.fb-budget:has(input:invalid)::after{
-  content:"Enter a valid MMK amount";
+.fb-budget-notice{
   position:absolute;
   left:50%;
-  top:calc(100% + 8px);
-  z-index:80;
-  width:max-content;
-  max-width:210px;
+  top:calc(100% + 11px);
+  z-index:90;
+  width:210px;
+  max-width:min(210px,calc(100vw - 48px));
   transform:translateX(-50%);
-  padding:8px 10px;
-  border:1px solid rgba(154,104,127,.22);
+  padding:9px 12px;
+  border:1px solid rgba(154,104,127,.26);
   border-radius:8px;
-  background:#fff8ef;
-  color:#7E4F65;
-  font-size:10px;
-  font-weight:800;
-  box-shadow:0 12px 28px rgba(63,36,26,.14);
+  background:linear-gradient(135deg,#fffaf4,#fff1e6);
+  color:#4f382a;
+  font-size:10.5px;
+  font-weight:900;
+  line-height:1.35;
+  text-align:center;
+  white-space:normal;
+  box-shadow:0 14px 34px rgba(63,36,26,.16);
 }
+.fb-budget-notice::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:-6px;
+  width:10px;
+  height:10px;
+  border-left:1px solid rgba(154,104,127,.26);
+  border-top:1px solid rgba(154,104,127,.26);
+  background:#fffaf4;
+  transform:translateX(-50%) rotate(45deg);
+}
+.fb-budget-notice[hidden]{display:none}
+
 .fb-number-wrap{
   position:relative;
   display:inline-flex;
@@ -722,7 +808,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .fb-budget input::placeholder{color:rgba(118,90,70,.58)}
 .fb-budget input:focus{outline:none}
-.fb-budget input:invalid{color:#9A687F}
+.fb-budget input:invalid{color:#6D4C5B}
 .fb-number-stepper{
   position:absolute;
   right:-3px;
@@ -730,7 +816,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   transform:translateY(-50%);
   display:grid;
   gap:2px;
-  color:#9A687F;
+  color:#6D4C5B;
 }
 .fb-number-stepper button{
   width:14px;
@@ -775,7 +861,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   -webkit-appearance:none;
   min-width:128px;max-width:172px;
   box-shadow:0 10px 24px rgba(43,31,24,.12);
-  accent-color:#9A687F;
+  accent-color:#6D4C5B;
 }
 .fb-select:hover,
 .fb-select:focus{
@@ -794,7 +880,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   color:#3F241A;
 }
 .fb-select option:checked{
-  background:#9A687F !important;
+  background:#6D4C5B !important;
   color:#fff8ef;
 }
 .fb-select.is-native-hidden{
@@ -838,7 +924,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   width:12px;
   height:12px;
   flex:0 0 12px;
-  stroke:#9A687F;
+  stroke:#6D4C5B;
 }
 .fb-select-popover{
   position:fixed;
@@ -846,12 +932,18 @@ button,input,select{font-family:var(--font-body);outline:none}
   top:0;
   z-index:10020;
   min-width:136px;
+  max-height:184px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
   padding:6px;
   border:1px solid rgba(154,104,127,.20);
   border-radius:9px;
   background:#FFF8EF;
   box-shadow:0 18px 40px rgba(63,36,26,.18);
 }
+.fb-select-popover::-webkit-scrollbar{width:5px}
+.fb-select-popover::-webkit-scrollbar-track{background:rgba(154,104,127,.08);border-radius:999px}
+.fb-select-popover::-webkit-scrollbar-thumb{background:rgba(154,104,127,.45);border-radius:999px}
 .fb-select-item{
   width:100%;
   display:flex;
@@ -874,15 +966,11 @@ button,input,select{font-family:var(--font-body);outline:none}
   color:#3F241A;
 }
 .fb-select-item.is-selected{
-  background:#9A687F;
+  background:#6D4C5B;
   color:#fff8ef;
 }
 .fb-select-dot{
-  width:6px;
-  height:6px;
-  border-radius:999px;
-  background:currentColor;
-  opacity:0;
+  display:none !important;
 }
 .fb-select-item.is-selected .fb-select-dot{opacity:1}
 .fb-sort{min-width:108px;max-width:132px}
@@ -896,7 +984,7 @@ button,input,select{font-family:var(--font-body);outline:none}
     border:none;
     border-radius:10px;
     background:#765a46;
-    color:#fff;      /* SVG uses currentColor */
+    color:#fcf8f5;      /* SVG uses currentColor */
     cursor:pointer;
     flex-shrink:0;
 }
@@ -913,7 +1001,7 @@ button,input,select{font-family:var(--font-body);outline:none}
     background:#4f382a;
 }
 .fb-find svg {
-    stroke: #ffffff !important;
+    stroke: #fcf8f5 !important;
     display: block;
 }
 /* ဘယ်ဘက်အခြမ်းက search icon ကို ဖျောက်ရန် */
@@ -946,6 +1034,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 
 .gp-card{
+    position:relative;
     background:#fff8ef;
     border-radius:16px;
     padding:10px;
@@ -958,7 +1047,7 @@ button,input,select{font-family:var(--font-body);outline:none}
     height:360px;
     min-height:360px;
 
-    border:2px solid rgba(216,180,106,.46);
+    border: 1.5px solid #D8B46A;
     box-shadow:
         0 14px 34px rgba(63,36,26,.12);
 
@@ -1155,12 +1244,13 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gc-book-btn{
     display:inline-flex;
     align-items:center;
-    justify-content:center;
-    min-height:32px;
-    padding:0 12px;
+    justify-content:space-between;
+    gap:10px;
+    min-height:34px;
+    padding:4px 5px 4px 14px;
     border:1px solid rgba(154,104,127,.22);
-    border-radius:8px;
-    background:#9A687F;
+    border-radius:16px;
+    background:#6D4C5B;
     color:#fff8ef;
     font-size:11px;
     font-weight:800;
@@ -1169,6 +1259,21 @@ button,input,select{font-family:var(--font-body);outline:none}
     transition:background .18s var(--ease), transform .18s var(--ease);
 }
 .gc-book-btn:hover{background:#7E4F65;transform:translateY(-1px)}
+.gc-book-btn-icon{
+    display:inline-grid;
+    place-items:center;
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    background:#fff8ef;
+    color:#6D4C5B;
+    flex:0 0 auto;
+}
+.gc-book-btn-icon svg{
+    width:13px;
+    height:13px;
+    stroke:currentColor;
+}
 @media (prefers-reduced-motion:reduce){
   .gp-card{
     opacity:1;
@@ -1181,29 +1286,29 @@ button,input,select{font-family:var(--font-body);outline:none}
   display:flex;
   justify-content:center;
   align-items:center;
-  gap:8px;
-  padding:26px 0 0;
+  gap:6px;
+  padding:18px 0 0;
   flex-wrap:wrap;
 }
 .gp-page-link{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  min-width:38px;
-  height:38px;
-  padding:0 13px;
-  border-radius:9px;
+  min-width:30px;
+  height:30px;
+  padding:0 9px;
+  border-radius:7px;
   border:1px solid rgba(118,90,70,.16);
   background:rgba(255,248,239,.74);
   color:#6f625a;
-  font-size:12px;
+  font-size:10px;
   font-weight:700;
   transition:transform .18s var(--ease), background .18s, color .18s, border-color .18s;
 }
-.gp-page-link svg{width:15px;height:15px;stroke:currentColor}
-.gp-page-link:hover{transform:translateY(-2px);background:#fff;border-color:rgba(154,104,127,.28);color:#7E4F65}
-.gp-page-link.is-active{background:#9A687F;border-color:#9A687F;color:#fff}
-.gp-page-link.is-edge{padding:0;width:38px}
+.gp-page-link svg{width:13px;height:13px;stroke:currentColor}
+.gp-page-link:hover{transform:translateY(-2px);background:#fcf8f5;border-color:rgba(154,104,127,.28);color:#7E4F65}
+.gp-page-link.is-active{background:#6D4C5B;border-color:#6D4C5B;color:#fcf8f5}
+.gp-page-link.is-edge{padding:0;width:30px}
 
 
 /* ── BOTTOM HUD: cats + dots ── */
@@ -1222,7 +1327,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   background:rgba(8,5,2,.42);
   backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   border-radius:999px;
-  border:0.5px solid rgba(255,255,255,.07);
+  border:0.5px solid rgba(252,248,245,.07);
   max-width:calc(100vw - 32px);
   overflow-x:auto;scrollbar-width:none;
   margin-bottom:10px;
@@ -1232,11 +1337,11 @@ button,input,select{font-family:var(--font-body);outline:none}
   flex-shrink:0;
   font-size:11px;font-weight:600;
   padding:5px 14px;border-radius:999px;
-  color:rgba(255,255,255,.48);
+  color:rgba(252,248,245,.48);
   cursor:pointer;transition:all .18s;
   text-decoration:none;border:none;background:transparent;
 }
-.gp-cat-btn:hover{color:#fff}
+.gp-cat-btn:hover{color:#fcf8f5}
 .gp-cat-btn.on{background:rgba(216,180,106,.20);color:#f3d9a4;border:0.5px solid rgba(216,180,106,.36)}
 
 .gp-dots{
@@ -1251,7 +1356,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .gp-dot{
   width:6px;height:6px;border-radius:50%;
-  background:rgba(255,255,255,.24);
+  background:rgba(252,248,245,.24);
   border:none;cursor:pointer;padding:0;
   transition:all .35s;
 }
@@ -1296,7 +1401,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-gc-price{display:block;font-family:var(--font-display);font-size:clamp(18px,2vw,22px);font-weight:600;color:var(--c-red);line-height:1}
 .gp-gc-unit{display:block;margin-top:1px;font-size:10px;color:var(--c-pale);font-weight:500}
 .gp-gc-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--c-rule);background:var(--c-white);color:var(--c-strong);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s var(--ease);white-space:nowrap;text-decoration:none}
-.gp-gc-btn:hover{background:var(--c-red);color:#fff;border-color:var(--c-red);transform:translateX(2px)}
+.gp-gc-btn:hover{background:var(--c-red);color:#fcf8f5;border-color:var(--c-red);transform:translateX(2px)}
 
 /* empty */
 .gp-empty{grid-column:1/-1;border:1px dashed rgba(109,76,91,.18);border-radius:20px;padding:64px 24px;text-align:center;background:rgba(250,245,239,.60)}
@@ -1304,15 +1409,15 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-empty p{color:var(--c-accent);font-size:14px;max-width:480px;margin:0 auto}
 .gp-empty-btns{margin-top:24px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .gp-ebtn{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 24px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .2s var(--ease)}
-.gp-ebtn.p{background:var(--c-red);color:#fff}.gp-ebtn.p:hover{background:#8f2e2c;transform:translateY(-2px)}
+.gp-ebtn.p{background:var(--c-red);color:#fcf8f5}.gp-ebtn.p:hover{background:#8f2e2c;transform:translateY(-2px)}
 .gp-ebtn.s{background:#faf5ef;color:var(--c-accent);border:1px solid var(--c-rule)}.gp-ebtn.s:hover{border-color:var(--c-strong);color:var(--c-strong)}
 
 /* active filter chips */
 .gp-chips{display:flex;gap:8px;flex-wrap:wrap;padding:20px var(--pad-x) 4px}
 .gp-track-wrap .gp-chips{padding:0 0 22px}
-.gp-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;background:rgba(216,180,106,.12);border:1px solid rgba(216,180,106,.26);font-size:12px;font-weight:600;color:#765a46}
-.gp-chip-x{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;border:none;background:rgba(216,180,106,.18);color:#765a46;cursor:pointer;font-size:10px;font-weight:700;transition:all .15s}
-.gp-chip-x:hover{background:var(--c-gold);color:#fff}
+.gp-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;background:#fff8ef;border:1px solid rgba(154,104,127,.16);box-shadow:0 8px 18px rgba(63,36,26,.07);font-size:12px;font-weight:600;color:#765a46}
+.gp-chip-x{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;border:none;background:rgba(154,104,127,.08);color:rgba(154,104,127,.62);cursor:pointer;font-size:10px;font-weight:500;line-height:1;transition:all .15s}
+.gp-chip-x:hover{background:#6D4C5B;color:#fcf8f5}
 
 /* scroll reveal */
 .rev{opacity:0;transform:translateY(24px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
@@ -1323,7 +1428,10 @@ button,input,select{font-family:var(--font-body);outline:none}
 /* footer */
 .gp-footer{padding:28px var(--pad-x);border-top:1px solid var(--c-rule);display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;color:var(--c-pale)}
 
-
+.gp-floating-cart{position:fixed;right:clamp(20px,5vw,60px);bottom:clamp(24px,6vw,60px);z-index:900;width:54px;height:54px;display:grid;place-items:center;border:1px solid rgba(234,216,199,.86);border-radius:16px;background:#fff8ef;color:#6D4C5B;text-decoration:none;box-shadow:0 12px 36px rgba(74,52,47,.15);transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease}
+.gp-floating-cart:hover{transform:translateY(-3px);background:#6D4C5B;color:#fcf8f5;border-color:#6D4C5B;box-shadow:0 18px 44px rgba(74,52,47,.18)}
+.gp-floating-cart-count{position:absolute;right:-6px;top:-7px;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border:2px solid #fff8ef;border-radius:999px;background:#6D4C5B;color:#fff8ef;font-family:Arial,sans-serif;font-size:10px;font-weight:800;line-height:1}
+.gp-floating-cart-count:empty{display:none}
 
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
@@ -1337,12 +1445,14 @@ button,input,select{font-family:var(--font-body);outline:none}
   .nav-left-spacer{width:70px;flex-basis:70px}
   .nav-center-logo{left:12px;width:64px;height:64px}
   .mobile-menu{top:68px}
+  .gp-floating-cart{width:44px;height:44px;border-radius:12px;bottom:80px}
+  .gp-floating-cart svg{width:18px;height:18px}
   .gp-scene{min-height:calc(100svh - 59px);padding:28px 12px 44px}
   .hero-banner{min-height:calc(100svh - 28px)}
   .gp-float-bar{border-radius:12px;width:100%;padding:8px}
   .fb-search{min-height:46px;padding:0 16px}
   .fb-search input{font-size:14px}
-  .fb-controls{justify-content:flex-start}
+  .fb-controls{justify-content:flex-start;overflow-x:auto;overflow-y:visible}
   .gp-track{grid-template-columns:1fr;gap:16px}
   .gp-card{height:330px;min-height:330px;padding:10px;border-radius:16px}
   .gc-top{margin:9px 2px 0}
@@ -1390,13 +1500,16 @@ button,input,select{font-family:var(--font-body);outline:none}
   position:absolute;top:14px;right:14px;z-index:10;
   display:grid;place-items:center;width:34px;height:34px;
   border-radius:50%;border:none;
-  background:rgba(0,0,0,.32);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  color:rgba(255,255,255,.72);cursor:pointer;
+  background:rgba(255,248,239,.94);
+  color:#6D4C5B;cursor:pointer;
   font-size:15px;transition:all .2s var(--ease);
+  box-shadow:0 8px 18px rgba(63,36,26,.14);
+  opacity:1;
+  visibility:visible;
 }
-.gp-heart:hover{transform:scale(1.14);color:#fff;background:rgba(0,0,0,.46)}
-.gp-heart.is-saved{color:#e55b5b;background:rgba(0,0,0,.52)}
-.gp-heart.is-saved:hover{color:#ff6b6b}
+.gp-heart:hover{transform:translateY(-1px);color:#6D4C5B;background:#fff8ef}
+.gp-heart.is-saved{color:#e55b5b;background:#fff8ef}
+.gp-heart.is-saved:hover{color:#e55b5b}
 .gp-heart.is-loading{pointer-events:none;opacity:.55;animation:heartPulse .8s ease infinite}
 @keyframes heartPulse{0%,100%{transform:scale(1)}50%{transform:scale(.9)}}
 
@@ -1411,6 +1524,355 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-heart-light:hover{transform:scale(1.12);color:var(--c-red)}
 .gp-heart-light.is-saved{color:#e55b5b;background:rgba(250,240,240,.88)}
 .gp-heart-light.is-loading{pointer-events:none;opacity:.55;animation:heartPulse .8s ease infinite}
+
+/* Keep the full budget chip normal */
+.fb-budget.on{
+  background:rgba(245,232,217,.82) !important;
+  border-color:rgba(118,90,70,.20) !important;
+}
+
+/* Only typed Min/Max value becomes dark */
+.fb-budget input:not(:placeholder-shown){
+  color:#4A342F !important;
+  font-weight:800;
+}
+
+/* Empty placeholder stays soft */
+.fb-budget input::placeholder{
+  color:rgba(118,90,70,.58) !important;
+  font-weight:600;
+}
+
+.fb-budget input{
+  background:transparent !important;
+  box-shadow:none !important;
+}
+
+.fb-budget input:not(:placeholder-shown){
+  color:#4A342F !important;
+  font-weight:800;
+}
+
+.fb-budget input:focus{
+  background:transparent !important;
+  box-shadow:none !important;
+  outline:none;
+}
+.gp-footer{
+  padding:28px var(--pad-x);
+  border-top:1px solid var(--c-rule);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  font-size:12px;
+  color:var(--c-pale);
+}
+
+/* ===== Notification dropdown shell ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel{
+  width:340px !important;
+  padding:12px !important;
+  border-radius:20px !important;
+  border:1px solid rgba(216,180,106,.22) !important;
+  background:rgba(255,248,239,.97) !important;
+  box-shadow:0 18px 48px rgba(63,36,26,.14) !important;
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+/* ===== Notification list spacing ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel ul,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+
+/* ===== Notification card ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel li,
+.nav-actions .gp-customer-notification .dashboard-notification-panel a,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-item{
+  display:block;
+  padding:12px 14px !important;
+  border-radius:16px !important;
+  background:#fffdf9 !important;
+  border:1px solid rgba(118,90,70,.08) !important;
+  box-shadow:0 4px 16px rgba(63,36,26,.04);
+  transition:all .2s ease;
+  text-decoration:none;
+}
+
+/* Hover */
+.nav-actions .gp-customer-notification .dashboard-notification-panel li:hover,
+.nav-actions .gp-customer-notification .dashboard-notification-panel a:hover,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-item:hover{
+  transform:translateY(-1px);
+  background:#fff8ef !important;
+  border-color:rgba(216,180,106,.28) !important;
+  box-shadow:0 10px 24px rgba(63,36,26,.08);
+}
+
+/* ===== Small top-left category label: BOOKING / PAYMENT ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-type,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notif-type,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-category{
+  display:inline-block;
+  margin-bottom:6px;
+  font-size:10px !important;
+  line-height:1;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  font-weight:600 !important;
+  color:#B79C8B !important;   /* light muted color */
+}
+
+/* ===== Main notification title / message ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-title,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notif-title,
+.nav-actions .gp-customer-notification .dashboard-notification-panel strong{
+  display:block;
+  margin:0 0 4px;
+  color:#3F241A !important;
+  font-size:13px !important;
+  font-weight:600 !important;
+  line-height:1.45;
+}
+
+/* ===== Optional secondary text ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-text,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notif-text,
+.nav-actions .gp-customer-notification .dashboard-notification-panel p{
+  margin:0;
+  color:#7A675D !important;
+  font-size:11px !important;
+  line-height:1.5;
+}
+
+/* ===== Time ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-time,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notif-time,
+.nav-actions .gp-customer-notification .dashboard-notification-panel time{
+  display:block;
+  margin-top:8px;
+  font-size:10px !important;
+  font-weight:500;
+  color:#B79C8B !important;
+}
+
+/* ===== Unread state: subtle gold left accent ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel .is-unread,
+.nav-actions .gp-customer-notification .dashboard-notification-panel [data-unread="1"]{
+  position:relative;
+  border-color:rgba(216,180,106,.20) !important;
+  background:linear-gradient(180deg,#fffdf9 0%, #fffaf2 100%) !important;
+}
+
+.nav-actions .gp-customer-notification .dashboard-notification-panel .is-unread::before,
+.nav-actions .gp-customer-notification .dashboard-notification-panel [data-unread="1"]::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:12px;
+  bottom:12px;
+  width:3px;
+  border-radius:999px;
+  background:#D8B46A;
+}
+
+/* ===== Empty state ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel .notification-empty,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .empty-state{
+  padding:18px 12px;
+  text-align:center;
+  color:#9B7D6B;
+  font-size:12px;
+}
+
+/* ===== Customer notification compact inbox design ===== */
+.nav-actions .gp-customer-notification .dashboard-notification-panel{
+  width:min(282px,calc(100vw - 24px)) !important;
+  max-width:282px !important;
+  padding:8px 10px !important;
+  border:1px solid rgba(107,68,89,.12) !important;
+  border-radius:8px !important;
+  background:#fffdf9 !important;
+  box-shadow:0 18px 45px rgba(43,27,36,.14) !important;
+  font-family:"Poppins",system-ui,-apple-system,sans-serif !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-header{
+  margin:-2px -4px 8px !important;
+  padding:8px 10px !important;
+  border:0 !important;
+  border-radius:7px !important;
+  background:#6D4C5B !important;
+  color:#fcf8f5 !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-title{font-size:12px !important;font-weight:800 !important;color:#fcf8f5 !important}
+.nav-actions .gp-customer-notification .dashboard-notification-link,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-link{
+  display:inline !important;
+  font-size:10px !important;
+  font-weight:400 !important;
+  line-height:1.1 !important;
+  color:rgba(252,248,245,.72) !important;
+  text-decoration:underline !important;
+  text-underline-offset:3px !important;
+  background:transparent !important;
+  background-color:transparent !important;
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  outline:0 !important;
+  padding:0 !important;
+  min-width:0 !important;
+  height:auto !important;
+  transform:none !important;
+  transition:color .15s ease !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-link:hover,
+.nav-actions .gp-customer-notification .dashboard-notification-link:focus,
+.nav-actions .gp-customer-notification .dashboard-notification-link:active,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-link:hover,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-link:focus,
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-link:active{
+  color:#fcf8f5 !important;
+  background:transparent !important;
+  background-color:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  transform:none !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-list{
+  display:grid !important;
+  gap:0 !important;
+  max-height:290px !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  padding-top:0 !important;
+  scrollbar-width:none !important;
+  -ms-overflow-style:none !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-list::-webkit-scrollbar{
+  display:none !important;
+  width:0 !important;
+  height:0 !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-item{
+  position:relative !important;
+  display:grid !important;
+  grid-template-columns:34px minmax(0,1fr) !important;
+  align-items:center !important;
+  gap:10px !important;
+  padding:12px 4px !important;
+  border:0 !important;
+  border-bottom:1px solid rgba(107,68,89,.18) !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  text-decoration:none !important;
+  transform:none !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-item:last-child{border-bottom:0 !important}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-item::before{
+  display:none !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-icon{
+  width:34px !important;
+  height:34px !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  align-self:center !important;
+  border-radius:7px !important;
+  background:rgba(154,104,127,.10) !important;
+  color:#6D4C5B !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-icon svg{
+  width:16px !important;
+  height:16px !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-content{
+  min-width:0 !important;
+  display:block !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-item:hover{
+  background:rgba(154,104,127,.06) !important;
+  box-shadow:none !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-meta{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:space-between !important;
+  gap:10px !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-type{
+  font-size:9px !important;
+  line-height:1.1 !important;
+  letter-spacing:.05em !important;
+  text-transform:uppercase !important;
+  font-weight:700 !important;
+  color:#c4aeb8 !important;
+  min-width:0 !important;
+  overflow-wrap:anywhere !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-time{
+  margin-left:auto !important;
+  font-size:9px !important;
+  line-height:1.1 !important;
+  font-weight:400 !important;
+  color:#9b8b94 !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-icon.is-positive{
+  background:rgba(45,190,114,.13) !important;
+  color:#2DBE72 !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-icon.is-negative{
+  background:rgba(185,74,72,.12) !important;
+  color:#B94A48 !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-icon.is-pending{
+  background:rgba(216,180,106,.18) !important;
+  color:#C69A35 !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-item-title{
+  margin:4px 0 0 !important;
+  font-size:12px !important;
+  line-height:1.28 !important;
+  font-weight:800 !important;
+  color:#2b1b24 !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-message{
+  display:-webkit-box !important;
+  margin-top:3px !important;
+  color:#9b8b94 !important;
+  font-size:9.5px !important;
+  line-height:1.35 !important;
+  white-space:normal !important;
+  overflow:hidden !important;
+  text-overflow:clip !important;
+  overflow-wrap:anywhere !important;
+  -webkit-box-orient:vertical !important;
+  -webkit-line-clamp:2 !important;
+  line-clamp:2 !important;
+}
+.nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-more{
+  display:inline-block !important;
+  margin-top:2px !important;
+  color:#b7adb2 !important;
+  font-size:10px !important;
+  font-weight:400 !important;
+  line-height:1.2 !important;
+  text-decoration:underline !important;
+  text-underline-offset:2px !important;
+}
 </style>
 </head>
 <body>
@@ -1425,6 +1887,7 @@ button,input,select{font-family:var(--font-body);outline:none}
     </a>
 
     <div class="nav-links">
+      <span class="nav-runner" aria-hidden="true"></span>
       <a href="<?= URLROOT ?>/main/index#top">Home</a>
       <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
 
@@ -1435,24 +1898,49 @@ button,input,select{font-family:var(--font-body);outline:none}
       <a class="nav-partner" href="<?= URLROOT ?>/users/register?type=supplier">Be a Partner</a>
       <?php if ($isLoggedIn): ?>
       <?php if (defined('APPROOT') && file_exists(APPROOT . '/views/dashboardLayout/customerNotification.php')) require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
+      <?php
+        $profileName = trim((string)($_SESSION['session_name'] ?? 'User'));
+        $profileEmail = trim((string)($_SESSION['session_email'] ?? ''));
+        $profileAvatar = trim((string)($_SESSION['session_avatar'] ?? ''));
+        $profileInitial = strtoupper(substr($profileName ?: 'U', 0, 1));
+      ?>
       <div class="home-profile-dropdown">
         <button class="home-profile-btn" type="button" aria-expanded="false">
-          <span class="home-profile-avatar"><?= strtoupper(substr($_SESSION['session_name'] ?? 'U', 0, 1)) ?></span>
-          <span class="home-profile-name"><?= $h(explode(' ', $_SESSION['session_name'] ?? 'User')[0]) ?></span>
-          <svg class="home-profile-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="home-profile-avatar"><?php if ($profileAvatar !== ''): ?><img src="<?= $h($profileAvatar) ?>" alt=""><?php else: ?><?= $h($profileInitial) ?><?php endif; ?></span>
         </button>
         <div class="home-profile-menu" aria-hidden="true">
-          <a class="home-profile-menu-item" href="<?= URLROOT ?>/main/wishlist">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            My Wishlist<?php if ($wishlistCount > 0): ?> · <?= $wishlistCount ?><?php endif; ?>
-          </a>
-          <a class="home-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            My Bookings
-          </a>
+          <div class="home-profile-menu-top">
+            <span class="home-profile-email"><?= $h($profileEmail !== '' ? $profileEmail : $profileName) ?></span>
+            <button class="home-profile-close" type="button" aria-label="Close profile menu" data-profile-close>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="home-profile-hero">
+            <span class="home-profile-photo"><?php if ($profileAvatar !== ''): ?><img src="<?= $h($profileAvatar) ?>" alt=""><?php else: ?><?= $h($profileInitial) ?><?php endif; ?></span>
+            <span class="home-profile-profile-copy">
+              <span class="home-profile-greeting"><?= $h($profileName) ?></span>
+              <span class="home-profile-inline-email"><?= $h($profileEmail !== '' ? $profileEmail : $profileName) ?></span>
+            </span>
+            <a class="home-profile-edit" href="<?= URLROOT ?>/main/profile">Edit profile</a>
+          </div>
+          <div class="home-profile-activity">
+            <div class="home-profile-activity-title">Your activity</div>
+            <a class="home-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+              Bookings
+            </a>
+            <a class="home-profile-menu-item" href="<?= URLROOT ?>/main/wishlist">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78a5.5 5.5 0 0 0 1.06-8.84z"/></svg>
+              Wishlist<?php if ($wishlistCount > 0): ?> · <?= $wishlistCount ?><?php endif; ?>
+            </a>
+            <a class="home-profile-menu-item" href="<?= URLROOT ?>/review/my">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              My reviews
+            </a>
+          </div>
           <a class="home-profile-menu-item home-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Logout
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Log out
           </a>
         </div>
       </div>
@@ -1479,6 +1967,12 @@ button,input,select{font-family:var(--font-body);outline:none}
     <?php endif; ?>
   </div>
 </header>
+<?php if ($isLoggedIn): ?>
+<a class="gp-floating-cart" href="<?= URLROOT ?>/cart" aria-label="Open cart<?= $cartCount > 0 ? ' with ' . $cartCount . ' selected service' . ($cartCount === 1 ? '' : 's') : '' ?>">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+  <span class="gp-floating-cart-count" data-cart-count-badge><?= $cartCount > 0 ? ($cartCount > 99 ? '99+' : $cartCount) : '' ?></span>
+</a>
+<?php endif; ?>
 
 <main>
 
@@ -1489,9 +1983,9 @@ button,input,select{font-family:var(--font-body);outline:none}
       <h1>SPECIAL OCCASION</h1>
       <p>Create unforgettable moments with Golden Promise</p>
       <!-- Filter bar -->
-      <form class="gp-float-bar" method="GET" action="<?= URLROOT ?>/customerServices/service" role="search">
+      <form class="gp-float-bar" method="GET" action="<?= URLROOT ?>/customerServices/service" role="search" novalidate>
         <input type="hidden" name="from_filter" value="1">
-        <div class="fb-search">
+        <div class="fb-search <?= trim((string)($filters['search'] ?? '')) !== '' ? 'is-active' : '' ?>">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input type="search" name="q" value="<?= $h($filters['search'] ?? '') ?>" placeholder="Search services…" aria-label="Search">
           <button class="fb-find" type="submit" aria-label="Find services">
@@ -1513,7 +2007,7 @@ button,input,select{font-family:var(--font-body);outline:none}
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             <input type="date" name="date" value="<?= $h($activeDate) ?>" min="<?= date('Y-m-d') ?>" id="datePick" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px">
           </label>
-          <label class="fb-chip fb-budget <?= ($activePriceMin !== '' || $activePriceMax !== '') ? 'on' : '' ?>">
+          <label class="fb-chip fb-budget <?= ($activePriceMin !== '' || $activePriceMax !== '') ? 'on' : '' ?>" data-budget-notice="Minimum budget must be lower than maximum budget">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             <span class="fb-number-wrap">
               <input type="number" name="price_min" value="<?= $h($activePriceMin) ?>" min="0" step="1000" placeholder="Min" aria-label="Minimum budget">
@@ -1530,6 +2024,7 @@ button,input,select{font-family:var(--font-body);outline:none}
                 <button type="button" tabindex="-1" data-number-step="down" aria-label="Decrease maximum budget"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
               </span>
             </span>
+            <span class="fb-budget-notice" data-budget-notice-box hidden>Minimum budget must be lower than maximum budget</span>
           </label>
           <div class="fb-div"></div>
           <?php if (!empty($categories)): ?>
@@ -1660,7 +2155,12 @@ button,input,select{font-family:var(--font-body);outline:none}
               <strong><?= $moneyRange($svc) ?></strong>
               <span><?= $h($durationText($svc)) ?></span>
             </div>
-            <a class="gc-book-btn" href="<?= $h($bookUrl) ?>">Book now</a>
+            <a class="gc-book-btn" href="<?= $h($bookUrl) ?>">
+              <span>Book Now</span>
+              <span class="gc-book-btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
+              </span>
+            </a>
           </div>
         </div>
       </article>
@@ -1748,6 +2248,10 @@ button,input,select{font-family:var(--font-body);outline:none}
 </main>
 
 <div class="service-calendar-popover" id="serviceCalendarPopover" hidden></div>
+<footer class="gp-footer">
+  <div>© 2026 Golden Promise</div>
+  <div>Your curated wedding service collection</div>
+</footer>
 
 <script>
 (function(){
@@ -1756,6 +2260,12 @@ button,input,select{font-family:var(--font-body);outline:none}
 /* ── navigation toggles ───────────────────── */
 const menuButton=document.getElementById('menuButton');
 const mobileMenu=document.getElementById('mobileMenu');
+function closeDashboardNotification(){
+  const btn=document.getElementById('dashboardNotificationBtn');
+  const panel=document.getElementById('dashboardNotificationPanel');
+  btn?.setAttribute('aria-expanded','false');
+  panel?.classList.add('invisible','opacity-0','scale-95');
+}
 
 menuButton?.addEventListener('click',e=>{
   e.stopPropagation();
@@ -1764,9 +2274,16 @@ menuButton?.addEventListener('click',e=>{
 });
 
 document.addEventListener('click',e=>{
+  const profileClose=e.target.closest('[data-profile-close]');
+  if(profileClose){
+    e.stopPropagation();
+    profileClose.closest('.home-profile-dropdown')?.querySelector('.home-profile-btn')?.setAttribute('aria-expanded','false');
+    return;
+  }
   const profileBtn=e.target.closest('.home-profile-btn');
   if(profileBtn){
     const expanded=profileBtn.getAttribute('aria-expanded')==='true';
+    closeDashboardNotification();
     document.querySelectorAll('.home-profile-btn').forEach(btn=>btn.setAttribute('aria-expanded','false'));
     profileBtn.setAttribute('aria-expanded',String(!expanded));
     mobileMenu?.classList.remove('open');
@@ -1806,7 +2323,7 @@ function svcParseDate(value){
 function svcPositionCalendar(){
   if(!serviceCalendar || !serviceDateChip) return;
   const rect=serviceDateChip.getBoundingClientRect();
-  const width=Math.min(250,window.innerWidth-32);
+  const width=Math.min(228,window.innerWidth-32);
   const left=Math.max(16,Math.min(rect.left,window.innerWidth-width-16));
   serviceCalendar.style.width=width+'px';
   serviceCalendar.style.left=left+'px';
@@ -1901,6 +2418,34 @@ document.querySelectorAll('.fb-number-stepper button').forEach(button=>{
     input.dispatchEvent(new Event('change',{bubbles:true}));
   });
 });
+
+const budgetChip=document.querySelector('.fb-budget');
+const budgetMinInput=budgetChip?.querySelector('input[name="price_min"]');
+const budgetMaxInput=budgetChip?.querySelector('input[name="price_max"]');
+const budgetNoticeBox=budgetChip?.querySelector('[data-budget-notice-box]');
+const filterForm=document.querySelector('.gp-float-bar');
+function updateBudgetNotice(){
+  if(!budgetChip || !budgetMinInput || !budgetMaxInput) return false;
+  const minText=budgetMinInput.value.trim();
+  const maxText=budgetMaxInput.value.trim();
+  const minValue=minText === '' ? null : Number(minText);
+  const maxValue=maxText === '' ? null : Number(maxText);
+  const hasRangeError=minValue !== null && maxValue !== null && !Number.isNaN(minValue) && !Number.isNaN(maxValue) && minValue > maxValue;
+  budgetChip.classList.toggle('is-range-error',hasRangeError);
+  if(budgetNoticeBox) budgetNoticeBox.hidden=!hasRangeError;
+  return hasRangeError;
+}
+budgetMinInput?.addEventListener('input',updateBudgetNotice);
+budgetMaxInput?.addEventListener('input',updateBudgetNotice);
+budgetMinInput?.addEventListener('change',updateBudgetNotice);
+budgetMaxInput?.addEventListener('change',updateBudgetNotice);
+filterForm?.addEventListener('submit',event=>{
+  if(updateBudgetNotice()){
+    event.preventDefault();
+    budgetMinInput?.focus();
+  }
+});
+updateBudgetNotice();
 
 function closeServiceSelects(exceptWrap=null){
   document.querySelectorAll('.fb-select-wrap.is-open').forEach(wrap=>{
@@ -2098,6 +2643,49 @@ if('IntersectionObserver' in window){
 
     // Change image every 5000 milliseconds (5 seconds)
     setInterval(rotateHeroImage, 5000);
+})();
+
+/* ── sliding navigation runner ── */
+(function(){
+  document.querySelectorAll('.nav-links').forEach(function(nav){
+    var runner = nav.querySelector('.nav-runner');
+    if (!runner) return;
+    var links = Array.prototype.slice.call(nav.querySelectorAll('a'));
+    var active = function(){ return nav.querySelector('a.active') || links[0]; };
+    var moveTo = function(link){
+      if (!link) return;
+      runner.style.width = link.offsetWidth + 'px';
+      runner.style.transform = 'translateX(' + link.offsetLeft + 'px)';
+      runner.style.opacity = '1';
+    };
+
+    requestAnimationFrame(function(){ moveTo(active()); });
+    links.forEach(function(link){
+      link.addEventListener('mouseenter', function(){ moveTo(link); });
+      link.addEventListener('focus', function(){ moveTo(link); });
+      link.addEventListener('click', function(){ moveTo(link); });
+    });
+    nav.addEventListener('mouseleave', function(){ moveTo(active()); });
+    window.addEventListener('resize', function(){ moveTo(active()); });
+  });
+})();
+
+/* ── floating cart count ── */
+(function(){
+  var cartBadge = document.querySelector('[data-cart-count-badge]');
+  if (!cartBadge) return;
+  fetch('<?= URLROOT ?>/cart/cartCount', {headers:{'Accept':'application/json'}})
+    .then(function(response){ return response.ok ? response.json() : null; })
+    .then(function(data){
+      if (!data || typeof data.count === 'undefined') return;
+      var count = parseInt(data.count, 10) || 0;
+      cartBadge.textContent = count > 0 ? (count > 99 ? '99+' : String(count)) : '';
+      var cartLink = cartBadge.closest('.gp-floating-cart');
+      if (cartLink) {
+        cartLink.setAttribute('aria-label', count > 0 ? 'Open cart with ' + count + ' selected service' + (count === 1 ? '' : 's') : 'Open cart');
+      }
+    })
+    .catch(function(){});
 })();
 
 /* ── wishlist heart toggle ── */

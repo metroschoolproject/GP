@@ -73,7 +73,7 @@ foreach ($items as $defaultItem) {
 /* ─── Design tokens ──────────────────────── */
 :root {
   /* Palette: ivory parchment + dusty mauve + antique gold */
-  --ivory:       #faf7f2;
+  --ivory:       #fcf8f5;
   --parchment:   #f3ece0;
   --parchment2:  #e8ddd0;
   --linen:       #ede5d8;
@@ -118,7 +118,7 @@ foreach ($items as $defaultItem) {
 html { scroll-behavior: smooth; }
 
 body {
-  background-color: var(--parchment);
+  background-color: #f2e4d4;
   color: var(--ink);
   font-family: var(--sans);
   font-size: 14px;
@@ -134,34 +134,6 @@ a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 button { font-family: var(--sans); cursor: pointer; }
 textarea { font-family: var(--sans); }
-
-/* ─── Botanical background motif ─────────── */
-/* Repeating SVG fern/leaf silhouette stamped into the parchment */
-.gp-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  opacity: 0.038;
-}
-.gp-bg svg {
-  position: absolute;
-  width: 520px;
-  height: auto;
-}
-.gp-bg-tl { top: -60px; left: -80px; transform: rotate(-20deg); }
-.gp-bg-br { bottom: -80px; right: -60px; transform: rotate(160deg); }
-.gp-bg-mid { top: 38%; left: 55%; transform: rotate(30deg) scale(0.7); }
-
-/* ─── Thin decorative top bar ─────────────── */
-.gp-crown {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 200;
-  height: 3px;
-  background: linear-gradient(90deg, var(--mauve-lt) 0%, var(--gold) 50%, var(--mauve-lt) 100%);
-}
 
 /* ─── Header ─────────────────────────────── */
 .gp-header {
@@ -251,7 +223,7 @@ textarea { font-family: var(--sans); }
   padding: 0 5px;
   border-radius: var(--r-pill);
   background: var(--mauve);
-  color: #fff;
+  color: #fcf8f5;
   font-size: 10px;
   font-weight: 700;
 }
@@ -331,7 +303,7 @@ textarea { font-family: var(--sans); }
   position: relative;
   z-index: 1;
   flex: 1;
-  padding: 56px var(--pad-x) 96px;
+  padding: 0 var(--pad-x) 96px;
   max-width: 1180px;
   margin: 0 auto;
   width: 100%;
@@ -339,57 +311,46 @@ textarea { font-family: var(--sans); }
 
 /* ─── Page header ─────────────────────────── */
 .gp-page-head {
-  margin-bottom: 48px;
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  margin-top: -68px;
+  margin-bottom: 34px;
+  padding: 0;
+  border-radius: 0;
+  background: #f4eee9;
   text-align: center;
+  width: calc(100% + (var(--pad-x) * 2));
+  margin-left: calc(var(--pad-x) * -1);
+  margin-right: calc(var(--pad-x) * -1);
   opacity: 0;
   animation: fadeUp 0.8s var(--ease) 0.05s forwards;
 }
-.gp-head-ornament {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  margin-bottom: 20px;
-}
-.gp-head-ornament-line {
-  flex: 1;
-  max-width: 140px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold-lt), transparent);
-}
-.gp-head-ornament-diamond {
-  width: 8px; height: 8px;
-  background: var(--gold);
-  transform: rotate(45deg);
-}
-.gp-head-ornament-dot {
-  width: 4px; height: 4px;
-  background: var(--mauve-lt);
-  border-radius: 50%;
-}
 .gp-page-eyebrow {
+  order: 2;
+  display: block;
+  margin-top: 12px;
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 10px;
+  color: var(--ink2);
+  position: relative;
+  top: -18px;
 }
 .gp-page-title {
   font-family: var(--serif);
-  font-size: clamp(42px, 6vw, 68px);
-  font-weight: 500;
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 700;
   color: var(--ink);
-  line-height: 0.93;
-  letter-spacing: -0.01em;
-}
-.gp-page-title em {
-  font-style: italic;
-  color: var(--mauve);
+  line-height: 1.05;
+  letter-spacing: 0;
+  margin-top: 34px;
 }
 .gp-page-subtitle {
-  margin-top: 16px;
-  font-size: 14px;
+  display: none;
+  margin-top: 0;
+  font-size: 13px;
   color: var(--mist);
   font-weight: 400;
 }
@@ -575,7 +536,12 @@ textarea { font-family: var(--sans); }
   border-color: var(--mauve);
   box-shadow: none;
 }
-.gp-default-field .gp-detail-stepper { display: flex; align-items: center; gap: 0; }
+.gp-default-field .gp-detail-stepper,
+.gp-detail-field .gp-detail-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
 .gp-stepper-btn {
   width: 32px; height: 32px;
   display: grid; place-items: center;
@@ -587,7 +553,7 @@ textarea { font-family: var(--sans); }
   cursor: pointer;
   transition: all 0.15s;
 }
-.gp-stepper-btn:hover { background: var(--mauve); color: #fff; border-color: var(--mauve); }
+.gp-stepper-btn:hover { background: var(--mauve); color: #fcf8f5; border-color: var(--mauve); }
 .gp-stepper-btn:first-child { border-radius: var(--r-xs) 0 0 var(--r-xs); }
 .gp-stepper-btn:last-child { border-radius: 0 var(--r-xs) var(--r-xs) 0; }
 .gp-stepper-input {
@@ -599,81 +565,159 @@ textarea { font-family: var(--sans); }
   color: var(--ink);
   background: var(--parchment);
 }
+.gp-detail-field .gp-stepper-input {
+  width: min(100%, 82px);
+  flex: 1 1 82px;
+  border-radius: 0;
+  background: var(--ivory);
+}
+.gp-detail-field .gp-detail-stepper .gp-stepper-btn {
+  flex: 0 0 34px;
+}
 .gp-stepper-input::-webkit-inner-spin-button,
 .gp-stepper-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .gp-stepper-input[type=number] { -moz-appearance: textfield; }
 
 /* ─── Service item cards ─────────────────── */
-.gp-items { display: flex; flex-direction: column; gap: 20px; }
+.gp-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 640px;
+}
 
-.gp-item-card { /* inherits .gp-card */ }
+.gp-item-card {
+  display: grid;
+  grid-template-columns: 138px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  position: relative;
+  min-height: 128px;
+  padding: 8px 14px 10px 8px;
+  border: 1px solid rgba(255,255,255,0.78);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.94);
+  overflow: visible;
+  box-shadow: 0 18px 44px rgba(26,17,24,0.08);
+}
+.gp-item-card:hover {
+  box-shadow: 0 24px 60px rgba(26,17,24,0.12);
+  border-color: rgba(184,146,74,0.24);
+  transform: translateY(-2px);
+}
 
 .gp-item-header {
-  display: grid;
-  grid-template-columns: 110px 1fr auto;
-  border-bottom: 1px solid var(--rule);
+  display: contents;
 }
 .gp-item-thumb {
+  grid-column: 1;
   position: relative;
   overflow: hidden;
-  min-height: 110px;
+  width: 100%;
+  height: 100%;
+  min-height: 112px;
+  border-radius: 9px;
   background: linear-gradient(160deg, var(--linen), var(--parchment2));
 }
-.gp-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.gp-item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.55s var(--ease);
+}
+.gp-item-card:hover .gp-item-thumb img { transform: scale(1.06); }
 .gp-item-thumb-placeholder {
   width: 100%; height: 100%;
-  min-height: 110px;
+  min-height: 112px;
   display: grid; place-items: center;
   color: var(--mist);
 }
-
-/* Delicate floral corner on thumbnail */
-.gp-item-thumb::after {
-  content: '';
+.gp-item-cat-ribbon {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, rgba(140,95,114,0.12) 0%, transparent 55%);
-  pointer-events: none;
+  left: 50%;
+  bottom: 7px;
+  display: block;
+  width: auto;
+  max-width: calc(100% - 18px);
+  padding: 4px 7px;
+  border: 1px solid rgba(255,248,237,0.12);
+  border-radius: 5px;
+  background: rgba(26,17,24,0.22);
+  backdrop-filter: blur(7px) saturate(1.04);
+  -webkit-backdrop-filter: blur(7px) saturate(1.04);
+  transform: translateX(-50%);
+  color: #fff8ed;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 8px rgba(26,17,24,0.45);
+  text-transform: uppercase;
+  z-index: 1;
 }
 
 .gp-item-info {
-  padding: 16px 18px;
+  grid-column: 2;
+  padding: 6px 44px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
   min-width: 0;
 }
 .gp-item-name {
-  font-family: var(--serif);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--ink);
-  line-height: 1.1;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 800;
+  color: #20151f;
+  line-height: 1.18;
+  letter-spacing: 0;
 }
 .gp-item-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  font-size: 12px;
-  color: var(--mist);
-  margin-top: 2px;
+  color: #40353e;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 0;
 }
-.gp-item-meta-sep { color: var(--rule-md); }
-
-.gp-item-price-box {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 16px 20px 16px 12px;
+.gp-item-meta svg,
+.gp-item-date-line svg {
+  width: 12px;
+  height: 12px;
+  color: #7b5b28;
+  stroke-width: 1.9;
   flex-shrink: 0;
 }
-.gp-item-price-val {
-  font-family: var(--serif);
-  font-size: 22px;
+.gp-item-meta-sep { color: rgba(140,95,114,0.42); }
+.gp-item-date-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: #40353e;
+  font-size: 11px;
   font-weight: 500;
+}
+.gp-item-date-line span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gp-item-price-val {
+  font-family: var(--sans);
+  margin-top: 0;
+  font-size: 13px;
+  font-weight: 800;
   color: var(--mauve);
   white-space: nowrap;
+  line-height: 1;
+}
+.gp-item-price-val.is-inline {
+  margin-top: 2px;
 }
 
 /* Tags */
@@ -682,9 +726,9 @@ textarea { font-family: var(--sans); }
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: var(--r-xs);
-  font-size: 10px;
-  font-weight: 600;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -711,7 +755,10 @@ textarea { font-family: var(--sans); }
 
 /* ─── Item details ───────────────────────── */
 .gp-item-details {
-  padding: 18px 20px;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding: 14px 8px 4px;
+  border-top: 1px solid rgba(178,143,110,0.18);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -741,64 +788,105 @@ textarea { font-family: var(--sans); }
 }
 
 .gp-slot-display {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--rule-md);
-  border-radius: var(--r-md);
-  background: var(--parchment);
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 9px;
+  border: 1px solid rgba(178,143,110,0.22);
+  border-radius: 7px;
+  background: rgba(252,248,245,0.78);
 }
-.gp-slot-box { display: flex; flex-direction: column; gap: 2px; }
-.slot-date { font-size: 13px; font-weight: 600; color: var(--ink); }
-.slot-time { font-size: 12px; color: var(--mist); }
+.gp-slot-box {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.slot-date,
+.slot-time {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.slot-date { font-size: 11px; font-weight: 700; color: var(--ink); }
+.slot-time { font-size: 11px; color: var(--ink2); }
 
 .gp-btn-change-slot {
-  padding: 6px 14px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--rule-md);
-  background: var(--ivory);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(140,95,114,0.26);
+  background: transparent;
   color: var(--mauve);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 800;
   white-space: nowrap;
   transition: all 0.2s;
 }
 .gp-btn-change-slot:hover { border-color: var(--mauve); background: var(--mauve-xs); }
 
-.gp-slot-selector { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.gp-slot-selector {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.85fr) minmax(260px, 1.8fr) auto;
+  gap: 10px;
+  align-items: start;
+  margin-top: 8px;
+  padding: 16px;
+  border-top: 1px solid rgba(178,143,110,0.18);
+  border-radius: 0 0 12px 12px;
+  background: rgba(252,248,245,0.78);
+}
 .gp-slot-selector.hidden { display: none; }
+.gp-slot-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.gp-slot-edit-field.is-wide {
+  min-width: 0;
+}
 .gp-btn-cancel-change {
-  align-self: flex-start;
-  padding: 5px 13px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--rule-md);
+  align-self: end;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(140,95,114,0.24);
   background: transparent;
   color: var(--mist);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 800;
   transition: all 0.2s;
 }
 .gp-btn-cancel-change:hover { border-color: var(--danger); color: var(--danger); }
 
 .gp-slots-container {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-content: flex-start;
 }
 .gp-slot-option {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border: 1px solid var(--rule-md);
-  border-radius: var(--r-sm);
+  justify-content: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 4px 8px;
+  border: 1px solid rgba(140,95,114,0.16);
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
   background: var(--ivory);
-  font-size: 13px;
+  font-size: 10px;
   color: var(--ink);
+  white-space: nowrap;
 }
 .gp-slot-option:hover { border-color: var(--mauve); background: var(--mauve-xs); }
 .gp-slot-option input[type="radio"] { accent-color: var(--mauve); }
@@ -968,60 +1056,74 @@ textarea { font-family: var(--sans); }
 
 /* Service drawer */
 .gp-service-drawer {
-  border-top: 1px solid var(--rule);
+  border-top: 0;
   padding-top: 14px;
 }
 .gp-service-drawer summary {
   list-style: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 13px;
-  border: 1px solid var(--rule-md);
-  border-radius: var(--r-sm);
-  background: var(--parchment);
-  font-size: 12px;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--mist);
+  font-size: 10px;
   font-weight: 600;
-  color: var(--ink2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   cursor: pointer;
-  letter-spacing: 0.02em;
   transition: all 0.18s;
 }
 .gp-service-drawer summary::-webkit-details-marker { display: none; }
+.gp-service-drawer summary > span:first-child {
+  grid-column: 1;
+  color: var(--mist);
+}
 .gp-service-drawer summary::after {
-  content: '+';
+  content: '⌄';
   display: grid;
   place-items: center;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--ivory);
+  width: 34px;
+  height: 20px;
+  border-radius: 6px;
+  background: transparent;
   color: var(--mauve);
-  border: 1px solid var(--rule-md);
-  font-size: 14px;
+  border: 1px solid rgba(140,95,114,0.20);
+  font-size: 13px;
   line-height: 1;
   transition: transform 0.18s var(--ease);
+  grid-column: 3;
+}
+.gp-service-drawer summary::before {
+  content: none;
 }
 .gp-service-drawer[open] summary {
-  border-color: rgba(140,95,114,0.28);
-  color: var(--mauve);
-  background: var(--mauve-xs);
+  color: var(--mist);
+  background: transparent;
 }
 .gp-service-drawer[open] summary::after {
-  content: '−';
   transform: rotate(180deg);
 }
 .gp-drawer-hint {
+  grid-column: 1 / -1;
+  order: 4;
+  margin-top: -4px;
+  color: #a85f5f;
   font-size: 11px;
-  font-weight: 400;
-  color: var(--mist);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: none;
 }
 .gp-overrides-fieldset {
   margin-top: 12px;
   padding: 16px;
   border: 1px solid var(--rule);
   border-radius: var(--r-sm);
-  background: rgba(255,255,255,0.4);
+  background: rgba(252,248,245,0.4);
 }
 
 /* venue-filled input style */
@@ -1030,8 +1132,8 @@ input[data-suggested-filled="true"] {
   border-color: rgba(122,156,130,0.35);
   background-color: rgba(122,156,130,0.04);
 }
-[data-is-venue="true"] .gp-item-header {
-  border-left: 3px solid rgba(196,151,59,0.45);
+[data-is-venue="true"].gp-item-card {
+  border-color: rgba(184,146,74,0.24);
 }
 
 /* ─── Sidebar ────────────────────────────── */
@@ -1043,114 +1145,181 @@ input[data-suggested-filled="true"] {
 }
 
 .gp-summary-card {
-  background: var(--ivory);
-  border: 1px solid var(--rule-md);
-  border-radius: var(--r-xl);
+  background: rgba(252,248,245,0.96);
+  border: 1px solid rgba(178,143,110,0.18);
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(44,31,40,0.09);
-}
-
-/* Petal accent bar */
-.gp-summary-card::before {
-  content: '';
-  display: block;
-  height: 3px;
-  background: linear-gradient(90deg, var(--mauve) 0%, var(--gold) 50%, var(--mauve-lt) 100%);
+  box-shadow: 0 18px 52px rgba(26,17,24,0.09);
 }
 
 .gp-summary-head {
-  padding: 24px 24px 18px;
-  border-bottom: 1px solid var(--rule);
-  background: linear-gradient(160deg, rgba(140,95,114,0.04), transparent 70%);
+  padding: 24px 26px 14px;
 }
 .gp-summary-eyebrow {
+  margin-bottom: 8px;
+  color: #817476;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 4px;
 }
 .gp-summary-title {
-  font-family: var(--serif);
-  font-size: 24px;
-  font-weight: 500;
-  color: var(--ink);
+  color: #0f0c12;
+  font-family: var(--sans);
+  font-size: clamp(21px, 2.1vw, 27px);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.05;
 }
-.gp-summary-subtitle { font-size: 12px; color: var(--mist); margin-top: 2px; }
+.gp-summary-subtitle {
+  margin-top: 8px;
+  color: #817476;
+  font-size: 12px;
+  line-height: 1.3;
+}
 
-/* Decorative vine divider inside summary */
-.gp-vine-divider {
+.gp-summary-body { padding: 6px 26px 20px; }
+.gp-line-items {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.gp-summary-service {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  padding: 10px 0 14px;
+}
+.gp-summary-service-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  background: rgba(140,95,114,0.09);
+  color: var(--mauve);
+  overflow: hidden;
+}
+.gp-summary-service-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.7;
+}
+.gp-summary-service-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gp-summary-service-main { min-width: 0; }
+.gp-summary-service-name {
+  color: #111016;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.gp-summary-service-date {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 6px 0;
-  color: var(--rule-md);
-  font-size: 11px;
+  gap: 7px;
+  margin-top: 6px;
+  color: #8d8187;
+  font-size: 10px;
+  font-weight: 500;
 }
-.gp-vine-line { flex: 1; height: 1px; background: var(--rule); }
-.gp-vine-diamond { width: 5px; height: 5px; background: var(--gold-lt); transform: rotate(45deg); }
-
-.gp-summary-body { padding: 20px 24px; }
-.gp-line-items { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.gp-summary-service-date svg {
+  width: 13px;
+  height: 13px;
+  color: #9b8d98;
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+.gp-summary-service-price {
+  color: #111016;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.gp-summary-divider {
+  height: 1px;
+  background: rgba(178,143,110,0.20);
+  margin: 0 0 14px;
+}
 .gp-line {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 10px;
+  gap: 16px;
 }
-.gp-line-name { font-size: 13px; color: var(--ink2); font-weight: 400; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gp-line-dots { flex: 1; border-bottom: 1px dashed rgba(140,95,114,0.2); margin: 0 4px 3px; }
-.gp-line-val { font-size: 13px; color: var(--ink); font-weight: 500; white-space: nowrap; }
+.gp-line-name {
+  color: #1f1a21;
+  font-size: 12px;
+  font-weight: 500;
+}
+.gp-line-dots { display: none; }
+.gp-line-val {
+  color: #1f1a21;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
 
 .gp-total-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  padding: 16px 0 0;
-  border-top: 1px solid var(--rule-md);
-  margin-top: 4px;
+  gap: 16px;
+  padding: 20px 0 0;
+  border-top: 1px solid rgba(178,143,110,0.20);
 }
-.gp-total-label { font-size: 13px; font-weight: 500; color: var(--ink2); }
+.gp-total-label {
+  color: #111016;
+  font-size: 12px;
+  font-weight: 800;
+}
 .gp-total-amount {
-  font-family: var(--serif);
-  font-size: 34px;
-  font-weight: 500;
+  font-family: var(--sans);
+  font-size: clamp(18px, 1.8vw, 22px);
+  font-weight: 800;
   color: var(--mauve);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .gp-deposit-breakdown {
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: var(--r-sm);
-  background: var(--parchment);
-  border: 1px solid var(--rule);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .gp-deposit-line {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 16px;
+  color: #1f1a21;
   font-size: 12px;
-  color: var(--mist);
 }
-.gp-deposit-line strong { color: var(--ink); font-weight: 600; font-size: 13px; }
+.gp-deposit-line strong {
+  color: #1f1a21;
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+}
 .gp-deposit-highlight {
-  font-size: 11px;
-  color: var(--sage);
-  font-style: italic;
-  margin-top: 4px;
+  display: none;
 }
 
 /* Buttons */
 .gp-summary-footer {
-  padding: 0 24px 22px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 11px;
+  padding: 0 26px 22px;
 }
 
 .gp-btn-primary {
@@ -1158,15 +1327,15 @@ input[data-suggested-filled="true"] {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 52px;
-  border-radius: var(--r-md);
+  height: 48px;
+  border-radius: 5px;
   border: none;
   background: var(--mauve);
-  color: #faf7f2;
+  color: #fffaf3;
   font-family: var(--sans);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
   box-shadow: 0 10px 28px rgba(140,95,114,0.28);
   transition: all 0.3s var(--ease);
   position: relative;
@@ -1177,7 +1346,7 @@ input[data-suggested-filled="true"] {
   position: absolute;
   top: 0; left: -100%;
   width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
+  background: linear-gradient(90deg, transparent, rgba(252,248,245,0.10), transparent);
   transition: left 0.5s var(--ease);
 }
 .gp-btn-primary:hover { background: var(--mauve-dk); transform: translateY(-2px); box-shadow: 0 16px 38px rgba(140,95,114,0.32); }
@@ -1189,15 +1358,15 @@ input[data-suggested-filled="true"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 42px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--rule-md);
+  gap: 10px;
+  height: 44px;
+  border-radius: 7px;
+  border: 1px solid rgba(140,95,114,0.48);
   background: transparent;
-  color: var(--ink2);
+  color: var(--mauve);
   font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 800;
   transition: all 0.2s;
 }
 .gp-btn-secondary:hover { border-color: var(--mauve); color: var(--mauve); background: var(--mauve-xs); }
@@ -1206,26 +1375,49 @@ input[data-suggested-filled="true"] {
 .gp-trust {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--rule);
+  gap: 13px;
+  padding: 20px 26px 22px;
+  border-top: 1px solid rgba(178,143,110,0.16);
 }
 .gp-trust-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  font-size: 11px;
-  color: var(--mist);
-  line-height: 1.5;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 11px;
+  align-items: center;
 }
-.gp-trust-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--gold); margin-top: 1px; }
+.gp-trust-icon-wrap {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(140,95,114,0.07);
+  color: var(--mauve);
+}
+.gp-trust-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.9;
+}
+.gp-trust-title {
+  color: #3e353b;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.gp-trust-copy {
+  margin-top: 2px;
+  color: #8d8187;
+  font-size: 10px;
+  line-height: 1.35;
+}
 
 /* Spinner */
 .gp-spinner {
   display: inline-block;
   width: 16px; height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
+  border: 2px solid rgba(252,248,245,0.3);
+  border-top-color: #fcf8f5;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -1303,10 +1495,41 @@ input[type="date"]:invalid {
   .gp-layout { grid-template-columns: 1fr; }
   .gp-sidebar { position: static; }
   .gp-detail-row { grid-template-columns: 1fr; }
+  .gp-item-card {
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .gp-item-name { font-size: 14px; }
 }
 @media (max-width: 640px) {
-  .gp-item-header { grid-template-columns: 80px 1fr; }
-  .gp-item-price-box { display: none; }
+  .gp-items { max-width: none; }
+  .gp-item-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+  .gp-item-thumb {
+    min-height: 124px;
+    aspect-ratio: 16 / 10;
+  }
+  .gp-item-info {
+    grid-column: auto;
+    padding: 0 92px 0 0;
+    gap: 6px;
+  }
+  .gp-item-name { font-size: 14px; }
+  .gp-item-meta,
+  .gp-item-date-line { font-size: 11px; }
+  .gp-item-price-val { font-size: 13px; }
+  .gp-slot-display {
+    width: 100%;
+  }
+  .gp-slot-selector {
+    grid-template-columns: 1fr;
+  }
+  .gp-btn-cancel-change {
+    justify-self: end;
+  }
   .gp-header-nav { display: none; }
   .gp-profile-facts { grid-template-columns: 1fr; }
   .gp-fact { border-right: none; border-bottom: 1px solid var(--rule); }
@@ -1321,37 +1544,6 @@ input[type="date"]:invalid {
 </head>
 <body>
 
-<!-- Thin crown bar -->
-<div class="gp-crown" aria-hidden="true"></div>
-
-<!-- Botanical background -->
-<div class="gp-bg" aria-hidden="true">
-  <svg class="gp-bg-tl" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M200 480 C200 480 80 380 60 260 C40 140 120 60 200 20 C280 60 360 140 340 260 C320 380 200 480 200 480Z" stroke="#6b4457" stroke-width="1.5" fill="none"/>
-    <path d="M200 20 L200 480" stroke="#6b4457" stroke-width="1"/>
-    <path d="M200 120 C200 120 130 140 100 200" stroke="#6b4457" stroke-width="1"/>
-    <path d="M200 160 C200 160 270 185 295 250" stroke="#6b4457" stroke-width="1"/>
-    <path d="M200 230 C200 230 135 255 115 310" stroke="#6b4457" stroke-width="1"/>
-    <path d="M200 270 C200 270 265 295 280 355" stroke="#6b4457" stroke-width="1"/>
-    <path d="M200 340 C200 340 145 365 140 420" stroke="#6b4457" stroke-width="1"/>
-    <ellipse cx="100" cy="205" rx="40" ry="22" transform="rotate(-30 100 205)" stroke="#6b4457" stroke-width="1" fill="none"/>
-    <ellipse cx="295" cy="252" rx="40" ry="22" transform="rotate(25 295 252)" stroke="#6b4457" stroke-width="1" fill="none"/>
-    <ellipse cx="115" cy="315" rx="35" ry="20" transform="rotate(-25 115 315)" stroke="#6b4457" stroke-width="1" fill="none"/>
-    <ellipse cx="280" cy="358" rx="35" ry="20" transform="rotate(20 280 358)" stroke="#6b4457" stroke-width="1" fill="none"/>
-    <ellipse cx="140" cy="423" rx="30" ry="18" transform="rotate(-15 140 423)" stroke="#6b4457" stroke-width="1" fill="none"/>
-  </svg>
-  <svg class="gp-bg-br" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M200 480 C200 480 80 380 60 260 C40 140 120 60 200 20 C280 60 360 140 340 260 C320 380 200 480 200 480Z" stroke="#c4973b" stroke-width="1.5" fill="none"/>
-    <path d="M200 20 L200 480" stroke="#c4973b" stroke-width="1"/>
-    <path d="M200 120 C200 120 130 140 100 200" stroke="#c4973b" stroke-width="1"/>
-    <path d="M200 160 C200 160 270 185 295 250" stroke="#c4973b" stroke-width="1"/>
-    <path d="M200 230 C200 230 135 255 115 310" stroke="#c4973b" stroke-width="1"/>
-    <path d="M200 270 C200 270 265 295 280 355" stroke="#c4973b" stroke-width="1"/>
-    <ellipse cx="100" cy="205" rx="40" ry="22" transform="rotate(-30 100 205)" stroke="#c4973b" stroke-width="1" fill="none"/>
-    <ellipse cx="295" cy="252" rx="40" ry="22" transform="rotate(25 295 252)" stroke="#c4973b" stroke-width="1" fill="none"/>
-  </svg>
-</div>
-
 <?php $gpNavActive = 'bookings'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <!-- ─── Main ──────────────────────────────── -->
@@ -1359,15 +1551,8 @@ input[type="date"]:invalid {
 
   <!-- Page heading -->
   <div class="gp-page-head">
-    <div class="gp-head-ornament">
-      <div class="gp-head-ornament-line"></div>
-      <div class="gp-head-ornament-dot"></div>
-      <div class="gp-head-ornament-diamond"></div>
-      <div class="gp-head-ornament-dot"></div>
-      <div class="gp-head-ornament-line"></div>
-    </div>
-    <div class="gp-page-eyebrow">Almost There</div>
-    <h1 class="gp-page-title">Confirm Your <em>Booking</em></h1>
+    <h1 class="gp-page-title">Confirm Your Booking</h1>
+    <div class="gp-page-eyebrow">ALMOST THERE</div>
     <p class="gp-page-subtitle">Review your selections and add any details your suppliers need.</p>
   </div>
 
@@ -1471,6 +1656,7 @@ input[type="date"]:invalid {
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                 </div>
               <?php endif; ?>
+              <div class="gp-item-cat-ribbon"><?= $h($item['category_name'] ?? 'Service') ?></div>
             </a>
 
             <div class="gp-item-info">
@@ -1492,10 +1678,26 @@ input[type="date"]:invalid {
 	                  <span>Add-on for <?= $h($addonPackageName) ?></span>
 	                <?php endif; ?>
               </div>
-            </div>
-
-            <div class="gp-item-price-box">
-              <div class="gp-item-price-val" data-item-price="<?= $i ?>"><?= $money($linePrice) ?></div>
+              <?php if ($formatSlotDate || $formatSlotTime): ?>
+              <div class="gp-item-date-line">
+                <?php if ($formatSlotDate): ?>
+                <span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <?= $h($formatSlotDate) ?>
+                </span>
+                <?php endif; ?>
+                <?php if ($formatSlotDate && $formatSlotTime): ?>
+                <span class="gp-item-meta-sep" aria-hidden="true">|</span>
+                <?php endif; ?>
+                <?php if ($formatSlotTime): ?>
+                <span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <?= $h($formatSlotTime) ?>
+                </span>
+                <?php endif; ?>
+              </div>
+              <?php endif; ?>
+              <div class="gp-item-price-val is-inline" data-item-price="<?= $i ?>"><?= $money($linePrice) ?></div>
             </div>
           </div>
 
@@ -1521,7 +1723,7 @@ input[type="date"]:invalid {
                   </div>
                   <button type="button" class="gp-btn-change-slot"
                           data-index="<?= $i ?>" aria-label="Change slot for <?= $h($item['service_name'] ?? 'service') ?>">
-                    ↻ Change
+                    Edit
                   </button>
                 </div>
 
@@ -1547,32 +1749,34 @@ input[type="date"]:invalid {
                     $minDateStr = $minDate->format('Y-m-d');
                     $minDateDisplay = $minDate->format('M j, Y');
                   ?>
-                  <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
-                  <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
-	                         name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
-	                         min="<?= $minDateStr ?>"
-	                         <?php if (($item['item_type'] ?? '') !== 'package'): ?>
-	                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
-	                         <?php endif; ?>
-	                         data-min-lead-days="<?= $minLeadDays ?>"
-	                         data-index="<?= $i ?>">
-	                <?php if ($minLeadDays > 0): ?>
-	                  <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
-	                <?php endif; ?>
-	                <?php if ($isPackageItem): ?>
-	                  <div class="gp-input-note">
-	                    Choose the wedding/event date once. Golden Promise will assign each included service to its planned time slot from supplier availability.
-	                  </div>
-	                <?php endif; ?>
-
-                  <label class="gp-detail-label">Available slots</label>
-                  <div class="gp-slots-container" id="slots-<?= $i ?>">
-                    <p class="loading">Loading slots…</p>
+                  <div class="gp-slot-edit-field">
+                    <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
+                    <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+  	                         name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
+  	                         min="<?= $minDateStr ?>"
+  	                         <?php if (($item['item_type'] ?? '') !== 'package'): ?>
+  	                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+  	                         <?php endif; ?>
+  	                         data-min-lead-days="<?= $minLeadDays ?>"
+  	                         data-index="<?= $i ?>">
+  	                <?php if ($minLeadDays > 0): ?>
+  	                  <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
+  	                <?php endif; ?>
+  	                <?php if ($isPackageItem): ?>
+  	                  <div class="gp-input-note">
+  	                    Choose the wedding/event date once. Golden Promise will assign each included service to its planned time slot from supplier availability.
+  	                  </div>
+  	                <?php endif; ?>
                   </div>
 
-                  <button type="button" class="gp-btn-cancel-change" data-index="<?= $i ?>">
-                    ✕ Keep original slot
-                  </button>
+                  <div class="gp-slot-edit-field is-wide">
+                    <label class="gp-detail-label">Available slots</label>
+                    <div class="gp-slots-container" id="slots-<?= $i ?>">
+                      <p class="loading">Loading slots…</p>
+                    </div>
+                  </div>
+
+                  <button type="button" class="gp-btn-cancel-change" data-index="<?= $i ?>">Keep original</button>
                 </div>
 
               <?php else: ?>
@@ -1638,7 +1842,7 @@ input[type="date"]:invalid {
             <!-- Customise drawer -->
             <details class="gp-service-drawer" open>
               <summary>
-	                <span><?= $isPackageItem ? 'Event details' : 'Service details' ?></span>
+	                <span>Service details</span>
 	                <span class="gp-drawer-hint"><?= $isPackageItem ? 'Shared guest count, location, contact and notes for this package' : 'Required contact, guests, room and notes' ?></span>
               </summary>
 
@@ -1646,11 +1850,15 @@ input[type="date"]:invalid {
                 <div class="gp-detail-row">
                   <div class="gp-detail-field">
 	                    <label class="gp-detail-label" for="guests-<?= $i ?>"><?= $isPackageItem ? 'Event guest count' : 'Guests for this service' ?></label>
-                    <input class="gp-detail-input" type="number" id="guests-<?= $i ?>"
-                           name="item_guests[<?= $i ?>]" min="0"
-                           value="<?= $isVenue && $venueRoomCapacity > 0 ? (int)$venueRoomCapacity : '' ?>"
-                           <?php if ($isVenue && $venueRoomCapacity > 0): ?>data-venue-filled="true"<?php endif; ?>
-                           placeholder="Required">
+                    <div class="gp-detail-stepper">
+                      <button class="gp-stepper-btn" type="button" data-stepper="minus" data-target="guests-<?= $i ?>" aria-label="Decrease guests">−</button>
+                      <input class="gp-detail-input gp-stepper-input" type="number" id="guests-<?= $i ?>"
+                             name="item_guests[<?= $i ?>]" min="0"
+                             value="<?= $isVenue && $venueRoomCapacity > 0 ? (int)$venueRoomCapacity : '' ?>"
+                             <?php if ($isVenue && $venueRoomCapacity > 0): ?>data-venue-filled="true"<?php endif; ?>
+                             placeholder="Required">
+                      <button class="gp-stepper-btn" type="button" data-stepper="plus" data-target="guests-<?= $i ?>" aria-label="Increase guests">+</button>
+                    </div>
                     <?php if ($isVenue && $venueRoomCapacity > 0): ?>
                       <div class="gp-input-note">Suggested from selected hall max: <strong><?= (int)$venueRoomCapacity ?></strong> guests</div>
                     <?php endif; ?>
@@ -1710,41 +1918,61 @@ input[type="date"]:invalid {
 
           <div class="gp-summary-body">
             <div class="gp-line-items">
-              <?php foreach ($items as $item):
+              <?php foreach ($items as $i => $item):
                 $linePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
                 $lineName  = $item['service_name'] ?? 'Service';
                 $lineHall = trim((string)($item['venue_room_name'] ?? ''));
                 if ($lineHall !== '') $lineName .= ' · ' . $lineHall;
+                $lineDate = trim((string)($item['selected_date'] ?? ''));
+                $lineTime = $formatTimeRange($item['start_time'] ?? '', $item['end_time'] ?? '');
+                $lineDetails = [];
+                if ($lineDate !== '') $lineDetails[] = $formatDate($lineDate);
+                if ($lineTime !== '') $lineDetails[] = $lineTime;
+                $lineDetail = !empty($lineDetails) ? implode(' · ', $lineDetails) : 'Date to be confirmed';
+                $lineImage = trim((string)($item['thumbnail_url'] ?? ''));
               ?>
-              <div class="gp-line">
-                <span class="gp-line-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></span>
-                <span class="gp-line-dots" aria-hidden="true"></span>
-                <span class="gp-line-val" data-line-price="<?= $i ?>"><?= $money($linePrice) ?></span>
+              <div class="gp-summary-service">
+                <div class="gp-summary-service-icon" aria-hidden="true">
+                  <?php if ($lineImage !== ''): ?>
+                    <img src="<?= $h($lineImage) ?>" alt="" loading="lazy">
+                  <?php else: ?>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M6 18a6 6 0 0 1 12 0"/><path d="M12 8v-2"/><path d="M9 6h6"/><path d="M4 21h16"/></svg>
+                  <?php endif; ?>
+                </div>
+                <div class="gp-summary-service-main">
+                  <div class="gp-summary-service-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></div>
+                  <div class="gp-summary-service-date">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <?= $h($lineDetail) ?>
+                  </div>
+                </div>
+                <div class="gp-summary-service-price" data-line-price="<?= $i ?>"><?= $money($linePrice) ?></div>
               </div>
               <?php endforeach; ?>
-            </div>
 
-            <div class="gp-vine-divider">
-              <span class="gp-vine-line"></span>
-              <span class="gp-vine-diamond"></span>
-              <span class="gp-vine-line"></span>
+              <div class="gp-summary-divider"></div>
+              <div class="gp-line">
+                <span class="gp-line-name">Subtotal</span>
+                <span class="gp-line-dots" aria-hidden="true"></span>
+                <span class="gp-line-val" data-subtotal-amount><?= $money($total) ?></span>
+              </div>
+
+              <div class="gp-deposit-breakdown">
+                <div class="gp-deposit-line">
+                  <span>Deposit (<?= $depositPercent ?>%)</span>
+                  <strong data-deposit-amount><?= $money($total * $depositPercent / 100) ?></strong>
+                </div>
+                <div class="gp-deposit-line">
+                  <span>Balance due later</span>
+                  <strong data-balance-amount><?= $money($total - ($total * $depositPercent / 100)) ?></strong>
+                </div>
+                <div class="gp-deposit-highlight">Pay just the deposit today to lock in your date.</div>
+              </div>
             </div>
 
             <div class="gp-total-row">
               <span class="gp-total-label">Estimated total</span>
               <span class="gp-total-amount" data-total-amount><?= $money($total) ?></span>
-            </div>
-
-            <div class="gp-deposit-breakdown">
-              <div class="gp-deposit-line">
-                <span>Deposit (<?= $depositPercent ?>%)</span>
-                <strong data-deposit-amount><?= $money($total * $depositPercent / 100) ?></strong>
-              </div>
-              <div class="gp-deposit-line">
-                <span>Balance due later</span>
-                <strong data-balance-amount><?= $money($total - ($total * $depositPercent / 100)) ?></strong>
-              </div>
-              <div class="gp-deposit-highlight">Pay just the deposit today to lock in your date.</div>
             </div>
           </div>
 
@@ -1767,9 +1995,7 @@ input[type="date"]:invalid {
             </div>
             <div class="gp-booking-reminder" id="booking-reminder" role="alert" aria-live="polite"></div>
             <button class="gp-btn-primary" type="submit" id="submit-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               Confirm &amp; Proceed
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
             <a class="gp-btn-secondary" href="<?= URLROOT ?>/cart">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
@@ -1779,16 +2005,31 @@ input[type="date"]:invalid {
 
           <div class="gp-trust" aria-label="Assurances">
             <div class="gp-trust-item">
-              <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              Secure payment via Stripe
+              <div class="gp-trust-icon-wrap" aria-hidden="true">
+                <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+              <div>
+                <div class="gp-trust-title">Secure payment</div>
+                <div class="gp-trust-copy">Processed via Stripe</div>
+              </div>
             </div>
             <div class="gp-trust-item">
-              <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <?= $depositPercent ?>% deposit locks your date — balance due later
+              <div class="gp-trust-icon-wrap" aria-hidden="true">
+                <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <div class="gp-trust-title">Deposit booking</div>
+                <div class="gp-trust-copy"><?= $depositPercent ?>% locks your date</div>
+              </div>
             </div>
             <div class="gp-trust-item">
-              <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-              Free cancellation within 48 hours
+              <div class="gp-trust-icon-wrap" aria-hidden="true">
+                <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 14.2 7.5 19 8.2 15.5 11.7 16.4 16.5 12 14.1 7.6 16.5 8.5 11.7 5 8.2 9.8 7.5 12 3Z"/><path d="m9.6 11.8 1.5 1.5 3.2-3.5"/></svg>
+              </div>
+              <div>
+                <div class="gp-trust-title">Free cancellation</div>
+                <div class="gp-trust-copy">Within 48 hours</div>
+              </div>
             </div>
           </div>
 
@@ -1948,6 +2189,7 @@ const packageScheduleState = new Map();
     });
 
     document.querySelector('[data-total-amount]')?.replaceChildren(document.createTextNode(money(total)));
+    document.querySelector('[data-subtotal-amount]')?.replaceChildren(document.createTextNode(money(total)));
     document.querySelector('[data-deposit-amount]')?.replaceChildren(document.createTextNode(money(total * depositPercent / 100)));
     document.querySelector('[data-balance-amount]')?.replaceChildren(document.createTextNode(money(total - (total * depositPercent / 100))));
   }
@@ -2013,6 +2255,11 @@ const packageScheduleState = new Map();
 
   function showBookingReminder(messages, title) {
     if (!bookingReminder || !messages.length) return;
+    if (title === 'service-details') {
+      bookingReminder.textContent = 'Please complete service details before proceeding.';
+      bookingReminder.classList.add('show');
+      return;
+    }
     const items = messages.slice(0, 5).map(message => '<li>' + escapeHtml(message) + '</li>').join('');
     const extra = messages.length > 5 ? '<li>And ' + (messages.length - 5) + ' more item(s).</li>' : '';
     bookingReminder.innerHTML = '<div>' + escapeHtml(title) + '</div><ul>' + items + extra + '</ul>';
@@ -2159,7 +2406,6 @@ const packageScheduleState = new Map();
       const itemStart = fieldValue(formData, `item_start_time[${index}]`);
       const itemEnd = fieldValue(formData, `item_end_time[${index}]`);
       const itemPhone = fieldValue(formData, `item_contact_phone[${index}]`);
-      const itemContactName = fieldValue(formData, `item_contact_name[${index}]`);
       const itemLocation = fieldValue(formData, `item_location[${index}]`);
       const itemGuests = numberValue(formData, `item_guests[${index}]`);
       const missing = [];
@@ -2199,10 +2445,6 @@ const packageScheduleState = new Map();
       if (!isFullday && itemStart && !itemEnd) {
         missing.push('time slot end');
         rememberMissing(card.querySelector(`[name="item_start_time[${index}]"]`));
-      }
-      if (!itemContactName) {
-        missing.push('contact name');
-        rememberMissing(card.querySelector(`[name="item_contact_name[${index}]"]`));
       }
       if (!itemPhone) {
         missing.push('contact phone');
@@ -2247,7 +2489,8 @@ const packageScheduleState = new Map();
       if (missing.length) {
         if (drawer) drawer.open = true;
         missingMessages.push(serviceName + ': ' + missing.join(', '));
-        addRequiredHint(card, 'Please complete: ' + missing.join(', ') + '.');
+        const detailMissing = ['contact phone', 'location', 'guest count'].filter((label) => missing.includes(label));
+        addRequiredHint(card, 'Please complete: ' + (detailMissing.length ? detailMissing : missing).join(', ') + '.');
       }
     });
 
@@ -2262,7 +2505,7 @@ const packageScheduleState = new Map();
         showBookingReminder(allErrors, 'Please choose a later date before proceeding.');
       } else {
         errorMsg = 'Please complete the required booking details before continuing. ' + errorMsg;
-        showBookingReminder(allErrors, 'Please complete these details before proceeding.');
+        showBookingReminder(allErrors, 'service-details');
       }
 
       showToast(errorMsg, 'error');

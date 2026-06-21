@@ -40,7 +40,7 @@ $getCountByStatus = function ($status) use ($bookings) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root { --bg: #f2e4d4; --card: #ffffff; --rule: rgba(178,143,110,0.22); --rule-strong: rgba(178,143,110,0.45); --plum: #6b4459; --plum-dk: #4e3141; --plum-lt: #9b7289; --rose: #c27a8e; --gold: #b8924a; --muted: #a08878; --text: #1a1118; --text2: #5c4a54; --danger: #b94b4b; --r-sm: 8px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px; --font-d: 'Playfair Display', Georgia, serif; --font-b: 'Poppins', system-ui, sans-serif; --pad-x: clamp(20px, 5vw, 72px); --ease-expo: cubic-bezier(0.19, 1, 0.22, 1); }
+:root { --bg: #f2e4d4; --card: #fcf8f5; --rule: rgba(178,143,110,0.22); --rule-strong: rgba(178,143,110,0.45); --plum: #6b4459; --plum-dk: #4e3141; --plum-lt: #9b7289; --rose: #c27a8e; --gold: #b8924a; --muted: #a08878; --text: #1a1118; --text2: #5c4a54; --danger: #b94b4b; --r-sm: 8px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px; --font-d: 'Playfair Display', Georgia, serif; --font-b: 'Poppins', system-ui, sans-serif; --pad-x: clamp(20px, 5vw, 72px); --ease-expo: cubic-bezier(0.19, 1, 0.22, 1); }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-b); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
@@ -73,7 +73,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-filters { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; overflow-x: auto; padding-bottom: 4px; }
 .gp-filter { padding: 6px 16px; border-radius: 999px; border: 1px solid var(--rule-strong); background: transparent; font-size: 12px; font-weight: 600; color: var(--text2); transition: all 0.2s; white-space: nowrap; text-decoration: none; }
 .gp-filter:hover { border-color: var(--plum); color: var(--plum); }
-.gp-filter.active { background: var(--plum); color: #fff; border-color: var(--plum); }
+.gp-filter.active { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 
 .gp-card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 20px 24px; opacity: 0; transform: translateY(16px); transition: all 0.4s var(--ease-expo); }
 .gp-card.visible { opacity: 1; transform: translateY(0); }
@@ -93,7 +93,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .gp-btn-sm { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--rule-strong); font-size: 11px; font-weight: 600; color: var(--text2); background: transparent; transition: all 0.2s; text-decoration: none; }
 .gp-btn-sm:hover { border-color: var(--plum); color: var(--plum); background: rgba(107,68,89,0.04); }
-.gp-btn-sm.primary { background: var(--plum); color: #fff; border-color: var(--plum); }
+.gp-btn-sm.primary { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 .gp-btn-sm.primary:hover { background: var(--plum-dk); }
 .gp-profile-dropdown{position:relative}
 .gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--card);cursor:pointer;transition:all .2s;color:var(--plum);font-family:var(--font-b);font-size:13px;font-weight:600}
@@ -109,7 +109,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-profile-menu-item--danger{color:var(--danger)}
 .gp-profile-menu-item--danger:hover{background:rgba(185,75,75,.08)}
 .gp-btn-sm.danger { color: var(--danger); border-color: rgba(185,75,75,0.2); }
-.gp-btn-sm.danger:hover { background: var(--danger); color: #fff; }
+.gp-btn-sm.danger:hover { background: var(--danger); color: #fcf8f5; }
 
 .gp-empty { text-align: center; padding: 80px 24px; border: 1px dashed rgba(107,68,89,0.18); border-radius: var(--r-xl); background: var(--card); }
 .gp-empty-icon { display: inline-flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 50%; background: rgba(107,68,89,0.07); color: var(--plum); margin-bottom: 20px; }
@@ -134,7 +134,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-pagination-btns { display: flex; align-items: center; gap: 5px; }
 .gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--rule); border-radius: var(--r-sm); background: var(--card); color: var(--text2); font-size: 12px; font-weight: 600; font-family: var(--font-b); text-decoration: none; transition: all 0.15s; cursor: pointer; }
 .gp-pagination-btn:hover { background: var(--bg); color: var(--text); border-color: var(--gold); }
-.gp-pagination-btn-cur { background: var(--plum); color: #fff; border-color: var(--plum); }
+.gp-pagination-btn-cur { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 .gp-pagination-btn-cur:hover { background: var(--plum-dk); }
 .gp-pagination-btn-disabled { opacity: 0.3; pointer-events: none; }
 </style>
