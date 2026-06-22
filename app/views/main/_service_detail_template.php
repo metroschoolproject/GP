@@ -1818,7 +1818,42 @@ button, input, select, textarea { font-family: var(--font-sans); }
   border-color: rgba(185,74,72,0.26);
 }
 
+.availability-row.is-today-closed {
+  cursor: default;
+  opacity: 0.65;
+  background: #f9f6f2;
+  border-color: rgba(109,76,91,0.15);
+  filter: blur(0.3px);
+}
+
+.availability-row.is-today-closed .availability-name {
+  color: #9b8c91;
+}
+
+.availability-status.is-today-closed {
+  background: rgba(109,76,91,0.09);
+  color: #8b7180;
+}
+
+.today-closed-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(109,76,91,0.06);
+  border: 1px dashed rgba(109,76,91,0.15);
+  font-size: 11px;
+  color: #8b7180;
+  line-height: 1.45;
+}
+
 .availability-row.is-unavailable:hover {
+  transform: none;
+}
+
+.availability-row.is-today-closed:hover {
   transform: none;
 }
 
@@ -3253,16 +3288,26 @@ button, input, select, textarea { font-family: var(--font-sans); }
                 : ($day['day_label'] ?? '');
               $slots = $day['slots'] ?? [];
               $firstDaySlot = $slots[0] ?? null;
-              $slotSummary = $isSlotBooking
-                ? (count($slots) > 1
-                  ? count($slots) . ' available times'
-                  : ($firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'No available time on your selected date' : ($day['date'] ?? '')))))
-                : ($firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'Not available on your selected date' : ($day['date'] ?? ''))));
+              $dayStatus = $day['status'] ?? (empty($slots) ? 'Booked' : 'Available');
+              $isToday = !empty($day['is_today']) || $day['date'] === date('Y-m-d');
+              $isClosedToday = $isToday && empty($slots) && $dayStatus !== 'Too soon';
+
+              if ($isSlotBooking) {
+                if ($isClosedToday) {
+                  $slotSummary = 'Check tomorrow';
+                } elseif (count($slots) > 1) {
+                  $slotSummary = count($slots) . ' times available';
+                } else {
+                  $slotSummary = $firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'No available time on your selected date' : ($day['date'] ?? '')));
+                }
+              } else {
+                $slotSummary = $firstDaySlot['label'] ?? ($day['reason'] ?? ($selectedDate !== '' && !empty($day['is_selected_date']) ? 'Not available on your selected date' : ($day['date'] ?? '')));
+              }
               $rowSelected = !$hasSelectedSlot && !empty($slots);
               $isRequestedDate = !empty($day['is_selected_date']);
             ?>
             <?php if ($isSlotBooking): ?>
-            <div class="availability-row <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?> <?= empty($slots) ? 'is-unavailable' : 'is-available' ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
+            <div class="availability-row <?= $rowSelected ? 'is-selected' : '' ?> <?= $isRequestedDate ? 'is-requested-date' : '' ?> <?= $isClosedToday ? 'is-today-closed' : (empty($slots) ? 'is-unavailable' : 'is-available') ?>" data-slot-row data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
               <span class="radio-dot"></span>
               <div>
                 <div class="availability-head">
@@ -3270,8 +3315,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                     <?= $h($dayLabel) ?>
                     <span><?= $h($slotSummary) ?></span>
                   </span>
-                  <?php $dayStatus = $day['status'] ?? (empty($slots) ? 'Booked' : 'Available'); ?>
-                  <span class="availability-status <?= empty($slots) ? 'is-closed' : '' ?>"><?= $h($dayStatus) ?></span>
+                  <span class="availability-status <?= $isClosedToday ? 'is-today-closed' : (empty($slots) ? 'is-closed' : '') ?>"><?= $isClosedToday ? 'Closed today' : $h($dayStatus) ?></span>
                 </div>
                 <?php if (!empty($slots)): ?>
                   <div class="slot-options">
@@ -3292,6 +3336,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
                       </label>
                     <?php endforeach; ?>
                   </div>
+                <?php elseif ($isClosedToday): ?>
+                  <div class="today-closed-message">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    All time slots for today have ended. View tomorrow or later for available times.
+                  </div>
                 <?php endif; ?>
               </div>
             </div>
@@ -3309,6 +3358,23 @@ button, input, select, textarea { font-family: var(--font-sans); }
                     <span class="availability-status"><?= $h($day['status'] ?? 'Available') ?></span>
                   </div>
                   <span class="availability-range"><i data-lucide="calendar" size="14"></i>Full day</span>
+                </div>
+              </div>
+            <?php elseif ($isClosedToday): ?>
+              <div class="availability-row is-today-closed" data-aos="fade-up" data-aos-delay="<?= min($dayIdx * 80, 300) ?>">
+                <span class="radio-dot"></span>
+                <div>
+                  <div class="availability-head">
+                    <span class="availability-name">
+                      <?= $h($dayLabel) ?>
+                      <span>Closed today</span>
+                    </span>
+                    <span class="availability-status is-today-closed">Closed today</span>
+                  </div>
+                  <div class="today-closed-message" style="margin-top:6px">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Closed for today. Please select a future date.
+                  </div>
                 </div>
               </div>
             <?php else: ?>

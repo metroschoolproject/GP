@@ -601,6 +601,9 @@ class CustomerServiceCatalog
         }
         $selectedDate = $this->normalizeDate($selectedDate);
 
+        $todayDateValue = $today->format('Y-m-d');
+        $bookingType = ($service['booking_type'] ?? 'fullday') === 'slot' ? 'slot' : 'fullday';
+
         if ($selectedDate) {
             $anchor = DateTimeImmutable::createFromFormat('!Y-m-d', $selectedDate);
             if ($anchor) {
@@ -617,6 +620,12 @@ class CustomerServiceCatalog
 
                     $availability = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue);
                     if (!$availability || empty($availability['slots'])) {
+                        // Always show today even if unavailable — so customer
+                        // sees "Closed" rather than today just disappearing.
+                        if ($dateValue === $todayDateValue && $availability) {
+                            $days[] = $availability;
+                            $seen[$dateValue] = true;
+                        }
                         continue;
                     }
 
@@ -628,15 +637,26 @@ class CustomerServiceCatalog
             return $days;
         }
 
-        for ($i = 0; $i < 28 && count($days) < 8; $i++) {
+        // No selected date: build the default 7-day list starting from today.
+        for ($i = 0; $i < 28 && count($days) < 7; $i++) {
             $day = $today->modify('+' . $i . ' days');
             $dateValue = $day->format('Y-m-d');
 
             $availability = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue);
             if (!$availability || empty($availability['slots'])) {
+                // Always show today
+                if ($dateValue === $todayDateValue && $availability) {
+                    $availability['is_today'] = true;
+                    $availability['status'] = $bookingType === 'slot'
+                        ? 'No times available today'
+                        : 'Closed today';
+                    $days[] = $availability;
+                    $seen[$dateValue] = true;
+                }
                 continue;
             }
 
+            $availability['is_today'] = ($dateValue === $todayDateValue);
             $days[] = $availability;
             $seen[$dateValue] = true;
         }
@@ -667,24 +687,49 @@ class CustomerServiceCatalog
         $hours = $this->hoursForDate($dateValue, $weekly, $overrides);
         $slots = [];
         $status = 'Unavailable';
+        $isAllPast = false;
 
         if (!empty($hours['is_available'])) {
             $duration = max(15, (int)($service['duration_minutes'] ?? 60));
             $buffer = max(0, (int)($service['buffer_minutes'] ?? 0));
             $bookingType = ($service['booking_type'] ?? 'fullday') === 'slot' ? 'slot' : 'fullday';
-            $slots = $bookingType === 'slot'
-                ? $this->availableSlotsForDate($serviceId, $dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer, (int)($service['max_concurrent'] ?? 1))
-                : ($this->isFutureSlot($dateValue, $hours['open_time']) ? [[
+
+            if ($bookingType === 'slot') {
+                $slots = $this->availableSlotsForDate($serviceId, $dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer, (int)($service['max_concurrent'] ?? 1));
+
+                // Detect: all generated slots are past for today
+                $generatedSlots = $this->buildSlots($dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer);
+                $anyFuture = false;
+                foreach ($generatedSlots as $gs) {
+                    if ($this->isFutureSlot($dateValue, $gs['start_time'])) {
+                        $anyFuture = true;
+                        break;
+                    }
+                }
+                $isAllPast = !empty($generatedSlots) && !$anyFuture;
+            } else {
+                $slots = $this->isFutureSlot($dateValue, $hours['open_time']) ? [[
                     'start_time' => $hours['open_time'],
                     'end_time' => $hours['close_time'],
                     'label' => $this->formatTimeRange($hours['open_time'], $hours['close_time']),
                     'remaining' => max(1, (int)($service['max_concurrent'] ?? 1)),
-                ]] : []);
+                ]] : [];
+                $isAllPast = empty($slots);
+            }
             $status = $hours['source'] === 'override' ? 'Custom hours' : 'Available';
         }
 
+        // Better status for empty slots
         if (empty($slots) && !empty($hours['is_available'])) {
-            $status = 'Booked';
+            $todayStr = (new DateTimeImmutable('today'))->format('Y-m-d');
+            if ($dateValue === $todayStr && $isAllPast) {
+                $status = 'Closed today';
+                if ($bookingType === 'slot') {
+                    $status = 'No more slots today';
+                }
+            } elseif ($status !== 'Available') {
+                $status = 'Booked';
+            }
         }
 
         return [
