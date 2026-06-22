@@ -87,6 +87,15 @@ class CustomerServices extends Controller
         $isWishlisted = false;
         $wishlistCount = 0;
         $cartCount = 0;
+        $recentlyViewedServices = [];
+        $recentIds = getRecentlyViewedIds();
+        if (!empty($recentIds)) {
+            $recentlyViewedServices = array_values(array_filter(
+                fetchRecentlyViewedServices(new Database()),
+                fn($recent) => (int)($recent['service_id'] ?? 0) !== $serviceId
+            ));
+            $recentlyViewedServices = array_slice($recentlyViewedServices, 0, 6);
+        }
         $userId = $_SESSION['session_uid'] ?? null;
         if ($userId) {
             $cartModel = $this->model('CartModel');
@@ -107,6 +116,7 @@ class CustomerServices extends Controller
             'isWishlisted' => $isWishlisted,
             'wishlistCount' => $wishlistCount,
             'cartCount' => $cartCount,
+            'recentlyViewedServices' => $recentlyViewedServices,
         ]);
     }
 

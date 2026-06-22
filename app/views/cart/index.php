@@ -42,6 +42,7 @@ $formatTimeRange = function ($start, $end) use ($formatTime) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Cart — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php
 $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time();
 ?>
@@ -2163,5 +2164,6 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   }, { passive: true });
 })();
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

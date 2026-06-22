@@ -12,6 +12,7 @@
 <head>
     <title>Register</title>
     <meta name="description" content="Login">
+    <?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <?php $dashboardCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
@@ -304,7 +305,7 @@
 
 
     </script>
-
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 
 </html>

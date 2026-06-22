@@ -2,6 +2,12 @@
 $service = $service ?? [];
 $media = $service['media'] ?? [];
 $availability = $service['availability'] ?? ['weekly' => [], 'overrides' => [], 'upcoming' => []];
+
+// Track recently viewed service
+if (!empty($service['id'])) {
+    addRecentlyViewed((int)$service['id']);
+}
+
 $fallbackImage = IMG_ROOT . '/uploads/suppliers/20/service-management/service/20260610150543-6e1176d1.jpg';
 $heroImage = trim((string)($media[0]['file_url'] ?? $service['image'] ?? '')) ?: $fallbackImage;
 $upcoming = $availability['upcoming'] ?? [];
@@ -26,6 +32,7 @@ $bookingType = $service['booking_type'] ?? 'fullday';
 $isSlotBooking = $bookingType === 'slot';
 $reviews = $service['reviews'] ?? [];
 $related = $service['related'] ?? [];
+$recentServices = $recentlyViewedServices ?? [];
 $rating = (float)($service['rating'] ?? 0);
 $reviewCount = (int)($service['review_count'] ?? count($reviews));
 $firstAvailable = $upcoming[0] ?? null;
@@ -129,6 +136,14 @@ $plain = function ($value) {
 
 $h = function ($value) use ($plain) {
     return htmlspecialchars($plain($value), ENT_QUOTES, 'UTF-8');
+};
+
+$assetUrl = function ($path) use ($plain) {
+    $path = trim($plain($path));
+    if ($path === '') return '';
+    if (preg_match('#^(https?:)?//#i', $path) || str_starts_with($path, 'data:')) return $path;
+    if (str_starts_with($path, '/')) return $path;
+    return rtrim(URLROOT, '/') . '/' . ltrim($path, '/');
 };
 
 $money = function ($value) {
@@ -261,6 +276,7 @@ $heroItems = array_values(array_filter($media, function ($m) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $h($service['name'] ?? 'Service') ?> | <?= APPNAME ?></title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $appCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $appCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2531,6 +2547,156 @@ button, input, select, textarea { font-family: var(--font-sans); }
   outline-offset: 3px;
 }
 
+/* ─── RECENTLY VIEWED ───────────────────────────────── */
+.recent-detail-section {
+  margin-top: var(--pad-section);
+  padding: clamp(24px, 4vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(135deg, rgba(255,248,239,.88), rgba(245,232,217,.72)),
+    radial-gradient(circle at 8% 8%, rgba(216,180,106,.18), transparent 34%);
+  box-shadow: var(--shadow-sm);
+}
+
+.recent-detail-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.recent-detail-kicker {
+  display: block;
+  color: var(--wine);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+}
+
+.recent-detail-title {
+  margin-top: 4px;
+  font-family: var(--font-serif);
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.recent-detail-copy {
+  max-width: 390px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.recent-detail-rail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.recent-detail-card {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  min-height: 126px;
+  overflow: hidden;
+  border: 1px solid rgba(216,180,106,.46);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  box-shadow: 0 12px 28px rgba(63,36,26,.08);
+  transition: transform .22s var(--ease-out-expo), box-shadow .22s ease, border-color .22s ease;
+}
+
+.recent-detail-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(154,104,127,.42);
+  box-shadow: 0 18px 36px rgba(63,36,26,.12);
+}
+
+.recent-detail-card:focus-visible {
+  outline: 2px solid rgba(154,104,127,.55);
+  outline-offset: 4px;
+}
+
+.recent-detail-img {
+  min-height: 126px;
+  overflow: hidden;
+  background: var(--cream);
+}
+
+.recent-detail-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .4s var(--ease-out-expo);
+}
+
+.recent-detail-card:hover .recent-detail-img img {
+  transform: scale(1.04);
+}
+
+.recent-detail-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: var(--wine);
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--cream), var(--panel));
+}
+
+.recent-detail-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 13px 14px;
+}
+
+.recent-detail-cat {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: #f0dfe7;
+  color: var(--wine-dark);
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.recent-detail-name {
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.3;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.recent-detail-price {
+  margin-top: auto;
+  padding-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.recent-detail-price strong {
+  color: var(--wine);
+  font-size: 13px;
+}
+
 /* ─── FLOATING CART ─────────────────────────────────── */
 .floating-cart {
   position: fixed;
@@ -2771,6 +2937,22 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .related-item { height: 330px; min-height: 330px; }
   .related-img { height: 160px; }
   .related-next { right: 4px; width: 34px; height: 34px; }
+  .recent-detail-section { padding: 24px 16px; }
+  .recent-detail-head { align-items: flex-start; flex-direction: column; }
+  .recent-detail-rail {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 2px 2px 12px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .recent-detail-card {
+    grid-template-columns: 1fr;
+    min-width: min(78vw, 280px);
+    scroll-snap-align: start;
+  }
+  .recent-detail-img { aspect-ratio: 4 / 3; min-height: 0; }
   .floating-cart { width: 44px; height: 44px; font-size: 16px; border-radius: 12px; bottom: 80px; }
 }
 
@@ -3415,6 +3597,36 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
 </main>
 
+<?php if (!empty($recentServices)): ?>
+<section class="recently-viewed-section" style="background:#f5e8d9;padding:48px 24px;">
+  <div style="max-width:1240px;margin:0 auto;">
+    <p style="text-align:center;font-size:12px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#b8860b;margin:0 0 8px;">Continue exploring</p>
+    <h2 style="text-align:center;font-family:'Playfair Display',serif;font-size:clamp(28px,3.5vw,42px);font-weight:600;color:#211d1a;margin:0 0 32px;">Recently Viewed</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
+      <?php foreach ($recentServices as $rs): ?>
+        <?php $recentImg = trim((string)($rs['cover_image'] ?? '')); ?>
+        <a href="<?= URLROOT ?>/customerServices/detail/<?= (int)$rs['service_id'] ?>" style="display:block;background:#fff;border-radius:12px;overflow:hidden;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.06);" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+          <div style="aspect-ratio:4/3;background:#ead8c7;overflow:hidden;">
+            <?php if ($recentImg !== ''): ?>
+              <img src="<?= URLROOT ?>/<?= htmlspecialchars($recentImg) ?>" alt="<?= htmlspecialchars($rs['name'] ?? '') ?>" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
+            <?php else: ?>
+              <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#b8a89a;font-size:24px;">📷</div>
+            <?php endif; ?>
+          </div>
+          <div style="padding:12px;">
+            <p style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#b8860b;margin:0 0 4px;"><?= htmlspecialchars($rs['category'] ?? 'Service') ?></p>
+            <h3 style="font-size:14px;font-weight:600;color:#211d1a;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($rs['name'] ?? '') ?></h3>
+            <?php if (!empty($rs['starting_price'])): ?>
+              <p style="font-size:12px;color:#6f625a;margin:6px 0 0;">From <?= number_format((float)$rs['starting_price']) ?> MMK</p>
+            <?php endif; ?>
+          </div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <?php if ($isLoggedIn): ?>
 <!-- Floating cart -->
 <a class="floating-cart" href="<?= URLROOT ?>/cart" aria-label="Open cart<?= $cartCount > 0 ? ' with ' . $cartCount . ' selected service' . ($cartCount === 1 ? '' : 's') : '' ?>">
@@ -3741,14 +3953,25 @@ document.addEventListener('DOMContentLoaded', () => {
   if (activeFulldayRow) updateSelectedFulldayRow(activeFulldayRow);
 
   if (mobileBookBtn && addCartLink) {
+    var isLoggedInMobile = <?= $isLoggedIn ? 'true' : 'false' ?>;
     mobileBookBtn.addEventListener('click', (event) => {
       event.preventDefault();
+      if (!isLoggedInMobile) {
+        showAuthModal();
+        return;
+      }
       addCartLink.click();
     });
   }
 
   if (serviceCartForm && addCartLink) {
-    serviceCartForm.addEventListener('submit', () => {
+    var isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
+    serviceCartForm.addEventListener('submit', function(e) {
+      if (!isLoggedIn) {
+        e.preventDefault();
+        showAuthModal();
+        return false;
+      }
       const currentSelection = document.querySelector("input[name='service_slot']:checked");
       if (currentSelection) updateSelectedSlot(currentSelection);
       const currentFullday = document.querySelector('[data-fullday-row].is-selected');
@@ -3993,7 +4216,7 @@ document.addEventListener('DOMContentLoaded', () => {
   heart.addEventListener('click', function(){
     var isLoggedIn = <?= !empty($_SESSION['session_uid']) ? 'true' : 'false' ?>;
     if (!isLoggedIn) {
-      window.location.href = '<?= URLROOT ?>/users/auth?redirect=' + encodeURIComponent('customerServices/detail/<?= (int)($service['id'] ?? 0) ?>');
+      showAuthModal();
       return;
     }
 
@@ -4026,5 +4249,56 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 })();
 </script>
+
+<!-- Auth Required Modal -->
+<div id="authRequiredModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
+  <div style="background:#fdf8f3;border-radius:16px;padding:32px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;position:relative;animation:modalIn 0.3s ease-out;">
+    <button onclick="closeAuthModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:#7a6255;">&times;</button>
+    <div style="font-size:48px;margin-bottom:16px;">💍</div>
+    <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:#211d1a;margin:0 0 8px;">Sign in to Book</h2>
+    <p style="color:#7a6255;font-size:14px;margin:0 0 24px;line-height:1.5;">Create an account or sign in to add this service to your cart and complete your booking.</p>
+    <a href="<?= URLROOT ?>/users/auth" id="modalLoginBtn" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,#b8860b,#d4a574);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;margin-bottom:10px;font-family:'Poppins',sans-serif;">Sign In</a>
+    <a href="<?= URLROOT ?>/users/register" style="display:block;width:100%;padding:14px;background:transparent;color:#7a6255;border:1.5px solid #d4a574;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;font-family:'Poppins',sans-serif;">Create Account</a>
+  </div>
+</div>
+<style>
+@keyframes modalIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+</style>
+<script>
+function showAuthModal() {
+  var modal = document.getElementById('authRequiredModal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeAuthModal() {
+  var modal = document.getElementById('authRequiredModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  // Reset book button state
+  var btn = document.getElementById('addCartLink');
+  if (btn) {
+    btn.classList.remove('is-submitting');
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="shopping-cart" size="16"></i> <?= $isAddonContext ? 'Add to package' : 'Book now' ?>';
+    lucide.createIcons();
+  }
+  var mobileBtn = document.getElementById('mobileBookBtn');
+  if (mobileBtn) mobileBtn.classList.remove('is-submitting');
+}
+// Close modal on backdrop click
+document.getElementById('authRequiredModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuthModal();
+});
+// Set redirect URL for after login
+var loginBtn = document.getElementById('modalLoginBtn');
+if (loginBtn) {
+  loginBtn.href = '<?= URLROOT ?>/users/auth?redirect=' + encodeURIComponent(window.location.pathname);
+}
+</script>
+
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

@@ -9,6 +9,8 @@ require_once 'helpers/flashmessage.php';
 require_once 'helpers/redirect.php';
 require_once 'helpers/curitemid.php';
 require_once 'helpers/setcookie.php';
+require_once 'helpers/recentlyviewed.php';
+require_once 'helpers/guestcart.php';
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 spl_autoload_register(function ($class) {

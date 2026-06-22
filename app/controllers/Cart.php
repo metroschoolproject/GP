@@ -21,7 +21,7 @@ class Cart extends Controller
 
     public function index()
     {
-        // Process any pending item that was added before login
+        // Process any pending item that was added before login (from session)
         if ($this->userId && !empty($_SESSION['cart_pending'])) {
             $pending = $_SESSION['cart_pending'];
             unset($_SESSION['cart_pending']);
@@ -48,6 +48,22 @@ class Cart extends Controller
                 $this->cartModel->addItem($this->userId, $pending);
             }
             // Don't redirect — let the user see the cart with the item
+        }
+
+        // Process guest cart cookie items after login
+        if ($this->userId && hasGuestCart()) {
+            $guestItems = getGuestCartItems();
+            clearGuestCart();
+            foreach ($guestItems as $gItem) {
+                // Skip if already in DB cart (duplicate check)
+                $addonPackageId = (int)($gItem['addon_package_id'] ?? 0);
+                if ($addonPackageId > 0) {
+                    $packageCartItem = $this->cartModel->findPackageCartItem($this->userId, $addonPackageId);
+                    if (!$packageCartItem) continue; // Skip addon if package not in cart
+                    $gItem['package_cart_item_id'] = (int)$packageCartItem['cart_item_id'];
+                }
+                $this->cartModel->addItem($this->userId, $gItem);
+            }
         }
 
         $items = [];
@@ -123,8 +139,9 @@ class Cart extends Controller
         }
 
         if (!$this->userId) {
-            // Not logged in — stash in session and redirect to auth
+            // Not logged in — stash in session AND cookie for persistence
             $_SESSION['cart_pending'] = $itemData;
+            saveGuestCartItem($itemData);
             $_SESSION['cart_redirect_after_login'] = 'cart';
             redirect('users/auth');
             return;
@@ -194,6 +211,7 @@ class Cart extends Controller
 
         if (!$this->userId) {
             $_SESSION['cart_pending'] = $itemData;
+            saveGuestCartItem($itemData);
             $_SESSION['cart_redirect_after_login'] = 'cart';
             redirect('users/auth');
             return;
@@ -274,6 +292,8 @@ class Cart extends Controller
         $count = 0;
         if ($this->userId) {
             $count = $this->cartModel->getCartCount($this->userId);
+        } elseif (hasGuestCart()) {
+            $count = count(getGuestCartItems());
         }
 
         header('Content-Type: application/json');

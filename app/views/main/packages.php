@@ -23,6 +23,7 @@ $resetUrl = URLROOT . '/customerServices/packages';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Packages — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php
 $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time();
 ?>
@@ -850,5 +851,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

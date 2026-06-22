@@ -17,6 +17,7 @@ $h = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?= $h(APPNAME) ?></title>
+  <?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet"
@@ -3016,5 +3017,6 @@ buttons.forEach(btn => {
     });
 });
   </script>
+  <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

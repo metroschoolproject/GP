@@ -23,6 +23,13 @@ $plain = function ($v) {
     return $text;
 };
 $h          = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
+$recentAssetUrl = function ($path) use ($plain) {
+    $path = trim($plain($path));
+    if ($path === '') return '';
+    if (preg_match('#^(https?:)?//#i', $path) || str_starts_with($path, 'data:')) return $path;
+    if (str_starts_with($path, '/')) return $path;
+    return rtrim(URLROOT, '/') . '/' . ltrim($path, '/');
+};
 $money      = fn($v) => 'MMK ' . number_format((float)$v, 0);
 $moneyRange = function ($s) use ($money) {
     $category = strtolower(trim((string)($s['category_slug'] ?? $s['category'] ?? '')));
@@ -134,6 +141,7 @@ $resetUrl = URLROOT . '/customerServices/service';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Services — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1428,6 +1436,55 @@ button,input,select{font-family:var(--font-body);outline:none}
 /* footer */
 .gp-footer{padding:28px var(--pad-x);border-top:1px solid var(--c-rule);display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;color:var(--c-pale)}
 
+/* recently viewed */
+.gp-recent{
+  padding:42px var(--pad-x) 44px;
+  border-top:1px solid rgba(118,90,70,.10);
+  border-bottom:1px solid rgba(118,90,70,.08);
+  background:
+    linear-gradient(180deg,rgba(252,248,245,.82),rgba(245,232,217,.96)),
+    radial-gradient(circle at 12% 10%,rgba(216,180,106,.18),transparent 32%);
+}
+.gp-recent-inner{max-width:1400px;margin:0 auto}
+.gp-recent-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px}
+.gp-recent-kicker{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#8b5d74}
+.gp-recent-title{margin-top:2px;font-family:var(--font-display);font-size:clamp(28px,3vw,42px);font-weight:700;line-height:1;color:var(--c-text)}
+.gp-recent-copy{max-width:420px;color:var(--c-accent);font-size:13px}
+.gp-recent-rail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.gp-recent-card{
+  display:grid;
+  grid-template-columns:132px minmax(0,1fr);
+  min-height:138px;
+  overflow:hidden;
+  border:1px solid rgba(216,180,106,.46);
+  border-radius:18px;
+  background:#fffaf4;
+  box-shadow:0 16px 34px rgba(74,52,47,.10);
+  transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease);
+}
+.gp-recent-card:hover{transform:translateY(-4px);border-color:rgba(139,93,116,.42);box-shadow:0 22px 44px rgba(74,52,47,.15)}
+.gp-recent-card:focus-visible{outline:2px solid rgba(139,93,116,.55);outline-offset:4px}
+.gp-recent-media{position:relative;min-height:138px;background:#ead8c7;overflow:hidden}
+.gp-recent-media img{width:100%;height:100%;object-fit:cover;transition:transform .35s var(--ease)}
+.gp-recent-card:hover .gp-recent-media img{transform:scale(1.045)}
+.gp-recent-placeholder{display:grid;width:100%;height:100%;place-items:center;font-family:var(--font-display);font-size:24px;font-weight:700;color:#9b7d6b;background:linear-gradient(135deg,#f5e8d9,#fff8ef)}
+.gp-recent-body{display:flex;min-width:0;flex-direction:column;padding:15px 16px}
+.gp-recent-cat{width:max-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:999px;background:#f1ddea;color:#7d4d66;padding:4px 9px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.gp-recent-name{margin-top:9px;color:var(--c-text);font-size:15px;font-weight:800;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gp-recent-price{margin-top:auto;padding-top:10px;color:var(--c-accent);font-size:12px;font-weight:600}
+.gp-recent-price strong{color:#6d4c5b;font-size:14px}
+@media(max-width:1000px){
+  .gp-recent-head{align-items:flex-start;flex-direction:column}
+  .gp-recent-rail{display:flex;gap:14px;overflow-x:auto;padding:2px 2px 14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+  .gp-recent-card{grid-template-columns:1fr;min-width:250px;max-width:280px;scroll-snap-align:start}
+  .gp-recent-media{aspect-ratio:4/3;min-height:0}
+}
+@media(max-width:520px){
+  .gp-recent{padding:34px var(--pad-x)}
+  .gp-recent-card{min-width:78vw}
+  .gp-recent-copy{font-size:12px}
+}
+
 .gp-floating-cart{position:fixed;right:clamp(20px,5vw,60px);bottom:clamp(24px,6vw,60px);z-index:900;width:54px;height:54px;display:grid;place-items:center;border:1px solid rgba(234,216,199,.86);border-radius:16px;background:#fff8ef;color:#6D4C5B;text-decoration:none;box-shadow:0 12px 36px rgba(74,52,47,.15);transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease}
 .gp-floating-cart:hover{transform:translateY(-3px);background:#6D4C5B;color:#fcf8f5;border-color:#6D4C5B;box-shadow:0 18px 44px rgba(74,52,47,.18)}
 .gp-floating-cart-count{position:absolute;right:-6px;top:-7px;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border:2px solid #fff8ef;border-radius:999px;background:#6D4C5B;color:#fff8ef;font-family:Arial,sans-serif;font-size:10px;font-weight:800;line-height:1}
@@ -2155,7 +2212,7 @@ button,input,select{font-family:var(--font-body);outline:none}
               <strong><?= $moneyRange($svc) ?></strong>
               <span><?= $h($durationText($svc)) ?></span>
             </div>
-            <a class="gc-book-btn" href="<?= $h($bookUrl) ?>">
+            <a class="gc-book-btn" href="<?= $h($bookUrl) ?>" onclick="<?php if (!$isLoggedIn): ?>event.preventDefault();showAuthModal();<?php endif; ?>">
               <span>Book Now</span>
               <span class="gc-book-btn-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
@@ -2701,7 +2758,7 @@ if('IntersectionObserver' in window){
 
       var isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
       if (!isLoggedIn) {
-        window.location.href = authUrl + '?redirect=' + encodeURIComponent('customerServices/service');
+        showAuthModal();
         return;
       }
 
@@ -2742,5 +2799,40 @@ if('IntersectionObserver' in window){
   });
 })();
 </script>
+
+<!-- Auth Required Modal -->
+<div id="authRequiredModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
+  <div style="background:#fdf8f3;border-radius:16px;padding:32px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;position:relative;animation:modalIn 0.3s ease-out;">
+    <button onclick="closeAuthModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:#7a6255;">&times;</button>
+    <div style="font-size:48px;margin-bottom:16px;">💍</div>
+    <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:#211d1a;margin:0 0 8px;">Sign in to Book</h2>
+    <p style="color:#7a6255;font-size:14px;margin:0 0 24px;line-height:1.5;">Create an account or sign in to book wedding services and manage your bookings.</p>
+    <a href="<?= URLROOT ?>/users/auth" id="modalLoginBtn" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,#b8860b,#d4a574);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;margin-bottom:10px;font-family:'Poppins',sans-serif;">Sign In</a>
+    <a href="<?= URLROOT ?>/users/register" style="display:block;width:100%;padding:14px;background:transparent;color:#7a6255;border:1.5px solid #d4a574;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;font-family:'Poppins',sans-serif;">Create Account</a>
+  </div>
+</div>
+<style>
+@keyframes modalIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+</style>
+<script>
+function showAuthModal() {
+  var modal = document.getElementById('authRequiredModal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeAuthModal() {
+  var modal = document.getElementById('authRequiredModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('authRequiredModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuthModal();
+});
+</script>
+
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>
