@@ -611,43 +611,83 @@ class CartModel
         $this->db->dbbind(':package_id', $packageId, PDO::PARAM_INT);
         $rows = $this->db->getmultidata();
 
-        foreach ($rows as &$row) {
+        $expanded = [];
+        foreach ($rows as $row) {
             $categoryId = (int)($row['category_id'] ?? 0);
             $categoryTimes = defined('CATEGORY_DEFAULT_TIMES')
                 ? (CATEGORY_DEFAULT_TIMES[$categoryId] ?? null)
                 : null;
 
-            $row['start_time'] = $row['schedule_start_time']
+            $openTime = $row['schedule_start_time']
                 ?: ($row['default_start_time'] ?: ($categoryTimes['start'] ?? '09:00:00'));
-            $row['end_time'] = $row['schedule_end_time']
+            $closeTime = $row['schedule_end_time']
                 ?: ($row['default_end_time'] ?: ($categoryTimes['end'] ?? '17:00:00'));
             $row['event_date'] = $eventDate;
 
             if (($row['booking_type'] ?? '') === 'slot') {
-                $availability = $this->getPackageServiceSlotAvailability(
-                    (int)($row['service_id'] ?? 0),
-                    $eventDate,
-                    (string)$row['start_time'],
-                    (string)$row['end_time'],
-                    max(1, (int)($row['max_concurrent'] ?? 1)),
-                    (int)($row['max_concurrent_package'] ?? 0),
-                    (int)($row['item_max_concurrent'] ?? 0)
-                );
-                $row = array_merge($row, $availability);
+                // Expand slot-type services into individual time slots
+                $serviceId = (int)($row['service_id'] ?? 0);
+                $duration = max(15, (int)($row['duration_minutes'] ?? 180));
+                $buffer = max(0, (int)($row['buffer_minutes'] ?? 0));
+                $maxConcurrent = max(1, (int)($row['max_concurrent'] ?? 1));
+                $generatedSlots = $this->buildSlots($eventDate, $openTime, $closeTime, $duration, $buffer);
+                $storedSlots = $this->storedSlotsForDate($serviceId, $eventDate);
+
+                foreach ($generatedSlots as $slot) {
+                    $slotRow = $row;
+                    $slotRow['start_time'] = $slot['start_time'];
+                    $slotRow['end_time'] = $slot['end_time'];
+
+                    $isPast = !$this->isFutureSlot($eventDate, $slot['start_time']);
+                    $stored = $storedSlots[$slot['start_time']] ?? null;
+                    $capacity = $stored ? (int)$stored['max_concurrent'] : $maxConcurrent;
+                    $confirmed = $stored ? (int)$stored['confirmed_count'] : 0;
+                    $status = $stored['status'] ?? 'available';
+                    $available = max(0, $capacity - $confirmed);
+
+                    $pkgCap = (int)($row['max_concurrent_package'] ?? 0);
+                    if ($stored && $this->hasSlotPoolColumns()) {
+                        $storedPkgCap = (int)($stored['max_concurrent_package'] ?? 0);
+                        if ($storedPkgCap > 0) {
+                            $pkgCap = $pkgCap > 0 ? min($pkgCap, $storedPkgCap) : $storedPkgCap;
+                        }
+                    }
+                    $pkgConfirmed = $stored && $this->hasSlotPoolColumns()
+                        ? max(0, (int)($stored['confirmed_package_count'] ?? 0))
+                        : 0;
+                    $availPackage = $pkgCap > 0 ? max(0, $pkgCap - $pkgConfirmed) : $available;
+
+                    $isAvailable = $status === 'available' && $available > 0 && $availPackage > 0 && !$isPast;
+
+                    $slotRow['availability_status'] = $isPast ? 'past' : ($isAvailable ? 'available' : 'full');
+                    $slotRow['available'] = $available;
+                    $slotRow['available_package'] = $availPackage;
+                    $slotRow['is_available'] = $isAvailable;
+                    $slotRow['availability_message'] = $isPast
+                        ? 'This time slot has passed'
+                        : ($isAvailable
+                            ? ($availPackage . ' package slot' . ($availPackage === 1 ? '' : 's') . ' available')
+                            : 'No package slots available');
+
+                    $expanded[] = $slotRow;
+                }
             } else {
+                $row['start_time'] = $openTime;
+                $row['end_time'] = $closeTime;
                 $row['availability_status'] = 'managed';
                 $row['available'] = null;
                 $row['available_package'] = null;
                 $row['is_available'] = true;
                 $row['availability_message'] = 'Managed automatically';
+                $expanded[] = $row;
             }
         }
-        unset($row);
-        usort($rows, static fn(array $a, array $b): int =>
+
+        usort($expanded, static fn(array $a, array $b): int =>
             strcmp((string)($a['start_time'] ?? ''), (string)($b['start_time'] ?? ''))
         );
 
-        return $rows;
+        return $expanded;
     }
 
     /**
