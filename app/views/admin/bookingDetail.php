@@ -276,7 +276,9 @@ $dashboardContent = function () use (
     $replacementSourceById,
     $logDot,
     $showAllLogs,
-    $visibleLogs
+    $visibleLogs,
+    $refund,
+    $refundEstimate
 ) {
     $bookingId = (int)($booking['id'] ?? 0);
     $createdAt = $dateOnly($booking['created_at'] ?? null);
