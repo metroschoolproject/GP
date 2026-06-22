@@ -634,6 +634,12 @@ class Admin extends Controller
 
     /* ─── Supplier replacement (on decline of confirmed package booking) ─── */
 
+    public function refundQueue()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminRefundQueue'], func_get_args());
+    }
+
     public function replacementQueue()
     {
         $bookingController = new Booking();
