@@ -820,7 +820,7 @@
         <?php endif; ?>
 
         <form method="POST" action="<?= URLROOT ?>/supplier/onboarding" enctype="multipart/form-data" id="supplierOnboardingForm" novalidate>
-
+            <?= csrf_field() ?>
             <!-- hidden email -->
             <input type="hidden" name="email" value="<?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8') ?>">
 

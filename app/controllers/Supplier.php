@@ -33,6 +33,7 @@ class Supplier extends SupplierControllerSupport
         ];
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+            $this->requireCsrf(false);
             $data = [
                 'email' => htmlspecialchars(trim($_POST['email'] ?? ($_SESSION['pending_register_email'] ?? '')), ENT_QUOTES, 'UTF-8'),
                 'business_name' => htmlspecialchars(trim($_POST['business_name'] ?? ''), ENT_QUOTES, 'UTF-8'),
@@ -64,6 +65,9 @@ class Supplier extends SupplierControllerSupport
             ) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please fill all required supplier information.';
+            } elseif (!preg_match('/^[0-9]{9,11}$/', $data['phone'])) {
+                $data['submitted'] = false;
+                $data['message'] = 'Please enter a valid phone number (9-11 digits).';
             } elseif (!filter_var(htmlspecialchars_decode($data['business_url'], ENT_QUOTES), FILTER_VALIDATE_URL)) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please enter a valid business URL.';

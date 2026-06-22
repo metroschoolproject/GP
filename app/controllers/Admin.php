@@ -843,6 +843,26 @@ class Admin extends Controller
         }
 
         $this->supplierProfileModel->updateStatus((int)$supplierId, 'approved', $this->currentUserId());
+
+        // Notify the supplier
+        $supplier = $this->supplierProfileModel->getById((int)$supplierId);
+        if ($supplier && !empty($supplier['user_id'])) {
+            $this->notificationModel->notifyUser(
+                (int)$supplier['user_id'],
+                'Application Approved',
+                'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.',
+                'supplier',
+                'supplier',
+                $supplierId
+            );
+            // Also send email
+            $userData = $this->customerModel->getUserById((int)$supplier['user_id']);
+            if ($userData && !empty($userData['email'])) {
+                $emailService = new EmailService();
+                $emailService->sendSupplierApproved($userData['email'], $userData['name'] ?? 'Supplier');
+            }
+        }
+
         $_SESSION['admin_flash'] = 'Supplier approved. They can now access the locked dashboard and submit membership payment.';
         redirect('admin/supplier/' . (int)$supplierId);
     }
@@ -854,10 +874,27 @@ class Admin extends Controller
         }
 
         $reason = trim($_POST['reason'] ?? '');
-        $this->supplierProfileModel->updateStatus((int)$supplierId, 'rejected', $this->currentUserId());
-        if ($reason !== '') {
-            $this->supplierProfileModel->warnSupplier((int)$supplierId, 0, 'Rejected: ' . $reason, $this->currentUserId());
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to reject a supplier application.';
+            redirect('admin/supplier/' . (int)$supplierId);
+            return;
         }
+        $this->supplierProfileModel->updateStatus((int)$supplierId, 'rejected', $this->currentUserId());
+        $this->supplierProfileModel->warnSupplier((int)$supplierId, 0, 'Rejected: ' . $reason, $this->currentUserId());
+
+        // Notify the supplier
+        $supplier = $this->supplierProfileModel->getById((int)$supplierId);
+        if ($supplier && !empty($supplier['user_id'])) {
+            $this->notificationModel->notifyUser(
+                (int)$supplier['user_id'],
+                'Application Status Update',
+                'Your supplier application requires attention: ' . $reason . '. Please review and re-apply if needed.',
+                'supplier',
+                'supplier',
+                $supplierId
+            );
+        }
+
         $_SESSION['admin_flash'] = 'Supplier application rejected.';
         redirect('admin/supplier/' . (int)$supplierId);
     }
