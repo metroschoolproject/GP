@@ -3038,7 +3038,7 @@ class BookingModel
                     u.email AS customer_email
              FROM refunds r
              JOIN bookings b ON b.id = r.booking_id
-             JOIN users u ON u.id = b.user_id
+             JOIN users u ON u.user_id = b.user_id
              WHERE r.status IN ('pending','processing')
              ORDER BY r.requested_at DESC"
         );
@@ -3058,7 +3058,7 @@ class BookingModel
                     u.email AS customer_email
              FROM refunds r
              JOIN bookings b ON b.id = r.booking_id
-             JOIN users u ON u.id = b.user_id
+             JOIN users u ON u.user_id = b.user_id
              WHERE r.id = :id LIMIT 1"
         );
         $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
