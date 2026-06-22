@@ -7,6 +7,7 @@ $logs = $logs ?? [];
 $vouchers = $vouchers ?? [];
 $bookingRef = $bookingRef ?? '';
 $depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
+$platformFeePercent = (float)($platformFeePercent ?? get_platform_fee_percent());
 $canReview = $canReview ?? false;
 $existingReview = $existingReview ?? null;
 $canEditReview = $canEditReview ?? false;
@@ -290,6 +291,9 @@ a{color:inherit;text-decoration:none}
       <?php if (!empty($depositPayment['paid_amount'])): ?>
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
       <?php endif; ?>
+      <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Includes Platform Fee</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div></div>
+      <?php endif; ?>
       <?php if (!empty($depositPayment['paid_at'])): ?>
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transfer Date</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
       <?php endif; ?>
@@ -439,9 +443,20 @@ a{color:inherit;text-decoration:none}
           </tbody>
         </table>
         <div class="gp-summary">
-          <div class="gp-summary-r"><span>Total</span><span><?=$money((float)($booking['total_amount']??0))?></span></div>
-          <div class="gp-summary-r" style="color:var(--plum);font-weight:600;"><span>Deposit paid (<?=$depositPercent?>%)</span><span><?=$money((float)($booking['paid_amount']??0))?></span></div>
-          <div class="gp-summary-r balance" style="color:var(--muted);font-size:12px;"><span>Balance due</span><span><?=$money(max(0,(float)($booking['total_amount']??0)-(float)($booking['paid_amount']??0)))?></span></div>
+          <?php
+          $summaryTotal = (float)($booking['total_amount'] ?? 0);
+          $summaryDeposit = round($summaryTotal * ($depositPercent / 100), 2);
+          $summaryFee = round($summaryTotal * ($platformFeePercent / 100), 2);
+          $summaryPaid = (float)($booking['paid_amount'] ?? 0);
+          $summaryBalance = max(0, $summaryTotal - $summaryPaid);
+          ?>
+          <div class="gp-summary-r"><span>Booking total</span><span><?=$money($summaryTotal)?></span></div>
+          <div class="gp-summary-r"><span>Deposit (<?=$depositPercent?>%)</span><span><?=$money($summaryDeposit)?></span></div>
+          <?php if ($summaryFee > 0): ?>
+          <div class="gp-summary-r"><span>Platform fee (<?=rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.')?>%)</span><span><?=$money($summaryFee)?></span></div>
+          <?php endif; ?>
+          <div class="gp-summary-r" style="color:var(--plum);font-weight:600;"><span>Amount paid</span><span><?=$money($summaryPaid)?></span></div>
+          <div class="gp-summary-r balance" style="color:var(--muted);font-size:12px;"><span>Balance due</span><span><?=$money($summaryBalance)?></span></div>
         </div>
       </div>
 
@@ -549,20 +564,118 @@ a{color:inherit;text-decoration:none}
         if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
         if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
       }
+      // Find cancellation reason from status logs
+      $cancelReason = '';
+      foreach (array_reverse($logs ?? []) as $log) {
+        if (($log['new_status'] ?? '') === 'cancellation_requested' && !empty($log['note'])) {
+          $cancelReason = $log['note'];
+          break;
+        }
+      }
       ?>
       <?php if ($supplierPending): ?>
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:8px">
         <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
+        <?php if ($cancelReason): ?>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;font-size:12px;color:#a16207"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
+        <?php endif; ?>
       </div>
       <?php elseif ($supplierApproved): ?>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;font-size:13px;color:#166534;margin-top:8px">
         <strong>Supplier approved</strong> — Your supplier has approved the cancellation. Admin will review and process your refund.
+        <?php if ($cancelReason): ?>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0;font-size:12px;color:#15803d"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
+        <?php endif; ?>
       </div>
       <?php else: ?>
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;color:#1e40af;margin-top:8px">
         <strong>Cancellation requested</strong> — Your cancellation request is being reviewed.
+        <?php if ($cancelReason): ?>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bfdbfe;font-size:12px;color:#1d4ed8"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
+        <?php endif; ?>
       </div>
       <?php endif; ?>
+    <?php endif; ?>
+
+    <!-- Refund Status (shown when booking is cancelled and refund exists) -->
+    <?php
+      $refund = $refund ?? null;
+      $currentStatus2 = $booking['status'] ?? '';
+    ?>
+    <?php if ($refund && $currentStatus2 === 'cancelled'): ?>
+      <?php
+        $refundStatus = (string)($refund['status'] ?? 'pending');
+        $refundColors = [
+          'pending'    => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e', 'icon' => '⏳'],
+          'processing' => ['bg' => '#eff6ff', 'border' => '#bfdbfe', 'text' => '#1e40af', 'icon' => '⚙️'],
+          'completed'  => ['bg' => '#f0fdf4', 'border' => '#bbf7d0', 'text' => '#166534', 'icon' => '✅'],
+          'rejected'   => ['bg' => '#fef2f2', 'border' => '#fecaca', 'text' => '#991b1b', 'icon' => '❌'],
+        ];
+        $rc = $refundColors[$refundStatus] ?? $refundColors['pending'];
+        $refundStatusText = [
+          'pending'    => 'Refund requested — admin will process your refund shortly.',
+          'processing' => 'Refund in progress — the admin has initiated the transfer to your account.',
+          'completed'  => 'Refund completed — the money has been sent to your account.',
+          'rejected'   => 'Refund request rejected.',
+        ];
+      ?>
+      <div style="background:<?= $rc['bg'] ?>;border:1px solid <?= $rc['border'] ?>;border-radius:12px;padding:16px 18px;margin-top:12px;color:<?= $rc['text'] ?>">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:18px"><?= $rc['icon'] ?></span>
+          <strong style="font-size:14px"><?= $refundStatusText[$refundStatus] ?? '' ?></strong>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:12.5px">
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Refund Amount</span><br>
+            <span style="font-weight:700;font-size:15px"><?= number_format((float)($refund['amount'] ?? 0), 0) ?> MMK</span>
+          </div>
+          <?php if (!empty($refund['policy_reason'])): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Policy Applied</span><br>
+            <span><?= htmlspecialchars($refund['policy_reason'], ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
+          <?php endif; ?>
+          <?php if ($refundStatus === 'completed' && !empty($refund['completed_at'])): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Completed On</span><br>
+            <span><?= date('M j, Y', strtotime($refund['completed_at'])) ?></span>
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($refund['refund_transaction_ref'])): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Transfer Reference</span><br>
+            <span style="font-weight:600"><?= htmlspecialchars($refund['refund_transaction_ref'], ENT_QUOTES, 'UTF-8') ?></span>
+            <?php if (!empty($refund['refund_bank_name'])): ?>
+              <span style="opacity:.7"> via <?= htmlspecialchars($refund['refund_bank_name'], ENT_QUOTES, 'UTF-8') ?></span>
+            <?php endif; ?>
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($refund['refund_slip_path']) && in_array($refundStatus, ['processing', 'completed'], true)): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Transfer Proof</span><br>
+            <?php if (preg_match('/\.(jpe?g|png|webp)$/i', $refund['refund_slip_path'])): ?>
+              <a href="<?= URLROOT . '/' . htmlspecialchars($refund['refund_slip_path'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" style="display:inline-block;margin-top:4px">
+                <img src="<?= URLROOT . '/' . htmlspecialchars($refund['refund_slip_path'], ENT_QUOTES, 'UTF-8') ?>" alt="Transfer proof" style="max-width:200px;max-height:120px;border-radius:8px;border:1px solid rgba(178,143,110,.3)">
+              </a>
+            <?php else: ?>
+              <a href="<?= URLROOT . '/' . htmlspecialchars($refund['refund_slip_path'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" style="color:var(--plum);font-weight:600;text-decoration:underline;font-size:12px">
+                📄 View document
+              </a>
+            <?php endif; ?>
+          </div>
+          <?php endif; ?>
+          <?php if ($refundStatus === 'rejected' && !empty($refund['note'])): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Reason</span><br>
+            <span><?= htmlspecialchars($refund['note'], ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
+          <?php endif; ?>
+        </div>
+      </div>
+    <?php elseif ($currentStatus2 === 'cancelled' && !$refund): ?>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 18px;margin-top:12px;color:#991b1b;font-size:13px">
+        <strong>Booking cancelled</strong> — No refund was issued for this booking based on the cancellation policy.
+      </div>
     <?php endif; ?>
   </div>
 </main>

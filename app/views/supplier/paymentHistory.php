@@ -92,7 +92,7 @@ $dashboardContent = function () use (
     <div class="payhist-stat">
       <div class="payhist-stat-label">Platform Fee</div>
       <div class="payhist-stat-value"><?= $money($totalFees) ?></div>
-      <div class="payhist-stat-sub">5% paid by customer</div>
+      <div class="payhist-stat-sub"><?= (int)get_platform_fee_percent() ?>% paid by customer</div>
     </div>
     <div class="payhist-stat">
       <div class="payhist-stat-label">Total Records</div>

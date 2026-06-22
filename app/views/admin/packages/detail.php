@@ -44,7 +44,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       $hasRentalItems = true;
     }
   }
-  $agentFeeRate    = 0.05;
+  $agentFeeRate    = get_platform_fee_percent() / 100;
   $agentFee        = $includedTotal * $agentFeeRate;
   $suggestedPrice  = $includedTotal + $agentFee;
   $storedBasePrice = (float)($package['base_price'] ?? 0);
@@ -437,7 +437,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     <div class="stat">
       <div class="stat-label">Package Price</div>
       <div class="stat-value" id="packagePriceCardValue"><?= $money($packagePrice) ?></div>
-      <div class="stat-sub" id="packagePriceCardSub">Base <?= $money($packageBasePrice) ?> + 5% agent fee <?= $money($packageAgentFee) ?></div>
+      <div class="stat-sub" id="packagePriceCardSub">Base <?= $money($packageBasePrice) ?> + <?= (int)($agentFeeRate * 100) ?>% agent fee <?= $money($packageAgentFee) ?></div>
     </div>
     <div class="stat">
       <div class="stat-label">Services Included</div>
@@ -514,7 +514,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
       <div class="field">
         <label>Base Price</label>
         <div class="value"><?= $money($packageBasePrice) ?></div>
-        <div class="stat-sub" style="margin-top:4px"><?= $h($package['slug'] ?? '') ?>ml + 5% agent fee = <?= $money($packagePrice) ?></div>
+        <div class="stat-sub" style="margin-top:4px"><?= $h($package['slug'] ?? '') ?>ml + <?= (int)($agentFeeRate * 100) ?>% agent fee = <?= $money($packagePrice) ?></div>
       </div>
       <div class="field">
         <label>Description</label>
@@ -582,7 +582,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
           <label>Base Price (MMK)</label>
           <input type="number" name="base_price" id="packagePriceInput" min="0" step="100"
                  value="<?= (float)$packageBasePrice ?>" placeholder="<?= (float)$includedTotal ?>">
-          <div class="stat-sub" style="margin-top:4px">Customer-facing price = base + 5% agent fee, calculated automatically.</div>
+          <div class="stat-sub" style="margin-top:4px">Customer-facing price = base + <?= (int)($agentFeeRate * 100) ?>% agent fee, calculated automatically.</div>
         </div>
 
         <div class="field">
@@ -1161,7 +1161,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   const priceInput = document.getElementById('packagePriceInput');
   const priceCardVal = document.getElementById('packagePriceCardValue');
   const priceCardSub = document.getElementById('packagePriceCardSub');
-  const agentFeeRate = 0.05;
+  const agentFeeRate = <?= $agentFeeRate ?>;
 
   function initPackageCoverUploader() {
     const uploader = document.getElementById('packageCoverUploader');
@@ -1233,7 +1233,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
     const base = Math.max(0, isFinite(+priceInput.value) ? +priceInput.value : 0);
     const fee = base * agentFeeRate;
     priceCardVal.textContent = fmtMoney(base + fee);
-    priceCardSub.textContent = `Base ${fmtMoney(base)} + 5% agent fee ${fmtMoney(fee)}`;
+    priceCardSub.textContent = `Base ${fmtMoney(base)} + ${Math.round(agentFeeRate*100)}% agent fee ${fmtMoney(fee)}`;
   }
   if (priceInput) { updatePriceCard(); priceInput.addEventListener('input', updatePriceCard); }
 

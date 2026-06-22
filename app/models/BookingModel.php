@@ -15,6 +15,7 @@ class BookingModel
     private array $replacementColumnCache = [];
     private array $tableExistsCache = [];
     private ?string $replacementSwapError = null;
+    private ?string $paymentVerificationError = null;
     private ?array $lastUnavailableService = null;
 
     public function __construct()
@@ -83,6 +84,11 @@ class BookingModel
             : '';
         $packageParentInsertColumn = $hasBookingPackageParentColumn ? ', package_booking_item_id' : '';
         $packageParentSelectColumn = $hasBookingPackageParentColumn ? ', NULL' : '';
+        $hasDesignColumns = $this->hasBookingDesignColumns();
+        $designInsertColumn = $hasDesignColumns ? ', attire_item_id, decoration_style_id, cake_design_id' : '';
+        $designSelectColumn = $hasDesignColumns
+            ? ', ci.attire_item_id, ci.decoration_style_id, ci.cake_design_id'
+            : '';
         $hasSupplierPackages = $this->tableExists('supplier_packages');
         $supplierPackagePrice = $hasSupplierPackages ? 'sp.total_price' : 'NULL';
         $supplierPackageName = $hasSupplierPackages ? 'sp.name' : 'NULL';
@@ -96,11 +102,11 @@ class BookingModel
         $this->db->dbquery(
             "INSERT INTO booking_items (booking_id, item_type{$sourceInsertColumn}, item_id, booking_date, price,
                     item_name, supplier_name, category_name, thumbnail_url,
-                    status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn}{$packageParentInsertColumn})
+                    status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn}{$packageParentInsertColumn}{$designInsertColumn})
             SELECT :bid, ci.item_type{$sourceSelectColumn}, ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
-                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
                         ELSE COALESCE(ci.price, s.price_min, s.price, {$supplierPackagePrice}, 0)
                     END,
                     COALESCE(s.name, p.name, {$supplierPackageName}),
@@ -109,7 +115,7 @@ class BookingModel
                     COALESCE(s.thumbnail_url, p.image_url, {$supplierPackageThumbnail}),
                     'pending',
                     ci.slot_id, ci.start_time, ci.end_time,
-                    COALESCE(s.booking_type, 'fullday'){$venueRoomSelectColumn}{$packageParentSelectColumn}
+                    COALESCE(s.booking_type, 'fullday'){$venueRoomSelectColumn}{$packageParentSelectColumn}{$designSelectColumn}
             FROM cart_items ci
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
@@ -215,6 +221,19 @@ class BookingModel
         $this->bookingVenueRoomColumn = (bool)$this->db->getsingledata();
 
         return $this->bookingVenueRoomColumn;
+    }
+
+    private $bookingDesignColumns = null;
+    private function hasBookingDesignColumns(): bool
+    {
+        if ($this->bookingDesignColumns !== null) {
+            return $this->bookingDesignColumns;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM booking_items LIKE 'attire_item_id'");
+        $this->bookingDesignColumns = (bool)$this->db->getsingledata();
+
+        return $this->bookingDesignColumns;
     }
 
     private function hasCartSourceColumn(): bool
@@ -2155,12 +2174,18 @@ class BookingModel
      */
     public function createReplacementDeltaPayment(int $bookingId, float $delta): int
     {
+        $feePercent = get_platform_fee_percent();
+        $platformFee = round($delta * ($feePercent / 100), 2);
+        $supplierAmount = round($delta - $platformFee, 2);
+
         $this->db->dbquery(
-            "INSERT INTO payments (booking_id, amount, type, status, created_at)
-             VALUES (:bid, :amt, 'replacement_delta', 'pending', NOW())"
+            "INSERT INTO payments (booking_id, amount, platform_fee, supplier_amount, type, status, created_at)
+             VALUES (:bid, :amt, :pfee, :samt, 'replacement_delta', 'pending', NOW())"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':amt', $delta);
+        $this->db->dbbind(':amt', number_format($delta, 2, '.', ''), PDO::PARAM_STR);
+        $this->db->dbbind(':pfee', number_format($platformFee, 2, '.', ''), PDO::PARAM_STR);
+        $this->db->dbbind(':samt', number_format($supplierAmount, 2, '.', ''), PDO::PARAM_STR);
         $this->db->dbexecute();
         return (int)$this->db->lastinsertid();
     }
@@ -2217,12 +2242,13 @@ class BookingModel
             return false;
         }
 
-        // Only reverse a payment that is currently 'success' (idempotent: a
-        // second call finds it 'refunded' and rowcount is 0).
+        // Only reverse a payment that is currently 'success' and not yet
+        // refunded (idempotent: a second call finds escrow_status already
+        // 'refunded' and rowcount is 0).
         $this->db->dbquery(
             "UPDATE payments
-                SET status = 'refunded', verified_at = NOW()
-              WHERE id = :pid AND type = 'replacement_delta' AND status = 'success'"
+                SET escrow_status = 'refunded', verified_at = NOW()
+              WHERE id = :pid AND type = 'replacement_delta' AND status = 'success' AND escrow_status != 'refunded'"
         );
         $this->db->dbbind(':pid', $paymentId, PDO::PARAM_INT);
         $this->db->dbexecute();
@@ -2927,31 +2953,43 @@ class BookingModel
         }
 
         if ($refundDeposit) {
-            // Capture how much is being marked refunded (for the audit note)
-            $this->db->dbquery(
-                "SELECT COALESCE(SUM(COALESCE(paid_amount, amount)), 0) AS total
-                 FROM payments
-                 WHERE booking_id = :bid AND status = 'success'"
-            );
-            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-            $refundedAmount = (float) ($this->db->getsingledata()['total'] ?? 0);
+            // Calculate refund amount based on cancellation timing policy
+            $refundCalc = $this->calculateRefund($bookingId);
 
-            // Manual refund: admin processes the money outside the system,
-            // this only flips the bookkeeping flag.
+            // Fallback: sum all successful payments if calculateRefund fails
+            if ($refundCalc === false) {
+                $this->db->dbquery(
+                    "SELECT COALESCE(SUM(COALESCE(paid_amount, amount)), 0) AS total
+                     FROM payments
+                     WHERE booking_id = :bid AND status = 'success'"
+                );
+                $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+                $refundAmount = (float) ($this->db->getsingledata()['total'] ?? 0);
+                $policyReason = 'Manual refund by admin (policy calculation unavailable)';
+            } else {
+                $refundAmount = $refundCalc[0];
+                $policyReason = $refundCalc[1];
+            }
+
+            // Create a refund queue entry so admin can track and process it
             $this->db->dbquery(
-                "UPDATE payments SET escrow_status = 'refunded'
-                 WHERE booking_id = :bid AND status = 'success'"
+                "INSERT INTO refunds (booking_id, amount, reason, policy_reason, status, requested_by, requested_at)
+                 VALUES (:bid, :amount, :reason, :policy, 'pending', :admin_id, NOW())"
             );
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbbind(':amount', $refundAmount, PDO::PARAM_STR);
+            $this->db->dbbind(':reason', $reason, PDO::PARAM_STR);
+            $this->db->dbbind(':policy', $policyReason, PDO::PARAM_STR);
+            $this->db->dbbind(':admin_id', $adminId, PDO::PARAM_INT);
             $this->db->dbexecute();
 
-            // Audit row so the manual refund is traceable (who/when/how much)
+            // Audit row so the refund request is traceable
             $this->logStatusChange(
                 $bookingId,
                 'cancelled',
                 'cancelled',
                 $adminId,
-                'Deposit marked as refunded by admin (manual): ' . number_format($refundedAmount, 0) . ' MMK'
+                'Refund of ' . number_format($refundAmount, 0) . ' MMK queued (' . $policyReason . ')'
             );
         }
 
@@ -2983,6 +3021,213 @@ class BookingModel
             error_log('Booking cancellation failed: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /* ─── Refund lifecycle ────────────────────────────────────── */
+
+    /**
+     * Get all refunds in the admin queue (pending or processing).
+     */
+    public function getRefundQueue(): array
+    {
+        $this->db->dbquery(
+            "SELECT r.*,
+                    b.status AS booking_status,
+                    b.user_id,
+                    u.name AS customer_name,
+                    u.email AS customer_email
+             FROM refunds r
+             JOIN bookings b ON b.id = r.booking_id
+             JOIN users u ON u.id = b.user_id
+             WHERE r.status IN ('pending','processing')
+             ORDER BY r.requested_at DESC"
+        );
+        return $this->db->getmultidata() ?: [];
+    }
+
+    /**
+     * Get a single refund by ID.
+     */
+    public function getRefundById(int $refundId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT r.*,
+                    b.status AS booking_status,
+                    b.user_id,
+                    u.name AS customer_name,
+                    u.email AS customer_email
+             FROM refunds r
+             JOIN bookings b ON b.id = r.booking_id
+             JOIN users u ON u.id = b.user_id
+             WHERE r.id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
+     * Get refund(s) for a specific booking (most recent first).
+     */
+    public function getBookingRefund(int $bookingId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT * FROM refunds WHERE booking_id = :bid ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
+     * Admin uploads proof of refund transfer (sets status to processing).
+     */
+    public function processRefund(
+        int $refundId,
+        int $adminId,
+        string $transactionRef,
+        string $bankName,
+        string $slipPath,
+        string $note = ''
+    ): bool {
+        $this->db->dbquery(
+            "UPDATE refunds
+             SET status = 'processing',
+                 refund_transaction_ref = :txn,
+                 refund_bank_name = :bank,
+                 refund_slip_path = :slip,
+                 processed_by = :admin_id,
+                 processed_at = NOW(),
+                 note = :note
+             WHERE id = :id AND status IN ('pending','processing')"
+        );
+        $this->db->dbbind(':txn', $transactionRef, PDO::PARAM_STR);
+        $this->db->dbbind(':bank', $bankName, PDO::PARAM_STR);
+        $this->db->dbbind(':slip', $slipPath, PDO::PARAM_STR);
+        $this->db->dbbind(':admin_id', $adminId, PDO::PARAM_INT);
+        $this->db->dbbind(':note', $note, PDO::PARAM_STR);
+        $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
+        $ok = $this->db->dbexecute() && $this->db->rowcount() === 1;
+
+        if ($ok) {
+            $refund = $this->getRefundById($refundId);
+            if ($refund) {
+                $this->logStatusChange(
+                    (int)$refund['booking_id'],
+                    'cancelled',
+                    'cancelled',
+                    $adminId,
+                    'Refund processing: proof uploaded via ' . $bankName .
+                    ($transactionRef ? ' (ref: ' . $transactionRef . ')' : '')
+                );
+            }
+        }
+
+        return $ok;
+    }
+
+    /**
+     * Admin marks a refund as completed (money sent to customer).
+     */
+    public function completeRefund(int $refundId, int $adminId): bool
+    {
+        $refund = $this->getRefundById($refundId);
+        if (!$refund || $refund['status'] !== 'processing') {
+            return false;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Mark refund completed
+            $this->db->dbquery(
+                "UPDATE refunds SET status = 'completed', completed_at = NOW()
+                 WHERE id = :id AND status = 'processing'"
+            );
+            $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // Ensure the payment escrow_status is flipped to refunded
+            $this->db->dbquery(
+                "UPDATE payments SET escrow_status = 'refunded', refund_id = :rid
+                 WHERE booking_id = :bid AND status = 'success' AND escrow_status != 'refunded'"
+            );
+            $this->db->dbbind(':rid', $refundId, PDO::PARAM_INT);
+            $this->db->dbbind(':bid', (int)$refund['booking_id'], PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // Link refund_id to all successful payments on this booking
+            $this->db->dbquery(
+                "UPDATE payments SET refund_id = :rid
+                 WHERE booking_id = :bid AND status = 'success'"
+            );
+            $this->db->dbbind(':rid', $refundId, PDO::PARAM_INT);
+            $this->db->dbbind(':bid', (int)$refund['booking_id'], PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // Audit log
+            $this->logStatusChange(
+                (int)$refund['booking_id'],
+                'cancelled',
+                'cancelled',
+                $adminId,
+                'Refund completed: ' . number_format((float)$refund['amount'], 0) . ' MMK'
+            );
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('completeRefund failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Admin rejects a refund request.
+     */
+    public function rejectRefund(int $refundId, int $adminId, string $reason): bool
+    {
+        $refund = $this->getRefundById($refundId);
+        if (!$refund || !in_array($refund['status'], ['pending','processing'], true)) {
+            return false;
+        }
+
+        $this->db->dbquery(
+            "UPDATE refunds SET status = 'rejected', note = :note, processed_by = :admin_id, processed_at = NOW()
+             WHERE id = :id AND status IN ('pending','processing')"
+        );
+        $this->db->dbbind(':note', $reason, PDO::PARAM_STR);
+        $this->db->dbbind(':admin_id', $adminId, PDO::PARAM_INT);
+        $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
+        $ok = $this->db->dbexecute() && $this->db->rowcount() === 1;
+
+        if ($ok) {
+            $this->logStatusChange(
+                (int)$refund['booking_id'],
+                'cancelled',
+                'cancelled',
+                $adminId,
+                'Refund rejected: ' . $reason
+            );
+        }
+
+        return $ok;
+    }
+
+    /**
+     * Aggregate stats for the admin refund queue page.
+     */
+    public function getRefundStats(): array
+    {
+        $this->db->dbquery(
+            "SELECT
+                SUM(status = 'pending')    AS pending_count,
+                SUM(status = 'processing') AS processing_count,
+                SUM(status = 'completed')  AS completed_count,
+                SUM(status = 'rejected')   AS rejected_count,
+                COALESCE(SUM(CASE WHEN status IN ('pending','processing') THEN amount ELSE 0 END), 0) AS pending_amount,
+                COALESCE(SUM(CASE WHEN status = 'completed' AND DATE(completed_at) = CURDATE() THEN amount ELSE 0 END), 0) AS completed_today
+             FROM refunds"
+        );
+        return $this->db->getsingledata() ?: [];
     }
 
     /**
@@ -3493,7 +3738,7 @@ class BookingModel
      */
     public function getDepositPayment(int $bookingId): array|false
     {
-        $selects = ['id', 'amount', 'method', 'transaction_ref', 'status', 'verified_at', 'created_at'];
+        $selects = ['id', 'amount', 'platform_fee', 'supplier_amount', 'method', 'transaction_ref', 'status', 'verified_at', 'created_at'];
         foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at', 'payment_slip_path', 'verified_note'] as $column) {
             $selects[] = $this->paymentHasColumn($column) ? $column : 'NULL AS ' . $column;
         }
@@ -3528,12 +3773,18 @@ class BookingModel
         return $this->db->rowcount() === 1;
     }
 
+    public function getPaymentVerificationError(): string
+    {
+        return $this->paymentVerificationError ?: 'Failed to verify payment';
+    }
+
     /**
      * Admin verifies payment and moves booking to paid.
      * Notifies all suppliers that booking is ready for their review.
      */
     public function adminVerifyPayment(int $bookingId, int $adminId, string $note = ''): bool
     {
+        $this->paymentVerificationError = null;
         $this->db->dbquery(
             "SELECT p.id,
                     COALESCE(p.paid_amount, p.amount, 0) AS submitted_amount,
@@ -3550,13 +3801,22 @@ class BookingModel
         $pendingPayment = $this->db->getsingledata();
         $paymentId = (int)($pendingPayment['id'] ?? 0);
         if ($paymentId <= 0) {
+            $this->paymentVerificationError = 'No pending deposit payment found for this booking. It may already be reviewed.';
             return false;
         }
-        $expectedDeposit = round(
-            (float)($pendingPayment['total_amount'] ?? 0) * (BOOKING_DEPOSIT_PERCENT / 100),
-            2
-        );
-        if ($expectedDeposit <= 0 || abs((float)($pendingPayment['submitted_amount'] ?? 0) - $expectedDeposit) > 0.01) {
+        $totalAmount = (float)($pendingPayment['total_amount'] ?? 0);
+        $expectedDeposit = round($totalAmount * (BOOKING_DEPOSIT_PERCENT / 100), 2);
+        $expectedPlatformFee = round($totalAmount * (get_platform_fee_percent() / 100), 2);
+        $expectedPayment = round($expectedDeposit + $expectedPlatformFee, 2);
+        $submittedAmount = (float)($pendingPayment['submitted_amount'] ?? 0);
+        if ($expectedPayment <= 0) {
+            $this->paymentVerificationError = 'Booking total is invalid, so the expected payment cannot be calculated.';
+            return false;
+        }
+        if (abs($submittedAmount - $expectedPayment) > 0.01) {
+            $this->paymentVerificationError = 'Payment amount must equal deposit plus platform fee: '
+                . number_format($expectedPayment, 0) . ' MMK expected, '
+                . number_format($submittedAmount, 0) . ' MMK submitted.';
             return false;
         }
 
@@ -3603,6 +3863,7 @@ class BookingModel
             $this->db->commit();
         } catch (Throwable $e) {
             $this->db->rollBack();
+            $this->paymentVerificationError = 'Payment verification failed while updating records.';
             error_log('Deposit verification failed: ' . $e->getMessage());
             return false;
         }
@@ -3651,7 +3912,7 @@ class BookingModel
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
             $booking = $this->db->getsingledata();
             $totalAmount = (float)($booking['total_amount'] ?? 0);
-            $pfee = round($totalAmount * (PLATFORM_FEE_PERCENT / 100), 2);
+            $pfee = round($totalAmount * (get_platform_fee_percent() / 100), 2);
             $supplierReceived = round($totalAmount * (BOOKING_DEPOSIT_PERCENT / 100), 2);
 
             $this->db->dbquery(
@@ -3696,6 +3957,19 @@ class BookingModel
 
         $totalAmount = (float)$booking['total_amount'];
         $paidAmount = (float)$booking['paid_amount'];
+
+        // Deduct platform fees so suppliers only receive the deposit portion.
+        // paid_amount may include platform fee (deposit + fee), but payouts
+        // should be based on the deposit portion only.
+        $this->db->dbquery(
+            "SELECT COALESCE(SUM(platform_fee), 0) AS total_fees
+               FROM payments
+              WHERE booking_id = :bid AND status = 'success'"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $feeRow = $this->db->getsingledata();
+        $totalPlatformFees = (float)($feeRow['total_fees'] ?? 0);
+        $paidAmount = max(0, $paidAmount - $totalPlatformFees);
 
         // Get all suppliers and their amounts for this booking
         $this->db->dbquery(

@@ -2,8 +2,6 @@
 
 class PlatformPackage
 {
-    private const AGENT_FEE_RATE = 0.05;
-
     private $db;
     private $packageQuantityColumns = null;
     private $packageCategoryColumn = null;
@@ -1418,10 +1416,11 @@ class PlatformPackage
         $includedTotal = (float)($package['included_total'] ?? 0);
         $storedBasePrice = (float)($package['base_price'] ?? 0);
         $packageBasePrice = $storedBasePrice > 0 ? $storedBasePrice : $includedTotal;
-        $agentFee = $packageBasePrice * self::AGENT_FEE_RATE;
+        $agentFeeRate = get_platform_fee_percent() / 100;
+        $agentFee = $packageBasePrice * $agentFeeRate;
 
         $package['package_base_price'] = $packageBasePrice;
-        $package['agent_fee_rate'] = self::AGENT_FEE_RATE;
+        $package['agent_fee_rate'] = $agentFeeRate;
         $package['agent_fee'] = $agentFee;
         $package['package_price'] = $packageBasePrice + $agentFee;
 

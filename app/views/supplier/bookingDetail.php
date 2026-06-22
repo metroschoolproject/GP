@@ -2040,6 +2040,12 @@ $dashboardContent = function () use (
             <?php endif; ?>
           </div>
           <div class="sup-response-sub" style="margin-top:4px;opacity:.7">Your response will be sent to the customer and admin for review.</div>
+          <?php if ($bookingTotal > 0): ?>
+          <div style="margin-top:6px;display:flex;gap:16px;font-size:11px;font-weight:600;color:var(--sup-text,#34232b)">
+            <span>Booking total: <?= $money($bookingTotal) ?></span>
+            <?php if ($paidTotal > 0): ?><span>Paid: <?= $money($paidTotal) ?></span><?php endif; ?>
+          </div>
+          <?php endif; ?>
         </div>
       </div>
       <div class="sup-response-actions">

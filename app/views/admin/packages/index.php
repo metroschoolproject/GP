@@ -15,7 +15,7 @@ $dashboardBreadcrumbs = [
 $dashboardContentClass = 'admin-pkg-outlet';
 
 $dashboardContent = function () use ($packages, $total, $page, $totalPages, $filters, $message) {
-  $agentFeeRate = 0.05;
+  $agentFeeRate = get_platform_fee_percent() / 100;
 ?>
 <style>
   .admin-pkg-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}

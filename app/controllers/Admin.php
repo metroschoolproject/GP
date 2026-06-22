@@ -566,6 +566,54 @@ class Admin extends Controller
         exit;
     }
 
+    /**
+     * Platform settings page (GET: show, POST: save).
+     */
+    public function settings(): void
+    {
+        $this->requireRole('admin');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->requireCsrf(false);
+            $feePercent = trim((string)($_POST['platform_fee_percent'] ?? ''));
+
+            if ($feePercent === '' || !is_numeric($feePercent)) {
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Platform fee must be a number.'];
+                redirect('admin/settings');
+                return;
+            }
+
+            $feePercent = (float)$feePercent;
+            if ($feePercent < 0 || $feePercent > 100) {
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Platform fee must be between 0 and 100.'];
+                redirect('admin/settings');
+                return;
+            }
+
+            $db = new Database();
+            $db->dbquery(
+                "INSERT INTO platform_settings (setting_key, setting_value, updated_at)
+                 VALUES ('platform_fee_percent', :val, NOW())
+                 ON DUPLICATE KEY UPDATE setting_value = :val2, updated_at = NOW()"
+            );
+            $formatted = number_format($feePercent, 2, '.', '');
+            $db->dbbind(':val', $formatted, PDO::PARAM_STR);
+            $db->dbbind(':val2', $formatted, PDO::PARAM_STR);
+            $db->dbexecute();
+
+            $_SESSION['platform_flash'] = ['type' => 'success', 'message' => 'Platform fee updated to ' . rtrim(rtrim($formatted, '0'), '.') . '%.'];
+            redirect('admin/settings');
+            return;
+        }
+
+        // GET — load current value
+        $currentFee = get_platform_fee_percent();
+
+        $this->view('admin/setting/platform', [
+            'currentFee' => $currentFee,
+        ]);
+    }
+
     public function bookings()
     {
         $bookingController = new Booking();
@@ -1357,7 +1405,7 @@ class Admin extends Controller
 
         $packageModel->updatePackageType((int)$packageId, ['base_price' => $serviceTotal]);
 
-        $_SESSION['admin_flash'] = 'Package base price updated from included services. Admin/customer price adds 5% agent fee.';
+        $_SESSION['admin_flash'] = 'Package base price updated from included services. Admin/customer price adds ' . (int)get_platform_fee_percent() . '% agent fee.';
         redirect('admin/packageDetail/' . (int)$packageId);
     }
 
@@ -1684,7 +1732,7 @@ class Admin extends Controller
 
         // Verify payment and update booking status
         if (!$bookingModel->adminVerifyPayment($bookingId, $adminId, $note)) {
-            $this->jsonResponse(['error' => 'Failed to verify payment'], 500);
+            $this->jsonResponse(['error' => $bookingModel->getPaymentVerificationError()], 422);
             return;
         }
 

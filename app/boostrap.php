@@ -20,5 +20,6 @@ spl_autoload_register(function ($class) {
 require_once 'helpers/security.php';
 require_once 'helpers/rememberauth.php';
 restoreRememberedUserSession();
+require_once 'helpers/platform_settings.php';
 
 ?>

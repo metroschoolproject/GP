@@ -216,7 +216,7 @@ $dashboardContent = function () use (
     <div class="stat">
       <div class="stat-label">Platform Fees</div>
       <div class="stat-value" style="color:#6d4c5b"><?= number_format($totalPlatformFee) ?></div>
-      <div class="stat-sub">MMK · 5% per booking</div>
+      <div class="stat-sub">MMK · <?= (int)get_platform_fee_percent() ?>% per booking</div>
     </div>
     <div class="stat">
       <div class="stat-label">Approved</div>

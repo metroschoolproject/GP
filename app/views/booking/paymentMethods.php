@@ -9,7 +9,7 @@ $bookingRef = $bookingRef ?? '';
 
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $platformFee = (float)($platformFee ?? 0);
-$platformFeePercent = (int)($platformFeePercent ?? PLATFORM_FEE_PERCENT);
+$platformFeePercent = (float)($platformFeePercent ?? get_platform_fee_percent());
 $depositWithFee = (float)($depositWithFee ?? $deposit);
 $plain = function ($v) {
     $text = (string)$v;
@@ -126,15 +126,21 @@ a{color:inherit;text-decoration:none}
 /* Slip upload */
 .gp-slip-label{display:flex;align-items:center;gap:12px;padding:14px;border:1px dashed var(--rule-s);border-radius:var(--r-md);background:var(--surface);cursor:pointer;transition:border-color .18s}
 .gp-slip-label:hover{border-color:var(--plum)}
+.gp-slip-label.has-file{border-style:solid;border-color:rgba(22,101,52,.45);background:#f0fdf4}
+.gp-slip-label.has-error{border-color:#fca5a5;background:#fef2f2}
 .gp-slip-icon{width:40px;height:40px;border-radius:var(--r-sm);background:rgba(107,68,89,.08);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .gp-slip-text strong{display:block;font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
 .gp-slip-text small{font-size:11px;color:var(--muted)}
 .gp-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.gp-proof-help{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px}
+.gp-proof-chip{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:999px;background:rgba(107,68,89,.07);color:var(--text2);font-size:10px;font-weight:700}
+.gp-field-error{display:none;color:var(--danger);font-size:11px;font-weight:700;line-height:1.4}
+.gp-field-error.show{display:block}
 
 /* Buttons */
 .gp-submit{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border-radius:var(--r-md);border:none;background:var(--plum);color:#fffaf3;font-size:14px;font-weight:700;letter-spacing:.02em;box-shadow:0 10px 28px rgba(107,68,89,.28);cursor:pointer;transition:all .3s var(--ease)}
 .gp-submit:hover{background:var(--plum-dk);transform:translateY(-2px);box-shadow:0 18px 40px rgba(107,68,89,.32)}
-.gp-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.gp-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .gp-back{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:40px;border-radius:var(--r-md);border:1px solid var(--rule-s);background:transparent;color:var(--text2);font-size:13px;font-weight:600;transition:all .22s;margin-top:6px}
 .gp-back:hover{border-color:var(--plum);color:var(--plum)}
 
@@ -284,18 +290,26 @@ a{color:inherit;text-decoration:none}
             <input type="text" id="remark" name="remark" placeholder="Any notes about this transfer">
           </div>
           <div class="gp-field">
-            <label>Upload Slip / Screenshot <span class="opt">(optional but recommended)</span></label>
-            <label for="slip_image" class="gp-slip-label">
+            <label>Upload Slip / Screenshot <span class="req">*</span></label>
+            <label for="slip_image" class="gp-slip-label" id="slipLabel">
               <div class="gp-slip-icon">📷</div>
               <div class="gp-slip-text">
                 <strong id="slipFileName">Click to upload screenshot or receipt</strong>
-                <small>JPG, PNG, PDF — max 5 MB</small>
+                <small>Required after transfer</small>
               </div>
             </label>
-            <input class="gp-file-input" type="file" id="slip_image" name="slip_image" accept=".jpg,.jpeg,.png,.webp,.pdf">
+            <input class="gp-file-input" type="file" id="slip_image" name="slip_image" accept=".jpg,.jpeg,.png,.webp,.pdf" required>
+            <div class="gp-proof-help" aria-hidden="true">
+              <span class="gp-proof-chip">JPG</span>
+              <span class="gp-proof-chip">PNG</span>
+              <span class="gp-proof-chip">WebP</span>
+              <span class="gp-proof-chip">PDF</span>
+              <span class="gp-proof-chip">Max 10 MB</span>
+            </div>
+            <div class="gp-field-error" id="slipError" aria-live="polite"></div>
           </div>
 
-          <button type="submit" class="gp-submit" id="submitBtn">
+          <button type="submit" class="gp-submit" id="submitBtn" disabled>
             Submit Payment Proof
           </button>
         </div>
@@ -314,8 +328,18 @@ a{color:inherit;text-decoration:none}
 const bankBtns = document.querySelectorAll('.gp-bank-btn');
 const bankNameInput = document.getElementById('bankNameInput');
 const transferCard = document.getElementById('transferCard');
+const paymentForm = document.getElementById('paymentForm');
 const slipInput = document.getElementById('slip_image');
 const slipFileName = document.getElementById('slipFileName');
+const slipLabel = document.getElementById('slipLabel');
+const slipError = document.getElementById('slipError');
+const submitBtn = document.getElementById('submitBtn');
+const requiredInputs = ['account_name', 'mobile_number', 'transaction_ref', 'paid_amount']
+  .map(id => document.getElementById(id))
+  .filter(Boolean);
+const maxSlipBytes = 10 * 1024 * 1024;
+const allowedSlipTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const allowedSlipExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
 
 function safeId(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -331,13 +355,70 @@ function selectBank(bankName) {
   bankNameInput.value = bankName;
   transferCard.style.display = 'block';
   transferCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  updateSubmitState();
 }
 
 bankBtns.forEach(btn => btn.addEventListener('click', () => selectBank(btn.dataset.bank)));
 
+function getSlipError(file) {
+  if (!file) return 'Please upload your payment slip or receipt.';
+  const extension = file.name.split('.').pop().toLowerCase();
+  if (!allowedSlipTypes.includes(file.type) && !allowedSlipExtensions.includes(extension)) {
+    return 'Use a JPG, PNG, WebP, or PDF payment proof.';
+  }
+  if (file.size > maxSlipBytes) {
+    return 'Choose a file under 10 MB.';
+  }
+  return '';
+}
+
+function setSlipError(message) {
+  if (!slipError || !slipLabel) return;
+  slipError.textContent = message;
+  slipError.classList.toggle('show', message !== '');
+  slipLabel.classList.toggle('has-error', message !== '');
+}
+
+function validateSlip(showMessage = false) {
+  if (!slipInput) return false;
+  const file = slipInput.files[0] || null;
+  const message = getSlipError(file);
+
+  slipFileName.textContent = file ? file.name : 'Click to upload screenshot or receipt';
+  slipLabel.classList.toggle('has-file', !!file && message === '');
+
+  if (showMessage || file || message === '') {
+    setSlipError(message);
+  } else {
+    setSlipError('');
+  }
+
+  return message === '';
+}
+
+function updateSubmitState() {
+  if (!submitBtn) return;
+  const fieldsReady = bankNameInput.value !== ''
+    && requiredInputs.every(input => input.value.trim() !== '');
+  submitBtn.disabled = !(fieldsReady && validateSlip(false));
+}
+
+requiredInputs.forEach(input => input.addEventListener('input', updateSubmitState));
+
 if (slipInput) {
   slipInput.addEventListener('change', function () {
-    slipFileName.textContent = this.files[0] ? this.files[0].name : 'Click to upload screenshot or receipt';
+    validateSlip(true);
+    updateSubmitState();
+  });
+}
+
+if (paymentForm) {
+  paymentForm.addEventListener('submit', function (event) {
+    updateSubmitState();
+    if (submitBtn.disabled || !validateSlip(true)) {
+      event.preventDefault();
+      if (slipInput) slipInput.focus();
+    }
   });
 }
 </script>

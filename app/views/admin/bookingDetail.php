@@ -8,6 +8,8 @@ $payments = $payments ?? [];
 $packageSchedules = $packageSchedules ?? [];
 $bookingRef = $bookingRef ?? '';
 $depositPercent = (float)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
+$refund = $refund ?? null;
+$refundEstimate = $refundEstimate ?? null;
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
@@ -30,6 +32,9 @@ $timeOnly = static function ($value, string $fallback = '-') {
 $totalAmount = (float)($booking['total_amount'] ?? 0);
 $paidAmount = (float)($booking['paid_amount'] ?? 0);
 $expectedDeposit = $totalAmount * ($depositPercent / 100);
+$platformFeePercent = get_platform_fee_percent();
+$expectedPlatformFee = round($totalAmount * ($platformFeePercent / 100), 2);
+$expectedPayment = round($expectedDeposit + $expectedPlatformFee, 2);
 $balanceDue = max(0, $totalAmount - $paidAmount);
 $paidPercent = $totalAmount > 0 ? round(($paidAmount / $totalAmount) * 100) : 0;
 
@@ -718,6 +723,107 @@ $dashboardContent = function () use (
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-top: 8px;
+  }
+  .bkd-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(17, 24, 39, .48);
+    backdrop-filter: blur(3px);
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  }
+  .bkd-modal-backdrop.is-open { display: flex; }
+  .bkd-modal {
+    width: min(100%, 440px);
+    border: 1px solid var(--bkd-border);
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(17, 24, 39, .22);
+    overflow: hidden;
+    animation: bkd-modal-in .18s ease-out;
+  }
+  @keyframes bkd-modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .bkd-modal-head {
+    display: block;
+    padding: 26px 26px 0;
+  }
+  .bkd-modal-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    margin-bottom: 16px;
+    border-radius: .75rem;
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .bkd-modal-icon svg { width: 22px; height: 22px; }
+  .bkd-modal-title {
+    margin: 0;
+    color: var(--bkd-text);
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.3;
+  }
+  .bkd-modal-copy {
+    margin: 8px 0 0;
+    color: var(--bkd-body);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.55;
+  }
+  .bkd-modal-body { padding: 18px 26px 0; }
+  .bkd-modal-label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--bkd-muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .bkd-modal textarea {
+    width: 100%;
+    min-height: 108px;
+    border: 1px solid var(--bkd-border);
+    border-radius: .75rem;
+    background: var(--bkd-surface);
+    padding: 11px 12px;
+    color: var(--bkd-text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    resize: vertical;
+  }
+  .bkd-modal textarea:focus {
+    border-color: var(--bkd-primary);
+    box-shadow: 0 0 0 3px rgba(109, 76, 91, .12);
+  }
+  .bkd-modal-error {
+    display: none;
+    margin-top: 7px;
+    color: #991b1b;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .bkd-modal-error.show { display: block; }
+  .bkd-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 16px 0 22px;
+  }
+  .bkd-modal-actions .bkd-btn {
+    width: auto;
+    min-width: 112px;
+    padding: 0 16px;
   }
 
   /* ── Sidebar elements ── */
@@ -1499,9 +1605,9 @@ $dashboardContent = function () use (
               <div class="bkd-kv-sub">Submitted by customer</div>
             </div>
             <div class="bkd-kv">
-              <div class="bkd-kv-label">Expected deposit</div>
-              <div class="bkd-kv-value"><?= $money($expectedDeposit) ?></div>
-              <div class="bkd-kv-sub"><?= (int)$depositPercent ?>% of total</div>
+              <div class="bkd-kv-label">Expected payment</div>
+              <div class="bkd-kv-value"><?= $money($expectedPayment) ?></div>
+              <div class="bkd-kv-sub"><?= (int)$depositPercent ?>% deposit + <?= (int)$platformFeePercent ?>% fee</div>
             </div>
             <div class="bkd-kv">
               <div class="bkd-kv-label">Method</div>
@@ -1548,9 +1654,9 @@ $dashboardContent = function () use (
               <div class="bkd-kv-sub">Submitted by customer</div>
             </div>
             <div class="bkd-kv">
-              <div class="bkd-kv-label">Expected deposit</div>
-              <div class="bkd-kv-value"><?= $money($expectedDeposit) ?></div>
-              <div class="bkd-kv-sub"><?= (int)$depositPercent ?>% of total</div>
+              <div class="bkd-kv-label">Expected payment</div>
+              <div class="bkd-kv-value"><?= $money($expectedPayment) ?></div>
+              <div class="bkd-kv-sub"><?= (int)$depositPercent ?>% deposit + <?= (int)$platformFeePercent ?>% fee</div>
             </div>
             <div class="bkd-kv">
               <div class="bkd-kv-label">Method</div>
@@ -1966,8 +2072,13 @@ $dashboardContent = function () use (
             <input type="hidden" name="booking_id" value="<?= $bookingId ?>">
             <textarea name="reason" required placeholder="Cancellation reason…"></textarea>
             <label class="bkd-cancel-check">
-              <input type="checkbox" name="refund_deposit" value="1">
-              Mark deposit as refunded
+              <input type="checkbox" name="refund_deposit" value="1" id="refund-deposit-cb">
+              Queue refund for processing
+              <?php if ($refundEstimate): ?>
+                <span id="refund-estimate-hint" style="display:block;margin-top:4px;font-size:11px;font-weight:400;color:var(--bkd-muted,#7b5c69)">
+                  <?= $money($refundEstimate[0]) ?> — <?= $h($refundEstimate[1]) ?>
+                </span>
+              <?php endif; ?>
             </label>
             <button class="bkd-btn bkd-btn--danger" type="submit" style="width:100%;justify-content:center">
               <i data-lucide="ban"></i> Cancel booking
@@ -1976,7 +2087,136 @@ $dashboardContent = function () use (
         </div>
       </div>
       <?php endif; ?>
+
+      <!-- Refund Status -->
+      <?php if ($refund): ?>
+      <div class="bkd-card">
+        <div class="bkd-card-head">
+          <div class="bkd-card-head-left">
+            <div class="bkd-card-icon" style="background:var(--bkd-info-bg,#dbeafe);color:var(--bkd-info-text,#1e40af)">
+              <i data-lucide="undo-2"></i>
+            </div>
+            <span class="bkd-card-title">Refund</span>
+            <?php
+              $refundStatus = (string)($refund['status'] ?? 'pending');
+              $refundBadgeMap = ['pending' => 'bkd-badge--warn', 'processing' => 'bkd-badge--info', 'completed' => 'bkd-badge--success', 'rejected' => 'bkd-badge--danger'];
+              $refundLabelMap = ['pending' => 'Pending', 'processing' => 'Processing', 'completed' => 'Completed', 'rejected' => 'Rejected'];
+            ?>
+            <span class="bkd-badge <?= $refundBadgeMap[$refundStatus] ?? '' ?>"><?= $refundLabelMap[$refundStatus] ?? ucfirst($refundStatus) ?></span>
+          </div>
+        </div>
+        <div class="bkd-card-body">
+          <div class="bkd-kv-grid" style="grid-template-columns:1fr 1fr">
+            <div class="bkd-kv-cell">
+              <span class="bkd-kv-label">Amount</span>
+              <span class="bkd-kv-value" style="font-weight:700"><?= $money($refund['amount'] ?? 0) ?></span>
+            </div>
+            <div class="bkd-kv-cell">
+              <span class="bkd-kv-label">Requested</span>
+              <span class="bkd-kv-value"><?= $dateTime($refund['requested_at'] ?? '') ?></span>
+            </div>
+          </div>
+          <?php if (!empty($refund['policy_reason'])): ?>
+            <p style="margin-top:8px;font-size:11px;color:var(--bkd-muted,#7b5c69);line-height:1.4"><?= $h($refund['policy_reason']) ?></p>
+          <?php endif; ?>
+          <?php if (in_array($refundStatus, ['processing', 'completed'], true) && !empty($refund['refund_slip_path'])): ?>
+            <div style="margin-top:10px">
+              <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--bkd-muted,#b79c8b)">Proof of Transfer</span>
+              <?php if (preg_match('/\.(jpe?g|png|webp)$/i', $refund['refund_slip_path'])): ?>
+                <a href="<?= URLROOT . '/' . $h($refund['refund_slip_path']) ?>" target="_blank" class="bkd-proof-link" style="display:block;margin-top:6px">
+                  <img src="<?= URLROOT . '/' . $h($refund['refund_slip_path']) ?>" alt="Refund proof" style="max-width:100%;max-height:160px;border-radius:8px;border:1px solid var(--bkd-border,#ead8c7)">
+                </a>
+              <?php else: ?>
+                <a href="<?= URLROOT . '/' . $h($refund['refund_slip_path']) ?>" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;color:var(--bkd-primary,#6d4c5b);font-weight:600;text-decoration:underline;font-size:12px">
+                  <i data-lucide="file-text"></i> View document
+                </a>
+              <?php endif; ?>
+              <?php if (!empty($refund['refund_transaction_ref'])): ?>
+                <p style="margin-top:6px;font-size:11px;color:var(--bkd-muted,#7b5c69)">Ref: <?= $h($refund['refund_transaction_ref']) ?> via <?= $h($refund['refund_bank_name'] ?? '') ?></p>
+              <?php endif; ?>
+            </div>
+          <?php endif; ?>
+          <?php if ($refundStatus === 'completed'): ?>
+            <p style="margin-top:8px;font-size:11px;color:#15803d;font-weight:600">
+              <i data-lucide="check-circle" style="display:inline;width:14px;height:14px;vertical-align:-2px"></i>
+              Refund completed on <?= $dateTime($refund['completed_at'] ?? '') ?>
+            </p>
+          <?php endif; ?>
+          <?php if (in_array($refundStatus, ['pending', 'processing'], true)): ?>
+            <button type="button" class="bkd-btn bkd-btn--primary" style="width:100%;justify-content:center;margin-top:12px" onclick="openRefundProcessModal()">
+              <i data-lucide="upload"></i> <?= $refundStatus === 'pending' ? 'Process Refund' : 'Update Proof' ?>
+            </button>
+          <?php endif; ?>
+          <a href="<?= URLROOT ?>/admin/refundQueue" style="display:block;text-align:center;margin-top:8px;font-size:11px;color:var(--bkd-primary,#6d4c5b);font-weight:600;text-decoration:underline">
+            View all refunds →
+          </a>
+        </div>
+      </div>
+      <?php endif; ?>
     </aside>
+  </div>
+</div>
+
+<!-- Process Refund Modal -->
+<div class="bkd-modal-backdrop" id="refundProcessModal" aria-hidden="true">
+  <div class="bkd-modal" role="dialog" aria-modal="true" style="max-width:480px">
+    <div class="bkd-modal-head">
+      <div class="bkd-modal-icon" aria-hidden="true"><i data-lucide="undo-2"></i></div>
+      <div>
+        <h3 id="refundProcessTitle" style="font-size:16px;font-weight:700;margin:0 0 4px">Process Refund</h3>
+        <p class="bkd-modal-copy">Upload proof of the bank transfer to the customer.</p>
+      </div>
+    </div>
+    <div class="bkd-modal-body">
+      <div id="refundProcessError" class="bkd-modal-error">Please fill in all required fields.</div>
+      <input type="hidden" id="rpRefundId" value="<?= $refund['id'] ?? '' ?>">
+      <label class="bkd-modal-label" for="rpBank">Bank / Payment Channel <span style="color:var(--bkd-danger-text,#b94b4b)">*</span></label>
+      <select id="rpBank" style="width:100%;padding:10px 12px;border:1px solid var(--bkd-border,#ead8c7);border-radius:8px;font-size:13px;font-family:inherit">
+        <option value="">Select bank…</option>
+        <option value="KBZ Pay">KBZ Pay</option>
+        <option value="Wave Money">Wave Money</option>
+        <option value="AYA Pay">AYA Pay</option>
+        <option value="Yoma Bank">Yoma Bank</option>
+        <option value="CB Bank">CB Bank</option>
+      </select>
+      <label class="bkd-modal-label" for="rpTxnRef" style="margin-top:10px">Transaction Reference</label>
+      <input type="text" id="rpTxnRef" placeholder="e.g. TXN123456789" style="width:100%;padding:10px 12px;border:1px solid var(--bkd-border,#ead8c7);border-radius:8px;font-size:13px;font-family:inherit">
+      <label class="bkd-modal-label" for="rpSlip" style="margin-top:10px">Proof of Transfer (JPG, PNG, WebP, or PDF)</label>
+      <input type="file" id="rpSlip" accept=".jpg,.jpeg,.png,.webp,.pdf" style="font-size:12px">
+      <label class="bkd-modal-label" for="rpNote" style="margin-top:10px">Note (optional)</label>
+      <textarea id="rpNote" placeholder="Any details…" style="width:100%;min-height:50px;padding:10px 12px;border:1px solid var(--bkd-border,#ead8c7);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      <div class="bkd-modal-actions">
+        <button type="button" class="bkd-btn bkd-btn--ghost" onclick="closeRefundProcessModal()">Cancel</button>
+        <button type="button" class="bkd-btn bkd-btn--primary" id="rpConfirmBtn" onclick="submitRefundProcess()">
+          <i data-lucide="upload"></i> Submit Proof
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bkd-modal-backdrop" id="rejectPaymentModal" aria-hidden="true">
+  <div class="bkd-modal" role="dialog" aria-modal="true" aria-labelledby="rejectPaymentTitle">
+    <div class="bkd-modal-head">
+      <div class="bkd-modal-icon" aria-hidden="true">
+        <i data-lucide="x-circle"></i>
+      </div>
+      <div>
+        <h2 class="bkd-modal-title" id="rejectPaymentTitle">Reject payment proof</h2>
+        <p class="bkd-modal-copy">Add a clear reason for the customer before returning this payment for resubmission.</p>
+      </div>
+    </div>
+    <div class="bkd-modal-body">
+      <label class="bkd-modal-label" for="rejectPaymentReason">Reason</label>
+      <textarea id="rejectPaymentReason" placeholder="Example: The transferred amount does not match the required deposit plus platform fee."></textarea>
+      <div class="bkd-modal-error" id="rejectPaymentError">Please enter a rejection reason.</div>
+      <div class="bkd-modal-actions">
+        <button type="button" class="bkd-btn bkd-btn--ghost" id="rejectPaymentCancel">Cancel</button>
+        <button type="button" class="bkd-btn bkd-btn--danger" id="rejectPaymentConfirm">
+          <i data-lucide="x-circle"></i> Reject proof
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2025,6 +2265,66 @@ $dashboardContent = function () use (
     });
   }
 
+  function requestRejectPaymentReason() {
+    var modal = document.getElementById('rejectPaymentModal');
+    var textarea = document.getElementById('rejectPaymentReason');
+    var error = document.getElementById('rejectPaymentError');
+    var cancelBtn = document.getElementById('rejectPaymentCancel');
+    var confirmBtn = document.getElementById('rejectPaymentConfirm');
+    if (!modal || !textarea || !cancelBtn || !confirmBtn) return Promise.resolve('');
+
+    return new Promise(function(resolve) {
+      var lastFocused = document.activeElement;
+      var settled = false;
+
+      function close(value) {
+        if (settled) return;
+        settled = true;
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.removeEventListener('keydown', onKeydown);
+        modal.removeEventListener('click', onBackdropClick);
+        cancelBtn.removeEventListener('click', onCancel);
+        confirmBtn.removeEventListener('click', onConfirm);
+        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+        resolve(value);
+      }
+
+      function onCancel() {
+        close('');
+      }
+
+      function onConfirm() {
+        var reason = textarea.value.trim();
+        if (reason === '') {
+          error.classList.add('show');
+          textarea.focus();
+          return;
+        }
+        close(reason);
+      }
+
+      function onKeydown(event) {
+        if (event.key === 'Escape') close('');
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') onConfirm();
+      }
+
+      function onBackdropClick(event) {
+        if (event.target === modal) close('');
+      }
+
+      textarea.value = '';
+      error.classList.remove('show');
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      cancelBtn.addEventListener('click', onCancel);
+      confirmBtn.addEventListener('click', onConfirm);
+      document.addEventListener('keydown', onKeydown);
+      modal.addEventListener('click', onBackdropClick);
+      setTimeout(function(){ textarea.focus(); }, 30);
+    });
+  }
+
   async function handlePaymentReview(form, approve) {
     var bookingId = form.dataset.bookingId;
     var note = form.querySelector('textarea[name="note"]').value;
@@ -2037,7 +2337,7 @@ $dashboardContent = function () use (
     formData.append('note', note);
 
     if (!approve) {
-      var reason = prompt('Reason for rejecting this payment proof:');
+      var reason = await requestRejectPaymentReason();
       if (!reason) return;
       formData.set('reason', reason);
     }
@@ -2110,7 +2410,13 @@ $dashboardContent = function () use (
   if (cancelForm) {
     cancelForm.addEventListener('submit', async function(event){
       event.preventDefault();
-      if (!confirm('Are you sure you want to cancel this booking? This may not be reversible.')) return;
+      var refundCb = document.getElementById('refund-deposit-cb');
+      var refundAmt = '<?= $refundEstimate ? $money($refundEstimate[0]) : '' ?>';
+      var msg = 'Are you sure you want to cancel this booking? This cannot be undone.';
+      if (refundCb && refundCb.checked && refundAmt) {
+        msg += '\n\nA refund of ' + refundAmt + ' will be queued for processing.';
+      }
+      if (!confirm(msg)) return;
       var cancelData = new FormData(cancelForm);
       cancelData.set('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
       var response = await fetch('<?= URLROOT ?>/admin/bookingCancel', { method: 'POST', body: cancelData });
@@ -2153,6 +2459,78 @@ $dashboardContent = function () use (
         window.location.reload();
       }
     });
+  }
+
+  /* ── Refund Process Modal ── */
+  var CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  var ROOT = '<?= URLROOT ?>';
+
+  window.openRefundProcessModal = function() {
+    var bank = document.getElementById('rpBank');
+    var txnRef = document.getElementById('rpTxnRef');
+    var note = document.getElementById('rpNote');
+    var slip = document.getElementById('rpSlip');
+    var err = document.getElementById('refundProcessError');
+    if (bank) bank.value = '';
+    if (txnRef) txnRef.value = '';
+    if (note) note.value = '';
+    if (slip) slip.value = '';
+    if (err) err.classList.remove('show');
+    var modal = document.getElementById('refundProcessModal');
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+  };
+
+  window.closeRefundProcessModal = function() {
+    var modal = document.getElementById('refundProcessModal');
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+  };
+
+  window.submitRefundProcess = async function() {
+    var refundId = document.getElementById('rpRefundId').value;
+    var bank = document.getElementById('rpBank').value;
+    var txnRef = document.getElementById('rpTxnRef').value.trim();
+    var slip = document.getElementById('rpSlip').files[0];
+    var note = document.getElementById('rpNote').value.trim();
+    var err = document.getElementById('refundProcessError');
+    var btn = document.getElementById('rpConfirmBtn');
+
+    if (!bank) { err.textContent = 'Please select a bank.'; err.classList.add('show'); return; }
+
+    var fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('refund_id', refundId);
+    fd.append('bank_name', bank);
+    fd.append('transaction_ref', txnRef);
+    fd.append('note', note);
+    if (slip) fd.append('slip_image', slip);
+
+    btn.disabled = true; btn.textContent = 'Submitting…';
+
+    try {
+      var resp = await fetch(ROOT + '/admin/processRefundPost', { method: 'POST', body: fd });
+      var data = await resp.json();
+      if (data.success) {
+        showToast(data.message || 'Refund updated.');
+        closeRefundProcessModal();
+        setTimeout(function(){ window.location.reload(); }, 800);
+      } else {
+        err.textContent = data.error || 'Something went wrong.';
+        err.classList.add('show');
+      }
+    } catch(e) {
+      err.textContent = 'Network error.';
+      err.classList.add('show');
+    }
+    btn.disabled = false; btn.innerHTML = '<i data-lucide="upload"></i> Submit Proof';
+    lucide.createIcons();
+  };
+
+  /* Dismiss refund modal on backdrop / Escape */
+  var rpModal = document.getElementById('refundProcessModal');
+  if (rpModal) {
+    rpModal.addEventListener('click', function(e) { if (e.target === rpModal) closeRefundProcessModal(); });
   }
 
   lucide.createIcons();

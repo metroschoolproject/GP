@@ -578,7 +578,8 @@ class Booking extends Controller
         $items = $this->bookingModel->getBookingItems($bookingId);
         $total = (float)$booking['total_amount'];
         $deposit = $total * (BOOKING_DEPOSIT_PERCENT / 100);
-        $platformFee = round($total * (PLATFORM_FEE_PERCENT / 100), 2);
+        $feePercent = get_platform_fee_percent();
+        $platformFee = round($total * ($feePercent / 100), 2);
         $depositWithFee = round($deposit + $platformFee, 2);
 
         // Update booking to pending_payment
@@ -596,7 +597,7 @@ class Booking extends Controller
             'balance' => $total - $deposit,
             'bookingRef' => $this->bookingModel->generateBookingRef($bookingId),
             'platformFee' => $platformFee,
-            'platformFeePercent' => PLATFORM_FEE_PERCENT,
+            'platformFeePercent' => $feePercent,
             'depositWithFee' => $depositWithFee,
         ]);
     }
@@ -649,7 +650,7 @@ class Booking extends Controller
         }
 
         $expectedDeposit = round((float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100), 2);
-        $platformFee = round((float)$booking['total_amount'] * (PLATFORM_FEE_PERCENT / 100), 2);
+        $platformFee = round((float)$booking['total_amount'] * (get_platform_fee_percent() / 100), 2);
         $totalDue = round($expectedDeposit + $platformFee, 2);
         if (abs($paidAmount - $totalDue) > 0.01) {
             $_SESSION['booking_payment_flash'] = 'The payment amount must include the deposit (' . number_format($expectedDeposit, 0) . ' MMK) + platform fee (' . number_format($platformFee, 0) . ' MMK).';
@@ -657,13 +658,28 @@ class Booking extends Controller
             return;
         }
 
-        // Store uploaded slip
-        $slipPath = '';
-        if (!empty($_FILES['slip_image']['name']) && ($_FILES['slip_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-            $slipPath = $this->storePaymentSlip($_FILES['slip_image']);
+        $slipFile = $_FILES['slip_image'] ?? null;
+        if (!$slipFile || ($slipFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            $_SESSION['booking_payment_flash'] = 'Please upload your payment slip or receipt.';
+            redirect('booking/pay/' . $bookingId);
+            return;
         }
+
+        if (($slipFile['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+            $_SESSION['booking_payment_flash'] = $this->paymentSlipUploadErrorMessage((int)$slipFile['error']);
+            redirect('booking/pay/' . $bookingId);
+            return;
+        }
+
+        if (($slipFile['size'] ?? 0) > 10 * 1024 * 1024) {
+            $_SESSION['booking_payment_flash'] = 'Your file is too large (' . number_format($slipFile['size'] / 1024 / 1024, 1) . ' MB). Please upload a file under 10MB.';
+            redirect('booking/pay/' . $bookingId);
+            return;
+        }
+
+        $slipPath = $this->storePaymentSlip($slipFile);
         if ($slipPath === '') {
-            $_SESSION['booking_payment_flash'] = 'Please upload a valid JPG, PNG, WebP, or PDF payment proof under 5MB.';
+            $_SESSION['booking_payment_flash'] = 'Invalid file type. Please upload a JPG, PNG, WebP, or PDF file.';
             redirect('booking/pay/' . $bookingId);
             return;
         }
@@ -843,9 +859,21 @@ class Booking extends Controller
     private function storePaymentSlip(array $file): string
     {
         $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-        $mimeType = mime_content_type($file['tmp_name']);
 
-        if (!in_array($mimeType, $allowed, true) || $file['size'] > 5 * 1024 * 1024) {
+        // Detect MIME — fall back to extension-based check if finfo is unreliable
+        $mimeType = mime_content_type($file['tmp_name']);
+        if (!in_array($mimeType, $allowed, true)) {
+            // Retry with file extension (some phones produce files finfo misidentifies)
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $extMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'pdf' => 'application/pdf'];
+            $mimeType = $extMap[$ext] ?? $mimeType;
+        }
+
+        if (!in_array($mimeType, $allowed, true)) {
+            return '';
+        }
+
+        if ($file['size'] > 10 * 1024 * 1024) {
             return '';
         }
 
@@ -865,6 +893,15 @@ class Booking extends Controller
         }
 
         return '';
+    }
+
+    private function paymentSlipUploadErrorMessage(int $errorCode): string
+    {
+        if (in_array($errorCode, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+            return 'Your file is too large. Please upload a file under 10MB.';
+        }
+
+        return 'Could not upload your payment slip. Please choose the file again and try once more.';
     }
 
     /* ─── Available Slots ──────────────── */
@@ -1154,6 +1191,7 @@ class Booking extends Controller
         // Pricier supplier replacement awaiting the customer's approval + payment.
         $pendingReplacement = $this->bookingModel->getPendingCustomerReplacement($bookingId);
         $replacementHistory = $this->bookingModel->getReplacementHistory($bookingId);
+        $refund = $this->bookingModel->getBookingRefund($bookingId);
 
         $this->view('booking/detail', [
             'booking' => $booking,
@@ -1171,6 +1209,8 @@ class Booking extends Controller
             'canEditReview' => $canEditReview,
             'pendingReplacement' => $pendingReplacement ?: null,
             'replacementHistory' => $replacementHistory,
+            'refund' => $refund ?: null,
+            'platformFeePercent' => get_platform_fee_percent(),
         ]);
     }
 
@@ -1217,12 +1257,15 @@ class Booking extends Controller
 
         $items = $this->bookingModel->getBookingItems($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $refundEstimate = $this->bookingModel->calculateRefund($bookingId);
 
         $this->view('booking/cancel', [
             'booking' => $booking,
             'items' => $items,
             'bookingRef' => $bookingRef,
             'depositPercent' => BOOKING_DEPOSIT_PERCENT,
+            'refundEstimate' => $refundEstimate ?: null,
+            'platformFeePercent' => get_platform_fee_percent(),
         ]);
     }
 
@@ -2028,6 +2071,9 @@ class Booking extends Controller
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
         $packageSchedules = $this->buildPackageSchedules($items, $eventDetails);
 
+        $refund = $this->bookingModel->getBookingRefund($bookingId);
+        $refundEstimate = $this->bookingModel->calculateRefund($bookingId);
+
         $this->view('admin/bookingDetail', [
             'booking' => $booking,
             'items' => $items,
@@ -2039,6 +2085,8 @@ class Booking extends Controller
             'bookingRef' => $bookingRef,
             'packageSchedules' => $packageSchedules,
             'depositPercent' => BOOKING_DEPOSIT_PERCENT,
+            'refund' => $refund ?: null,
+            'refundEstimate' => $refundEstimate ?: null,
         ]);
     }
 
@@ -2288,6 +2336,173 @@ class Booking extends Controller
         ]);
     }
 
+    /* ─── Refund Queue (Admin) ────────────────────────────────── */
+
+    /**
+     * Admin refund queue page — shows pending and processing refunds.
+     */
+    public function adminRefundQueue(): void
+    {
+        $this->requireRole('admin');
+        $refunds = $this->bookingModel->getRefundQueue();
+        $stats = $this->bookingModel->getRefundStats();
+
+        // Enrich with booking refs
+        foreach ($refunds as &$r) {
+            $r['booking_ref'] = $this->bookingModel->generateBookingRef((int)$r['booking_id']);
+        }
+        unset($r);
+
+        $this->view('admin/refundQueue', [
+            'refunds' => $refunds,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Admin submits refund proof (processing stage).
+     */
+    public function adminProcessRefund(): void
+    {
+        $adminId = $this->requireRole('admin', true);
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $refundId = (int)($_POST['refund_id'] ?? 0);
+        $transactionRef = trim((string)($_POST['transaction_ref'] ?? ''));
+        $bankName = trim((string)($_POST['bank_name'] ?? ''));
+        $note = trim((string)($_POST['note'] ?? ''));
+
+        if ($refundId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid refund ID.'], 400);
+        }
+
+        $refund = $this->bookingModel->getRefundById($refundId);
+        if (!$refund) {
+            $this->jsonResponse(['error' => 'Refund not found.'], 404);
+        }
+
+        if (!in_array($refund['status'], ['pending', 'processing'], true)) {
+            $this->jsonResponse(['error' => 'This refund has already been processed.'], 400);
+        }
+
+        // Handle proof of transfer upload
+        $slipPath = '';
+        if (!empty($_FILES['slip_image']) && $_FILES['slip_image']['error'] === UPLOAD_ERR_OK) {
+            $slipPath = $this->storePaymentSlip($_FILES['slip_image']);
+            if (!$slipPath) {
+                $this->jsonResponse(['error' => 'Invalid file. Upload JPG, PNG, WebP, or PDF under 10MB.'], 422);
+            }
+        }
+
+        // If no new upload, keep existing slip path
+        if (!$slipPath && !empty($refund['refund_slip_path'])) {
+            $slipPath = $refund['refund_slip_path'];
+        }
+
+        if (!$this->bookingModel->processRefund($refundId, $adminId, $transactionRef, $bankName, $slipPath, $note)) {
+            $this->jsonResponse(['error' => 'Could not process refund.'], 500);
+        }
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            (int)$refund['booking_id'],
+            'Refund Being Processed',
+            'Your refund of ' . number_format((float)$refund['amount'], 0) . ' MMK is being processed. You will receive it shortly.',
+            'booking'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Refund marked as processing with proof uploaded.',
+        ]);
+    }
+
+    /**
+     * Admin marks a refund as completed (money actually sent to customer).
+     */
+    public function adminCompleteRefund(): void
+    {
+        $adminId = $this->requireRole('admin', true);
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $refundId = (int)($_POST['refund_id'] ?? 0);
+        if ($refundId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid refund ID.'], 400);
+        }
+
+        $refund = $this->bookingModel->getRefundById($refundId);
+        if (!$refund) {
+            $this->jsonResponse(['error' => 'Refund not found.'], 404);
+        }
+
+        if (!$this->bookingModel->completeRefund($refundId, $adminId)) {
+            $this->jsonResponse(['error' => 'Could not complete refund. Ensure it is in processing status with proof uploaded.'], 500);
+        }
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            (int)$refund['booking_id'],
+            'Refund Completed',
+            'Your refund of ' . number_format((float)$refund['amount'], 0) . ' MMK has been completed. Please check your account.',
+            'booking'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Refund marked as completed.',
+        ]);
+    }
+
+    /**
+     * Admin rejects a refund request.
+     */
+    public function adminRejectRefund(): void
+    {
+        $adminId = $this->requireRole('admin', true);
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $refundId = (int)($_POST['refund_id'] ?? 0);
+        $reason = trim((string)($_POST['reason'] ?? ''));
+
+        if ($refundId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid refund ID.'], 400);
+        }
+        if ($reason === '') {
+            $this->jsonResponse(['error' => 'Please provide a reason.'], 400);
+        }
+
+        $refund = $this->bookingModel->getRefundById($refundId);
+        if (!$refund) {
+            $this->jsonResponse(['error' => 'Refund not found.'], 404);
+        }
+
+        if (!$this->bookingModel->rejectRefund($refundId, $adminId, $reason)) {
+            $this->jsonResponse(['error' => 'Could not reject refund.'], 500);
+        }
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            (int)$refund['booking_id'],
+            'Refund Request Rejected',
+            'Your refund request has been declined. Reason: ' . $reason,
+            'booking'
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Refund rejected.',
+        ]);
+    }
+
     /**
      * Admin marks a booking as received/verified and notifies both sides.
      */
@@ -2411,7 +2626,7 @@ class Booking extends Controller
 
         // Submit payment slip
         $expectedDeposit = round((float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100), 2);
-        $platformFee = round((float)$booking['total_amount'] * (PLATFORM_FEE_PERCENT / 100), 2);
+        $platformFee = round((float)$booking['total_amount'] * (get_platform_fee_percent() / 100), 2);
         $totalWithFee = round($expectedDeposit + $platformFee, 2);
         if (!$this->bookingModel->submitPaymentSlip(
             $bookingId,
@@ -2636,7 +2851,7 @@ class Booking extends Controller
 
         // Verify amount matches expected deposit + platform fee
         $expectedDeposit = (float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
-        $platformFee = round((float)$booking['total_amount'] * (PLATFORM_FEE_PERCENT / 100), 2);
+        $platformFee = round((float)$booking['total_amount'] * (get_platform_fee_percent() / 100), 2);
         $expectedTotal = round($expectedDeposit + $platformFee, 2);
         if (abs($amount - $expectedTotal) > 0.01) { // Allow 1 cent tolerance
             $this->jsonResponse(['error' => 'Payment amount mismatch.'], 400);

@@ -50,8 +50,12 @@ class CartModel
         $startTime = $data['start_time'] ?? null;
         $endTime   = $data['end_time'] ?? null;
         $packageCartItemId = !empty($data['package_cart_item_id']) ? (int)$data['package_cart_item_id'] : null;
+        $attireItemId = !empty($data['attire_item_id']) ? (int)$data['attire_item_id'] : null;
+        $decorationStyleId = !empty($data['decoration_style_id']) ? (int)$data['decoration_style_id'] : null;
+        $cakeDesignId = !empty($data['cake_design_id']) ? (int)$data['cake_design_id'] : null;
         $hasVenueRoomColumn = $this->hasCartVenueRoomColumn();
         $hasPackageParentColumn = $this->hasCartPackageParentColumn();
+        $hasDesignColumns = $this->hasCartDesignColumns();
 
         if ($itemId <= 0) {
             return false;
@@ -96,9 +100,11 @@ class CartModel
         $venueRoomValueSql = $hasVenueRoomColumn ? ', :vrid' : '';
         $packageParentColumnSql = $hasPackageParentColumn ? ', package_cart_item_id' : '';
         $packageParentValueSql = $hasPackageParentColumn ? ', :package_cart_item_id' : '';
+        $designColumnSql = $hasDesignColumns ? ', attire_item_id, decoration_style_id, cake_design_id' : '';
+        $designValueSql = $hasDesignColumns ? ', :attire_item_id, :decoration_style_id, :cake_design_id' : '';
         $this->db->dbquery(
-            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql}{$packageParentColumnSql})
-             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql}{$packageParentValueSql})"
+            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql}{$packageParentColumnSql}{$designColumnSql})
+             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql}{$packageParentValueSql}{$designValueSql})"
         );
         $this->db->dbbind(':cid', $cartId, PDO::PARAM_INT);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
@@ -119,6 +125,11 @@ class CartModel
                 $packageCartItemId,
                 $packageCartItemId ? PDO::PARAM_INT : PDO::PARAM_NULL
             );
+        }
+        if ($hasDesignColumns) {
+            $this->db->dbbind(':attire_item_id', $attireItemId, $attireItemId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $this->db->dbbind(':decoration_style_id', $decorationStyleId, $decorationStyleId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $this->db->dbbind(':cake_design_id', $cakeDesignId, $cakeDesignId ? PDO::PARAM_INT : PDO::PARAM_NULL);
         }
 
         if ($this->db->dbexecute()) {
@@ -496,6 +507,19 @@ class CartModel
         return $this->cartVenueRoomColumn;
     }
 
+    private $cartDesignColumns = null;
+    private function hasCartDesignColumns(): bool
+    {
+        if ($this->cartDesignColumns !== null) {
+            return $this->cartDesignColumns;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'attire_item_id'");
+        $this->cartDesignColumns = (bool)$this->db->getsingledata();
+
+        return $this->cartDesignColumns;
+    }
+
     private function hasPackageItemConcurrentColumn(): bool
     {
         if ($this->packageItemConcurrentColumn !== null) {
@@ -865,7 +889,7 @@ class CartModel
                     ci.item_id, 
                     ci.selected_date,
                     CASE
-                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price)
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price)
                         ELSE ci.price
                     END AS cart_price, 
                     ci.slot_id, 
@@ -877,8 +901,8 @@ class CartModel
 
                     COALESCE(s.name, p.name) AS service_name,
                     COALESCE(s.thumbnail_url, p.image_url) AS thumbnail_url,
-                    COALESCE(s.price_min, p.base_price * 1.05) AS price_min,
-                    COALESCE(s.price_max, p.base_price * 1.05) AS price_max,
+                    COALESCE(s.price_min, p.base_price) AS price_min,
+                    COALESCE(s.price_max, p.base_price) AS price_max,
                     COALESCE(s.booking_type, 'fullday') AS booking_type,
                     {$minLeadSelect} AS min_lead_days,
 
@@ -976,7 +1000,7 @@ class CartModel
         $this->db->dbquery(
             "SELECT COALESCE(SUM(
                 CASE
-                    WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
+                    WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
                     ELSE COALESCE(ci.price, s.price_min, s.price, 0)
                 END
              ), 0) AS total
