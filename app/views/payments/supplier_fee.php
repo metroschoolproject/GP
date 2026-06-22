@@ -116,7 +116,7 @@
                     </div>
                     <div class="side-item">
                         <span>Step 2</span>
-                        <p>Transfer 50,000 MMK to the account shown, then fill in your transfer details.</p>
+                        <p>Transfer <?= number_format((float)($paymentContext['amount'] ?? 50000), 0) ?> MMK to the account shown, then fill in your transfer details.</p>
                     </div>
                     <div class="side-item">
                         <span>Step 3</span>

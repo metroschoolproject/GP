@@ -2,6 +2,7 @@
 
 class Payments extends Controller
 {
+    // Membership fee: fallback value; override via platform_settings key supplier_membership_fee
     private const SUPPLIER_MEMBERSHIP_FEE = 50000.00;
 
     private $paymentModel;
@@ -13,6 +14,11 @@ class Payments extends Controller
         $this->paymentModel = $this->model('Payment');
         $this->supplierProfileModel = $this->model('SupplierProfile');
         $this->notificationModel = $this->model('Notification');
+    }
+
+    private function getMembershipFee(): float
+    {
+        return (float)get_platform_setting('supplier_membership_fee', (string)self::SUPPLIER_MEMBERSHIP_FEE);
     }
 
     public function supplierFee()
@@ -57,6 +63,7 @@ class Payments extends Controller
             $paidAmount   = (float)str_replace(',', '', $_POST['paid_amount'] ?? '0');
             $paidAt       = trim($_POST['paid_at'] ?? '');
             $mobileNumber = trim($_POST['mobile_number'] ?? '');
+            $remark       = trim($_POST['remark'] ?? '');
 
             if (
                 !$this->isAllowedMethod($bankName)
@@ -71,6 +78,14 @@ class Payments extends Controller
                 return;
             }
 
+            // Validate amount matches the membership fee
+            $expectedFee = $this->getMembershipFee();
+            if ($paidAmount < $expectedFee) {
+                $data['message'] = 'The payment amount must be at least ' . number_format($expectedFee, 0) . ' MMK.';
+                $this->view('payments/supplier_fee', $data);
+                return;
+            }
+
             $slipPath = '';
             if (!empty($_FILES['slip_image']['name']) && ($_FILES['slip_image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
                 $slipPath = $this->storePaymentSlip($_FILES['slip_image']);
@@ -78,14 +93,15 @@ class Payments extends Controller
 
             $paymentId = $this->paymentModel->submitManualSupplierFeePayment(
                 (int)$supplier['supplier_id'],
-                self::SUPPLIER_MEMBERSHIP_FEE,
+                $expectedFee,
                 $bankName,
                 $accountName,
                 $mobileNumber,
                 $transactionRef,
                 $paidAmount,
                 $paidAt,
-                $slipPath
+                $slipPath,
+                $remark
             );
 
             if (!$paymentId) {
@@ -138,14 +154,15 @@ class Payments extends Controller
 
     private function supplierFeeViewData($supplier)
     {
+        $fee = $this->getMembershipFee();
         return [
             'message' => '',
             'paymentContext' => [
                 'eyebrow' => 'Supplier membership',
                 'title' => 'Complete your partner payment',
-                'intro' => 'Transfer 50,000 MMK to our account, then fill in the form below with your transfer details. Admin will verify and unlock your dashboard.',
+                'intro' => 'Transfer ' . number_format($fee, 0) . ' MMK to our account, then fill in the form below with your transfer details. Admin will verify and unlock your dashboard.',
                 'amountLabel' => 'Membership fee',
-                'amount' => self::SUPPLIER_MEMBERSHIP_FEE,
+                'amount' => $fee,
                 'currency' => 'MMK',
                 'summary' => [
                     'Business' => $supplier['shop_name'] ?? 'Supplier account',

@@ -61,17 +61,18 @@ class Payment
         string $transactionRef,
         float $paidAmount,
         string $paidAt,
-        string $slipPath = ''
+        string $slipPath = '',
+        string $remark = ''
     ): ?int {
         $this->db->dbquery(
             'INSERT INTO payments(
                 supplier_id, amount, platform_fee, supplier_amount, escrow_status, type,
                 method, bank_name, account_name, mobile_number, transaction_ref,
-                paid_amount, paid_at, payment_slip_path, status
+                paid_amount, paid_at, payment_slip_path, status, remark
              ) VALUES(
                 :supplier_id, :amount, :amount, :zero, NULL, :type,
                 :method, :bank_name, :account_name, :mobile_number, :transaction_ref,
-                :paid_amount, :paid_at, :slip_path, :status
+                :paid_amount, :paid_at, :slip_path, :status, :remark
              )'
         );
         $this->db->dbbind(':supplier_id', $supplierId);
@@ -87,6 +88,7 @@ class Payment
         $this->db->dbbind(':paid_at', $paidAt ?: null);
         $this->db->dbbind(':slip_path', $slipPath ?: null);
         $this->db->dbbind(':status', 'pending');
+        $this->db->dbbind(':remark', $remark !== '' ? $remark : null);
 
         if (!$this->db->dbexecute()) {
             return null;
