@@ -1044,6 +1044,11 @@ textarea { font-family: var(--sans); }
 .gp-svc-alt-dates { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
 .gp-alt-date-pill { display:inline-flex; align-items:center; padding:4px 10px; border:1px solid #d1d5db; border-radius:999px; background:#fff; color:#374151; font-size:11px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .14s; }
 .gp-alt-date-pill:hover { border-color:#6d4c5b; color:#6d4c5b; background:#fdf2f8; }
+.gp-all-available-section { padding:12px 16px; border-bottom:1px solid #fcd34d; background:#f0fdf4; }
+.gp-all-available-label { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#16a34a; margin-bottom:8px; }
+.gp-all-available-dates { display:flex; flex-wrap:wrap; gap:6px; }
+.gp-all-date-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 14px; border:2px solid #16a34a; border-radius:999px; background:#fff; color:#16a34a; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .14s; }
+.gp-all-date-btn:hover { background:#16a34a; color:#fff; transform:translateY(-1px); box-shadow:0 4px 12px rgba(22,163,74,.2); }
 .gp-unavailable-actions { padding:10px 16px; border-top:1px solid #fcd34d; display:flex; gap:8px; flex-wrap:wrap; }
 .gp-unavailable-actions button { font-family:inherit; font-size:11px; font-weight:700; padding:6px 14px; border-radius:999px; cursor:pointer; transition:all .14s; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
 .gp-ua-btn-choose { border:1px solid #6d4c5b; background:#6d4c5b; color:#fff; }
@@ -1986,6 +1991,13 @@ input[type="date"]:invalid {
                   <span id="unavailable-panel-subtitle">Some services have no time slots on your selected date.</span>
                 </div>
               </div>
+              <div id="all-available-section" class="gp-all-available-section" style="display:none">
+                <div class="gp-all-available-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+                  All services available on these dates
+                </div>
+                <div id="all-available-dates" class="gp-all-available-dates"></div>
+              </div>
               <div class="gp-unavailable-body">
                 <div id="unavailable-services-list" class="gp-unavailable-services"></div>
               </div>
@@ -2267,11 +2279,53 @@ const packageScheduleState = new Map();
     bookingReminder.classList.add('show');
   }
 
-  function showUnavailablePanel(packageServices, unavailableItems) {
+  function showUnavailablePanel(packageServices, unavailableItems, allAvailableDates) {
     const panel = document.getElementById('unavailable-panel');
     const list = document.getElementById('unavailable-services-list');
     const subtitle = document.getElementById('unavailable-panel-subtitle');
     if (!panel || !list) return;
+
+    // Show "all available" dates section if any exist
+    const allAvailSection = document.getElementById('all-available-section');
+    const allAvailDates = document.getElementById('all-available-dates');
+    if (allAvailSection && allAvailDates && allAvailableDates) {
+      let allDates = [];
+      for (const pkgId in allAvailableDates) {
+        if (Array.isArray(allAvailableDates[pkgId])) {
+          allDates = allDates.concat(allAvailableDates[pkgId]);
+        }
+      }
+      // Dedupe by date
+      const seen = new Set();
+      allDates = allDates.filter(d => { if (seen.has(d.date)) return false; seen.add(d.date); return true; });
+      if (allDates.length) {
+        let datesHtml = '';
+        allDates.forEach(function(d) {
+          datesHtml += '<button type="button" class="gp-all-date-btn" data-date="' + escapeHtml(d.date) + '">';
+          datesHtml += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>';
+          datesHtml += escapeHtml(d.label) + '</button>';
+        });
+        allAvailDates.innerHTML = datesHtml;
+        allAvailSection.style.display = '';
+
+        // Wire up all-available date buttons
+        allAvailDates.querySelectorAll('.gp-all-date-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            const dateInputs = form.querySelectorAll('input[name^="item_date["]');
+            for (var i = 0; i < dateInputs.length; i++) {
+              if (dateInputs[i].offsetParent !== null) {
+                dateInputs[i].value = this.dataset.date;
+                dateInputs[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                dateInputs[i].focus();
+                break;
+              }
+            }
+          });
+        });
+      } else {
+        allAvailSection.style.display = 'none';
+      }
+    }
 
     const unavailableIds = new Set(unavailableItems.map(u => parseInt(u.service_id)));
     let html = '';
@@ -2553,6 +2607,8 @@ const packageScheduleState = new Map();
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="gp-spinner"></span> Creating booking…';
     document.getElementById('unavailable-panel').hidden = true;
+    var allAvailSec = document.getElementById('all-available-section');
+    if (allAvailSec) allAvailSec.style.display = 'none';
     bookingReminder.classList.remove('show');
     fetch(form.action, { method: 'POST', body: new FormData(form) })
       .then(r => r.json())
@@ -2560,7 +2616,7 @@ const packageScheduleState = new Map();
         if (data.success && data.redirect) {
           window.location.href = data.redirect;
         } else if (Array.isArray(data.unavailable) && data.unavailable.length) {
-          showUnavailablePanel(data.packageServices || [], data.unavailable);
+          showUnavailablePanel(data.packageServices || [], data.unavailable, data.allAvailableDates || {});
           const first = data.unavailable[0];
           const svcName = first.service_name || 'A package service';
           showToast(svcName + ': ' + (first.message || 'not available'), 'error');

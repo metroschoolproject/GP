@@ -388,10 +388,25 @@ class Booking extends Controller
             }
         }
         if (!empty($unavailable)) {
+            // Find dates where ALL package services are available simultaneously
+            $allAvailableDates = [];
+            foreach ($packageServices as $ps) {
+                $pkgId = (int)($ps['package_id'] ?? 0);
+                $pkgDate = $ps['date'] ?? '';
+                if ($pkgId > 0 && $pkgDate !== '') {
+                    $allAvailableDates[$pkgId] = $this->cartModel->findAlternativePackageDatesAllAvailable(
+                        $pkgId,
+                        $pkgDate,
+                        5,
+                        90
+                    );
+                }
+            }
             $this->jsonResponse([
-                'error'       => "Some package services aren't available on your selected date.",
-                'unavailable' => $unavailable,
-                'packageServices' => $packageServices,
+                'error'               => "Some package services aren't available on your selected date.",
+                'unavailable'         => $unavailable,
+                'packageServices'     => $packageServices,
+                'allAvailableDates'   => $allAvailableDates,
             ], 422);
         }
 

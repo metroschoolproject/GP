@@ -715,6 +715,50 @@ class CartModel
         return $alternatives;
     }
 
+    /**
+     * Find upcoming dates where ALL slot-type services in a package are
+     * available simultaneously. Returns up to $maxResults dates within
+     * $horizonDays of $fromDate.
+     *
+     * @return array<int,array{date:string,label:string}>
+     */
+    public function findAlternativePackageDatesAllAvailable(
+        int $packageId,
+        string $fromDate,
+        int $maxResults = 3,
+        int $horizonDays = 60
+    ): array {
+        $alternatives = [];
+        $start = DateTimeImmutable::createFromFormat('!Y-m-d', $fromDate);
+        if (!$start || $packageId <= 0) {
+            return $alternatives;
+        }
+        for ($offset = 1; $offset <= $horizonDays && count($alternatives) < $maxResults; $offset++) {
+            $candidate = $start->modify('+' . $offset . ' days');
+            $candidateStr = $candidate->format('Y-m-d');
+            $schedule = $this->getPackageEventSchedule($packageId, $candidateStr);
+            $hasSlotServices = false;
+            $allAvailable = true;
+            foreach ($schedule as $row) {
+                if (($row['booking_type'] ?? '') !== 'slot') {
+                    continue; // managed services are always available
+                }
+                $hasSlotServices = true;
+                if (empty($row['is_available'])) {
+                    $allAvailable = false;
+                    break;
+                }
+            }
+            if ($hasSlotServices && $allAvailable) {
+                $alternatives[] = [
+                    'date'  => $candidateStr,
+                    'label' => $candidate->format('D, M j'),
+                ];
+            }
+        }
+        return $alternatives;
+    }
+
     private function getPackageServiceSlotAvailability(
         int $serviceId,
         string $eventDate,
