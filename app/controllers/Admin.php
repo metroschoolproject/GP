@@ -5,7 +5,6 @@ require_once APPROOT . '/services/PaymentGatewayService.php';
 require_once APPROOT . '/services/PayoutService.php';
 require_once APPROOT . '/services/EmailService.php';
 require_once APPROOT . '/controllers/Booking.php';
-require_once APPROOT . '/services/EmailService.php';
 
 class Admin extends Controller
 {
@@ -1025,6 +1024,7 @@ class Admin extends Controller
 
     public function customerSuspend($customerId = null)
     {
+        $this->requireCsrf(false);
         if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             redirect('admin/customers');
         }
@@ -1040,6 +1040,7 @@ class Admin extends Controller
 
     public function customerBan($customerId = null)
     {
+        $this->requireCsrf(false);
         if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             redirect('admin/customers');
         }
@@ -1055,6 +1056,7 @@ class Admin extends Controller
 
     public function customerUnban($customerId = null)
     {
+        $this->requireCsrf(false);
         if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             redirect('admin/customers');
         }
@@ -1070,6 +1072,7 @@ class Admin extends Controller
 
     public function customerUpdate($customerId = null)
     {
+        $this->requireCsrf(false);
         if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             redirect('admin/customers');
         }
@@ -1089,6 +1092,7 @@ class Admin extends Controller
 
     public function customerDelete($customerId = null)
     {
+        $this->requireCsrf(false);
         if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             redirect('admin/customers');
         }
