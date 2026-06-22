@@ -69,6 +69,8 @@ class Cart extends Controller
         $items = [];
         $total = 0;
         $packageServices = [];
+        $isGuest = !$this->userId;
+        $guestItems = [];
 
         if ($this->userId) {
             $items = $this->cartModel->getCartItems($this->userId);
@@ -86,14 +88,19 @@ class Cart extends Controller
                 }
             }
             unset($item);
+        } elseif (hasGuestCart()) {
+            // Show guest cookie items so users see what they added before login
+            $guestItems = getGuestCartItems();
         }
 
         $this->view('cart/index', [
             'items' => $items,
             'total' => $total,
-            'cartCount' => count($items),
+            'cartCount' => count($items) + count($guestItems),
             'includedServiceWarning' => $_SESSION['cart_included_service_warning'] ?? null,
             'addonError' => $_SESSION['cart_addon_error'] ?? null,
+            'isGuest' => $isGuest,
+            'guestItems' => $guestItems,
         ]);
         unset($_SESSION['cart_addon_error']);
     }

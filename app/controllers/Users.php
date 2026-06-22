@@ -265,6 +265,19 @@ public function register()
     // Get Email From User to Server
     public function auth()
     {
+        // Store return URL from query param so user goes back after login.
+        // The frontend passes window.location.pathname (e.g. /GP/customerServices/detail/56).
+        // We strip the leading / and the GP/ base path prefix so it becomes
+        // customerServices/detail/56 — which URLROOT/redirect will resolve correctly.
+        $redirect = trim((string)($_GET['redirect'] ?? ''));
+        if ($redirect !== '' && $redirect[0] === '/' && strpos($redirect, 'http') !== 0) {
+            // Remove leading slash and optional GP/ prefix
+            $clean = ltrim($redirect, '/');
+            if (strpos($clean, 'GP/') === 0) {
+                $clean = substr($clean, 3);
+            }
+            $_SESSION['post_login_return_url'] = $clean;
+        }
         $this->view('users/auth');
     }
 
@@ -564,6 +577,13 @@ public function register()
             $redirect = $_SESSION['cart_redirect_after_login'];
             unset($_SESSION['cart_redirect_after_login']);
             return $redirect;
+        }
+
+        // If the user was on a specific page and clicked "Sign in to book", go back
+        if (!empty($_SESSION['post_login_return_url'])) {
+            $returnUrl = $_SESSION['post_login_return_url'];
+            unset($_SESSION['post_login_return_url']);
+            return $returnUrl;
         }
 
         $roles = $this->usermodel->getUserRoles($userId);

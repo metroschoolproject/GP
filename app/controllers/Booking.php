@@ -35,6 +35,8 @@ class Booking extends Controller
     private function ensureAuthenticated(): void
     {
         if (!$this->userId) {
+            // Save the current URL so user returns here after login
+            $_SESSION['post_login_return_url'] = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
             redirect('users/auth');
             exit;
         }

@@ -4,6 +4,8 @@ $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
 $includedServiceWarning = $includedServiceWarning ?? null;
 $addonError = trim((string)($addonError ?? ''));
+$isGuest = $isGuest ?? false;
+$guestItems = $guestItems ?? [];
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
@@ -1130,6 +1132,19 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 .gp-btn-browse:hover { background: var(--plum-dk); transform: translateY(-2px); box-shadow: 0 16px 36px rgba(107,68,89,0.28); }
 
+/* ─── Guest cart state ─────────────────────────────────── */
+.gp-guest-cart { max-width: 600px; margin: 40px auto; text-align: center; }
+.gp-guest-cart-header { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; }
+.gp-guest-cart-icon { color: #d97706; }
+.gp-guest-cart-header h2 { font-family: var(--font-d); font-size: 24px; font-weight: 600; color: var(--text); margin: 0; }
+.gp-guest-cart-header p { max-width: 380px; margin: 4px auto 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.gp-guest-cart-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.gp-guest-cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid #ead8c7; border-radius: 10px; background: #fff; font-size: 13px; }
+.gp-guest-cart-date { color: var(--muted); font-size: 12px; }
+.gp-guest-cart-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.gp-guest-cart-actions .gp-btn-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px; border: 1px solid var(--rule-strong, #ead8c7); border-radius: 999px; background: #fff; color: var(--text, #34232b); font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .14s; }
+.gp-guest-cart-actions .gp-btn-secondary:hover { border-color: var(--plum); color: var(--plum); background: rgba(107,68,89,0.05); }
+
 /* ─── Included service reminder ───────────────────────── */
 .gp-included-reminder {
   display: grid;
@@ -1455,7 +1470,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   </section>
   <?php endif; ?>
 
-  <?php if (empty($items)): ?>
+  <?php if (empty($items) && empty($guestItems)): ?>
   <!-- ── Empty state ───────────────────────────────────── -->
   <div class="gp-empty">
     <div class="gp-empty-icon">
@@ -1467,6 +1482,40 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       Explore services
     </a>
+  </div>
+
+  <?php elseif (!empty($guestItems)): ?>
+  <!-- ── Guest cart state ─────────────────────────────── -->
+  <div class="gp-guest-cart">
+    <div class="gp-guest-cart-header">
+      <div class="gp-guest-cart-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div>
+        <h2>You have <?= count($guestItems) ?> item<?= count($guestItems) !== 1 ? 's' : '' ?> saved</h2>
+        <p>Sign in or create an account to keep your selections and complete your booking.</p>
+      </div>
+    </div>
+    <div class="gp-guest-cart-items">
+      <?php foreach ($guestItems as $gIdx => $gItem):
+        $gName = htmlspecialchars($gItem['name'] ?? $gItem['item_type'] ?? 'Service', ENT_QUOTES, 'UTF-8');
+        $gDate = !empty($gItem['selected_date']) ? date('M j, Y', strtotime($gItem['selected_date'])) : 'Any date';
+      ?>
+      <div class="gp-guest-cart-item">
+        <span><?= $gName ?></span>
+        <span class="gp-guest-cart-date"><?= $gDate ?></span>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <div class="gp-guest-cart-actions">
+      <a href="<?= URLROOT ?>/users/auth" class="gp-btn-browse">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Sign in to continue
+      </a>
+      <a href="<?= URLROOT ?>/users/register" class="gp-btn-secondary">
+        Create account
+      </a>
+    </div>
   </div>
 
   <?php else: ?>
