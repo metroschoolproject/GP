@@ -4,6 +4,7 @@
 require_once 'helpers/env.php';
 loadEnv(dirname(__DIR__) . '/.env');
 require_once 'config/config.php';
+date_default_timezone_set('Asia/Yangon');
 require_once 'helpers/Pagination.php';
 require_once 'helpers/flashmessage.php';
 require_once 'helpers/redirect.php';
