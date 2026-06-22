@@ -809,18 +809,22 @@ class CartModel
         $availablePackage = $packageCap > 0
             ? max(0, $packageCap - $packageConfirmed)
             : $available;
-        $isAvailable = $status === 'available' && $available > 0 && $availablePackage > 0;
+        // Filter out past time slots when the event date is today
+        $isPast = !$this->isFutureSlot($eventDate, $startTime);
+        $isAvailable = $status === 'available' && $available > 0 && $availablePackage > 0 && !$isPast;
 
         return [
-            'availability_status' => $isAvailable ? 'available' : 'full',
+            'availability_status' => $isPast ? 'past' : ($isAvailable ? 'available' : 'full'),
             'available' => $available,
             'available_package' => $availablePackage,
             'package_capacity' => $packageCap,
             'confirmed_package_count' => $packageConfirmed,
             'is_available' => $isAvailable,
-            'availability_message' => $isAvailable
-                ? ($availablePackage . ' package slot' . ($availablePackage === 1 ? '' : 's') . ' available')
-                : 'No package slots available for this time',
+            'availability_message' => $isPast
+                ? 'This time slot has already passed'
+                : ($isAvailable
+                    ? ($availablePackage . ' package slot' . ($availablePackage === 1 ? '' : 's') . ' available')
+                    : 'No package slots available for this time'),
         ];
     }
 
