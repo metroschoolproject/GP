@@ -190,7 +190,7 @@ class Admin extends Controller
         $db->dbquery(
             "SELECT b.id, u.name AS customer_name, ed.event_date, ed.start_time, ed.location,
                     b.status,
-                    (SELECT s.shop_name FROM booking_suppliers bs_s
+                    (SELECT s_s.shop_name FROM booking_suppliers bs_s
                      INNER JOIN suppliers s_s ON bs_s.supplier_id = s_s.supplier_id
                      WHERE bs_s.booking_id = b.id ORDER BY bs_s.id ASC LIMIT 1) AS supplier_name
              FROM bookings b
