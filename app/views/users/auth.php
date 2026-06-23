@@ -715,7 +715,22 @@
   </div>
 
   <!-- card -->
-  <div class="relative w-full max-w-[480px] rounded-[24px] bg-[#faf5ef]" style="height:auto;border:1.5px solid #dbc6b0;box-shadow:0 20px 40px rgba(15,23,42,0.08),0 0 0 1px rgba(212,160,71,0.06),0 0 40px rgba(212,160,71,0.04);">
+  <div class="relative w-full max-w-[480px]">
+    <!-- Ornate frame corners -->
+    <svg class="absolute -top-3 -left-3 w-10 h-10 pointer-events-none" viewBox="0 0 40 40" fill="none"><path d="M2 38V20C2 10.059 10.059 2 20 2h18" stroke="#c8a882" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><circle cx="2" cy="38" r="2" fill="#c8a882" opacity="0.5"/><path d="M6 38V24c0-7.732 6.268-14 14-14h18" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.3"/></svg>
+    <svg class="absolute -top-3 -right-3 w-10 h-10 pointer-events-none" viewBox="0 0 40 40" fill="none" style="transform:scaleX(-1)"><path d="M2 38V20C2 10.059 10.059 2 20 2h18" stroke="#c8a882" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><circle cx="2" cy="38" r="2" fill="#c8a882" opacity="0.5"/><path d="M6 38V24c0-7.732 6.268-14 14-14h18" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.3"/></svg>
+    <!-- Top center ornament -->
+    <svg class="absolute -top-2 left-1/2 -translate-x-1/2 pointer-events-none" width="40" height="12" viewBox="0 0 40 12" fill="none"><path d="M4 10C10 10 12 4 20 4C28 4 30 10 36 10" stroke="#c8a882" stroke-width="1" stroke-linecap="round" opacity="0.5"/><circle cx="20" cy="2" r="1.5" fill="#c8a882" opacity="0.4"/><line x1="0" y1="10" x2="14" y2="10" stroke="#c8a882" stroke-width="0.75" opacity="0.3"/><line x1="26" y1="10" x2="40" y2="10" stroke="#c8a882" stroke-width="0.75" opacity="0.3"/></svg>
+    <svg class="absolute -bottom-3 -left-3 w-10 h-10 pointer-events-none" viewBox="0 0 40 40" fill="none" style="transform:scaleY(-1)"><path d="M2 38V20C2 10.059 10.059 2 20 2h18" stroke="#c8a882" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><circle cx="2" cy="38" r="2" fill="#c8a882" opacity="0.5"/><path d="M6 38V24c0-7.732 6.268-14 14-14h18" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.3"/></svg>
+    <svg class="absolute -bottom-3 -right-3 w-10 h-10 pointer-events-none" viewBox="0 0 40 40" fill="none" style="transform:scale(-1,-1)"><path d="M2 38V20C2 10.059 10.059 2 20 2h18" stroke="#c8a882" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><circle cx="2" cy="38" r="2" fill="#c8a882" opacity="0.5"/><path d="M6 38V24c0-7.732 6.268-14 14-14h18" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.3"/></svg>
+    <!-- Bottom center ornament -->
+    <svg class="absolute -bottom-2 left-1/2 -translate-x-1/2 pointer-events-none" width="40" height="12" viewBox="0 0 40 12" fill="none" style="transform:translateX(-50%) scaleY(-1)"><path d="M4 10C10 10 12 4 20 4C28 4 30 10 36 10" stroke="#c8a882" stroke-width="1" stroke-linecap="round" opacity="0.5"/><circle cx="20" cy="2" r="1.5" fill="#c8a882" opacity="0.4"/><line x1="0" y1="10" x2="14" y2="10" stroke="#c8a882" stroke-width="0.75" opacity="0.3"/><line x1="26" y1="10" x2="40" y2="10" stroke="#c8a882" stroke-width="0.75" opacity="0.3"/></svg>
+    <!-- Left side ornament -->
+    <svg class="absolute -left-2 top-1/2 -translate-y-1/2 pointer-events-none" width="8" height="40" viewBox="0 0 8 40" fill="none"><path d="M6 4C6 12 2 16 2 20C2 24 6 28 6 36" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.35"/><circle cx="4" cy="20" r="1" fill="#c8a882" opacity="0.3"/></svg>
+    <!-- Right side ornament -->
+    <svg class="absolute -right-2 top-1/2 -translate-y-1/2 pointer-events-none" width="8" height="40" viewBox="0 0 8 40" fill="none" style="transform:translateY(-50%) scaleX(-1)"><path d="M6 4C6 12 2 16 2 20C2 24 6 28 6 36" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.35"/><circle cx="4" cy="20" r="1" fill="#c8a882" opacity="0.3"/></svg>
+    <!-- Inner card -->
+    <div class="relative w-full rounded-[24px] bg-[#faf5ef]" style="height:auto;border:1.5px solid #dbc6b0;box-shadow:0 20px 40px rgba(15,23,42,0.08),0 0 0 1px rgba(212,160,71,0.06),0 0 40px rgba(212,160,71,0.04);">
     <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
     <div class="auth-loading-overlay" id="authLoadingOverlay" aria-hidden="true">
       <div class="auth-loading-panel" role="status" aria-live="polite">
@@ -950,6 +965,7 @@
 
  
 
+    </div>
   </div>
   <!-- /card -->
 
