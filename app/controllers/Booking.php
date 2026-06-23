@@ -183,6 +183,7 @@ class Booking extends Controller
             $itemPhone = trim($_POST['item_contact_phone'][$i] ?? '');
             $itemContactName = trim($_POST['item_contact_name'][$i] ?? '');
             $itemName = $item['service_name'] ?? 'Service';
+            $itemMaxBooking = max(1, (int)($item['item_max_booking'] ?? 9999));
             $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
             $currentItemErrors = [];
             $isAddon = !empty($item['package_cart_item_id']);
@@ -236,6 +237,8 @@ class Booking extends Controller
                 }
                 if ($itemGuests <= 0) {
                     $currentItemErrors[] = 'Guest count is required';
+                } elseif ($itemGuests > $itemMaxBooking) {
+                    $currentItemErrors[] = 'This supplier can accept up to ' . $itemMaxBooking . ' for this booking.';
                 }
             }
 

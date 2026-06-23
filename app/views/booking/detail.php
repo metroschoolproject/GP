@@ -77,6 +77,28 @@ a{color:inherit;text-decoration:none}
 .gp-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden}
 .gp-card-h{padding:14px 18px;border-bottom:1px solid var(--rule);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .gp-card-b{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.gp-journey-card{margin:18px 0 20px;padding:18px 20px 20px;background:linear-gradient(135deg,rgba(252,248,245,.98),rgba(250,246,241,.92));border:1px solid rgba(178,143,110,.26);border-radius:var(--r-lg);box-shadow:0 18px 46px rgba(26,17,24,.07)}
+.gp-journey-card.is-cancel{background:linear-gradient(135deg,rgba(255,247,246,.98),rgba(252,238,236,.88));border-color:rgba(185,75,75,.18)}
+.gp-journey-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.gp-journey-kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.gp-journey-title{margin-top:4px;font-family:var(--font-d);font-size:22px;font-weight:600;color:var(--text);line-height:1.08}
+.gp-journey-copy{margin-top:4px;font-size:12px;color:var(--muted);line-height:1.45}
+.gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:rgba(107,68,89,.08);color:var(--plum);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.gp-journey-card.is-cancel .gp-journey-status{background:rgba(185,75,75,.09);color:var(--danger)}
+.gp-journey-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:14px}
+.gp-journey-step{position:relative;display:flex;align-items:flex-start;gap:10px;min-width:0}
+.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:34px;right:-12px;top:14px;height:1px;background:rgba(178,143,110,.28);z-index:0}
+.gp-journey-card.is-cancel .gp-journey-step:not(:last-child)::after{background:rgba(185,75,75,.18)}
+.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(178,143,110,.46);background:#fbf4ea;color:var(--muted);font-size:12px;font-weight:800;box-shadow:0 0 0 5px rgba(252,248,245,.94)}
+.gp-journey-step.is-complete .gp-journey-dot{border-color:var(--gold);background:var(--gold);color:#fffaf3}
+.gp-journey-step.is-current .gp-journey-dot{border-color:var(--plum);background:var(--plum);color:#fffaf3;box-shadow:0 0 0 5px rgba(107,68,89,.10)}
+.gp-journey-card.is-cancel .gp-journey-step.is-complete .gp-journey-dot{border-color:#d79a92;background:#d79a92;color:#fffaf3}
+.gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-dot{border-color:var(--danger);background:var(--danger);color:#fffaf3;box-shadow:0 0 0 5px rgba(185,75,75,.10)}
+.gp-journey-text{position:relative;z-index:1;min-width:0;padding-top:1px}
+.gp-journey-label{font-size:12px;font-weight:800;color:var(--text);line-height:1.25}
+.gp-journey-state{margin-top:2px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.gp-journey-step.is-current .gp-journey-label{color:var(--plum)}
+.gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-label{color:var(--danger)}
 .gp-field{display:flex;flex-direction:column;gap:0}
 .gp-field-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .gp-field-v{font-size:13px;color:var(--text)}
@@ -225,6 +247,84 @@ a{color:inherit;text-decoration:none}
     <?php endif; ?>
   </div>
   <?php endif; ?>
+
+  <?php
+    $journeyStatus = strtolower((string)($booking['status'] ?? ''));
+    $journeyIsCancellation = in_array($journeyStatus, ['cancellation_requested', 'cancelled'], true);
+    $journeyIsReplacement = !empty($pendingReplacement);
+    $journeyTone = $journeyIsCancellation ? 'cancel' : ($journeyIsReplacement ? 'replacement' : 'normal');
+    $journeyStatusLabel = $statusLabels[$journeyStatus] ?? ucfirst(str_replace('_', ' ', $journeyStatus ?: 'booking placed'));
+
+    if ($journeyIsReplacement) {
+        $journeySteps = [
+            'Booking Confirmed',
+            'Supplier Replacement Proposed',
+            'Difference Payment Required',
+            'Replacement Approved',
+            'Updated Booking Confirmed',
+        ];
+        $replacementStatus = strtolower((string)($pendingReplacement['status'] ?? ''));
+        $replacementDelta = (float)($pendingReplacement['price_delta'] ?? 0);
+        $journeyCurrent = 1;
+        if ($replacementDelta > 0) $journeyCurrent = 2;
+        if (in_array($replacementStatus, ['approved', 'accepted'], true)) $journeyCurrent = 3;
+        if (in_array($replacementStatus, ['confirmed', 'completed'], true)) $journeyCurrent = 4;
+        $journeyCopy = 'Your confirmed booking is being updated with a replacement supplier.';
+    } elseif ($journeyIsCancellation) {
+        $journeySteps = [
+            'Booking Placed',
+            'Cancellation Requested',
+            'Cancelled',
+        ];
+        $journeyCurrent = $journeyStatus === 'cancelled' ? 2 : 1;
+        $journeyCopy = 'Your cancellation progress is shown here in soft red for clarity.';
+    } else {
+        $journeySteps = [
+            'Booking Placed',
+            'Deposit Required',
+            'Payment Under Review',
+            'Booking Confirmed',
+            'Service Completed',
+        ];
+        if ($journeyStatus === 'completed') {
+            $journeyCurrent = 4;
+        } elseif ($journeyStatus === 'confirmed') {
+            $journeyCurrent = 3;
+        } elseif (in_array($journeyStatus, ['payment_submitted', 'pending_admin', 'paid'], true)) {
+            $journeyCurrent = 2;
+        } elseif ($journeyStatus === 'pending_payment') {
+            $journeyCurrent = 1;
+        } else {
+            $journeyCurrent = 0;
+        }
+        $journeyCopy = 'Follow each milestone from booking placement through completion.';
+    }
+  ?>
+  <section class="gp-journey-card<?= $journeyTone === 'cancel' ? ' is-cancel' : '' ?>" aria-label="Booking Journey">
+    <div class="gp-journey-head">
+      <div>
+        <div class="gp-journey-kicker">Booking Journey</div>
+        <div class="gp-journey-title"><?= $h($journeyTone === 'replacement' ? 'Replacement supplier flow' : ($journeyTone === 'cancel' ? 'Cancellation flow' : 'Normal booking flow')) ?></div>
+        <div class="gp-journey-copy"><?= $h($journeyCopy) ?></div>
+      </div>
+      <span class="gp-journey-status"><?= $h($journeyStatusLabel) ?></span>
+    </div>
+    <div class="gp-journey-steps">
+      <?php foreach ($journeySteps as $stepIndex => $stepLabel): ?>
+        <?php
+          $stepClass = $stepIndex < $journeyCurrent ? 'is-complete' : ($stepIndex === $journeyCurrent ? 'is-current' : 'is-upcoming');
+          $stepState = $stepIndex < $journeyCurrent ? 'Completed' : ($stepIndex === $journeyCurrent ? 'Current' : 'Upcoming');
+        ?>
+        <div class="gp-journey-step <?= $stepClass ?>">
+          <div class="gp-journey-dot" aria-hidden="true"><?= $stepIndex < $journeyCurrent ? '✓' : ($stepIndex + 1) ?></div>
+          <div class="gp-journey-text">
+            <div class="gp-journey-label"><?= $h($stepLabel) ?></div>
+            <div class="gp-journey-state"><?= $h($stepState) ?></div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </section>
 
   <div class="gp-layout">
     <!-- LEFT: Timeline -->

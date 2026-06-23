@@ -68,6 +68,31 @@ $initialBookingLabel = $hasInitialBookOption ? 'Book now' : (($isVenue || !$isSl
 $venueCapacity = !empty($venueRooms) ? max(array_map(function ($room) {
     return (int)($room['capacity'] ?? 1);
 }, $venueRooms)) : (int)($service['max_concurrent'] ?? 1);
+$serviceMaxBooking = max(1, $isVenue ? (int)$venueCapacity : (int)($service['max_concurrent'] ?? 9999));
+$modalQuantityLabel = 'Number Needed';
+if ($isVenue || strpos($categoryKey, 'venue') !== false || strpos($categoryKey, 'cater') !== false) {
+    $modalQuantityLabel = 'Guest Count';
+} elseif (
+    strpos($categoryKey, 'bridal') !== false
+    || strpos($categoryKey, 'makeup') !== false
+    || strpos($categoryKey, 'make up') !== false
+    || strpos($categoryKey, 'hair') !== false
+) {
+    $modalQuantityLabel = 'People to Be Styled';
+} elseif (
+    strpos($categoryKey, 'media') !== false
+    || strpos($categoryKey, 'photo') !== false
+    || strpos($categoryKey, 'video') !== false
+) {
+    $modalQuantityLabel = 'People Included';
+} elseif (
+    strpos($categoryKey, 'invitation') !== false
+    || strpos($categoryKey, 'invite') !== false
+    || strpos($categoryKey, 'stationery') !== false
+    || strpos($categoryKey, 'stationary') !== false
+) {
+    $modalQuantityLabel = 'Quantity Needed';
+}
 $metricCount = (int)($service['max_concurrent'] ?? 1);
 $pluralizeMetric = function ($count, $singular, $plural = null) {
     return (int)$count . ' ' . ((int)$count === 1 ? $singular : ($plural ?? $singular . 's'));
@@ -607,15 +632,15 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .top-pill {
-  min-height: 36px;
+  min-height: 40px;
   display: inline-flex; align-items: center; justify-content: center;
-  padding: 0 16px;
+  padding: 0 19px;
   border-radius: 999px;
   background: rgba(252,248,245,0.12);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(252,248,245,0.18);
   color: #fcf8f5;
-  font-size: 12px; font-weight: 700;
+  font-size: 13px; font-weight: 700;
   text-shadow: 0 1px 4px rgba(0,0,0,0.15);
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
@@ -892,16 +917,16 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .page-shell {
   position: relative;
   z-index: 3;
-  max-width: 1200px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 8px 24px 60px;
+  padding: 12px 28px 72px;
 }
 
 /* Product-style selected service detail */
 .product-detail {
   display: grid;
-  grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
-  gap: clamp(28px, 4vw, 48px);
+  grid-template-columns: minmax(0, 540px) minmax(0, 1fr);
+  gap: clamp(34px, 4.5vw, 64px);
   align-items: start;
   margin: 0 0 var(--pad-section);
 }
@@ -918,7 +943,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .product-media .gallery-main {
-  height: clamp(300px, 38vw, 440px);
+  height: clamp(340px, 42vw, 500px);
   background: #f3f1ef;
   border-radius: 8px;
   overflow: hidden;
@@ -966,7 +991,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
 .product-title {
   font-family: var(--font-sans);
-  font-size: clamp(24px, 2.5vw, 34px);
+  font-size: clamp(28px, 2.8vw, 40px);
   font-weight: 600;
   color: var(--ink);
   letter-spacing: 0;
@@ -998,7 +1023,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .product-price {
   margin-top: 10px;
   color: var(--ink);
-  font-size: clamp(20px, 2vw, 28px);
+  font-size: clamp(23px, 2.2vw, 32px);
   font-weight: 600;
 }
 
@@ -1010,7 +1035,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
 .product-about-title {
   color: var(--ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -1019,7 +1044,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .product-about-text {
   margin-top: 10px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.75;
   white-space: pre-line;
 }
@@ -1032,11 +1057,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
 
 .product-fact {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: 170px minmax(0, 1fr);
   gap: 16px;
   align-items: center;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .product-fact-label {
@@ -1077,10 +1102,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  padding: 0 28px;
+  min-height: 48px;
+  padding: 0 34px;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -2176,6 +2201,150 @@ button, input, select, textarea { font-family: var(--font-sans); }
   transform: translateY(0);
 }
 
+.gp-booking-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(26,17,24,0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.gp-booking-modal-backdrop.is-open {
+  display: flex;
+}
+.gp-booking-modal {
+  width: min(520px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow-y: auto;
+  border: 1px solid rgba(178,143,110,0.28);
+  border-radius: 18px;
+  background: #fffaf7;
+  box-shadow: 0 28px 80px rgba(26,17,24,0.24);
+}
+.gp-booking-modal-head {
+  padding: 22px 24px 14px;
+  border-bottom: 1px solid rgba(178,143,110,0.18);
+}
+.gp-booking-modal-title {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+.gp-booking-modal-copy {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.gp-booking-modal-body {
+  display: grid;
+  gap: 13px;
+  padding: 18px 24px 20px;
+}
+.gp-booking-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gp-booking-modal-field[hidden] {
+  display: none !important;
+}
+.gp-booking-modal-field label {
+  color: var(--wine-dark);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.gp-booking-modal-field.is-required label::after {
+  content: ' *';
+  color: #b94b4b;
+  font-weight: 900;
+}
+.gp-booking-modal-field input,
+.gp-booking-modal-field textarea {
+  width: 100%;
+  border: 1px solid rgba(118,90,70,0.18);
+  border-radius: 10px;
+  background: #fcf8f5;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 11px 12px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.gp-booking-modal-field textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+.gp-booking-modal-field input:focus,
+.gp-booking-modal-field textarea:focus {
+  border-color: rgba(107,68,89,0.44);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(107,68,89,0.08);
+}
+.gp-booking-modal-field.is-missing input,
+.gp-booking-modal-field.is-missing textarea {
+  border-color: #b94b4b;
+  background: #fff7f6;
+  box-shadow: 0 0 0 3px rgba(185,75,75,0.10);
+}
+.gp-booking-modal-limit {
+  display: none;
+  color: #b94b4b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.gp-booking-modal-limit.is-visible {
+  display: block;
+}
+.gp-booking-modal-error {
+  display: none;
+  margin: -2px 0 2px;
+  color: #b94b4b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.gp-booking-modal-error.is-visible {
+  display: block;
+}
+.gp-booking-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 24px 24px;
+}
+.gp-booking-modal-btn {
+  min-height: 42px;
+  border-radius: 8px;
+  border: 1px solid rgba(107,68,89,0.34);
+  padding: 0 16px;
+  background: transparent;
+  color: var(--wine);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.gp-booking-modal-btn.primary {
+  border-color: var(--wine);
+  background: var(--wine);
+  color: #fffaf7;
+}
+.gp-booking-modal-btn:hover {
+  transform: translateY(-1px);
+}
+
 /* ─── REVIEWS ───────────────────────────────────────── */
 .reviews-grid {
   display: grid;
@@ -2708,7 +2877,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .hero-cover { height: 70vh; min-height: 480px; }
   .package-context-strip { padding-top: 82px; }
   .product-detail { grid-template-columns: 1fr; }
-  .product-media .gallery-main { height: clamp(320px, 58vw, 460px); }
+  .product-media .gallery-main { height: clamp(340px, 58vw, 500px); }
   .hero-title { font-size: clamp(36px, 5vw, 56px); }
   .quick-stats { grid-template-columns: repeat(2, 1fr); }
   .split-section { grid-template-columns: 1fr; }
@@ -2734,10 +2903,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
   .hero-sub { font-size: 12px; gap: 14px; }
   .top-bar { padding: 10px 16px; }
   .top-bar-brand { font-size: 17px; }
-  .top-pill { min-height: 32px; padding: 0 12px; font-size: 11px; }
+  .top-pill { min-height: 34px; padding: 0 14px; font-size: 12px; }
   .page-shell { padding: 8px 16px 40px; margin-top: 18px; }
   .product-detail { gap: 24px; margin-top: 0; }
-  .product-media .gallery-main { height: 250px; }
+  .product-media .gallery-main { height: 280px; }
   .product-media .gallery-thumbs { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
   .product-media .gallery-thumb { height: 52px; }
   .product-fact { grid-template-columns: 1fr; gap: 4px; }
@@ -2913,7 +3082,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
       </div>
 
       <div class="product-actions">
-        <a class="product-action-primary" href="#detail-date">Book service</a>
+        <a class="product-action-primary" href="#<?= $isVenue ? 'available-halls' : 'availability' ?>">Book service</a>
         <a class="product-action-secondary" href="#reviews">View reviews</a>
       </div>
     </div>
@@ -3044,6 +3213,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
                             data-date-label="<?= $h($selectedDateLabel ?: 'Choose a wedding date') ?>"
                             data-hall-label="<?= $h($room['name'] ?: 'Selected hall') ?>"
                             data-time-label="<?= (int)($room['capacity'] ?? 1) ?> guests"
+                            data-max-booking="<?= (int)($room['capacity'] ?? 1) ?>"
                             data-price-label="<?= $money($roomDisplayPrice) ?>"
                             data-price-value="<?= $h($roomDisplayPrice) ?>"
                             data-slot-id=""
@@ -3428,6 +3598,49 @@ button, input, select, textarea { font-family: var(--font-sans); }
   <span><?= $isPackageContext ? 'Adding to package booking...' : 'Adding to cart...' ?></span>
 </div>
 
+<div class="gp-booking-modal-backdrop" id="bookingDetailsModal" role="dialog" aria-modal="true" aria-labelledby="bookingDetailsModalTitle" hidden
+     data-service-id="<?= (int)($service['id'] ?? 0) ?>"
+     data-service-name="<?= $h($service['name'] ?? $service['service_name'] ?? 'Service') ?>"
+     data-category-key="<?= $h($categoryKey) ?>"
+     data-field-mode="<?= $isVenue ? 'venue' : (strpos($categoryKey, 'cater') !== false ? 'catering' : ((strpos($categoryKey, 'photo') !== false || strpos($categoryKey, 'video') !== false || strpos($categoryKey, 'media') !== false) ? 'media' : ((strpos($categoryKey, 'beauty') !== false || strpos($categoryKey, 'bridal') !== false || strpos($categoryKey, 'makeup') !== false || strpos($categoryKey, 'make up') !== false) ? 'beauty' : ((strpos($categoryKey, 'invitation') !== false || strpos($categoryKey, 'stationery') !== false || strpos($categoryKey, 'stationary') !== false) ? 'stationery' : 'general')))) ?>">
+  <div class="gp-booking-modal">
+    <div class="gp-booking-modal-head">
+      <h2 class="gp-booking-modal-title" id="bookingDetailsModalTitle">Details for this service</h2>
+      <p class="gp-booking-modal-copy">You can add these details now, or skip and complete them on the confirmation page.</p>
+    </div>
+    <div class="gp-booking-modal-body">
+      <div class="gp-booking-modal-field" data-modal-field="guests">
+        <label for="booking-modal-guests" data-quantity-label><?= $h($modalQuantityLabel) ?></label>
+        <input id="booking-modal-guests" type="number" min="0" max="<?= (int)$serviceMaxBooking ?>" data-max-booking="<?= (int)$serviceMaxBooking ?>" inputmode="numeric" placeholder="e.g. 120">
+        <p class="gp-booking-modal-limit is-visible" data-booking-modal-limit>
+          <?= $isVenue ? 'Suggested from selected hall max: ' . (int)$serviceMaxBooking . ' guests' : 'Suggested maximum booking: ' . (int)$serviceMaxBooking ?>
+        </p>
+      </div>
+      <div class="gp-booking-modal-field" data-modal-field="location">
+        <label for="booking-modal-location" data-location-label>Venue / hall / room / location</label>
+        <input id="booking-modal-location" type="text" placeholder="e.g. Ballroom A">
+      </div>
+      <div class="gp-booking-modal-field" data-modal-field="contactName">
+        <label for="booking-modal-contact-name">Contact name</label>
+        <input id="booking-modal-contact-name" type="text" placeholder="Contact name">
+      </div>
+      <div class="gp-booking-modal-field" data-modal-field="contactPhone">
+        <label for="booking-modal-contact-phone">Contact phone</label>
+        <input id="booking-modal-contact-phone" type="tel" placeholder="+95 9 123 456 789">
+      </div>
+      <div class="gp-booking-modal-field" data-modal-field="notes">
+        <label for="booking-modal-notes" data-notes-label>Notes</label>
+        <textarea id="booking-modal-notes" placeholder="Any specific requirements for this service..."></textarea>
+      </div>
+      <p class="gp-booking-modal-error" id="bookingDetailsModalError">Please complete the highlighted fields, or choose Skip for now.</p>
+    </div>
+    <div class="gp-booking-modal-actions">
+      <button class="gp-booking-modal-btn" type="button" data-booking-modal-skip>Skip for now</button>
+      <button class="gp-booking-modal-btn primary" type="button" data-booking-modal-continue>Continue to Selected Services</button>
+    </div>
+  </div>
+</div>
+
 <!-- Mobile bottom booking bar -->
 <div class="mobile-book-bar" id="mobileBookBar">
   <div class="mobile-book-row">
@@ -3526,6 +3739,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const estimatedTotal = document.querySelector('.estimated-row strong');
   const mobileBookPrice = document.querySelector('.mobile-book-price');
   const serviceId = <?= (int)($service['id'] ?? 0) ?>;
+  const bookingDetailsModal = document.getElementById('bookingDetailsModal');
   const summaryCapacityText = <?= json_encode($summaryCapacityMetricValue) ?>;
 
   const gpCalendar = document.getElementById('gpCalendarPopover');
@@ -3744,6 +3958,207 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileBookBtn.addEventListener('click', (event) => {
       event.preventDefault();
       addCartLink.click();
+    });
+  }
+
+  if (serviceCartForm && bookingDetailsModal) {
+    const modalFields = {
+      guests: document.getElementById('booking-modal-guests'),
+      location: document.getElementById('booking-modal-location'),
+      contactName: document.getElementById('booking-modal-contact-name'),
+      contactPhone: document.getElementById('booking-modal-contact-phone'),
+      notes: document.getElementById('booking-modal-notes')
+    };
+    const modalMode = bookingDetailsModal.dataset.fieldMode || 'general';
+    const locationLabel = bookingDetailsModal.querySelector('[data-location-label]');
+    const notesLabel = bookingDetailsModal.querySelector('[data-notes-label]');
+    const modalError = document.getElementById('bookingDetailsModalError');
+    const modalLimitMessage = bookingDetailsModal.querySelector('[data-booking-modal-limit]');
+    const fieldWraps = Array.from(bookingDetailsModal.querySelectorAll('[data-modal-field]'));
+    const modes = {
+      venue: ['guests', 'location', 'contactName', 'contactPhone', 'notes'],
+      catering: ['guests', 'location', 'contactName', 'contactPhone', 'notes'],
+      beauty: ['guests', 'location', 'contactName', 'contactPhone', 'notes'],
+      media: ['guests', 'location', 'contactName', 'contactPhone', 'notes'],
+      stationery: ['guests', 'contactName', 'contactPhone', 'notes'],
+      general: ['guests', 'location', 'contactName', 'contactPhone', 'notes']
+    };
+    const labels = {
+      venue: { location: 'Venue / hall / room / location', notes: 'Notes' },
+      catering: { location: 'Serving location', notes: 'Notes' },
+      beauty: { location: 'Preparation location', notes: 'Notes' },
+      media: { location: 'Shoot location', notes: 'Notes' },
+      stationery: { notes: 'Delivery / pickup notes' },
+      general: { location: 'Location', notes: 'Notes' }
+    };
+    const visibleFields = modes[modalMode] || modes.general;
+    fieldWraps.forEach(wrap => {
+      const fieldName = wrap.dataset.modalField || '';
+      wrap.hidden = !visibleFields.includes(fieldName);
+      wrap.classList.toggle('is-required', !wrap.hidden && fieldName !== 'notes');
+    });
+    if (locationLabel && labels[modalMode]?.location) locationLabel.textContent = labels[modalMode].location;
+    if (notesLabel && labels[modalMode]?.notes) notesLabel.textContent = labels[modalMode].notes;
+    const updateModalGuestMax = () => {
+      const guestField = modalFields.guests;
+      if (!guestField) return;
+      const selectedOption = document.querySelector("input[name='service_slot']:checked");
+      const selectedMax = parseInt(selectedOption?.dataset?.maxBooking || '', 10);
+      const max = Number.isFinite(selectedMax) && selectedMax > 0
+        ? selectedMax
+        : (parseInt(guestField.dataset.maxBooking || guestField.getAttribute('max') || '9999', 10) || 9999);
+      guestField.dataset.maxBooking = String(max);
+      guestField.max = String(max);
+      if (modalLimitMessage) {
+        modalLimitMessage.textContent = modalMode === 'venue'
+          ? 'Suggested from selected hall max: ' + max.toLocaleString('en-US') + ' guests'
+          : 'Suggested maximum booking: ' + max.toLocaleString('en-US');
+        modalLimitMessage.classList.add('is-visible');
+      }
+    };
+    const clampModalGuestLimit = (showMessage = false) => {
+      const guestField = modalFields.guests;
+      if (!guestField) return;
+      const max = parseInt(guestField.dataset.maxBooking || guestField.getAttribute('max') || '9999', 10) || 9999;
+      let value = parseInt(guestField.value || '0', 10);
+      const wasAboveMax = Number.isFinite(value) && value > max;
+      if (wasAboveMax) {
+        guestField.value = String(max);
+      }
+      if (modalLimitMessage) {
+        modalLimitMessage.textContent = wasAboveMax
+          ? 'This supplier can accept up to ' + max.toLocaleString('en-US') + ' for this booking.'
+          : (modalMode === 'venue'
+            ? 'Suggested from selected hall max: ' + max.toLocaleString('en-US') + ' guests'
+            : 'Suggested maximum booking: ' + max.toLocaleString('en-US'));
+        modalLimitMessage.classList.toggle('is-visible', true);
+      }
+    };
+    const clearModalErrors = () => {
+      fieldWraps.forEach(wrap => wrap.classList.remove('is-missing'));
+      modalError?.classList.remove('is-visible');
+    };
+    Object.values(modalFields).forEach(field => {
+      field?.addEventListener('input', () => {
+        if (field === modalFields.guests) clampModalGuestLimit(true);
+        field.closest('.gp-booking-modal-field')?.classList.remove('is-missing');
+        if (!fieldWraps.some(wrap => wrap.classList.contains('is-missing'))) {
+          modalError?.classList.remove('is-visible');
+        }
+      });
+      field?.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' || field.tagName === 'TEXTAREA') return;
+        event.preventDefault();
+        const visibleInputs = fieldWraps
+          .filter(wrap => !wrap.hidden)
+          .map(wrap => wrap.querySelector('input, textarea'))
+          .filter(Boolean);
+        const currentIndex = visibleInputs.indexOf(field);
+        const nextField = visibleInputs[currentIndex + 1];
+        if (nextField) nextField.focus();
+        else bookingDetailsModal.querySelector('[data-booking-modal-continue]')?.focus();
+      });
+    });
+    const validateModalDetails = () => {
+      clearModalErrors();
+      let firstMissing = null;
+      visibleFields.forEach(fieldName => {
+        if (fieldName === 'notes') return;
+        const field = modalFields[fieldName];
+        const wrap = field?.closest('.gp-booking-modal-field');
+        if (!field || !wrap || wrap.hidden) return;
+        const empty = field.type === 'number'
+          ? String(field.value || '').trim() === '' || Number(field.value) <= 0
+          : String(field.value || '').trim() === '';
+        if (fieldName === 'guests') clampModalGuestLimit(true);
+        if (!empty) return;
+        wrap.classList.add('is-missing');
+        if (!firstMissing) firstMissing = field;
+      });
+      if (firstMissing) {
+        modalError?.classList.add('is-visible');
+        firstMissing.focus();
+        return false;
+      }
+      return true;
+    };
+
+    const openBookingDetailsModal = () => {
+      updateModalGuestMax();
+      clampModalGuestLimit(false);
+      clearModalErrors();
+      bookingDetailsModal.hidden = false;
+      bookingDetailsModal.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      const firstVisible = fieldWraps.find(wrap => !wrap.hidden)?.querySelector('input, textarea');
+      firstVisible?.focus();
+    };
+    const closeBookingDetailsModal = () => {
+      bookingDetailsModal.classList.remove('is-open');
+      bookingDetailsModal.hidden = true;
+      document.body.style.overflow = '';
+    };
+    const submitOriginalCartForm = () => {
+      serviceCartForm.dataset.bookingModalBypass = '1';
+      if (typeof serviceCartForm.requestSubmit === 'function') {
+        serviceCartForm.requestSubmit();
+      } else {
+        serviceCartForm.submit();
+      }
+    };
+    const saveModalDraft = () => {
+      const detailDraft = {
+        serviceId: String(bookingDetailsModal.dataset.serviceId || serviceId || ''),
+        serviceName: bookingDetailsModal.dataset.serviceName || '',
+        categoryKey: bookingDetailsModal.dataset.categoryKey || '',
+        values: {
+          guests: modalFields.guests?.value || '',
+          location: modalFields.location?.value || '',
+          contactName: modalFields.contactName?.value || '',
+          contactPhone: modalFields.contactPhone?.value || '',
+          notes: modalFields.notes?.value || ''
+        },
+        savedAt: Date.now()
+      };
+      try {
+        const storageKey = 'gpBookingDetailDrafts';
+        const existing = JSON.parse(sessionStorage.getItem(storageKey) || '[]').filter(item => String(item.serviceId || '') !== detailDraft.serviceId);
+        existing.push(detailDraft);
+        sessionStorage.setItem(storageKey, JSON.stringify(existing.slice(-12)));
+      } catch (error) {
+        // Optional enhancement only; the normal booking flow still continues.
+      }
+    };
+
+    serviceCartForm.addEventListener('submit', (event) => {
+      if (serviceCartForm.dataset.bookingModalBypass === '1') {
+        return;
+      }
+      const currentSelection = document.querySelector("input[name='service_slot']:checked");
+      if (currentSelection) updateSelectedSlot(currentSelection);
+      const currentFullday = document.querySelector('[data-fullday-row].is-selected');
+      if (currentFullday) updateSelectedFulldayRow(currentFullday);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openBookingDetailsModal();
+    }, true);
+
+    bookingDetailsModal.querySelector('[data-booking-modal-skip]')?.addEventListener('click', () => {
+      clearModalErrors();
+      closeBookingDetailsModal();
+      submitOriginalCartForm();
+    });
+    bookingDetailsModal.querySelector('[data-booking-modal-continue]')?.addEventListener('click', () => {
+      if (!validateModalDetails()) return;
+      saveModalDraft();
+      closeBookingDetailsModal();
+      submitOriginalCartForm();
+    });
+    bookingDetailsModal.addEventListener('click', (event) => {
+      if (event.target === bookingDetailsModal) closeBookingDetailsModal();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !bookingDetailsModal.hidden) closeBookingDetailsModal();
     });
   }
 
