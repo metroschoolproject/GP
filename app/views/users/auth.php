@@ -716,19 +716,113 @@
 
   <!-- card -->
   <div class="relative w-full max-w-[480px]">
-    <!-- Ornate frame corners -->
-    <svg class="absolute -top-3 -left-3 w-10 h-10 pointer-events-none" viewBox="0 0 40 40" fill="none"><path d="M2 38V20C2 10.059 10.059 2 20 2h18" stroke="#c8a882" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><circle cx="2" cy="38" r="2" fill="#c8a882" opacity="0.5"/><path d="M6 38V24c0-7.732 6.268-14 14-14h18" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.3"/></svg>
-    <svg class="absolute -top-3 -right-3 w-10 h-10 pointer-events-none" viewBox="0 0 40 40" fill="none" style="transform:scaleX(-1)"><path d="M2 38V20C2 10.059 10.059 2 20 2h18" stroke="#c8a882" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><circle cx="2" cy="38" r="2" fill="#c8a882" opacity="0.5"/><path d="M6 38V24c0-7.732 6.268-14 14-14h18" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.3"/></svg>
-    <!-- Top center ornament -->
-    <svg class="absolute -top-2 left-1/2 -translate-x-1/2 pointer-events-none" width="40" height="12" viewBox="0 0 40 12" fill="none"><path d="M4 10C10 10 12 4 20 4C28 4 30 10 36 10" stroke="#c8a882" stroke-width="1" stroke-linecap="round" opacity="0.5"/><circle cx="20" cy="2" r="1.5" fill="#c8a882" opacity="0.4"/><line x1="0" y1="10" x2="14" y2="10" stroke="#c8a882" stroke-width="0.75" opacity="0.3"/><line x1="26" y1="10" x2="40" y2="10" stroke="#c8a882" stroke-width="0.75" opacity="0.3"/></svg>
-    <svg class="absolute -bottom-3 -left-3 w-10 h-10 pointer-events-none" viewBox="0 0 40 40" fill="none" style="transform:scaleY(-1)"><path d="M2 38V20C2 10.059 10.059 2 20 2h18" stroke="#c8a882" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><circle cx="2" cy="38" r="2" fill="#c8a882" opacity="0.5"/><path d="M6 38V24c0-7.732 6.268-14 14-14h18" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.3"/></svg>
-    <svg class="absolute -bottom-3 -right-3 w-10 h-10 pointer-events-none" viewBox="0 0 40 40" fill="none" style="transform:scale(-1,-1)"><path d="M2 38V20C2 10.059 10.059 2 20 2h18" stroke="#c8a882" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/><circle cx="2" cy="38" r="2" fill="#c8a882" opacity="0.5"/><path d="M6 38V24c0-7.732 6.268-14 14-14h18" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.3"/></svg>
-    <!-- Bottom center ornament -->
-    <svg class="absolute -bottom-2 left-1/2 -translate-x-1/2 pointer-events-none" width="40" height="12" viewBox="0 0 40 12" fill="none" style="transform:translateX(-50%) scaleY(-1)"><path d="M4 10C10 10 12 4 20 4C28 4 30 10 36 10" stroke="#c8a882" stroke-width="1" stroke-linecap="round" opacity="0.5"/><circle cx="20" cy="2" r="1.5" fill="#c8a882" opacity="0.4"/><line x1="0" y1="10" x2="14" y2="10" stroke="#c8a882" stroke-width="0.75" opacity="0.3"/><line x1="26" y1="10" x2="40" y2="10" stroke="#c8a882" stroke-width="0.75" opacity="0.3"/></svg>
-    <!-- Left side ornament -->
-    <svg class="absolute -left-2 top-1/2 -translate-y-1/2 pointer-events-none" width="8" height="40" viewBox="0 0 8 40" fill="none"><path d="M6 4C6 12 2 16 2 20C2 24 6 28 6 36" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.35"/><circle cx="4" cy="20" r="1" fill="#c8a882" opacity="0.3"/></svg>
-    <!-- Right side ornament -->
-    <svg class="absolute -right-2 top-1/2 -translate-y-1/2 pointer-events-none" width="8" height="40" viewBox="0 0 8 40" fill="none" style="transform:translateY(-50%) scaleX(-1)"><path d="M6 4C6 12 2 16 2 20C2 24 6 28 6 36" stroke="#c8a882" stroke-width="0.75" stroke-linecap="round" opacity="0.35"/><circle cx="4" cy="20" r="1" fill="#c8a882" opacity="0.3"/></svg>
+    <!-- Vintage filigree corners -->
+    <svg class="absolute -top-5 -left-5 w-16 h-16 pointer-events-none" viewBox="0 0 64 64" fill="none">
+      <path d="M4 60V32C4 16.536 16.536 4 32 4h28" stroke="#c8a882" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+      <path d="M8 60V36C8 20.536 20.536 8 36 8h20" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.3"/>
+      <circle cx="4" cy="60" r="2.5" fill="none" stroke="#c8a882" stroke-width="1" opacity="0.5"/>
+      <circle cx="4" cy="60" r="1" fill="#c8a882" opacity="0.4"/>
+      <path d="M10 52c0-6 4-10 8-12" stroke="#c8a882" stroke-width="0.7" stroke-linecap="round" opacity="0.35"/>
+      <path d="M4 46c4-2 8-2 10-6" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <circle cx="32" cy="4" r="1.5" fill="none" stroke="#c8a882" stroke-width="0.8" opacity="0.35"/>
+      <circle cx="32" cy="4" r="0.5" fill="#c8a882" opacity="0.3"/>
+      <path d="M48 4c0 4-4 6-6 8" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <path d="M4 60V32C4 16.536 16.536 4 32 4h28" stroke="#c8a882" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+      <path d="M8 60V36C8 20.536 20.536 8 36 8h20" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.3"/>
+      <circle cx="4" cy="60" r="2.5" fill="none" stroke="#c8a882" stroke-width="1" opacity="0.5"/>
+      <circle cx="4" cy="60" r="1" fill="#c8a882" opacity="0.4"/>
+      <path d="M10 52c0-6 4-10 8-12" stroke="#c8a882" stroke-width="0.7" stroke-linecap="round" opacity="0.35"/>
+      <path d="M4 46c4-2 8-2 10-6" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <circle cx="32" cy="4" r="1.5" fill="none" stroke="#c8a882" stroke-width="0.8" opacity="0.35"/>
+      <circle cx="32" cy="4" r="0.5" fill="#c8a882" opacity="0.3"/>
+      <path d="M48 4c0 4-4 6-6 8" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <!-- Filigree scroll -->
+      <path d="M12 56c-2-4 0-10 4-14s10-4 14-2" stroke="#c8a882" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <path d="M18 50c-1-3 1-7 4-9" stroke="#c8a882" stroke-width="0.5" stroke-linecap="round" fill="none" opacity="0.2"/>
+      <circle cx="34" cy="14" r="1" fill="#c8a882" opacity="0.2"/>
+    </svg>
+    <svg class="absolute -top-5 -right-5 w-16 h-16 pointer-events-none" viewBox="0 0 64 64" fill="none" style="transform:scaleX(-1)">
+      <path d="M4 60V32C4 16.536 16.536 4 32 4h28" stroke="#c8a882" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+      <path d="M8 60V36C8 20.536 20.536 8 36 8h20" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.3"/>
+      <circle cx="4" cy="60" r="2.5" fill="none" stroke="#c8a882" stroke-width="1" opacity="0.5"/>
+      <circle cx="4" cy="60" r="1" fill="#c8a882" opacity="0.4"/>
+      <path d="M10 52c0-6 4-10 8-12" stroke="#c8a882" stroke-width="0.7" stroke-linecap="round" opacity="0.35"/>
+      <path d="M4 46c4-2 8-2 10-6" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <circle cx="32" cy="4" r="1.5" fill="none" stroke="#c8a882" stroke-width="0.8" opacity="0.35"/>
+      <circle cx="32" cy="4" r="0.5" fill="#c8a882" opacity="0.3"/>
+      <path d="M48 4c0 4-4 6-6 8" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <path d="M12 56c-2-4 0-10 4-14s10-4 14-2" stroke="#c8a882" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <path d="M18 50c-1-3 1-7 4-9" stroke="#c8a882" stroke-width="0.5" stroke-linecap="round" fill="none" opacity="0.2"/>
+      <circle cx="34" cy="14" r="1" fill="#c8a882" opacity="0.2"/>
+    </svg>
+    <svg class="absolute -bottom-5 -left-5 w-16 h-16 pointer-events-none" viewBox="0 0 64 64" fill="none" style="transform:scaleY(-1)">
+      <path d="M4 60V32C4 16.536 16.536 4 32 4h28" stroke="#c8a882" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+      <path d="M8 60V36C8 20.536 20.536 8 36 8h20" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.3"/>
+      <circle cx="4" cy="60" r="2.5" fill="none" stroke="#c8a882" stroke-width="1" opacity="0.5"/>
+      <circle cx="4" cy="60" r="1" fill="#c8a882" opacity="0.4"/>
+      <path d="M10 52c0-6 4-10 8-12" stroke="#c8a882" stroke-width="0.7" stroke-linecap="round" opacity="0.35"/>
+      <path d="M4 46c4-2 8-2 10-6" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <circle cx="32" cy="4" r="1.5" fill="none" stroke="#c8a882" stroke-width="0.8" opacity="0.35"/>
+      <circle cx="32" cy="4" r="0.5" fill="#c8a882" opacity="0.3"/>
+      <path d="M48 4c0 4-4 6-6 8" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <path d="M12 56c-2-4 0-10 4-14s10-4 14-2" stroke="#c8a882" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <path d="M18 50c-1-3 1-7 4-9" stroke="#c8a882" stroke-width="0.5" stroke-linecap="round" fill="none" opacity="0.2"/>
+      <circle cx="34" cy="14" r="1" fill="#c8a882" opacity="0.2"/>
+    </svg>
+    <svg class="absolute -bottom-5 -right-5 w-16 h-16 pointer-events-none" viewBox="0 0 64 64" fill="none" style="transform:scale(-1,-1)">
+      <path d="M4 60V32C4 16.536 16.536 4 32 4h28" stroke="#c8a882" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+      <path d="M8 60V36C8 20.536 20.536 8 36 8h20" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.3"/>
+      <circle cx="4" cy="60" r="2.5" fill="none" stroke="#c8a882" stroke-width="1" opacity="0.5"/>
+      <circle cx="4" cy="60" r="1" fill="#c8a882" opacity="0.4"/>
+      <path d="M10 52c0-6 4-10 8-12" stroke="#c8a882" stroke-width="0.7" stroke-linecap="round" opacity="0.35"/>
+      <path d="M4 46c4-2 8-2 10-6" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <circle cx="32" cy="4" r="1.5" fill="none" stroke="#c8a882" stroke-width="0.8" opacity="0.35"/>
+      <circle cx="32" cy="4" r="0.5" fill="#c8a882" opacity="0.3"/>
+      <path d="M48 4c0 4-4 6-6 8" stroke="#c8a882" stroke-width="0.6" stroke-linecap="round" opacity="0.25"/>
+      <path d="M12 56c-2-4 0-10 4-14s10-4 14-2" stroke="#c8a882" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.3"/>
+      <path d="M18 50c-1-3 1-7 4-9" stroke="#c8a882" stroke-width="0.5" stroke-linecap="round" fill="none" opacity="0.2"/>
+      <circle cx="34" cy="14" r="1" fill="#c8a882" opacity="0.2"/>
+    </svg>
+    <!-- Top edge filigree -->
+    <svg class="absolute -top-3 left-1/2 -translate-x-1/2 pointer-events-none" width="120" height="16" viewBox="0 0 120 16" fill="none">
+      <line x1="0" y1="12" x2="35" y2="12" stroke="#c8a882" stroke-width="0.6" opacity="0.3"/>
+      <line x1="85" y1="12" x2="120" y2="12" stroke="#c8a882" stroke-width="0.6" opacity="0.3"/>
+      <path d="M40 12C45 12 48 6 60 6C72 6 75 12 80 12" stroke="#c8a882" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.45"/>
+      <path d="M48 12C52 12 54 8 60 8C66 8 68 12 72 12" stroke="#c8a882" stroke-width="0.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+      <circle cx="60" cy="4" r="2" fill="none" stroke="#c8a882" stroke-width="0.8" opacity="0.4"/>
+      <circle cx="60" cy="4" r="0.8" fill="#c8a882" opacity="0.35"/>
+      <path d="M52 10l-2-3" stroke="#c8a882" stroke-width="0.4" stroke-linecap="round" opacity="0.2"/>
+      <path d="M68 10l2-3" stroke="#c8a882" stroke-width="0.4" stroke-linecap="round" opacity="0.2"/>
+    </svg>
+    <!-- Bottom edge filigree -->
+    <svg class="absolute -bottom-3 left-1/2 -translate-x-1/2 pointer-events-none" width="120" height="16" viewBox="0 0 120 16" fill="none" style="transform:translateX(-50%) scaleY(-1)">
+      <line x1="0" y1="12" x2="35" y2="12" stroke="#c8a882" stroke-width="0.6" opacity="0.3"/>
+      <line x1="85" y1="12" x2="120" y2="12" stroke="#c8a882" stroke-width="0.6" opacity="0.3"/>
+      <path d="M40 12C45 12 48 6 60 6C72 6 75 12 80 12" stroke="#c8a882" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.45"/>
+      <path d="M48 12C52 12 54 8 60 8C66 8 68 12 72 12" stroke="#c8a882" stroke-width="0.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+      <circle cx="60" cy="4" r="2" fill="none" stroke="#c8a882" stroke-width="0.8" opacity="0.4"/>
+      <circle cx="60" cy="4" r="0.8" fill="#c8a882" opacity="0.35"/>
+      <path d="M52 10l-2-3" stroke="#c8a882" stroke-width="0.4" stroke-linecap="round" opacity="0.2"/>
+      <path d="M68 10l2-3" stroke="#c8a882" stroke-width="0.4" stroke-linecap="round" opacity="0.2"/>
+    </svg>
+    <!-- Left edge filigree -->
+    <svg class="absolute -left-3 top-1/2 -translate-y-1/2 pointer-events-none" width="16" height="80" viewBox="0 0 16 80" fill="none">
+      <line x1="10" y1="0" x2="10" y2="20" stroke="#c8a882" stroke-width="0.6" opacity="0.3"/>
+      <line x1="10" y1="60" x2="10" y2="80" stroke="#c8a882" stroke-width="0.6" opacity="0.3"/>
+      <path d="M10 25C10 32 4 36 4 40C4 44 10 48 10 55" stroke="#c8a882" stroke-width="0.7" stroke-linecap="round" fill="none" opacity="0.35"/>
+      <path d="M10 30C10 35 6 38 6 40C6 42 10 45 10 50" stroke="#c8a882" stroke-width="0.4" stroke-linecap="round" fill="none" opacity="0.2"/>
+      <circle cx="6" cy="40" r="1.5" fill="none" stroke="#c8a882" stroke-width="0.7" opacity="0.3"/>
+      <circle cx="6" cy="40" r="0.5" fill="#c8a882" opacity="0.25"/>
+    </svg>
+    <!-- Right edge filigree -->
+    <svg class="absolute -right-3 top-1/2 -translate-y-1/2 pointer-events-none" width="16" height="80" viewBox="0 0 16 80" fill="none" style="transform:translateY(-50%) scaleX(-1)">
+      <line x1="10" y1="0" x2="10" y2="20" stroke="#c8a882" stroke-width="0.6" opacity="0.3"/>
+      <line x1="10" y1="60" x2="10" y2="80" stroke="#c8a882" stroke-width="0.6" opacity="0.3"/>
+      <path d="M10 25C10 32 4 36 4 40C4 44 10 48 10 55" stroke="#c8a882" stroke-width="0.7" stroke-linecap="round" fill="none" opacity="0.35"/>
+      <path d="M10 30C10 35 6 38 6 40C6 42 10 45 10 50" stroke="#c8a882" stroke-width="0.4" stroke-linecap="round" fill="none" opacity="0.2"/>
+      <circle cx="6" cy="40" r="1.5" fill="none" stroke="#c8a882" stroke-width="0.7" opacity="0.3"/>
+      <circle cx="6" cy="40" r="0.5" fill="#c8a882" opacity="0.25"/>
+    </svg>
     <!-- Inner card -->
     <div class="relative w-full rounded-[24px] bg-[#faf5ef]" style="height:auto;border:1.5px solid #dbc6b0;box-shadow:0 20px 40px rgba(15,23,42,0.08),0 0 0 1px rgba(212,160,71,0.06),0 0 40px rgba(212,160,71,0.04);">
     <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
