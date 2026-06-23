@@ -715,7 +715,7 @@
   </div>
 
   <!-- card -->
-  <div class="relative w-full max-w-[480px] rounded-[24px] border border-[#ead8c7] bg-[#faf5ef] shadow-[0_20px_40px_rgba(15,23,42,0.08)]" style="height: auto;">
+  <div class="relative w-full max-w-[480px] rounded-[24px] bg-[#faf5ef]" style="height:auto;border:1.5px solid #dbc6b0;box-shadow:0 20px 40px rgba(15,23,42,0.08),0 0 0 1px rgba(212,160,71,0.06),0 0 40px rgba(212,160,71,0.04);">
     <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
     <div class="auth-loading-overlay" id="authLoadingOverlay" aria-hidden="true">
       <div class="auth-loading-panel" role="status" aria-live="polite">
