@@ -90,9 +90,11 @@ class WishlistModel
             "SELECT c.*, COUNT(f.id) AS item_count
              FROM wishlist_collections c
              LEFT JOIN favorites f ON f.collection_id = c.id
+             WHERE c.user_id = :uid
              GROUP BY c.id
              ORDER BY c.sort_order ASC, c.created_at ASC"
         );
+        $this->db->dbbind(':uid', $userId);
         $collections = $this->db->getmultidata() ?: [];
 
         // "All Saved" count (items with no collection)

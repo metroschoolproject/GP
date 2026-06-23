@@ -24,6 +24,31 @@ function toggleStrengthUI(show) {
 
 
 
+function updateRequirements(value) {
+  const reqs = {
+    reqLength: value.length >= 8,
+    reqUpper:  /[A-Z]/.test(value),
+    reqLower:  /[a-z]/.test(value),
+    reqNumber: /[0-9]/.test(value),
+    reqSymbol: /[^A-Za-z0-9]/.test(value),
+  };
+  Object.entries(reqs).forEach(([id, met]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('met', met);
+    el.textContent = el.dataset.label || '';
+  });
+}
+
+function resetRequirements() {
+  ['reqLength','reqUpper','reqLower','reqNumber','reqSymbol'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('met');
+    el.textContent = el.dataset.label || '';
+  });
+}
+
 function updateStrength() {
   if (isSignIn || passwordInput.value.trim() === '') {
     hideStrengthUI();
@@ -34,6 +59,8 @@ function updateStrength() {
 
   const value = passwordInput.value;
 
+  updateRequirements(value);
+
   let score = 0;
 
   if (value.length >= 8) score++;
@@ -43,9 +70,9 @@ function updateStrength() {
 
   ['seg1','seg2','seg3','seg4']
     .forEach((id,index)=>{
-      document
-        .getElementById(id)
-        .classList.toggle('active', index < score);
+      const el = document.getElementById(id);
+      el.classList.toggle('active', index < score);
+      el.setAttribute('data-level', score);
     });
 
   const text = document.getElementById('strengthText');
@@ -66,6 +93,7 @@ function hideStrengthUI() {
     strengthBox.style.visibility = 'hidden';
   }
   resetStrength();
+  resetRequirements();
 }
 
 function showStrengthUI() {

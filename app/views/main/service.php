@@ -2751,6 +2751,49 @@ if('IntersectionObserver' in window){
   var wishlistPageUrl = '<?= URLROOT ?>/main/wishlist';
   var authUrl = '<?= URLROOT ?>/users/auth';
 
+  // Toast notification helper
+  function showWishlistToast(message, linkText, linkUrl) {
+    var existing = document.getElementById('gp-wishlist-toast');
+    if (existing) existing.remove();
+
+    var toast = document.createElement('div');
+    toast.id = 'gp-wishlist-toast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:12px;background:#34232b;color:#fcf8f5;font-size:13px;font-weight:600;font-family:Poppins,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25);animation:wToastIn .3s ease-out;max-width:90vw;';
+
+    var icon = document.createElement('span');
+    icon.style.cssText = 'font-size:18px;';
+    icon.textContent = '♥';
+
+    var text = document.createElement('span');
+    text.textContent = message;
+
+    toast.appendChild(icon);
+    toast.appendChild(text);
+
+    if (linkText && linkUrl) {
+      var link = document.createElement('a');
+      link.href = linkUrl;
+      link.textContent = linkText;
+      link.style.cssText = 'color:#e8b4b8;font-weight:700;text-decoration:underline;margin-left:4px;white-space:nowrap;';
+      toast.appendChild(link);
+    }
+
+    document.body.appendChild(toast);
+
+    setTimeout(function() {
+      toast.style.animation = 'wToastOut .3s ease-in forwards';
+      setTimeout(function() { toast.remove(); }, 300);
+    }, 3000);
+  }
+
+  // Add toast animations
+  if (!document.getElementById('gp-wishlist-toast-styles')) {
+    var style = document.createElement('style');
+    style.id = 'gp-wishlist-toast-styles';
+    style.textContent = '@keyframes wToastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes wToastOut{from{opacity:1;transform:translateX(-50%) translateY(0)}to{opacity:0;transform:translateX(-50%) translateY(20px)}}';
+    document.head.appendChild(style);
+  }
+
   document.querySelectorAll('.gp-heart, .gp-heart-light').forEach(function(btn){
     btn.addEventListener('click', function(e){
       e.preventDefault();
@@ -2781,20 +2824,33 @@ if('IntersectionObserver' in window){
             btn.classList.add('is-saved');
             btn.innerHTML = '♥';
             btn.dataset.saved = '1';
+            btn.style.transform = 'scale(1.3)';
+            setTimeout(function() { btn.style.transform = ''; }, 200);
+            showWishlistToast('Added to wishlist!', 'View wishlist', wishlistPageUrl);
           } else {
             btn.classList.remove('is-saved');
             btn.innerHTML = '♡';
             btn.dataset.saved = '0';
+            showWishlistToast('Removed from wishlist');
           }
-          // Update badge count
-          var badge = document.querySelector('.gp-header-actions .gp-cart-count');
-          if (badge && d.count !== undefined) {
-            badge.textContent = d.count > 0 ? d.count : '';
-            badge.style.display = d.count > 0 ? '' : 'none';
+          // Update nav wishlist badge
+          var navBadge = document.querySelector('.home-profile-menu-item[href*="wishlist"] span');
+          if (navBadge && d.count !== undefined) {
+            navBadge.textContent = d.count;
+            navBadge.style.display = d.count > 0 ? '' : 'none';
           }
+          // Also try to update any wishlist count badge in header
+          var headerBadges = document.querySelectorAll('[data-wishlist-count]');
+          headerBadges.forEach(function(b) {
+            b.textContent = d.count || '';
+            b.style.display = d.count > 0 ? '' : 'none';
+          });
         }
       })
-      .catch(function(){ btn.classList.remove('is-loading'); });
+      .catch(function(){
+        btn.classList.remove('is-loading');
+        showWishlistToast('Network error. Please try again.');
+      });
     });
   });
 })();

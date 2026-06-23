@@ -1891,7 +1891,10 @@ input[type="date"]:invalid {
                     <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>"
                            name="item_contact_phone[<?= $i ?>]"
                            value="<?= $h($user['phone'] ?? '') ?>"
-                           placeholder="+60 12 345 6789">
+                           placeholder="09xxxxxxxxx"
+                           inputmode="numeric" pattern="[0-9 ]{10,15}"
+                           minlength="10" maxlength="15"
+                           title="Phone number must be 10 to 11 digits.">
                   </div>
                 </div>
                 <div class="gp-detail-row" style="margin-top:12px;">
@@ -2504,6 +2507,12 @@ const packageScheduleState = new Map();
       if (!itemPhone) {
         missing.push('contact phone');
         rememberMissing(card.querySelector(`[name="item_contact_phone[${index}]"]`));
+      } else {
+        const phoneDigits = itemPhone.replace(/\D/g, '');
+        if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+          missing.push('contact phone (must be 10–11 digits)');
+          rememberMissing(card.querySelector(`[name="item_contact_phone[${index}]"]`));
+        }
       }
       if (!itemLocation) {
         missing.push('location');
@@ -2623,17 +2632,16 @@ const packageScheduleState = new Map();
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalSubmitHtml;
         } else {
-          const error = data.error || 'Something went wrong. Please try again.';
-          showBookingReminder([error], 'Please fix this before proceeding.');
+          const error = data.error || 'An unexpected error occurred.';
+          const title = data.error ? 'Please complete the following:' : 'Booking could not be completed';
+          showBookingReminder([error], title);
           showToast(error, 'error');
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalSubmitHtml;
         }
       })
       .catch(() => {
-        const error = 'Something went wrong. Please try again.';
-        showBookingReminder([error], 'Please fix this before proceeding.');
-        showToast(error, 'error');
+        showToast('Unable to reach the server. Please check your connection and try again.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalSubmitHtml;
       });

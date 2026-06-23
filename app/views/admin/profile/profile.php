@@ -277,6 +277,8 @@ textarea.form-input { height: auto; min-height: 90px; padding: 14px 16px; resize
 .pw-input-wrap .pw-input {
     padding-right: 46px;
 }
+.pw-input-wrap .pw-input::-webkit-credentials-auto-fill-button,
+.pw-input-wrap .pw-input::-ms-reveal { display: none !important; }
 .pw-eye {
     position: absolute; right: 6px; top: 50%;
     transform: translateY(-50%);

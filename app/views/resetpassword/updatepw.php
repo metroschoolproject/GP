@@ -32,6 +32,10 @@
     .psw_open_eye {
         display: none;
     }
+
+    /* Hide browser's native password reveal eye */
+    input[type="password"]::-webkit-credentials-auto-fill-button,
+    input[type="password"]::-ms-reveal { display: none !important; }
 </style>
 
 <body>

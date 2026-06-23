@@ -168,6 +168,20 @@ public function register()
                 exit;
             }
 
+            // Enforce minimum password strength (at least "Fair" = score 2)
+            $pwScore = 0;
+            if (strlen($data['password']) >= 8) $pwScore++;
+            if (preg_match('/[A-Z]/', $data['password'])) $pwScore++;
+            if (preg_match('/[0-9]/', $data['password'])) $pwScore++;
+            if (preg_match('/[^A-Za-z0-9]/', $data['password'])) $pwScore++;
+            if ($pwScore < 2) {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Password is too weak. Include uppercase letters, numbers, or symbols.'
+                ]);
+                exit;
+            }
+
             try {
                 $this->usermodel->cleanupStaleUnverifiedPublicAccounts(7);
             } catch (Exception $cleanupError) {

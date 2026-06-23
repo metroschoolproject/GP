@@ -1989,11 +1989,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       Services
     </a>
 
-    <a class="rounded-[8px] bg-[#3F241A] px-3.5 py-3 text-[13px] font-bold text-[#FFF8EF] hover:bg-[#4A2D22]" href="<?= URLROOT ?>/users/register?type=supplier">
+    <a class="rounded-[8px] bg-[#3F241A] px-3.5 py-3 text-[13px] font-semibold text-[#FFF8EF] transition duration-300 hover:-translate-y-0.5 hover:bg-[#4A2D22]" href="<?= URLROOT ?>/users/register?type=supplier">
       Be a Partner
     </a>
 
-    <a class="rounded-[8px] bg-[#FFF8EF] px-3.5 py-3 text-[13px] font-bold text-[#3F2F24] hover:bg-[#F3D9A4]" href="<?= $h($authNavUrl) ?>">
+    <a class="rounded-[8px] bg-[#FFF8EF] px-3.5 py-3 text-[13px] font-semibold text-[#3F2F24] transition duration-300 hover:bg-[#F3D9A4]" href="<?= $h($authNavUrl) ?>">
       <?= $h($authNavLabel) ?>
     </a>
 

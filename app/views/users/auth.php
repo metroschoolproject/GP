@@ -7,7 +7,7 @@
   <title>Sign In</title>
   <?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <style>
@@ -15,16 +15,22 @@
   :root {
     --env-bg: #e8b4b8;
     --env-dark: #d89aa0;
-    --env-border:#f4c7c4e5;
-    --paper: #f5e8d9;
+    --env-border: #ead8c7;
+    --paper: #faf5ef;
     --accent: #6d4c5b;
-    --header-font : "Pinyon Script", cursive;
-    --body-font: serif;
-    --body-font-color: rgba(250, 242, 238, 0.9);
-    --focus-color: rgb(247, 236, 236);
-    --input-field-color: rgba(249, 237, 228, 0.9);
-    --social-btn-hover: rgba(38, 2, 2, 0.471);
-    --placeholder: rgba(141, 140, 140, 0.743);
+    --header-font: "Playfair Display", Georgia, serif;
+    --body-font: "Poppins", system-ui, -apple-system, sans-serif;
+    --body-font-color: #111827;
+    --focus-color: #faf5ef;
+    --input-field-color: #fcf8f5;
+    --social-btn-hover: #f5e8d9;
+    --placeholder: #b79c8b;
+    --gold: #d4a047;
+    --gold-light: rgba(212, 160, 71, 0.12);
+    --muted: #b79c8b;
+    --c-danger: #b94b4b;
+    --bg: #f5e8d9;
+    --white: #fcf8f5;
 
     --scroll-height: 72px;
     --scroll-width: clamp(240px, 38vw, 360px);
@@ -36,8 +42,7 @@
     --open-delay: var(--intro-speed);
     --close-delay: calc(var(--intro-speed) + var(--open-speed) + var(--hold-speed));
     --outro-delay: calc(var(--close-delay) + var(--close-speed));
-    /* Link to your uploaded image here */
-    --paper-img: url('noti-bg.jpg'); 
+    --paper-img: url('noti-bg.jpg');
   }
 
   body{
@@ -45,15 +50,20 @@
     min-height: 100vh;
     margin: 0;
     align-items: center;
+    background:
+      radial-gradient(ellipse at 20% 8%, rgba(109,76,91,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 92%, rgba(183,156,139,0.07) 0%, transparent 55%),
+      var(--bg);
+    color: var(--body-font-color);
   }
 
-  /* text animation */
-  .char { 
-    display: inline-block; 
-    white-space: pre; 
+  /* text animation — soft luxury dissolve */
+  .char {
+    display: inline-block;
+    white-space: pre;
     opacity: 0;
-    filter: blur(8px); 
-    transform: scale(0.86); 
+    filter: blur(4px);
+    transform: scale(0.94);
   }
 
   #decorLine {
@@ -77,7 +87,7 @@
     overflow:visible;
   }
 
-  /* screen */
+  /* screen — luxury easing */
   .screen {
     position: absolute;
     inset: 0;
@@ -87,8 +97,8 @@
     opacity: 0;
     pointer-events: none;
     transform: translateX(40px);
-    transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1),
-                transform 0.45s cubic-bezier(0.4,0,0.2,1);
+    transition: opacity 0.5s cubic-bezier(.19, 1, .22, 1),
+                transform 0.5s cubic-bezier(.19, 1, .22, 1);
   }
 
   .screen.active {
@@ -111,7 +121,7 @@
 
   .main-heading {
     font-family: var(--header-font);
-    font-size: 44px;
+    font-size: 36px;
     font-weight: 600;
     color: var(--accent);
     line-height: 1.2;
@@ -121,18 +131,19 @@
 
   .sub-heading {
     font-family: var(--body-font);
-    font-size: 15px;
-    color: var(--accent);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--muted);
     line-height: 1.4;
   }
 
-  /* text fields */
+  /* text fields — luxury easing */
   .field-wrap {
     margin-bottom: 0;
     transition:
-      max-height 0.55s cubic-bezier(0.4,0,0.2,1),
-      opacity 0.48s cubic-bezier(0.4,0,0.2,1),
-      transform 0.48s cubic-bezier(0.4,0,0.2,1);
+      max-height 0.6s cubic-bezier(.19, 1, .22, 1),
+      opacity 0.5s cubic-bezier(.19, 1, .22, 1),
+      transform 0.5s cubic-bezier(.19, 1, .22, 1);
   }
 
   .field-wrap.visible {
@@ -156,13 +167,21 @@
     border: 1px solid var(--env-border);
     border-radius: 12px;
     padding: 20px 16px 12px;
-    font-size: 18px;
-    color: rgba(15, 1, 1, 0.9);
+    font-size: 16px;
+    font-weight: 500;
+    color: #111827;
     outline: none;
-    font-family: inherit;
-    box-shadow: 5px 5px 10px rgba(2, 2, 2, 0.332);
-    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    font-family: var(--body-font);
+    box-shadow: 0 1px 3px rgba(44, 36, 32, 0.04);
+    transition: border-color 0.25s cubic-bezier(.19, 1, .22, 1),
+                background 0.25s cubic-bezier(.19, 1, .22, 1),
+                box-shadow 0.3s cubic-bezier(.19, 1, .22, 1),
+                transform 0.25s cubic-bezier(.19, 1, .22, 1);
   }
+
+  /* Hide browser's native password reveal eye (Chrome, Edge, Safari) */
+  .decorated-input input::-webkit-credentials-auto-fill-button,
+  .decorated-input input::-ms-reveal { display: none !important; }
 
   .decorated-input input::placeholder {
     color: transparent;
@@ -173,8 +192,9 @@
     left: 18px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 14px;
-    color: #9aa4b2;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--placeholder);
     pointer-events: none;
     transition: all 0.25s ease;
   }
@@ -184,19 +204,23 @@
   .decorated-input input:not(:placeholder-shown) + label {
     top: 4px;
     transform: translateY(0);
-    font-size: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--accent);
-    letter-spacing: 0.3px;
   }
 
   .decorated-input input:focus {
-    border: 1px solid var(--accent);
-    box-shadow: 0 0 10px rgba(109, 76, 91, 0.45);
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-light), 0 8px 20px rgba(212, 160, 71, 0.08);
     background-color: var(--focus-color);
+    transform: translateY(-1px);
   }
 
   .decorated-input:hover input {
-    border-color: rgba(109, 76, 91, 0.6);
+    border-color: rgba(212, 160, 71, 0.35);
+    box-shadow: 0 2px 8px rgba(44, 36, 32, 0.06);
   }
 
   .decorated-input input:-webkit-autofill,
@@ -204,7 +228,7 @@
   .decorated-input input:-webkit-autofill:focus {
     -webkit-box-shadow: 0 0 0px 1000px var(--input-field-color) inset;
     box-shadow: 0 0 0px 1000px var(--input-field-color) inset;
-    -webkit-text-fill-color: rgba(15, 1, 1, 0.9);
+    -webkit-text-fill-color: #111827;
     transition: background-color 5000s ease-in-out 0s;
   }
 
@@ -234,27 +258,30 @@
 
 
 
-  /* button */
+  /* button — luxury */
   .btn {
-    width: 100%; 
-    padding: 14px; 
-    border-radius: 12px; 
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
     border: none;
-    font-size: 15px; 
-    font-weight: 600; 
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--body-font);
+    letter-spacing: 0.3px;
     cursor: pointer;
-    background-color: var(--accent);
-    color: #fcf8f5;
-    letter-spacing: 0.2px;
-    transition: transform 0.15s, box-shadow 0.15s, opacity 0.4s, filter 0.4s;
-    box-shadow:5px 5px 8px rgba(0, 0, 0, 0.628);
+    background: linear-gradient(135deg, var(--accent) 0%, #8b5e6f 100%);
+    color: var(--white);
+    box-shadow: 0 4px 14px rgba(109, 76, 91, 0.22);
     position: relative;
     overflow: hidden;
+    transition: transform 0.25s cubic-bezier(.19, 1, .22, 1),
+                box-shadow 0.25s cubic-bezier(.19, 1, .22, 1),
+                opacity 0.4s, filter 0.4s;
   }
 
-  .btn:hover { 
-    transform: translateY(-1px); 
-    box-shadow:5px 5px 8px rgba(0, 0, 0, 0.628);
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(109, 76, 91, 0.28);
   }
 
   .btn:active { transform: translateY(0); }
@@ -294,7 +321,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 24px;
-    background: rgba(250, 242, 237, 0.72);
+    background: rgba(250, 245, 239, 0.80);
     backdrop-filter: blur(10px);
   }
 
@@ -307,11 +334,11 @@
     width: min(78%, 280px);
     flex-direction: column;
     gap: 12px;
-    border: 1px solid rgba(109, 76, 91, 0.18);
+    border: 1px solid #ead8c7;
     border-radius: 14px;
-    background: rgba(255, 252, 249, 0.9);
+    background: rgba(250, 245, 239, 0.95);
     padding: 18px;
-    box-shadow: 0 18px 46px rgba(80, 40, 80, 0.16);
+    box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
   }
 
   .auth-loading-line {
@@ -342,11 +369,10 @@
 
   /* divider */
   .divider {
-    height:1px;
-    background:rgba(252,248,245,0.08);
-    margin:20px 0;
-    position:relative;
-    opacity: 1; 
+    height: 1px;
+    margin: 20px 0;
+    position: relative;
+    opacity: 1;
     transition: opacity 0.4s;
     display: flex;
     align-items: center;
@@ -354,81 +380,138 @@
   }
 
   .divider span {
-    padding: 0 10px;
-    font-size: 12px;
-    color: var(--accent);
+    padding: 0 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
     white-space: nowrap;
+    font-family: var(--body-font);
   }
 
   .divider::before,
   .divider::after {
     content: "";
     flex: 1;
-    border-bottom: 0.1px solid var(--accent);
+    border-bottom: 1px solid #ead8c7;
   }
 
   .divider::before { margin-right: 10px; }
   .divider::after { margin-left: 10px; }
 
-  /* social buttons */
+  /* social buttons — luxury */
   .social-btn {
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:10px;
-    border-radius:10px;
-    border:1px solid var(--accent);
-    background-color:var(--input-field-color);
-    cursor:pointer;
-    font-size:13px;
-    color: var(--accent);
-    transition:background 0.2s,border-color 0.2s;
-    font-family:inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #ead8c7;
+    background-color: var(--input-field-color);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: var(--body-font);
+    color: #3a2030;
+    transition: background 0.25s cubic-bezier(.19, 1, .22, 1),
+                border-color 0.25s cubic-bezier(.19, 1, .22, 1),
+                box-shadow 0.3s cubic-bezier(.19, 1, .22, 1),
+                transform 0.25s cubic-bezier(.19, 1, .22, 1);
   }
 
-  .social-btn:hover { 
-    background-color:var(--social-btn-hover);
-    border-color:var(--accent);
-    color: var(--paper);
+  .social-btn:hover {
+    background-color: var(--social-btn-hover);
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-light), 0 4px 12px rgba(212, 160, 71, 0.10);
+    color: #3a2030;
+    transform: translateY(-1px);
   }
 
-  .toggle-row { 
-    text-align:center;
-    margin-top:20px;
-    font-size:13.5px;
-    color:rgba(200,180,255,0.6); 
+  .toggle-row {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+    font-family: var(--body-font);
   }
 
-/* PASSWORD STRENGTH */
+/* PASSWORD STRENGTH — luxury redesign */
 
-.strength-seg{
-  flex:1;
-  height:3px;
-  border-radius:999px;
-  background:rgba(109,76,91,0.15);
-  transition:background 0.3s;
+.strength-seg {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(109, 76, 91, 0.10);
+  transition: background 0.4s cubic-bezier(.19, 1, .22, 1),
+              box-shadow 0.4s cubic-bezier(.19, 1, .22, 1),
+              transform 0.3s cubic-bezier(.19, 1, .22, 1);
 }
 
-.strength-seg.active{
-  background:var(--accent);
+.strength-seg.active {
+  transform: scaleY(1.15);
 }
 
-/* Password requirements hint */
+/* Strength colors by level — red → amber → green → gold */
+.strength-seg.active[data-level="1"] {
+  background: #c97070;
+  box-shadow: 0 0 6px rgba(201, 112, 112, 0.3);
+}
+.strength-seg.active[data-level="2"] {
+  background: #d4a047;
+  box-shadow: 0 0 6px rgba(212, 160, 71, 0.3);
+}
+.strength-seg.active[data-level="3"] {
+  background: #7db87d;
+  box-shadow: 0 0 6px rgba(125, 184, 125, 0.3);
+}
+.strength-seg.active[data-level="4"] {
+  background: #d4a047;
+  box-shadow: 0 0 8px rgba(212, 160, 71, 0.35);
+}
+
+/* Password requirements hint — luxury redesign */
 .pw-requirements {
   font-size: 11px;
-  color: var(--accent);
-  opacity: 0.6;
-  margin-top: 4px;
-  padding: 0 4px;
-  line-height: 1.6;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 6px;
+  padding: 10px 12px;
+  line-height: 1.7;
+  font-family: var(--body-font);
+  background: rgba(212, 160, 71, 0.04);
+  border: 1px solid rgba(212, 160, 71, 0.08);
+  border-radius: 10px;
 }
 .pw-req {
-  transition: color 0.2s ease, opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.35s cubic-bezier(.19, 1, .22, 1),
+              opacity 0.35s cubic-bezier(.19, 1, .22, 1),
+              transform 0.3s cubic-bezier(.19, 1, .22, 1);
+  transform: translateX(0);
+}
+.pw-req::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(109, 76, 91, 0.20);
+  flex-shrink: 0;
+  transition: background 0.35s cubic-bezier(.19, 1, .22, 1),
+              border-color 0.35s cubic-bezier(.19, 1, .22, 1);
 }
 .pw-req.met {
-  color: #2d8a4e;
+  color: #5b8c5a;
   opacity: 1;
+  transform: translateX(2px);
+}
+.pw-req.met::before {
+  background: #5b8c5a;
+  border-color: #5b8c5a;
+  box-shadow: 0 0 6px rgba(91, 140, 90, 0.25);
 }
 
 /* Email validation indicator */
@@ -613,7 +696,7 @@
   </div>
 
   <!-- card -->
-  <div class="relative w-full max-w-[420px] rounded-[24px] border border-white/14 bg-[var(--paper)] backdrop-blur-[24px] shadow-[0_8px_48px_rgba(80,40,180,0.18),inset_0_1px_0_rgba(252,248,245,0.12)]" style="min-height: 580px; height: auto;">
+  <div class="relative w-full max-w-[420px] rounded-[24px] border border-[#ead8c7] bg-[#faf5ef] shadow-[0_20px_40px_rgba(15,23,42,0.08)]" style="min-height: 580px; height: auto;">
     <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
     <div class="auth-loading-overlay" id="authLoadingOverlay" aria-hidden="true">
       <div class="auth-loading-panel" role="status" aria-live="polite">
@@ -753,11 +836,11 @@
             data-margin="2px"
             style="max-height:0;opacity:0;margin-bottom:0">
             <div class="pw-requirements" id="pwRequirements">
-              <div class="pw-req" id="reqLength" data-label="At least 8 characters">❌ At least 8 characters</div>
-              <div class="pw-req" id="reqUpper" data-label="Uppercase letter (A-Z)">❌ Uppercase letter (A-Z)</div>
-              <div class="pw-req" id="reqLower" data-label="Lowercase letter (a-z)">❌ Lowercase letter (a-z)</div>
-              <div class="pw-req" id="reqNumber" data-label="Number (0-9)">❌ Number (0-9)</div>
-              <div class="pw-req" id="reqSymbol" data-label="Symbol (!@#$...)">❌ Symbol (!@#$...)</div>
+              <div class="pw-req" id="reqLength" data-label="At least 8 characters">At least 8 characters</div>
+              <div class="pw-req" id="reqUpper" data-label="Uppercase letter (A-Z)">Uppercase letter (A-Z)</div>
+              <div class="pw-req" id="reqLower" data-label="Lowercase letter (a-z)">Lowercase letter (a-z)</div>
+              <div class="pw-req" id="reqNumber" data-label="Number (0-9)">Number (0-9)</div>
+              <div class="pw-req" id="reqSymbol" data-label="Symbol (!@#$...)">Symbol (!@#$...)</div>
             </div>
         </div>
 
@@ -1099,6 +1182,22 @@
 
                 if (password.length < 8) {
                     passwordInput.style.border = "1px solid red";
+                    return;
+                }
+
+                // Require at least "Fair" strength (score >= 2)
+                let pwScore = 0;
+                if (password.length >= 8) pwScore++;
+                if (/[A-Z]/.test(password)) pwScore++;
+                if (/[0-9]/.test(password)) pwScore++;
+                if (/[^A-Za-z0-9]/.test(password)) pwScore++;
+                if (pwScore < 2) {
+                    passwordInput.style.border = "1px solid red";
+                    const warningBar = document.querySelector('.warning-bar');
+                    warningBar.classList.remove('hidden');
+                    warningBar.style.display = 'block';
+                    warningBar.textContent = 'Password is too weak. Include uppercase letters, numbers, or symbols.';
+                    passwordInput.focus();
                     return;
                 }
 
