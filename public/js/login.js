@@ -165,12 +165,12 @@ function showStrengthUI() {
       }
 
       function fadeText(el, newText) {
-        el.style.transition = 'opacity 0.25s cubic-bezier(0.4,0,0.2,1)';
+        el.style.transition = 'opacity 0.4s cubic-bezier(0.4,0,0.2,1)';
         el.style.opacity = '0';
         setTimeout(() => {
           el.textContent = newText;
           el.style.opacity = '1';
-        }, 250);
+        }, 400);
       }
 
       function allFields() {
