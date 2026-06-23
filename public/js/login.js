@@ -329,8 +329,8 @@ function showStrengthUI() {
       buildSpans(subH, subH.textContent, false);
       setupInitialFields(modeFields(false));
       fieldGroup.classList.add('mb-2');
-      mainBtn.classList.remove('hidden');
-      divider.classList.remove('hidden');
+      mainBtn.classList.remove('anim-hide');
+      divider.classList.remove('anim-hide');
 
       $('toggleBtn').addEventListener('click', () => {
         if (isAnimating) return;
@@ -354,8 +354,8 @@ function showStrengthUI() {
         fieldGroup.classList.toggle('mb-5', goingToSignup);
         fieldGroup.classList.toggle('mb-2', !goingToSignup);
 
-        mainBtn.classList.add('hidden');
-        divider.classList.add('hidden');
+        mainBtn.classList.add('anim-hide');
+        divider.classList.add('anim-hide');
 
         dissolveOut(mainH, ()=>{});
         dissolveOut(subH, ()=>{
@@ -381,8 +381,9 @@ function showStrengthUI() {
         hideAllFields(()=>{
           showFields(nextFields);
           setTimeout(()=>{
-            mainBtn.classList.remove('hidden');
-            divider.classList.remove('hidden');
+            mainBtn.classList.remove('anim-hide');
+            mainBtn.classList.add('anim-show');
+            divider.classList.remove('anim-hide');
           }, nextFields.length*100+300);
         });
 

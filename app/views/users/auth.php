@@ -274,11 +274,21 @@
     color: var(--white);
     box-shadow: 0 4px 14px rgba(109, 76, 91, 0.22);
     position: relative;
-    overflow: hidden;
+    opacity: 1;
+    transform: translateY(0);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
                 filter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn.anim-hide {
+    opacity: 0;
+    transform: translateY(6px);
+    pointer-events: none;
+  }
+  .btn.anim-show {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .btn:hover {
@@ -375,10 +385,17 @@
     margin: 22px 0;
     position: relative;
     opacity: 1;
-    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0);
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     text-align: center;
+  }
+  .divider.anim-hide {
+    opacity: 0;
+    transform: translateY(6px);
+    pointer-events: none;
   }
 
   .divider span {
