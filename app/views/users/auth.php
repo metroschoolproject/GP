@@ -457,36 +457,51 @@
 
 /* PASSWORD STRENGTH — luxury redesign */
 
+.strength-meter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
 .strength-seg {
   flex: 1;
-  height: 5px;
+  height: 6px;
   border-radius: 999px;
-  background: rgba(109, 76, 91, 0.10);
+  background: rgba(109, 76, 91, 0.08);
   transition: background 0.5s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1),
               transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .strength-seg.active {
-  transform: scaleY(1.15);
+  transform: scaleY(1.2);
 }
 
 /* Strength colors by level — red → amber → green → gold */
 .strength-seg.active[data-level="1"] {
-  background: #c97070;
-  box-shadow: 0 0 6px rgba(201, 112, 112, 0.3);
+  background: linear-gradient(90deg, #c97070, #d4807a);
+  box-shadow: 0 0 8px rgba(201, 112, 112, 0.25);
 }
 .strength-seg.active[data-level="2"] {
-  background: #d4a047;
-  box-shadow: 0 0 6px rgba(212, 160, 71, 0.3);
+  background: linear-gradient(90deg, #d4a047, #ddb05a);
+  box-shadow: 0 0 8px rgba(212, 160, 71, 0.25);
 }
 .strength-seg.active[data-level="3"] {
-  background: #7db87d;
-  box-shadow: 0 0 6px rgba(125, 184, 125, 0.3);
+  background: linear-gradient(90deg, #7db87d, #8ec48e);
+  box-shadow: 0 0 8px rgba(125, 184, 125, 0.25);
 }
 .strength-seg.active[data-level="4"] {
-  background: #d4a047;
-  box-shadow: 0 0 8px rgba(212, 160, 71, 0.35);
+  background: linear-gradient(90deg, #d4a047, #c89540);
+  box-shadow: 0 0 10px rgba(212, 160, 71, 0.3);
+}
+
+#strengthText {
+  font-family: var(--body-font);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-size: 10.5px;
+  text-transform: uppercase;
 }
 
 /* Password requirements hint — luxury redesign */
@@ -495,17 +510,21 @@
   font-weight: 500;
   color: var(--muted);
   margin-top: 4px;
-  padding: 8px 10px;
-  line-height: 1.55;
+  padding: 10px 12px;
+  line-height: 1.5;
   font-family: var(--body-font);
-  background: rgba(212, 160, 71, 0.04);
-  border: 1px solid rgba(212, 160, 71, 0.08);
-  border-radius: 10px;
+  background: rgba(212, 160, 71, 0.03);
+  border: 1px solid rgba(212, 160, 71, 0.06);
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
 }
 .pw-req {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  padding: 2px 0;
   transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
               opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
               transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -514,23 +533,28 @@
 .pw-req::before {
   content: '';
   display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(109, 76, 91, 0.20);
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(109, 76, 91, 0.18);
   flex-shrink: 0;
-  transition: background 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .pw-req.met {
   color: #5b8c5a;
   opacity: 1;
-  transform: translateX(2px);
+  transform: translateX(0);
 }
 .pw-req.met::before {
   background: #5b8c5a;
   border-color: #5b8c5a;
-  box-shadow: 0 0 6px rgba(91, 140, 90, 0.25);
+  box-shadow: 0 0 6px rgba(91, 140, 90, 0.2);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 6L5 8.5L9.5 3.5' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 9px;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Email validation indicator */
@@ -940,23 +964,14 @@
             data-margin="6px"
             style="max-height:0;opacity:0;margin-bottom:0">
 
-            <div class="flex items-center justify-between gap-3">
-
-                <div class="flex-1 flex gap-[4px]">
+            <div class="strength-meter">
 
                 <span class="strength-seg" id="seg1"></span>
                 <span class="strength-seg" id="seg2"></span>
                 <span class="strength-seg" id="seg3"></span>
                 <span class="strength-seg" id="seg4"></span>
 
-                </div>
-
-                <span id="strengthText"
-                class="text-[11px] text-[var(--accent)] opacity-70 whitespace-nowrap">
-
-                Weak
-
-                </span>
+                <span id="strengthText" class="whitespace-nowrap" style="color:var(--accent);opacity:0.7;margin-left:4px">Weak</span>
 
             </div>
         </div>
@@ -965,7 +980,7 @@
         <div class="field-wrap"
             id="fwPwHint"
             data-modes="signup"
-            data-height="80px"
+            data-height="65px"
             data-margin="2px"
             style="max-height:0;opacity:0;margin-bottom:0">
             <div class="pw-requirements" id="pwRequirements">
