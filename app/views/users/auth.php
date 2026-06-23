@@ -921,7 +921,6 @@
           </div>
         </div>
       </div>
-      <p id="pwvalid" class="hidden text-[12px] mt-[-10px] mb-2" style="color:#b94b4b">Invalid password.</p>
       <div class="warning-bar hidden text-[12px] mb-2" style="color:#b94b4b"></div>
       <div class="accountnotfound-warning-bar hidden text-[12px] mb-2" style="color:#b94b4b">Account not found.</div>
       <span class="lock-until-time hidden"></span>
@@ -1045,9 +1044,8 @@
                             if(res.status == 'accountnotfound'){
                                 setAuthLoading(false);
                                 console.log(res);
-                                accountnotfound_warning_bar.classList.replace('hidden','show'); 
+                                accountnotfound_warning_bar.classList.replace('hidden','show');
                                 accountnotfound_warning_bar.style.display = 'block';
-                                pwvalid.style.display = 'block';
                             }
 
                             if(res.status == 'email_unverified'){
@@ -1086,7 +1084,6 @@
                 const pw_sha = await sha256(password);
                 const challenge = pw_sha + ccode;
                 const response = await sha256(challenge);
-                const pwvalid = document.querySelector('#pwvalid');
                 const passwordInput = document.getElementById('passwordInput');
                 const login_warning_bar = document.querySelector('.warning-bar');
 
@@ -1114,9 +1111,6 @@
                             : '';
                         const wrongPasswordMessage = `Wrong password. Please try again.${attemptText}`;
                         showScrollMessage(wrongPasswordMessage);
-                        pwvalid.classList.remove('hidden');
-                        pwvalid.style.display = 'block';
-                        pwvalid.textContent = wrongPasswordMessage;
                         passwordInput.style.border = '1px solid #b94b4b';
                         return;
                     }
@@ -1129,7 +1123,6 @@
                         login_warning_bar.innerHTML = accountLockMessage(lockedUntil) + " We sent a login fail alert to your email.";
                         console.log('hh')
                         passwordInput.style.border = '1px solid #b94b4b';
-                        pwvalid.style.display = 'block';
                         return;
                     }
                     if(res.status == 'lock'){
@@ -1140,7 +1133,6 @@
                         login_warning_bar.style.display = 'block';
                         login_warning_bar.innerHTML = accountLockMessage(lockedUntil);
                         passwordInput.style.border = '1px solid #b94b4b';
-                        pwvalid.style.display = 'block';
                         return;
                     }
                     if(res.status == true){
@@ -1484,7 +1476,7 @@
 
             function clearAuthErrors() {
                 hideScrollMessage();
-                document.querySelectorAll('.emailvalid, #pwvalid, .warning-bar, .accountnotfound-warning-bar, .lock-until-time')
+                document.querySelectorAll('.emailvalid, .warning-bar, .accountnotfound-warning-bar, .lock-until-time')
                     .forEach(el => {
                         el.classList.add('hidden');
                         el.classList.remove('show');
