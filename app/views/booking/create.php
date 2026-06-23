@@ -42,6 +42,18 @@ $plain = function ($v) {
     return $text;
 };
 $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
+$customerName = trim((string)($user['name'] ?? ''));
+$customerEmail = trim((string)($user['email'] ?? ''));
+$customerPhone = trim((string)($user['phone'] ?? ''));
+$customerAvatar = trim((string)($user['avatar'] ?? ($_SESSION['session_avatar'] ?? '')));
+$customerDisplayName = $customerName !== '' ? $customerName : 'You';
+$customerInitials = '';
+foreach (preg_split('/\s+/', $customerDisplayName) as $part) {
+    if ($part === '') continue;
+    $customerInitials .= function_exists('mb_substr') ? mb_substr($part, 0, 1, 'UTF-8') : substr($part, 0, 1);
+    if (strlen($customerInitials) >= 2) break;
+}
+$customerInitials = $customerInitials !== '' ? strtoupper($customerInitials) : 'Y';
 
 $defaultDate = '';
 $defaultStartTime = '';
@@ -69,7 +81,7 @@ foreach ($items as $defaultItem) {
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Jost:wght@300;400;500;600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ─── Design tokens ──────────────────────── */
 :root {
@@ -129,6 +141,10 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+}
+
+.gp-floating-cart {
+  display: none !important;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -305,7 +321,7 @@ textarea { font-family: var(--sans); }
   z-index: 1;
   flex: 1;
   padding: 0 var(--pad-x) 96px;
-  max-width: 1180px;
+  max-width: 1320px;
   margin: 0 auto;
   width: 100%;
 }
@@ -314,16 +330,16 @@ textarea { font-family: var(--sans); }
 .gp-page-head {
   display: grid;
   place-items: center;
-  min-height: 160px;
-  margin-top: -68px;
+  min-height: 220px;
+  margin-top: -92px;
   margin-bottom: 34px;
   padding: 0;
   border-radius: 0;
   background: #f4eee9;
   text-align: center;
-  width: calc(100% + (var(--pad-x) * 2));
-  margin-left: calc(var(--pad-x) * -1);
-  margin-right: calc(var(--pad-x) * -1);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   opacity: 0;
   animation: fadeUp 0.8s var(--ease) 0.05s forwards;
 }
@@ -346,7 +362,7 @@ textarea { font-family: var(--sans); }
   color: var(--ink);
   line-height: 1.05;
   letter-spacing: 0;
-  margin-top: 34px;
+  margin-top: 88px;
 }
 .gp-page-subtitle {
   display: none;
@@ -359,8 +375,8 @@ textarea { font-family: var(--sans); }
 /* ─── Two-column layout ──────────────────── */
 .gp-layout {
   display: grid;
-  grid-template-columns: 1fr 348px;
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 34px;
   align-items: start;
 }
 
@@ -397,49 +413,77 @@ textarea { font-family: var(--sans); }
 .gp-card:hover { box-shadow: 0 8px 32px rgba(44,31,40,0.07); border-color: var(--rule-md); }
 
 /* ─── Customer info card ─────────────────── */
-.gp-customer-card .gp-card-band {
+.gp-customer-card {
+  border-radius: var(--r-md);
+  overflow: visible;
+}
+.gp-customer-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 20px 22px;
-  border-bottom: 1px solid var(--rule);
-  background: linear-gradient(135deg, rgba(140,95,114,0.06), rgba(196,151,59,0.04));
+  gap: 20px;
+  padding: 22px 24px;
 }
-.gp-card-band-left { display: flex; align-items: center; gap: 14px; }
-.gp-card-icon {
+.gp-customer-avatar {
   display: grid;
   place-items: center;
-  width: 44px; height: 44px;
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
-  border: 1px solid var(--rule-md);
-  background: var(--ivory);
-  color: var(--mauve);
-  font-family: var(--serif);
-  font-size: 20px;
-  font-weight: 500;
-  font-style: italic;
-  flex-shrink: 0;
+  background: var(--mauve);
+  color: #fffaf3;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  overflow: hidden;
+  flex: 0 0 66px;
+  box-shadow: 0 0 0 4px rgba(140,95,114,0.08);
 }
-.gp-card-eyebrow {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--gold);
+.gp-customer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gp-customer-copy {
+  min-width: 0;
+  flex: 1;
 }
 .gp-card-title {
-  font-family: var(--serif);
-  font-size: 22px;
-  font-weight: 500;
+  font-family: var(--sans);
+  font-size: 23px;
+  font-weight: 600;
   color: var(--ink);
-  line-height: 1.05;
-  margin-top: 1px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.gp-customer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 4px;
+  color: #a28778;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.gp-customer-meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gp-customer-meta span:not(:last-child)::after {
+  content: '-';
+  margin-left: 10px;
+  color: rgba(162,135,120,0.75);
+}
+.gp-customer-missing {
+  color: var(--mist);
+  font-style: italic;
 }
 .gp-card-action {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  align-self: flex-start;
+  margin-left: auto;
   font-size: 12px;
   font-weight: 600;
   color: var(--mauve);
@@ -449,39 +493,6 @@ textarea { font-family: var(--sans); }
   transition: color 0.2s;
 }
 .gp-card-action:hover { color: var(--mauve-dk); border-color: var(--mauve-dk); }
-.gp-profile-facts {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0;
-}
-.gp-fact {
-  padding: 16px 20px;
-  border-right: 1px solid var(--rule);
-}
-.gp-fact:last-child { border-right: none; }
-.gp-fact-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--mist);
-  margin-bottom: 5px;
-}
-.gp-fact-value {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.gp-fact-value:empty::after {
-  content: 'Not provided';
-  color: var(--mist);
-  font-style: italic;
-  font-weight: 400;
-}
 
 /* ─── Default contact card ───────────────── */
 .gp-defaults-card .gp-card-band {
@@ -555,6 +566,18 @@ textarea { font-family: var(--sans); }
   transition: all 0.15s;
 }
 .gp-stepper-btn:hover { background: var(--mauve); color: #fcf8f5; border-color: var(--mauve); }
+.gp-stepper-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  background: rgba(156,136,147,0.12);
+  color: var(--mist);
+  border-color: var(--rule);
+}
+.gp-stepper-btn:disabled:hover {
+  background: rgba(156,136,147,0.12);
+  color: var(--mist);
+  border-color: var(--rule);
+}
 .gp-stepper-btn:first-child { border-radius: var(--r-xs) 0 0 var(--r-xs); }
 .gp-stepper-btn:last-child { border-radius: 0 var(--r-xs) var(--r-xs) 0; }
 .gp-stepper-input {
@@ -583,18 +606,18 @@ textarea { font-family: var(--sans); }
 .gp-items {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-width: 640px;
+  gap: 14px;
+  max-width: 760px;
 }
 
 .gp-item-card {
   display: grid;
-  grid-template-columns: 138px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 164px minmax(0, 1fr);
+  gap: 16px;
   align-items: stretch;
   position: relative;
-  min-height: 128px;
-  padding: 8px 14px 10px 8px;
+  min-height: 152px;
+  padding: 10px 18px 12px 10px;
   border: 1px solid rgba(255,255,255,0.78);
   border-radius: 16px;
   background: rgba(255,255,255,0.94);
@@ -616,7 +639,7 @@ textarea { font-family: var(--sans); }
   overflow: hidden;
   width: 100%;
   height: 100%;
-  min-height: 112px;
+  min-height: 132px;
   border-radius: 9px;
   background: linear-gradient(160deg, var(--linen), var(--parchment2));
 }
@@ -629,7 +652,7 @@ textarea { font-family: var(--sans); }
 .gp-item-card:hover .gp-item-thumb img { transform: scale(1.06); }
 .gp-item-thumb-placeholder {
   width: 100%; height: 100%;
-  min-height: 112px;
+  min-height: 132px;
   display: grid; place-items: center;
   color: var(--mist);
 }
@@ -660,15 +683,15 @@ textarea { font-family: var(--sans); }
 
 .gp-item-info {
   grid-column: 2;
-  padding: 6px 44px 0 0;
+  padding: 8px 52px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 .gp-item-name {
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   color: #20151f;
   line-height: 1.18;
@@ -680,7 +703,7 @@ textarea { font-family: var(--sans); }
   flex-wrap: wrap;
   gap: 6px;
   color: #40353e;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   margin-top: 0;
 }
@@ -699,7 +722,7 @@ textarea { font-family: var(--sans); }
   flex-wrap: wrap;
   gap: 7px;
   color: #40353e;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 .gp-item-date-line span {
@@ -711,7 +734,7 @@ textarea { font-family: var(--sans); }
 .gp-item-price-val {
   font-family: var(--sans);
   margin-top: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--mauve);
   white-space: nowrap;
@@ -749,6 +772,14 @@ textarea { font-family: var(--sans); }
   font-size: 11px;
   color: var(--mist);
 }
+.gp-input-note.is-limit-warning {
+  display: none;
+  color: var(--danger);
+  font-weight: 600;
+}
+.gp-input-note.is-limit-warning.show {
+  display: block;
+}
 .gp-input-note strong {
   color: var(--mauve);
   font-weight: 600;
@@ -757,8 +788,8 @@ textarea { font-family: var(--sans); }
 /* ─── Item details ───────────────────────── */
 .gp-item-details {
   grid-column: 1 / -1;
-  margin-top: 4px;
-  padding: 14px 8px 4px;
+  margin-top: 6px;
+  padding: 16px 10px 6px;
   border-top: 1px solid rgba(178,143,110,0.18);
   display: flex;
   flex-direction: column;
@@ -834,7 +865,7 @@ textarea { font-family: var(--sans); }
 
 .gp-slot-selector {
   display: grid;
-  grid-template-columns: minmax(150px, 0.85fr) minmax(260px, 1.8fr) auto;
+  grid-template-columns: minmax(116px, 0.55fr) minmax(0, 2.35fr) auto;
   gap: 10px;
   align-items: start;
   margin-top: 8px;
@@ -852,6 +883,127 @@ textarea { font-family: var(--sans); }
 }
 .gp-slot-edit-field.is-wide {
   min-width: 0;
+}
+.venue-date-input-wrap {
+  position: relative;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: 1px solid rgba(63,36,26,0.18);
+  border-radius: 6px;
+  background: #fff8ef;
+  color: #3f241a;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(63,36,26,0.06);
+}
+.venue-date-input-wrap:focus-visible {
+  outline: 2px solid rgba(140,95,114,0.28);
+  outline-offset: 2px;
+}
+.venue-date-input-wrap input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+.venue-date-display {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.venue-date-icon,
+.venue-date-chevron {
+  flex: 0 0 auto;
+  pointer-events: none;
+  color: #7a4e3d;
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+}
+.gp-calendar-popover {
+  position: fixed;
+  z-index: 10010;
+  width: min(250px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid rgba(63,36,26,0.14);
+  border-radius: 10px;
+  background: rgba(255,248,239,0.98);
+  box-shadow: 0 24px 60px rgba(63,36,26,0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.gp-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #3f241a;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 9px;
+}
+.gp-calendar-nav {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #7a4e3d;
+  cursor: pointer;
+}
+.gp-calendar-nav svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+.gp-calendar-nav:hover { background: rgba(63,36,26,0.08); }
+.gp-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.gp-calendar-day-name,
+.gp-calendar-day {
+  display: grid;
+  place-items: center;
+  height: 24px;
+  color: #6f5448;
+  font-size: 11px;
+}
+.gp-calendar-day-name {
+  color: rgba(63,36,26,0.52);
+  font-weight: 800;
+}
+.gp-calendar-day {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+.gp-calendar-day:hover { background: rgba(122,78,61,0.12); }
+.gp-calendar-day.is-selected {
+  background: #3f241a;
+  color: #fff8ef;
+}
+.gp-calendar-day.is-today:not(.is-selected) { outline: 1px solid rgba(63,36,26,0.28); }
+.gp-calendar-day.is-disabled {
+  color: rgba(63,36,26,0.24);
+  cursor: not-allowed;
 }
 .gp-btn-cancel-change {
   align-self: end;
@@ -977,6 +1129,11 @@ textarea { font-family: var(--sans); }
   color: var(--mist);
   margin-bottom: 5px;
 }
+.gp-detail-label.is-required::after {
+  content: ' *';
+  color: var(--danger);
+  font-weight: 900;
+}
 .gp-detail-input, .gp-detail-textarea, .gp-detail-select {
   width: 100%;
   padding: 9px 12px;
@@ -1076,7 +1233,7 @@ textarea { font-family: var(--sans); }
   border-radius: 0;
   background: transparent;
   color: var(--mist);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1118,7 +1275,7 @@ textarea { font-family: var(--sans); }
   order: 4;
   margin-top: -4px;
   color: #a85f5f;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.35;
@@ -1126,7 +1283,7 @@ textarea { font-family: var(--sans); }
 }
 .gp-overrides-fieldset {
   margin-top: 12px;
-  padding: 16px;
+  padding: 18px;
   border: 1px solid var(--rule);
   border-radius: var(--r-sm);
   background: rgba(252,248,245,0.4);
@@ -1159,12 +1316,12 @@ input[data-suggested-filled="true"] {
 }
 
 .gp-summary-head {
-  padding: 24px 26px 14px;
+  padding: 28px 30px 16px;
 }
 .gp-summary-eyebrow {
   margin-bottom: 8px;
   color: #817476;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1172,7 +1329,7 @@ input[data-suggested-filled="true"] {
 .gp-summary-title {
   color: #0f0c12;
   font-family: var(--sans);
-  font-size: clamp(21px, 2.1vw, 27px);
+  font-size: clamp(24px, 2.1vw, 30px);
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1.05;
@@ -1180,11 +1337,11 @@ input[data-suggested-filled="true"] {
 .gp-summary-subtitle {
   margin-top: 8px;
   color: #817476;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.3;
 }
 
-.gp-summary-body { padding: 6px 26px 20px; }
+.gp-summary-body { padding: 8px 30px 22px; }
 .gp-line-items {
   display: flex;
   flex-direction: column;
@@ -1193,19 +1350,19 @@ input[data-suggested-filled="true"] {
 }
 .gp-summary-service {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
-  gap: 13px;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 15px;
   align-items: center;
   padding: 10px 0 14px;
 }
 .gp-summary-service-icon {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 13px;
-  background: rgba(140,95,114,0.09);
-  color: var(--mauve);
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  background: rgba(107,68,89,0.09);
+  color: var(--mauve-dk);
   overflow: hidden;
 }
 .gp-summary-service-icon svg {
@@ -1221,7 +1378,7 @@ input[data-suggested-filled="true"] {
 .gp-summary-service-main { min-width: 0; }
 .gp-summary-service-name {
   color: #111016;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.25;
 }
@@ -1231,7 +1388,7 @@ input[data-suggested-filled="true"] {
   gap: 7px;
   margin-top: 6px;
   color: #8d8187;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
 }
 .gp-summary-service-date svg {
@@ -1243,7 +1400,7 @@ input[data-suggested-filled="true"] {
 }
 .gp-summary-service-price {
   color: #111016;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -1260,13 +1417,13 @@ input[data-suggested-filled="true"] {
 }
 .gp-line-name {
   color: #1f1a21;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 .gp-line-dots { display: none; }
 .gp-line-val {
   color: #1f1a21;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1281,14 +1438,14 @@ input[data-suggested-filled="true"] {
 }
 .gp-total-label {
   color: #111016;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 .gp-total-amount {
   font-family: var(--sans);
-  font-size: clamp(18px, 1.8vw, 22px);
+  font-size: clamp(21px, 1.9vw, 25px);
   font-weight: 800;
-  color: var(--mauve);
+  color: var(--mauve-dk);
   line-height: 1;
   white-space: nowrap;
 }
@@ -1308,12 +1465,12 @@ input[data-suggested-filled="true"] {
   align-items: baseline;
   gap: 16px;
   color: #1f1a21;
-  font-size: 12px;
+  font-size: 13px;
 }
 .gp-deposit-line strong {
   color: #1f1a21;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .gp-deposit-highlight {
@@ -1325,7 +1482,7 @@ input[data-suggested-filled="true"] {
   display: flex;
   flex-direction: column;
   gap: 11px;
-  padding: 0 26px 22px;
+  padding: 0 30px 26px;
 }
 
 .gp-btn-primary {
@@ -1333,16 +1490,16 @@ input[data-suggested-filled="true"] {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 48px;
+  height: 52px;
   border-radius: 5px;
   border: none;
-  background: var(--mauve);
+  background: var(--mauve-dk);
   color: #fffaf3;
   font-family: var(--sans);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0;
-  box-shadow: 0 10px 28px rgba(140,95,114,0.28);
+  box-shadow: 0 10px 28px rgba(107,68,89,0.28);
   transition: all 0.3s var(--ease);
   position: relative;
   overflow: hidden;
@@ -1355,7 +1512,7 @@ input[data-suggested-filled="true"] {
   background: linear-gradient(90deg, transparent, rgba(252,248,245,0.10), transparent);
   transition: left 0.5s var(--ease);
 }
-.gp-btn-primary:hover { background: var(--mauve-dk); transform: translateY(-2px); box-shadow: 0 16px 38px rgba(140,95,114,0.32); }
+.gp-btn-primary:hover { background: #4e3141; transform: translateY(-2px); box-shadow: 0 18px 40px rgba(107,68,89,0.32); }
 .gp-btn-primary:hover::before { left: 100%; }
 .gp-btn-primary:active { transform: translateY(0); }
 .gp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
@@ -1367,15 +1524,15 @@ input[data-suggested-filled="true"] {
   gap: 10px;
   height: 44px;
   border-radius: 7px;
-  border: 1px solid rgba(140,95,114,0.48);
+  border: 1px solid rgba(107,68,89,0.48);
   background: transparent;
-  color: var(--mauve);
+  color: var(--mauve-dk);
   font-family: var(--sans);
   font-size: 12px;
   font-weight: 800;
   transition: all 0.2s;
 }
-.gp-btn-secondary:hover { border-color: var(--mauve); color: var(--mauve); background: var(--mauve-xs); }
+.gp-btn-secondary:hover { border-color: var(--mauve-dk); color: var(--mauve-dk); background: rgba(107,68,89,0.05); }
 
 /* Trust section */
 .gp-trust {
@@ -1397,8 +1554,8 @@ input[data-suggested-filled="true"] {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(140,95,114,0.07);
-  color: var(--mauve);
+  background: rgba(107,68,89,0.07);
+  color: var(--mauve-dk);
 }
 .gp-trust-icon {
   width: 18px;
@@ -1492,6 +1649,73 @@ input[type="date"]:invalid {
   background-color: rgba(168, 64, 64, 0.05);
 }
 
+/* Match selected-service order summary */
+.gp-sidebar .gp-summary-card {
+  background: rgba(252,248,245,0.96);
+  border: 1px solid rgba(178,143,110,0.18);
+  border-radius: 14px;
+  box-shadow: 0 18px 52px rgba(26,17,24,0.09);
+}
+.gp-sidebar .gp-summary-eyebrow {
+  color: #817476;
+  font-family: 'Poppins', var(--sans);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+.gp-sidebar .gp-summary-title {
+  color: #0f0c12;
+  font-family: 'Poppins', var(--sans);
+  font-size: clamp(24px, 2.1vw, 30px);
+  font-weight: 600;
+  line-height: 1.05;
+}
+.gp-sidebar .gp-summary-subtitle,
+.gp-sidebar .gp-summary-service-name,
+.gp-sidebar .gp-summary-service-date,
+.gp-sidebar .gp-summary-service-price,
+.gp-sidebar .gp-line-name,
+.gp-sidebar .gp-line-val,
+.gp-sidebar .gp-deposit-line,
+.gp-sidebar .gp-deposit-line strong,
+.gp-sidebar .gp-total-label,
+.gp-sidebar .gp-btn-primary,
+.gp-sidebar .gp-btn-secondary,
+.gp-sidebar .gp-trust-title,
+.gp-sidebar .gp-trust-copy {
+  font-family: 'Poppins', var(--sans);
+}
+.gp-sidebar .gp-summary-service-icon {
+  border-radius: 8px;
+  background: rgba(107,68,89,0.09);
+  color: #6b4459;
+}
+.gp-sidebar .gp-total-amount {
+  color: #6b4459;
+  font-family: 'Poppins', var(--sans);
+}
+.gp-sidebar .gp-btn-primary {
+  background: #6b4459;
+  box-shadow: 0 10px 28px rgba(107,68,89,0.28);
+}
+.gp-sidebar .gp-btn-primary:hover {
+  background: #4e3141;
+  box-shadow: 0 18px 40px rgba(107,68,89,0.32);
+}
+.gp-sidebar .gp-btn-secondary {
+  border-color: rgba(107,68,89,0.48);
+  color: #6b4459;
+}
+.gp-sidebar .gp-btn-secondary:hover {
+  border-color: #6b4459;
+  color: #6b4459;
+  background: rgba(107,68,89,0.05);
+}
+.gp-sidebar .gp-trust-icon-wrap {
+  background: rgba(107,68,89,0.07);
+  color: #6b4459;
+}
+
 /* Keyframes */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1537,8 +1761,20 @@ input[type="date"]:invalid {
     justify-self: end;
   }
   .gp-header-nav { display: none; }
-  .gp-profile-facts { grid-template-columns: 1fr; }
-  .gp-fact { border-right: none; border-bottom: 1px solid var(--rule); }
+  .gp-customer-row {
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px;
+  }
+  .gp-customer-avatar {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    font-size: 15px;
+  }
+  .gp-card-title { font-size: 18px; }
+  .gp-customer-meta { font-size: 12px; }
+  .gp-card-action { margin-left: 0; }
   .gp-defaults-grid { grid-template-columns: 1fr; }
   .gp-default-field { border-right: none; }
   :root { --pad-x: 16px; }
@@ -1572,32 +1808,25 @@ input[type="date"]:invalid {
         <!-- Customer info card (read-only display) -->
         <div class="gp-section-label">Your details</div>
         <section class="gp-card gp-customer-card" data-index="-1">
-          <div class="gp-card-band">
-            <div class="gp-card-band-left">
-              <div class="gp-card-icon">♡</div>
-              <div>
-                <div class="gp-card-eyebrow">Booking under</div>
-                <h2 class="gp-card-title" id="customer-info-title"><?= $h($user['name'] ?? 'You') ?></h2>
+          <div class="gp-customer-row">
+            <div class="gp-customer-avatar" aria-hidden="true">
+              <?php if ($customerAvatar !== ''): ?>
+                <img src="<?= $h($customerAvatar) ?>" alt="">
+              <?php else: ?>
+                <span><?= $h($customerInitials) ?></span>
+              <?php endif; ?>
+            </div>
+            <div class="gp-customer-copy">
+              <h2 class="gp-card-title" id="customer-info-title"><?= $h($customerDisplayName) ?></h2>
+              <div class="gp-customer-meta">
+                <span class="<?= $customerEmail === '' ? 'gp-customer-missing' : '' ?>"><?= $h($customerEmail !== '' ? $customerEmail : 'Email not provided') ?></span>
+                <span class="<?= $customerPhone === '' ? 'gp-customer-missing' : '' ?>"><?= $h($customerPhone !== '' ? $customerPhone : 'Phone not provided') ?></span>
               </div>
             </div>
             <a class="gp-card-action" href="<?= URLROOT ?>/users/profile" target="_blank" rel="noopener">
               Edit profile
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             </a>
-          </div>
-          <div class="gp-profile-facts">
-            <div class="gp-fact">
-              <span class="gp-fact-label">Full name</span>
-              <div class="gp-fact-value"><?= $h($user['name'] ?? '') ?></div>
-            </div>
-            <div class="gp-fact">
-              <span class="gp-fact-label">Email</span>
-              <div class="gp-fact-value"><?= $h($user['email'] ?? '') ?></div>
-            </div>
-            <div class="gp-fact">
-              <span class="gp-fact-label">Phone</span>
-              <div class="gp-fact-value"><?= $h($user['phone'] ?? '') ?></div>
-            </div>
           </div>
         </section>
 
@@ -1635,11 +1864,24 @@ input[type="date"]:invalid {
             || str_contains($serviceNameText, 'makeup')
 	            || str_contains($serviceNameText, 'make up');
 	          $addonPackageName = trim((string)($item['addon_package_name'] ?? ''));
+          $itemBookingType = $item['booking_type'] ?? 'fullday';
+          $isPackageItem = ($item['item_type'] ?? '') === 'package';
+          $itemMaxBooking = max(1, (int)($item['item_max_booking'] ?? 9999));
+          $quantitySourceText = trim($categoryText . ' ' . $serviceNameText);
+          $quantityLabel = $isPackageItem ? 'Guest Count' : 'Number Needed';
+          if (str_contains($quantitySourceText, 'venue') || str_contains($quantitySourceText, 'catering') || $venueRoomName !== '') {
+              $quantityLabel = 'Guest Count';
+          } elseif (str_contains($quantitySourceText, 'bridal') || str_contains($quantitySourceText, 'makeup') || str_contains($quantitySourceText, 'make up') || str_contains($quantitySourceText, 'hair')) {
+              $quantityLabel = 'People to Be Styled';
+          } elseif (str_contains($quantitySourceText, 'media') || str_contains($quantitySourceText, 'photo') || str_contains($quantitySourceText, 'video')) {
+              $quantityLabel = 'People Included';
+          } elseif (str_contains($quantitySourceText, 'invitation') || str_contains($quantitySourceText, 'invite') || str_contains($quantitySourceText, 'stationery') || str_contains($quantitySourceText, 'stationary')) {
+              $quantityLabel = 'Quantity Needed';
+          }
         ?>
 
-        <?php $itemBookingType = $item['booking_type'] ?? 'fullday'; ?>
-        <?php $isPackageItem = ($item['item_type'] ?? '') === 'package'; ?>
         <article class="gp-card gp-item-card" data-index="<?= $i + 1 ?>"
+                 data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
                  data-has-slot="<?= $hasSlot ? 'yes' : 'no' ?>"
                  data-booking-type="<?= $h($itemBookingType) ?>"
                  data-price-index="<?= $i ?>"
@@ -1757,14 +1999,19 @@ input[type="date"]:invalid {
                   ?>
                   <div class="gp-slot-edit-field">
                     <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
-                    <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
-  	                         name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
-  	                         min="<?= $minDateStr ?>"
-  	                         <?php if (($item['item_type'] ?? '') !== 'package'): ?>
-  	                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
-  	                         <?php endif; ?>
-  	                         data-min-lead-days="<?= $minLeadDays ?>"
-  	                         data-index="<?= $i ?>">
+                    <span class="venue-date-input-wrap" role="button" tabindex="0" aria-label="Open date calendar">
+                      <svg class="venue-date-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <span class="venue-date-display"><?= $h($slotDate !== '' ? date('M j, Y', strtotime($slotDate)) : 'Choose date') ?></span>
+                      <svg class="venue-date-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                      <input class="gp-calendar-input gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+    	                         name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
+    	                         min="<?= $minDateStr ?>"
+    	                         <?php if (($item['item_type'] ?? '') !== 'package'): ?>
+    	                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+    	                         <?php endif; ?>
+    	                         data-min-lead-days="<?= $minLeadDays ?>"
+    	                         data-index="<?= $i ?>">
+                    </span>
   	                <?php if ($minLeadDays > 0): ?>
   	                  <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
   	                <?php endif; ?>
@@ -1855,22 +2102,26 @@ input[type="date"]:invalid {
               <fieldset class="gp-overrides-fieldset">
                 <div class="gp-detail-row">
                   <div class="gp-detail-field">
-	                    <label class="gp-detail-label" for="guests-<?= $i ?>"><?= $isPackageItem ? 'Event guest count' : 'Guests for this service' ?></label>
+	                    <label class="gp-detail-label is-required" for="guests-<?= $i ?>"><?= $h($quantityLabel) ?></label>
                     <div class="gp-detail-stepper">
                       <button class="gp-stepper-btn" type="button" data-stepper="minus" data-target="guests-<?= $i ?>" aria-label="Decrease guests">−</button>
                       <input class="gp-detail-input gp-stepper-input" type="number" id="guests-<?= $i ?>"
-                             name="item_guests[<?= $i ?>]" min="0"
-                             value="<?= $isVenue && $venueRoomCapacity > 0 ? (int)$venueRoomCapacity : '' ?>"
+                             name="item_guests[<?= $i ?>]" min="0" max="<?= $itemMaxBooking ?>"
+                             data-max-booking="<?= $itemMaxBooking ?>"
+                             value="<?= $isVenue && $venueRoomCapacity > 0 ? min((int)$venueRoomCapacity, $itemMaxBooking) : '' ?>"
                              <?php if ($isVenue && $venueRoomCapacity > 0): ?>data-venue-filled="true"<?php endif; ?>
                              placeholder="Required">
                       <button class="gp-stepper-btn" type="button" data-stepper="plus" data-target="guests-<?= $i ?>" aria-label="Increase guests">+</button>
                     </div>
                     <?php if ($isVenue && $venueRoomCapacity > 0): ?>
                       <div class="gp-input-note">Suggested from selected hall max: <strong><?= (int)$venueRoomCapacity ?></strong> guests</div>
+                    <?php else: ?>
+                      <div class="gp-input-note">Suggested maximum booking: <strong><?= $itemMaxBooking ?></strong></div>
                     <?php endif; ?>
+                    <div class="gp-input-note is-limit-warning" data-limit-message-for="guests-<?= $i ?>">This supplier can accept up to <?= $itemMaxBooking ?> for this booking.</div>
                   </div>
                   <div class="gp-detail-field">
-	                    <label class="gp-detail-label" for="location-<?= $i ?>"><?= $isPackageItem ? 'Event location / venue room' : 'Location / Venue room' ?></label>
+	                    <label class="gp-detail-label is-required" for="location-<?= $i ?>"><?= $isPackageItem ? 'Event location / venue room' : 'Location / Venue room' ?></label>
                     <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
                            name="item_location[<?= $i ?>]"
                            value="<?= $h($venueLocation) ?>"
@@ -1880,14 +2131,14 @@ input[type="date"]:invalid {
                 </div>
                 <div class="gp-detail-row" style="margin-top:12px;">
                   <div class="gp-detail-field">
-                    <label class="gp-detail-label" for="contact-name-<?= $i ?>">Contact person</label>
+                    <label class="gp-detail-label is-required" for="contact-name-<?= $i ?>">Contact person</label>
                     <input class="gp-detail-input" type="text" id="contact-name-<?= $i ?>"
                            name="item_contact_name[<?= $i ?>]"
                            value="<?= $h($user['name'] ?? '') ?>"
                            placeholder="Contact name">
                   </div>
                   <div class="gp-detail-field">
-                    <label class="gp-detail-label" for="contact-phone-<?= $i ?>">Contact phone</label>
+                    <label class="gp-detail-label is-required" for="contact-phone-<?= $i ?>">Contact phone</label>
                     <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>"
                            name="item_contact_phone[<?= $i ?>]"
                            value="<?= $h($user['phone'] ?? '') ?>"
@@ -2066,11 +2317,41 @@ input[type="date"]:invalid {
 </footer>
 
 <div class="gp-toast" id="gp-toast" role="alert"></div>
+<div class="gp-calendar-popover" id="gpCalendarPopover" hidden></div>
 
 <script>
 const packageScheduleState = new Map();
 
 (function () {
+  const getQuantityMax = (input) => {
+    const max = parseInt(input?.dataset?.maxBooking || input?.getAttribute('max') || '9999', 10);
+    return Number.isFinite(max) && max > 0 ? max : 9999;
+  };
+
+  const updateQuantityLimitState = (input, showMessage = false) => {
+    if (!input) return 0;
+    const max = getQuantityMax(input);
+    let value = parseInt(input.value || '0', 10);
+    if (!Number.isFinite(value) || value < 0) value = 0;
+
+    const wasAboveMax = value > max;
+    if (wasAboveMax) {
+      value = max;
+      input.value = String(max);
+    }
+
+    const plusButton = document.querySelector(`[data-stepper="plus"][data-target="${input.id}"]`);
+    if (plusButton) plusButton.disabled = value >= max;
+
+    const limitMessage = document.querySelector(`[data-limit-message-for="${input.id}"]`);
+    if (limitMessage) {
+      limitMessage.textContent = 'This supplier can accept up to ' + max.toLocaleString('en-US') + ' for this booking.';
+      limitMessage.classList.toggle('show', showMessage && wasAboveMax);
+    }
+
+    return value;
+  };
+
   /* ─── Venue auto-fill ─────────────────────── */
   (function() {
     const venueLocation = '<?= addslashes($venueLocation) ?>';
@@ -2089,6 +2370,49 @@ const packageScheduleState = new Map();
       if (sharedLoc && !sharedLoc.value) sharedLoc.value = venueLocation;
     }
 
+    let modalDrafts = [];
+    const modalDraftStorageKey = 'gpBookingDetailDrafts';
+    try {
+      modalDrafts = JSON.parse(sessionStorage.getItem(modalDraftStorageKey) || '[]');
+    } catch (error) {
+      modalDrafts = [];
+    }
+    if (Array.isArray(modalDrafts) && modalDrafts.length > 0) {
+      const usedModalDraftServices = new Set();
+      document.querySelectorAll('.gp-item-card[data-service-id]').forEach((card, index) => {
+        const serviceId = String(card.dataset.serviceId || '');
+        if (!serviceId || usedModalDraftServices.has(serviceId)) return;
+        const draft = modalDrafts.find(item => String(item.serviceId || '') === serviceId);
+        if (!draft || !draft.values) return;
+        usedModalDraftServices.add(serviceId);
+
+        const setDraftField = (selector, value) => {
+          if (value === undefined || value === null || String(value).trim() === '') return;
+          const field = card.querySelector(selector);
+          if (!field) return;
+          field.value = value;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          field.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        setDraftField(`[name="item_guests[${index}]"]`, draft.values.guests);
+        setDraftField(`[name="item_location[${index}]"]`, draft.values.location);
+        setDraftField(`[name="item_contact_name[${index}]"]`, draft.values.contactName);
+        setDraftField(`[name="item_contact_phone[${index}]"]`, draft.values.contactPhone);
+        setDraftField(`[name="item_notes[${index}]"]`, draft.values.notes);
+      });
+
+      if (usedModalDraftServices.size > 0) {
+        const remainingDrafts = modalDrafts.filter(item => !usedModalDraftServices.has(String(item.serviceId || '')));
+        try {
+          if (remainingDrafts.length) sessionStorage.setItem(modalDraftStorageKey, JSON.stringify(remainingDrafts));
+          else sessionStorage.removeItem(modalDraftStorageKey);
+        } catch (error) {
+          // Optional draft cleanup only.
+        }
+      }
+    }
+
     const syncFields = (source, selector) => {
       const value = source.value.trim();
       if (!value) return;
@@ -2102,6 +2426,9 @@ const packageScheduleState = new Map();
 
         field.value = value;
         field.dataset.suggestedFilled = 'true';
+        if (field.matches('[name^="item_guests"]')) {
+          updateQuantityLimitState(field);
+        }
       });
     };
 
@@ -2125,12 +2452,15 @@ const packageScheduleState = new Map();
       field.addEventListener('input', function () {
         this.dataset.venueFilled = 'false';
         this.dataset.suggestedFilled = 'false';
+        updateQuantityLimitState(this, true);
       });
       field.addEventListener('change', function () {
+        updateQuantityLimitState(this, true);
         syncFields(this, '[name^="item_guests"]');
         updateBookingPricing();
       });
       field.addEventListener('blur', function () {
+        updateQuantityLimitState(this, true);
         syncFields(this, '[name^="item_guests"]');
         updateBookingPricing();
       });
@@ -2142,9 +2472,12 @@ const packageScheduleState = new Map();
       const guestInput = document.querySelector(`[name="item_guests[${index}]"]`);
       if (capacity > 0 && guestInput && !guestInput.value.trim()) {
         guestInput.value = capacity;
+        updateQuantityLimitState(guestInput, true);
         guestInput.dataset.venueFilled = 'true';
       }
     });
+
+    document.querySelectorAll('[name^="item_guests"]').forEach(input => updateQuantityLimitState(input));
   })();
 
   /* ─── Staggered card reveal ───────────────── */
@@ -2171,8 +2504,10 @@ const packageScheduleState = new Map();
       const target = document.getElementById(this.dataset.target);
       if (!target) return;
       let val = parseInt(target.value) || 0;
-      val = this.dataset.stepper === 'plus' ? Math.min(9999, val + 1) : Math.max(0, val - 1);
+      const max = getQuantityMax(target);
+      val = this.dataset.stepper === 'plus' ? Math.min(max, val + 1) : Math.max(0, val - 1);
       target.value = val;
+      updateQuantityLimitState(target, true);
       target.dispatchEvent(new Event('input', { bubbles: true }));
     });
   });
@@ -2466,6 +2801,8 @@ const packageScheduleState = new Map();
       const itemPhone = fieldValue(formData, `item_contact_phone[${index}]`);
       const itemLocation = fieldValue(formData, `item_location[${index}]`);
       const itemGuests = numberValue(formData, `item_guests[${index}]`);
+      const guestInput = card.querySelector(`[name="item_guests[${index}]"]`);
+      const itemMaxBooking = getQuantityMax(guestInput);
       const missing = [];
 
       const drawer = card.querySelector('.gp-service-drawer');
@@ -2520,7 +2857,11 @@ const packageScheduleState = new Map();
       }
       if (itemGuests <= 0) {
         missing.push('guest count');
-        rememberMissing(card.querySelector(`[name="item_guests[${index}]"]`));
+        rememberMissing(guestInput);
+      } else if (itemGuests > itemMaxBooking) {
+        missing.push('supplier limit: ' + itemMaxBooking);
+        updateQuantityLimitState(guestInput, true);
+        rememberMissing(guestInput);
       }
 
       if (card.dataset.packageId && itemDate) {
@@ -2706,6 +3047,143 @@ function formatDateForDisplay(date) {
   const options = { month: 'short', day: 'numeric', year: 'numeric' };
   return date.toLocaleDateString('en-US', options);
 }
+
+const gpCalendar = document.getElementById('gpCalendarPopover');
+let gpCalendarInput = null;
+let gpCalendarMonth = null;
+
+function parseDateValue(value) {
+  if (!value) return null;
+  const parts = String(value).split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function updateCalendarDisplay(input) {
+  const display = input.closest('.venue-date-input-wrap')?.querySelector('.venue-date-display');
+  if (!display) return;
+  const parsed = parseDateValue(input.value);
+  display.textContent = parsed ? formatDateForDisplay(parsed) : 'Choose date';
+}
+
+function positionCalendar(anchor) {
+  if (!gpCalendar || !anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const width = Math.min(250, window.innerWidth - 32);
+  const left = Math.max(16, Math.min(rect.left, window.innerWidth - width - 16));
+  gpCalendar.style.width = width + 'px';
+  gpCalendar.style.left = left + 'px';
+  gpCalendar.style.top = (rect.bottom + 10) + 'px';
+}
+
+function renderCalendar() {
+  if (!gpCalendar || !gpCalendarInput || !gpCalendarMonth) return;
+  const monthStart = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth(), 1);
+  const selectedValue = gpCalendarInput.value;
+  const todayValue = formatDateForInput(new Date());
+  const minValue = gpCalendarInput.min || '';
+  const maxValue = gpCalendarInput.max || '';
+  const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+  const leadingBlanks = monthStart.getDay();
+  const monthTitle = monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+  let html = '<div class="gp-calendar-head">' +
+    '<button class="gp-calendar-nav" type="button" data-cal-prev aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>' +
+    '<span>' + monthTitle + '</span>' +
+    '<button class="gp-calendar-nav" type="button" data-cal-next aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>' +
+    '</div><div class="gp-calendar-grid">';
+
+  dayNames.forEach(day => { html += '<div class="gp-calendar-day-name">' + day + '</div>'; });
+  for (let i = 0; i < leadingBlanks; i++) html += '<span></span>';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const value = formatDateForInput(new Date(monthStart.getFullYear(), monthStart.getMonth(), day));
+    const disabled = (minValue && value < minValue) || (maxValue && value > maxValue);
+    const classes = ['gp-calendar-day'];
+    if (value === selectedValue) classes.push('is-selected');
+    if (value === todayValue) classes.push('is-today');
+    if (disabled) classes.push('is-disabled');
+    html += '<button class="' + classes.join(' ') + '" type="button" data-date="' + value + '"' + (disabled ? ' disabled' : '') + '>' + day + '</button>';
+  }
+  html += '</div>';
+  gpCalendar.innerHTML = html;
+}
+
+function openCalendar(input) {
+  if (!gpCalendar || !input) return;
+  gpCalendarInput = input;
+  gpCalendarMonth = parseDateValue(input.value) || parseDateValue(input.min) || new Date();
+  renderCalendar();
+  gpCalendar.hidden = false;
+  positionCalendar(input.closest('.venue-date-input-wrap') || input);
+}
+
+document.querySelectorAll('.gp-calendar-input').forEach(input => {
+  updateCalendarDisplay(input);
+  input.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openCalendar(input);
+  });
+  input.addEventListener('focus', () => openCalendar(input));
+});
+
+document.querySelectorAll('.venue-date-input-wrap').forEach(wrap => {
+  const input = wrap.querySelector('.gp-calendar-input');
+  if (!input) return;
+  wrap.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openCalendar(input);
+  });
+  wrap.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    event.stopPropagation();
+    openCalendar(input);
+  });
+});
+
+gpCalendar?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const prev = event.target.closest('[data-cal-prev]');
+  const next = event.target.closest('[data-cal-next]');
+  const day = event.target.closest('[data-date]');
+  if (prev) {
+    gpCalendarMonth = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth() - 1, 1);
+    renderCalendar();
+    return;
+  }
+  if (next) {
+    gpCalendarMonth = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth() + 1, 1);
+    renderCalendar();
+    return;
+  }
+  if (day && gpCalendarInput) {
+    gpCalendarInput.value = day.dataset.date;
+    updateCalendarDisplay(gpCalendarInput);
+    gpCalendar.hidden = true;
+    gpCalendarInput.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+});
+
+gpCalendar?.addEventListener('mousedown', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+});
+
+document.addEventListener('click', (event) => {
+  if (!gpCalendar || gpCalendar.hidden) return;
+  if (event.target.closest('.gp-calendar-popover') || event.target.closest('.venue-date-input-wrap')) return;
+  gpCalendar.hidden = true;
+});
+
+window.addEventListener('resize', () => {
+  if (!gpCalendar?.hidden && gpCalendarInput) positionCalendar(gpCalendarInput.closest('.venue-date-input-wrap') || gpCalendarInput);
+});
+window.addEventListener('scroll', () => {
+  if (gpCalendar && !gpCalendar.hidden) gpCalendar.hidden = true;
+}, { passive: true });
 
 /* ─── Fetch available slots ───────────────── */
 async function loadSlots(serviceId, date, index) {

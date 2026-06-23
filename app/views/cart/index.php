@@ -295,7 +295,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   z-index: 1;
   flex: 1;
   padding: 0 var(--pad-x) 80px;   /* remove top space */
-  max-width: 1180px;
+  max-width: 1320px;
   margin: 0 auto;
   width: 100%;
 }
@@ -304,17 +304,17 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-page-head {
   display: grid;
   place-items: center;
-  min-height: 160px;
-  margin-top: -68px;   /* pull it upward behind the navbar */
+  min-height: 220px;
+  margin-top: -92px;   /* pull it upward behind the navbar */
   margin-bottom: 34px;
   padding: 0;
   border-radius: 0;
   background: #f4eee9;
   text-align: center;
 
-  width: calc(100% + (var(--pad-x) * 2));
-  margin-left: calc(var(--pad-x) * -1);
-  margin-right: calc(var(--pad-x) * -1);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 .gp-page-eyebrow {
   order: 2;
@@ -338,14 +338,14 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   line-height: 1.05;
   letter-spacing: 0;
 
-  margin-top: 34px;   /* move only "Selected Services" downward */
+  margin-top: 78px;   /* move only "Selected Services" downward */
 }
 
 /* ─── Two-column layout ──────────────────────────────── */
 .gp-layout {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 34px;
   align-items: start;
 }
 
@@ -353,18 +353,18 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-items {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-width: 640px;
+  gap: 14px;
+  max-width: 760px;
 }
 
 .gp-item {
   display: grid;
-  grid-template-columns: 138px minmax(0, 1fr);
-  min-height: 128px;
-  gap: 12px;
+  grid-template-columns: 164px minmax(0, 1fr);
+  min-height: 152px;
+  gap: 16px;
   align-items: stretch;
   position: relative;
-  padding: 8px 14px 10px 8px;
+  padding: 10px 18px 12px 10px;
   background: rgba(255,255,255,0.94);
   border: 1px solid rgba(255,255,255,0.78);
   border-radius: 16px;
@@ -389,7 +389,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   position: relative; overflow: hidden;
   width: 100%;
   height: 100%;
-  min-height: 112px;
+  min-height: 132px;
   border-radius: 9px;
   background: linear-gradient(160deg, #e8d9c8, #d9c8b5);
   flex-shrink: 0;
@@ -404,7 +404,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   width: 100%; height: 100%;
   display: grid; place-items: center;
   color: var(--muted);
-  min-height: 112px;
+  min-height: 132px;
 }
 
 /* category ribbon on image */
@@ -441,14 +441,14 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 /* Body */
 .gp-item-body {
   grid-column: 2;
-  padding: 6px 44px 0 0;
-  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 52px 0 0;
+  display: flex; flex-direction: column; gap: 8px;
   min-width: 0;
 }
 
 .gp-item-name {
   font-family: var(--font-b);
-  font-size: 14px; font-weight: 800;
+  font-size: 16px; font-weight: 800;
   color: #20151f; line-height: 1.18;
   letter-spacing: 0;
 }
@@ -457,7 +457,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 .gp-item-supplier {
   display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 500; color: #40353e;
+  font-size: 12px; font-weight: 500; color: #40353e;
 }
 .gp-item-supplier svg,
 .gp-item-date-line svg {
@@ -485,7 +485,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   flex-wrap: wrap;
   gap: 7px;
   color: #40353e;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 .gp-item-date-line span {
@@ -675,6 +675,10 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(63,36,26,0.06);
 }
+.gp-edit-date-control:focus-visible {
+  outline: 2px solid rgba(107,68,89,0.28);
+  outline-offset: 2px;
+}
 .gp-edit-date-control svg {
   width: 14px;
   height: 14px;
@@ -842,7 +846,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-item-price {
   font-family: var(--font-b);
   margin-top: 2px;
-  font-size: 14px; font-weight: 800;
+  font-size: 15px; font-weight: 800;
   color: var(--plum);
   white-space: nowrap;
   line-height: 1;
@@ -851,8 +855,8 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 .gp-remove-btn {
   position: absolute;
-  right: 14px;
-  top: 88px;
+  right: 16px;
+  top: 104px;
   bottom: auto;
   display: inline-flex; align-items: center; justify-content: center;
   width: 32px;
@@ -883,34 +887,34 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 
 .gp-summary-head {
-  padding: 24px 26px 14px;
+  padding: 28px 30px 16px;
 }
 
 .gp-summary-label {
   margin-bottom: 8px;
   color: #817476;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 .gp-summary-title {
   color: #0f0c12;
-  font-family: var(--font-b);
-  font-size: clamp(21px, 2.1vw, 27px);
-  font-weight: 800;
+  font-family: var(--font-a);
+  font-size: clamp(24px, 2.1vw, 30px);
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1.05;
 }
 .gp-summary-subtitle {
   margin-top: 8px;
   color: #817476;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.3;
 }
 
 /* Line items */
-.gp-summary-body { padding: 6px 26px 20px; }
+.gp-summary-body { padding: 8px 30px 22px; }
 
 .gp-line-items {
   display: flex;
@@ -921,8 +925,8 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 .gp-summary-service {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
-  gap: 13px;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 15px;
   align-items: center;
   padding: 10px 0 14px;
 }
@@ -930,11 +934,17 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-summary-service-icon {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 13px;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
   background: rgba(107,68,89,0.09);
   color: var(--plum);
+  overflow: hidden;
+}
+.gp-summary-service-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .gp-summary-service-icon svg {
   width: 24px;
@@ -948,7 +958,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 .gp-summary-service-name {
   color: #111016;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.25;
 }
@@ -959,7 +969,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   gap: 7px;
   margin-top: 6px;
   color: #8d8187;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
 }
 .gp-summary-service-date svg {
@@ -972,7 +982,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 .gp-summary-service-price {
   color: #111016;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -991,13 +1001,13 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 .gp-line-name {
   color: #1f1a21;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 .gp-line-dots { display: none; }
 .gp-line-val {
   color: #1f1a21;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1014,13 +1024,13 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 .gp-total-label {
   color: #111016;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 .gp-total-amount {
   color: var(--plum);
   font-family: var(--font-b);
-  font-size: clamp(18px, 1.8vw, 22px);
+  font-size: clamp(21px, 1.9vw, 25px);
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
@@ -1031,14 +1041,14 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   display: flex;
   flex-direction: column;
   gap: 11px;
-  padding: 0 26px 22px;
+  padding: 0 30px 26px;
 }
 
 .gp-btn-book {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  height: 48px; border-radius: 5px; border: none;
+  height: 52px; border-radius: 5px; border: none;
   background: var(--plum); color: #fffaf3;
-  font-size: 12px; font-weight: 800;
+  font-size: 13px; font-weight: 800;
   letter-spacing: 0;
   box-shadow: 0 10px 28px rgba(107,68,89,0.28);
   transition: all 0.3s var(--ease-expo);
@@ -1691,7 +1701,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
           <div class="gp-edit-fields">
             <div class="gp-edit-field">
               <label for="cart-date-<?= $itemId ?>">Date</label>
-              <span class="gp-edit-date-control">
+              <span class="gp-edit-date-control" role="button" tabindex="0" aria-label="Open date calendar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 <span class="gp-edit-date-display" data-date-display><?= $h($selectedDate !== '' ? $formatDate($selectedDate) : 'Choose date') ?></span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -1756,6 +1766,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               $lineDate  = trim((string)($item['selected_date'] ?? ''));
               $lineTime  = $formatTimeRange($item['start_time'] ?? '', $item['end_time'] ?? '');
               $lineHall = trim((string)($item['venue_room_name'] ?? ''));
+              $lineImage = trim((string)($item['thumbnail_url'] ?? ''));
               $lineMetaParts = [];
               if ($lineHall !== '') $lineMetaParts[] = $lineHall;
               if ($lineHall !== '') $lineName .= ' · ' . $lineHall;
@@ -1765,7 +1776,11 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             ?>
             <div class="gp-summary-service">
               <div class="gp-summary-service-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M6 18a6 6 0 0 1 12 0"/><path d="M12 8v-2"/><path d="M9 6h6"/><path d="M4 21h16"/></svg>
+                <?php if ($lineImage !== ''): ?>
+                  <img src="<?= $h($lineImage) ?>" alt="">
+                <?php else: ?>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M6 18a6 6 0 0 1 12 0"/><path d="M12 8v-2"/><path d="M9 6h6"/><path d="M4 21h16"/></svg>
+                <?php endif; ?>
               </div>
               <div class="gp-summary-service-main">
                 <div class="gp-summary-service-name" title="<?= $h($lineName) ?>"><?= $h($lineName) ?></div>
@@ -2089,6 +2104,12 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
     const input = control.querySelector('.gp-calendar-input');
     if (!input) return;
     control.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openCartCalendar(input);
+    });
+    control.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
       event.stopPropagation();
       openCartCalendar(input);

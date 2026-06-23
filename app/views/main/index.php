@@ -333,9 +333,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     .home-nav-pill a {
       border-radius: 8px;
-      padding: 7px 18px;
+      padding: 8px 20px;
       color: #FFF4E6;
       white-space: nowrap;
+      font-size: 15px;
     }
 
     .home-nav-pill a:first-child {
@@ -1947,13 +1948,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     <!-- RIGHT BUTTONS -->
     <div class="ml-auto flex items-center gap-3 max-[980px]:hidden">
       <a
-  class="rounded-[8px] bg-[#3F241A] px-4 py-2 text-[13px] font-semibold text-[#FFF8EF] shadow-[0_10px_25px_rgba(63,36,26,0.24)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#4A2D22]"
+  class="rounded-[8px] bg-[#3F241A] px-[17px] py-[9px] text-[14px] font-semibold text-[#FFF8EF] shadow-[0_10px_25px_rgba(63,36,26,0.24)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#4A2D22]"
   href="<?= URLROOT ?>/users/register?type=supplier">
   Be a Partner
 </a>
 
       <a
-  class="rounded-[8px] border border-transparent bg-[#FFF8EF] px-4 py-2 text-[13px] font-semibold tracking-[0.04em] text-[#3F2F24] transition duration-300 hover:bg-[#F3D9A4] hover:text-[#3F2F24]"
+  class="rounded-[8px] border border-transparent bg-[#FFF8EF] px-[16px] py-[9px] text-[14px] font-semibold tracking-[0.04em] text-[#3F2F24] transition duration-300 hover:bg-[#F3D9A4] hover:text-[#3F2F24]"
   href="<?= $h($authNavUrl) ?>">
   <?= $h($authNavLabel) ?>
 </a>

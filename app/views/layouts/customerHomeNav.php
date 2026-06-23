@@ -32,9 +32,9 @@ $gpNavEsc = function ($value) {
 .nav-left-spacer{width:82px;height:36px;flex:0 0 82px}
 .nav-center-logo{position:absolute;left:24px;top:50%;z-index:2;display:grid;width:68px;height:68px;place-items:center;overflow:hidden;border-radius:50%;transform:translateY(-50%)}
 .nav-center-logo img{width:100%;height:100%;object-fit:cover}
-.nav-links{position:absolute;left:50%;top:50%;display:flex;align-items:center;gap:6px;padding:4px;border-radius:8px;background:rgba(0,0,0,.52);transform:translate(-50%,-50%);color:#fff4e6;font-size:12px;font-weight:700;font-family:'Playfair Display',Georgia,serif;box-shadow:inset 0 1px 0 rgba(252,248,245,.14);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.nav-links{position:absolute;left:50%;top:50%;display:flex;align-items:center;gap:7px;padding:5px;border-radius:8px;background:rgba(0,0,0,.52);transform:translate(-50%,-50%);color:#fff4e6;font-size:14px;font-weight:700;font-family:'Playfair Display',Georgia,serif;box-shadow:inset 0 1px 0 rgba(252,248,245,.14);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 .nav-runner{position:absolute;left:0;top:4px;z-index:0;width:0;height:calc(100% - 8px);border-radius:7px;background:rgba(252,248,245,.92);opacity:0;transform:translateX(4px);transition:transform .34s cubic-bezier(.22,1,.36,1),width .34s cubic-bezier(.22,1,.36,1),opacity .18s ease;pointer-events:none}
-.nav-links a{position:relative;z-index:1;border:0;border-radius:7px;background:transparent;padding:6px 15px;color:#fff4e6;font:inherit;text-decoration:none;white-space:nowrap;cursor:pointer;transition:all .2s ease}
+.nav-links a{position:relative;z-index:1;border:0;border-radius:7px;background:transparent;padding:7px 18px;color:#fff4e6;font:inherit;text-decoration:none;white-space:nowrap;cursor:pointer;transition:all .2s ease}
 .nav-links a:hover,.nav-links a.active{background:transparent;color:#3f2f24}
 .nav-actions{display:flex;align-items:center;gap:8px;margin-left:auto;font-family:'Playfair Display',Georgia,serif}
 .nav-partner,.nav-login{display:inline-flex;align-items:center;justify-content:center;min-height:31px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all .3s ease;letter-spacing:0.04em}
@@ -43,15 +43,15 @@ $gpNavEsc = function ($value) {
 .nav-login{padding:8px 16px;background:#fff8ef;color:#3f2f24}
 .nav-login:hover{background:#f3d9a4;color:#3f2f24}
 .home-profile-dropdown{position:relative}
-.home-profile-btn{display:grid;place-items:center;width:36px;height:36px;padding:3px;border-radius:7px;border:0;background:transparent;cursor:pointer;color:#fff4e6;font-family:'Playfair Display',Georgia,serif;transition:all .2s}
+.home-profile-btn{display:grid;place-items:center;width:44px;height:44px;padding:4px;border-radius:9px;border:0;background:transparent;cursor:pointer;color:#fff4e6;font-family:'Playfair Display',Georgia,serif;transition:all .2s}
 .home-profile-btn:hover{background:rgba(252,248,245,.22)}
 .home-profile-btn[aria-expanded="true"]{background:rgba(252,248,245,.16)}
-.home-profile-avatar{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#d8b46a;color:#3f2f24;font-size:12px;font-weight:800;letter-spacing:.5px;overflow:hidden;box-shadow:0 0 0 0 rgba(216,180,106,0);transition:box-shadow .18s ease}
+.home-profile-avatar{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#d8b46a;color:#3f2f24;font-size:14px;font-weight:800;letter-spacing:.5px;overflow:hidden;box-shadow:0 0 0 0 rgba(216,180,106,0);transition:box-shadow .18s ease}
 .home-profile-avatar img{width:100%;height:100%;object-fit:cover}
 .home-profile-btn[aria-expanded="true"] .home-profile-avatar{box-shadow:0 0 0 2px #fff8ef,0 0 0 4px rgba(216,180,106,.76)}
 .nav-actions .gp-customer-notification{z-index:1100}
-.nav-actions .gp-customer-notification #dashboardNotificationBtn{width:31px;height:31px;border-radius:7px;border-color:rgba(255,248,239,.22);background:#fff8ef;color:#3f2f24;box-shadow:none}
-.nav-actions .gp-customer-notification #dashboardNotificationBtn svg{width:15px;height:15px}
+.nav-actions .gp-customer-notification #dashboardNotificationBtn{width:40px;height:40px;border-radius:9px;border-color:rgba(255,248,239,.22);background:#fff8ef;color:#3f2f24;box-shadow:none}
+.nav-actions .gp-customer-notification #dashboardNotificationBtn svg{width:18px;height:18px}
 .nav-actions .gp-customer-notification .dashboard-notification-panel{right:0;top:calc(100% + 9px)}
 .nav-actions .gp-customer-notification .dashboard-notification-title{color:#fcf8f5 !important}
 .home-profile-menu{position:absolute;top:calc(100% + 10px);right:0;z-index:1100;width:min(232px,calc(100vw - 24px));padding:10px;border-radius:12px;border:1px solid rgba(107,68,89,.12);background:#fcf8f5;box-shadow:0 18px 48px rgba(43,27,36,.18);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s ease;color:#2b1b24;font-family:'Poppins',system-ui,-apple-system,sans-serif}

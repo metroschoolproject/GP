@@ -7,6 +7,7 @@ class CartModel
     private ?bool $cartPackageParentColumn = null;
     private ?bool $serviceDefaultTimeColumns = null;
     private ?bool $packageItemConcurrentColumn = null;
+    private ?bool $packageConcurrentColumn = null;
     private ?bool $slotPoolColumns = null;
     private ?bool $servicePoolColumns = null;
 
@@ -532,6 +533,18 @@ class CartModel
         return $this->packageItemConcurrentColumn;
     }
 
+    private function hasPackageConcurrentColumn(): bool
+    {
+        if ($this->packageConcurrentColumn !== null) {
+            return $this->packageConcurrentColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM packages LIKE 'max_concurrent'");
+        $this->packageConcurrentColumn = (bool)$this->db->getsingledata();
+
+        return $this->packageConcurrentColumn;
+    }
+
     private function hasServiceDefaultTimeColumns(): bool
     {
         if ($this->serviceDefaultTimeColumns !== null) {
@@ -911,6 +924,9 @@ class CartModel
     {
         $hasVenueRoomColumn = $this->hasCartVenueRoomColumn();
         $hasDefaultTimeColumns = $this->hasServiceDefaultTimeColumns();
+        $packageMaxBookingSelect = $this->hasPackageConcurrentColumn()
+            ? 'p.max_concurrent AS package_max_booking,'
+            : 'NULL AS package_max_booking,';
         $resolvedTimeSelect = $hasDefaultTimeColumns
             ? "COALESCE(
                     (SELECT ss.open_time FROM service_schedules ss
@@ -992,6 +1008,8 @@ class CartModel
                     COALESCE(s.price_min, p.base_price) AS price_min,
                     COALESCE(s.price_max, p.base_price) AS price_max,
                     COALESCE(s.booking_type, 'fullday') AS booking_type,
+                    s.max_concurrent AS service_max_booking,
+                    {$packageMaxBookingSelect}
                     {$minLeadSelect} AS min_lead_days,
 
                     COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name,
@@ -1022,7 +1040,25 @@ class CartModel
             ORDER BY ci.id DESC"
         );
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
-        return $this->db->getmultidata();
+        $items = $this->db->getmultidata();
+
+        foreach ($items as &$item) {
+            $maxBooking = 0;
+            $itemType = (string)($item['item_type'] ?? 'service');
+
+            if ((int)($item['venue_room_capacity'] ?? 0) > 0) {
+                $maxBooking = (int)$item['venue_room_capacity'];
+            } elseif ($itemType === 'package' && (int)($item['package_max_booking'] ?? 0) > 0) {
+                $maxBooking = (int)$item['package_max_booking'];
+            } elseif ((int)($item['service_max_booking'] ?? 0) > 0) {
+                $maxBooking = (int)$item['service_max_booking'];
+            }
+
+            $item['item_max_booking'] = $maxBooking > 0 ? $maxBooking : 9999;
+        }
+        unset($item);
+
+        return $items;
     }
 
     /**
