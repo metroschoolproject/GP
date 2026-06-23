@@ -611,7 +611,9 @@ document.querySelectorAll('.pw-eye').forEach(function(btn) {
         if (!el) return;
         el.textContent = text;
         el.className = 'profile-msg ' + type;
-        if (type) setTimeout(() => { el.className = 'profile-msg'; el.textContent = ''; }, 4000);
+        if (type === 'success') {
+            setTimeout(() => { el.className = 'profile-msg'; el.textContent = ''; }, 10000);
+        }
     }
 
     // ── SAVE PROFILE ──
@@ -729,7 +731,33 @@ document.querySelectorAll('.pw-eye').forEach(function(btn) {
                 confirmInput.value = '';
                 strengthMeter.style.display = 'none';
                 resetStrength();
-                showMsg('profilePwMsg', '✓ Password updated successfully. A confirmation email has been sent.', 'success');
+
+                // Show prominent success feedback
+                const pwMsgEl = document.getElementById('profilePwMsg');
+                const pwCard = pwMsgEl ? pwMsgEl.closest('.card') : null;
+                if (pwCard) {
+                    pwCard.style.borderColor = '#10b981';
+                    pwCard.style.boxShadow = '0 0 0 3px rgba(16,185,129,.15)';
+                    setTimeout(() => {
+                        pwCard.style.borderColor = '';
+                        pwCard.style.boxShadow = '';
+                    }, 8000);
+                }
+
+                // Update or create "last changed" indicator
+                let lastChanged = document.getElementById('pwLastChanged');
+                if (!lastChanged && pwMsgEl) {
+                    lastChanged = document.createElement('div');
+                    lastChanged.id = 'pwLastChanged';
+                    lastChanged.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 14px;margin-top:12px;border-radius:8px;background:#d1fae5;color:#065f46;font-size:12px;font-weight:600;';
+                    pwMsgEl.after(lastChanged);
+                }
+                if (lastChanged) {
+                    lastChanged.innerHTML = '✓ Password changed just now — confirmation email sent';
+                    lastChanged.style.display = 'flex';
+                }
+
+                showMsg('profilePwMsg', '✓ Password updated successfully!', 'success');
             } else {
                 showMsg('profilePwMsg', data.error || 'Failed to update password.', 'error');
             }

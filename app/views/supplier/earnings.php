@@ -10,6 +10,11 @@ $totalPayouts = (int)($totalPayouts ?? 0);
 $h = fn($v) => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $date = fn($v) => date('M d, Y', strtotime($v ?? 'now'));
+
+$dashboardTitle = 'Earnings';
+$dashboardCrumb = 'Earnings';
+$dashboardContentClass = 'earnings-page';
+$dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId, $currentPage, $totalPages, $totalPayouts, $h, $money, $date) {
 ?>
 <div class="container mx-auto px-4 py-8">
   <div class="mb-8">
@@ -261,3 +266,13 @@ document.getElementById('cashout-modal')?.addEventListener('click', (e) => {
   }
 });
 </script>
+<?php
+};
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head><?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
+<body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">
+  <?php require APPROOT . '/views/dashboardLayout/suppliersidebar.php'; ?>
+</body>
+</html>

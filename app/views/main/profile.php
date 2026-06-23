@@ -355,7 +355,9 @@ function showMsg(elId, text, type) {
     if (!el) return;
     el.textContent = text;
     el.className = 'gp-inline-msg' + (type ? ' ' + type : '');
-    if (type) setTimeout(function(){ el.className = 'gp-inline-msg'; el.textContent = ''; }, 5000);
+    if (type === 'success') {
+        setTimeout(function(){ el.className = 'gp-inline-msg'; el.textContent = ''; }, 10000);
+    }
 }
 
 // ── SAVE PROFILE ──
@@ -448,7 +450,33 @@ document.getElementById('btnUpdatePw').addEventListener('click', function(){
             cf.value = '';
             st.style.display = 'none';
             segs.forEach(function(id){ document.getElementById(id).classList.remove('on'); });
-            showMsg('profilePwMsg', '✓ Password ' + (isOauth ? 'set' : 'updated') + '. A confirmation email has been sent.', 'success');
+
+            // Show prominent success feedback
+            var pwMsgEl = document.getElementById('profilePwMsg');
+            var pwCard = pwMsgEl ? pwMsgEl.closest('.gp-card') : null;
+            if (pwCard) {
+                pwCard.style.borderColor = '#10b981';
+                pwCard.style.boxShadow = '0 0 0 3px rgba(16,185,129,.15)';
+                setTimeout(function() {
+                    pwCard.style.borderColor = '';
+                    pwCard.style.boxShadow = '';
+                }, 8000);
+            }
+
+            // Update or create "last changed" indicator
+            var lastChanged = document.getElementById('pwLastChanged');
+            if (!lastChanged && pwMsgEl) {
+                lastChanged = document.createElement('div');
+                lastChanged.id = 'pwLastChanged';
+                lastChanged.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 14px;margin-top:12px;border-radius:8px;background:#d1fae5;color:#065f46;font-size:12px;font-weight:600;';
+                pwMsgEl.parentNode.insertBefore(lastChanged, pwMsgEl.nextSibling);
+            }
+            if (lastChanged) {
+                lastChanged.innerHTML = '✓ Password ' + (isOauth ? 'set' : 'changed') + ' just now — confirmation email sent';
+                lastChanged.style.display = 'flex';
+            }
+
+            showMsg('profilePwMsg', '✓ Password ' + (isOauth ? 'set' : 'updated') + ' successfully!', 'success');
         } else {
             showMsg('profilePwMsg', data.error || 'Failed to update password.', 'error');
         }

@@ -572,7 +572,10 @@ document.querySelectorAll('.pw-eye').forEach(function(btn) {
         if (!el) return;
         el.textContent = text;
         el.className = 'profile-msg ' + (type || '');
-        if (type) setTimeout(() => { el.className = 'profile-msg'; el.textContent = ''; }, 5000);
+        if (type === 'success') {
+            // Keep success message visible for 10s, then fade
+            setTimeout(() => { el.className = 'profile-msg'; el.textContent = ''; }, 10000);
+        }
     }
     function showProfileMsg(elId, text, type) {
         const el = document.getElementById(elId);
@@ -638,7 +641,31 @@ document.querySelectorAll('.pw-eye').forEach(function(btn) {
                 confirmInput.value = '';
                 strengthMeter.style.display = 'none';
                 resetStrength();
-                showPwMsg('✓ Password updated successfully. A confirmation email has been sent.', 'success');
+
+                // Show prominent success banner
+                const pwCard = document.getElementById('profilePwMsg').closest('.card');
+                if (pwCard) {
+                    // Add green border to password card
+                    pwCard.style.borderColor = '#10b981';
+                    pwCard.style.boxShadow = '0 0 0 3px rgba(16,185,129,.15)';
+                    setTimeout(() => {
+                        pwCard.style.borderColor = '';
+                        pwCard.style.boxShadow = '';
+                    }, 8000);
+                }
+
+                // Update or create "last changed" indicator
+                let lastChanged = document.getElementById('pwLastChanged');
+                if (!lastChanged) {
+                    lastChanged = document.createElement('div');
+                    lastChanged.id = 'pwLastChanged';
+                    lastChanged.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 14px;margin-top:12px;border-radius:8px;background:#d1fae5;color:#065f46;font-size:12px;font-weight:600;';
+                    document.getElementById('profilePwMsg').after(lastChanged);
+                }
+                lastChanged.innerHTML = '✓ Password changed just now — confirmation email sent';
+                lastChanged.style.display = 'flex';
+
+                showPwMsg('✓ Password updated successfully!', 'success');
             } else {
                 showPwMsg(data.error || 'Failed to update password.', 'error');
             }

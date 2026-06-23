@@ -402,6 +402,95 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(Booking::class, 'supplierPaymentHistory', func_get_args());
     }
 
+    public function earnings()
+    {
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            redirect('users/login');
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier) {
+            redirect('supplier/onboarding');
+        }
+
+        $supplierId = (int)$supplier['supplier_id'];
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
+        // Get earnings summary from booking_suppliers
+        $db = new Database();
+
+        // Pending: completed but not yet paid out
+        $db->dbquery(
+            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
+             FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.status = 'completed' AND bs.payout_status = 'unpaid'"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $pending = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
+
+        // Processing
+        $db->dbquery(
+            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
+             FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.payout_status = 'processing'"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $processing = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
+
+        // Paid
+        $db->dbquery(
+            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
+             FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.payout_status = 'paid'"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $paid = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
+
+        $earnings = [
+            'pending_amount' => (float)($pending['amount'] ?? 0),
+            'pending_count' => (int)($pending['cnt'] ?? 0),
+            'processing_amount' => (float)($processing['amount'] ?? 0),
+            'processing_count' => (int)($processing['cnt'] ?? 0),
+            'paid_amount' => (float)($paid['amount'] ?? 0),
+            'paid_count' => (int)($paid['cnt'] ?? 0),
+            'total_earned' => (float)($pending['amount'] ?? 0) + (float)($processing['amount'] ?? 0) + (float)($paid['amount'] ?? 0),
+        ];
+
+        // Payout history
+        $db->dbquery(
+            "SELECT bs.booking_id, bs.item_price AS amount, bs.payout_status AS status, bs.completed_at AS created_at
+             FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.status = 'completed'
+             ORDER BY bs.completed_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':limit', $perPage, PDO::PARAM_INT);
+        $db->dbbind(':offset', $offset, PDO::PARAM_INT);
+        $payouts = $db->getmultidata() ?: [];
+
+        // Total count for pagination
+        $db->dbquery(
+            "SELECT COUNT(*) AS total FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.status = 'completed'"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $totalPayouts = (int)(($db->getsingledata())['total'] ?? 0);
+
+        $this->view('supplier/earnings', [
+            'earnings' => $earnings,
+            'payouts' => $payouts,
+            'supplier' => $supplier,
+            'supplierId' => $supplierId,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalPayouts / $perPage)),
+            'totalPayouts' => $totalPayouts,
+        ]);
+    }
+
     public function reviews()
     {
         $supplier = $this->authorizedSupplierForServicePage();
