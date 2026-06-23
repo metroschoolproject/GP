@@ -755,51 +755,56 @@ class Supplier extends SupplierControllerSupport
     {
         header('Content-Type: application/json');
 
-        $userId = $this->currentUserId();
-        if (!$userId) {
-            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
-            return;
+        try {
+            $userId = $this->currentUserId();
+            if (!$userId) {
+                echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+                return;
+            }
+
+            $payload = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($payload)) {
+                echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+                return;
+            }
+
+            $name    = trim((string)($payload['name'] ?? ''));
+            $email   = trim((string)($payload['email'] ?? ''));
+            $phone   = trim((string)($payload['phone'] ?? ''));
+            $address = trim((string)($payload['address'] ?? ''));
+            $shopName    = trim((string)($payload['shop_name'] ?? ''));
+            $description = trim((string)($payload['description'] ?? ''));
+            $businessUrl = trim((string)($payload['business_url'] ?? ''));
+
+            if ($name === '' || $email === '') {
+                echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
+                return;
+            }
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
+                return;
+            }
+
+            $this->supplierProfileModel->updateProfile($userId, [
+                'name'         => $name,
+                'email'        => $email,
+                'phone'        => $phone,
+                'address'      => $address,
+                'shop_name'    => $shopName,
+                'description'  => $description,
+                'business_url' => $businessUrl,
+            ]);
+
+            // Update session
+            $_SESSION['session_name']  = $name;
+            $_SESSION['session_email'] = $email;
+
+            echo json_encode(['ok' => true]);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'Server error. Please try again.']);
         }
-
-        $payload = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($payload)) {
-            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
-            return;
-        }
-
-        $name    = trim((string)($payload['name'] ?? ''));
-        $email   = trim((string)($payload['email'] ?? ''));
-        $phone   = trim((string)($payload['phone'] ?? ''));
-        $address = trim((string)($payload['address'] ?? ''));
-        $shopName    = trim((string)($payload['shop_name'] ?? ''));
-        $description = trim((string)($payload['description'] ?? ''));
-        $businessUrl = trim((string)($payload['business_url'] ?? ''));
-
-        if ($name === '' || $email === '') {
-            echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
-            return;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
-            return;
-        }
-
-        $this->supplierProfileModel->updateProfile($userId, [
-            'name'         => $name,
-            'email'        => $email,
-            'phone'        => $phone,
-            'address'      => $address,
-            'shop_name'    => $shopName,
-            'description'  => $description,
-            'business_url' => $businessUrl,
-        ]);
-
-        // Update session
-        $_SESSION['session_name']  = $name;
-        $_SESSION['session_email'] = $email;
-
-        echo json_encode(['ok' => true]);
     }
 
     /**
@@ -854,5 +859,61 @@ class Supplier extends SupplierControllerSupport
         ], $deviceInfo);
 
         echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * JSON endpoint — self-service delete account (soft-delete).
+     * Expects JSON body: { password }
+     * Verifies password, soft-deletes the account, destroys the session.
+     */
+    public function deleteAccount()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['ok' => false, 'error' => 'Invalid request method.']);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+            return;
+        }
+
+        $password = trim((string)($payload['password'] ?? ''));
+        if ($password === '') {
+            echo json_encode(['ok' => false, 'error' => 'Password is required.']);
+            return;
+        }
+
+        $userModel = $this->model('User');
+
+        // Check if this is an OAuth user (no password set)
+        $userInfo = $userModel->getuserinfo($_SESSION['session_email'] ?? '');
+        $hasPassword = !empty($userInfo['password']);
+
+        if ($hasPassword && !$userModel->verifyPassword($userId, $password)) {
+            echo json_encode(['ok' => false, 'error' => 'Password is incorrect.']);
+            return;
+        }
+
+        $userModel->softDeleteAccount($userId);
+
+        // Destroy session
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $p = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+        }
+        session_destroy();
+
+        echo json_encode(['ok' => true, 'redirect' => URLROOT . '/']);
     }
 }

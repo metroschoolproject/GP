@@ -269,6 +269,11 @@ textarea.form-input { height: auto; min-height: 90px; padding: 14px 16px; resize
     background: transparent; border: 1px solid var(--gold); color: #8b6d3f;
 }
 .btn-outline-gold:hover { background: var(--gold-soft); border-color: #b8943d; }
+.btn-danger {
+    background: #dc3545; color: #fff; border: 1px solid #dc3545;
+}
+.btn-danger:hover { background: #c82333; border-color: #bd2130; box-shadow: 0 4px 12px rgba(220,53,69,.3); }
+.btn-danger:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 18px; }
 
 /* ===== PASSWORD INPUT WITH EYE TOGGLE ===== */
@@ -524,9 +529,54 @@ textarea.form-input { height: auto; min-height: 90px; padding: 14px 16px; resize
                 </div>
             </div>
 
+            <!-- Card 3: Danger Zone -->
+            <div class="card" style="border-color:rgba(185,75,75,0.15);">
+                <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+                    <div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                            <i data-lucide="alert-triangle" style="color:var(--c-danger,#dc3545);width:18px;height:18px;"></i>
+                            <span style="font-size:15px;font-weight:700;color:var(--c-danger,#dc3545);">Danger Zone</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-muted,#9ca3af);">Delete your account and all associated data permanently.</div>
+                    </div>
+                    <button type="button" class="btn btn-danger" id="btnOpenDeleteModal" style="white-space:nowrap;">
+                        <i data-lucide="trash-2"></i> Delete Account
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 
+</div>
+
+<!-- Delete Account Modal -->
+<div id="deleteAccountModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:20px;background:rgba(52,35,43,.45);backdrop-filter:blur(2px);">
+  <div style="width:100%;max-width:440px;border-radius:16px;background:#fff;box-shadow:0 30px 70px rgba(52,35,43,.25);overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid #e5e7eb;">
+      <h3 style="margin:0;font-size:15px;font-weight:800;color:#1f2937;">Delete Account</h3>
+      <button type="button" id="btnCloseDeleteModal" style="border:0;background:transparent;color:#9ca3af;cursor:pointer;font-size:20px;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:18px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;background:#fef3cd;border:1px solid #f0d68a;margin-bottom:16px;">
+        <i data-lucide="alert-triangle" style="color:#856404;width:18px;height:18px;flex-shrink:0;margin-top:1px;"></i>
+        <span style="font-size:12px;color:#856404;line-height:1.5;">This will <strong>permanently deactivate</strong> your supplier account. You will be logged out immediately and your services will be hidden from customers. Your booking and payment records will be preserved.</span>
+      </div>
+
+      <label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Confirm with your password</label>
+      <input id="deleteAccountPw" type="password" placeholder="Enter your password" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:13px;color:#1f2937;margin-bottom:8px;" autocomplete="current-password">
+
+      <label style="display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Type <strong style="color:#dc3545">DELETE</strong> to confirm</label>
+      <input id="deleteAccountConfirm" type="text" placeholder="Type DELETE" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:13px;color:#1f2937;margin-bottom:6px;" autocomplete="off">
+
+      <div id="deleteAccountMsg" style="min-height:18px;font-size:12px;margin-bottom:10px;"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:9px;">
+        <button type="button" id="btnCancelDelete" class="btn btn-outline">Cancel</button>
+        <button type="button" id="btnConfirmDelete" class="btn btn-danger" disabled>Delete my account</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -873,6 +923,73 @@ document.querySelectorAll('.pw-eye').forEach(function(btn) {
     if (btnRemove) {
         btnRemove.addEventListener('click', removePhoto);
     }
+
+    // ── DELETE ACCOUNT MODAL ──
+    const delModal   = document.getElementById('deleteAccountModal');
+    const delPwInput = document.getElementById('deleteAccountPw');
+    const delConfirm = document.getElementById('deleteAccountConfirm');
+    const delBtn     = document.getElementById('btnConfirmDelete');
+    const delMsg     = document.getElementById('deleteAccountMsg');
+
+    document.getElementById('btnOpenDeleteModal').addEventListener('click', () => {
+        delModal.style.display = 'flex';
+        delPwInput.value = '';
+        delConfirm.value = '';
+        delMsg.textContent = '';
+        delMsg.style.color = '';
+        delBtn.disabled = true;
+        delPwInput.focus();
+    });
+
+    function closeDeleteModal() {
+        delModal.style.display = 'none';
+        delPwInput.value = '';
+        delConfirm.value = '';
+        delMsg.textContent = '';
+    }
+
+    document.getElementById('btnCloseDeleteModal').addEventListener('click', closeDeleteModal);
+    document.getElementById('btnCancelDelete').addEventListener('click', closeDeleteModal);
+    delModal.addEventListener('click', (e) => { if (e.target === delModal) closeDeleteModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && delModal.style.display === 'flex') closeDeleteModal(); });
+
+    function checkDeleteReady() {
+        delBtn.disabled = !(delPwInput.value.trim() && delConfirm.value.trim().toUpperCase() === 'DELETE');
+    }
+    delPwInput.addEventListener('input', checkDeleteReady);
+    delConfirm.addEventListener('input', checkDeleteReady);
+
+    delBtn.addEventListener('click', () => {
+        delBtn.disabled = true;
+        delBtn.textContent = 'Deleting…';
+        delMsg.textContent = '';
+        delMsg.style.color = '';
+
+        fetch('<?= URLROOT ?>/supplier/deleteAccount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: delPwInput.value }),
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                delMsg.textContent = 'Account deleted. Redirecting…';
+                delMsg.style.color = '#065f46';
+                setTimeout(() => { window.location.href = data.redirect || '<?= URLROOT ?>/'; }, 1200);
+            } else {
+                delMsg.textContent = data.error || 'Failed to delete account.';
+                delMsg.style.color = '#dc3545';
+                delBtn.disabled = false;
+                delBtn.textContent = 'Delete my account';
+            }
+        })
+        .catch(() => {
+            delMsg.textContent = 'Network error. Please try again.';
+            delMsg.style.color = '#dc3545';
+            delBtn.disabled = false;
+            delBtn.textContent = 'Delete my account';
+        });
+    });
 
 })();
 </script>
