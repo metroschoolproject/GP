@@ -833,10 +833,14 @@ class Admin extends Controller
             redirect('admin/suppliers');
         }
 
+        // Get supplier fee payment info if exists
+        $supplierFeePayment = $this->paymentModel->getLatestSupplierFeePayment((int)$supplierId);
+
         $this->view('admin/supplier_review', [
             'supplier' => $supplier,
             'message' => $_SESSION['admin_flash'] ?? '',
             'performance' => $this->supplierProfileModel->getSupplierPerformance((int)$supplierId),
+            'supplierFeePayment' => $supplierFeePayment,
         ]);
         unset($_SESSION['admin_flash']);
     }
@@ -1122,18 +1126,31 @@ class Admin extends Controller
             $status = 'pending';
         }
 
+        $dateFrom = trim($_GET['date_from'] ?? '');
+        $dateTo   = trim($_GET['date_to'] ?? '');
+
+        // Default to last 30 days if no dates provided
+        if ($dateFrom === '' && $dateTo === '') {
+            $dateFrom = date('Y-m-d', strtotime('-30 days'));
+            $dateTo   = date('Y-m-d');
+        }
+
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
 
+        $totalCount = $this->paymentModel->getAdminPaymentHistoryCount($status, $dateFrom, $dateTo);
+
         $this->view('admin/payments', [
-            'payments' => $this->paymentModel->getAdminPaymentHistory($status, $perPage, $offset),
+            'payments' => $this->paymentModel->getAdminPaymentHistory($status, $perPage, $offset, $dateFrom, $dateTo),
             'status' => $status,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
             'selectedPaymentId' => isset($_GET['payment']) ? (int)$_GET['payment'] : null,
             'message' => $_SESSION['admin_flash'] ?? '',
             'currentPage' => $page,
-            'totalPages' => max(1, (int)ceil($this->paymentModel->getAdminPaymentHistoryCount($status) / $perPage)),
-            'totalCount' => $this->paymentModel->getAdminPaymentHistoryCount($status),
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
             'perPage' => $perPage,
         ]);
         unset($_SESSION['admin_flash']);
