@@ -164,6 +164,15 @@ function showStrengthUI() {
         el.textContent = el.dataset[signup ? 'signup' : 'signin'];
       }
 
+      function fadeText(el, newText) {
+        el.style.transition = 'opacity 0.25s cubic-bezier(0.4,0,0.2,1)';
+        el.style.opacity = '0';
+        setTimeout(() => {
+          el.textContent = newText;
+          el.style.opacity = '1';
+        }, 250);
+      }
+
       function allFields() {
         return Array.from(document.querySelectorAll('#fieldGroup .field-wrap'));
       }
@@ -387,7 +396,7 @@ function showStrengthUI() {
           }, nextFields.length*100+300);
         });
 
-        setModeText($('btnText'), goingToSignup);
-        setModeText($('togglePrompt'), goingToSignup);
-        setModeText($('toggleBtn'), goingToSignup);
+        fadeText($('btnText'), $('btnText').dataset[goingToSignup ? 'signup' : 'signin']);
+        fadeText($('togglePrompt'), $('togglePrompt').dataset[goingToSignup ? 'signup' : 'signin']);
+        fadeText($('toggleBtn'), $('toggleBtn').dataset[goingToSignup ? 'signup' : 'signin']);
       });
