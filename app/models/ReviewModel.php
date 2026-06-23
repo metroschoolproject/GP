@@ -147,11 +147,13 @@ class ReviewModel
     {
         $this->db->dbquery(
             'SELECT r.id, r.booking_id, r.rating, r.comment, r.created_at, r.updated_at,
-                    b.event_date
+                    MIN(bi.booking_date) AS event_date
              FROM reviews r
              JOIN bookings b ON b.id = r.booking_id
+             LEFT JOIN booking_items bi ON bi.booking_id = b.id
              WHERE r.customer_id = :customer_id
                AND r.deleted_at IS NULL
+             GROUP BY r.id
              ORDER BY r.created_at DESC
              LIMIT :lim OFFSET :off'
         );
