@@ -289,6 +289,7 @@ button { font-family: var(--font-body); cursor: pointer; }
         </div>
       </div>
       <p class="gp-match" id="matchHint">Passwords do not match.</p>
+      <div id="profilePwMsg" class="gp-inline-msg"></div>
       <div class="gp-actions"><button class="gp-btn gp-btn-primary" id="btnUpdatePw"><?= $userIsOauth ? 'Set Password' : 'Update Password' ?></button></div>
     </div>
   </div>
@@ -317,11 +318,40 @@ button { font-family: var(--font-body); cursor: pointer; }
         </div>
         <div style="font-size:12px;color:var(--c-muted);">Delete your account and all associated data permanently.</div>
       </div>
-      <button class="gp-btn gp-btn-danger gp-btn-sm">Delete Account</button>
+      <button class="gp-btn gp-btn-danger gp-btn-sm" id="btnOpenDeleteModal">Delete Account</button>
     </div>
   </div>
 
 </section>
+
+<!-- Delete Account Modal -->
+<div id="deleteAccountModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:20px;background:rgba(52,35,43,.45);backdrop-filter:blur(2px);">
+  <div style="width:100%;max-width:440px;border-radius:16px;background:#fff;box-shadow:0 30px 70px rgba(52,35,43,.25);overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid #e4d2c3;">
+      <h3 style="margin:0;font-size:15px;font-weight:800;color:#3a2030;">Delete Account</h3>
+      <button type="button" id="btnCloseDeleteModal" style="border:0;background:transparent;color:#a58b96;cursor:pointer;font-size:20px;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:18px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;background:#fef3cd;border:1px solid #f0d68a;margin-bottom:16px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span style="font-size:12px;color:#856404;line-height:1.5;">This will <strong>permanently deactivate</strong> your account. You will be logged out immediately and won't be able to log back in. Your booking history and records will be preserved.</span>
+      </div>
+
+      <label style="display:block;font-size:11px;font-weight:700;color:#7b5c69;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Confirm with your password</label>
+      <input id="deleteAccountPw" type="password" placeholder="Enter your password" style="width:100%;box-sizing:border-box;border:1px solid #e4d2c3;border-radius:9px;padding:10px 12px;font-size:13px;color:#3a2030;margin-bottom:8px;" autocomplete="current-password">
+
+      <label style="display:block;font-size:11px;font-weight:700;color:#7b5c69;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Type <strong style="color:var(--c-danger)">DELETE</strong> to confirm</label>
+      <input id="deleteAccountConfirm" type="text" placeholder="Type DELETE" style="width:100%;box-sizing:border-box;border:1px solid #e4d2c3;border-radius:9px;padding:10px 12px;font-size:13px;color:#3a2030;margin-bottom:6px;" autocomplete="off">
+
+      <div id="deleteAccountMsg" style="min-height:18px;font-size:12px;margin-bottom:10px;"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:9px;">
+        <button type="button" id="btnCancelDelete" class="gp-btn gp-btn-outline gp-btn-sm">Cancel</button>
+        <button type="button" id="btnConfirmDelete" class="gp-btn gp-btn-danger gp-btn-sm" disabled>Delete my account</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -355,7 +385,9 @@ function showMsg(elId, text, type) {
     if (!el) return;
     el.textContent = text;
     el.className = 'gp-inline-msg' + (type ? ' ' + type : '');
-    if (type) setTimeout(function(){ el.className = 'gp-inline-msg'; el.textContent = ''; }, 5000);
+    if (type === 'success') {
+        setTimeout(function(){ el.className = 'gp-inline-msg'; el.textContent = ''; }, 10000);
+    }
 }
 
 // ── SAVE PROFILE ──
@@ -448,7 +480,33 @@ document.getElementById('btnUpdatePw').addEventListener('click', function(){
             cf.value = '';
             st.style.display = 'none';
             segs.forEach(function(id){ document.getElementById(id).classList.remove('on'); });
-            showMsg('profilePwMsg', '✓ Password ' + (isOauth ? 'set' : 'updated') + '. A confirmation email has been sent.', 'success');
+
+            // Show prominent success feedback
+            var pwMsgEl = document.getElementById('profilePwMsg');
+            var pwCard = pwMsgEl ? pwMsgEl.closest('.gp-card') : null;
+            if (pwCard) {
+                pwCard.style.borderColor = '#10b981';
+                pwCard.style.boxShadow = '0 0 0 3px rgba(16,185,129,.15)';
+                setTimeout(function() {
+                    pwCard.style.borderColor = '';
+                    pwCard.style.boxShadow = '';
+                }, 8000);
+            }
+
+            // Update or create "last changed" indicator
+            var lastChanged = document.getElementById('pwLastChanged');
+            if (!lastChanged && pwMsgEl) {
+                lastChanged = document.createElement('div');
+                lastChanged.id = 'pwLastChanged';
+                lastChanged.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 14px;margin-top:12px;border-radius:8px;background:#d1fae5;color:#065f46;font-size:12px;font-weight:600;';
+                pwMsgEl.parentNode.insertBefore(lastChanged, pwMsgEl.nextSibling);
+            }
+            if (lastChanged) {
+                lastChanged.innerHTML = '✓ Password ' + (isOauth ? 'set' : 'changed') + ' just now — confirmation email sent';
+                lastChanged.style.display = 'flex';
+            }
+
+            showMsg('profilePwMsg', '✓ Password ' + (isOauth ? 'set' : 'updated') + ' successfully!', 'success');
         } else {
             showMsg('profilePwMsg', data.error || 'Failed to update password.', 'error');
         }
@@ -549,7 +607,72 @@ function removePhoto() {
 
 if (br) br.addEventListener('click', removePhoto);
 
-})();
+// ── DELETE ACCOUNT MODAL ──
+var delModal     = document.getElementById('deleteAccountModal');
+var delPwInput   = document.getElementById('deleteAccountPw');
+var delConfirm   = document.getElementById('deleteAccountConfirm');
+var delBtn       = document.getElementById('btnConfirmDelete');
+var delMsg       = document.getElementById('deleteAccountMsg');
+
+document.getElementById('btnOpenDeleteModal').addEventListener('click', function(){
+    delModal.style.display = 'flex';
+    delPwInput.value = '';
+    delConfirm.value = '';
+    delMsg.textContent = '';
+    delMsg.style.color = '';
+    delBtn.disabled = true;
+    delPwInput.focus();
+});
+
+function closeDeleteModal(){
+    delModal.style.display = 'none';
+    delPwInput.value = '';
+    delConfirm.value = '';
+    delMsg.textContent = '';
+}
+
+document.getElementById('btnCloseDeleteModal').addEventListener('click', closeDeleteModal);
+document.getElementById('btnCancelDelete').addEventListener('click', closeDeleteModal);
+delModal.addEventListener('click', function(e){ if (e.target === delModal) closeDeleteModal(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && delModal.style.display === 'flex') closeDeleteModal(); });
+
+function checkDeleteReady(){
+    delBtn.disabled = !(delPwInput.value.trim() && delConfirm.value.trim().toUpperCase() === 'DELETE');
+}
+delPwInput.addEventListener('input', checkDeleteReady);
+delConfirm.addEventListener('input', checkDeleteReady);
+
+delBtn.addEventListener('click', function(){
+    delBtn.disabled = true;
+    delBtn.textContent = 'Deleting…';
+    delMsg.textContent = '';
+    delMsg.style.color = '';
+
+    fetch('<?= URLROOT ?>/main/deleteAccount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: delPwInput.value }),
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        if (data.ok) {
+            delMsg.textContent = 'Account deleted. Redirecting…';
+            delMsg.style.color = '#065f46';
+            setTimeout(function(){ window.location.href = data.redirect || '<?= URLROOT ?>/'; }, 1200);
+        } else {
+            delMsg.textContent = data.error || 'Failed to delete account.';
+            delMsg.style.color = 'var(--c-danger)';
+            delBtn.disabled = false;
+            delBtn.textContent = 'Delete my account';
+        }
+    })
+    .catch(function(){
+        delMsg.textContent = 'Network error. Please try again.';
+        delMsg.style.color = 'var(--c-danger)';
+        delBtn.disabled = false;
+        delBtn.textContent = 'Delete my account';
+    });
+});
 </script>
 </body>
 </html>

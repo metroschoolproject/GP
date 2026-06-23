@@ -414,7 +414,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                 <i data-lucide="receipt-text" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">Payments</span>
             </a>
-            <a href="<?= URLROOT ?>/booking/supplierEarnings" title="Earnings and withdrawals" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
+            <a href="<?= URLROOT ?>/supplier/earnings" title="Earnings and withdrawals" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
                 <i data-lucide="banknote" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">Earnings</span>
             </a>

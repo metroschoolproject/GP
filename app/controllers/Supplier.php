@@ -402,6 +402,95 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(Booking::class, 'supplierPaymentHistory', func_get_args());
     }
 
+    public function earnings()
+    {
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            redirect('users/login');
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier) {
+            redirect('supplier/onboarding');
+        }
+
+        $supplierId = (int)$supplier['supplier_id'];
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
+        // Get earnings summary from booking_suppliers
+        $db = new Database();
+
+        // Pending: completed but not yet paid out
+        $db->dbquery(
+            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
+             FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.status = 'completed' AND bs.payout_status = 'unpaid'"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $pending = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
+
+        // Processing
+        $db->dbquery(
+            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
+             FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.payout_status = 'processing'"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $processing = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
+
+        // Paid
+        $db->dbquery(
+            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
+             FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.payout_status = 'paid'"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $paid = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
+
+        $earnings = [
+            'pending_amount' => (float)($pending['amount'] ?? 0),
+            'pending_count' => (int)($pending['cnt'] ?? 0),
+            'processing_amount' => (float)($processing['amount'] ?? 0),
+            'processing_count' => (int)($processing['cnt'] ?? 0),
+            'paid_amount' => (float)($paid['amount'] ?? 0),
+            'paid_count' => (int)($paid['cnt'] ?? 0),
+            'total_earned' => (float)($pending['amount'] ?? 0) + (float)($processing['amount'] ?? 0) + (float)($paid['amount'] ?? 0),
+        ];
+
+        // Payout history
+        $db->dbquery(
+            "SELECT bs.booking_id, bs.item_price AS amount, bs.payout_status AS status, bs.completed_at AS created_at
+             FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.status = 'completed'
+             ORDER BY bs.completed_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':limit', $perPage, PDO::PARAM_INT);
+        $db->dbbind(':offset', $offset, PDO::PARAM_INT);
+        $payouts = $db->getmultidata() ?: [];
+
+        // Total count for pagination
+        $db->dbquery(
+            "SELECT COUNT(*) AS total FROM booking_suppliers bs
+             WHERE bs.supplier_id = :sid AND bs.status = 'completed'"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $totalPayouts = (int)(($db->getsingledata())['total'] ?? 0);
+
+        $this->view('supplier/earnings', [
+            'earnings' => $earnings,
+            'payouts' => $payouts,
+            'supplier' => $supplier,
+            'supplierId' => $supplierId,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalPayouts / $perPage)),
+            'totalPayouts' => $totalPayouts,
+        ]);
+    }
+
     public function reviews()
     {
         $supplier = $this->authorizedSupplierForServicePage();
@@ -666,51 +755,56 @@ class Supplier extends SupplierControllerSupport
     {
         header('Content-Type: application/json');
 
-        $userId = $this->currentUserId();
-        if (!$userId) {
-            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
-            return;
+        try {
+            $userId = $this->currentUserId();
+            if (!$userId) {
+                echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+                return;
+            }
+
+            $payload = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($payload)) {
+                echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+                return;
+            }
+
+            $name    = trim((string)($payload['name'] ?? ''));
+            $email   = trim((string)($payload['email'] ?? ''));
+            $phone   = trim((string)($payload['phone'] ?? ''));
+            $address = trim((string)($payload['address'] ?? ''));
+            $shopName    = trim((string)($payload['shop_name'] ?? ''));
+            $description = trim((string)($payload['description'] ?? ''));
+            $businessUrl = trim((string)($payload['business_url'] ?? ''));
+
+            if ($name === '' || $email === '') {
+                echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
+                return;
+            }
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
+                return;
+            }
+
+            $this->supplierProfileModel->updateProfile($userId, [
+                'name'         => $name,
+                'email'        => $email,
+                'phone'        => $phone,
+                'address'      => $address,
+                'shop_name'    => $shopName,
+                'description'  => $description,
+                'business_url' => $businessUrl,
+            ]);
+
+            // Update session
+            $_SESSION['session_name']  = $name;
+            $_SESSION['session_email'] = $email;
+
+            echo json_encode(['ok' => true]);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'Server error. Please try again.']);
         }
-
-        $payload = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($payload)) {
-            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
-            return;
-        }
-
-        $name    = trim((string)($payload['name'] ?? ''));
-        $email   = trim((string)($payload['email'] ?? ''));
-        $phone   = trim((string)($payload['phone'] ?? ''));
-        $address = trim((string)($payload['address'] ?? ''));
-        $shopName    = trim((string)($payload['shop_name'] ?? ''));
-        $description = trim((string)($payload['description'] ?? ''));
-        $businessUrl = trim((string)($payload['business_url'] ?? ''));
-
-        if ($name === '' || $email === '') {
-            echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
-            return;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
-            return;
-        }
-
-        $this->supplierProfileModel->updateProfile($userId, [
-            'name'         => $name,
-            'email'        => $email,
-            'phone'        => $phone,
-            'address'      => $address,
-            'shop_name'    => $shopName,
-            'description'  => $description,
-            'business_url' => $businessUrl,
-        ]);
-
-        // Update session
-        $_SESSION['session_name']  = $name;
-        $_SESSION['session_email'] = $email;
-
-        echo json_encode(['ok' => true]);
     }
 
     /**
@@ -765,5 +859,61 @@ class Supplier extends SupplierControllerSupport
         ], $deviceInfo);
 
         echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * JSON endpoint — self-service delete account (soft-delete).
+     * Expects JSON body: { password }
+     * Verifies password, soft-deletes the account, destroys the session.
+     */
+    public function deleteAccount()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['ok' => false, 'error' => 'Invalid request method.']);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+            return;
+        }
+
+        $password = trim((string)($payload['password'] ?? ''));
+        if ($password === '') {
+            echo json_encode(['ok' => false, 'error' => 'Password is required.']);
+            return;
+        }
+
+        $userModel = $this->model('User');
+
+        // Check if this is an OAuth user (no password set)
+        $userInfo = $userModel->getuserinfo($_SESSION['session_email'] ?? '');
+        $hasPassword = !empty($userInfo['password']);
+
+        if ($hasPassword && !$userModel->verifyPassword($userId, $password)) {
+            echo json_encode(['ok' => false, 'error' => 'Password is incorrect.']);
+            return;
+        }
+
+        $userModel->softDeleteAccount($userId);
+
+        // Destroy session
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $p = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+        }
+        session_destroy();
+
+        echo json_encode(['ok' => true, 'redirect' => URLROOT . '/']);
     }
 }

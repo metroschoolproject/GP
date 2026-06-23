@@ -3130,7 +3130,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
       </div>
 
       <div class="product-actions">
+        <?php if ($hasInitialBookOption): ?>
+        <button class="product-action-primary" type="button" onclick="document.getElementById('serviceCartForm').requestSubmit()">Book service</button>
+        <?php else: ?>
         <a class="product-action-primary" href="#detail-date">Book service</a>
+        <?php endif; ?>
         <a class="product-action-secondary" href="#reviews">View reviews</a>
       </div>
     </div>
