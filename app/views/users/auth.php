@@ -97,8 +97,8 @@
     opacity: 0;
     pointer-events: none;
     transform: translateX(40px);
-    transition: opacity 0.5s cubic-bezier(.19, 1, .22, 1),
-                transform 0.5s cubic-bezier(.19, 1, .22, 1);
+    transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .screen.active {
@@ -141,9 +141,10 @@
   .field-wrap {
     margin-bottom: 0;
     transition:
-      max-height 0.6s cubic-bezier(.19, 1, .22, 1),
-      opacity 0.5s cubic-bezier(.19, 1, .22, 1),
-      transform 0.5s cubic-bezier(.19, 1, .22, 1);
+      max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      margin-bottom 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .field-wrap.visible {
@@ -173,10 +174,10 @@
     outline: none;
     font-family: var(--body-font);
     box-shadow: 0 1px 3px rgba(44, 36, 32, 0.04);
-    transition: border-color 0.25s cubic-bezier(.19, 1, .22, 1),
-                background 0.25s cubic-bezier(.19, 1, .22, 1),
-                box-shadow 0.3s cubic-bezier(.19, 1, .22, 1),
-                transform 0.25s cubic-bezier(.19, 1, .22, 1);
+    transition: border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                background 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Hide browser's native password reveal eye (Chrome, Edge, Safari) */
@@ -196,7 +197,7 @@
     font-weight: 500;
     color: var(--placeholder);
     pointer-events: none;
-    transition: all 0.25s ease;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .decorated-input:hover label,
@@ -244,7 +245,7 @@
     padding: 4px;
     color: var(--accent);
     opacity: 0.55;
-    transition: opacity 0.2s;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -274,9 +275,10 @@
     box-shadow: 0 4px 14px rgba(109, 76, 91, 0.22);
     position: relative;
     overflow: hidden;
-    transition: transform 0.25s cubic-bezier(.19, 1, .22, 1),
-                box-shadow 0.25s cubic-bezier(.19, 1, .22, 1),
-                opacity 0.4s, filter 0.4s;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                filter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .btn:hover {
@@ -373,7 +375,7 @@
     margin: 22px 0;
     position: relative;
     opacity: 1;
-    transition: opacity 0.4s;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     text-align: center;
@@ -413,10 +415,10 @@
     font-weight: 500;
     font-family: var(--body-font);
     color: #3a2030;
-    transition: background 0.25s cubic-bezier(.19, 1, .22, 1),
-                border-color 0.25s cubic-bezier(.19, 1, .22, 1),
-                box-shadow 0.3s cubic-bezier(.19, 1, .22, 1),
-                transform 0.25s cubic-bezier(.19, 1, .22, 1);
+    transition: background 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .social-btn:hover {
@@ -443,9 +445,9 @@
   height: 5px;
   border-radius: 999px;
   background: rgba(109, 76, 91, 0.10);
-  transition: background 0.4s cubic-bezier(.19, 1, .22, 1),
-              box-shadow 0.4s cubic-bezier(.19, 1, .22, 1),
-              transform 0.3s cubic-bezier(.19, 1, .22, 1);
+  transition: background 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .strength-seg.active {
@@ -487,9 +489,9 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: color 0.35s cubic-bezier(.19, 1, .22, 1),
-              opacity 0.35s cubic-bezier(.19, 1, .22, 1),
-              transform 0.3s cubic-bezier(.19, 1, .22, 1);
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateX(0);
 }
 .pw-req::before {
@@ -500,8 +502,8 @@
   border-radius: 50%;
   border: 1.5px solid rgba(109, 76, 91, 0.20);
   flex-shrink: 0;
-  transition: background 0.35s cubic-bezier(.19, 1, .22, 1),
-              border-color 0.35s cubic-bezier(.19, 1, .22, 1);
+  transition: background 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .pw-req.met {
   color: #5b8c5a;
@@ -522,7 +524,7 @@
   transform: translateY(-50%);
   font-size: 14px;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .email-status.show { opacity: 1; }
 
@@ -876,7 +878,7 @@
             </button>
           </div>
           <!-- Password match indicator -->
-          <div id="matchIndicator" class="flex items-center gap-1.5 mt-1 px-1 text-[11px]" style="opacity:0; transition: opacity 0.3s;">
+          <div id="matchIndicator" class="flex items-center gap-1.5 mt-1 px-1 text-[11px]" style="opacity:0; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
             <span id="matchIcon"></span>
             <span id="matchText"></span>
           </div>

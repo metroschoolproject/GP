@@ -246,48 +246,50 @@ function showStrengthUI() {
         const rects = getCharRects(el);
         rects.forEach(({el:c,cx,cy},i) => {
           setTimeout(()=>{
-            if(c.textContent.trim()) emitParticles(cx,cy,10);
-            c.style.transition='opacity 0.4s ease,filter 0.4s ease,transform 0.4s ease';
-            c.style.opacity='0'; c.style.filter='blur(6px)'; c.style.transform='scale(0.87)';
-          }, i*18);
+            if(c.textContent.trim()) emitParticles(cx,cy,8);
+            c.style.transition='opacity 0.55s cubic-bezier(0.4,0,0.2,1),filter 0.55s cubic-bezier(0.4,0,0.2,1),transform 0.55s cubic-bezier(0.4,0,0.2,1)';
+            c.style.opacity='0'; c.style.filter='blur(5px)'; c.style.transform='scale(0.92)';
+          }, i*22);
         });
-        setTimeout(onDone, rects.length*18+200);
+        setTimeout(onDone, rects.length*22+300);
       }
 
       function assembleIn(el) {
         const rects = getCharRects(el);
         rects.forEach(({el:c,cx,cy},i) => {
           setTimeout(()=>{
-            if(c.textContent.trim()) emitParticles(cx,cy,6);
-            c.style.transition='opacity 0.48s cubic-bezier(0,0,0.2,1),filter 0.48s cubic-bezier(0,0,0.2,1),transform 0.48s cubic-bezier(0,0,0.2,1)';
+            if(c.textContent.trim()) emitParticles(cx,cy,5);
+            c.style.transition='opacity 0.6s cubic-bezier(0.4,0,0.2,1),filter 0.6s cubic-bezier(0.4,0,0.2,1),transform 0.6s cubic-bezier(0.4,0,0.2,1)';
             c.style.opacity='1'; c.style.filter='blur(0px)'; c.style.transform='scale(1)';
-          }, i*20);
+          }, i*24);
         });
-        return rects.length*42+500;
+        return rects.length*50+600;
       }
 
       function hideAllFields(onDone) {
         allFields().forEach((el, i) => {
           setTimeout(() => {
-            el.style.transition = `max-height 0.45s cubic-bezier(0.4,0,0.2,1) ${i*60}ms, opacity 0.38s cubic-bezier(0.4,0,0.2,1) ${i*60}ms, transform 0.38s cubic-bezier(0.4,0,0.2,1) ${i*60}ms`;
+            el.style.transition = `max-height 0.6s cubic-bezier(0.4,0,0.2,1) ${i*70}ms, opacity 0.5s cubic-bezier(0.4,0,0.2,1) ${i*70}ms, transform 0.5s cubic-bezier(0.4,0,0.2,1) ${i*70}ms, margin-bottom 0.5s cubic-bezier(0.4,0,0.2,1) ${i*70}ms`;
             el.style.maxHeight = '0';
             el.style.opacity = '0';
-            el.style.transform = 'translateY(10px)';
+            el.style.transform = 'translateY(8px)';
+            el.style.marginBottom = '0';
             el.classList.remove('visible');
-          }, i*60);
+          }, i*70);
         });
-        setTimeout(onDone, allFields().length*60+480);
+        setTimeout(onDone, allFields().length*70+600);
       }
 
       function showFields(ids) {
         ids.forEach((id, i) => {
           setTimeout(() => {
             const el = $(id);
+            el.style.transition = `max-height 0.6s cubic-bezier(0.4,0,0.2,1), opacity 0.5s cubic-bezier(0.4,0,0.2,1), transform 0.5s cubic-bezier(0.4,0,0.2,1), margin-bottom 0.5s cubic-bezier(0.4,0,0.2,1)`;
             el.style.maxHeight = el.dataset.height;
             el.style.opacity = '1';
             el.style.transform = 'translateY(0)';
             el.style.marginBottom = el.dataset.margin;
-          }, i * 90);
+          }, i * 100);
         });
       }
 
@@ -381,7 +383,7 @@ function showStrengthUI() {
           setTimeout(()=>{
             mainBtn.classList.remove('hidden');
             divider.classList.remove('hidden');
-          }, nextFields.length*90+200);
+          }, nextFields.length*100+300);
         });
 
         setModeText($('btnText'), goingToSignup);
