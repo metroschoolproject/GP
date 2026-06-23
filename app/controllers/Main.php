@@ -77,13 +77,13 @@ class Main extends Controller
             return;
         }
 
-        $url = $uploadService->storeProfilePhoto($file, (int)$userId);
+        $url = $uploadService->storeProfilePhoto($file, (int)$userId, 'customers/avatars');
         if ($url === '') {
             echo json_encode(['ok' => false, 'error' => 'Invalid file. Accepted: JPEG, PNG, WebP (max 5MB).']);
             return;
         }
 
-        $uploadService->removeOldProfilePhotos((int)$userId, $url);
+        $uploadService->removeOldProfilePhotos((int)$userId, $url, 'customers/avatars');
 
         $userModel = $this->model('User');
         $userModel->updateAvatar((int)$userId, $url);
@@ -106,7 +106,7 @@ class Main extends Controller
         }
 
         $uploadService = new UploadService();
-        $uploadService->removeOldProfilePhotos((int)$userId);
+        $uploadService->removeOldProfilePhotos((int)$userId, '', 'customers/avatars');
 
         $userModel = $this->model('User');
         $userModel->updateAvatar((int)$userId, '');
