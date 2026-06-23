@@ -817,6 +817,10 @@
 
             </div>
         </div>
+        <!-- Password error (login) -->
+        <div id="pwError" style="opacity:0;max-height:0;overflow:hidden;transition:opacity 0.4s cubic-bezier(0.4,0,0.2,1),max-height 0.4s cubic-bezier(0.4,0,0.2,1);margin-bottom:0">
+          <p class="text-[12px]" style="color:#b94b4b;margin:0" id="pwErrorText"></p>
+        </div>
 
         <!-- PASSWORD STRENGTH -->
         <div class="field-wrap"
@@ -1080,6 +1084,8 @@
             // Handle Login 
             async function handleLogin(ccode){
                 clearAuthErrors();
+                const pwErr = document.getElementById('pwError');
+                if (pwErr) { pwErr.style.opacity = '0'; pwErr.style.maxHeight = '0'; pwErr.style.marginBottom = '0'; }
                 const password = safeInput("password");
                 const pw_sha = await sha256(password);
                 const challenge = pw_sha + ccode;
@@ -1110,6 +1116,12 @@
                             ? ` Attempt ${res.attempt_count} of ${res.max_attempts}.`
                             : '';
                         passwordInput.style.border = '1px solid #b94b4b';
+                        const pwErr = document.getElementById('pwError');
+                        const pwErrText = document.getElementById('pwErrorText');
+                        pwErrText.textContent = `Wrong password. Please try again.${attemptText}`;
+                        pwErr.style.opacity = '1';
+                        pwErr.style.maxHeight = '30px';
+                        pwErr.style.marginBottom = '8px';
                         return;
                     }
                     if(res.loginfailover == true){
@@ -1149,7 +1161,13 @@
                 });
 
             }
-            // Handle Register 
+            // Clear password error on focus
+            document.getElementById('passwordInput').addEventListener('focus', function() {
+                const pwErr = document.getElementById('pwError');
+                if (pwErr) { pwErr.style.opacity = '0'; pwErr.style.maxHeight = '0'; pwErr.style.marginBottom = '0'; }
+                this.style.border = '';
+            });
+            // Handle Register
             async function handleRegister() {
                 if (authLoading) {
                     return;
