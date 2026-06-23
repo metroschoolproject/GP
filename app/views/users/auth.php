@@ -91,7 +91,7 @@
   .screen {
     position: absolute;
     inset: 0;
-    padding: 38px 40px 40px;
+    padding: 30px 36px 36px;
     display: flex;
     flex-direction: column;
     opacity: 0;
@@ -115,7 +115,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    min-height: 90px;
+    min-height: 78px;
     justify-content: center;
   }
 
@@ -126,7 +126,7 @@
     color: var(--accent);
     line-height: 1.2;
     letter-spacing: -0.3px;
-    margin-bottom: 2px;
+    margin-bottom: 0;
   }
 
   .sub-heading {
@@ -475,9 +475,9 @@
   font-size: 11px;
   font-weight: 500;
   color: var(--muted);
-  margin-top: 6px;
-  padding: 10px 12px;
-  line-height: 1.7;
+  margin-top: 4px;
+  padding: 8px 10px;
+  line-height: 1.55;
   font-family: var(--body-font);
   background: rgba(212, 160, 71, 0.04);
   border: 1px solid rgba(212, 160, 71, 0.08);
@@ -696,7 +696,7 @@
   </div>
 
   <!-- card -->
-  <div class="relative w-full max-w-[420px] rounded-[24px] border border-[#ead8c7] bg-[#faf5ef] shadow-[0_20px_40px_rgba(15,23,42,0.08)]" style="min-height: 580px; height: auto;">
+  <div class="relative w-full max-w-[420px] rounded-[24px] border border-[#ead8c7] bg-[#faf5ef] shadow-[0_20px_40px_rgba(15,23,42,0.08)]" style="height: auto;">
     <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
     <div class="auth-loading-overlay" id="authLoadingOverlay" aria-hidden="true">
       <div class="auth-loading-panel" role="status" aria-live="polite">
@@ -719,7 +719,7 @@
     ?>
     <div class="screen active" id="screenAuth">
 
-      <div class="heading-area mb-2">
+      <div class="heading-area mb-1">
         <div class="main-heading" id="mainHeading" data-signin="<?= $isInternalLogin ? 'Staff Portal' : 'Welcome Back' ?>" data-signup="Create account"><?= $isInternalLogin ? 'Staff Portal' : 'Welcome Back' ?></div>
         <div class="sub-heading" id="subHeading" data-signin="<?= $isInternalLogin ? 'Sign in with your staff credentials' : 'Sign in to your account' ?>" data-signup="Join us and start your journey"><?= $isInternalLogin ? 'Sign in with your staff credentials' : 'Sign in to your account' ?></div>
         <div style="width:192px; margin-top:2px">
@@ -727,16 +727,16 @@
         </div>
       </div>
  
-      <div class="flex flex-col mb-2" id="fieldGroup">
+      <div class="flex flex-col mb-3" id="fieldGroup">
         <!-- Name -->
-        <div class="field-wrap" id="fwName" data-modes="signup" data-height="56px" data-margin="14px" style="max-height:0;opacity:0;margin-bottom:0">
+        <div class="field-wrap" id="fwName" data-modes="signup" data-height="56px" data-margin="12px" style="max-height:0;opacity:0;margin-bottom:0">
           <div class="decorated-input">
             <input id="name" name="name" type="text" placeholder=" " onmousedown="event.stopPropagation()">
             <label for="name">Name</label>
           </div>
         </div>
         <!-- Email -->
-        <div class="field-wrap" id="fwEmail" data-modes="signin signup" data-height="70px" data-margin="14px" style="max-height:70px;opacity:1;margin-bottom:14px">
+        <div class="field-wrap" id="fwEmail" data-modes="signin signup" data-height="70px" data-margin="12px" style="max-height:70px;opacity:1;margin-bottom:12px">
           <div class="decorated-input">
             <input
             id="email"
@@ -755,8 +755,8 @@
             id="fwPassword"
             data-modes="signin signup"
             data-height="70px"
-            data-margin="14px"
-            style="max-height:70px;opacity:1;margin-bottom:14px">
+            data-margin="12px"
+            style="max-height:70px;opacity:1;margin-bottom:12px">
 
             <div class="decorated-input">
 
@@ -866,7 +866,7 @@
         <!-- CONFIRM PASSWORD -->
 
         <!-- Confirm -->
-        <div class="field-wrap" id="fwConfirm" data-modes="signup" data-height="70px" data-margin="14px" style="max-height:0;opacity:0;margin-bottom:0">
+        <div class="field-wrap" id="fwConfirm" data-modes="signup" data-height="70px" data-margin="12px" style="max-height:0;opacity:0;margin-bottom:0">
           <div class="decorated-input">
             <input id="confirmInput" name="confirm_password" type="password" placeholder=" " onmousedown="event.stopPropagation()">
             <label for="confirmInput">Confirm Password</label>
@@ -892,19 +892,19 @@
       <!-- Backend validation hooks: hidden by default, used by the inline login script -->
       <!-- Duplicate email error -->
       <div class="emailvalid hidden mt-[-6px] mb-2">
-        <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200">
-          <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg" style="background:rgba(185,75,75,0.06);border:1px solid rgba(185,75,75,0.15)">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="#b94b4b" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           <div class="flex-1">
-            <span class="text-[12px] text-red-600 font-medium">This email is already registered.</span>
+            <span class="text-[12px] font-medium" style="color:#b94b4b">This email is already registered.</span>
             <a href="<?= URLROOT ?>/users/auth" class="text-[12px] text-[var(--accent)] font-semibold ml-1 hover:underline">Login instead?</a>
           </div>
         </div>
       </div>
-      <p id="pwvalid" class="hidden text-[12px] text-red-500 mt-[-10px] mb-2">Invalid password.</p>
-      <div class="warning-bar hidden text-[12px] text-red-500 mb-2"></div>
-      <div class="accountnotfound-warning-bar hidden text-[12px] text-red-500 mb-2">Account not found.</div>
+      <p id="pwvalid" class="hidden text-[12px] mt-[-10px] mb-2" style="color:#b94b4b">Invalid password.</p>
+      <div class="warning-bar hidden text-[12px] mb-2" style="color:#b94b4b"></div>
+      <div class="accountnotfound-warning-bar hidden text-[12px] mb-2" style="color:#b94b4b">Account not found.</div>
       <span class="lock-until-time hidden"></span>
 
       <div class="divider" id="divider" style="<?= $hideSocialLogin ? 'display:none' : '' ?>"><span>or continue with</span></div>
@@ -978,9 +978,9 @@
                         return;
                     }                    for (var i = 0; i < inputs.length; i++) {
                         if (!inputs[i].value.trim() == "") {
-                            inputs[i].style.border = "1px solid rgb(120, 120, 196)";
+                            inputs[i].style.border = "1px solid #c8b1a1";
                         } else {
-                            inputs[i].style.border = "1px solid red";
+                            inputs[i].style.border = "1px solid #b94b4b";
                         }
 
                     }
@@ -1098,7 +1098,7 @@
                         pwvalid.classList.remove('hidden');
                         pwvalid.style.display = 'block';
                         pwvalid.textContent = wrongPasswordMessage;
-                        passwordInput.style.border = '1px solid red';
+                        passwordInput.style.border = '1px solid #b94b4b';
                         return;
                     }
                     if(res.loginfailover == true){
@@ -1109,7 +1109,7 @@
                         login_warning_bar.style.display = 'block';
                         login_warning_bar.innerHTML = accountLockMessage(lockedUntil) + " We sent a login fail alert to your email.";
                         console.log('hh')
-                        passwordInput.style.border = '1px solid red';
+                        passwordInput.style.border = '1px solid #b94b4b';
                         pwvalid.style.display = 'block';
                         return;
                     }
@@ -1120,7 +1120,7 @@
                         login_warning_bar.classList.replace('hidden','show');
                         login_warning_bar.style.display = 'block';
                         login_warning_bar.innerHTML = accountLockMessage(lockedUntil);
-                        passwordInput.style.border = '1px solid red';
+                        passwordInput.style.border = '1px solid #b94b4b';
                         pwvalid.style.display = 'block';
                         return;
                     }
@@ -1162,10 +1162,10 @@
 
                 [nameInput, emailInput, passwordInput, confirmInput].forEach(input => {
                     if (!input.value.trim()) {
-                        input.style.border = "1px solid red";
+                        input.style.border = "1px solid #b94b4b";
                         valid = false;
                     } else {
-                        input.style.border = "1px solid rgb(120, 120, 196)";
+                        input.style.border = "1px solid #c8b1a1";
                     }
                 });
 
@@ -1174,14 +1174,14 @@
                 }
 
                 if (!validEmail(email)) {
-                    emailInput.style.border = "1px solid red";
+                    emailInput.style.border = "1px solid #b94b4b";
                     emailInput.setCustomValidity("Enter a valid email address");
                     emailInput.reportValidity();
                     return;
                 }
 
                 if (password.length < 8) {
-                    passwordInput.style.border = "1px solid red";
+                    passwordInput.style.border = "1px solid #b94b4b";
                     return;
                 }
 
@@ -1192,7 +1192,7 @@
                 if (/[0-9]/.test(password)) pwScore++;
                 if (/[^A-Za-z0-9]/.test(password)) pwScore++;
                 if (pwScore < 2) {
-                    passwordInput.style.border = "1px solid red";
+                    passwordInput.style.border = "1px solid #b94b4b";
                     const warningBar = document.querySelector('.warning-bar');
                     warningBar.classList.remove('hidden');
                     warningBar.style.display = 'block';
@@ -1202,7 +1202,7 @@
                 }
 
                 if (password !== confirmPassword) {
-                    confirmInput.style.border = "1px solid red";
+                    confirmInput.style.border = "1px solid #b94b4b";
                     return;
                 }
 
@@ -1236,8 +1236,8 @@
                         setAuthLoading(false);
                         emailvalid.classList.remove('hidden');
                         emailvalid.style.display = "block";
-                        emailInput.style.borderColor = '#ef4444';
-                        emailInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                        emailInput.style.borderColor = '#b94b4b';
+                        emailInput.style.boxShadow = '0 0 0 3px rgba(185, 75, 75, 0.12)';
                         emailInput.focus();
                     } else if (res.status == "success") {
                         window.location.href = "<?= URLROOT ?>/" + res.redirect;
@@ -1314,10 +1314,10 @@
 
             if (value && !validEmail(value)) {
                 emailInput.setCustomValidity('Enter a valid email address');
-                emailInput.style.borderColor = '#e88c3a';
+                emailInput.style.borderColor = '#d4a047';
             } else if (value && validEmail(value)) {
                 emailInput.setCustomValidity('');
-                emailInput.style.borderColor = '#4ade80';
+                emailInput.style.borderColor = '#16a34a';
             } else {
                 emailInput.setCustomValidity('');
                 emailInput.style.borderColor = '';
@@ -1347,13 +1347,13 @@
                         matchIcon.style.color = '#4ade80';
                         matchText.textContent = 'Passwords match';
                         matchText.style.color = '#4ade80';
-                        confirmField.style.borderColor = '#4ade80';
+                        confirmField.style.borderColor = '#16a34a';
                     } else {
                         matchIcon.textContent = '✗';
                         matchIcon.style.color = '#f87171';
                         matchText.textContent = 'Passwords don\'t match';
                         matchText.style.color = '#f87171';
-                        confirmField.style.borderColor = '#f87171';
+                        confirmField.style.borderColor = '#b94b4b';
                     }
                 }
 
@@ -1367,9 +1367,9 @@
                 nameField.addEventListener('input', () => {
                     const val = nameField.value.trim();
                     if (val.length > 0 && val.length < 2) {
-                        nameField.style.borderColor = '#e88c3a';
+                        nameField.style.borderColor = '#d4a047';
                     } else if (val.length >= 2) {
-                        nameField.style.borderColor = '#4ade80';
+                        nameField.style.borderColor = '#16a34a';
                     } else {
                         nameField.style.borderColor = '';
                     }
