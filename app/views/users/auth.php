@@ -816,10 +816,11 @@
                 </button>
 
             </div>
-        </div>
-        <!-- Password error (login) -->
-        <div id="pwError" style="opacity:0;max-height:0;overflow:hidden;transition:opacity 0.4s cubic-bezier(0.4,0,0.2,1),max-height 0.4s cubic-bezier(0.4,0,0.2,1);margin-bottom:0">
-          <p class="text-[12px]" style="color:#b94b4b;margin:0" id="pwErrorText"></p>
+            <!-- Password error (login) -->
+            <div id="pwError" class="flex items-center gap-1.5 mt-1 px-1" style="opacity:0;max-height:0;overflow:hidden;transition:opacity 0.4s cubic-bezier(0.4,0,0.2,1),max-height 0.4s cubic-bezier(0.4,0,0.2,1)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b94b4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span class="text-[11px] font-medium" style="color:#b94b4b" id="pwErrorText"></span>
+            </div>
         </div>
 
         <!-- PASSWORD STRENGTH -->
@@ -1085,7 +1086,7 @@
             async function handleLogin(ccode){
                 clearAuthErrors();
                 const pwErr = document.getElementById('pwError');
-                if (pwErr) { pwErr.style.opacity = '0'; pwErr.style.maxHeight = '0'; pwErr.style.marginBottom = '0'; }
+                if (pwErr) { pwErr.style.opacity = '0'; pwErr.style.maxHeight = '0'; }
                 const password = safeInput("password");
                 const pw_sha = await sha256(password);
                 const challenge = pw_sha + ccode;
@@ -1120,8 +1121,7 @@
                         const pwErrText = document.getElementById('pwErrorText');
                         pwErrText.textContent = `Wrong password. Please try again.${attemptText}`;
                         pwErr.style.opacity = '1';
-                        pwErr.style.maxHeight = '30px';
-                        pwErr.style.marginBottom = '8px';
+                        pwErr.style.maxHeight = '24px';
                         return;
                     }
                     if(res.loginfailover == true){
@@ -1164,7 +1164,7 @@
             // Clear password error on focus
             document.getElementById('passwordInput').addEventListener('focus', function() {
                 const pwErr = document.getElementById('pwError');
-                if (pwErr) { pwErr.style.opacity = '0'; pwErr.style.maxHeight = '0'; pwErr.style.marginBottom = '0'; }
+                if (pwErr) { pwErr.style.opacity = '0'; pwErr.style.maxHeight = '0'; }
                 this.style.border = '';
             });
             // Handle Register
