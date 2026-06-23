@@ -20,8 +20,15 @@ class Mailserver extends Controller{
         $mail->SMTPAuth = true;
         $mail->Username = 'hsumyatm7308@gmail.com';
         $mail->Password = 'jbbrepwljysvexsn';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = 587;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+        $mail->Port = 465;
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true,
+            ],
+        ];
         $mail->setFrom('hsumyatm7308@gmail.com', 'Golden Promise');
 
         return $mail;

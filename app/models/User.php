@@ -490,6 +490,21 @@ class User
         $this->db->dbbind(':id', $userId);
         return $this->db->dbexecute();
     }
+
+    /**
+     * Self-service account soft-delete.
+     * Sets deleted_at, forces status to 'banned', and clears remember token.
+     * Records are preserved (bookings, payments, etc.) but login is blocked.
+     */
+    public function softDeleteAccount(int $userId): bool
+    {
+        $this->db->dbquery('UPDATE users SET deleted_at = NOW(), status = \'banned\' WHERE user_id = :id');
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        $this->clearRememberToken($userId);
+        return true;
+    }
 }
 
 

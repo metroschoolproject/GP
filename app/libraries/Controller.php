@@ -3,7 +3,7 @@
 
 class Controller
 {
-    protected function requireRole(string $role, bool $json = false): int
+    protected function requireRole(string $role, bool $json = false, string $loginUrl = 'users/auth'): int
     {
         $userId = (int)($_SESSION['session_uid'] ?? 0);
         if ($userId > 0 && user_has_role($userId, $role)) {
@@ -17,7 +17,11 @@ class Controller
             exit;
         }
 
-        redirect('users/auth');
+        // Preserve the requested URL so user returns here after login
+        $returnUrl = trim((string)($_GET['url'] ?? ''), '/');
+        $separator = str_contains($loginUrl, '?') ? '&' : '?';
+        $redirectUrl = $returnUrl !== '' ? $loginUrl . $separator . 'redirect=' . urlencode($returnUrl) : $loginUrl;
+        redirect($redirectUrl);
     }
 
     protected function requireCsrf(bool $json = true): void

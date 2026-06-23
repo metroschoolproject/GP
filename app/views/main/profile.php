@@ -119,6 +119,8 @@ button { font-family: var(--font-body); cursor: pointer; }
 /* ══ PASSWORD INPUT WITH EYE ═══════════════ */
 .gp-pw-wrap { position: relative; display: flex; align-items: center; }
 .gp-pw-wrap input { padding-right: 44px; }
+.gp-pw-wrap input::-webkit-credentials-auto-fill-button,
+.gp-pw-wrap input::-ms-reveal { display: none !important; }
 .gp-pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 6px; color: var(--c-strong); opacity: 0.45; transition: opacity 0.2s; border-radius: 6px; display: flex; align-items: center; }
 .gp-pw-eye:hover { opacity: 1; background: rgba(109,76,91,0.06); }
 .gp-pw-eye svg { display: block; pointer-events: none; }

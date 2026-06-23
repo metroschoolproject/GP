@@ -143,6 +143,10 @@
             transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
         }
 
+        /* Hide browser's native password reveal eye */
+        .decorated-input input::-webkit-credentials-auto-fill-button,
+        .decorated-input input::-ms-reveal { display: none !important; }
+
         .decorated-input input::placeholder {
             color: transparent;
         }

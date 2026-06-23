@@ -267,8 +267,11 @@ class Booking extends Controller
                 if (empty($itemContactName)) {
                     $currentItemErrors[] = 'Contact name is required';
                 }
-                if (empty($itemPhone)) {
+                $phoneDigits = preg_replace('/\D/', '', $itemPhone);
+                if (empty($phoneDigits)) {
                     $currentItemErrors[] = 'Contact phone is required';
+                } elseif (strlen($phoneDigits) < 10 || strlen($phoneDigits) > 11) {
+                    $currentItemErrors[] = 'Contact phone must be 10–11 digits';
                 }
                 if (empty($itemLocation)) {
                     $currentItemErrors[] = 'Location is required';
