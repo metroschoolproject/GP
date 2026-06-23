@@ -1109,8 +1109,6 @@
                         const attemptText = res.attempt_count && res.max_attempts
                             ? ` Attempt ${res.attempt_count} of ${res.max_attempts}.`
                             : '';
-                        const wrongPasswordMessage = `Wrong password. Please try again.${attemptText}`;
-                        showScrollMessage(wrongPasswordMessage);
                         passwordInput.style.border = '1px solid #b94b4b';
                         return;
                     }
