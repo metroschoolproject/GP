@@ -1,10 +1,19 @@
 <?php
 
 define('APPNAME', 'Golden Promise');
-define('URLROOT', 'http://localhost/GP');
-define('IMG_ROOT', 'http://localhost/GP/public');
-define('NETWORK_URLROOT', 'http://10.247.249.2/GP');
-define('NETWORK_IMG_ROOT', 'http://10.247.249.2/GP/public');
+// Dynamic base URL — works on localhost, local network, and Ngrok
+// Detect HTTPS — handles direct HTTPS, reverse proxies (Ngrok, LocalTunnel, Cloudflare)
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+        || (($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '') === 'on');
+$protocol = $isHttps ? 'https' : 'http';
+$host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$basePath = '/GP';
+define('URLROOT', $protocol . '://' . $host . $basePath);
+define('IMG_ROOT', URLROOT . '/public');
+// Legacy aliases (kept for backward compat; prefer URLROOT / IMG_ROOT)
+define('NETWORK_URLROOT', URLROOT);
+define('NETWORK_IMG_ROOT', IMG_ROOT);
 define('APPROOT', dirname(dirname(__FILE__)));
 // define('VENDOR_AUTOLOAD','');
 
@@ -22,11 +31,11 @@ define('DB_NAME', 'goldenpromise');
 
 define('GOOGLE_CLIENT_ID', '453132170855-j9npo21t5tr7n6c874ml66ta1l96km1j.apps.googleusercontent.com');
 define('GOOGLE_CLIENT_SECRET', env('GOOGLE_CLIENT_SECRET', ''));
-define('GOOGLE_REDIRECT_URI', 'http://localhost/GP/users/googleCallback');
+define('GOOGLE_REDIRECT_URI', URLROOT . '/users/googleCallback');
 
 define('FACEBOOK_APP_ID', '26938920369127434');
 define('FACEBOOK_APP_SECRET', env('FACEBOOK_APP_SECRET', ''));
-define('FACEBOOK_REDIRECT_URI', 'http://localhost/GP/users/facebookCallback');
+define('FACEBOOK_REDIRECT_URI', URLROOT . '/users/facebookCallback');
 
 
 

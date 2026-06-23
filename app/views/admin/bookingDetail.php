@@ -1585,18 +1585,142 @@ $dashboardContent = function () use (
     <a href="#booking-activity"><i data-lucide="history"></i>Activity</a>
   </nav>
 
+  <?php
+    $bookingStatus = $booking['status'] ?? '';
+    $isPendingSupplier = $bookingStatus === 'pending_supplier_response';
+    $isPendingPayment = $bookingStatus === 'pending_payment';
+    $isPaymentSubmitted = $bookingStatus === 'payment_submitted' || $paymentStatus === 'pending';
+    $isConfirmed = in_array($bookingStatus, ['confirmed', 'paid', 'finalized', 'completed'], true);
+    $isCancelled = in_array($bookingStatus, ['cancelled', 'cancellation_requested'], true);
+
+    // Step progress: 1=Created, 2=Suppliers, 3=Payment, 4=Confirmed
+    $currentStep = 1;
+    $stepLabel = 'Booking Created';
+    $stepColor = '#6d4c5b';
+    $stepBg = '#f3f0ed';
+    $stepIcon = 'clipboard-list';
+
+    if ($isPendingSupplier) {
+        $currentStep = 2;
+        $stepLabel = 'Waiting for Supplier Response';
+        $stepColor = '#92400e';
+        $stepBg = '#fef3c7';
+        $stepIcon = 'clock';
+    } elseif ($isPendingPayment) {
+        $currentStep = 3;
+        $stepLabel = 'Waiting for Customer Payment';
+        $stepColor = '#3730a3';
+        $stepBg = '#e0e7ff';
+        $stepIcon = 'wallet';
+    } elseif ($isPaymentSubmitted) {
+        $currentStep = 3;
+        $stepLabel = 'Payment Submitted — Needs Review';
+        $stepColor = '#b45309';
+        $stepBg = '#fef3c7';
+        $stepIcon = 'alert-circle';
+    } elseif ($isConfirmed) {
+        $currentStep = 4;
+        $stepLabel = 'Booking Confirmed';
+        $stepColor = '#065f46';
+        $stepBg = '#d1fae5';
+        $stepIcon = 'check-circle';
+    } elseif ($isCancelled) {
+        $currentStep = 0;
+        $stepLabel = 'Booking Cancelled';
+        $stepColor = '#991b1b';
+        $stepBg = '#fee2e2';
+        $stepIcon = 'x-circle';
+    }
+  ?>
+
+  <!-- ── BOOKING STATUS BANNER ── -->
+  <div style="margin-bottom:24px;border-radius:16px;border:2px solid <?= $stepColor ?>;background:<?= $stepBg ?>;overflow:hidden">
+    <!-- Top banner -->
+    <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
+      <div style="width:56px;height:56px;border-radius:14px;background:<?= $stepColor ?>;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0">
+        <i data-lucide="<?= $stepIcon ?>" style="width:28px;height:28px"></i>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:<?= $stepColor ?>;opacity:.7;margin-bottom:4px">Current Stage</div>
+        <div style="font-size:20px;font-weight:800;color:<?= $stepColor ?>"><?= $stepLabel ?></div>
+      </div>
+      <?php if ($isPendingSupplier || $isPendingPayment || $isPaymentSubmitted): ?>
+      <div style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;background:white;font-size:12px;font-weight:700;color:<?= $stepColor ?>">
+        <i data-lucide="clock" style="width:14px;height:14px"></i>
+        Action needed
+      </div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Step progress bar -->
+    <div style="display:flex;background:white;border-top:1px solid <?= $stepColor ?>20">
+      <?php
+        $steps = [
+            1 => ['label' => 'Created', 'icon' => 'clipboard-list'],
+            2 => ['label' => 'Suppliers', 'icon' => 'users'],
+            3 => ['label' => 'Payment', 'icon' => 'wallet'],
+            4 => ['label' => 'Confirmed', 'icon' => 'check-circle'],
+        ];
+      ?>
+      <?php foreach ($steps as $num => $step): ?>
+        <?php
+          $isComplete = $num < $currentStep || ($num === $currentStep && $currentStep === 4);
+          $isCurrent = $num === $currentStep && $currentStep < 4;
+          $isFuture = $num > $currentStep;
+          $stepBorderColor = $isComplete ? '#065f46' : ($isCurrent ? $stepColor : '#e5e7eb');
+          $stepTextColor = $isComplete ? '#065f46' : ($isCurrent ? $stepColor : '#9ca3af');
+          $stepBgColor = $isComplete ? '#d1fae5' : ($isCurrent ? $stepBg : '#f9fafb');
+        ?>
+        <div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 16px;border-right:1px solid #f3f4f6;background:<?= $stepBgColor ?><?= $isCurrent ? ';box-shadow:inset 0 -3px 0 ' . $stepColor : '' ?>">
+          <div style="width:32px;height:32px;border-radius:50%;background:<?= $isComplete ? '#065f46' : ($isCurrent ? $stepColor : '#e5e7eb') ?>;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:800;flex-shrink:0">
+            <?php if ($isComplete): ?>
+              <i data-lucide="check" style="width:16px;height:16px"></i>
+            <?php else: ?>
+              <?= $num ?>
+            <?php endif; ?>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:800;color:<?= $stepTextColor ?>"><?= $step['label'] ?></div>
+            <?php if ($isCurrent): ?>
+              <div style="font-size:10px;color:<?= $stepColor ?>;font-weight:600;margin-top:1px">Current</div>
+            <?php elseif ($isComplete): ?>
+              <div style="font-size:10px;color:#065f46;font-weight:600;margin-top:1px">Done</div>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+
+    <?php if ($isPendingSupplier): ?>
+    <div style="padding:14px 24px;border-top:1px solid <?= $stepColor ?>20;display:flex;align-items:center;gap:10px;font-size:13px;color:<?= $stepColor ?>">
+      <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0"></i>
+      <span><strong>Next:</strong> Suppliers have 48 hours to accept or decline. Once accepted, customer will be notified to pay the deposit.</span>
+    </div>
+    <?php elseif ($isPendingPayment): ?>
+    <div style="padding:14px 24px;border-top:1px solid <?= $stepColor ?>20;display:flex;align-items:center;gap:10px;font-size:13px;color:<?= $stepColor ?>">
+      <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0"></i>
+      <span><strong>Next:</strong> Customer will submit payment proof (<?= $money($expectedPayment) ?> expected). Check <a href="<?= URLROOT ?>/admin/paymentVerification" style="font-weight:800;text-decoration:underline">Payment Verification</a> queue.</span>
+    </div>
+    <?php elseif ($isPaymentSubmitted): ?>
+    <div style="padding:14px 24px;border-top:1px solid <?= $stepColor ?>20;display:flex;align-items:center;gap:10px;font-size:13px;color:<?= $stepColor ?>">
+      <i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0"></i>
+      <span><strong>Action required:</strong> Review the payment proof below and approve or reject. <a href="<?= URLROOT ?>/admin/paymentVerification" style="font-weight:800;text-decoration:underline">Go to verification queue →</a></span>
+    </div>
+    <?php endif; ?>
+  </div>
+
   <!-- ── 2-column body ── -->
   <div class="bkd-body">
     <main class="bkd-main">
-      <?php if ($isAwaitingReview): ?>
-      <!-- Priority: Payment review (when awaiting) -->
+      <?php if ($isPaymentSubmitted): ?>
+      <!-- Payment submitted — needs review -->
       <div class="bkd-card bkd-card--highlight" id="booking-payment">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
             <div class="bkd-card-icon bkd-card-icon--warn">
               <i data-lucide="alert-circle"></i>
             </div>
-            <span class="bkd-card-title">⚠ Payment requires review</span>
+            <span class="bkd-card-title">Payment Proof Submitted</span>
           </div>
           <span class="bkd-badge <?= $badgeClass($paymentStatus) ?>" id="payment-status-badge">
             <?= $h(ucwords(str_replace('_', ' ', $paymentStatus))) ?>

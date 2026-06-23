@@ -414,6 +414,38 @@
   background:var(--accent);
 }
 
+/* Password requirements hint */
+.pw-requirements {
+  font-size: 11px;
+  color: var(--accent);
+  opacity: 0.6;
+  margin-top: 4px;
+  padding: 0 4px;
+  line-height: 1.4;
+}
+
+/* Email validation indicator */
+.email-status {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.email-status.show { opacity: 1; }
+
+/* Name character counter */
+.char-counter {
+  font-size: 10px;
+  color: var(--accent);
+  opacity: 0.5;
+  text-align: right;
+  margin-top: 2px;
+  padding-right: 4px;
+}
+
 </style>
 
 
@@ -700,6 +732,16 @@
             </div>
         </div>
 
+        <!-- PASSWORD REQUIREMENTS HINT -->
+        <div class="field-wrap"
+            id="fwPwHint"
+            data-modes="signup"
+            data-height="16px"
+            data-margin="2px"
+            style="max-height:0;opacity:0;margin-bottom:0">
+            <div class="pw-requirements">8+ chars with uppercase, lowercase, number & symbol</div>
+        </div>
+
 
 
         <!-- Remember & Forgot -->
@@ -731,6 +773,11 @@
               <svg id="eyeConfirm-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
           </div>
+          <!-- Password match indicator -->
+          <div id="matchIndicator" class="flex items-center gap-1.5 mt-1 px-1 text-[11px]" style="opacity:0; transition: opacity 0.3s;">
+            <span id="matchIcon"></span>
+            <span id="matchText"></span>
+          </div>
         </div>
       </div>
  
@@ -741,7 +788,18 @@
         </button>
 
       <!-- Backend validation hooks: hidden by default, used by the inline login script -->
-      <p class="emailvalid hidden text-[12px] text-red-500 mt-[-10px] mb-2">Please check your email.</p>
+      <!-- Duplicate email error -->
+      <div class="emailvalid hidden mt-[-6px] mb-2">
+        <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200">
+          <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div class="flex-1">
+            <span class="text-[12px] text-red-600 font-medium">This email is already registered.</span>
+            <a href="<?= URLROOT ?>/users/auth" class="text-[12px] text-[var(--accent)] font-semibold ml-1 hover:underline">Login instead?</a>
+          </div>
+        </div>
+      </div>
       <p id="pwvalid" class="hidden text-[12px] text-red-500 mt-[-10px] mb-2">Invalid password.</p>
       <div class="warning-bar hidden text-[12px] text-red-500 mb-2"></div>
       <div class="accountnotfound-warning-bar hidden text-[12px] text-red-500 mb-2">Account not found.</div>
@@ -1064,7 +1122,11 @@
                 .then(res => {
                     if (res.email == true) {
                         setAuthLoading(false);
+                        emailvalid.classList.remove('hidden');
                         emailvalid.style.display = "block";
+                        emailInput.style.borderColor = '#ef4444';
+                        emailInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                        emailInput.focus();
                     } else if (res.status == "success") {
                         window.location.href = "<?= URLROOT ?>/" + res.redirect;
                     } else if (res.message) {
@@ -1140,10 +1202,67 @@
 
             if (value && !validEmail(value)) {
                 emailInput.setCustomValidity('Enter a valid email address');
+                emailInput.style.borderColor = '#e88c3a';
+            } else if (value && validEmail(value)) {
+                emailInput.setCustomValidity('');
+                emailInput.style.borderColor = '#4ade80';
             } else {
                 emailInput.setCustomValidity('');
+                emailInput.style.borderColor = '';
             }
             });
+
+            /* PASSWORD MATCH INDICATOR */
+            if (confirmField && passwordField) {
+                const matchIndicator = document.getElementById('matchIndicator');
+                const matchIcon = document.getElementById('matchIcon');
+                const matchText = document.getElementById('matchText');
+
+                function checkMatch() {
+                    const pw = passwordField.value;
+                    const cp = confirmField.value;
+
+                    if (!cp) {
+                        matchIndicator.style.opacity = '0';
+                        confirmField.style.borderColor = '';
+                        return;
+                    }
+
+                    matchIndicator.style.opacity = '1';
+
+                    if (pw === cp) {
+                        matchIcon.textContent = '✓';
+                        matchIcon.style.color = '#4ade80';
+                        matchText.textContent = 'Passwords match';
+                        matchText.style.color = '#4ade80';
+                        confirmField.style.borderColor = '#4ade80';
+                    } else {
+                        matchIcon.textContent = '✗';
+                        matchIcon.style.color = '#f87171';
+                        matchText.textContent = 'Passwords don\'t match';
+                        matchText.style.color = '#f87171';
+                        confirmField.style.borderColor = '#f87171';
+                    }
+                }
+
+                passwordField.addEventListener('input', checkMatch);
+                confirmField.addEventListener('input', checkMatch);
+            }
+
+            /* NAME FIELD VALIDATION */
+            const nameField = document.getElementById('name');
+            if (nameField) {
+                nameField.addEventListener('input', () => {
+                    const val = nameField.value.trim();
+                    if (val.length > 0 && val.length < 2) {
+                        nameField.style.borderColor = '#e88c3a';
+                    } else if (val.length >= 2) {
+                        nameField.style.borderColor = '#4ade80';
+                    } else {
+                        nameField.style.borderColor = '';
+                    }
+                });
+            }
 
             function safeInput(name) {
                 const el = document.querySelector(`input[name='${name}']`);
@@ -1252,6 +1371,7 @@
                 document.querySelectorAll('#fieldGroup input')
                     .forEach(input => {
                         input.style.border = '';
+                        input.style.boxShadow = '';
                         input.setCustomValidity('');
                     });
             }

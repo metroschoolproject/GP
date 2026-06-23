@@ -43,8 +43,8 @@ foreach ($payments as $payment) {
     }
 }
 
-$dateTo = date('Y-m-d');
-$dateFrom = date('Y-m-d', strtotime('-30 days'));
+$dateTo = $dateTo ?? date('Y-m-d');
+$dateFrom = $dateFrom ?? date('Y-m-d', strtotime('-30 days'));
 
 $dashboardContent = function () use (
     $payments,
@@ -175,8 +175,11 @@ $dashboardContent = function () use (
 
   <div class="toolbar">
     <div class="filters">
+      <?php
+        $filterBase = 'date_from=' . urlencode($dateFrom) . '&date_to=' . urlencode($dateTo);
+      ?>
       <?php foreach ($filters as $filter => $label): ?>
-        <a href="<?= URLROOT ?>/admin/payments?status=<?= urlencode($filter) ?>" class="filter <?= ($status === $filter || ($filter === 'rejected' && $status === 'failed')) ? 'active' : '' ?>">
+        <a href="<?= URLROOT ?>/admin/payments?status=<?= urlencode($filter) ?>&<?= $filterBase ?>" class="filter <?= ($status === $filter || ($filter === 'rejected' && $status === 'failed')) ? 'active' : '' ?>">
           <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
         </a>
       <?php endforeach; ?>
@@ -190,18 +193,29 @@ $dashboardContent = function () use (
       <span class="date-sep">-</span>
       <span class="date-label">To</span>
       <input type="date" class="date-input" id="date-to" value="<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?>">
+      <button type="button" class="qd" id="btn-apply-dates" style="font-weight:700">Apply</button>
     </div>
 
     <div class="divider"></div>
 
     <div class="quick-dates">
-      <button class="qd" onclick="setRange(7,this)">7d</button>
-      <button class="qd active" onclick="setRange(30,this)">30d</button>
-      <button class="qd" onclick="setRange(90,this)">90d</button>
-      <button class="qd" onclick="setRange(365,this)">1y</button>
+      <?php
+        $dayDiff = 30;
+        if (!empty($dateFrom) && !empty($dateTo)) {
+            $d1 = strtotime($dateFrom);
+            $d2 = strtotime($dateTo);
+            if ($d1 && $d2) {
+                $dayDiff = (int)round(($d2 - $d1) / 86400);
+            }
+        }
+        $quickDays = [7, 30, 90, 365];
+      ?>
+      <?php foreach ($quickDays as $qd): ?>
+        <button class="qd <?= ($dayDiff >= $qd - 2 && $dayDiff <= $qd + 2) ? 'active' : '' ?>" onclick="setRange(<?= $qd ?>,this)"><?= $qd === 365 ? '1y' : $qd . 'd' ?></button>
+      <?php endforeach; ?>
     </div>
 
-    <button type="button" class="btn-export">
+    <button type="button" class="btn-export" id="btn-export-csv">
       <i data-lucide="download" class="h-3.5 w-3.5" aria-hidden="true"></i>
       Export CSV
     </button>
@@ -354,7 +368,9 @@ $dashboardContent = function () use (
     <?php
     if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
         $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
-        $baseParams = 'status=' . urlencode($status ?? 'pending');
+        $baseParams = 'status=' . urlencode($status ?? 'pending')
+                    . '&date_from=' . urlencode($dateFrom ?? '')
+                    . '&date_to=' . urlencode($dateTo ?? '');
         if (!empty($selectedPaymentId)) {
             $baseParams .= '&payment=' . (int)$selectedPaymentId;
         }
@@ -365,19 +381,67 @@ $dashboardContent = function () use (
 </div>
 
 <script>
+  const ROOT = '<?= URLROOT ?>';
+  const currentStatus = '<?= htmlspecialchars($status ?? 'pending', ENT_QUOTES, 'UTF-8') ?>';
+
+  function buildUrl(overrides) {
+    const params = new URLSearchParams(window.location.search);
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v === null || v === undefined) params.delete(k);
+      else params.set(k, v);
+    }
+    // Reset page when filters change
+    params.delete('page');
+    return ROOT + '/admin/payments?' + params.toString();
+  }
+
+  function navigate(overrides) {
+    window.location.href = buildUrl(overrides);
+  }
+
+  // Quick date buttons — immediately filter
   function setRange(days, el) {
     document.querySelectorAll('.qd').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
     const to = new Date();
     const from = new Date();
     from.setDate(to.getDate() - days);
-    document.getElementById('date-to').value = to.toISOString().split('T')[0];
-    document.getElementById('date-from').value = from.toISOString().split('T')[0];
+    const fromStr = from.toISOString().split('T')[0];
+    const toStr = to.toISOString().split('T')[0];
+    navigate({ date_from: fromStr, date_to: toStr });
   }
+
+  // Apply button for custom date range
+  document.getElementById('btn-apply-dates').addEventListener('click', () => {
+    const from = document.getElementById('date-from').value;
+    const to = document.getElementById('date-to').value;
+    navigate({ date_from: from, date_to: to });
+  });
+
+  // Clear active state from quick dates when manually changing date inputs
   document.querySelectorAll('.date-input').forEach(input => {
     input.addEventListener('change', () => {
       document.querySelectorAll('.qd').forEach(b => b.classList.remove('active'));
     });
+  });
+
+  // Export CSV
+  document.getElementById('btn-export-csv').addEventListener('click', () => {
+    const table = document.querySelector('.payment-table');
+    if (!table) return;
+    const rows = [];
+    table.querySelectorAll('tr').forEach(tr => {
+      const cells = [];
+      tr.querySelectorAll('th, td').forEach(cell => {
+        cells.push('"' + cell.textContent.trim().replace(/"/g, '""') + '"');
+      });
+      rows.push(cells.join(','));
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'payments-<?= date('Y-m-d') ?>.csv';
+    a.click();
   });
 </script>
 <?php

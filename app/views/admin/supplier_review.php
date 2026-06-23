@@ -8,7 +8,8 @@ $dashboardCrumb = 'Review';
 $dashboardContentClass = 'supplier-review-content';
 $money = fn($v) => 'MMK ' . number_format((float)$v, 0);
 $perf = $performance ?? [];
-$dashboardContent = function () use ($supplier, $supplierName, $status, $warnLevel, $adminNote, $message, $money, $perf) {
+$supplierFeePayment = $supplierFeePayment ?? null;
+$dashboardContent = function () use ($supplier, $supplierName, $status, $warnLevel, $adminNote, $message, $money, $perf, $supplierFeePayment) {
     $rows = [
         'Owner' => $supplier['owner_name'] ?? '-',
         'Email' => $supplier['owner_email'] ?? '-',
@@ -144,6 +145,85 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
         <div class="sr-perf-stat"><div class="sr-perf-num"><?= $avgRating > 0 ? number_format($avgRating, 1) . ' ★' : '—' ?></div><div class="sr-perf-label">Rating (<?= $reviewCount ?> reviews)</div></div>
       </div>
     </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- Supplier Fee Payment -->
+  <?php if ($supplierFeePayment): ?>
+  <?php
+    $feeStatus = strtolower($supplierFeePayment['status'] ?? 'pending');
+    $feeSlipPath = trim((string)($supplierFeePayment['payment_slip_path'] ?? ''));
+    $hasFeeSlip = $feeSlipPath !== '' && preg_match('/\.(jpe?g|png|webp|pdf)$/i', $feeSlipPath) === 1;
+    $feePaymentId = (int)($supplierFeePayment['id'] ?? 0);
+    $isFeePending = $feeStatus === 'pending';
+  ?>
+  <div class="sr-panel" style="margin-bottom:20px;border:2px solid <?= $isFeePending ? '#f59e0b' : ($feeStatus === 'success' ? '#10b981' : '#ef4444') ?>;border-radius:16px;overflow:hidden">
+    <div style="background:<?= $isFeePending ? '#fef3c7' : ($feeStatus === 'success' ? '#d1fae5' : '#fee2e2') ?>;padding:18px 24px;display:flex;align-items:center;gap:16px">
+      <div style="width:52px;height:52px;border-radius:14px;background:<?= $isFeePending ? '#f59e0b' : ($feeStatus === 'success' ? '#10b981' : '#ef4444') ?>;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0">
+        <i data-lucide="<?= $isFeePending ? 'wallet' : ($feeStatus === 'success' ? 'check-circle' : 'x-circle') ?>" style="width:26px;height:26px"></i>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:18px;font-weight:800;color:<?= $isFeePending ? '#92400e' : ($feeStatus === 'success' ? '#065f46' : '#991b1b') ?>">
+          <?= $isFeePending ? '⚠️ Supplier Fee Payment — Awaiting Review' : ($feeStatus === 'success' ? '✅ Supplier Fee — Approved' : '❌ Supplier Fee — Rejected') ?>
+        </div>
+        <div style="font-size:13px;color:<?= $isFeePending ? '#92400e' : ($feeStatus === 'success' ? '#065f46' : '#991b1b') ?>;margin-top:2px;opacity:.8">
+          <?= $isFeePending ? 'Review the payment proof below and approve or reject.' : ($feeStatus === 'success' ? 'Payment verified. Supplier dashboard is unlocked.' : 'Payment was rejected.') ?>
+        </div>
+      </div>
+      <?php if ($isFeePending): ?>
+      <div style="display:flex;gap:10px;flex-shrink:0">
+        <form method="POST" action="<?= URLROOT ?>/admin/approvePayment/<?= $feePaymentId ?>" onsubmit="return confirm('Approve this supplier fee payment?')">
+          <button type="submit" style="display:inline-flex;align-items:center;gap:6px;padding:12px 20px;border:none;border-radius:10px;background:#10b981;color:white;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,.3)">
+            <i data-lucide="check" style="width:16px;height:16px"></i> Approve
+          </button>
+        </form>
+        <form method="POST" action="<?= URLROOT ?>/admin/rejectPayment/<?= $feePaymentId ?>" onsubmit="return confirm('Reject this supplier fee payment?')">
+          <button type="submit" style="display:inline-flex;align-items:center;gap:6px;padding:12px 20px;border:2px solid #ef4444;border-radius:10px;background:white;color:#ef4444;font-size:13px;font-weight:800;cursor:pointer">
+            <i data-lucide="x" style="width:16px;height:16px"></i> Reject
+          </button>
+        </form>
+      </div>
+      <?php endif; ?>
+    </div>
+
+    <div style="padding:20px 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+      <div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m);margin-bottom:4px">Amount</div>
+        <div style="font-size:22px;font-weight:800;color:var(--p)"><?= $money($supplierFeePayment['paid_amount'] ?? $supplierFeePayment['amount'] ?? 0) ?></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m);margin-bottom:4px">Bank / Method</div>
+        <div style="font-size:14px;font-weight:700;color:var(--t)"><?= htmlspecialchars($supplierFeePayment['bank_name'] ?? $supplierFeePayment['method'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m);margin-bottom:4px">Sender Name</div>
+        <div style="font-size:14px;font-weight:700;color:var(--t)"><?= htmlspecialchars($supplierFeePayment['account_name'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m);margin-bottom:4px">Phone</div>
+        <div style="font-size:14px;font-weight:700;color:var(--t)"><?= htmlspecialchars($supplierFeePayment['mobile_number'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m);margin-bottom:4px">Transaction Ref</div>
+        <div style="font-size:13px;font-weight:600;color:var(--t);font-family:monospace;background:var(--soft);padding:4px 8px;border-radius:6px;display:inline-block"><?= htmlspecialchars($supplierFeePayment['transaction_ref'] ?? '-', ENT_QUOTES, 'UTF-8') ?></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m);margin-bottom:4px">Submitted</div>
+        <div style="font-size:13px;font-weight:600;color:var(--t)"><?= !empty($supplierFeePayment['created_at']) ? date('M j, Y H:i', strtotime($supplierFeePayment['created_at'])) : '-' ?></div>
+      </div>
+    </div>
+
+    <?php if ($hasFeeSlip): ?>
+    <div style="padding:0 24px 20px">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m);margin-bottom:8px">Payment Slip</div>
+      <a href="<?= URLROOT ?>/<?= htmlspecialchars($feeSlipPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" style="display:inline-block;max-width:400px;border-radius:12px;overflow:hidden;border:2px solid var(--border);transition:border-color .2s">
+        <img src="<?= URLROOT ?>/<?= htmlspecialchars($feeSlipPath, ENT_QUOTES, 'UTF-8') ?>" alt="Payment slip" style="width:100%;display:block;max-height:300px;object-fit:contain;background:#f9fafb">
+      </a>
+      <div style="margin-top:6px">
+        <a href="<?= URLROOT ?>/<?= htmlspecialchars($feeSlipPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" style="font-size:12px;color:var(--p);font-weight:700;text-decoration:underline">Open full size →</a>
+      </div>
+    </div>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 
