@@ -505,6 +505,52 @@ class User
         $this->clearRememberToken($userId);
         return true;
     }
+
+    /**
+     * Permanently anonymize a soft-deleted account.
+     * Replaces personal data with placeholders so the email is freed up,
+     * but keeps the row to preserve foreign key integrity (bookings, payments, etc.).
+     */
+    public function permanentDeleteAccount(int $userId): bool
+    {
+        $anonEmail = 'deleted_' . $userId . '_' . time() . '@deleted.invalid';
+        $this->db->dbquery('UPDATE users SET
+            email = :email,
+            name = :name,
+            password = \'\',
+            avatar = NULL,
+            phone = \'\',
+            address = \'\',
+            status = \'deleted\',
+            deleted_at = NOW(),
+            google_id = NULL,
+            facebook_id = NULL,
+            remember_token = NULL
+            WHERE user_id = :id');
+        $this->db->dbbind(':email', $anonEmail);
+        $this->db->dbbind(':name', 'Deleted User');
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        // Also anonymize supplier record if exists
+        $this->db->dbquery('UPDATE suppliers SET
+            shop_name = :shop_name,
+            description = \'\',
+            verify_url = NULL,
+            deleted_at = NOW()
+            WHERE user_id = :id');
+        $this->db->dbbind(':shop_name', 'Deleted Supplier');
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        // Remove roles
+        $this->db->dbquery('DELETE FROM user_roles WHERE user_id = :id');
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        $this->clearRememberToken($userId);
+        return true;
+    }
 }
 
 

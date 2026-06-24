@@ -193,7 +193,8 @@ $dashboardContent = function () use (
 
           <div class="cv-actions">
             <?php if ($isDeleted): ?>
-              <p class="cv-empty-sm" style="padding:8px 0">This account is deleted. Login is blocked.</p>
+              <p class="cv-empty-sm" style="padding:8px 0">This account is soft-deleted. Login is blocked.</p>
+              <button type="button" class="cv-btn cv-btn-danger" data-open-modal="permanent-delete"><i data-lucide="trash-2"></i> Permanently delete</button>
             <?php else: ?>
               <button type="button" class="cv-btn cv-btn-edit" data-open-modal="edit"><i data-lucide="pencil"></i> Edit contact</button>
 
@@ -324,6 +325,23 @@ $dashboardContent = function () use (
 </div>
 <?php endif; ?>
 
+<!-- Permanent delete modal -->
+<div class="cv-modal" id="modal-permanent-delete" role="dialog" aria-modal="true">
+  <div class="cv-modal-box">
+    <div class="cv-modal-head"><h3 class="cv-modal-title">Permanently delete account</h3><button type="button" class="cv-modal-close" data-close-modal><i data-lucide="x"></i></button></div>
+    <div class="cv-modal-body">
+      <div class="cv-warn-note"><i data-lucide="alert-triangle"></i><span><strong>This cannot be undone.</strong> The account will be anonymized — name, email, password, and personal data will be erased. Booking and payment records are kept but the user will no longer exist. Their email can be used to register a new account.</span></div>
+      <div class="cv-field"><label for="perm-delete-confirm">Type <strong style="color:#b94b4b">PERMANENTLY DELETE</strong> to confirm</label><input id="perm-delete-confirm" type="text" placeholder="Type PERMANENTLY DELETE" autocomplete="off"></div>
+      <div class="cv-modal-foot">
+        <button type="button" class="cv-btn cv-btn-edit" data-close-modal>Cancel</button>
+        <form method="POST" action="<?= URLROOT ?>/admin/customerPermanentDelete/<?= $cid ?>" id="permDeleteForm" style="display:inline">
+          <button type="submit" class="cv-btn cv-btn-danger" id="permDeleteBtn" disabled><i data-lucide="trash-2"></i> Permanently delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   document.querySelectorAll('[data-open-modal]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -337,6 +355,15 @@ $dashboardContent = function () use (
     m.addEventListener('click', function (e) { if (e.target === m) closeModals(); });
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModals(); });
+
+  // Permanent delete confirmation
+  var permInput = document.getElementById('perm-delete-confirm');
+  var permBtn   = document.getElementById('permDeleteBtn');
+  if (permInput && permBtn) {
+    permInput.addEventListener('input', function() {
+      permBtn.disabled = this.value.trim().toUpperCase() !== 'PERMANENTLY DELETE';
+    });
+  }
 </script>
 <?php
 };

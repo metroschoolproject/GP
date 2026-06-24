@@ -308,6 +308,7 @@ class SupplierProfile
                     users.email AS owner_email,
                     users.phone,
                     users.address,
+                    users.deleted_at AS user_deleted_at,
                     (
                         SELECT GROUP_CONCAT(categories.name ORDER BY categories.name SEPARATOR \', \')
                         FROM supplier_categories

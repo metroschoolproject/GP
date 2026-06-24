@@ -860,7 +860,7 @@ class Admin extends Controller
                 (int)$supplier['user_id'],
                 'Application Approved',
                 'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.',
-                'supplier',
+                'approval',
                 'supplier',
                 $supplierId
             );
@@ -898,7 +898,7 @@ class Admin extends Controller
                 (int)$supplier['user_id'],
                 'Application Status Update',
                 'Your supplier application requires attention: ' . $reason . '. Please review and re-apply if needed.',
-                'supplier',
+                'approval',
                 'supplier',
                 $supplierId
             );
@@ -1114,6 +1114,40 @@ class Admin extends Controller
         $this->customerModel->softDelete((int)$customerId, $reason, $this->currentUserId());
         $_SESSION['admin_flash'] = 'Customer account deleted (soft-delete). Login is now blocked.';
         redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerPermanentDelete($customerId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $customer = $this->customerModel->getCustomerById((int)$customerId);
+        if (!$customer || empty($customer['deleted_at'])) {
+            $_SESSION['admin_flash'] = 'Only soft-deleted accounts can be permanently removed.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $userModel = $this->model('User');
+        $userModel->permanentDeleteAccount((int)$customerId);
+        $_SESSION['admin_flash'] = 'Customer account permanently deleted. Email is now freed up.';
+        redirect('admin/customers');
+    }
+
+    public function supplierPermanentDelete($supplierId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$supplierId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/suppliers');
+        }
+        $supplier = $this->supplierProfileModel->getApplicationById((int)$supplierId);
+        if (!$supplier || empty($supplier['deleted_at'])) {
+            $_SESSION['admin_flash'] = 'Only soft-deleted suppliers can be permanently removed.';
+            redirect('admin/supplier/' . (int)$supplierId);
+        }
+        $userModel = $this->model('User');
+        $userModel->permanentDeleteAccount((int)$supplier['user_id']);
+        $_SESSION['admin_flash'] = 'Supplier account permanently deleted. Email is now freed up.';
+        redirect('admin/suppliers');
     }
 
     public function payments()

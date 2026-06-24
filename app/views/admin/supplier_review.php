@@ -172,16 +172,12 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
       </div>
       <?php if ($isFeePending): ?>
       <div style="display:flex;gap:10px;flex-shrink:0">
-        <form method="POST" action="<?= URLROOT ?>/admin/approvePayment/<?= $feePaymentId ?>" onsubmit="return confirm('Approve this supplier fee payment?')">
-          <button type="submit" style="display:inline-flex;align-items:center;gap:6px;padding:12px 20px;border:none;border-radius:10px;background:#10b981;color:white;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,.3)">
-            <i data-lucide="check" style="width:16px;height:16px"></i> Approve
-          </button>
-        </form>
-        <form method="POST" action="<?= URLROOT ?>/admin/rejectPayment/<?= $feePaymentId ?>" onsubmit="return confirm('Reject this supplier fee payment?')">
-          <button type="submit" style="display:inline-flex;align-items:center;gap:6px;padding:12px 20px;border:2px solid #ef4444;border-radius:10px;background:white;color:#ef4444;font-size:13px;font-weight:800;cursor:pointer">
-            <i data-lucide="x" style="width:16px;height:16px"></i> Reject
-          </button>
-        </form>
+        <button type="button" onclick="openModal('approvePayment')" style="display:inline-flex;align-items:center;gap:6px;padding:12px 20px;border:none;border-radius:10px;background:#10b981;color:white;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,.3)">
+          <i data-lucide="check" style="width:16px;height:16px"></i> Approve
+        </button>
+        <button type="button" onclick="openModal('rejectPayment')" style="display:inline-flex;align-items:center;gap:6px;padding:12px 20px;border:2px solid #ef4444;border-radius:10px;background:white;color:#ef4444;font-size:13px;font-weight:800;cursor:pointer">
+          <i data-lucide="x" style="width:16px;height:16px"></i> Reject
+        </button>
       </div>
       <?php endif; ?>
     </div>
@@ -283,17 +279,16 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
         </div>
         <div class="sr-action-stack">
           <?php if ($isPending): ?>
-            <form method="post" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>" onsubmit="return confirm('Approve this supplier?')">
-              <button class="sr-btn btn-primary" type="submit"><i data-lucide="check" class="h-4 w-4"></i> Approve supplier</button>
-            </form>
-            <form method="post" action="<?= URLROOT ?>/admin/rejectSupplier/<?= (int)$supplier['supplier_id'] ?>" onsubmit="return confirm('Reject this application?')">
-              <button class="sr-btn btn-danger" type="submit"><i data-lucide="x" class="h-4 w-4"></i> Reject</button>
-            </form>
+            <button class="sr-btn btn-primary" type="button" onclick="openModal('approve')"><i data-lucide="check" class="h-4 w-4"></i> Approve supplier</button>
+            <button class="sr-btn btn-danger" type="button" onclick="openModal('reject')"><i data-lucide="x" class="h-4 w-4"></i> Reject</button>
           <?php elseif ($isBanned): ?>
-            <p class="sr-reviewed" style="margin-bottom:8px">This supplier is <strong>banned</strong>.</p>
-            <form method="post" action="<?= URLROOT ?>/admin/unbanSupplier/<?= (int)$supplier['supplier_id'] ?>" onsubmit="return confirm('Unban this supplier?')">
-              <button class="sr-btn btn-primary" type="submit"><i data-lucide="refresh-cw" class="h-4 w-4"></i> Unban & restore</button>
-            </form>
+            <?php if (!empty($supplier['user_deleted_at'])): ?>
+              <p class="sr-reviewed" style="margin-bottom:8px">This supplier account is <strong>soft-deleted</strong>.</p>
+              <button class="sr-btn btn-danger" type="button" onclick="openModal('permanent-delete')"><i data-lucide="trash-2" class="h-4 w-4"></i> Permanently delete</button>
+            <?php else: ?>
+              <p class="sr-reviewed" style="margin-bottom:8px">This supplier is <strong>banned</strong>.</p>
+              <button class="sr-btn btn-primary" type="button" onclick="openModal('unban')"><i data-lucide="refresh-cw" class="h-4 w-4"></i> Unban & restore</button>
+            <?php endif; ?>
           <?php elseif ($isApprovedOrVerified): ?>
             <!-- Ban -->
             <button class="sr-btn btn-danger" type="button" onclick="openModal('ban')"><i data-lucide="ban" class="h-4 w-4"></i> Ban supplier</button>
@@ -309,6 +304,72 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
         </div>
       </div>
     </aside>
+  </div>
+</div>
+
+<!-- Modals for approve / reject / unban -->
+<div class="modal-overlay" id="modalApprove">
+  <div class="modal-box">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Approve Supplier</h3>
+    <p style="font-size:13px;color:var(--m);margin-bottom:16px">Are you sure you want to approve <strong><?= $supplierName ?></strong>? They will be notified and their profile will go live.</p>
+    <form method="post" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('approve')">Cancel</button>
+        <button type="submit" class="sr-btn btn-primary" style="width:auto"><i data-lucide="check" class="h-4 w-4"></i> Approve Supplier</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalReject">
+  <div class="modal-box">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Reject Application</h3>
+    <form method="post" action="<?= URLROOT ?>/admin/rejectSupplier/<?= (int)$supplier['supplier_id'] ?>">
+      <div class="sr-field"><label>Reason for rejection <span style="color:#ef4444">*</span></label><textarea name="reason" required placeholder="Explain why this application is being rejected..."></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('reject')">Cancel</button>
+        <button type="submit" class="sr-btn btn-danger" style="width:auto"><i data-lucide="x" class="h-4 w-4"></i> Reject Application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalUnban">
+  <div class="modal-box">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Unban Supplier</h3>
+    <p style="font-size:13px;color:var(--m);margin-bottom:16px">Are you sure you want to unban <strong><?= $supplierName ?></strong>? Their access will be restored.</p>
+    <form method="post" action="<?= URLROOT ?>/admin/unbanSupplier/<?= (int)$supplier['supplier_id'] ?>">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('unban')">Cancel</button>
+        <button type="submit" class="sr-btn btn-primary" style="width:auto"><i data-lucide="refresh-cw" class="h-4 w-4"></i> Unban & Restore</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalApprovePayment">
+  <div class="modal-box">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Approve Payment</h3>
+    <p style="font-size:13px;color:var(--m);margin-bottom:16px">Approve this supplier fee payment? The supplier's dashboard will be unlocked.</p>
+    <form method="POST" action="<?= URLROOT ?>/admin/approvePayment/<?= $feePaymentId ?>">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('approvePayment')">Cancel</button>
+        <button type="submit" class="sr-btn btn-primary" style="width:auto"><i data-lucide="check" class="h-4 w-4"></i> Approve</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalRejectPayment">
+  <div class="modal-box">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Reject Payment</h3>
+    <p style="font-size:13px;color:var(--m);margin-bottom:16px">Reject this supplier fee payment? The supplier will be notified.</p>
+    <form method="POST" action="<?= URLROOT ?>/admin/rejectPayment/<?= $feePaymentId ?>">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('rejectPayment')">Cancel</button>
+        <button type="submit" class="sr-btn btn-danger" style="width:auto"><i data-lucide="x" class="h-4 w-4"></i> Reject</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -354,10 +415,34 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
   </div>
 </div>
 
+<!-- Permanent delete modal -->
+<div class="modal-overlay" id="modalPermanentDelete">
+  <div class="modal-box">
+    <h3 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#3a2030">Permanently delete supplier</h3>
+    <div class="sr-warn-note" style="margin-bottom:14px"><i data-lucide="alert-triangle"></i><span><strong>This cannot be undone.</strong> The account will be anonymized — name, email, shop name, and personal data will be erased. Booking and payment records are kept. The email can be used to register a new account.</span></div>
+    <label style="display:block;font-size:11px;font-weight:700;color:#7b5c69;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">Type <strong style="color:#b94b4b">PERMANENTLY DELETE</strong> to confirm</label>
+    <input id="perm-delete-confirm" type="text" placeholder="Type PERMANENTLY DELETE" autocomplete="off" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:13px;color:#1f2937;margin-bottom:12px">
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('permanentDelete')">Cancel</button>
+      <form method="POST" action="<?= URLROOT ?>/admin/supplierPermanentDelete/<?= (int)$supplier['supplier_id'] ?>" style="display:inline">
+        <button type="submit" class="sr-btn btn-danger" id="permDeleteBtn" style="width:auto" disabled><i data-lucide="trash-2" class="h-4 w-4"></i> Permanently delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 function openModal(id) { document.getElementById('modal'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('open'); }
 function closeModal(id) { document.getElementById('modal'+id.charAt(0).toUpperCase()+id.slice(1)).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(function(m){ m.addEventListener('click',function(e){ if(e.target===m) m.classList.remove('open'); }); });
+
+var permInput = document.getElementById('perm-delete-confirm');
+var permBtn   = document.getElementById('permDeleteBtn');
+if (permInput && permBtn) {
+  permInput.addEventListener('input', function() {
+    permBtn.disabled = this.value.trim().toUpperCase() !== 'PERMANENTLY DELETE';
+  });
+}
 </script>
 <?php
 };
