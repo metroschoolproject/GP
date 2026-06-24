@@ -312,7 +312,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
   <div class="modal-box">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Approve Supplier</h3>
     <p style="font-size:13px;color:var(--m);margin-bottom:16px">Are you sure you want to approve <strong><?= $supplierName ?></strong>? They will be notified and their profile will go live.</p>
-    <form method="post" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>">
+    <form method="post" action="<?= URLROOT ?>/admin/approveSupplier/<?= (int)$supplier['supplier_id'] ?>"><?= csrf_field() ?>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('approve')">Cancel</button>
         <button type="submit" class="sr-btn btn-primary" style="width:auto"><i data-lucide="check" class="h-4 w-4"></i> Approve Supplier</button>
@@ -324,7 +324,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 <div class="modal-overlay" id="modalReject">
   <div class="modal-box">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Reject Application</h3>
-    <form method="post" action="<?= URLROOT ?>/admin/rejectSupplier/<?= (int)$supplier['supplier_id'] ?>">
+    <form method="post" action="<?= URLROOT ?>/admin/rejectSupplier/<?= (int)$supplier['supplier_id'] ?>"><?= csrf_field() ?>
       <div class="sr-field"><label>Reason for rejection <span style="color:#ef4444">*</span></label><textarea name="reason" required placeholder="Explain why this application is being rejected..."></textarea></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('reject')">Cancel</button>
@@ -338,7 +338,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
   <div class="modal-box">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Unban Supplier</h3>
     <p style="font-size:13px;color:var(--m);margin-bottom:16px">Are you sure you want to unban <strong><?= $supplierName ?></strong>? Their access will be restored.</p>
-    <form method="post" action="<?= URLROOT ?>/admin/unbanSupplier/<?= (int)$supplier['supplier_id'] ?>">
+    <form method="post" action="<?= URLROOT ?>/admin/unbanSupplier/<?= (int)$supplier['supplier_id'] ?>"><?= csrf_field() ?>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('unban')">Cancel</button>
         <button type="submit" class="sr-btn btn-primary" style="width:auto"><i data-lucide="refresh-cw" class="h-4 w-4"></i> Unban & Restore</button>
@@ -351,7 +351,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
   <div class="modal-box">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Approve Payment</h3>
     <p style="font-size:13px;color:var(--m);margin-bottom:16px">Approve this supplier fee payment? The supplier's dashboard will be unlocked.</p>
-    <form method="POST" action="<?= URLROOT ?>/admin/approvePayment/<?= $feePaymentId ?>">
+    <form method="POST" action="<?= URLROOT ?>/admin/approvePayment/<?= $feePaymentId ?>"><?= csrf_field() ?>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('approvePayment')">Cancel</button>
         <button type="submit" class="sr-btn btn-primary" style="width:auto"><i data-lucide="check" class="h-4 w-4"></i> Approve</button>
@@ -364,7 +364,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
   <div class="modal-box">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Reject Payment</h3>
     <p style="font-size:13px;color:var(--m);margin-bottom:16px">Reject this supplier fee payment? The supplier will be notified.</p>
-    <form method="POST" action="<?= URLROOT ?>/admin/rejectPayment/<?= $feePaymentId ?>">
+    <form method="POST" action="<?= URLROOT ?>/admin/rejectPayment/<?= $feePaymentId ?>"><?= csrf_field() ?>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('rejectPayment')">Cancel</button>
         <button type="submit" class="sr-btn btn-danger" style="width:auto"><i data-lucide="x" class="h-4 w-4"></i> Reject</button>
@@ -377,7 +377,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 <div class="modal-overlay" id="modalBan">
   <div class="modal-box">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Ban Supplier</h3>
-    <form method="post" action="<?= URLROOT ?>/admin/banSupplier/<?= (int)$supplier['supplier_id'] ?>">
+    <form method="post" action="<?= URLROOT ?>/admin/banSupplier/<?= (int)$supplier['supplier_id'] ?>"><?= csrf_field() ?>
       <div class="sr-field"><label>Reason for ban <span style="color:#ef4444">*</span></label><textarea name="reason" required placeholder="Explain why this supplier is being banned..."></textarea></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('ban')">Cancel</button>
@@ -390,7 +390,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 <div class="modal-overlay" id="modalWarn1">
   <div class="modal-box">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Issue Warning (Level 1)</h3>
-    <form method="post" action="<?= URLROOT ?>/admin/warnSupplier/<?= (int)$supplier['supplier_id'] ?>">
+    <form method="post" action="<?= URLROOT ?>/admin/warnSupplier/<?= (int)$supplier['supplier_id'] ?>"><?= csrf_field() ?>
       <input type="hidden" name="warning_level" value="1">
       <div class="sr-field"><label>Warning note <span style="color:#ef4444">*</span></label><textarea name="warn_note" required placeholder="Describe the issue..."></textarea></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -404,7 +404,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 <div class="modal-overlay" id="modalWarn2">
   <div class="modal-box">
     <h3 style="font-size:16px;font-weight:700;margin-bottom:12px">Final Warning (Level 2)</h3>
-    <form method="post" action="<?= URLROOT ?>/admin/warnSupplier/<?= (int)$supplier['supplier_id'] ?>">
+    <form method="post" action="<?= URLROOT ?>/admin/warnSupplier/<?= (int)$supplier['supplier_id'] ?>"><?= csrf_field() ?>
       <input type="hidden" name="warning_level" value="2">
       <div class="sr-field"><label>Final warning note <span style="color:#ef4444">*</span></label><textarea name="warn_note" required placeholder="Describe the serious issue..."></textarea></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -424,7 +424,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
     <input id="perm-delete-confirm" type="text" placeholder="Type PERMANENTLY DELETE" autocomplete="off" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:13px;color:#1f2937;margin-bottom:12px">
     <div style="display:flex;justify-content:flex-end;gap:8px">
       <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('permanentDelete')">Cancel</button>
-      <form method="POST" action="<?= URLROOT ?>/admin/supplierPermanentDelete/<?= (int)$supplier['supplier_id'] ?>" style="display:inline">
+      <form method="POST" action="<?= URLROOT ?>/admin/supplierPermanentDelete/<?= (int)$supplier['supplier_id'] ?>" style="display:inline"><?= csrf_field() ?>
         <button type="submit" class="sr-btn btn-danger" id="permDeleteBtn" style="width:auto" disabled><i data-lucide="trash-2" class="h-4 w-4"></i> Permanently delete</button>
       </form>
     </div>

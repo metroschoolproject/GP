@@ -202,7 +202,7 @@ $dashboardContent = function () use (
                 <button type="button" class="cv-btn cv-btn-warn" data-open-modal="suspend"><i data-lucide="pause-circle"></i> Suspend</button>
                 <button type="button" class="cv-btn cv-btn-danger" data-open-modal="ban"><i data-lucide="ban"></i> Ban</button>
               <?php else: ?>
-                <form method="POST" action="<?= URLROOT ?>/admin/customerUnban/<?= $cid ?>">
+                <form method="POST" action="<?= URLROOT ?>/admin/customerUnban/<?= $cid ?>"><?= csrf_field() ?>
                   <button type="submit" class="cv-btn cv-btn-ok"><i data-lucide="circle-check"></i> Restore to active</button>
                 </form>
               <?php endif; ?>
@@ -258,7 +258,7 @@ $dashboardContent = function () use (
 <div class="cv-modal" id="modal-edit" role="dialog" aria-modal="true" aria-labelledby="modal-edit-title">
   <div class="cv-modal-box">
     <div class="cv-modal-head"><h3 class="cv-modal-title" id="modal-edit-title">Edit contact details</h3><button type="button" class="cv-modal-close" data-close-modal><i data-lucide="x"></i></button></div>
-    <form method="POST" action="<?= URLROOT ?>/admin/customerUpdate/<?= $cid ?>">
+    <form method="POST" action="<?= URLROOT ?>/admin/customerUpdate/<?= $cid ?>"><?= csrf_field() ?>
       <div class="cv-modal-body">
         <div class="cv-field"><label for="edit-name">Name</label><input id="edit-name" type="text" name="name" value="<?= $h($customer['name'] ?? '') ?>" required></div>
         <div class="cv-field"><label for="edit-phone">Phone</label><input id="edit-phone" type="text" name="phone" value="<?= $h($customer['phone'] ?? '') ?>"></div>
@@ -276,7 +276,7 @@ $dashboardContent = function () use (
 <div class="cv-modal" id="modal-suspend" role="dialog" aria-modal="true" aria-labelledby="modal-suspend-title">
   <div class="cv-modal-box">
     <div class="cv-modal-head"><h3 class="cv-modal-title" id="modal-suspend-title">Suspend customer</h3><button type="button" class="cv-modal-close" data-close-modal><i data-lucide="x"></i></button></div>
-    <form method="POST" action="<?= URLROOT ?>/admin/customerSuspend/<?= $cid ?>">
+    <form method="POST" action="<?= URLROOT ?>/admin/customerSuspend/<?= $cid ?>"><?= csrf_field() ?>
       <div class="cv-modal-body">
         <div class="cv-field"><label for="suspend-reason">Reason (required)</label><textarea id="suspend-reason" name="reason" required placeholder="Why is this account being suspended?"></textarea></div>
         <div class="cv-modal-foot">
@@ -292,7 +292,7 @@ $dashboardContent = function () use (
 <div class="cv-modal" id="modal-ban" role="dialog" aria-modal="true" aria-labelledby="modal-ban-title">
   <div class="cv-modal-box">
     <div class="cv-modal-head"><h3 class="cv-modal-title" id="modal-ban-title">Ban customer</h3><button type="button" class="cv-modal-close" data-close-modal><i data-lucide="x"></i></button></div>
-    <form method="POST" action="<?= URLROOT ?>/admin/customerBan/<?= $cid ?>">
+    <form method="POST" action="<?= URLROOT ?>/admin/customerBan/<?= $cid ?>"><?= csrf_field() ?>
       <div class="cv-modal-body">
         <?php if ($activeBookings > 0): ?>
           <div class="cv-warn-note"><i data-lucide="alert-triangle"></i><span>This customer has <strong><?= $activeBookings ?></strong> active booking<?= $activeBookings === 1 ? '' : 's' ?>. Banning will block their login but will not cancel bookings.</span></div>
@@ -311,7 +311,7 @@ $dashboardContent = function () use (
 <div class="cv-modal" id="modal-delete" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
   <div class="cv-modal-box">
     <div class="cv-modal-head"><h3 class="cv-modal-title" id="modal-delete-title">Delete account</h3><button type="button" class="cv-modal-close" data-close-modal><i data-lucide="x"></i></button></div>
-    <form method="POST" action="<?= URLROOT ?>/admin/customerDelete/<?= $cid ?>">
+    <form method="POST" action="<?= URLROOT ?>/admin/customerDelete/<?= $cid ?>"><?= csrf_field() ?>
       <div class="cv-modal-body">
         <div class="cv-warn-note"><i data-lucide="alert-triangle"></i><span>Soft-delete hides the account from default lists and blocks login. Records (bookings, payments) are kept.<?= $activeBookings > 0 ? ' This customer has ' . $activeBookings . ' active booking' . ($activeBookings === 1 ? '' : 's') . '.' : '' ?></span></div>
         <div class="cv-field"><label for="delete-reason">Reason (required)</label><textarea id="delete-reason" name="reason" required placeholder="Why is this account being deleted?"></textarea></div>
@@ -334,7 +334,7 @@ $dashboardContent = function () use (
       <div class="cv-field"><label for="perm-delete-confirm">Type <strong style="color:#b94b4b">PERMANENTLY DELETE</strong> to confirm</label><input id="perm-delete-confirm" type="text" placeholder="Type PERMANENTLY DELETE" autocomplete="off"></div>
       <div class="cv-modal-foot">
         <button type="button" class="cv-btn cv-btn-edit" data-close-modal>Cancel</button>
-        <form method="POST" action="<?= URLROOT ?>/admin/customerPermanentDelete/<?= $cid ?>" id="permDeleteForm" style="display:inline">
+        <form method="POST" action="<?= URLROOT ?>/admin/customerPermanentDelete/<?= $cid ?>" id="permDeleteForm" style="display:inline"><?= csrf_field() ?>
           <button type="submit" class="cv-btn cv-btn-danger" id="permDeleteBtn" disabled><i data-lucide="trash-2"></i> Permanently delete</button>
         </form>
       </div>
