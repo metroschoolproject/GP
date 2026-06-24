@@ -145,6 +145,12 @@ class CustomerServiceCatalog
                 $conditions[] = '(services.name LIKE ' . $key . ' OR services.description LIKE ' . $key . ' OR suppliers.shop_name LIKE ' . $key . ' OR categories.name LIKE ' . $key . ')';
                 $bindings[$key] = '%' . $token . '%';
             }
+            // Also match full query with spaces removed (e.g. "uhton" matches "U Hton")
+            $compact = preg_replace('/\s+/', '', $search);
+            if ($compact !== '') {
+                $conditions[] = '(REPLACE(services.name, " ", "") LIKE :search_compact OR REPLACE(suppliers.shop_name, " ", "") LIKE :search_compact OR REPLACE(categories.name, " ", "") LIKE :search_compact)';
+                $bindings[':search_compact'] = '%' . $compact . '%';
+            }
         }
 
         $category = trim((string)($filters['category'] ?? ''));

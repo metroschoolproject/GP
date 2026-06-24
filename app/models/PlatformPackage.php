@@ -30,6 +30,11 @@ class PlatformPackage
                 $conditions[] = '(p.name LIKE ' . $key . ' OR p.description LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.slug LIKE ' . $key . ')';
                 $bindings[$key] = '%' . $token . '%';
             }
+            $compact = preg_replace('/\s+/', '', $search);
+            if ($compact !== '') {
+                $conditions[] = '(REPLACE(p.name, " ", "") LIKE :search_compact OR REPLACE(p.tagline, " ", "") LIKE :search_compact)';
+                $bindings[':search_compact'] = '%' . $compact . '%';
+            }
         }
 
         $status = $filters['status'] ?? '';
@@ -895,6 +900,11 @@ class PlatformPackage
                 $conditions[] = '(p.name LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.description LIKE ' . $key . ')';
                 $bindings[$key] = '%' . $token . '%';
             }
+            $compact = preg_replace('/\s+/', '', $search);
+            if ($compact !== '') {
+                $conditions[] = '(REPLACE(p.name, " ", "") LIKE :search_compact OR REPLACE(p.tagline, " ", "") LIKE :search_compact)';
+                $bindings[':search_compact'] = '%' . $compact . '%';
+            }
         }
 
         // Category filter
@@ -1013,6 +1023,11 @@ class PlatformPackage
                 $key = ':search_' . $i;
                 $conditions[] = '(p.name LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.description LIKE ' . $key . ')';
                 $bindings[$key] = '%' . $token . '%';
+            }
+            $compact = preg_replace('/\s+/', '', $search);
+            if ($compact !== '') {
+                $conditions[] = '(REPLACE(p.name, " ", "") LIKE :search_compact OR REPLACE(p.tagline, " ", "") LIKE :search_compact)';
+                $bindings[':search_compact'] = '%' . $compact . '%';
             }
         }
 
