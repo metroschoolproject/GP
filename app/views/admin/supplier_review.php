@@ -282,13 +282,8 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
             <button class="sr-btn btn-primary" type="button" onclick="openModal('approve')"><i data-lucide="check" class="h-4 w-4"></i> Approve supplier</button>
             <button class="sr-btn btn-danger" type="button" onclick="openModal('reject')"><i data-lucide="x" class="h-4 w-4"></i> Reject</button>
           <?php elseif ($isBanned): ?>
-            <?php if (!empty($supplier['user_deleted_at'])): ?>
-              <p class="sr-reviewed" style="margin-bottom:8px">This supplier account is <strong>soft-deleted</strong>.</p>
-              <button class="sr-btn btn-danger" type="button" onclick="openModal('permanent-delete')"><i data-lucide="trash-2" class="h-4 w-4"></i> Permanently delete</button>
-            <?php else: ?>
-              <p class="sr-reviewed" style="margin-bottom:8px">This supplier is <strong>banned</strong>.</p>
-              <button class="sr-btn btn-primary" type="button" onclick="openModal('unban')"><i data-lucide="refresh-cw" class="h-4 w-4"></i> Unban & restore</button>
-            <?php endif; ?>
+            <p class="sr-reviewed" style="margin-bottom:8px">This supplier is <strong>banned</strong>.</p>
+            <button class="sr-btn btn-primary" type="button" onclick="openModal('unban')"><i data-lucide="refresh-cw" class="h-4 w-4"></i> Unban & restore</button>
           <?php elseif ($isApprovedOrVerified): ?>
             <!-- Ban -->
             <button class="sr-btn btn-danger" type="button" onclick="openModal('ban')"><i data-lucide="ban" class="h-4 w-4"></i> Ban supplier</button>
@@ -301,6 +296,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
           <?php else: ?>
             <p class="sr-reviewed">This supplier has already been reviewed (<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>).</p>
           <?php endif; ?>
+          <button class="sr-btn btn-danger" type="button" onclick="openModal('permanent-delete')"><i data-lucide="trash-2" class="h-4 w-4"></i> Permanently delete</button>
         </div>
       </div>
     </aside>

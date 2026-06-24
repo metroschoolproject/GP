@@ -1123,9 +1123,9 @@ class Admin extends Controller
             redirect('admin/customers');
         }
         $customer = $this->customerModel->getCustomerById((int)$customerId);
-        if (!$customer || empty($customer['deleted_at'])) {
-            $_SESSION['admin_flash'] = 'Only soft-deleted accounts can be permanently removed.';
-            redirect('admin/customer/' . (int)$customerId);
+        if (!$customer) {
+            $_SESSION['admin_flash'] = 'Customer not found.';
+            redirect('admin/customers');
         }
         $userModel = $this->model('User');
         $userModel->permanentDeleteAccount((int)$customerId);
@@ -1140,9 +1140,9 @@ class Admin extends Controller
             redirect('admin/suppliers');
         }
         $supplier = $this->supplierProfileModel->getApplicationById((int)$supplierId);
-        if (!$supplier || empty($supplier['deleted_at'])) {
-            $_SESSION['admin_flash'] = 'Only soft-deleted suppliers can be permanently removed.';
-            redirect('admin/supplier/' . (int)$supplierId);
+        if (!$supplier) {
+            $_SESSION['admin_flash'] = 'Supplier not found.';
+            redirect('admin/suppliers');
         }
         $userModel = $this->model('User');
         $userModel->permanentDeleteAccount((int)$supplier['user_id']);

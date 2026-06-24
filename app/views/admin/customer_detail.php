@@ -194,7 +194,6 @@ $dashboardContent = function () use (
           <div class="cv-actions">
             <?php if ($isDeleted): ?>
               <p class="cv-empty-sm" style="padding:8px 0">This account is soft-deleted. Login is blocked.</p>
-              <button type="button" class="cv-btn cv-btn-danger" data-open-modal="permanent-delete"><i data-lucide="trash-2"></i> Permanently delete</button>
             <?php else: ?>
               <button type="button" class="cv-btn cv-btn-edit" data-open-modal="edit"><i data-lucide="pencil"></i> Edit contact</button>
 
@@ -207,8 +206,9 @@ $dashboardContent = function () use (
                 </form>
               <?php endif; ?>
 
-              <button type="button" class="cv-btn cv-btn-danger" data-open-modal="delete"><i data-lucide="trash-2"></i> Delete account</button>
+              <button type="button" class="cv-btn cv-btn-danger" data-open-modal="delete"><i data-lucide="trash-2"></i> Soft-delete</button>
             <?php endif; ?>
+            <button type="button" class="cv-btn cv-btn-danger" data-open-modal="permanent-delete"><i data-lucide="trash-2"></i> Permanently delete</button>
           </div>
         </div>
       </section>
