@@ -521,7 +521,7 @@ class User
             avatar = NULL,
             phone = \'\',
             address = \'\',
-            status = \'deleted\',
+            status = \'banned\',
             deleted_at = NOW(),
             google_id = NULL,
             facebook_id = NULL,
