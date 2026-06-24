@@ -169,7 +169,20 @@ class UploadService
 
     private function ensureDirectory($absoluteDir)
     {
-        return is_dir($absoluteDir) || mkdir($absoluteDir, 0755, true);
+        if (!is_dir($absoluteDir)) {
+            if (!mkdir($absoluteDir, 0777, true)) {
+                return false;
+            }
+        }
+        // Ensure directory and parents are writable (handles dirs created by CLI with 0755)
+        $uploadsRoot = dirname(APPROOT) . '/public/uploads';
+        $dir = $absoluteDir;
+        while ($dir && strpos($dir, $uploadsRoot) === 0 && $dir !== $uploadsRoot) {
+            @chmod($dir, 0777);
+            $dir = dirname($dir);
+        }
+        @chmod($uploadsRoot, 0777);
+        return true;
     }
 
     private function createOptimizedImageVariant($sourcePath, $targetDir, $basename, $mimeType, $maxWidth, $maxHeight)
