@@ -675,6 +675,8 @@ delBtn.addEventListener('click', function(){
         delBtn.textContent = 'Delete my account';
     });
 });
+
+})();
 </script>
 </body>
 </html>
