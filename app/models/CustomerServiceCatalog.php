@@ -138,8 +138,13 @@ class CustomerServiceCatalog
 
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $conditions[] = '(services.name LIKE :search OR services.description LIKE :search OR suppliers.shop_name LIKE :search OR categories.name LIKE :search)';
-            $bindings[':search'] = '%' . $search . '%';
+            // Split search into individual words for flexible matching
+            $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($tokens as $i => $token) {
+                $key = ':search_' . $i;
+                $conditions[] = '(services.name LIKE ' . $key . ' OR services.description LIKE ' . $key . ' OR suppliers.shop_name LIKE ' . $key . ' OR categories.name LIKE ' . $key . ')';
+                $bindings[$key] = '%' . $token . '%';
+            }
         }
 
         $category = trim((string)($filters['category'] ?? ''));

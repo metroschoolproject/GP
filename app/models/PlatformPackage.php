@@ -24,8 +24,12 @@ class PlatformPackage
 
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $conditions[] = '(p.name LIKE :search OR p.description LIKE :search OR p.tagline LIKE :search OR p.slug LIKE :search)';
-            $bindings[':search'] = '%' . $search . '%';
+            $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($tokens as $i => $token) {
+                $key = ':search_' . $i;
+                $conditions[] = '(p.name LIKE ' . $key . ' OR p.description LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.slug LIKE ' . $key . ')';
+                $bindings[$key] = '%' . $token . '%';
+            }
         }
 
         $status = $filters['status'] ?? '';
@@ -885,8 +889,12 @@ class PlatformPackage
         // Search
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $conditions[] = '(p.name LIKE :search OR p.tagline LIKE :search OR p.description LIKE :search)';
-            $bindings[':search'] = '%' . $search . '%';
+            $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($tokens as $i => $token) {
+                $key = ':search_' . $i;
+                $conditions[] = '(p.name LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.description LIKE ' . $key . ')';
+                $bindings[$key] = '%' . $token . '%';
+            }
         }
 
         // Category filter
@@ -1000,8 +1008,12 @@ class PlatformPackage
 
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $conditions[] = '(p.name LIKE :search OR p.tagline LIKE :search OR p.description LIKE :search)';
-            $bindings[':search'] = '%' . $search . '%';
+            $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($tokens as $i => $token) {
+                $key = ':search_' . $i;
+                $conditions[] = '(p.name LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.description LIKE ' . $key . ')';
+                $bindings[$key] = '%' . $token . '%';
+            }
         }
 
         $where = implode(' AND ', $conditions);
