@@ -220,8 +220,11 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               $customerName = (string)($payment['name'] ?? 'Unknown customer');
               $customerEmail = (string)($payment['email'] ?? '');
               $totalAmount = (float)($payment['total_amount'] ?? 0);
-              $expectedDeposit = $totalAmount * (BOOKING_DEPOSIT_PERCENT / 100);
-              $paidAmountRaw = $payment['paid_amount'] ?? $payment['payment_amount'] ?? null;
+              $paymentType = (string)($payment['payment_type'] ?? 'deposit');
+              $isRemaining = ($paymentType === 'remaining');
+              $alreadyPaid = (float)($payment['paid_amount'] ?? 0);
+              $expectedDeposit = $isRemaining ? max(0, $totalAmount - $alreadyPaid) : $totalAmount * (BOOKING_DEPOSIT_PERCENT / 100);
+              $paidAmountRaw = $payment['payment_amount'] ?? null;
               $paidAmount = $paidAmountRaw !== null && $paidAmountRaw !== '' ? (float)$paidAmountRaw : $expectedDeposit;
               $method = (string)($payment['bank_name'] ?? $payment['method'] ?? '-');
               $accountName = (string)($payment['account_name'] ?? '-');
@@ -243,7 +246,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               </td>
               <td>
                 <div class="amount"><?= $money($paidAmount) ?></div>
-                <div class="expected">Expected <?= $money($expectedDeposit) ?></div>
+                <div class="expected"><?= $isRemaining ? 'Remaining' : 'Expected' ?> <?= $money($expectedDeposit) ?></div>
               </td>
               <td><span class="method-text"><?= $h($method ?: '-') ?></span></td>
               <td>

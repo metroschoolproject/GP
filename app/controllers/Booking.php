@@ -877,6 +877,138 @@ class Booking extends Controller
         redirect('booking/detail/' . $bookingId);
     }
 
+    /**
+     * Show the remaining balance payment page.
+     */
+    public function payRemaining(int $bookingId): void
+    {
+        $this->ensureAuthenticated();
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        $total = (float)$booking['total_amount'];
+        $paid = (float)$booking['paid_amount'];
+        $balance = max(0, $total - $paid);
+
+        if ($balance <= 0) {
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
+
+        // Check if there's already a pending remaining payment
+        if ($this->bookingModel->hasPendingRemainingPayment($bookingId)) {
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
+
+        $this->view('booking/payRemaining', [
+            'booking' => $booking,
+            'total' => $total,
+            'paid' => $paid,
+            'balance' => $balance,
+            'bookingRef' => $this->bookingModel->generateBookingRef($bookingId),
+        ]);
+    }
+
+    /**
+     * Handle remaining balance payment submission (POST).
+     */
+    public function submitRemainingPayment(): void
+    {
+        $this->ensureAuthenticated();
+        $this->requireCsrf(false);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        $bookingId    = (int)($_POST['booking_id'] ?? 0);
+        $bankName     = trim($_POST['bank_name'] ?? '');
+        $accountName  = trim($_POST['account_name'] ?? '');
+        $transactionRef = trim($_POST['transaction_ref'] ?? '');
+        $paidAmount   = (float)str_replace(',', '', $_POST['paid_amount'] ?? '0');
+        $mobileNumber = trim($_POST['mobile_number'] ?? '');
+
+        $allowed = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / MasterCard'];
+
+        if ($bookingId <= 0 || !in_array($bankName, $allowed, true) || $accountName === '' || $transactionRef === '' || $paidAmount <= 0 || $mobileNumber === '') {
+            $_SESSION['remaining_payment_flash'] = 'Please fill in all required fields.';
+            redirect('booking/payRemaining/' . $bookingId);
+            return;
+        }
+
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        $total = (float)$booking['total_amount'];
+        $paid = (float)$booking['paid_amount'];
+        $expectedBalance = max(0, $total - $paid);
+
+        if ($expectedBalance <= 0) {
+            $_SESSION['remaining_payment_flash'] = 'This booking is already fully paid.';
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
+
+        if (abs($paidAmount - $expectedBalance) > 0.01) {
+            $_SESSION['remaining_payment_flash'] = 'The payment amount must equal the remaining balance (' . number_format($expectedBalance, 0) . ' MMK).';
+            redirect('booking/payRemaining/' . $bookingId);
+            return;
+        }
+
+        $slipFile = $_FILES['slip_image'] ?? null;
+        if (!$slipFile || ($slipFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            $_SESSION['remaining_payment_flash'] = 'Please upload your payment slip or receipt.';
+            redirect('booking/payRemaining/' . $bookingId);
+            return;
+        }
+
+        $slipPath = $this->storePaymentSlip($slipFile);
+        if ($slipPath === '') {
+            $_SESSION['remaining_payment_flash'] = 'Invalid file type. Please upload a JPG, PNG, WebP, or PDF file.';
+            redirect('booking/payRemaining/' . $bookingId);
+            return;
+        }
+
+        $ok = $this->bookingModel->submitRemainingPaymentSlip(
+            $bookingId,
+            $slipPath,
+            $transactionRef,
+            $bankName,
+            $accountName,
+            $mobileNumber,
+            $paidAmount,
+            date('Y-m-d H:i:s')
+        );
+
+        if (!$ok) {
+            $_SESSION['remaining_payment_flash'] = 'Could not save your payment. Please try again.';
+            redirect('booking/payRemaining/' . $bookingId);
+            return;
+        }
+
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Remaining Payment Submitted',
+            'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.',
+            'payment'
+        );
+
+        // Notify admins
+        $this->notifyAdminsOfDepositSubmission($bookingId, $paidAmount);
+
+        $_SESSION['booking_payment_flash'] = 'Your remaining payment proof has been submitted. We will verify shortly.';
+        redirect('booking/detail/' . $bookingId);
+    }
+
     private function storePaymentSlip(array $file): string
     {
         $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -1214,6 +1346,9 @@ class Booking extends Controller
         $replacementHistory = $this->bookingModel->getReplacementHistory($bookingId);
         $refund = $this->bookingModel->getBookingRefund($bookingId);
 
+        // Check if there's a pending remaining balance payment
+        $hasPendingRemaining = $this->bookingModel->hasPendingRemainingPayment($bookingId);
+
         $this->view('booking/detail', [
             'booking' => $booking,
             'items' => $items,
@@ -1232,6 +1367,7 @@ class Booking extends Controller
             'replacementHistory' => $replacementHistory,
             'refund' => $refund ?: null,
             'platformFeePercent' => get_platform_fee_percent(),
+            'hasPendingRemaining' => $hasPendingRemaining,
         ]);
     }
 

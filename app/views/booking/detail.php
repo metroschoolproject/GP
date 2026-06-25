@@ -325,6 +325,31 @@ a{color:inherit;text-decoration:none}
   <?php endif; ?>
 
   <?php
+    // Remaining balance banner for confirmed bookings
+    $isConfirmedOrLater = in_array($currentStatus, ['confirmed', 'pending_final_payment', 'finalized'], true);
+    $hasRemainingBalance = $isConfirmedOrLater && $summaryBalance > 0;
+    $hasPendingRemaining = $hasPendingRemaining ?? false;
+  ?>
+  <?php if ($hasRemainingBalance && !$hasPendingRemaining): ?>
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:4px;">
+    <svg style="flex-shrink:0;margin-top:2px;color:#2563eb" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:13px;color:#1e40af;margin-bottom:2px;">Remaining balance: <?=$money($summaryBalance)?></div>
+      <div style="font-size:12px;color:#2563eb;">You can pay the remaining balance anytime before your event. We'll also send a reminder closer to the date.</div>
+    </div>
+    <a href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>" style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 18px;border-radius:10px;background:#2563eb;color:#fff;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;transition:opacity .2s">Pay Now</a>
+  </div>
+  <?php elseif ($hasRemainingBalance && $hasPendingRemaining): ?>
+  <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:4px;">
+    <svg style="flex-shrink:0;margin-top:2px;color:#d97706" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:2px;">Remaining payment under review</div>
+      <div style="font-size:12px;color:#b45309;">Your remaining balance payment of <?=$money($summaryBalance)?> is being reviewed. We'll confirm once verified.</div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php
     $journeyStatus = strtolower((string)($booking['status'] ?? ''));
     $journeyIsCancellation = in_array($journeyStatus, ['cancellation_requested', 'cancelled'], true);
     $journeyIsReplacement = !empty($pendingReplacement);
@@ -670,6 +695,9 @@ a{color:inherit;text-decoration:none}
     <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Proceed to Payment</a>
     <?php elseif (($booking['status']??'') === 'pending_supplier_response'): ?>
     <span class="gp-btn-sm" style="cursor:default;opacity:0.6;" title="Payment available after supplier confirms">Awaiting Supplier Response</span>
+    <?php endif; ?>
+    <?php if ($hasRemainingBalance && !$hasPendingRemaining): ?>
+    <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance</a>
     <?php endif; ?>
     <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
     <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>

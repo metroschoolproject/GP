@@ -3885,6 +3885,93 @@ class BookingModel
     }
 
     /**
+     * Verify a remaining balance payment (admin action).
+     * Marks the remaining payment as success and finalizes the booking.
+     */
+    public function adminVerifyRemainingPayment(int $bookingId, int $adminId, string $note = ''): bool
+    {
+        $this->paymentVerificationError = null;
+        $this->db->dbquery(
+            "SELECT p.id,
+                    COALESCE(p.paid_amount, p.amount, 0) AS submitted_amount,
+                    b.total_amount, b.paid_amount AS already_paid
+               FROM payments p
+               INNER JOIN bookings b ON b.id = p.booking_id
+              WHERE p.booking_id = :bid
+                AND p.type = 'remaining'
+                AND p.status = 'pending'
+              ORDER BY p.id DESC
+              LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $pendingPayment = $this->db->getsingledata();
+        $paymentId = (int)($pendingPayment['id'] ?? 0);
+        if ($paymentId <= 0) {
+            $this->paymentVerificationError = 'No pending remaining payment found for this booking.';
+            return false;
+        }
+
+        $totalAmount = (float)($pendingPayment['total_amount'] ?? 0);
+        $alreadyPaid = (float)($pendingPayment['already_paid'] ?? 0);
+        $expectedBalance = max(0, $totalAmount - $alreadyPaid);
+        $submittedAmount = (float)($pendingPayment['submitted_amount'] ?? 0);
+
+        if ($expectedBalance <= 0) {
+            $this->paymentVerificationError = 'This booking is already fully paid.';
+            return false;
+        }
+
+        if (abs($submittedAmount - $expectedBalance) > 0.01) {
+            $this->paymentVerificationError = 'Payment amount must equal remaining balance: '
+                . number_format($expectedBalance, 0) . ' MMK expected, '
+                . number_format($submittedAmount, 0) . ' MMK submitted.';
+            return false;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Mark remaining payment as success
+            $setParts = ["status = 'success'", 'verified_by = :admin', 'verified_at = NOW()'];
+            if ($this->paymentHasColumn('verified_note')) {
+                $setParts[] = 'verified_note = :note';
+            }
+            $this->db->dbquery(
+                "UPDATE payments SET " . implode(', ', $setParts) . "
+                 WHERE id = :payment_id AND status = 'pending' LIMIT 1"
+            );
+            $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+            if ($this->paymentHasColumn('verified_note')) {
+                $this->db->dbbind(':note', $note, PDO::PARAM_STR);
+            }
+            $this->db->dbbind(':payment_id', $paymentId, PDO::PARAM_INT);
+            if (!$this->db->dbexecute() || $this->db->rowcount() !== 1) {
+                throw new RuntimeException('Remaining payment was already reviewed.');
+            }
+
+            // Finalize the booking
+            $this->db->dbquery(
+                "UPDATE bookings
+                    SET status = 'finalized',
+                        payment_status = 'full',
+                        paid_amount = total_amount
+                  WHERE id = :id LIMIT 1"
+            );
+            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+            if (!$this->db->dbexecute()) {
+                throw new RuntimeException('Booking status could not be updated.');
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            $this->paymentVerificationError = 'Remaining payment verification failed.';
+            error_log('Remaining payment verification failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Calculate and settle supplier payouts after booking completion.
      * Creates payout records for each supplier based on proportional amount.
      */
@@ -3971,6 +4058,91 @@ class BookingModel
     }
 
     /* ─── Final Payment Collection & Refund Logic ─────────────────── */
+
+    /**
+     * Check if a booking has a pending (under review) remaining balance payment.
+     */
+    public function hasPendingRemainingPayment(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "SELECT 1 FROM payments
+              WHERE booking_id = :bid AND type = 'remaining' AND status IN ('pending','processing')
+              LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return (bool)$this->db->getsingledata();
+    }
+
+    /**
+     * Submit remaining balance payment slip (manual bank transfer).
+     * Creates a 'remaining' type payment record and updates booking status.
+     */
+    public function submitRemainingPaymentSlip(
+        int $bookingId,
+        string $slipPath,
+        string $reference,
+        string $method,
+        string $accountName = '',
+        string $mobileNumber = '',
+        float $paidAmount = 0.0,
+        string $paidAt = ''
+    ): bool {
+        $this->db->beginTransaction();
+        try {
+            // Create remaining payment record
+            $columns = ['booking_id', 'amount', 'type', 'method', 'status', 'transaction_ref', 'escrow_status'];
+            $values = [':bid', ':amount', "'remaining'", ':method', "'pending'", ':ref', "'held'"];
+            $bindings = [
+                ':bid' => [$bookingId, PDO::PARAM_INT],
+                ':amount' => [number_format($paidAmount, 2, '.', ''), PDO::PARAM_STR],
+                ':method' => [$method, PDO::PARAM_STR],
+                ':ref' => [$reference, PDO::PARAM_STR],
+            ];
+
+            $optionalColumns = [
+                'bank_name' => [$method, PDO::PARAM_STR],
+                'account_name' => [$accountName !== '' ? $accountName : null, $accountName !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+                'mobile_number' => [$mobileNumber !== '' ? $mobileNumber : null, $mobileNumber !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+                'paid_amount' => [$paidAmount > 0 ? round($paidAmount, 2) : null, $paidAmount > 0 ? PDO::PARAM_STR : PDO::PARAM_NULL],
+                'paid_at' => [$paidAt !== '' ? $paidAt : null, $paidAt !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+                'payment_slip_path' => [$slipPath !== '' ? $slipPath : null, $slipPath !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+            ];
+
+            foreach ($optionalColumns as $column => [$value, $type]) {
+                if (!$this->paymentHasColumn($column)) {
+                    continue;
+                }
+                $param = ':' . $column;
+                $columns[] = $column;
+                $values[] = $param;
+                $bindings[$param] = [$value, $type];
+            }
+
+            $sql = "INSERT INTO payments (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
+            $this->db->dbquery($sql);
+            foreach ($bindings as $param => [$value, $type]) {
+                $this->db->dbbind($param, $value, $type);
+            }
+
+            if (!$this->db->dbexecute()) {
+                throw new RuntimeException('Failed to create payment record.');
+            }
+
+            // Update booking status to pending_final_payment
+            $this->db->dbquery(
+                "UPDATE bookings SET status = 'pending_final_payment' WHERE id = :id AND status = 'confirmed' LIMIT 1"
+            );
+            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('Remaining payment submission failed: ' . $e->getMessage());
+            return false;
+        }
+    }
 
     /**
      * Collect the remaining balance for bookings where the event is within 3 days.

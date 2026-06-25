@@ -1942,25 +1942,31 @@ class Admin extends Controller
                     : 'NULL AS ' . $column;
             }
 
-            // Count for pending tab
+            // Count for pending tab (deposits + remaining payments)
             $db->dbquery(
                 "SELECT COUNT(*) AS total
                  FROM bookings b
-                 WHERE b.status = 'payment_submitted'"
+                 WHERE b.status = 'payment_submitted'
+                    OR (b.status = 'pending_final_payment'
+                        AND EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = b.id AND p.type = 'remaining' AND p.status = 'pending'))"
             );
             $totalCount = (int)($db->getsingledata()['total'] ?? 0);
 
-            // Get bookings with status='payment_submitted'
+            // Get bookings with pending deposit OR pending remaining payments
             $db->dbquery(
                 "SELECT b.*, u.name, u.email, u.phone,
                         p.id as payment_id, p.amount as payment_amount, p.transaction_ref, p.method,
                         " . implode(', ', $manualPaymentSelects) . ",
                         p.created_at as payment_created_at,
+                        p.type as payment_type,
                         (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) as item_count
                  FROM bookings b
                  LEFT JOIN users u ON b.user_id = u.user_id
-                 LEFT JOIN payments p ON b.id = p.booking_id AND p.type = 'deposit' AND p.status = 'pending'
-                 WHERE b.status = 'payment_submitted'
+                 LEFT JOIN payments p ON b.id = p.booking_id
+                    AND ((p.type = 'deposit' AND p.status = 'pending' AND b.status = 'payment_submitted')
+                      OR (p.type = 'remaining' AND p.status = 'pending' AND b.status = 'pending_final_payment'))
+                 WHERE b.status IN ('payment_submitted', 'pending_final_payment')
+                   AND p.id IS NOT NULL
                  ORDER BY b.created_at DESC
                  LIMIT :limit OFFSET :offset"
             );
@@ -2013,59 +2019,77 @@ class Admin extends Controller
 
         $bookingModel = $this->model('BookingModel');
         $beforeVerification = $bookingModel->getBookingById($bookingId);
+        $beforeStatus = (string)($beforeVerification['status'] ?? '');
+
+        // Determine if this is a deposit or remaining payment verification
+        $isRemaining = ($beforeStatus === 'pending_final_payment');
 
         // Verify payment and update booking status
-        if (!$bookingModel->adminVerifyPayment($bookingId, $adminId, $note)) {
+        if ($isRemaining) {
+            $verifyResult = $bookingModel->adminVerifyRemainingPayment($bookingId, $adminId, $note);
+        } else {
+            $verifyResult = $bookingModel->adminVerifyPayment($bookingId, $adminId, $note);
+        }
+        if (!$verifyResult) {
             $this->jsonResponse(['error' => $bookingModel->getPaymentVerificationError()], 422);
             return;
         }
 
         // Notify customer
         $notificationModel = $this->model('Notification');
-        $notificationModel->notifyBookingCustomer(
-            $bookingId,
-            'Payment Verified',
-            'Your payment has been verified! Suppliers are now reviewing your booking.',
-            'payment'
-        );
-
-        // Notify suppliers
-        $notificationModel->notifyBookingSuppliers(
-            $bookingId,
-            'New Booking — Payment Verified',
-            'A new booking with confirmed payment is ready for your review.',
-            'booking'
-        );
+        if ($isRemaining) {
+            $notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Remaining Payment Verified',
+                'Your remaining balance payment has been verified! Your booking is now fully paid and finalized.',
+                'payment'
+            );
+        } else {
+            $notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Payment Verified',
+                'Your payment has been verified! Suppliers are now reviewing your booking.',
+                'payment'
+            );
+            // Notify suppliers (only for deposit verification)
+            $notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'New Booking — Payment Verified',
+                'A new booking with confirmed payment is ready for your review.',
+                'booking'
+            );
+        }
 
         // Send the verified payment details to the customer, then notify suppliers.
         $booking   = $bookingModel->getBookingById($bookingId);
         $items     = $bookingModel->getBookingItems($bookingId);
         $eventDetails = $bookingModel->getEventDetails($bookingId);
         $customer  = $bookingModel->getCustomerForBooking($bookingId);
-        $suppliers = $bookingModel->getSupplierEmailsForBooking($bookingId);
-        $verifiedPayment = $bookingModel->getDepositPayment($bookingId) ?: [];
-        if ($customer && $booking) {
-            $emailService = new EmailService();
-            $emailSent = $emailService->sendAdminVerifiedPaymentToCustomer(
-                $customer,
-                $booking,
-                $verifiedPayment,
-                $items,
-                $eventDetails
-            );
-            $emailService->sendPaymentVerifiedEvent($customer, $suppliers, [], $booking, $items, false);
-        } else {
-            $emailSent = false;
+        $emailSent = false;
+        if (!$isRemaining) {
+            $suppliers = $bookingModel->getSupplierEmailsForBooking($bookingId);
+            $verifiedPayment = $bookingModel->getDepositPayment($bookingId) ?: [];
+            if ($customer && $booking) {
+                $emailService = new EmailService();
+                $emailSent = $emailService->sendAdminVerifiedPaymentToCustomer(
+                    $customer,
+                    $booking,
+                    $verifiedPayment,
+                    $items,
+                    $eventDetails
+                );
+                $emailService->sendPaymentVerifiedEvent($customer, $suppliers, [], $booking, $items, false);
+            }
         }
 
         $paymentId = (int)($verifiedPayment['id'] ?? 0);
         $newStatus = (string)($booking['status'] ?? 'paid');
         $bookingModel->logStatusChange(
             $bookingId,
-            (string)($beforeVerification['status'] ?? 'payment_submitted'),
+            $beforeStatus ?: 'payment_submitted',
             $newStatus,
             $adminId,
-            'Deposit verified by admin' . ($note !== '' ? ': ' . $note : '')
+            ($isRemaining ? 'Remaining payment' : 'Deposit') . ' verified by admin' . ($note !== '' ? ': ' . $note : '')
         );
 
         $this->jsonResponse([
@@ -2437,7 +2461,10 @@ class Admin extends Controller
     }
 
     /**
-     * Send payment reminders for bookings 3-5 days before event.
+     * Send payment reminders for confirmed bookings with remaining balance.
+     * Reminds customers:
+     *   - 7 days after deposit (if not yet paid)
+     *   - 3-5 days before event (urgent)
      * Call via: curl https://goldenpromise.com/admin/cronPaymentReminders?token=SECRET_CRON_TOKEN
      */
     public function cronPaymentReminders(): void
@@ -2451,32 +2478,77 @@ class Admin extends Controller
             exit;
         }
 
-        // Find CONFIRMED bookings with event in next 5 days
+        // Find CONFIRMED bookings with remaining balance and no pending/success remaining payment
         $this->db->dbquery(
-            "SELECT b.id, b.user_id, b.total_amount, b.paid_amount, u.email, u.name, ed.event_date
+            "SELECT b.id, b.user_id, b.total_amount, b.paid_amount, u.email, u.name, ed.event_date,
+                    (SELECT MIN(p2.created_at) FROM payments p2 WHERE p2.booking_id = b.id AND p2.type = 'deposit' AND p2.status = 'success') AS deposit_paid_at
              FROM bookings b
              JOIN users u ON b.user_id = u.user_id
              LEFT JOIN event_details ed ON ed.booking_id = b.id
              WHERE b.status = 'confirmed'
-               AND NOT EXISTS (SELECT 1 FROM payments WHERE booking_id = b.id AND type = 'remaining' AND status IN ('pending', 'success'))
-               AND DATE(ed.event_date) BETWEEN DATE_ADD(CURDATE(), INTERVAL 3 DAY) AND DATE_ADD(CURDATE(), INTERVAL 5 DAY)
+               AND b.paid_amount < b.total_amount
+               AND NOT EXISTS (SELECT 1 FROM payments WHERE booking_id = b.id AND type = 'remaining' AND status IN ('pending', 'processing', 'success'))
              ORDER BY ed.event_date ASC"
         );
         $bookings = $this->db->getmultidata();
 
         $emailService = new EmailService();
+        $notificationModel = $this->model('Notification');
         $sent = 0;
 
         foreach ($bookings as $booking) {
+            $bookingId = (int)$booking['id'];
+            $eventDate = $booking['event_date'] ? strtotime($booking['event_date']) : null;
+            $depositPaidAt = $booking['deposit_paid_at'] ? strtotime($booking['deposit_paid_at']) : null;
+            $daysUntilEvent = $eventDate ? (int)ceil(($eventDate - time()) / 86400) : PHP_INT_MAX;
+            $daysSinceDeposit = $depositPaidAt ? (int)floor((time() - $depositPaidAt) / 86400) : PHP_INT_MAX;
+
+            $shouldRemind = false;
+            $urgency = 'gentle';
+
+            // 7 days after deposit: first reminder
+            if ($daysSinceDeposit >= 7 && $daysSinceDeposit <= 8) {
+                $shouldRemind = true;
+                $urgency = 'gentle';
+            }
+            // 3-5 days before event: urgent reminder
+            if ($daysUntilEvent >= 3 && $daysUntilEvent <= 5) {
+                $shouldRemind = true;
+                $urgency = 'urgent';
+            }
+            // 1-2 days before event: final reminder
+            if ($daysUntilEvent >= 1 && $daysUntilEvent <= 2) {
+                $shouldRemind = true;
+                $urgency = 'final';
+            }
+
+            if (!$shouldRemind) continue;
+
             $customer = [
                 'name' => $booking['name'] ?? '',
                 'email' => $booking['email'] ?? '',
             ];
-            $dueDate = date('M d, Y', strtotime($booking['event_date'] ?? 'now'));
+            $dueDate = $eventDate ? date('M d, Y', $eventDate) : 'your event date';
 
             if ($emailService->sendFinalPaymentReminder($customer, $booking, $dueDate)) {
                 $sent++;
             }
+
+            // Also send in-app notification
+            $balance = max(0, (float)$booking['total_amount'] - (float)$booking['paid_amount']);
+            $message = match ($urgency) {
+                'final' => "Your event is in {$daysUntilEvent} day(s). Please pay your remaining balance of " . number_format($balance, 0) . " MMK as soon as possible to avoid any issues.",
+                'urgent' => "Your event is in {$daysUntilEvent} days. Please pay your remaining balance of " . number_format($balance, 0) . " MMK soon.",
+                default => "Friendly reminder: you have a remaining balance of " . number_format($balance, 0) . " MMK on your booking. You can pay anytime before your event.",
+            };
+            $notificationModel->notifyUser(
+                (int)$booking['user_id'],
+                'Remaining Payment Reminder',
+                $message,
+                'payment',
+                'booking',
+                $bookingId
+            );
         }
 
         echo json_encode([
