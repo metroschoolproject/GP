@@ -1711,213 +1711,58 @@ $dashboardContent = function () use (
   </div>
 
   <!-- ── 2-column body ── -->
-  <?php if ($isPaymentSubmitted): ?>
-  <!-- ═══ SPLIT PANEL: Payment Review Mode ═══ -->
-  <style>
-    .bkd-split{display:grid;grid-template-columns:1fr 420px;gap:20px;margin-top:20px}
-    .bkd-split-left{display:flex;flex-direction:column;gap:16px}
-    .bkd-split-right{display:flex;flex-direction:column;gap:16px;position:sticky;top:20px;align-self:start}
-    .bkd-split .bkd-card{border-radius:14px}
-    .bkd-slip-hero{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--bkd-border,#ead8c7);background:#fff;cursor:zoom-in;min-height:300px;display:flex;align-items:center;justify-content:center}
-    .bkd-slip-hero img{width:100%;max-height:600px;object-fit:contain}
-    .bkd-slip-hero .zoom-hint{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;border:0;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px}
-    .bkd-slip-hero .zoom-hint:hover{background:rgba(0,0,0,.75)}
-    .bkd-match{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-top:8px}
-    .bkd-match.ok{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
-    .bkd-match.er{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
-    .bkd-svc-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bkd-border,#ead8c7)}
-    .bkd-svc-item:last-child{border-bottom:0}
-    .bkd-svc-icon{width:28px;height:28px;border-radius:8px;background:var(--bkd-soft,#f5f0eb);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-    .bkd-svc-name{font-weight:600;font-size:13px;color:var(--bkd-text,#111827)}
-    .bkd-svc-cat{font-size:11px;color:var(--bkd-muted,#b79c8b)}
-    .bkd-svc-price{margin-left:auto;font-weight:700;font-size:13px;color:var(--bkd-text,#111827);white-space:nowrap}
-    .bkd-review-bar{display:flex;gap:10px;margin-top:12px}
-    .bkd-review-bar .bkd-btn{flex:1;justify-content:center;min-height:44px;font-size:13px}
-    @media(max-width:900px){.bkd-split{grid-template-columns:1fr}.bkd-split-right{position:static}}
-  </style>
-
-  <div class="bkd-split">
-    <!-- LEFT: Payment Proof -->
-    <div class="bkd-split-left">
-      <!-- Slip preview -->
-      <div class="bkd-card">
+  <div class="bkd-body">
+    <main class="bkd-main">
+      <?php if ($isPaymentSubmitted): ?>
+      <!-- Payment submitted — needs review -->
+      <div class="bkd-card bkd-card--highlight" id="booking-payment">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
-            <div class="bkd-card-icon bkd-card-icon--warn"><i data-lucide="alert-circle"></i></div>
+            <div class="bkd-card-icon bkd-card-icon--warn">
+              <i data-lucide="alert-circle"></i>
+            </div>
             <span class="bkd-card-title">Payment Proof Submitted</span>
           </div>
-          <span class="bkd-badge <?= $badgeClass($paymentStatus) ?>"><?= $h(ucwords(str_replace('_', ' ', $paymentStatus))) ?></span>
-        </div>
-        <div class="bkd-card-body" style="padding:16px">
-          <?php if ($slipPath !== ''): ?>
-            <div class="bkd-slip-hero" onclick="<?= $isImageSlip ? "openLightbox('" . URLROOT . "/" . h($slipPath) . "')" : "window.open('" . URLROOT . "/" . h($slipPath) . "')" ?>">
-              <?php if ($isImageSlip): ?>
-                <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip">
-              <?php else: ?>
-                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--bkd-muted,#b79c8b);font-size:14px;font-weight:600">
-                  <i data-lucide="file-text" style="width:40px;height:40px"></i> PDF Document
-                </div>
-              <?php endif; ?>
-              <span class="zoom-hint">🔍 <?= $isImageSlip ? 'Zoom' : 'Open' ?></span>
-            </div>
-          <?php else: ?>
-            <div style="padding:40px;text-align:center;color:var(--bkd-muted,#b79c8b)">No payment proof uploaded.</div>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <!-- Transfer details -->
-      <div class="bkd-card">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon"><i data-lucide="arrow-right-left"></i></div>
-            <span class="bkd-card-title">Transfer Details</span>
-          </div>
+          <span class="bkd-badge <?= $badgeClass($paymentStatus) ?>" id="payment-status-badge">
+            <?= $h(ucwords(str_replace('_', ' ', $paymentStatus))) ?>
+          </span>
         </div>
         <div class="bkd-card-body">
           <div class="bkd-kv-grid">
-            <div class="bkd-kv"><div class="bkd-kv-label">Method</div><div class="bkd-kv-value"><?= $h($paymentMethod ?: '—') ?></div></div>
-            <div class="bkd-kv"><div class="bkd-kv-label">Sender</div><div class="bkd-kv-value"><?= $h($reviewPayment['account_name'] ?? '—') ?></div></div>
-            <div class="bkd-kv"><div class="bkd-kv-label">Phone</div><div class="bkd-kv-value"><?= $h($reviewPayment['mobile_number'] ?? '—') ?></div></div>
-            <div class="bkd-kv"><div class="bkd-kv-label">Reference</div><div class="bkd-kv-value" style="font-family:monospace"><?= $h($transactionRef ?: '—') ?></div></div>
-            <div class="bkd-kv"><div class="bkd-kv-label">Submitted</div><div class="bkd-kv-value"><?= $h($dateTime($reviewPayment['paid_at'] ?? $reviewPayment['created_at'] ?? null)) ?></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Summary + Action -->
-    <div class="bkd-split-right">
-      <!-- Booking summary -->
-      <div class="bkd-card">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon"><i data-lucide="receipt"></i></div>
-            <span class="bkd-card-title">Booking Summary</span>
-          </div>
-          <span class="bkd-card-meta"><?= $h($bookingRef) ?></span>
-        </div>
-        <div class="bkd-card-body">
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--bkd-muted,#b79c8b)">Booking total</span><span style="font-weight:700"><?= $money($totalAmount) ?></span></div>
-            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--bkd-muted,#b79c8b)">Deposit (<?= (int)$depositPercent ?>%)</span><span style="font-weight:600"><?= $money($expectedDeposit) ?></span></div>
-            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--bkd-muted,#b79c8b)">Platform fee (<?= (int)$platformFeePercent ?>%)</span><span style="font-weight:600"><?= $money($expectedPlatformFee) ?></span></div>
-            <div style="display:flex;justify-content:space-between;font-size:14px;border-top:1px solid var(--bkd-border,#ead8c7);padding-top:8px;margin-top:4px"><span style="font-weight:700;color:var(--bkd-text,#111827)">Expected total</span><span style="font-weight:800;color:var(--bkd-primary,#6d4c5b);font-size:16px"><?= $money($expectedPayment) ?></span></div>
-            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--bkd-muted,#b79c8b)">Customer submitted</span><span style="font-weight:700"><?= $money($sentAmount) ?></span></div>
-          </div>
-          <?php
-            $amountMatch = abs($sentAmount - $expectedPayment) < 0.01;
-            $amountDiff = $sentAmount - $expectedPayment;
-          ?>
-          <?php if ($amountMatch): ?>
-            <div class="bkd-match ok">✓ Amount matches exactly</div>
-          <?php else: ?>
-            <div class="bkd-match er">✕ Mismatch: <?= $amountDiff > 0 ? '+' : '' ?><?= $money($amountDiff) ?></div>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <!-- Booked services -->
-      <div class="bkd-card">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon"><i data-lucide="calendar-check"></i></div>
-            <span class="bkd-card-title">Booked Services</span>
-          </div>
-          <span class="bkd-card-meta"><?= count($items) ?></span>
-        </div>
-        <div class="bkd-card-body">
-          <?php if (empty($items)): ?>
-            <div class="bkd-empty">No services booked.</div>
-          <?php else: ?>
-            <?php foreach ($items as $item):
-              $itemName = (string)($item['service_name'] ?? $item['item_name'] ?? 'Service');
-              $itemCat = (string)($item['category_name'] ?? '');
-              $itemPrice = (float)($item['price'] ?? $item['item_price'] ?? 0);
-              $itemIcon = match(strtolower($itemCat)) {
-                'make up', 'make up & hair' => '💄',
-                'dress' => '👗',
-                'photography', 'studio' => '📸',
-                'venue' => '🏛️',
-                'food', 'catering' => '🍽️',
-                'car' => '🚗',
-                'decoration' => '💐',
-                'jewelry' => '💍',
-                'accessories' => '✨',
-                'invitation' => '💌',
-                default => '📋',
-              };
-            ?>
-              <div class="bkd-svc-item">
-                <span class="bkd-svc-icon"><?= $itemIcon ?></span>
-                <div>
-                  <div class="bkd-svc-name"><?= $h($itemName) ?></div>
-                  <div class="bkd-svc-cat"><?= $h($itemCat) ?></div>
-                </div>
-                <span class="bkd-svc-price"><?= $money($itemPrice) ?></span>
-              </div>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <!-- Customer info -->
-      <div class="bkd-card">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon"><i data-lucide="user-circle"></i></div>
-            <span class="bkd-card-title">Customer</span>
-          </div>
-        </div>
-        <div class="bkd-card-body">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <div style="width:36px;height:36px;border-radius:50%;background:var(--bkd-primary-soft,#eddecc);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--bkd-primary,#6d4c5b)"><?= $h($custInitials) ?></div>
-            <div>
-              <div style="font-weight:700;font-size:13px"><?= $h($custName) ?></div>
-              <div style="font-size:12px;color:var(--bkd-muted,#b79c8b)"><?= $h($booking['customer_email'] ?? '—') ?></div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Amount sent</div>
+              <div class="bkd-kv-value"><?= $money($sentAmount) ?></div>
+              <div class="bkd-kv-sub">Submitted by customer</div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Expected payment</div>
+              <div class="bkd-kv-value"><?= $money($expectedPayment) ?></div>
+              <div class="bkd-kv-sub"><?= (int)$depositPercent ?>% deposit + <?= (int)$platformFeePercent ?>% fee</div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Method</div>
+              <div class="bkd-kv-value"><?= $h($paymentMethod ?: '-') ?></div>
+              <div class="bkd-kv-sub"><?= $h($dateTime($reviewPayment['paid_at'] ?? null)) ?></div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Payment reference</div>
+              <div class="bkd-kv-value"><?= $h($transactionRef ?: '-') ?></div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Sender account</div>
+              <div class="bkd-kv-value"><?= $h($reviewPayment['account_name'] ?? '-') ?></div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Sender phone</div>
+              <div class="bkd-kv-value"><?= $h($reviewPayment['mobile_number'] ?? '-') ?></div>
             </div>
           </div>
-          <div style="font-size:12px;color:var(--bkd-muted,#b79c8b)">Phone: <?= $h($booking['customer_phone'] ?? '—') ?></div>
-        </div>
-      </div>
-
-      <!-- Review actions -->
-      <div class="bkd-card" style="border:2px solid var(--bkd-primary,#6d4c5b)">
-        <div class="bkd-card-head" style="background:var(--bkd-primary,#6d4c5b);color:#fff">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon" style="background:rgba(255,255,255,.2);color:#fff"><i data-lucide="check-circle"></i></div>
-            <span class="bkd-card-title" style="color:#fff">Review & Decide</span>
+          <div class="bkd-progress">
+            <span id="payment-progress-bar" style="width:<?= min(100, max(0, $paidPercent)) ?>%"></span>
           </div>
         </div>
-        <div class="bkd-card-body">
-          <form id="payment-review-form" data-booking-id="<?= $bookingId ?>">
-            <textarea name="note" placeholder="Add a note (optional)…" style="width:100%;min-height:60px;padding:10px 12px;border:1px solid var(--bkd-border,#ead8c7);border-radius:10px;font-size:12px;font-family:inherit;resize:vertical;outline:none"></textarea>
-            <div class="bkd-review-bar">
-              <button type="button" class="bkd-btn bkd-btn--danger reject-payment-btn"><i data-lucide="x-circle"></i> Reject</button>
-              <button type="button" class="bkd-btn bkd-btn--success verify-payment-btn"><i data-lucide="circle-check"></i> Approve</button>
-            </div>
-          </form>
-          <div id="payment-email-result" style="margin-top:8px;font-size:12px"></div>
-        </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Lightbox -->
-  <div id="bkd-lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:80;align-items:center;justify-content:center;padding:40px;cursor:zoom-out" onclick="closeLightbox()">
-    <button style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;width:40px;height:40px;font-size:18px;cursor:pointer" onclick="closeLightbox()">✕</button>
-    <img id="bkd-lb-img" src="" alt="Full size" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.3)">
-  </div>
-  <script>
-  function openLightbox(src){document.getElementById('bkd-lb-img').src=src;document.getElementById('bkd-lightbox').style.display='flex'}
-  function closeLightbox(){document.getElementById('bkd-lightbox').style.display='none'}
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox()});
-  </script>
-
-  <?php else: ?>
-  <!-- ═══ STANDARD LAYOUT: Non-review mode ═══ -->
-  <div class="bkd-body">
-    <main class="bkd-main">
+      <?php else: ?>
       <!-- Non-urgent: Payment summary -->
       <div class="bkd-card" id="booking-payment">
         <div class="bkd-card-head">
@@ -1966,6 +1811,7 @@ $dashboardContent = function () use (
           </div>
         </div>
       </div>
+      <?php endif; ?>
 
       <!-- Services table -->
       <div class="bkd-card" id="booking-services">
@@ -2502,7 +2348,6 @@ $dashboardContent = function () use (
       <?php endif; ?>
     </aside>
   </div>
-  <?php endif; ?>
 </div>
 
 <!-- Process Refund Modal -->
