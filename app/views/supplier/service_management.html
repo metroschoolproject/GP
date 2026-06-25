@@ -27,7 +27,7 @@
     .sm-subtitle { margin:4px 0 0; color:#7b5c69; font-size:12px; font-weight:500; }
     .sm-primary-btn { display:inline-flex; min-height:34px; align-items:center; gap:7px; border:1px solid #6d4c5b; border-radius:12px; background:#6d4c5b; padding:0 14px; color:#fff; font:700 12px inherit; cursor:pointer; box-shadow:0 1px 2px rgba(28,25,23,.05); }
     .sm-primary-btn:hover { border-color:#593e49; background:#593e49; }
-    .sm-toolbar { display:grid; grid-template-columns:minmax(260px,1fr) auto; gap:10px; margin-bottom:14px; border:1px solid #ead8c7; border-radius:12px; background:#fff; padding:10px; box-shadow:0 1px 2px rgba(28,25,23,.04); }
+    .sm-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; border:1px solid #ead8c7; border-radius:12px; background:#fff; padding:10px; box-shadow:0 1px 2px rgba(28,25,23,.04); }
     .sm-search { position:relative; min-width:0; }
     .sm-search svg { position:absolute; left:12px; top:50%; width:15px; height:15px; color:#b79c8b; transform:translateY(-50%); pointer-events:none; }
     .sm-search input { width:100%; height:34px; border:1px solid #ead8c7; border-radius:10px; background:#fff; padding:0 12px 0 36px; color:#111827; font:500 12px inherit; outline:none; }
@@ -41,11 +41,40 @@
     .sm-tabs { display:flex; align-items:center; gap:16px; }
     .sm-tabs .tab-btn { min-height:30px; border:0; border-bottom:2px solid transparent; background:transparent; padding:0 1px; color:#a58b96; font:700 12px inherit; cursor:pointer; }
     .sm-tabs .tab-btn.active { border-bottom-color:#6d4c5b; color:#6d4c5b; }
-    .sm-sort { display:flex; align-items:center; gap:5px; margin:0; }
-    .sm-sort-label { margin-right:3px; color:#a58b96; font-size:9px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
-    .sm-sort .sort-btn { min-height:30px; border:1px solid #ead8c7; border-radius:9px; background:#fff; padding:0 10px; color:#7b5c69; font:700 10px inherit; cursor:pointer; }
-    .sm-sort .sort-btn:hover { border-color:#bfa7b1; }
-    .sm-sort .sort-btn.is-active { border-color:#6d4c5b; background:#6d4c5b; color:#fff; }
+    .sm-toolbar-right { display:flex; align-items:center; gap:10px; }
+    .sm-sort-select { display:flex; align-items:center; gap:8px; }
+    .sm-sort-label { color:#A8A29E; font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
+    .sm-sort-dropdown { appearance:none; height:34px; padding:0 32px 0 12px; border:1px solid #ead8c7; border-radius:10px; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8A29E' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center; color:#6d4c5b; font:600 12px 'DM Sans',sans-serif; cursor:pointer; outline:none; transition:border-color .2s; }
+    .sm-sort-dropdown:focus { border-color:#6d4c5b; }
+    .sm-sort-dropdown:hover { border-color:#c8b1a1; }
+
+    /* View toggle */
+    .sm-view-toggle { display:inline-flex; border:1px solid #ead8c7; border-radius:10px; background:#faf5ef; padding:2px; }
+    .sm-view-btn { display:flex; align-items:center; justify-content:center; width:32px; height:30px; border:0; border-radius:8px; background:transparent; color:#A8A29E; cursor:pointer; transition:all .15s; }
+    .sm-view-btn:hover { color:#6d4c5b; }
+    .sm-view-btn.active { background:#fff; color:#6d4c5b; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+
+    /* Table view */
+    .sm-table-wrap { background:#fff; border:1px solid #ead8c7; border-radius:12px; overflow:hidden; }
+    .sm-table { width:100%; border-collapse:collapse; }
+    .sm-table thead tr { background:#FAFAF9; }
+    .sm-table th { padding:10px 16px; text-align:left; font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:#A8A29E; border-bottom:1px solid #ead8c7; white-space:nowrap; }
+    .sm-table td { padding:12px 16px; border-bottom:1px solid #f0e5dc; font-size:13px; color:#6d4c5b; vertical-align:middle; }
+    .sm-table tr:last-child td { border-bottom:none; }
+    .sm-table tbody tr { transition:background .15s; }
+    .sm-table tbody tr:hover { background:#FAFAF9; }
+    .sm-th-status { width:80px; }
+    .sm-th-price { width:120px; text-align:right; }
+    .sm-th-actions { width:100px; text-align:right; }
+    .sm-table td.td-price { text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+    .sm-table td.td-actions { text-align:right; }
+    .sm-table .td-name { display:flex; align-items:center; gap:10px; }
+    .sm-table .td-name-img { width:36px; height:36px; border-radius:8px; object-fit:cover; flex-shrink:0; background:#f5f5f3; }
+    .sm-table .td-name-text { font-weight:700; color:#6d4c5b; }
+    .sm-table .td-status { display:inline-flex; align-items:center; gap:5px; }
+    .sm-table .td-status::before { content:''; width:6px; height:6px; border-radius:50%; background:#A8A29E; }
+    .sm-table .td-status.is-active::before { background:#16a34a; }
+    .sm-table .td-cat { color:#A8A29E; font-size:12px; }
     .sm-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:14px; }
     .service-card.sm-service-card { min-height:0; aspect-ratio:auto; border:1px solid #ead8c7; border-radius:12px; background:#fff; box-shadow:0 1px 2px rgba(28,25,23,.04); color:#34232b; overflow:hidden; transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease; }
     .service-card.sm-service-card:hover { border-color:#c8b1a1; box-shadow:0 3px 10px rgba(28,25,23,.07); transform:translateY(-1px); }
@@ -84,10 +113,15 @@
     @media (max-width:760px) {
       .sm-page { padding:20px 16px 32px; }
       .sm-page-head { align-items:flex-start; flex-direction:column; }
-      .sm-toolbar { grid-template-columns:1fr; }
+      .sm-toolbar { flex-wrap:wrap; gap:8px; }
+      .sm-toolbar-right { width:100%; justify-content:space-between; }
       .sm-status { justify-self:start; }
       .sm-controls { align-items:flex-start; flex-direction:column; }
       .sm-sort { width:100%; overflow-x:auto; padding-bottom:3px; }
+      .sm-table .td-cat { display:none; }
+      .sm-table th:nth-child(3) { display:none; }
+      .sm-th-price { text-align:left; }
+      .sm-table td.td-price { text-align:left; }
       .sm-grid { grid-template-columns:1fr; }
     }
 
@@ -114,32 +148,48 @@
   </div>
 
   <div class="sm-toolbar">
-    <div class="sm-search">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="searchInput" type="text" placeholder="Search services by name or category" autocomplete="off"/>
-    </div>
     <div class="sm-status" aria-label="Filter by service status">
       <button id="sf-all" type="button" onclick="setStatusFilter('all')" class="sf-btn bg-custom-primary text-white">All</button>
       <button id="sf-active" type="button" onclick="setStatusFilter('active')" class="sf-btn bg-white text-gray-500">Published</button>
       <button id="sf-inactive" type="button" onclick="setStatusFilter('inactive')" class="sf-btn bg-white text-gray-500">Drafts</button>
     </div>
-  </div>
-
-  <div class="sm-controls">
-    <div class="sm-tabs" role="tablist" aria-label="Service type">
-      <button id="tab-services" type="button" role="tab" aria-selected="true" onclick="switchTab('services')" class="tab-btn active">Services</button>
-      <button id="tab-packages" type="button" role="tab" aria-selected="false" onclick="switchTab('packages')" class="tab-btn">Packages</button>
-    </div>
-    <div id="smSortWrap" class="sm-sort">
-      <span class="sm-sort-label">Sort by</span>
-      <button onclick="currentSort='newest';render();" class="sort-btn" data-sort="newest" id="sort-newest">Newest</button>
-      <button onclick="currentSort='name_asc';render();" class="sort-btn" data-sort="name_asc" id="sort-name-asc">Name</button>
-      <button onclick="currentSort='price_asc';render();" class="sort-btn" data-sort="price_asc" id="sort-price-asc">Price ↑</button>
-      <button onclick="currentSort='price_desc';render();" class="sort-btn" data-sort="price_desc" id="sort-price-desc">Price ↓</button>
+    <div class="sm-toolbar-right">
+      <div id="smSortWrap" class="sm-sort-select">
+        <label for="sortDropdown" class="sm-sort-label">Sort</label>
+        <select id="sortDropdown" onchange="currentSort=this.value;render();" class="sm-sort-dropdown">
+          <option value="newest">Newest</option>
+          <option value="name_asc">Name A–Z</option>
+          <option value="price_asc">Price low → high</option>
+          <option value="price_desc">Price high → low</option>
+        </select>
+      </div>
+      <div class="sm-view-toggle" aria-label="View mode">
+        <button type="button" id="viewGrid" onclick="setViewMode('grid')" class="sm-view-btn active" title="Grid view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </button>
+        <button type="button" id="viewTable" onclick="setViewMode('table')" class="sm-view-btn" title="Table view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 
   <div id="cardsGrid" class="sm-grid"></div>
+
+  <div id="tableWrap" class="sm-table-wrap hidden">
+    <table class="sm-table">
+      <thead>
+        <tr>
+          <th class="sm-th-status">Status</th>
+          <th>Service</th>
+          <th>Category</th>
+          <th class="sm-th-price">Price</th>
+          <th class="sm-th-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
   <div id="emptyState" class="supplier-empty-state hidden" aria-live="polite">
     <p id="emptyStateMessage" class="supplier-empty-message">How about creating a service right now?</p>
     <button id="emptyStateAction" type="button" class="sm-empty-action"><span id="emptyStateActionLabel">Create Service</span></button>

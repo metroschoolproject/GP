@@ -11,8 +11,7 @@ const INITIAL_TAB = PACKAGES_AVAILABLE && serviceManagementConfig.initialTab ===
 let currentTab = INITIAL_TAB, currentFilter = 'All', statusFilter = 'all', nextId = 200;
 let editingSvcId = null, editingPkgId = null;
 let currentSort = 'newest'; // newest, name_asc, price_asc, price_desc
-
-function serviceDetailUrl(id) { return DATA_URLROOT + '/supplier/serviceDetail/' + id; }
+let viewMode = localStorage.getItem('smViewMode') || 'grid';
 
 // ── TOAST ───────────────────────────────────────────────────────
 function showToast(message, type) {
@@ -797,6 +796,29 @@ function serviceDetailUrl(id) {
   return (serviceManagementUrls.serviceDetail || '#') + encodeURIComponent(id);
 }
 
+function setViewMode(mode) {
+  viewMode = mode === 'table' ? 'table' : 'grid';
+  localStorage.setItem('smViewMode', viewMode);
+
+  const gridBtn = document.getElementById('viewGrid');
+  const tableBtn = document.getElementById('viewTable');
+  const gridEl = document.getElementById('cardsGrid');
+  const tableEl = document.getElementById('tableWrap');
+
+  if (gridBtn) gridBtn.classList.toggle('active', viewMode === 'grid');
+  if (tableBtn) tableBtn.classList.toggle('active', viewMode === 'table');
+  if (gridBtn) gridBtn.setAttribute('aria-pressed', String(viewMode === 'grid'));
+  if (tableBtn) tableBtn.setAttribute('aria-pressed', String(viewMode === 'table'));
+  if (gridEl) {
+    gridEl.classList.toggle('hidden', viewMode === 'table');
+    gridEl.style.display = viewMode === 'table' ? 'none' : '';
+  }
+  if (tableEl) {
+    tableEl.classList.toggle('hidden', viewMode === 'grid');
+    tableEl.style.display = viewMode === 'grid' ? 'none' : '';
+  }
+}
+
 function navigateToServiceDetail(id) {
   const url = serviceDetailUrl(id);
   if (!url || url === '#') return;
@@ -807,6 +829,49 @@ function navigateToServiceDetail(id) {
   }
 
   window.location.href = url;
+}
+
+function svcTableRow(item) {
+  item = normalizeServiceItem(item);
+  if (!item) return '';
+
+  const name = escapeHtml(item.name || 'Untitled');
+  const img = item.img
+    ? `<img src="${escapeHtml(item.img)}" class="td-name-img" alt="">`
+    : '<div class="td-name-img" style="display:grid;place-items:center;color:#A8A29E;font-size:14px">Photo</div>';
+  const isActive = item.status === 'active';
+
+  return `
+    <tr>
+      <td><span class="td-status ${isActive ? 'is-active' : ''}">${isActive ? 'Published' : 'Draft'}</span></td>
+      <td><div class="td-name">${img}<span class="td-name-text">${name}</span></div></td>
+      <td class="td-cat">${escapeHtml(item.category || '-')}</td>
+      <td class="td-price">MMK ${formatPriceRange(item)}</td>
+      <td class="td-actions"><a href="${serviceDetailUrl(item.id)}" class="sm-card-link">Edit</a></td>
+    </tr>
+  `;
+}
+
+function pkgTableRow(item) {
+  item = normalizePackageItem(item);
+  if (!item) return '';
+
+  const name = escapeHtml(item.name || 'Untitled');
+  const categories = Array.isArray(item.categories) && item.categories.length ? item.categories.join(' · ') : 'Package';
+  const img = item.img
+    ? `<img src="${escapeHtml(item.img)}" class="td-name-img" alt="">`
+    : '<div class="td-name-img" style="display:grid;place-items:center;color:#A8A29E;font-size:14px">Photo</div>';
+  const isActive = item.status === 'active';
+
+  return `
+    <tr>
+      <td><span class="td-status ${isActive ? 'is-active' : ''}">${isActive ? 'Published' : 'Draft'}</span></td>
+      <td><div class="td-name">${img}<span class="td-name-text">${name}</span></div></td>
+      <td class="td-cat">${escapeHtml(categories)}</td>
+      <td class="td-price">MMK ${formatPrice(item.price)}</td>
+      <td class="td-actions"><button type="button" class="sm-card-link" onclick="openEditPackage(${item.id})">Edit</button></td>
+    </tr>
+  `;
 }
 
 // ── UNIFIED CREATE SERVICE MODAL ─────────────────────────────
@@ -1035,6 +1100,8 @@ function render() {
   if (!grid || !empty) return;
 
   grid.innerHTML = '';
+  const tableBody = document.getElementById('tableBody');
+  if (tableBody) tableBody.innerHTML = '';
   empty.classList.add('hidden');
 
   // Sort bar
@@ -1063,7 +1130,12 @@ function render() {
     empty.classList.remove('hidden');
   } else {
     items.forEach(item => grid.insertAdjacentHTML('beforeend', currentTab === 'services' ? svcCard(item) : pkgCard(item)));
+    if (tableBody) {
+      tableBody.innerHTML = '';
+      items.forEach(item => tableBody.insertAdjacentHTML('beforeend', currentTab === 'services' ? svcTableRow(item) : pkgTableRow(item)));
+    }
   }
+  setViewMode(viewMode);
   updateLoadMoreControl();
 }
 
@@ -1175,6 +1247,8 @@ function onSearchInput() {
 function renderEmpty() {
   const grid = document.getElementById('cardsGrid');
   if (grid) grid.innerHTML = '';
+  const tableBody = document.getElementById('tableBody');
+  if (tableBody) tableBody.innerHTML = '';
   document.getElementById('emptyState')?.classList.add('hidden');
 }
 
@@ -1837,4 +1911,5 @@ if (!PACKAGES_AVAILABLE) {
   const packageTab = document.getElementById('tab-packages');
   if (packageTab) packageTab.hidden = true;
 }
+setViewMode(viewMode);
 switchTab(currentTab);
