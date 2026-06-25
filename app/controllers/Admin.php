@@ -1,8 +1,6 @@
 <?php
 
 require_once APPROOT . '/services/UploadService.php';
-require_once APPROOT . '/services/PaymentGatewayService.php';
-require_once APPROOT . '/services/PayoutService.php';
 require_once APPROOT . '/services/EmailService.php';
 require_once APPROOT . '/controllers/Booking.php';
 
@@ -14,7 +12,6 @@ class Admin extends Controller
     private $serviceManagementModel;
     private $customerModel;
     private $uploadService;
-    private $paymentGateway;
 
     public function __construct()
     {
@@ -29,7 +26,6 @@ class Admin extends Controller
         $this->serviceManagementModel = $this->model('SupplierServiceManager');
         $this->customerModel = $this->model('CustomerModel');
         $this->uploadService = new UploadService();
-        $this->paymentGateway = new PaymentGatewayService();
     }   
 
     public function dashboard()
@@ -630,6 +626,52 @@ class Admin extends Controller
         $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminCancelBooking'], func_get_args());
+    }
+
+    /**
+     * Mark a finalized booking as completed (AJAX POST).
+     * Triggers supplier payout record creation.
+     */
+    public function markBookingCompleted(): void
+    {
+        $this->requireCsrf();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        if ($bookingId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid booking ID'], 400);
+            return;
+        }
+
+        $bookingModel = $this->model('BookingModel');
+        $result = $bookingModel->markBookingCompleted($bookingId);
+
+        if (!$result) {
+            $this->jsonResponse(['error' => 'Could not mark as completed. Booking must be in finalized or in_progress status.'], 409);
+            return;
+        }
+
+        // Notify customer
+        $notificationModel = $this->model('Notification');
+        try {
+            $notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Booking Completed',
+                'Your booking has been marked as completed. Supplier payouts have been processed.',
+                'booking'
+            );
+        } catch (\Throwable $e) {
+            error_log('Completion notification failed: ' . $e->getMessage());
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Booking marked as completed. Supplier payouts have been created.',
+        ]);
     }
 
     /* ─── Supplier replacement (on decline of confirmed package booking) ─── */
@@ -2111,6 +2153,251 @@ class Admin extends Controller
         ]);
     }
 
+    /* ─── Supplier Payout Management (Manual) ─────────────────────── */
+
+    /**
+     * Display supplier payout queue.
+     * Admin reviews and manually transfers money to suppliers.
+     */
+    public function payouts(): void
+    {
+        $status = $_GET['status'] ?? 'processing';
+        if (!in_array($status, ['processing', 'pending', 'success', 'failed'], true)) {
+            $status = 'processing';
+        }
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
+        $db = new Database();
+
+        // Count
+        $db->dbquery(
+            "SELECT COUNT(*) AS total FROM payments WHERE type = 'payout' AND status = :status"
+        );
+        $db->dbbind(':status', $status, PDO::PARAM_STR);
+        $totalCount = (int)($db->getsingledata()['total'] ?? 0);
+
+        // Group payouts by supplier for cleaner display
+        $db->dbquery(
+            "SELECT p.supplier_id,
+                    s.shop_name,
+                    s.bank_account,
+                    s.bank_code,
+                    u.name AS owner_name,
+                    u.email,
+                    COUNT(p.id) AS payout_count,
+                    SUM(p.amount) AS total_amount,
+                    MIN(p.payout_requested_at) AS first_requested,
+                    MAX(p.payout_requested_at) AS last_requested,
+                    MIN(p.payout_batch_id) AS batch_id
+               FROM payments p
+               JOIN suppliers s ON p.supplier_id = s.supplier_id
+               JOIN users u ON s.user_id = u.user_id
+              WHERE p.type = 'payout' AND p.status = :status
+              GROUP BY p.supplier_id, s.shop_name, s.bank_account, s.bank_code, u.name, u.email
+              ORDER BY first_requested DESC
+              LIMIT :limit OFFSET :offset"
+        );
+        $db->dbbind(':status', $status, PDO::PARAM_STR);
+        $db->dbbind(':limit', $perPage, PDO::PARAM_INT);
+        $db->dbbind(':offset', $offset, PDO::PARAM_INT);
+        $payouts = $db->getmultidata();
+
+        // Summary stats
+        $db->dbquery(
+            "SELECT
+                COALESCE(SUM(CASE WHEN status = 'processing' THEN amount ELSE 0 END), 0) as review_total,
+                COUNT(CASE WHEN status = 'processing' THEN 1 END) as review_count,
+                COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as pending_total,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+                COALESCE(SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END), 0) as paid_total,
+                COUNT(CASE WHEN status = 'success' THEN 1 END) as paid_count
+             FROM payments WHERE type = 'payout'"
+        );
+        $stats = $db->getsingledata();
+
+        $this->view('admin/payouts', [
+            'payouts' => $payouts,
+            'activeStatus' => $status,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Show individual payout details for a supplier (AJAX GET).
+     */
+    public function payoutDetails(int $supplierId = 0): void
+    {
+        $supplierId = $supplierId ?: (int)($_GET['supplier_id'] ?? 0);
+        $status = $_GET['status'] ?? 'processing';
+
+        $db = new Database();
+        $db->dbquery(
+            "SELECT p.id, p.booking_id, p.amount, p.status, p.payout_batch_id,
+                    p.payout_requested_at, p.verified_at, p.verified_note,
+                    b.created_at AS booking_date
+               FROM payments p
+               LEFT JOIN bookings b ON p.booking_id = b.id
+              WHERE p.supplier_id = :sid AND p.type = 'payout' AND p.status = :status
+              ORDER BY p.payout_requested_at DESC"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':status', $status, PDO::PARAM_STR);
+        $items = $db->getmultidata();
+
+        $this->jsonResponse(['items' => $items]);
+    }
+
+    /**
+     * Mark supplier payout(s) as paid after manual bank transfer (AJAX POST).
+     */
+    public function markPayoutPaid(): void
+    {
+        $this->requireCsrf();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $supplierId = (int)($_POST['supplier_id'] ?? 0);
+        $note = trim($_POST['note'] ?? '');
+
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid supplier ID'], 400);
+            return;
+        }
+
+        $db = new Database();
+        $adminId = $this->currentUserId();
+
+        // Mark all processing payouts for this supplier as 'success'
+        $db->dbquery(
+            "UPDATE payments
+                SET status = 'success',
+                    verified_by = :admin,
+                    verified_at = NOW(),
+                    verified_note = :note
+              WHERE supplier_id = :sid
+                AND type = 'payout'
+                AND status = 'processing'"
+        );
+        $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $db->dbbind(':note', $note ?: 'Paid via manual bank transfer', PDO::PARAM_STR);
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbexecute();
+
+        // Get the total paid for notification
+        $db->dbquery(
+            "SELECT SUM(amount) AS total, COUNT(*) AS cnt
+               FROM payments
+              WHERE supplier_id = :sid AND type = 'payout' AND status = 'success'
+                AND verified_by = :admin AND verified_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $summary = $db->getsingledata();
+
+        // Notify the supplier (non-blocking — don't fail the payout if notification breaks)
+        try {
+            $notificationModel = $this->model('Notification');
+            $notificationModel->notifyUser(
+                $this->getSupplierUserId($supplierId),
+                'Payout Received',
+                'Your payout of ' . number_format((float)($summary['total'] ?? 0), 0) . ' MMK has been processed and sent to your bank account.',
+                'payout',
+                'supplier',
+                $supplierId
+            );
+        } catch (\Throwable $e) {
+            error_log('Payout notification failed: ' . $e->getMessage());
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payout marked as paid. Supplier has been notified.',
+            'total' => (float)($summary['total'] ?? 0),
+            'count' => (int)($summary['cnt'] ?? 0),
+        ]);
+    }
+
+    /**
+     * Reject supplier payout(s) — returns funds to pending (AJAX POST).
+     */
+    public function rejectPayout(): void
+    {
+        $this->requireCsrf();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $supplierId = (int)($_POST['supplier_id'] ?? 0);
+        $reason = trim($_POST['reason'] ?? '');
+
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid supplier ID'], 400);
+            return;
+        }
+
+        $db = new Database();
+        $adminId = $this->currentUserId();
+
+        // Move processing payouts back to pending so supplier can re-request
+        $db->dbquery(
+            "UPDATE payments
+                SET status = 'failed',
+                    verified_by = :admin,
+                    verified_at = NOW(),
+                    verified_note = :reason
+              WHERE supplier_id = :sid
+                AND type = 'payout'
+                AND status = 'processing'"
+        );
+        $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $db->dbbind(':reason', $reason ?: 'Rejected by admin', PDO::PARAM_STR);
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbexecute();
+
+        // Notify the supplier (non-blocking)
+        try {
+            $notificationModel = $this->model('Notification');
+            $notificationModel->notifyUser(
+                $this->getSupplierUserId($supplierId),
+                'Payout Request Rejected',
+                'Your payout request was rejected' . ($reason ? ': ' . $reason : '.') . ' Please update your bank details and try again.',
+                'payout',
+                'supplier',
+                $supplierId
+            );
+        } catch (\Throwable $e) {
+            error_log('Payout rejection notification failed: ' . $e->getMessage());
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payout rejected. Supplier has been notified.',
+        ]);
+    }
+
+    /**
+     * Helper: get the user_id for a supplier.
+     */
+    private function getSupplierUserId(int $supplierId): int
+    {
+        $db = new Database();
+        $db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $row = $db->getsingledata();
+        return (int)($row['user_id'] ?? 0);
+    }
+
     /* ─── Cron Jobs & Scheduled Tasks ──────────────────────────────── */
 
     /**
@@ -2202,75 +2489,6 @@ class Admin extends Controller
     }
 
     /**
-     * Process supplier payouts via 2C2P.
-     * Call via: curl https://goldenpromise.com/admin/cronProcessPayouts?token=SECRET_CRON_TOKEN
-     *
-     * Payouts are created after booking completion. This cron submits each
-     * supplier's full available balance as one provider batch.
-     */
-    public function cronProcessPayouts(): void
-    {
-        $cronToken = $_GET['token'] ?? '';
-        $expectedToken = defined('CRON_TOKEN') ? CRON_TOKEN : '';
-
-        if ($cronToken !== $expectedToken || $expectedToken === '') {
-            http_response_code(403);
-            echo json_encode(['error' => 'Unauthorized cron job']);
-            exit;
-        }
-
-        $db = new Database();
-        $db->dbquery(
-            "SELECT p.supplier_id,
-                    SUM(p.amount) AS amount,
-                    s.bank_account,
-                    s.bank_code
-               FROM payments p
-               JOIN suppliers s ON p.supplier_id = s.supplier_id
-              WHERE p.type = 'payout'
-                AND p.status = 'pending'
-              GROUP BY p.supplier_id, s.bank_account, s.bank_code"
-        );
-        $payouts = $db->getmultidata();
-
-        $processed = 0;
-        $failed = 0;
-        $payoutService = new PayoutService($this->paymentGateway);
-
-        foreach ($payouts as $payout) {
-            $bankAccount = $payout['bank_account'] ?? '';
-            $bankCode = $payout['bank_code'] ?? 'AYA';
-
-            if (!$bankAccount) {
-                $failed++;
-                continue;
-            }
-
-            $result = $payoutService->requestAvailableBalance(
-                (int)$payout['supplier_id'],
-                $bankAccount,
-                $bankCode,
-                (float)$payout['amount']
-            );
-
-            if ($result['success'] ?? false) {
-                $processed++;
-            } else {
-                $failed++;
-            }
-        }
-
-        echo json_encode([
-            'success' => true,
-            'payouts_processed' => $processed,
-            'payouts_failed' => $failed,
-            'timestamp' => date('Y-m-d H:i:s'),
-        ]);
-
-        exit;
-    }
-
-    /**
      * Auto-expire pending custom-service booking requests where the 48-hour supplier response deadline has passed.
      * Call via: curl https://goldenpromise.com/admin/cronExpireBookingRequests?token=SECRET_CRON_TOKEN
      *
@@ -2338,6 +2556,68 @@ class Admin extends Controller
             'expired' => $expired,
             'unpaid_bookings_expired' => $unpaidExpired,
             'replacements_requeued' => $replResult['requeued'],
+            'timestamp' => date('Y-m-d H:i:s'),
+        ]);
+
+        exit;
+    }
+
+    /**
+     * Auto-complete bookings the day after the event date.
+     * Creates supplier payout records so suppliers can request earnings.
+     * Call via: curl https://goldenpromise.com/admin/cronAutoCompleteBookings?token=SECRET_CRON_TOKEN
+     */
+    public function cronAutoCompleteBookings(): void
+    {
+        $cronToken = $_GET['token'] ?? '';
+        $expectedToken = defined('CRON_TOKEN') ? CRON_TOKEN : '';
+
+        if ($cronToken !== $expectedToken || $expectedToken === '') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Unauthorized cron job']);
+            exit;
+        }
+
+        $db = new Database();
+        $bookingModel = $this->model('BookingModel');
+        $notificationModel = $this->model('Notification');
+
+        // Find finalized bookings where the event date has passed
+        $db->dbquery(
+            "SELECT b.id, ed.event_date
+               FROM bookings b
+               JOIN event_details ed ON ed.booking_id = b.id
+              WHERE b.status = 'finalized'
+                AND ed.event_date < CURDATE()"
+        );
+        $bookings = $db->getmultidata();
+
+        $completed = 0;
+        $failed = 0;
+
+        foreach ($bookings as $booking) {
+            $bookingId = (int)$booking['id'];
+            if ($bookingModel->markBookingCompleted($bookingId)) {
+                $completed++;
+                try {
+                    $notificationModel->notifyBookingCustomer(
+                        $bookingId,
+                        'Booking Completed',
+                        'Your wedding event is complete! Supplier payouts have been processed.',
+                        'booking'
+                    );
+                } catch (\Throwable $e) {
+                    error_log('Auto-complete notification failed: ' . $e->getMessage());
+                }
+            } else {
+                $failed++;
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'bookings_completed' => $completed,
+            'bookings_failed' => $failed,
             'timestamp' => date('Y-m-d H:i:s'),
         ]);
 

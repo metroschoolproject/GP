@@ -88,6 +88,12 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
 
 @media(max-width:900px){ .earnings-summary{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:600px){ .earnings-summary{grid-template-columns:1fr} }
+
+/* Toast */
+.earnings-toast{position:fixed;top:24px;right:24px;z-index:100;display:flex;align-items:center;gap:10px;padding:14px 22px;border-radius:12px;font-size:13px;font-weight:700;font-family:'DM Sans',system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.12);transform:translateX(120%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.earnings-toast.show{transform:translateX(0)}
+.earnings-toast.success{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
+.earnings-toast.error{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
 </style>
 
 <section class="earnings-page">
@@ -101,17 +107,17 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
 
   <div class="earnings-summary">
     <div class="earnings-stat">
-      <div class="earnings-stat-label">Pending Payout</div>
+      <div class="earnings-stat-label">Available to Withdraw</div>
       <div class="earnings-stat-value amber"><?= $money($earnings['pending_amount'] ?? 0) ?></div>
       <div class="earnings-stat-sub"><?= (int)($earnings['pending_count'] ?? 0) ?> booking<?= ($earnings['pending_count'] ?? 0) !== 1 ? 's' : '' ?></div>
     </div>
     <div class="earnings-stat">
-      <div class="earnings-stat-label">Processing</div>
+      <div class="earnings-stat-label">Being Processed</div>
       <div class="earnings-stat-value blue"><?= $money($earnings['processing_amount'] ?? 0) ?></div>
-      <div class="earnings-stat-sub"><?= (int)($earnings['processing_count'] ?? 0) ?> payout item<?= ($earnings['processing_count'] ?? 0) !== 1 ? 's' : '' ?></div>
+      <div class="earnings-stat-sub">Admin reviewing</div>
     </div>
     <div class="earnings-stat">
-      <div class="earnings-stat-label">Already Paid</div>
+      <div class="earnings-stat-label">Paid Out</div>
       <div class="earnings-stat-value green"><?= $money($earnings['paid_amount'] ?? 0) ?></div>
       <div class="earnings-stat-sub"><?= (int)($earnings['paid_count'] ?? 0) ?> payout<?= ($earnings['paid_count'] ?? 0) !== 1 ? 's' : '' ?></div>
     </div>
@@ -122,13 +128,24 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
     </div>
   </div>
 
-  <?php if (((int)($earnings['pending_amount'] ?? 0)) > 0): ?>
+  <?php
+    $hasPending = ((int)($earnings['pending_amount'] ?? 0)) > 0;
+    $hasProcessing = ((int)($earnings['processing_amount'] ?? 0)) > 0;
+  ?>
+  <?php if ($hasPending): ?>
     <div class="earnings-alert ready">
       <div>
         <h3>Ready to Cash Out?</h3>
         <p>You have <?= $money($earnings['pending_amount'] ?? 0) ?> available to withdraw.</p>
       </div>
       <button id="cashout-btn" class="earnings-alert-btn" type="button">Request Payout</button>
+    </div>
+  <?php elseif ($hasProcessing): ?>
+    <div class="earnings-alert ready" style="background:#EEF2FF;border-color:#C7D2FE">
+      <div>
+        <h3>Payout Under Review</h3>
+        <p>You have <?= $money($earnings['processing_amount'] ?? 0) ?> being processed. Admin will transfer the funds shortly.</p>
+      </div>
     </div>
   <?php else: ?>
     <div class="earnings-alert empty">
@@ -143,7 +160,7 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
     </div>
 
     <?php if (empty($payouts)): ?>
-      <div class="earnings-empty">No payout history yet.</div>
+      <div class="earnings-empty">No payout history yet. Once bookings are completed, payouts will appear here.</div>
     <?php else: ?>
       <table class="earnings-table">
         <thead>
@@ -151,6 +168,7 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
             <th>Booking</th>
             <th>Amount</th>
             <th>Status</th>
+            <th>Details</th>
             <th>Date</th>
           </tr>
         </thead>
@@ -163,12 +181,29 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
               'failed' => 'failed',
               default => 'pending',
             };
-            $statusLabel = ucfirst($status);
+            $statusLabel = match($status) {
+              'success' => 'Paid',
+              'processing' => 'Under Review',
+              'failed' => 'Rejected',
+              default => 'Pending',
+            };
+            $note = trim((string)($payout['verified_note'] ?? ''));
           ?>
             <tr>
               <td style="font-weight:700">#<?= (int)($payout['booking_id'] ?? 0) ?></td>
               <td style="font-weight:700"><?= $money((float)($payout['amount'] ?? 0)) ?></td>
               <td><span class="earnings-badge <?= $badgeClass ?>"><?= $statusLabel ?></span></td>
+              <td style="font-size:12px;color:var(--muted);max-width:220px">
+                <?php if ($status === 'success' && $note): ?>
+                  <?= $h($note) ?>
+                <?php elseif ($status === 'failed' && $note): ?>
+                  <span style="color:var(--danger)">Reason: <?= $h($note) ?></span>
+                <?php elseif ($status === 'processing'): ?>
+                  Waiting for admin to transfer funds
+                <?php else: ?>
+                  &mdash;
+                <?php endif; ?>
+              </td>
               <td><?= $date($payout['created_at'] ?? 'now') ?></td>
             </tr>
           <?php endforeach; ?>
@@ -222,17 +257,35 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
         <p style="font-size:11px;color:var(--muted);margin-top:4px">Full available balance submitted as one payout batch.</p>
       </div>
       <div class="earnings-modal-tip">
-        Payouts are processed within 1&ndash;2 business days. A small transaction fee may apply.
+        After you submit, admin will manually transfer the funds to your bank account. This usually takes 1&ndash;3 business days. You'll be notified once the payment is sent.
       </div>
       <div class="earnings-modal-footer">
         <button type="button" onclick="closeCashoutModal()" class="earnings-modal-cancel">Cancel</button>
-        <button type="submit" class="earnings-modal-submit">Request Payout</button>
+        <button type="submit" class="earnings-modal-submit">Submit Request</button>
       </div>
     </form>
   </div>
 </div>
 
+<div id="earnings-toast" class="earnings-toast"><span style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0" class="earnings-toast-icon"></span><span class="earnings-toast-msg"></span></div>
+
 <script>
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('earnings-toast');
+  t.className = 'earnings-toast ' + type;
+  t.style.background = type === 'success' ? '#ECFDF5' : '#FEF2F2';
+  t.style.color = type === 'success' ? '#065F46' : '#991B1B';
+  t.style.borderColor = type === 'success' ? '#A7F3D0' : '#FECACA';
+  const icon = t.querySelector('.earnings-toast-icon');
+  icon.textContent = type === 'success' ? '✓' : '✕';
+  icon.style.background = type === 'success' ? '#065F46' : '#991B1B';
+  icon.style.color = '#FFF';
+  t.querySelector('.earnings-toast-msg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
 function openCashoutModal() {
   document.getElementById('cashout-modal').style.display = 'flex';
 }
@@ -242,20 +295,28 @@ function closeCashoutModal() {
 document.getElementById('cashout-btn')?.addEventListener('click', openCashoutModal);
 document.getElementById('cashout-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  const btn = e.target.querySelector('[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
   const formData = new FormData(e.target);
-  formData.append('suppress_method_token', '1');
   try {
     const resp = await fetch('<?= URLROOT ?>/booking/requestPayoutPost', { method: 'POST', body: formData });
-    const data = await resp.json();
-    if (data.success) {
-      alert('✓ Payout request submitted! Funds within 1–2 business days.');
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) { data = null; }
+    if (data && data.success) {
       closeCashoutModal();
-      setTimeout(() => location.reload(), 1000);
+      showToast('Payout request submitted! We\'ll notify you once it\'s processed.');
+      setTimeout(() => location.reload(), 2000);
     } else {
-      alert('✕ ' + (data.error || 'Request failed'));
+      showToast(data?.error || 'Something went wrong. Please try again.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Submit Request';
     }
   } catch (err) {
-    alert('✕ Connection error. Please try again.');
+    showToast('Network error — please try again.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Submit Request';
   }
 });
 document.getElementById('cashout-modal')?.addEventListener('click', (e) => {

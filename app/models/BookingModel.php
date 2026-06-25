@@ -3885,62 +3885,6 @@ class BookingModel
     }
 
     /**
-     * Confirm instant payment (Visa/Card or MM QR).
-     * Sets booking status directly to paid and creates success payment record.
-     */
-    public function confirmInstantPayment(int $bookingId, string $method, string $transactionId, float $amount = 0): bool
-    {
-        $this->db->beginTransaction();
-        try {
-            $status = $this->normalizeBookingStatus('paid');
-            $this->db->dbquery(
-                "UPDATE bookings
-                    SET status = :status, payment_status = 'partial', paid_amount = :amount
-                  WHERE id = :id AND status = 'pending_payment'
-                  LIMIT 1"
-            );
-            $this->db->dbbind(':status', $status);
-            $this->db->dbbind(':amount', number_format($amount, 2, '.', ''));
-            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
-            $this->db->dbexecute();
-            if ($this->db->rowcount() !== 1) {
-                throw new RuntimeException('Booking is no longer awaiting payment.');
-            }
-
-            // Calculate platform fee and supplier amount from the booking
-            $this->db->dbquery("SELECT total_amount FROM bookings WHERE id = :bid LIMIT 1");
-            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-            $booking = $this->db->getsingledata();
-            $totalAmount = (float)($booking['total_amount'] ?? 0);
-            $pfee = round($totalAmount * (get_platform_fee_percent() / 100), 2);
-            $supplierReceived = round($totalAmount * (BOOKING_DEPOSIT_PERCENT / 100), 2);
-
-            $this->db->dbquery(
-                "INSERT INTO payments
-                    (booking_id, amount, paid_amount, platform_fee, supplier_amount,
-                     type, method, status, transaction_ref, escrow_status, paid_at, verified_at)
-                 VALUES
-                    (:bid, :amount, :paid, :pfee, :samt,
-                     'deposit', :method, 'success', :txn, 'held', NOW(), NOW())"
-            );
-            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-            $this->db->dbbind(':amount', number_format($amount, 2, '.', ''));
-            $this->db->dbbind(':paid', number_format($amount, 2, '.', ''));
-            $this->db->dbbind(':pfee', number_format($pfee, 2, '.', ''));
-            $this->db->dbbind(':samt', number_format($supplierReceived, 2, '.', ''));
-            $this->db->dbbind(':method', $method, PDO::PARAM_STR);
-            $this->db->dbbind(':txn', $transactionId, PDO::PARAM_STR);
-            $this->db->dbexecute();
-            $this->db->commit();
-            return true;
-        } catch (Throwable $e) {
-            $this->db->rollBack();
-            error_log('Instant payment confirmation failed: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
      * Calculate and settle supplier payouts after booking completion.
      * Creates payout records for each supplier based on proportional amount.
      */

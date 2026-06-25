@@ -152,7 +152,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
                 </div>
             </div>
 
-            <?php $paymentsActive = strpos($currentPath, 'admin/payment') !== false || strpos($currentPath, 'admin/refund') !== false; ?>
+            <?php $paymentsActive = strpos($currentPath, 'admin/payment') !== false || strpos($currentPath, 'admin/refund') !== false || strpos($currentPath, 'admin/payouts') !== false; ?>
             <div class="admin-sidebar-group" data-open="<?= $paymentsActive ? 'true' : 'false' ?>">
                 <button type="button"
                         class="admin-sidebar-group-trigger <?= $paymentsActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 transition text-app-text hover:bg-app-sidebar-hover' ?>"
@@ -178,6 +178,10 @@ if (!function_exists('dashboard_admin_nav_class')) {
                     <a href="<?= URLROOT ?>/admin/refundQueue" class="<?= strpos($currentPath, 'admin/refund') !== false ? 'is-active' : '' ?>">
                         <i data-lucide="undo-2" class="h-3.5 w-3.5"></i>
                         Refunds
+                    </a>
+                    <a href="<?= URLROOT ?>/admin/payouts" class="<?= strpos($currentPath, 'admin/payouts') !== false ? 'is-active' : '' ?>">
+                        <i data-lucide="banknote" class="h-3.5 w-3.5"></i>
+                        Supplier Payouts
                     </a>
                 </div>
             </div>

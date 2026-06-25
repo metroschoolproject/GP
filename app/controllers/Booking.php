@@ -2,8 +2,6 @@
 
 require_once APPROOT . '/traits/JsonResponseTrait.php';
 require_once APPROOT . '/services/EmailService.php';
-require_once APPROOT . '/services/PaymentGatewayService.php';
-require_once APPROOT . '/services/PayoutService.php';
 
 class Booking extends Controller
 {
@@ -2821,118 +2819,44 @@ class Booking extends Controller
             return;
         }
 
-        $result = (new PayoutService())->requestAvailableBalance(
-            $supplierId,
-            $bankAccount,
-            $bankCode,
-            $amount
+        // Save supplier bank details for future payouts
+        $db = new Database();
+        $db->dbquery(
+            "UPDATE suppliers SET bank_account = :acct, bank_code = :code WHERE supplier_id = :sid LIMIT 1"
         );
+        $db->dbbind(':acct', $bankAccount, PDO::PARAM_STR);
+        $db->dbbind(':code', $bankCode, PDO::PARAM_STR);
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbexecute();
 
-        if (empty($result['success'])) {
-            $this->jsonResponse($result, 409);
-            return;
-        }
+        // Mark all pending payout records for this supplier as 'processing'
+        $batchId = 'MANUAL-' . $supplierId . '-' . date('YmdHis');
+        $db->dbquery(
+            "UPDATE payments
+                SET status = 'processing',
+                    payout_batch_id = :batch,
+                    payout_requested_at = NOW()
+              WHERE supplier_id = :sid
+                AND type = 'payout'
+                AND status = 'pending'"
+        );
+        $db->dbbind(':batch', $batchId, PDO::PARAM_STR);
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbexecute();
 
-        $this->jsonResponse($result + [
-            'message' => 'Payout request submitted. You will receive funds within 1-2 business days.',
-        ]);
-    }
-
-    /**
-     * Confirm instant payment from gateway (MM QR / Visa Card).
-     * Creates success payment record and moves booking to paid.
-     */
-    public function confirmInstantPayment(): void
-    {
-        $this->ensureAuthenticated();
-        $this->requireCsrf();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['error' => 'Method not allowed'], 405);
-        }
-
-        $bookingId = (int)($_POST['booking_id'] ?? 0);
-        $method = trim($_POST['method'] ?? '');
-        $transactionId = trim($_POST['transaction_id'] ?? '');
-        $amount = (float)($_POST['amount'] ?? 0);
-
-        if ($bookingId <= 0 || !in_array($method, ['MM QR', 'Visa', 'Mastercard'], true) || $transactionId === '' || $amount <= 0) {
-            $this->jsonResponse(['error' => 'Invalid payment data'], 400);
-            return;
-        }
-
-        $booking = $this->bookingModel->getBookingById($bookingId);
-        if (!$booking || (int)$booking['user_id'] !== $this->userId) {
-            $this->jsonResponse(['error' => 'Booking not found'], 404);
-            return;
-        }
-
-        if ($booking['status'] !== 'pending_payment') {
-            $this->jsonResponse(['error' => 'This booking is not awaiting payment.'], 400);
-            return;
-        }
-
-        // Verify amount matches expected deposit + platform fee
-        $expectedDeposit = (float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
-        $platformFee = round((float)$booking['total_amount'] * (get_platform_fee_percent() / 100), 2);
-        $expectedTotal = round($expectedDeposit + $platformFee, 2);
-        if (abs($amount - $expectedTotal) > 0.01) { // Allow 1 cent tolerance
-            $this->jsonResponse(['error' => 'Payment amount mismatch.'], 400);
-            return;
-        }
-
-        $gateway = new PaymentGatewayService();
-        $verification = $gateway->verifyTransaction($transactionId);
-        $gatewayStatus = strtolower((string)($verification['status'] ?? ''));
-        $gatewayAmount = (float)($verification['amount'] ?? 0);
-        if (
-            empty($verification['success'])
-            || !in_array($gatewayStatus, ['success', 'paid', 'completed', '0000'], true)
-            || abs($gatewayAmount - $expectedDeposit) > 0.01
-            || !$gateway->methodMatches($method, $verification['method'] ?? '')
-        ) {
-            $this->jsonResponse(['error' => 'The payment gateway could not verify this transaction.'], 422);
-        }
-
-        // Confirm instant payment (creates payment record and sets booking to 'paid' transiently)
-        if (!$this->bookingModel->confirmInstantPayment($bookingId, $method, $transactionId, $gatewayAmount)) {
-            $this->jsonResponse(['error' => 'Failed to confirm payment.'], 500);
-            return;
-        }
-
-        $isPackage = $this->bookingModel->isPackageBooking($bookingId);
-        if ($isPackage) {
-            $this->bookingModel->autoConfirmAllSuppliers($bookingId);
-        }
-        $this->bookingModel->updateStatus($bookingId, 'confirmed', 'partial');
-        $this->bookingModel->logStatusChange($bookingId, 'pending_payment', 'confirmed', $this->userId);
-        $this->bookingModel->generateVouchers($bookingId);
-
-        if ($isPackage) {
-            $this->notificationModel->notifyBookingCustomer(
-                $bookingId,
-                'Booking Confirmed',
-                'Your payment has been confirmed! Your booking is confirmed.',
-                'payment'
-            );
-        } else {
-            $this->notificationModel->notifyBookingCustomer(
-                $bookingId,
-                'Payment Confirmed',
-                'Your payment has been confirmed! Your booking is confirmed.',
-                'payment'
-            );
-            $this->notificationModel->notifyBookingSuppliers(
-                $bookingId,
-                'New Booking — Payment Confirmed',
-                'A new booking with confirmed payment is ready. The booking is confirmed.',
-                'booking'
-            );
-        }
+        // Notify admins that a supplier is requesting payout
+        $notificationModel = $this->model('Notification');
+        $notificationModel->notifyAdmins(
+            'Payout Request',
+            "Supplier #$supplierId has requested a payout of {$amount} MMK to {$bankCode} account {$bankAccount}.",
+            'payout',
+            'payout',
+            $supplierId
+        );
 
         $this->jsonResponse([
             'success' => true,
-            'message' => 'Payment confirmed! Your booking is confirmed.',
+            'message' => 'Payout request submitted. Admin will process your payment shortly.',
         ]);
     }
 }

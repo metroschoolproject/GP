@@ -284,6 +284,7 @@ $dashboardContent = function () use (
     $createdAt = $dateOnly($booking['created_at'] ?? null);
     $canCancel = !in_array(($booking['status'] ?? ''), ['cancelled', 'completed'], true);
     $canMarkReceived = !in_array(($booking['status'] ?? ''), ['payment_verified', 'paid', 'confirmed', 'pending_final_payment', 'finalized', 'completed', 'cancelled'], true);
+    $canMarkCompleted = in_array(($booking['status'] ?? ''), ['finalized', 'in_progress'], true);
 ?>
 <style>
   /* ── Booking Detail — Admin Redesign ── */
@@ -2184,6 +2185,69 @@ $dashboardContent = function () use (
           <?php endif; ?>
         </div>
       </div>
+
+      <!-- Mark as Completed -->
+      <?php if ($canMarkCompleted): ?>
+      <div class="bkd-card">
+        <div class="bkd-card-head">
+          <div class="bkd-card-head-left">
+            <div class="bkd-card-icon" style="background:var(--bkd-success-bg,#ECFDF5);color:var(--bkd-success-text,#065F46)">
+              <i data-lucide="check-circle"></i>
+            </div>
+            <span class="bkd-card-title">Complete Booking</span>
+          </div>
+        </div>
+        <div class="bkd-card-body">
+          <p style="font-size:12px;color:var(--bkd-muted,#7b5c69);margin:0 0 14px">
+            Mark this booking as completed. This will create supplier payout records so suppliers can request their earnings.
+          </p>
+          <button id="mark-completed-btn" class="bkd-btn bkd-btn--success" type="button" style="width:100%;justify-content:center">
+            <i data-lucide="check-circle"></i> Mark as Completed
+          </button>
+        </div>
+      </div>
+
+      <div id="complete-confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;align-items:center;justify-content:center;padding:16px">
+        <div style="background:#FFF;border-radius:16px;max-width:400px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.15)">
+          <h3 style="font-size:16px;font-weight:700;color:#111827;margin:0 0 8px">Confirm Completion</h3>
+          <p style="font-size:13px;color:#7b5c69;margin:0 0 20px">This will mark the booking as completed and create payout records for all suppliers. Are you sure?</p>
+          <div style="display:flex;gap:10px">
+            <button onclick="document.getElementById('complete-confirm-overlay').style.display='none'" style="flex:1;min-height:40px;border-radius:10px;border:1px solid #ead8c7;background:transparent;color:#6d4c5b;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Cancel</button>
+            <button id="confirm-complete-btn" style="flex:1;min-height:40px;border-radius:10px;border:0;background:#065F46;color:#FFF;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Yes, Complete</button>
+          </div>
+        </div>
+      </div>
+
+      <script>
+      document.getElementById('mark-completed-btn')?.addEventListener('click', () => {
+        document.getElementById('complete-confirm-overlay').style.display = 'flex';
+      });
+      document.getElementById('confirm-complete-btn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('confirm-complete-btn');
+        btn.disabled = true;
+        btn.textContent = 'Processing…';
+        try {
+          const fd = new FormData();
+          fd.append('booking_id', '<?= $bookingId ?>');
+          fd.append('csrf_token', '<?= csrf_token() ?>');
+          const resp = await fetch('<?= URLROOT ?>/admin/markBookingCompleted', { method: 'POST', body: fd });
+          const data = await resp.json();
+          if (data.success) {
+            alert('✓ ' + data.message);
+            location.reload();
+          } else {
+            alert('✕ ' + (data.error || 'Failed'));
+            btn.disabled = false;
+            btn.textContent = 'Yes, Complete';
+          }
+        } catch (e) {
+          alert('✕ Network error');
+          btn.disabled = false;
+          btn.textContent = 'Yes, Complete';
+        }
+      });
+      </script>
+      <?php endif; ?>
 
       <!-- Cancel booking -->
       <?php if ($canCancel): ?>
