@@ -43,11 +43,25 @@ if (!function_exists('dashboard_admin_nav_class')) {
 
     function dashboard_admin_subnav_class($path, $currentPath)
     {
-        $base = 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]';
+        $base = 'admin-sidebar-subnav-link flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]';
         $isActive = dashboard_admin_path_matches($path, $currentPath);
 
         return $isActive
-            ? $base . ' bg-app-primary text-app-white shadow-sm'
+            ? $base . ' is-active bg-app-sidebar-hover text-app-primary'
+            : $base . ' text-app-muted hover:bg-app-sidebar-hover hover:text-app-text';
+    }
+
+    function dashboard_admin_subnav_wrap_class($isOpen)
+    {
+        $base = 'admin-sidebar-subnav ml-8 mb-2 mt-1 border-l border-app-panel-border py-1 pl-3';
+        return $base . ($isOpen ? ' grid gap-1' : ' hidden gap-1');
+    }
+
+    function dashboard_admin_subnav_link_class($isActive)
+    {
+        $base = 'admin-sidebar-subnav-link flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]';
+        return $isActive
+            ? $base . ' is-active bg-app-sidebar-hover text-app-primary'
             : $base . ' text-app-muted hover:bg-app-sidebar-hover hover:text-app-text';
     }
 }
@@ -75,7 +89,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
             <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-app-header-muted">Profile</p>
         </div>
 
-        <nav class="admin-sidebar-nav-scroll px-4 py-3 space-y-1.5">
+        <nav class="px-4 py-3 space-y-1.5">
             <a href="<?= URLROOT ?>/admin/profile" class="<?= dashboard_admin_nav_class('admin/profile', $currentPath, true) ?>">
                 <i data-lucide="circle-user" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="flex-1">My Profile</span>
@@ -103,12 +117,12 @@ if (!function_exists('dashboard_admin_nav_class')) {
                     <span class="flex-1 text-left text-sm font-medium">Bookings</span>
                     <i data-lucide="chevron-down" class="admin-sidebar-group-chevron h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div class="admin-sidebar-subnav">
-                    <a href="<?= URLROOT ?>/admin/bookings" class="<?= dashboard_admin_path_matches('admin/bookings', $currentPath, true) ? 'is-active' : '' ?>">
+                <div class="<?= dashboard_admin_subnav_wrap_class($bookingsActive) ?>">
+                    <a href="<?= URLROOT ?>/admin/bookings" class="<?= dashboard_admin_subnav_link_class(dashboard_admin_path_matches('admin/bookings', $currentPath, true)) ?>">
                         <i data-lucide="list-filter" class="h-3.5 w-3.5"></i>
                         All bookings
                     </a>
-                    <a href="<?= URLROOT ?>/admin/replacementQueue" class="<?= strpos($currentPath, 'admin/replacementQueue') !== false ? 'is-active' : '' ?>">
+                    <a href="<?= URLROOT ?>/admin/replacementQueue" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/replacementQueue') !== false) ?>">
                         <i data-lucide="refresh-cw" class="h-3.5 w-3.5"></i>
                         Replacements
                     </a>
@@ -140,12 +154,12 @@ if (!function_exists('dashboard_admin_nav_class')) {
                     <span class="flex-1 text-left text-sm font-medium">Customers</span>
                     <i data-lucide="chevron-down" class="admin-sidebar-group-chevron h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div class="admin-sidebar-subnav">
-                    <a href="<?= URLROOT ?>/admin/customers" class="<?= dashboard_admin_path_matches('admin/customers', $currentPath, true) ? 'is-active' : '' ?>">
+                <div class="<?= dashboard_admin_subnav_wrap_class($customersActive) ?>">
+                    <a href="<?= URLROOT ?>/admin/customers" class="<?= dashboard_admin_subnav_link_class(dashboard_admin_path_matches('admin/customers', $currentPath, true)) ?>">
                         <i data-lucide="users" class="h-3.5 w-3.5"></i>
                         All customers
                     </a>
-                    <a href="<?= URLROOT ?>/admin/customers?status=banned" class="<?= isset($_GET['status']) && $_GET['status'] === 'banned' ? 'is-active' : '' ?>">
+                    <a href="<?= URLROOT ?>/admin/customers?status=banned" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/customers') !== false && isset($_GET['status']) && $_GET['status'] === 'banned') ?>">
                         <i data-lucide="user-x" class="h-3.5 w-3.5"></i>
                         Suspended / Banned
                     </a>
@@ -162,24 +176,24 @@ if (!function_exists('dashboard_admin_nav_class')) {
                     <span class="flex-1 text-left text-sm font-medium">Payments</span>
                     <i data-lucide="chevron-down" class="admin-sidebar-group-chevron h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div class="admin-sidebar-subnav">
-                    <a href="<?= URLROOT ?>/admin/paymentVerification" class="<?= strpos($currentPath, 'admin/paymentVerification') !== false ? 'is-active' : '' ?>">
+                <div class="<?= dashboard_admin_subnav_wrap_class($paymentsActive) ?>">
+                    <a href="<?= URLROOT ?>/admin/paymentVerification" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/paymentVerification') !== false) ?>">
                         <i data-lucide="receipt-text" class="h-3.5 w-3.5"></i>
                         Deposit verification
                     </a>
-                    <a href="<?= URLROOT ?>/admin/payments?status=all" class="<?= strpos($currentPath, 'admin/payments') !== false && ($paymentStatusFilter ?? '') === 'all' ? 'is-active' : '' ?>">
+                    <a href="<?= URLROOT ?>/admin/payments?status=all" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/payments') !== false && ($paymentStatusFilter ?? '') === 'all') ?>">
                         <i data-lucide="credit-card" class="h-3.5 w-3.5"></i>
                         History
                     </a>
-                    <a href="<?= URLROOT ?>/admin/payments?status=pending" class="<?= strpos($currentPath, 'admin/payments') !== false && ($paymentStatusFilter ?? '') === 'pending' ? 'is-active' : '' ?>">
+                    <a href="<?= URLROOT ?>/admin/payments?status=pending" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/payments') !== false && ($paymentStatusFilter ?? '') === 'pending') ?>">
                         <i data-lucide="clock" class="h-3.5 w-3.5"></i>
                         Pending
                     </a>
-                    <a href="<?= URLROOT ?>/admin/refundQueue" class="<?= strpos($currentPath, 'admin/refund') !== false ? 'is-active' : '' ?>">
+                    <a href="<?= URLROOT ?>/admin/refundQueue" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/refund') !== false) ?>">
                         <i data-lucide="undo-2" class="h-3.5 w-3.5"></i>
                         Refunds
                     </a>
-                    <a href="<?= URLROOT ?>/admin/payouts" class="<?= strpos($currentPath, 'admin/payouts') !== false ? 'is-active' : '' ?>">
+                    <a href="<?= URLROOT ?>/admin/payouts" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/payouts') !== false) ?>">
                         <i data-lucide="banknote" class="h-3.5 w-3.5"></i>
                         Supplier Payouts
                     </a>
@@ -206,12 +220,12 @@ if (!function_exists('dashboard_admin_nav_class')) {
                             <span class="flex-1 text-left text-sm font-medium">Settings</span>
                             <i data-lucide="chevron-down" class="admin-sidebar-group-chevron h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                         </button>
-                        <div class="admin-sidebar-subnav">
-                            <a href="<?= URLROOT ?>/admin/settings" class="<?= strpos($currentPath, 'admin/settings') !== false ? 'is-active' : '' ?>">
+                        <div class="<?= dashboard_admin_subnav_wrap_class($settingsActive) ?>">
+                            <a href="<?= URLROOT ?>/admin/settings" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/settings') !== false) ?>">
                                 <i data-lucide="percent" class="h-3.5 w-3.5"></i>
                                 Platform fees
                             </a>
-                            <a href="<?= URLROOT ?>/admin/logs" class="<?= strpos($currentPath, 'admin/logs') !== false ? 'is-active' : '' ?>">
+                            <a href="<?= URLROOT ?>/admin/logs" class="<?= dashboard_admin_subnav_link_class(strpos($currentPath, 'admin/logs') !== false) ?>">
                                 <i data-lucide="scroll-text" class="h-3.5 w-3.5"></i>
                                 System logs
                             </a>
@@ -292,9 +306,14 @@ if (!function_exists('dashboard_admin_nav_class')) {
     document.querySelectorAll('.admin-sidebar-group-trigger').forEach((btn) => {
         btn.addEventListener('click', () => {
             const group = btn.closest('.admin-sidebar-group');
+            const subnav = group ? group.querySelector('.admin-sidebar-subnav') : null;
             const isOpen = group.dataset.open === 'true';
             group.dataset.open = isOpen ? 'false' : 'true';
             btn.setAttribute('aria-expanded', String(!isOpen));
+            if (subnav) {
+                subnav.classList.toggle('hidden', isOpen);
+                subnav.classList.toggle('grid', !isOpen);
+            }
         });
     });
 
@@ -318,22 +337,16 @@ if (!function_exists('dashboard_admin_nav_class')) {
     .admin-sidebar-shell {
         height: 100vh;
         min-height: 0;
-        overflow: hidden;
-    }
-
-    .admin-sidebar-nav-scroll {
-        flex: 1 1 auto;
-        min-height: 0;
         overflow-y: auto;
         scrollbar-width: thin;
         scrollbar-color: #d8c8bb transparent;
     }
 
-    .admin-sidebar-nav-scroll::-webkit-scrollbar {
+    .admin-sidebar-shell::-webkit-scrollbar {
         width: 6px;
     }
 
-    .admin-sidebar-nav-scroll::-webkit-scrollbar-thumb {
+    .admin-sidebar-shell::-webkit-scrollbar-thumb {
         border-radius: 999px;
         background: #d8c8bb;
     }
