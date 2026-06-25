@@ -7,7 +7,7 @@ $currentPage = (int)($currentPage ?? 1);
 $totalPages = (int)($totalPages ?? 1);
 $totalPayouts = (int)($totalPayouts ?? 0);
 
-$h = fn($v) => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+$h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $date = fn($v) => date('M d, Y', strtotime($v ?? 'now'));
 
@@ -16,178 +16,197 @@ $dashboardCrumb = 'Earnings';
 $dashboardContentClass = 'earnings-page';
 $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId, $currentPage, $totalPages, $totalPayouts, $h, $money, $date) {
 ?>
-<div class="container mx-auto px-4 py-8">
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-800">Your Earnings</h1>
-    <p class="text-gray-600 mt-2">Track payouts and request cash withdrawals</p>
+<style>
+.earnings-page { --ink:#6d4c5b; --muted:#A8A29E; --soft:#F4F1EE; --panel:#FFFFFF; --line:#ead8c7; --primary:#6d4c5b; --green:#166534; --amber:#92400e; --danger:#991b1b; color:var(--ink); }
+.earnings-page h1 { font-size:clamp(28px,3vw,42px); font-weight:900; margin:6px 0 7px; }
+.earnings-page .kicker { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.17em; color:var(--muted); }
+.earnings-top { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; margin-bottom:22px; }
+.earnings-top p { color:var(--muted); font-size:13px; }
+
+.earnings-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+.earnings-stat { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 20px; }
+.earnings-stat-label { font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.earnings-stat-value { font-size:22px; font-weight:800; color:var(--ink); }
+.earnings-stat-value.green { color:var(--green); }
+.earnings-stat-value.amber { color:var(--amber); }
+.earnings-stat-value.blue { color:#4338ca; }
+.earnings-stat-value.purple { color:#6d4c5b; }
+.earnings-stat-sub { font-size:11px; color:var(--muted); margin-top:3px; }
+
+.earnings-alert { border-radius:14px; padding:18px 22px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; }
+.earnings-alert.ready { background:#FFFBEB; border:1px solid #ead8c7; }
+.earnings-alert.empty { background:var(--soft); border:1px solid var(--line); }
+.earnings-alert h3 { font-size:15px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+.earnings-alert p { font-size:13px; color:var(--muted); }
+.earnings-alert-btn { display:inline-flex; align-items:center; gap:6px; min-height:38px; padding:0 20px; border:0; border-radius:999px; background:var(--primary); color:#fff; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; }
+.earnings-alert-btn:hover { opacity:.85; }
+
+.earnings-table-wrap { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+.earnings-table-header { padding:16px 20px; border-bottom:1px solid var(--line); }
+.earnings-table-header h2 { font-size:15px; font-weight:700; color:var(--ink); }
+.earnings-table-header p { font-size:12px; color:var(--muted); margin-top:2px; }
+.earnings-table { width:100%; border-collapse:collapse; }
+.earnings-table thead tr { background:var(--soft); }
+.earnings-table thead th { padding:10px 16px; font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); text-align:left; }
+.earnings-table tbody tr { border-top:1px solid var(--line); }
+.earnings-table tbody tr:hover { background:var(--soft); }
+.earnings-table tbody td { padding:12px 16px; font-size:13px; vertical-align:middle; }
+
+.earnings-badge { display:inline-flex; align-items:center; border-radius:20px; padding:3px 10px; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+.earnings-badge.success { background:#ECFDF5; color:#065f46; }
+.earnings-badge.pending { background:#FFFBEB; color:#92400e; }
+.earnings-badge.processing { background:#EEF2FF; color:#3730A3; }
+.earnings-badge.failed { background:#FEF2F2; color:#991b1b; }
+
+.earnings-empty { padding:40px 20px; text-align:center; color:var(--muted); font-size:13px; }
+.earnings-pagination { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-top:1px solid var(--line); }
+.earnings-page-info { font-size:12px; color:var(--muted); }
+.earnings-page-btns { display:flex; gap:6px; }
+.earnings-btn { display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:0 14px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--ink); font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; transition:all .14s; }
+.earnings-btn:hover { border-color:var(--primary); color:var(--primary); }
+.earnings-btn:disabled { opacity:.4; cursor:default; }
+
+/* Modal */
+.earnings-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:50; display:flex; align-items:center; justify-content:center; padding:16px; }
+.earnings-modal { background:var(--panel); border-radius:16px; max-width:440px; width:100%; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.15); }
+.earnings-modal-header { padding:18px 22px; border-bottom:1px solid var(--line); }
+.earnings-modal-header h2 { font-size:16px; font-weight:700; color:var(--ink); }
+.earnings-modal-body { padding:22px; }
+.earnings-modal-body label { display:block; font-size:12px; font-weight:700; color:var(--ink); margin-bottom:6px; }
+.earnings-modal-body input,
+.earnings-modal-body select { width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:10px; font-size:13px; color:var(--ink); background:var(--panel); transition:border-color .2s; }
+.earnings-modal-body input:focus,
+.earnings-modal-body select:focus { outline:none; border-color:var(--primary); }
+.earnings-modal-body input[readonly] { background:var(--soft); }
+.earnings-modal-tip { background:var(--soft); border-radius:10px; padding:12px 16px; margin-top:14px; font-size:12px; color:var(--muted); }
+.earnings-modal-footer { display:flex; gap:10px; padding:0 22px 22px; }
+.earnings-modal-footer button { flex:1; min-height:40px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; }
+.earnings-modal-cancel { border:1px solid var(--line); background:transparent; color:var(--ink); }
+.earnings-modal-cancel:hover { border-color:var(--primary); color:var(--primary); }
+.earnings-modal-submit { border:0; background:var(--primary); color:#fff; }
+.earnings-modal-submit:hover { opacity:.85; }
+
+@media(max-width:900px){ .earnings-summary{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:600px){ .earnings-summary{grid-template-columns:1fr} }
+</style>
+
+<section class="earnings-page">
+  <div class="earnings-top">
+    <div>
+      <div class="kicker">Supplier workspace</div>
+      <h1>Your Earnings</h1>
+      <p>Track payouts and request cash withdrawals.</p>
+    </div>
   </div>
 
-  <!-- Earnings Summary Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-    <!-- Pending Earnings -->
-    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      <div class="p-6 border-b border-gray-200">
-        <p class="text-sm text-gray-500 font-semibold uppercase tracking-wide">Pending Payout</p>
-      </div>
-      <div class="p-6">
-        <div class="text-4xl font-bold text-amber-600"><?= $money($earnings['pending_amount'] ?? 0) ?></div>
-        <p class="text-sm text-gray-600 mt-2"><?= (int)($earnings['pending_count'] ?? 0) ?> booking<?= ($earnings['pending_count'] ?? 0) !== 1 ? 's' : '' ?></p>
-        <p class="text-xs text-gray-500 mt-4">From completed bookings waiting for cash out</p>
-      </div>
+  <div class="earnings-summary">
+    <div class="earnings-stat">
+      <div class="earnings-stat-label">Pending Payout</div>
+      <div class="earnings-stat-value amber"><?= $money($earnings['pending_amount'] ?? 0) ?></div>
+      <div class="earnings-stat-sub"><?= (int)($earnings['pending_count'] ?? 0) ?> booking<?= ($earnings['pending_count'] ?? 0) !== 1 ? 's' : '' ?></div>
     </div>
-
-    <!-- Processing Earnings -->
-    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      <div class="p-6 border-b border-gray-200">
-        <p class="text-sm text-gray-500 font-semibold uppercase tracking-wide">Processing</p>
-      </div>
-      <div class="p-6">
-        <div class="text-4xl font-bold text-blue-600"><?= $money($earnings['processing_amount'] ?? 0) ?></div>
-        <p class="text-sm text-gray-600 mt-2"><?= (int)($earnings['processing_count'] ?? 0) ?> payout item<?= ($earnings['processing_count'] ?? 0) !== 1 ? 's' : '' ?></p>
-        <p class="text-xs text-gray-500 mt-4">Submitted to the payout provider</p>
-      </div>
+    <div class="earnings-stat">
+      <div class="earnings-stat-label">Processing</div>
+      <div class="earnings-stat-value blue"><?= $money($earnings['processing_amount'] ?? 0) ?></div>
+      <div class="earnings-stat-sub"><?= (int)($earnings['processing_count'] ?? 0) ?> payout item<?= ($earnings['processing_count'] ?? 0) !== 1 ? 's' : '' ?></div>
     </div>
-
-    <!-- Total Paid -->
-    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      <div class="p-6 border-b border-gray-200">
-        <p class="text-sm text-gray-500 font-semibold uppercase tracking-wide">Already Paid</p>
-      </div>
-      <div class="p-6">
-        <div class="text-4xl font-bold text-green-600"><?= $money($earnings['paid_amount'] ?? 0) ?></div>
-        <p class="text-sm text-gray-600 mt-2"><?= (int)($earnings['paid_count'] ?? 0) ?> payout<?= ($earnings['paid_count'] ?? 0) !== 1 ? 's' : '' ?></p>
-        <p class="text-xs text-gray-500 mt-4">Disbursed to your bank account</p>
-      </div>
+    <div class="earnings-stat">
+      <div class="earnings-stat-label">Already Paid</div>
+      <div class="earnings-stat-value green"><?= $money($earnings['paid_amount'] ?? 0) ?></div>
+      <div class="earnings-stat-sub"><?= (int)($earnings['paid_count'] ?? 0) ?> payout<?= ($earnings['paid_count'] ?? 0) !== 1 ? 's' : '' ?></div>
     </div>
-
-    <!-- Total Earned -->
-    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      <div class="p-6 border-b border-gray-200">
-        <p class="text-sm text-gray-500 font-semibold uppercase tracking-wide">Total Earned</p>
-      </div>
-      <div class="p-6">
-        <div class="text-4xl font-bold text-purple-600"><?= $money($earnings['total_earned'] ?? 0) ?></div>
-        <p class="text-sm text-gray-600 mt-2">All time</p>
-        <p class="text-xs text-gray-500 mt-4">Pending + Processing + Paid</p>
-      </div>
+    <div class="earnings-stat">
+      <div class="earnings-stat-label">Total Earned</div>
+      <div class="earnings-stat-value"><?= $money($earnings['total_earned'] ?? 0) ?></div>
+      <div class="earnings-stat-sub">All time</div>
     </div>
   </div>
 
-  <!-- Cash Out Card -->
   <?php if (((int)($earnings['pending_amount'] ?? 0)) > 0): ?>
-    <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200 overflow-hidden mb-8">
-      <div class="p-6">
-        <div class="flex items-start justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-amber-900 mb-2">Ready to Cash Out?</h3>
-            <p class="text-sm text-amber-800 mb-4">You have <?= $money($earnings['pending_amount'] ?? 0) ?> available to withdraw to your bank account.</p>
-          </div>
-          <button id="cashout-btn" class="flex-shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition">
-            Request Payout
-          </button>
-        </div>
+    <div class="earnings-alert ready">
+      <div>
+        <h3>Ready to Cash Out?</h3>
+        <p>You have <?= $money($earnings['pending_amount'] ?? 0) ?> available to withdraw.</p>
       </div>
+      <button id="cashout-btn" class="earnings-alert-btn" type="button">Request Payout</button>
     </div>
   <?php else: ?>
-    <div class="bg-blue-50 rounded-lg border border-blue-200 p-6 mb-8">
-      <p class="text-sm text-blue-900">
-        ℹ️ You don't have any pending payouts yet. Once your bookings are completed, payouts will be available here.
-      </p>
+    <div class="earnings-alert empty">
+      <p>No pending payouts yet. Once bookings are completed, payouts will appear here.</p>
     </div>
   <?php endif; ?>
 
-  <!-- Payout History -->
-  <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-    <div class="p-6 border-b border-gray-200">
-      <h2 class="text-lg font-semibold text-gray-800">Payout History</h2>
-      <p class="text-sm text-gray-600 mt-1"><?= $totalPayouts ?> total transaction<?= $totalPayouts !== 1 ? 's' : '' ?></p>
+  <div class="earnings-table-wrap">
+    <div class="earnings-table-header">
+      <h2>Payout History</h2>
+      <p><?= $totalPayouts ?> total transaction<?= $totalPayouts !== 1 ? 's' : '' ?></p>
     </div>
 
     <?php if (empty($payouts)): ?>
-      <div class="p-6 text-center">
-        <p class="text-gray-500">No payout history yet.</p>
-      </div>
+      <div class="earnings-empty">No payout history yet.</div>
     <?php else: ?>
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
+      <table class="earnings-table">
+        <thead>
+          <tr>
+            <th>Booking</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($payouts as $payout):
+            $status = $payout['status'] ?? 'pending';
+            $badgeClass = match($status) {
+              'success' => 'success',
+              'processing' => 'processing',
+              'failed' => 'failed',
+              default => 'pending',
+            };
+            $statusLabel = ucfirst($status);
+          ?>
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Booking</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Amount</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
+              <td style="font-weight:700">#<?= (int)($payout['booking_id'] ?? 0) ?></td>
+              <td style="font-weight:700"><?= $money((float)($payout['amount'] ?? 0)) ?></td>
+              <td><span class="earnings-badge <?= $badgeClass ?>"><?= $statusLabel ?></span></td>
+              <td><?= $date($payout['created_at'] ?? 'now') ?></td>
             </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($payouts as $payout):
-              $status = $payout['status'] ?? 'pending';
-              $statusColor = match($status) {
-                'pending' => 'text-yellow-700 bg-yellow-50',
-                'processing' => 'text-blue-700 bg-blue-50',
-                'success' => 'text-green-700 bg-green-50',
-                'failed' => 'text-red-700 bg-red-50',
-                default => 'text-gray-700 bg-gray-50',
-              };
-              $statusLabel = ucfirst($status);
-            ?>
-              <tr class="border-b border-gray-200 hover:bg-gray-50">
-                <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                  #<?= (int)($payout['booking_id'] ?? 0) ?>
-                </td>
-                <td class="px-6 py-4 text-sm font-semibold text-gray-900">
-                  <?= $money((float)($payout['amount'] ?? 0)) ?>
-                </td>
-                <td class="px-6 py-4">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <?= $statusColor ?>">
-                    <?= $statusLabel ?>
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-600">
-                  <?= $date($payout['created_at'] ?? 'now') ?>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
 
-      <!-- Pagination -->
       <?php if ($totalPages > 1): ?>
-        <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-          <div class="text-sm text-gray-600">
-            Page <?= $currentPage ?> of <?= $totalPages ?>
-          </div>
-          <div class="flex gap-2">
+        <div class="earnings-pagination">
+          <div class="earnings-page-info">Page <?= $currentPage ?> of <?= $totalPages ?></div>
+          <div class="earnings-page-btns">
             <?php if ($currentPage > 1): ?>
-              <a href="?page=<?= $currentPage - 1 ?>" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">← Previous</a>
+              <a href="?page=<?= $currentPage - 1 ?>" class="earnings-btn">&larr; Previous</a>
             <?php endif; ?>
             <?php if ($currentPage < $totalPages): ?>
-              <a href="?page=<?= $currentPage + 1 ?>" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Next →</a>
+              <a href="?page=<?= $currentPage + 1 ?>" class="earnings-btn">Next &rarr;</a>
             <?php endif; ?>
           </div>
         </div>
       <?php endif; ?>
     <?php endif; ?>
   </div>
-</div>
+</section>
 
 <!-- Cash Out Modal -->
-<div id="cashout-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-lg max-w-md w-full overflow-hidden shadow-lg">
-    <div class="p-6 border-b border-gray-200">
-      <h2 class="text-lg font-semibold text-gray-800">Request Payout</h2>
+<div id="cashout-modal" class="earnings-modal-overlay" style="display:none">
+  <div class="earnings-modal">
+    <div class="earnings-modal-header">
+      <h2>Request Payout</h2>
     </div>
-
-    <form id="cashout-form" class="p-6 space-y-4">
+    <form id="cashout-form" class="earnings-modal-body">
       <?= csrf_field() ?>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Bank Account Number</label>
-        <input type="text" name="bank_account" value="<?= $h($supplier['bank_account'] ?? '') ?>" placeholder="e.g., 1234567890" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500">
+      <div style="margin-bottom:14px">
+        <label>Bank Account Number</label>
+        <input type="text" name="bank_account" value="<?= $h($supplier['bank_account'] ?? '') ?>" placeholder="e.g., 1234567890" required>
       </div>
-
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Bank</label>
-        <select name="bank_code" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500">
+      <div style="margin-bottom:14px">
+        <label>Bank</label>
+        <select name="bank_code" required>
           <option value="">Select bank...</option>
           <?php $selectedBank = (string)($supplier['bank_code'] ?? ''); ?>
           <option value="AYA" <?= $selectedBank === 'AYA' ? 'selected' : '' ?>>AYA Bank</option>
@@ -197,26 +216,17 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
           <option value="MYBANK" <?= $selectedBank === 'MYBANK' ? 'selected' : '' ?>>MyBank</option>
         </select>
       </div>
-
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Amount</label>
-        <input type="number" name="amount" value="<?= number_format((float)($earnings['pending_amount'] ?? 0), 2, '.', '') ?>" readonly required class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-        <p class="text-xs text-gray-600 mt-1">The full available balance is submitted as one payout batch.</p>
+      <div style="margin-bottom:14px">
+        <label>Amount</label>
+        <input type="number" name="amount" value="<?= number_format((float)($earnings['pending_amount'] ?? 0), 2, '.', '') ?>" readonly required>
+        <p style="font-size:11px;color:var(--muted);margin-top:4px">Full available balance submitted as one payout batch.</p>
       </div>
-
-      <div class="bg-blue-50 p-4 rounded-lg">
-        <p class="text-xs text-blue-900">
-          ℹ️ Payouts are processed within 1-2 business days. A small transaction fee may apply depending on your bank.
-        </p>
+      <div class="earnings-modal-tip">
+        Payouts are processed within 1&ndash;2 business days. A small transaction fee may apply.
       </div>
-
-      <div class="flex gap-3 pt-4">
-        <button type="button" onclick="closeCashoutModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50">
-          Cancel
-        </button>
-        <button type="submit" class="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg">
-          Request Payout
-        </button>
+      <div class="earnings-modal-footer">
+        <button type="button" onclick="closeCashoutModal()" class="earnings-modal-cancel">Cancel</button>
+        <button type="submit" class="earnings-modal-submit">Request Payout</button>
       </div>
     </form>
   </div>
@@ -224,31 +234,21 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
 
 <script>
 function openCashoutModal() {
-  document.getElementById('cashout-modal').classList.remove('hidden');
+  document.getElementById('cashout-modal').style.display = 'flex';
 }
-
 function closeCashoutModal() {
-  document.getElementById('cashout-modal').classList.add('hidden');
+  document.getElementById('cashout-modal').style.display = 'none';
 }
-
 document.getElementById('cashout-btn')?.addEventListener('click', openCashoutModal);
-
 document.getElementById('cashout-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
-
   const formData = new FormData(e.target);
   formData.append('suppress_method_token', '1');
-
   try {
-    const resp = await fetch('<?= URLROOT ?>/booking/requestPayoutPost', {
-      method: 'POST',
-      body: formData,
-    });
-
+    const resp = await fetch('<?= URLROOT ?>/booking/requestPayoutPost', { method: 'POST', body: formData });
     const data = await resp.json();
-
     if (data.success) {
-      alert('✓ Payout request submitted! You will receive funds within 1-2 business days.');
+      alert('✓ Payout request submitted! Funds within 1–2 business days.');
       closeCashoutModal();
       setTimeout(() => location.reload(), 1000);
     } else {
@@ -258,12 +258,8 @@ document.getElementById('cashout-form')?.addEventListener('submit', async (e) =>
     alert('✕ Connection error. Please try again.');
   }
 });
-
-// Close modal when clicking outside
 document.getElementById('cashout-modal')?.addEventListener('click', (e) => {
-  if (e.target === document.getElementById('cashout-modal')) {
-    closeCashoutModal();
-  }
+  if (e.target.id === 'cashout-modal') closeCashoutModal();
 });
 </script>
 <?php

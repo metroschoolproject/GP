@@ -898,6 +898,55 @@ HTML;
         return URLROOT . '/booking/detail/' . $bookingId;
     }
 
+    /**
+     * Send supplier application approved email.
+     */
+    public function sendSupplierApproved(string $email, string $name): bool
+    {
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($email, $name);
+
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Your Supplier Application Has Been Approved — Golden Promise';
+
+            $userName   = htmlspecialchars($name, ENT_QUOTES);
+            $loginUrl   = URLROOT . '/supplier/dashboard';
+            $paymentUrl = URLROOT . '/payments/supplierFee';
+
+            $htmlBody = <<<HTML
+<div style="font-family:Poppins,Arial,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+  <div style="background:linear-gradient(135deg,#6b4459 0%,#c4a882 100%);padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+    <h1 style="margin:0;font-size:22px;">Application Approved 🎉</h1>
+    <p style="margin:8px 0 0;opacity:.85;">Welcome to Golden Promise</p>
+  </div>
+  <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+    <p>Hi {$userName},</p>
+    <p>Great news! Your supplier application has been <strong>approved</strong> by our admin team. You're one step away from going live on Golden Promise.</p>
+    <div style="background:#fff;padding:16px;border-radius:6px;border-left:4px solid #6b4459;margin:20px 0;">
+      <p style="margin:0 0 8px;font-weight:bold;">Next step: Complete your membership payment</p>
+      <p style="margin:0;font-size:13px;color:#555;">Your dashboard is currently locked. Submit the membership fee to unlock all supplier tools and start receiving bookings.</p>
+    </div>
+    <p style="margin-top:24px;">
+      <a href="{$paymentUrl}" style="display:inline-block;padding:12px 28px;background:#6b4459;color:white;text-decoration:none;border-radius:6px;font-weight:bold;margin-right:10px;">Pay Membership Fee</a>
+      <a href="{$loginUrl}" style="display:inline-block;padding:12px 28px;border:1px solid #ead8c7;color:#6b4459;text-decoration:none;border-radius:6px;font-weight:bold;">Go to Dashboard</a>
+    </p>
+    <p style="margin-top:28px;color:#aaa;font-size:12px;border-top:1px solid #ead8c7;padding-top:18px;">
+      Golden Promise — Support: support@goldenpromise.com
+    </p>
+  </div>
+</div>
+HTML;
+            $this->mailer->Body = $htmlBody;
+            $this->mailer->AltBody = "Hi {$name}, your supplier application has been approved! Log in to your dashboard and complete your membership payment to start receiving bookings. {$loginUrl}";
+
+            return $this->mailer->send();
+        } catch (\Exception $e) {
+            error_log('EmailService::sendSupplierApproved — ' . $e->getMessage());
+            return false;
+        }
+    }
+
     private function getSupplierDashboardUrl(): string
     {
         return URLROOT . '/supplier/earnings';

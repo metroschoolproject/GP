@@ -13,15 +13,15 @@
         :root {
             --env-border: #ead8c7;
             --paper: #f5e8d9;
-            --paper-light: #faf5ef;
-            --paper-panel: #faf5ef;
+            --paper-light: #FFFFFF;
+            --paper-panel: #FFFFFF;
             --accent: #6d4c5b;
             --accent-hover: #7b5c69;
             --gold: #c8b1a1;
             --gold-soft: #e8d7ca;
             --danger: #b94b4b;
-            --focus-color: #faf5ef;
-            --input-bg: #faf5ef;
+            --focus-color: #FFFFFF;
+            --input-bg: #FFFFFF;
             --header-font: "Great Vibes", cursive;
             --body-font: system-ui, -apple-system, sans-serif;
             --ui-font: system-ui, -apple-system, sans-serif;
@@ -458,7 +458,7 @@
             margin: 0;
             border: 0;
             border-radius: 0;
-            background: #fcf8f5;
+            background: #FFFFFF;
             padding: 28px 32px;
             font-size: 15px;
             line-height: 1.95;
@@ -501,7 +501,7 @@
         .agreement-summary-item {
             border: 1px solid var(--env-border);
             border-radius: 12px;
-            background: #fcf8f5;
+            background: #FFFFFF;
             padding: 10px;
         }
         .agreement-summary-item span {

@@ -101,14 +101,14 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 ?>
 <style>
 /* ── Reset & base ─────────────────────────────────────────────────────── */
-.admin-pkg-detail{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
+.admin-pkg-detail{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
 .admin-pkg-page *{box-sizing:border-box}
 .admin-pkg-page{
-  --bg:#FBFBF9;--surface:#ffffff;--soft:#faf5ef;--hover:#eddecc;
+  --bg:#F4F1EE;--surface:#ffffff;--soft:#FFFFFF;--hover:#eddecc;
   --border:#ead8c7;--border-light:#eddecc;
   --primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;
   --text:#111827;--muted:#b79c8b;--body:#7b5c69;
-  --danger:#991b1b;--danger-bg:#fee2e2;
+  --danger:#991B1B;--danger-bg:#FEF2F2;
   max-width:1180px;margin:0 auto
 }
 
@@ -139,9 +139,9 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .btn-danger:hover{background:var(--danger-bg)!important}
 
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
-.badge-active{background:#d1fae5;color:#065f46}
-.badge-inactive{background:#fee2e2;color:#991b1b}
-.badge-draft{background:#fffbeb;color:#92400e}
+.badge-active{background:#ECFDF5;color:#065F46}
+.badge-inactive{background:#FEF2F2;color:#991B1B}
+.badge-draft{background:#fffbeb;color:#92400E}
 
 .edit-form input,.edit-form textarea,.edit-form select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .12s}
 .edit-form input:focus,.edit-form textarea:focus,.edit-form select:focus{border-color:var(--primary)}
@@ -226,7 +226,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
 /* ── Publish confirmation ────────────────────────────────────────────── */
 .publish-modal{
-  --surface:#fff;--soft:#faf5ef;--border:#ead8c7;--border-light:#eddecc;
+  --surface:#fff;--soft:#FFFFFF;--border:#ead8c7;--border-light:#eddecc;
   --primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;
   --text:#111827;--body:#7b5c69;
   position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;
@@ -275,7 +275,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 
 /* ── Add-service panel ────────────────────────────────────────────────── */
 .service-catalog-modal{
-  --surface:#fff;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;
+  --surface:#fff;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;
   --primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;
   --text:#111827;--muted:#b79c8b;--body:#7b5c69;
   position:fixed;inset:0;z-index:1100;display:none;align-items:center;justify-content:center;padding:24px;
@@ -299,7 +299,7 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .add-svc-step{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--muted);flex-shrink:0}
 .add-svc-step-num{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg);display:grid;place-items:center;font-size:11px;font-weight:700;transition:all .2s}
 .add-svc-step.active .add-svc-step-num{border-color:var(--primary);background:var(--primary);color:#fff}
-.add-svc-step.done .add-svc-step-num{border-color:#065f46;background:#d1fae5;color:#065f46}
+.add-svc-step.done .add-svc-step-num{border-color:#065F46;background:#ECFDF5;color:#065F46}
 .add-svc-step.active{color:var(--text)}
 .add-svc-step-connector{flex:1;height:1px;background:var(--border-light);margin:0 8px}
 

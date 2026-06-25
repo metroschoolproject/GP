@@ -75,18 +75,18 @@ if (!function_exists('dashboard_supplier_path_matches')) {
 
     function dashboard_supplier_nav_class($path, $currentPath, $exact = false)
     {
-        $base = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition';
+        $base = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]';
 
         return dashboard_supplier_path_matches($path, $currentPath, $exact)
             ? $base . ' bg-app-primary text-app-white shadow-sm'
-            : $base . ' text-app-text hover:bg-app-input hover:shadow-sm';
+            : $base . ' text-app-text hover:bg-app-sidebar-hover hover:shadow-sm';
     }
 }
 ?>
 <style>
     .supplier-sidebar,
     .supplier-main {
-        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
         font-variant-numeric: tabular-nums;
     }
 
@@ -147,6 +147,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
 
     .supplier-sidebar-nav > a:hover,
     .supplier-sidebar-group-trigger:hover {
+        background: var(--color-app-sidebar-hover, #eddecc);
         box-shadow: none;
     }
 
@@ -179,7 +180,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
             width: 280px;
             max-width: 84vw;
             transform: translateX(-100%);
-            transition: transform 180ms ease;
+            transition: transform 350ms cubic-bezier(0.19, 1, 0.22, 1);
             box-shadow: 24px 0 60px rgba(34, 24, 19, 0.18);
             overflow-y: auto;
         }
@@ -274,14 +275,12 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         font-size: 14px;
         font-weight: 400;
         color: var(--color-app-muted, #6b7280);
-        transition: background 160ms ease, color 160ms ease;
+        transition: all 300ms cubic-bezier(0.19, 1, 0.22, 1);
     }
 
     .supplier-sidebar-subnav a:hover,
     .supplier-sidebar-subnav a.is-active {
-        background: var(--color-app-input, #fcf8f5);
-        color: var(--color-app-text, #1f2937);
-        background: var(--color-app-input, #fff);
+        background: var(--color-app-sidebar-hover, #eddecc);
         color: var(--color-app-primary, #6d4c5b);
     }
 
@@ -421,6 +420,17 @@ if (!function_exists('dashboard_supplier_path_matches')) {
             <a href="<?= URLROOT ?>/supplier/paymentHistory" title="Customer payment history" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
                 <i data-lucide="receipt" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">Payment History</span>
+            </a>
+        </nav>
+
+        <div class="supplier-sidebar-section">
+            <p class="uppercase text-app-header-muted">System</p>
+        </div>
+
+        <nav class="supplier-sidebar-nav">
+            <a href="<?= URLROOT ?>/supplier/settings" title="Settings" class="<?= strpos($currentPath, 'supplier/settings') !== false ? 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 text-app-text transition hover:bg-app-input' ?>">
+                <i data-lucide="settings" class="h-4 w-4 <?= strpos($currentPath, 'supplier/settings') !== false ? '' : 'text-app-header-muted' ?>"></i>
+                <span class="supplier-sidebar-label flex-1">Settings</span>
             </a>
         </nav>
 

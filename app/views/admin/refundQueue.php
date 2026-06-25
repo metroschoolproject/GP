@@ -30,7 +30,7 @@ unset($_SESSION['admin_flash']);
 $dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $pendingCount, $processingCount, $completedCount, $pendingAmount, $completedToday, $flash) {
 ?>
 <style>
-    :root { --rq-bg: #fbfbf9; --rq-surface: #fcf8f5; --rq-border: #ead8c7; --rq-text: #34232b; --rq-muted: #9b7d89; --rq-muted2: #7b5c69; --rq-plum: #6d4c5b; }
+    :root { --rq-bg: #fbfbf9; --rq-surface: #FFFFFF; --rq-border: #ead8c7; --rq-text: #6d4c5b; --rq-muted: #9b7d89; --rq-muted2: #7b5c69; --rq-plum: #6d4c5b; }
     .refund-queue-shell { min-height:100%; padding:30px; background:var(--rq-bg) }
     .rq-page { max-width:1200px; margin:0 auto; color:var(--rq-text) }
     .rq-kicker { margin:0 0 7px; color:var(--rq-muted); font-size:10px; font-weight:800; letter-spacing:.18em; text-transform:uppercase }
@@ -42,8 +42,8 @@ $dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $p
     .rq-stat-value { margin-top:6px; font-size:22px; font-weight:750; font-variant-numeric:tabular-nums }
     .rq-stat-note { margin-top:4px; font-size:11px; color:#a58b96 }
     .rq-stat-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; margin-left:6px; vertical-align:2px }
-    .rq-stat-badge.warn { background:#fef3c7; color:#92400e }
-    .rq-stat-badge.info { background:#dbeafe; color:#1e40af }
+    .rq-stat-badge.warn { background:#FFFBEB; color:#92400E }
+    .rq-stat-badge.info { background:#EEF2FF; color:#3730A3 }
 
     .rq-table-wrap { margin-top:24px; overflow-x:auto; border:1px solid var(--rq-border); border-radius:15px; background:var(--rq-surface); box-shadow:0 18px 45px rgba(52,35,43,.06) }
     .rq-table { width:100%; font-size:13px; border-collapse:collapse }
@@ -57,14 +57,14 @@ $dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $p
     .rq-policy { font-size:11px; color:var(--rq-muted2); max-width:200px; line-height:1.35 }
 
     .rq-badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:999px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em }
-    .rq-badge.pending { background:#fffbeb; color:#92400e }
-    .rq-badge.processing { background:#eff6ff; color:#1e40af }
-    .rq-badge.completed { background:#ecfdf5; color:#065f46 }
-    .rq-badge.rejected { background:#fef2f2; color:#991b1b }
+    .rq-badge.pending { background:#fffbeb; color:#92400E }
+    .rq-badge.processing { background:#eff6ff; color:#3730A3 }
+    .rq-badge.completed { background:#ecfdf5; color:#065F46 }
+    .rq-badge.rejected { background:#fef2f2; color:#991B1B }
 
     .rq-actions { display:flex; gap:6px; flex-wrap:wrap }
     .rq-btn { display:inline-flex; align-items:center; gap:4px; min-height:32px; padding:0 14px; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:.14s; font-family:inherit }
-    .rq-btn-primary { background:var(--rq-plum); color:#fcf8f5 }
+    .rq-btn-primary { background:var(--rq-plum); color:#FFFFFF }
     .rq-btn-primary:hover { background:#5a3e4a }
     .rq-btn-success { background:#16a34a; color:#fff }
     .rq-btn-success:hover { background:#15803d }
@@ -83,8 +83,8 @@ $dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $p
     .rq-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px }
 
     .rq-flash { margin-bottom:18px; padding:12px 16px; border-radius:10px; font-size:13px; font-weight:600 }
-    .rq-flash-success { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0 }
-    .rq-flash-error { background:#fef2f2; color:#991b1b; border:1px solid #fecaca }
+    .rq-flash-success { background:#ecfdf5; color:#065F46; border:1px solid #a7f3d0 }
+    .rq-flash-error { background:#fef2f2; color:#991B1B; border:1px solid #fecaca }
 </style>
 
 <div class="rq-page">

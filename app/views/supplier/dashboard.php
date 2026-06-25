@@ -9,7 +9,7 @@ $dashboardBreadcrumbs = [
     ['label' => 'Dashboard', 'url' => URLROOT . '/supplier/dashboard'],
     ['label' => 'Overview', 'url' => null],
 ];
-$dashboardContentClass = 'bg-[#FBFBF9] px-0 py-0';
+$dashboardContentClass = 'bg-[#F4F1EE] px-0 py-0';
 $dashboardContent = function () use ($supplier, $payment, $dashboardData) {
     require APPROOT . '/views/supplier/supplierDashboard.php';
 };

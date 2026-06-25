@@ -29,9 +29,9 @@ $dashboardContent = function () use (
 ) {
 ?>
 <style>
-.payhist-page { --ink:#241f1c; --muted:#7f746d; --soft:#f7f1ec; --panel:#fffdf9; --line:rgba(77,65,55,.12); --primary:#6d4c5b; --green:#166534; --amber:#92400e; --danger:#991b1b; color:var(--ink); }
+.payhist-page { --ink:#6d4c5b; --muted:#A8A29E; --soft:#F4F1EE; --panel:#FFFFFF; --line:#ead8c7; --primary:#6d4c5b; --green:#166534; --amber:#92400e; --danger:#991b1b; color:var(--ink); }
 .payhist-page h1 { font-size:clamp(28px,3vw,42px); font-weight:900; margin:6px 0 7px; }
-.payhist-page .kicker { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.17em; color:#a36b5a; }
+.payhist-page .kicker { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.17em; color:#A8A29E; }
 .payhist-top { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; margin-bottom:22px; }
 .payhist-top p { color:var(--muted); font-size:13px; }
 
@@ -52,9 +52,9 @@ $dashboardContent = function () use (
 .payhist-table tbody td { padding:12px 16px; font-size:13px; vertical-align:middle; }
 
 .payhist-badge { display:inline-flex; align-items:center; border-radius:20px; padding:3px 10px; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
-.payhist-badge.success { background:#d1fae5; color:#065f46; }
-.payhist-badge.pending { background:#fef3c7; color:#92400e; }
-.payhist-badge.failed { background:#fee2e2; color:#991b1b; }
+.payhist-badge.success { background:#ECFDF5; color:#065f46; }
+.payhist-badge.pending { background:#FFFBEB; color:#92400e; }
+.payhist-badge.failed { background:#FEF2F2; color:#991b1b; }
 
 .payhist-empty { padding:40px 20px; text-align:center; color:var(--muted); }
 .payhist-pagination { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-top:1px solid var(--line); }

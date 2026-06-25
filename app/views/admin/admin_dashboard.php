@@ -5,21 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Wedding Admin Dashboard | Premium</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <?php $dashboardCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
+    <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $dashboardCssVersion ?>">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
-
         :root {
-            --dashboard-bg:             #FBFBF9;
-            --dashboard-border:         #e7e5e4;
-            --dashboard-text:           #1c1917;
-            --accent-color:             #673049;
-            --dashboard-primary-soft:   #fcefe8;
+            --dashboard-bg:             #F4F1EE;
+            --dashboard-border:         #ead8c7;
+            --dashboard-text:           #6d4c5b;
+            --accent-color:             #6d4c5b;
+            --dashboard-primary-soft:   rgba(154, 104, 127, 0.10);
             --dashboard-radius-control: 1rem;
-            --dashboard-shadow-sm:      0 1px 2px rgba(28, 25, 23, 0.05);
-            --dashboard-font:           'Inter', sans-serif;
+            --dashboard-shadow-sm:      0 1px 3px rgba(0, 0, 0, 0.04);
+            --dashboard-font:           'DM Sans', system-ui, sans-serif;
+            --gold:                     #D8B46A;
+            --wine-glow:               rgba(154, 104, 127, 0.10);
         }
 
         * { box-sizing: border-box; }
@@ -27,7 +29,7 @@
         body {
             font-family: var(--dashboard-font);
             font-size: 13.5px;
-            line-height: 1.5;
+            line-height: 1.6;
             background-color: var(--dashboard-bg);
             color: var(--dashboard-text);
             -webkit-font-smoothing: antialiased;
@@ -38,19 +40,21 @@
 
         /* ── Cards ── */
         .card {
-            background: #fcf8f5;
-            border: 1px solid var(--dashboard-border);
-            border-radius: 1.2rem;
-            box-shadow: var(--dashboard-shadow-sm);
-            transition: box-shadow 0.18s ease;
+            background: #FFFFFF;
+            border: 1px solid #ead8c7;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: box-shadow 0.3s cubic-bezier(0.19, 1, 0.22, 1);
         }
-        .card:hover { box-shadow: 0 4px 12px rgba(28,25,23,0.08); }
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
 
         /* ── Typography ── */
         .dashboard-page-title {
             margin: 0;
-            color: #34232b;
-            font-family: "Playfair Display", serif;
+            color: #6d4c5b;
+            font-family: "Playfair Display", Georgia, serif;
             font-size: clamp(27px, 2.5vw, 36px);
             font-weight: 650;
             letter-spacing: -0.025em;
@@ -65,17 +69,17 @@
         }
 
         .section-title {
-            color: #292524;
-            font-weight: 750;
+            color: #6d4c5b;
+            font-weight: 700;
             letter-spacing: -0.015em;
         }
 
         .stat-label {
             font-size: 11px;
-            font-weight: 650;
+            font-weight: 600;
             letter-spacing: 0.01em;
             text-transform: none;
-            color: #78716c;
+            color: #A8A29E;
         }
 
         .dashboard-fact {
@@ -98,24 +102,23 @@
 
         /* ── Queue / list item ── */
         .queue-item {
-            background: #f5f5f3;
+            background: #FAFAF9;
             border-radius: 0.75rem;
             padding: 0.55rem 0.75rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border: 1px solid transparent;
-            transition: all 0.12s ease;
+            border: 1px solid #ead8c7;
+            transition: background 0.2s ease;
         }
         .queue-item:hover {
-            background: #eeece9;
-            border-color: var(--dashboard-border);
+            background: #F4F1EE;
         }
 
         .queue-item > div > p:first-child,
         .queue-item > span:first-child {
-            color: #292524 !important;
-            font-weight: 650 !important;
+            color: #6d4c5b !important;
+            font-weight: 600 !important;
         }
 
         /* ── Progress bar ── */
@@ -128,20 +131,20 @@
         .progress-fill {
             height: 100%;
             border-radius: 9999px;
-            background: #818cf8;
+            background: #6d4c5b;
             transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         /* ── Tables ── */
-        tbody tr { transition: background 0.1s ease; }
-        tbody tr:hover { background: #f5f5f3; }
+        tbody tr { transition: background 0.2s ease; }
+        tbody tr:hover { background: #FAFAF9; }
 
         thead th {
             font-size: 10px;
-            font-weight: 750;
+            font-weight: 700;
             letter-spacing: 0.055em;
             text-transform: uppercase;
-            color: #78716c;
+            color: #A8A29E;
         }
 
         /* ── Badge pill ── */
@@ -155,12 +158,12 @@
             letter-spacing: 0.01em;
             text-transform: none;
         }
-        .badge-emerald   { background: #d1fae5; color: #065f46; }
-        .badge-amber     { background: #fef3c7; color: #92400e; }
-        .badge-accent    { background: #fde8ef; color: #673049; border: 1px solid #f9c0d2; }
-        .badge-muted     { background: #f3f4f6; color: #57534e; border: 1px solid #d1d5db; }
-        .badge-processing{ background: #dbeafe; color: #1e40af; }
-        .badge-sky       { background: #e0f2fe; color: #0369a1; }
+        .badge-emerald   { background: #ECFDF5; color: #065F46; }
+        .badge-amber     { background: #FFFBEB; color: #92400E; }
+        .badge-accent    { background: #F5F0F2; color: #6d4c5b; border: 1px solid #ead8c7; }
+        .badge-muted     { background: #F5F5F4; color: #78716C; border: 1px solid #ead8c7; }
+        .badge-processing{ background: #EEF2FF; color: #3730A3; }
+        .badge-sky       { background: #F0F9FF; color: #0369A1; }
 
         /* ── Icon wrap ── */
         .icon-wrap {
@@ -186,17 +189,17 @@
 
         /* ── Package cards ── */
         .pkg-card {
-            background: #fcf8f5;
-            border-radius: 1.2rem;
-            border: 1px solid var(--dashboard-border);
+            background: #FFFFFF;
+            border-radius: 1rem;
+            border: 1px solid #ead8c7;
             overflow: hidden;
-            box-shadow: var(--dashboard-shadow-sm);
-            transition: box-shadow 0.28s ease, transform 0.28s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
             position: relative;
         }
         .pkg-card:hover {
-            box-shadow: 0 12px 32px rgba(28,25,23,0.16);
-            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
         }
         .pkg-card img {
             display: block;
@@ -205,7 +208,7 @@
             object-fit: cover;
             transition: transform 0.5s ease;
         }
-        .pkg-card:hover img { transform: scale(1.07); }
+        .pkg-card:hover img { transform: scale(1.05); }
 
         /* Slide-up overlay on hover */
         .pkg-card .pkg-overlay {
@@ -236,15 +239,16 @@
 
         /* ── Staggered fade-up ── */
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(12px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        .animate-up { animation: fadeUp 0.35s ease both; }
+        .animate-up { animation: fadeUp 0.5s cubic-bezier(0.19, 1, 0.22, 1) both; }
 
         /* ── Scrollbar ── */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #D6D3D1; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #A8A29E; }
 
         /* ── Filter tab ── */
         .filter-tab-btn {
@@ -252,14 +256,14 @@
             border-radius: 9999px;
             font-size: 11px;
             font-weight: 600;
-            border: 1px solid var(--dashboard-border);
-            background: #f5f5f3;
-            color: #57534e;
+            border: 1px solid #ead8c7;
+            background: #FAFAF9;
+            color: #78716C;
             cursor: pointer;
-            transition: all 0.12s ease;
+            transition: all 0.2s ease;
         }
-        .filter-tab-btn:hover { background: #fde8ef; color: var(--accent-color); }
-        .filter-tab-btn.active { background: var(--accent-color); color: #fcf8f5; border-color: var(--accent-color); }
+        .filter-tab-btn:hover { background: #F5F0F2; color: var(--accent-color); }
+        .filter-tab-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
 
         /* ── Dropdown menu ── */
         .dropdown-menu {
@@ -268,11 +272,11 @@
             top: calc(100% + 6px);
             z-index: 30;
             width: 9rem;
-            background: #fcf8f5;
-            border: 1px solid var(--dashboard-border);
+            background: #FFFFFF;
+            border: 1px solid #ead8c7;
             border-radius: 0.75rem;
             padding: 0.375rem;
-            box-shadow: 0 8px 24px rgba(28,25,23,0.10);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
         }
         .dropdown-item {
             display: flex;
@@ -283,14 +287,14 @@
             text-align: left;
             font-size: 12px;
             font-weight: 500;
-            color: var(--accent-color);
-            transition: background 0.1s;
+            color: #78716C;
+            transition: background 0.15s ease;
             cursor: pointer;
             border: none;
             background: transparent;
         }
-        .dropdown-item:hover { background: #fde8ef; color: #9b1c4a; }
-        .dropdown-item.active { background: #fde8ef; font-weight: 600; color: #9b1c4a; }
+        .dropdown-item:hover { background: #F5F0F2; color: #6d4c5b; }
+        .dropdown-item.active { background: #F5F0F2; font-weight: 600; color: #6d4c5b; }
 
         /* ── Admin Date Calendar Popover (matches customer service detail gp-calendar) ── */
         .venue-date-input-wrap {
@@ -365,7 +369,7 @@
             height: 24px;
             color: #6F5448;
             font-size: 11px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'DM Sans', sans-serif;
         }
         .gp-calendar-day-name {
             color: rgba(63, 36, 26, .52);
@@ -405,7 +409,7 @@
             font-weight: 800;
             cursor: pointer;
             transition: background .12s ease;
-            font-family: 'Inter', sans-serif;
+            font-family: 'DM Sans', sans-serif;
         }
         .gp-cal-today-btn {
             background: rgba(63, 36, 26, .08);
@@ -438,11 +442,11 @@
             </div>
             <div class="relative">
                 <button id="eventFilterBtn" type="button" aria-expanded="false"
-                    class="flex h-8 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold shadow-sm focus:outline-none"
-                    style="color:var(--accent-color)">
-                    <i data-lucide="calendar" class="h-3 w-3" style="color:#a8a29e"></i>
+                    class="flex h-8 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 text-xs font-semibold shadow-sm focus:outline-none"
+                    style="color:#6d4c5b">
+                    <i data-lucide="calendar" class="h-3 w-3" style="color:#A8A29E"></i>
                     <span id="eventFilterLabel">This week</span>
-                    <i data-lucide="chevron-down" class="h-3 w-3 transition-transform" id="eventFilterChevron" style="color:#a8a29e"></i>
+                    <i data-lucide="chevron-down" class="h-3 w-3 transition-transform" id="eventFilterChevron" style="color:#A8A29E"></i>
                 </button>
                 <div id="eventFilterMenu" class="invisible dropdown-menu opacity-0 transition-all duration-150">
                     <button type="button" data-event-filter="today"  class="dropdown-item">Today</button>
@@ -463,10 +467,10 @@
                     <i data-lucide="badge-dollar-sign" class="h-4 w-4" style="color:#be123c"></i>
                 </div>
                 <p class="stat-label">Total Revenue</p>
-                <h2 id="totalRevenue" class="section-title dashboard-fact mt-1.5 text-2xl" style="color:#1c1917">$63,400</h2>
+                <h2 id="totalRevenue" class="section-title dashboard-fact mt-1.5 text-2xl" style="color:#6d4c5b">$63,400</h2>
                 <hr class="divider mt-4 mb-3">
                 <p class="stat-label">Avg Customer Spend</p>
-                <p id="avgSpend" class="dashboard-fact mt-1 text-base font-bold" style="color:#1c1917">$200</p>
+                <p id="avgSpend" class="dashboard-fact mt-1 text-base font-bold" style="color:#6d4c5b">$200</p>
             </div>
 
             <!-- Total Bookings -->
@@ -475,7 +479,7 @@
                     <i data-lucide="calendar-check" class="h-4 w-4" style="color:#0284c7"></i>
                 </div>
                 <p class="stat-label">Total Bookings</p>
-                <h2 id="totalBookings" class="section-title dashboard-fact mt-1.5 text-2xl" style="color:#1c1917">317</h2>
+                <h2 id="totalBookings" class="section-title dashboard-fact mt-1.5 text-2xl" style="color:#6d4c5b">317</h2>
                 <hr class="divider mt-4 mb-3">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -491,28 +495,28 @@
 
             <!-- Operations Queue -->
             <div class="card p-5 animate-up" style="animation-delay:0.21s">
-                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#1c1917">
-                    <i data-lucide="list-checks" class="h-4 w-4" style="color:#673049"></i>
+                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#6d4c5b">
+                    <i data-lucide="list-checks" class="h-4 w-4" style="color:#6d4c5b"></i>
                     Operations Queue
                 </h3>
                 <div class="space-y-2">
                     <div class="queue-item">
                         <div>
-                            <p style="font-size:11px;font-weight:600;color:#1c1917">Booking Confirmations</p>
+                            <p style="font-size:11px;font-weight:600;color:#6d4c5b">Booking Confirmations</p>
                             <p class="stat-label" style="margin-top:1px">Pending review</p>
                         </div>
                         <span id="pendingBookingConfirm" class="badge badge-amber">--</span>
                     </div>
                     <div class="queue-item">
                         <div>
-                            <p style="font-size:11px;font-weight:600;color:#1c1917">Payments</p>
+                            <p style="font-size:11px;font-weight:600;color:#6d4c5b">Payments</p>
                             <p class="stat-label" style="margin-top:1px">Awaiting release</p>
                         </div>
                         <span id="pendingPayments" class="badge badge-processing">--</span>
                     </div>
                     <div class="queue-item">
                         <div>
-                            <p style="font-size:11px;font-weight:600;color:#1c1917">Vendor Approvals</p>
+                            <p style="font-size:11px;font-weight:600;color:#6d4c5b">Vendor Approvals</p>
                             <p class="stat-label" style="margin-top:1px">Needs action</p>
                         </div>
                         <span id="pendingVendorApproval" class="badge badge-accent">--</span>
@@ -528,10 +532,10 @@
             <div class="card p-5 lg:col-span-8 animate-up" style="animation-delay:0.28s">
                 <div class="mb-4 flex items-center justify-between">
                     <div>
-                        <h2 class="section-title" style="font-size:13px;color:#1c1917">Revenue Trend</h2>
-                        <p class="mt-0.5" style="font-size:11px;color:#a8a29e">Performance across selected packages</p>
+                        <h2 class="section-title" style="font-size:13px;color:#6d4c5b">Revenue Trend</h2>
+                        <p class="mt-0.5" style="font-size:11px;color:#A8A29E">Performance across selected packages</p>
                     </div>
-                    <span class="inline-flex items-center gap-1 rounded-full border border-rose-100 bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-500">
+                    <span class="inline-flex items-center gap-1 rounded-full border border-app-gold/20 bg-app-gold-soft px-2.5 py-1 text-[10px] font-bold text-app-gold">
                         <span id="peakPeriodLabel">PEAK DAY:</span> <span id="peakMonthTag" class="ml-1">--</span>
                     </span>
                 </div>
@@ -542,8 +546,8 @@
 
             <!-- Supplier Categories -->
             <div class="card p-5 lg:col-span-4 animate-up" style="animation-delay:0.35s">
-                <h2 class="section-title" style="font-size:13px;color:#1c1917">Supplier Categories</h2>
-                <p class="mt-0.5 mb-4" style="font-size:11px;color:#a8a29e; margin-bottom: 30px;">Current market distribution</p>
+                <h2 class="section-title" style="font-size:13px;color:#6d4c5b">Supplier Categories</h2>
+                <p class="mt-0.5 mb-4" style="font-size:11px;color:#A8A29E; margin-bottom: 30px;">Current market distribution</p>
                 <div style="height:320px; margin-top:20px;">
                     <canvas id="supplierPieCanvas"></canvas>
                 </div>
@@ -555,7 +559,7 @@
 
             <!-- Top Partners -->
             <div class="card p-5 lg:col-span-2 animate-up" style="animation-delay:0.42s">
-                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#1c1917">
+                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#6d4c5b">
                     <i data-lucide="award" class="h-4 w-4" style="color:#b45309"></i> Top Partners
                 </h3>
                 <div id="topSuppliersList" class="space-y-2"></div>
@@ -563,47 +567,47 @@
 
             <!-- Vendor Status -->
             <div class="card p-5 animate-up" style="animation-delay:0.56s">
-                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#1c1917">
+                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#6d4c5b">
                     <i data-lucide="store" class="h-4 w-4" style="color:#12bb8b"></i> Vendor Status
                 </h3>
                 <div class="space-y-2.5">
                     <div class="flex items-center justify-between py-1" style="font-size:12px">
-                        <span style="color:#57534e">Approved</span>
+                        <span style="color:#78716C">Approved</span>
                         <span id="vendorApproved" class="font-bold" style="color:#12bb8b">--</span>
                     </div>
                     <div class="flex items-center justify-between py-1" style="font-size:12px">
-                        <span style="color:#57534e">Pending Approval</span>
+                        <span style="color:#78716C">Pending Approval</span>
                         <span id="vendorPending" class="font-bold" style="color:#d4be50">--</span>
                     </div>
                     <div class="flex items-center justify-between py-1" style="font-size:12px">
-                        <span style="color:#57534e">Rejected</span>
+                        <span style="color:#78716C">Rejected</span>
                         <span id="vendorRejected" class="font-bold" style="color:#e23535">--</span>
                     </div>
                 </div>
                 <hr class="divider my-4">
                 <div class="queue-item">
-                    <span class="font-medium italic" style="font-size:12px;color:#57534e">Actions Needed</span>
+                    <span class="font-medium italic" style="font-size:12px;color:#78716C">Actions Needed</span>
                     <span id="pendingVendorApproval2" class="badge badge-accent">--</span>
                 </div>
             </div>
 
             <!-- Community -->
             <div class="card p-5 animate-up" style="animation-delay:0.63s">
-                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#1c1917">
-                    <i data-lucide="users" class="h-4 w-4" style="color:#673049"></i> Community
+                <h3 class="mb-4 flex items-center gap-2 font-bold" style="font-size:13px;color:#6d4c5b">
+                    <i data-lucide="users" class="h-4 w-4" style="color:#6d4c5b"></i> Community
                 </h3>
                 <div class="space-y-2">
                     <div class="queue-item">
-                        <span class="font-medium" style="font-size:12px;color:#57534e">Customers</span>
-                        <span id="totalCustomers" class="font-bold" style="color:#1c1917">--</span>
+                        <span class="font-medium" style="font-size:12px;color:#78716C">Customers</span>
+                        <span id="totalCustomers" class="font-bold" style="color:#6d4c5b">--</span>
                     </div>
                     <div class="queue-item">
-                        <span class="font-medium" style="font-size:12px;color:#57534e">Suppliers</span>
-                        <span id="totalSuppliers" class="font-bold" style="color:#1c1917">--</span>
+                        <span class="font-medium" style="font-size:12px;color:#78716C">Suppliers</span>
+                        <span id="totalSuppliers" class="font-bold" style="color:#6d4c5b">--</span>
                     </div>
                     <div class="queue-item">
-                        <span class="font-medium" style="font-size:12px;color:#57534e">Staff Members</span>
-                        <span id="totalStaffs" class="font-bold" style="color:#1c1917">--</span>
+                        <span class="font-medium" style="font-size:12px;color:#78716C">Staff Members</span>
+                        <span id="totalStaffs" class="font-bold" style="color:#6d4c5b">--</span>
                     </div>
                 </div>
             </div>
@@ -613,13 +617,13 @@
         <section class="mb-4 card overflow-hidden animate-up" style="animation-delay:0.70s">
             <div class="p-5 flex flex-wrap items-center justify-between gap-3" style="border-bottom:1px solid var(--dashboard-border)">
                 <div>
-                    <h2 class="section-title" style="font-size:14px;color:#1c1917">Upcoming Wedding Events</h2>
-                    <p class="mt-0.5" style="font-size:11px;color:#a8a29e">Live schedule of ceremonies and receptions</p>
+                    <h2 class="section-title" style="font-size:14px;color:#6d4c5b">Upcoming Wedding Events</h2>
+                    <p class="mt-0.5" style="font-size:11px;color:#A8A29E">Live schedule of ceremonies and receptions</p>
                 </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left">
-                    <thead style="background:#f9f8f6">
+                    <thead style="background:#FAFAF9">
                         <tr>
                             <th class="px-6 py-3">Event Type</th>
                             <th class="px-6 py-3">Client</th>
@@ -636,8 +640,8 @@
         <!-- ── Popular Wedding Packages ── -->
         <section class="card p-5 animate-up" style="animation-delay:0.77s">
             <div class="mb-5">
-                <h2 class="section-title" style="font-size:14px;color:#1c1917">Popular Wedding Packages</h2>
-                <p class="mt-0.5 italic" style="font-size:11px;color:#a8a29e">"Sparkling Eve" is trending this week</p>
+                <h2 class="section-title" style="font-size:14px;color:#6d4c5b">Popular Wedding Packages</h2>
+                <p class="mt-0.5 italic" style="font-size:11px;color:#A8A29E">"Sparkling Eve" is trending this week</p>
             </div>
             <div id="popularGrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"></div>
         </section>
@@ -702,10 +706,10 @@
             document.getElementById("topSuppliersList").innerHTML = data.topSuppliers.map((supplier, index) => `
                 <div class="queue-item" style="gap:0.625rem">
                     <div class="flex items-center gap-2.5">
-                        <span class="flex h-6 w-6 items-center justify-center rounded-lg flex-shrink-0 font-bold text-white" style="font-size:10px;background:#d89aa0">${index + 1}</span>
-                        <span class="font-semibold" style="font-size:12px;color:#1c1917">${supplier.name}</span>
+                        <span class="flex h-6 w-6 items-center justify-center rounded-lg flex-shrink-0 font-bold text-white" style="font-size:10px;background:#D8B46A">${index + 1}</span>
+                        <span class="font-semibold" style="font-size:12px;color:#6d4c5b">${supplier.name}</span>
                     </div>
-                    <span class="font-semibold whitespace-nowrap" style="font-size:11px;color:#a8a29e">${supplier.bookings} events</span>
+                    <span class="font-semibold whitespace-nowrap" style="font-size:11px;color:#A8A29E">${supplier.bookings} events</span>
                 </div>
             `).join("");
 
@@ -715,9 +719,9 @@
                 return `
                     <tr style="border-bottom:1px solid var(--dashboard-border)">
                         <td class="px-6 py-3"><span class="badge badge-muted">${event.event}</span></td>
-                        <td class="px-6 py-3 font-semibold" style="color:#1c1917">${event.customer}</td>
-                        <td class="px-6 py-3" style="color:#57534e">${event.dateTime}</td>
-                        <td class="px-6 py-3" style="color:#57534e">${event.location}</td>
+                        <td class="px-6 py-3 font-semibold" style="color:#6d4c5b">${event.customer}</td>
+                        <td class="px-6 py-3" style="color:#78716C">${event.dateTime}</td>
+                        <td class="px-6 py-3" style="color:#78716C">${event.location}</td>
                         <td class="px-6 py-3"><span class="badge ${statusClass}">${event.status}</span></td>
                     </tr>
                 `;
@@ -730,20 +734,20 @@
                         <img src="${pkg.image}" alt="${pkg.name}">
 
                         <!-- Rating badge — always visible top-right -->
-                        <div class="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full px-2 py-0.5 font-bold" style="font-size:10px;background:rgba(252,248,245,0.95);color:#673049;box-shadow:0 2px 8px rgba(0,0,0,0.14);z-index:2">
+                        <div class="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full px-2 py-0.5 font-bold" style="font-size:10px;background:rgba(252,248,245,0.95);color:#6d4c5b;box-shadow:0 2px 8px rgba(0,0,0,0.14);z-index:2">
                             ★ ${pkg.rating}
                         </div>
 
                         <!-- Caption — always visible bottom, fades on hover -->
                         <div class="pkg-caption">
-                            <p class="font-semibold" style="font-size:12px;color:#fcf8f5;text-shadow:0 1px 4px rgba(0,0,0,0.5)">${pkg.name}</p>
+                            <p class="font-semibold" style="font-size:12px;color:#FFFFFF;text-shadow:0 1px 4px rgba(0,0,0,0.5)">${pkg.name}</p>
                         </div>
 
                         <!-- Hover overlay: slides up from bottom -->
                         <div class="pkg-overlay">
                             <div>
                                 <p class="stat-label" style="color:rgba(252,248,245,0.55)">Bookings</p>
-                                <p class="font-bold" style="font-size:13px;color:#fcf8f5;margin-top:2px">${pkg.bookings.toLocaleString()}</p>
+                                <p class="font-bold" style="font-size:13px;color:#FFFFFF;margin-top:2px">${pkg.bookings.toLocaleString()}</p>
                             </div>
                             <div class="text-right">
                                 <p class="stat-label" style="color:rgba(252,248,245,0.55)">Revenue</p>
@@ -765,16 +769,16 @@
                     labels: data.revenueLabels,
                     datasets: [{
                         data: data.revenueSales,
-                        borderColor: "#673049",
-                        backgroundColor: "rgba(103,48,73,0.08)",
+                        borderColor: "#6d4c5b",
+                        backgroundColor: "rgba(154, 104, 127, 0.08)",
                         fill: true,
                         tension: 0.4,
                         pointRadius: 3,
-                        pointHoverRadius: 5,
-                        pointBackgroundColor: "#673049",
-                        pointBorderColor: "#fcf8f5",
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: "#6d4c5b",
+                        pointBorderColor: "#FFF8EF",
                         pointBorderWidth: 2,
-                        borderWidth: 2
+                        borderWidth: 2.5
                     }]
                 },
                 options: {
@@ -794,25 +798,25 @@
                             title: {
                                 display: true,
                                 text: revenueXAxisTitle,
-                                color: "#57534e",
-                                font: { size: 11, weight: "700", family: "Inter" },
+                                color: "#A8A29E",
+                                font: { size: 11, weight: "700", family: "DM Sans" },
                                 padding: { top: 8 }
                             },
-                            ticks: { color: "#78716c", font: { size: 10, weight: "600", family: "Inter" } }
+                            ticks: { color: "#A8A29E", font: { size: 10, weight: "600", family: "DM Sans" } }
                         },
                         y: {
-                            grid: { color: "#f5f5f4" },
+                            grid: { color: "#F5F5F4" },
                             border: { display: false },
                             title: {
                                 display: true,
                                 text: "Sales",
-                                color: "#57534e",
-                                font: { size: 11, weight: "700", family: "Inter" },
+                                color: "#A8A29E",
+                                font: { size: 11, weight: "700", family: "DM Sans" },
                                 padding: { bottom: 8 }
                             },
                             ticks: {
-                                color: "#78716c",
-                                font: { size: 10, weight: "500", family: "Inter" },
+                                color: "#A8A29E",
+                                font: { size: 10, weight: "500", family: "DM Sans" },
                                 callback: (v) => `$${v / 1000}k`
                             }
                         }
@@ -835,12 +839,12 @@
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
 
-                    ctx.fillStyle = "#1c1917";
-                    ctx.font = "700 20px Inter, sans-serif";
+                    ctx.fillStyle = "#6d4c5b";
+                    ctx.font = "700 20px 'DM Sans', sans-serif";
                     ctx.fillText(total.toLocaleString(), centerX, centerY - 8);
 
-                    ctx.fillStyle = "#a8a29e";
-                    ctx.font = "600 9px Inter, sans-serif";
+                    ctx.fillStyle = "#9A8C84";
+                    ctx.font = "600 9px 'DM Sans', sans-serif";
                     ctx.fillText("suppliers", centerX, centerY + 10);
 
                     meta.data.forEach((arc, index) => {
@@ -851,8 +855,8 @@
                         const x = arc.x + Math.cos(angle) * radius;
                         const y = arc.y + Math.sin(angle) * radius;
 
-                        ctx.fillStyle = "#fcf8f5";
-                        ctx.font = "700 10px Inter, sans-serif";
+                        ctx.fillStyle = "#FFF8EF";
+                        ctx.font = "700 10px 'DM Sans', sans-serif";
                         ctx.fillText(`${percent}%`, x, y);
                     });
 
@@ -866,8 +870,8 @@
                     labels: data.supplierCategories.labels,
                     datasets: [{
                         data: data.supplierCategories.values,
-                        backgroundColor: ["#90bed7", "#d89aa0", "#e9ab91", "#8bca9d"],
-                        borderColor: "#fcf8f5",
+                        backgroundColor: ["#90bed7", "#d89aa0", "#D8B46A", "#8bca9d"],
+                        borderColor: "#FFF8EF",
                         borderRadius: 5,
                         borderWidth: 3,
                         hoverBorderWidth: 5,
@@ -895,8 +899,8 @@
                                 usePointStyle: true,
                                 pointStyle: "circle",
                                 padding: 16,
-                                color: "#78716c",
-                                font: { size: 11, weight: "600", family: "Inter" }
+                                color: "#A8A29E",
+                                font: { size: 11, weight: "600", family: "DM Sans" }
                             }
                         },
                         tooltip: {

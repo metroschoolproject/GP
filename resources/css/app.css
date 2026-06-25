@@ -12,6 +12,50 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Luxury scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d6c4b8;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #c8b1a1;
+  }
+
+  /* Smooth transitions on interactive elements */
+  button, a, input, select, textarea {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 0.2s;
+    transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+  }
+}
+
+/* Luxury keyframes */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
 }
 
 @layer components {
@@ -336,5 +380,33 @@
 
   .admin-workspace-frame {
     @apply min-h-[calc(100vh-8.5rem)] rounded-[2rem] border border-dashed border-app-border bg-app-card shadow-panel;
+  }
+
+  /* ── Luxury Glass Panel ── */
+  .glass-panel {
+    background: rgba(255, 248, 239, 0.72);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(252, 248, 245, 0.35);
+  }
+
+  .glass-panel-strong {
+    background: rgba(255, 248, 239, 0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(234, 216, 199, 0.4);
+  }
+
+  /* ── Luxury entrance animations ── */
+  .animate-fade-up {
+    animation: fadeUp 0.5s cubic-bezier(0.19, 1, 0.22, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease both;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s cubic-bezier(0.19, 1, 0.22, 1) both;
   }
 }

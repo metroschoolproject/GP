@@ -289,18 +289,18 @@ $dashboardContent = function () use (
   /* ── Booking Detail — Admin Redesign ── */
   .admin-booking-detail-outlet {
     min-height: 100%;
-    background: #FBFBF9;
+    background: #F4F1EE;
     padding: 32px 36px;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    color: #111827;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    color: #6d4c5b;
     font-size: 13px;
     overflow-y: auto;
     -webkit-font-smoothing: antialiased;
   }
 
   .bkd-page {
-    --bkd-surface: #fcf8f5;
-    --bkd-soft: #faf5ef;
+    --bkd-surface: #FFFFFF;
+    --bkd-soft: #FFFFFF;
     --bkd-border: #ead8c7;
     --bkd-border-light: #eddecc;
     --bkd-primary: #6d4c5b;
@@ -309,19 +309,19 @@ $dashboardContent = function () use (
     --bkd-text: #111827;
     --bkd-muted: #b79c8b;
     --bkd-body: #7b5c69;
-    --bkd-success-bg: #d1fae5;
-    --bkd-success-text: #065f46;
+    --bkd-success-bg: #ECFDF5;
+    --bkd-success-text: #065F46;
     --bkd-success-border: #059669;
-    --bkd-warn-bg: #fef3c7;
-    --bkd-warn-text: #92400e;
+    --bkd-warn-bg: #FFFBEB;
+    --bkd-warn-text: #92400E;
     --bkd-warn-border: #d97706;
-    --bkd-danger-bg: #fee2e2;
-    --bkd-danger-text: #991b1b;
+    --bkd-danger-bg: #FEF2F2;
+    --bkd-danger-text: #991B1B;
     --bkd-danger-border: #dc2626;
     --bkd-info-bg: #e8e7ff;
     --bkd-info-text: #4f46a5;
-    --bkd-neutral-bg: #f3f4f6;
-    --bkd-neutral-text: #57534e;
+    --bkd-neutral-bg: #F5F5F4;
+    --bkd-neutral-text: #78716C;
     max-width: 1600px;
     margin: 0 auto;
   }
@@ -401,7 +401,7 @@ $dashboardContent = function () use (
   .bkd-btn--primary {
     border: 1px solid var(--bkd-primary);
     background: var(--bkd-primary);
-    color: #fcf8f5;
+    color: #FFFFFF;
     font-weight: 800;
   }
   .bkd-btn--primary:hover {
@@ -411,7 +411,7 @@ $dashboardContent = function () use (
   .bkd-btn--success {
     border: 1px solid var(--bkd-success-border);
     background: var(--bkd-success-text);
-    color: #fcf8f5;
+    color: #FFFFFF;
     font-weight: 800;
   }
   .bkd-btn--success:hover {
@@ -421,7 +421,7 @@ $dashboardContent = function () use (
   .bkd-btn--danger {
     border: 1px solid var(--bkd-danger-border);
     background: var(--bkd-danger-text);
-    color: #fcf8f5;
+    color: #FFFFFF;
     font-weight: 800;
   }
   .bkd-btn--danger:hover {
@@ -446,7 +446,7 @@ $dashboardContent = function () use (
   }
   .bkd-stat:hover { box-shadow: 0 2px 8px rgba(28, 25, 23, .06); }
   .bkd-stat--primary { border-left-color: var(--bkd-primary); }
-  .bkd-stat--neutral { border-left-color: #a8a29e; }
+  .bkd-stat--neutral { border-left-color: #A8A29E; }
   .bkd-stat--success { border-left-color: var(--bkd-success-border); }
   .bkd-stat--danger { border-left-color: var(--bkd-danger-border); }
   .bkd-stat-label {
@@ -686,7 +686,7 @@ $dashboardContent = function () use (
     width: 100%;
     max-height: 220px;
     object-fit: contain;
-    background: #fcf8f5;
+    background: #FFFFFF;
   }
   .bkd-proof-file {
     display: flex;
@@ -766,8 +766,8 @@ $dashboardContent = function () use (
     height: 46px;
     margin-bottom: 16px;
     border-radius: .75rem;
-    background: #fee2e2;
-    color: #991b1b;
+    background: #FEF2F2;
+    color: #991B1B;
   }
   .bkd-modal-icon svg { width: 22px; height: 22px; }
   .bkd-modal-title {
@@ -814,7 +814,7 @@ $dashboardContent = function () use (
   .bkd-modal-error {
     display: none;
     margin-top: 7px;
-    color: #991b1b;
+    color: #991B1B;
     font-size: 11px;
     font-weight: 700;
   }
@@ -960,7 +960,7 @@ $dashboardContent = function () use (
   .bkd-dot--success { background: #059669; }
   .bkd-dot--warn    { background: #d97706; }
   .bkd-dot--danger  { background: #dc2626; }
-  .bkd-dot--neutral { background: #a8a29e; }
+  .bkd-dot--neutral { background: #A8A29E; }
 
   /* ── Timeline ── */
   .bkd-timeline { display: grid; }
@@ -1072,7 +1072,7 @@ $dashboardContent = function () use (
     padding: 30px;
   }
   .bkd-page {
-    --bkd-text: #34232b;
+    --bkd-text: #6d4c5b;
     --bkd-body: #7b5c69;
     --bkd-muted: #a58b96;
     max-width: 1450px;
@@ -1091,7 +1091,7 @@ $dashboardContent = function () use (
     font-size: clamp(31px, 3vw, 43px);
     font-weight: 650;
     line-height: 1;
-    color: #34232b;
+    color: #6d4c5b;
   }
   .bkd-ref em {
     color: #7b5c69;
@@ -1109,7 +1109,7 @@ $dashboardContent = function () use (
     border: 1px solid var(--bkd-border);
     border-radius: 999px;
     padding: 0 13px;
-    background: #fcf8f5;
+    background: #FFFFFF;
     color: var(--bkd-primary);
     font-size: 10px;
     font-weight: 800;
@@ -1137,7 +1137,7 @@ $dashboardContent = function () use (
     margin-bottom: 14px;
     border: 1px solid var(--bkd-border);
     border-radius: 15px;
-    background: #fcf8f5;
+    background: #FFFFFF;
     box-shadow: 0 18px 45px rgba(52,35,43,.055);
   }
   .bkd-stat {
@@ -1149,10 +1149,10 @@ $dashboardContent = function () use (
   }
   .bkd-stat:last-child { border-right: 0; }
   .bkd-stat-value {
-    font-family: "Inter", sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 25px;
     font-weight: 750;
-    color: #34232b;
+    color: #6d4c5b;
     font-variant-numeric: tabular-nums;
     letter-spacing: -.025em;
   }
@@ -1168,7 +1168,7 @@ $dashboardContent = function () use (
     border: 1px solid var(--bkd-border);
     border-radius: 13px;
     padding: 8px;
-    background: #faf5ef;
+    background: #FFFFFF;
   }
   .bkd-command-nav a {
     display: inline-flex;
@@ -1186,7 +1186,7 @@ $dashboardContent = function () use (
   }
   .bkd-command-nav a:hover,
   .bkd-command-nav a:focus-visible {
-    background: #fcf8f5;
+    background: #FFFFFF;
     color: var(--bkd-primary);
     outline: none;
   }
@@ -1213,7 +1213,7 @@ $dashboardContent = function () use (
     padding: 14px 18px;
   }
   .bkd-card-title {
-    color: #34232b;
+    color: #6d4c5b;
     font-size: 12px;
     font-weight: 800;
   }
@@ -1242,14 +1242,14 @@ $dashboardContent = function () use (
     background: linear-gradient(145deg,#6d4c5b,#7b5c69);
   }
   .bkd-action-center .bkd-card-title,
-  .bkd-action-center .bkd-card-meta { color: #fcf8f5; }
+  .bkd-action-center .bkd-card-meta { color: #FFFFFF; }
   .bkd-action-center .bkd-card-icon {
     background: rgba(252,248,245,.13);
-    color: #fcf8f5;
+    color: #FFFFFF;
   }
   .bkd-proof-link {
     border-radius: 11px;
-    background: #faf5ef;
+    background: #FFFFFF;
   }
   .bkd-proof-link img { max-height: 260px; }
   .bkd-review-form {
@@ -1292,7 +1292,7 @@ $dashboardContent = function () use (
     gap: 18px;
     align-items: stretch;
     border-bottom: 1px solid var(--bkd-border-light);
-    background: linear-gradient(120deg,#f2e5d8,#faf5ef 55%,#fcf8f5);
+    background: linear-gradient(120deg,#f2e5d8,#FFFFFF 55%,#FFFFFF);
   }
   .bkd-run-date {
     display: flex;
@@ -1338,7 +1338,7 @@ $dashboardContent = function () use (
   }
   .bkd-run-summary-title {
     margin: 5px 0 0;
-    color: #34232b;
+    color: #6d4c5b;
     font-family: "Playfair Display", serif;
     font-size: 20px;
     font-weight: 650;
@@ -1375,7 +1375,7 @@ $dashboardContent = function () use (
   }
   .bkd-run-time {
     padding-top: 2px;
-    color: #34232b;
+    color: #6d4c5b;
     font-family: ui-monospace,SFMono-Regular,Menlo,monospace;
     font-size: 11px;
     font-weight: 800;
@@ -1405,7 +1405,7 @@ $dashboardContent = function () use (
     width: 11px;
     height: 11px;
     flex: 0 0 11px;
-    border: 3px solid #fcf8f5;
+    border: 3px solid #FFFFFF;
     border-radius: 50%;
     background: var(--bkd-primary);
     box-shadow: 0 0 0 2px #ceb4a3;
@@ -1418,7 +1418,7 @@ $dashboardContent = function () use (
     padding: 0 0 20px 2px;
   }
   .bkd-run-service {
-    color: #34232b;
+    color: #6d4c5b;
     font-size: 12px;
     font-weight: 800;
     line-height: 1.4;
@@ -1430,7 +1430,7 @@ $dashboardContent = function () use (
     margin-left: 7px;
     border-radius: 999px;
     padding: 0 7px;
-    background: #faf5ef;
+    background: #FFFFFF;
     color: #9b7d89;
     font-size: 7px;
     font-weight: 800;
@@ -1603,8 +1603,8 @@ $dashboardContent = function () use (
     if ($isPendingSupplier) {
         $currentStep = 2;
         $stepLabel = 'Waiting for Supplier Response';
-        $stepColor = '#92400e';
-        $stepBg = '#fef3c7';
+        $stepColor = '#92400E';
+        $stepBg = '#FFFBEB';
         $stepIcon = 'clock';
     } elseif ($isPendingPayment) {
         $currentStep = 3;
@@ -1616,19 +1616,19 @@ $dashboardContent = function () use (
         $currentStep = 3;
         $stepLabel = 'Payment Submitted — Needs Review';
         $stepColor = '#b45309';
-        $stepBg = '#fef3c7';
+        $stepBg = '#FFFBEB';
         $stepIcon = 'alert-circle';
     } elseif ($isConfirmed) {
         $currentStep = 4;
         $stepLabel = 'Booking Confirmed';
-        $stepColor = '#065f46';
-        $stepBg = '#d1fae5';
+        $stepColor = '#065F46';
+        $stepBg = '#ECFDF5';
         $stepIcon = 'check-circle';
     } elseif ($isCancelled) {
         $currentStep = 0;
         $stepLabel = 'Booking Cancelled';
-        $stepColor = '#991b1b';
-        $stepBg = '#fee2e2';
+        $stepColor = '#991B1B';
+        $stepBg = '#FEF2F2';
         $stepIcon = 'x-circle';
     }
   ?>
@@ -1667,12 +1667,12 @@ $dashboardContent = function () use (
           $isComplete = $num < $currentStep || ($num === $currentStep && $currentStep === 4);
           $isCurrent = $num === $currentStep && $currentStep < 4;
           $isFuture = $num > $currentStep;
-          $stepBorderColor = $isComplete ? '#065f46' : ($isCurrent ? $stepColor : '#e5e7eb');
-          $stepTextColor = $isComplete ? '#065f46' : ($isCurrent ? $stepColor : '#9ca3af');
-          $stepBgColor = $isComplete ? '#d1fae5' : ($isCurrent ? $stepBg : '#f9fafb');
+          $stepBorderColor = $isComplete ? '#065F46' : ($isCurrent ? $stepColor : '#e5e7eb');
+          $stepTextColor = $isComplete ? '#065F46' : ($isCurrent ? $stepColor : '#9ca3af');
+          $stepBgColor = $isComplete ? '#ECFDF5' : ($isCurrent ? $stepBg : '#f9fafb');
         ?>
-        <div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 16px;border-right:1px solid #f3f4f6;background:<?= $stepBgColor ?><?= $isCurrent ? ';box-shadow:inset 0 -3px 0 ' . $stepColor : '' ?>">
-          <div style="width:32px;height:32px;border-radius:50%;background:<?= $isComplete ? '#065f46' : ($isCurrent ? $stepColor : '#e5e7eb') ?>;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:800;flex-shrink:0">
+        <div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 16px;border-right:1px solid #F5F5F4;background:<?= $stepBgColor ?><?= $isCurrent ? ';box-shadow:inset 0 -3px 0 ' . $stepColor : '' ?>">
+          <div style="width:32px;height:32px;border-radius:50%;background:<?= $isComplete ? '#065F46' : ($isCurrent ? $stepColor : '#e5e7eb') ?>;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:800;flex-shrink:0">
             <?php if ($isComplete): ?>
               <i data-lucide="check" style="width:16px;height:16px"></i>
             <?php else: ?>
@@ -1684,7 +1684,7 @@ $dashboardContent = function () use (
             <?php if ($isCurrent): ?>
               <div style="font-size:10px;color:<?= $stepColor ?>;font-weight:600;margin-top:1px">Current</div>
             <?php elseif ($isComplete): ?>
-              <div style="font-size:10px;color:#065f46;font-weight:600;margin-top:1px">Done</div>
+              <div style="font-size:10px;color:#065F46;font-weight:600;margin-top:1px">Done</div>
             <?php endif; ?>
           </div>
         </div>
@@ -2222,7 +2222,7 @@ $dashboardContent = function () use (
       <div class="bkd-card">
         <div class="bkd-card-head">
           <div class="bkd-card-head-left">
-            <div class="bkd-card-icon" style="background:var(--bkd-info-bg,#dbeafe);color:var(--bkd-info-text,#1e40af)">
+            <div class="bkd-card-icon" style="background:var(--bkd-info-bg,#EEF2FF);color:var(--bkd-info-text,#3730A3)">
               <i data-lucide="undo-2"></i>
             </div>
             <span class="bkd-card-title">Refund</span>

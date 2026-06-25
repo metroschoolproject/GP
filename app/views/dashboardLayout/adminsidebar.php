@@ -33,28 +33,28 @@ if (!function_exists('dashboard_admin_nav_class')) {
 
     function dashboard_admin_nav_class($path, $currentPath, $exact = false)
     {
-        $base = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition';
+        $base = 'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]';
         $isActive = dashboard_admin_path_matches($path, $currentPath, $exact);
 
         return $isActive
             ? $base . ' bg-app-primary text-app-white shadow-sm'
-            : $base . ' text-app-text hover:bg-app-input hover:shadow-sm';
+            : $base . ' text-app-text hover:bg-app-sidebar-hover hover:shadow-sm';
     }
 
     function dashboard_admin_subnav_class($path, $currentPath)
     {
-        $base = 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition';
+        $base = 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]';
         $isActive = dashboard_admin_path_matches($path, $currentPath);
 
         return $isActive
             ? $base . ' bg-app-primary text-app-white shadow-sm'
-            : $base . ' text-app-secondary hover:bg-app-input hover:text-app-text';
+            : $base . ' text-app-muted hover:bg-app-sidebar-hover hover:text-app-text';
     }
 }
 ?>
-<aside class="border-r border-r-app-sidebar bg-app-sidebar">
+<aside class="bg-app-sidebar border-r border-app-panel-border">
     <div class="flex h-full flex-col">
-        <div class="border-b border-b-app-panel-border bg-app-panel px-5 py-5">
+        <div class="border-b border-app-panel-border bg-app-panel px-5 py-5">
             <div class="flex items-center gap-3">
                 <?php $sidebarAvatar = $_SESSION['session_avatar'] ?? null; ?>
                 <?php if (!empty($sidebarAvatar)): ?>
@@ -93,27 +93,25 @@ if (!function_exists('dashboard_admin_nav_class')) {
                 <span class="flex-1">Dashboard</span>
             </a>
 
-            <div class="space-y-1">
-                <button type="button" data-subnav-toggle="bookings" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition <?= strpos($currentPath, 'admin/booking') !== false || strpos($currentPath, 'admin/replacement') !== false ? 'bg-app-primary text-app-white shadow-sm' : 'text-app-text hover:bg-app-input hover:shadow-sm' ?>">
-                    <i data-lucide="calendar-days" class="h-4 w-4 text-app-header-muted"></i>
-                    <span class="flex-1 text-left">Bookings</span>
-                    <i data-chevron="bookings" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
+            <?php $bookingsActive = strpos($currentPath, 'admin/booking') !== false || strpos($currentPath, 'admin/replacement') !== false; ?>
+            <div class="admin-sidebar-group" data-open="<?= $bookingsActive ? 'true' : 'false' ?>">
+                <button type="button"
+                        class="admin-sidebar-group-trigger <?= $bookingsActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 transition text-app-text hover:bg-app-sidebar-hover' ?>"
+                        aria-expanded="<?= $bookingsActive ? 'true' : 'false' ?>"
+                        title="Bookings">
+                    <i data-lucide="calendar-days" class="h-4 w-4 <?= $bookingsActive ? '' : 'text-app-header-muted' ?>"></i>
+                    <span class="flex-1 text-left text-sm font-medium">Bookings</span>
+                    <i data-lucide="chevron-down" class="admin-sidebar-group-chevron h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div data-subnav-panel="bookings" class="<?= strpos($currentPath, 'admin/booking') !== false ? '' : 'hidden' ?> pl-6">
-                    <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                        <a href="<?= URLROOT ?>/admin/bookings" class="<?= dashboard_admin_subnav_class('admin/bookings', $currentPath) ?>">
-                            <i data-lucide="list-filter" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>All bookings</span>
-                        </a>
-                        <a href="<?= URLROOT ?>/admin/bookings?status=pending_payment" class="<?= dashboard_admin_subnav_class('admin/bookings/pending', $currentPath) ?>">
-                            <i data-lucide="clock" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Pending payment</span>
-                        </a>
-                        <a href="<?= URLROOT ?>/admin/replacementQueue" class="<?= dashboard_admin_subnav_class('admin/replacementQueue', $currentPath) ?>">
-                            <i data-lucide="refresh-cw" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Replacements</span>
-                        </a>
-                    </div>
+                <div class="admin-sidebar-subnav">
+                    <a href="<?= URLROOT ?>/admin/bookings" class="<?= dashboard_admin_path_matches('admin/bookings', $currentPath, true) ? 'is-active' : '' ?>">
+                        <i data-lucide="list-filter" class="h-3.5 w-3.5"></i>
+                        All bookings
+                    </a>
+                    <a href="<?= URLROOT ?>/admin/replacementQueue" class="<?= strpos($currentPath, 'admin/replacementQueue') !== false ? 'is-active' : '' ?>">
+                        <i data-lucide="refresh-cw" class="h-3.5 w-3.5"></i>
+                        Replacements
+                    </a>
                 </div>
             </div>
 
@@ -132,52 +130,55 @@ if (!function_exists('dashboard_admin_nav_class')) {
                 <span class="flex-1">Suppliers</span>
             </a>
 
-            <div class="space-y-1">
-                <?php $customersActive = strpos($currentPath, 'admin/customer') !== false; ?>
-                <button type="button" data-subnav-toggle="customers" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition <?= $customersActive ? 'bg-app-primary text-app-white shadow-sm' : 'text-app-text hover:bg-app-input hover:shadow-sm' ?>">
-                    <i data-lucide="users" class="h-4 w-4 text-app-header-muted"></i>
-                    <span class="flex-1 text-left">Customers</span>
-                    <i data-chevron="customers" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
+            <?php $customersActive = strpos($currentPath, 'admin/customer') !== false; ?>
+            <div class="admin-sidebar-group" data-open="<?= $customersActive ? 'true' : 'false' ?>">
+                <button type="button"
+                        class="admin-sidebar-group-trigger <?= $customersActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 transition text-app-text hover:bg-app-sidebar-hover' ?>"
+                        aria-expanded="<?= $customersActive ? 'true' : 'false' ?>"
+                        title="Customers">
+                    <i data-lucide="users" class="h-4 w-4 <?= $customersActive ? '' : 'text-app-header-muted' ?>"></i>
+                    <span class="flex-1 text-left text-sm font-medium">Customers</span>
+                    <i data-lucide="chevron-down" class="admin-sidebar-group-chevron h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div data-subnav-panel="customers" class="<?= $customersActive ? '' : 'hidden' ?> pl-6">
-                    <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                        <a href="<?= URLROOT ?>/admin/customers" class="<?= dashboard_admin_subnav_class('admin/customers', $currentPath) ?>">
-                            <i data-lucide="users" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>All customers</span>
-                        </a>
-                        <a href="<?= URLROOT ?>/admin/customers?status=banned" class="ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text">
-                            <i data-lucide="user-x" class="h-3.5 w-3.5 text-app-danger"></i>
-                            <span>Suspended / Banned</span>
-                        </a>
-                    </div>
+                <div class="admin-sidebar-subnav">
+                    <a href="<?= URLROOT ?>/admin/customers" class="<?= dashboard_admin_path_matches('admin/customers', $currentPath, true) ? 'is-active' : '' ?>">
+                        <i data-lucide="users" class="h-3.5 w-3.5"></i>
+                        All customers
+                    </a>
+                    <a href="<?= URLROOT ?>/admin/customers?status=banned" class="<?= isset($_GET['status']) && $_GET['status'] === 'banned' ? 'is-active' : '' ?>">
+                        <i data-lucide="user-x" class="h-3.5 w-3.5"></i>
+                        Suspended / Banned
+                    </a>
                 </div>
             </div>
 
-            <div class="space-y-1">
-                <button type="button" data-subnav-toggle="payments" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition <?= strpos($currentPath, 'admin/payment') !== false || strpos($currentPath, 'admin/refund') !== false ? 'bg-app-primary text-app-white shadow-sm' : 'text-app-text hover:bg-app-input hover:shadow-sm' ?>">
-                    <i data-lucide="store" class="h-4 w-4 text-app-header-muted"></i>
-                    <span class="flex-1 text-left">Payments</span>
-                    <i data-chevron="payments" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
+            <?php $paymentsActive = strpos($currentPath, 'admin/payment') !== false || strpos($currentPath, 'admin/refund') !== false; ?>
+            <div class="admin-sidebar-group" data-open="<?= $paymentsActive ? 'true' : 'false' ?>">
+                <button type="button"
+                        class="admin-sidebar-group-trigger <?= $paymentsActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 transition text-app-text hover:bg-app-sidebar-hover' ?>"
+                        aria-expanded="<?= $paymentsActive ? 'true' : 'false' ?>"
+                        title="Payments">
+                    <i data-lucide="wallet" class="h-4 w-4 <?= $paymentsActive ? '' : 'text-app-header-muted' ?>"></i>
+                    <span class="flex-1 text-left text-sm font-medium">Payments</span>
+                    <i data-lucide="chevron-down" class="admin-sidebar-group-chevron h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                 </button>
-                <div data-subnav-panel="payments" class="<?= strpos($currentPath, 'admin/payment') !== false || strpos($currentPath, 'admin/refund') !== false ? '' : 'hidden' ?> pl-6">
-                    <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                        <a href="<?= URLROOT ?>/admin/paymentVerification" class="<?= strpos($currentPath, 'admin/paymentVerification') !== false ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
-                            <i data-lucide="receipt-text" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Deposit verification</span>
-                        </a>
-                        <a href="<?= URLROOT ?>/admin/payments?status=all" class="<?= strpos($currentPath, 'admin/paymentVerification') === false && strpos($currentPath, 'admin/refund') === false && $paymentStatusFilter === 'all' ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
-                            <i data-lucide="credit-card" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>History</span>
-                        </a>
-                        <a href="<?= URLROOT ?>/admin/payments?status=pending" class="<?= strpos($currentPath, 'admin/paymentVerification') === false && strpos($currentPath, 'admin/refund') === false && $paymentStatusFilter === 'pending' ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
-                            <i data-lucide="clock" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Pending</span>
-                        </a>
-                        <a href="<?= URLROOT ?>/admin/refundQueue" class="<?= strpos($currentPath, 'admin/refund') !== false ? 'ml-3 flex items-center gap-2 rounded-lg bg-app-primary px-3 py-2 text-sm text-app-white shadow-sm transition' : 'ml-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-app-secondary transition hover:bg-app-input hover:text-app-text' ?>">
-                            <i data-lucide="undo-2" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                            <span>Refunds</span>
-                        </a>
-                    </div>
+                <div class="admin-sidebar-subnav">
+                    <a href="<?= URLROOT ?>/admin/paymentVerification" class="<?= strpos($currentPath, 'admin/paymentVerification') !== false ? 'is-active' : '' ?>">
+                        <i data-lucide="receipt-text" class="h-3.5 w-3.5"></i>
+                        Deposit verification
+                    </a>
+                    <a href="<?= URLROOT ?>/admin/payments?status=all" class="<?= strpos($currentPath, 'admin/payments') !== false && ($paymentStatusFilter ?? '') === 'all' ? 'is-active' : '' ?>">
+                        <i data-lucide="credit-card" class="h-3.5 w-3.5"></i>
+                        History
+                    </a>
+                    <a href="<?= URLROOT ?>/admin/payments?status=pending" class="<?= strpos($currentPath, 'admin/payments') !== false && ($paymentStatusFilter ?? '') === 'pending' ? 'is-active' : '' ?>">
+                        <i data-lucide="clock" class="h-3.5 w-3.5"></i>
+                        Pending
+                    </a>
+                    <a href="<?= URLROOT ?>/admin/refundQueue" class="<?= strpos($currentPath, 'admin/refund') !== false ? 'is-active' : '' ?>">
+                        <i data-lucide="undo-2" class="h-3.5 w-3.5"></i>
+                        Refunds
+                    </a>
                 </div>
             </div>
 
@@ -191,23 +192,25 @@ if (!function_exists('dashboard_admin_nav_class')) {
                         <i data-lucide="bell" class="h-4 w-4 text-app-header-muted"></i>
                         <span class="flex-1">Notifications</span>
                     </a>
-                    <div class="space-y-1">
-                        <button type="button" data-subnav-toggle="settings" aria-expanded="false" class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition <?= (strpos($currentPath, 'admin/logs') !== false || strpos($currentPath, 'admin/settings') !== false) ? 'bg-app-primary text-app-white shadow-sm' : 'text-app-text hover:bg-app-input hover:shadow-sm' ?>">
-                            <i data-lucide="settings" class="h-4 w-4 text-app-header-muted"></i>
-                            <span class="flex-1 text-left">Settings</span>
-                            <i data-chevron="settings" data-lucide="chevron-down" class="h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
+                    <?php $settingsActive = strpos($currentPath, 'admin/logs') !== false || strpos($currentPath, 'admin/settings') !== false; ?>
+                    <div class="admin-sidebar-group" data-open="<?= $settingsActive ? 'true' : 'false' ?>">
+                        <button type="button"
+                                class="admin-sidebar-group-trigger <?= $settingsActive ? 'flex items-center gap-3 rounded-xl px-4 py-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 rounded-xl px-4 py-3 transition text-app-text hover:bg-app-sidebar-hover' ?>"
+                                aria-expanded="<?= $settingsActive ? 'true' : 'false' ?>"
+                                title="Settings">
+                            <i data-lucide="settings" class="h-4 w-4 <?= $settingsActive ? '' : 'text-app-header-muted' ?>"></i>
+                            <span class="flex-1 text-left text-sm font-medium">Settings</span>
+                            <i data-lucide="chevron-down" class="admin-sidebar-group-chevron h-4 w-4 text-app-header-muted transition-transform duration-200"></i>
                         </button>
-                        <div data-subnav-panel="settings" class="<?= (strpos($currentPath, 'admin/logs') !== false || strpos($currentPath, 'admin/settings') !== false) ? '' : 'hidden' ?> pl-6">
-                            <div class="space-y-0.5 border-l border-app-panel-border py-1">
-                                <a href="<?= URLROOT ?>/admin/settings" class="<?= dashboard_admin_subnav_class('admin/settings', $currentPath) ?>">
-                                    <i data-lucide="percent" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                                    <span>Platform fees</span>
-                                </a>
-                                <a href="<?= URLROOT ?>/admin/logs" class="<?= dashboard_admin_subnav_class('admin/logs', $currentPath) ?>">
-                                    <i data-lucide="scroll-text" class="h-3.5 w-3.5 text-app-header-muted"></i>
-                                    <span>System logs</span>
-                                </a>
-                            </div>
+                        <div class="admin-sidebar-subnav">
+                            <a href="<?= URLROOT ?>/admin/settings" class="<?= strpos($currentPath, 'admin/settings') !== false ? 'is-active' : '' ?>">
+                                <i data-lucide="percent" class="h-3.5 w-3.5"></i>
+                                Platform fees
+                            </a>
+                            <a href="<?= URLROOT ?>/admin/logs" class="<?= strpos($currentPath, 'admin/logs') !== false ? 'is-active' : '' ?>">
+                                <i data-lucide="scroll-text" class="h-3.5 w-3.5"></i>
+                                System logs
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -215,12 +218,12 @@ if (!function_exists('dashboard_admin_nav_class')) {
         </nav>
 
         <div class="mt-auto border-t border-app-panel-border px-4 py-4">
-            <a href="<?= URLROOT ?>/admin/logout" class="group flex w-full items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-app-input hover:shadow-sm">
-                <span class="flex h-8 w-8 items-center justify-center rounded-xl text-app-danger transition group-hover:bg-app-danger-soft">
+            <a href="<?= URLROOT ?>/admin/logout" class="group flex w-full items-center gap-3 rounded-xl px-4 py-3 transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] hover:bg-app-sidebar-hover">
+                <span class="flex h-8 w-8 items-center justify-center rounded-xl text-app-header-muted transition-all duration-300 group-hover:text-app-danger group-hover:bg-app-danger-soft">
                     <i data-lucide="log-out" class="h-5 w-5"></i>
                 </span>
                 <span class="flex-1 text-left text-sm font-semibold text-app-text">Log Out</span>
-                <i data-lucide="chevron-right" class="h-4 w-4 text-app-header-muted"></i>
+                <i data-lucide="chevron-right" class="h-4 w-4 text-app-header-muted transition-transform duration-300 group-hover:translate-x-0.5"></i>
             </a>
         </div>
     </div>
@@ -246,7 +249,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
                         <span class="text-app-header-muted">/</span>
                     <?php endif; ?>
                     <?php if (!$isLastCrumb && $crumbUrl): ?>
-                        <a href="<?= htmlspecialchars($crumbUrl, ENT_QUOTES, 'UTF-8') ?>" class="text-app-header-muted transition hover:text-app-text"><?= $crumbLabel ?></a>
+                        <a href="<?= htmlspecialchars($crumbUrl, ENT_QUOTES, 'UTF-8') ?>" class="text-app-header-muted transition-colors duration-150 hover:text-app-primary"><?= $crumbLabel ?></a>
                     <?php else: ?>
                         <span class="<?= $isLastCrumb ? 'text-app-text' : 'text-app-header-muted' ?>"><?= $crumbLabel ?></span>
                     <?php endif; ?>
@@ -282,21 +285,12 @@ if (!function_exists('dashboard_admin_nav_class')) {
         dashboardSearch.select();
     });
 
-    document.querySelectorAll('[data-subnav-toggle]').forEach((btn) => {
-        const key = btn.dataset.subnavToggle;
-        const panel = document.querySelector(`[data-subnav-panel="${key}"]`);
-        const chevron = document.querySelector(`[data-chevron="${key}"]`);
-
-        if (panel && !panel.classList.contains('hidden')) {
-            btn.setAttribute('aria-expanded', 'true');
-            chevron?.classList.add('rotate-180');
-        }
-
+    document.querySelectorAll('.admin-sidebar-group-trigger').forEach((btn) => {
         btn.addEventListener('click', () => {
-            const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-            btn.setAttribute('aria-expanded', String(!isExpanded));
-            panel?.classList.toggle('hidden', isExpanded);
-            chevron?.classList.toggle('rotate-180', !isExpanded);
+            const group = btn.closest('.admin-sidebar-group');
+            const isOpen = group.dataset.open === 'true';
+            group.dataset.open = isOpen ? 'false' : 'true';
+            btn.setAttribute('aria-expanded', String(!isOpen));
         });
     });
 
@@ -313,16 +307,50 @@ if (!function_exists('dashboard_admin_nav_class')) {
         --admin-sidebar-hover: #eddecc;
         --admin-soft: #faf5ef;
         --admin-danger-soft: #f9dede;
-        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
         font-variant-numeric: tabular-nums;
     }
+
     .admin-dashboard-topbar nav[aria-label="Breadcrumb"] {
         font-size: 10px;
         letter-spacing: .08em;
-        color: var(--admin-muted);
     }
-    .admin-dashboard-topbar nav[aria-label="Breadcrumb"] a:hover {
-        color: var(--admin-primary);
+
+    /* Sub-dropdown — matches supplier sidebar */
+    .admin-sidebar-group-trigger {
+        width: 100%;
+        border: 0;
+        cursor: pointer;
+    }
+    .admin-sidebar-subnav {
+        display: none;
+        margin: 4px 0 8px 34px;
+        padding: 4px 0 4px 12px;
+        border-left: 1px solid var(--color-app-panel-border, #eddecc);
+    }
+    .admin-sidebar-group[data-open="true"] .admin-sidebar-subnav {
+        display: grid;
+        gap: 2px;
+    }
+    .admin-sidebar-subnav a {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        border-radius: 12px;
+        padding: 0 16px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-app-muted, #b79c8b);
+        transition: all 300ms cubic-bezier(0.19, 1, 0.22, 1);
+    }
+    .admin-sidebar-subnav a:hover,
+    .admin-sidebar-subnav a.is-active {
+        background: var(--color-app-sidebar-hover, #eddecc);
+        color: var(--color-app-primary, #6d4c5b);
+    }
+    .admin-sidebar-group[data-open="true"] .admin-sidebar-group-chevron {
+        transform: rotate(180deg);
     }
 </style>
 <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>

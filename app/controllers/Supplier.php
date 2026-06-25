@@ -573,6 +573,7 @@ class Supplier extends SupplierControllerSupport
             'business_url'  => $supplier['business_url'] ?? '',
             'category_names' => $supplier['category_names'] ?? '',
             'payment_status' => $supplier['payment_status'] ?? 'unpaid',
+            'business_license_url' => $supplier['business_license_url'] ?? null,
 
             // Owner info
             'user_id'    => $userId,
@@ -592,6 +593,115 @@ class Supplier extends SupplierControllerSupport
         ];
 
         $this->view('supplier/profile/profile', $data);
+    }
+
+    /**
+     * Supplier settings page.
+     */
+    public function settings()
+    {
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            redirect('users/login');
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier) {
+            redirect('supplier/onboarding');
+        }
+
+        // Parse notification preferences (JSON column or defaults)
+        $notifPrefs = [];
+        if (!empty($supplier['notification_prefs'])) {
+            $decoded = json_decode($supplier['notification_prefs'], true);
+            if (is_array($decoded)) {
+                $notifPrefs = $decoded;
+            }
+        }
+        $defaults = [
+            'new_booking' => true,
+            'payment_received' => true,
+            'new_review' => true,
+            'publish_approved' => true,
+        ];
+        $notifPrefs = array_merge($defaults, $notifPrefs);
+
+        $data = [
+            'supplier_id'          => (int)($supplier['supplier_id'] ?? 0),
+            'is_available'         => (int)($supplier['is_available'] ?? 0),
+            'auto_accept_bookings' => (int)($supplier['auto_accept_bookings'] ?? 0),
+            'min_advance_days'     => (int)($supplier['min_advance_days'] ?? 0),
+            'cancellation_policy'  => $supplier['cancellation_policy'] ?? '',
+            'bank_account'         => $supplier['bank_account'] ?? '',
+            'bank_code'            => $supplier['bank_code'] ?? '',
+            'platform_fee'         => (int) get_platform_fee_percent(),
+            'notification_prefs'   => $notifPrefs,
+        ];
+
+        $this->view('supplier/settings/settings', $data);
+    }
+
+    /**
+     * JSON endpoint — update supplier settings.
+     */
+    public function updateSettings()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier) {
+            echo json_encode(['ok' => false, 'error' => 'Supplier not found.']);
+            return;
+        }
+
+        $supplierId = (int)($supplier['supplier_id'] ?? 0);
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        $fields = [
+            'is_available'         => isset($input['is_available']) ? (int)$input['is_available'] : null,
+            'auto_accept_bookings' => isset($input['auto_accept_bookings']) ? (int)$input['auto_accept_bookings'] : null,
+            'min_advance_days'     => isset($input['min_advance_days']) ? max(0, (int)$input['min_advance_days']) : null,
+            'cancellation_policy'  => isset($input['cancellation_policy']) ? trim($input['cancellation_policy']) : null,
+            'bank_account'         => isset($input['bank_account']) ? trim($input['bank_account']) : null,
+            'bank_code'            => isset($input['bank_code']) ? trim($input['bank_code']) : null,
+            'notification_prefs'   => isset($input['notification_prefs']) ? json_encode($input['notification_prefs']) : null,
+        ];
+
+        // Remove nulls (fields not sent)
+        $fields = array_filter($fields, fn($v) => $v !== null);
+
+        if (empty($fields)) {
+            echo json_encode(['ok' => false, 'error' => 'No data to update.']);
+            return;
+        }
+
+        try {
+            $sets = [];
+            $params = [];
+            foreach ($fields as $col => $val) {
+                $sets[] = "$col = :$col";
+                $params[":$col"] = $val;
+            }
+            $sets[] = 'updated_at = NOW()';
+            $sql = 'UPDATE suppliers SET ' . implode(', ', $sets) . ' WHERE supplier_id = :sid';
+            $params[':sid'] = $supplierId;
+
+            $this->db->dbquery($sql);
+            foreach ($params as $k => $v) {
+                $this->db->dbbind($k, $v);
+            }
+            $this->db->dbexecute();
+
+            echo json_encode(['ok' => true]);
+        } catch (\Exception $e) {
+            echo json_encode(['ok' => false, 'error' => 'Failed to update settings.']);
+        }
     }
 
     /**

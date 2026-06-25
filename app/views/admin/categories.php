@@ -15,14 +15,14 @@ $dashboardContentClass = 'admin-cat-outlet';
 $dashboardContent = function () use ($categories, $stats, $search, $message) {
 ?>
 <style>
-  .admin-cat-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
+  .admin-cat-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
   .admin-cat-page *{box-sizing:border-box}
-  .admin-cat-page{--bg:#FBFBF9;--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--danger:#991b1b;--danger-bg:#fee2e2;--success:#065f46;--success-bg:#d1fae5;max-width:1600px;margin:0 auto}
+  .admin-cat-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--danger:#991B1B;--danger-bg:#FEF2F2;--success:#065F46;--success-bg:#ECFDF5;max-width:1600px;margin:0 auto}
 
   .page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
   .admin-cat-page h1{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin:0}
 
-  .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#fcf8f5;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
+  .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#FFFFFF;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-primary:hover{background:var(--primary-hover)}
   .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--primary);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-ghost:hover{background:var(--primary-soft)}
@@ -38,7 +38,7 @@ $dashboardContent = function () use ($categories, $stats, $search, $message) {
   .cat-toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:12px;font-size:13px;font-weight:600;font-family:'DM Sans',system-ui,sans-serif;box-shadow:0 8px 30px rgba(52,35,43,.22);transform:translateX(120%);transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s ease;pointer-events:none;opacity:0;max-width:380px}
   .cat-toast.show{transform:translateX(0);opacity:1;pointer-events:auto}
   .cat-toast-success{background:#166534;color:#fff}
-  .cat-toast-error{background:#991b1b;color:#fff}
+  .cat-toast-error{background:#991B1B;color:#fff}
   .cat-toast-icon{flex:0 0 auto;display:inline-flex}
   .cat-toast-close{border:0;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;display:inline-flex;padding:2px;margin-left:4px;flex:0 0 auto}
   .cat-toast-close:hover{color:#fff}
@@ -50,7 +50,7 @@ $dashboardContent = function () use ($categories, $stats, $search, $message) {
   .cat-table tr:hover td{background:var(--soft)}
 
   .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
-  .badge-neutral{background:#f3f4f6;color:#57534e}
+  .badge-neutral{background:#F5F5F4;color:#78716C}
 
   .actions{display:flex;gap:4px}
   .cat-name{font-weight:600;color:var(--primary)}
@@ -66,20 +66,20 @@ $dashboardContent = function () use ($categories, $stats, $search, $message) {
   .cat-modal.open{display:flex}
   .cat-modal-box{width:100%;max-width:440px;border-radius:16px;background:#fff;box-shadow:0 30px 70px rgba(52,35,43,.25);overflow:hidden}
   .cat-modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid #ead8c7}
-  .cat-modal-title{margin:0;font-size:13px;font-weight:800;color:#34232b}
+  .cat-modal-title{margin:0;font-size:13px;font-weight:800;color:#6d4c5b}
   .cat-modal-close{border:0;background:transparent;color:#a58b96;cursor:pointer;display:inline-flex;padding:4px;border-radius:6px}
-  .cat-modal-close:hover{background:#faf5ef;color:#34232b}
+  .cat-modal-close:hover{background:#FFFFFF;color:#6d4c5b}
   .cat-modal-body{padding:18px}
   .cat-field{margin-bottom:13px}
   .cat-field label{display:block;margin-bottom:5px;color:#7b5c69;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
-  .cat-field input{width:100%;box-sizing:border-box;border:1px solid #e4d2c3;border-radius:9px;padding:9px 11px;font:500 12px Inter,sans-serif;color:#34232b;outline:none;transition:border-color .12s}
+  .cat-field input{width:100%;box-sizing:border-box;border:1px solid #e4d2c3;border-radius:9px;padding:9px 11px;font:500 12px Inter,sans-serif;color:#6d4c5b;outline:none;transition:border-color .12s}
   .cat-field input:focus{border-color:#6d4c5b}
   .cat-field .hint{font-size:11px;color:#a58b96;margin-top:6px}
   .cat-modal-foot{display:flex;justify-content:flex-end;gap:9px;margin-top:4px}
   .cat-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;border-radius:10px;padding:0 14px;font-size:11px;font-weight:800;cursor:pointer;border:1px solid transparent;text-decoration:none;font-family:inherit;transition:background .12s}
   .cat-btn svg{width:14px;height:14px}
   .cat-btn-edit{border-color:#ddc8b9;background:#fff;color:#6d4c5b}
-  .cat-btn-edit:hover{background:#faf5ef}
+  .cat-btn-edit:hover{background:#FFFFFF}
   .cat-btn-ok{border-color:#bcdcc8;background:#edf7f1;color:#3c6b51}
   .cat-btn-ok:hover{background:#ddeee3}
   .cat-btn-danger{border-color:#e4b4b4;background:#fbeaea;color:#a23a3a}

@@ -35,8 +35,8 @@ $dashboardContent = function () use (
     $oldPrice = (float)($replacement['old_price'] ?? 0);
 ?>
 <style>
-  .admin-booking-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#111827;font-size:13px;overflow-y:auto}
-  .repl-page{--surface:#fff;--soft:#faf5ef;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--muted:#b79c8b;--body:#7b5c69;--text:#111827;max-width:1100px;margin:0 auto}
+  .admin-booking-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#6d4c5b;font-size:13px;overflow-y:auto}
+  .repl-page{--surface:#fff;--soft:#FFFFFF;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--muted:#b79c8b;--body:#7b5c69;--text:#111827;max-width:1100px;margin:0 auto}
   .repl-page h1{font-size:22px;font-weight:700;margin:0 0 4px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
   .back{color:#6d4c5b;font-size:12px;font-weight:700;text-decoration:none}
@@ -45,16 +45,16 @@ $dashboardContent = function () use (
   .meta .k{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px}
   .meta .v{font-size:14px;font-weight:700}
   table.cand{width:100%;border-collapse:collapse;margin-top:6px}
-  table.cand th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:11px 14px;border-bottom:1px solid var(--border);background:#faf5ef}
+  table.cand th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:11px 14px;border-bottom:1px solid var(--border);background:#FFFFFF}
   table.cand td{padding:12px 14px;border-bottom:1px solid #f0e6da;font-size:12.5px}
   .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
-  .pill.auto{background:#d1fae5;color:#065f46}
-  .pill.appr{background:#fef3c7;color:#92400e}
+  .pill.auto{background:#ECFDF5;color:#065F46}
+  .pill.appr{background:#FFFBEB;color:#92400E}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 15px;border:1px solid var(--primary);border-radius:.65rem;background:var(--primary);color:#fff;font-family:inherit;font-size:11.5px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(109,76,91,.15);transition:background .15s,box-shadow .15s,transform .15s}
   .btn:hover{background:var(--primary-hover);box-shadow:0 5px 14px rgba(109,76,91,.2);transform:translateY(-1px)}
   .btn:focus-visible{outline:3px solid rgba(109,76,91,.2);outline-offset:2px}
   .btn:disabled{opacity:.5;cursor:not-allowed}
-  .btn-verify{border-color:#065f46;background:#065f46;box-shadow:0 2px 6px rgba(6,95,70,.16)}
+  .btn-verify{border-color:#065F46;background:#065F46;box-shadow:0 2px 6px rgba(6,95,70,.16)}
   .btn-verify:hover{background:#047857}
   .note{font-size:11.5px;color:#7b5c69;margin-top:4px}
   .swap-summary{display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:14px;margin-top:14px}
@@ -73,7 +73,7 @@ $dashboardContent = function () use (
   .confirm-modal-backdrop{position:absolute;inset:0;background:rgba(17,24,39,.48);backdrop-filter:blur(3px)}
   .confirm-dialog{position:relative;width:min(100%,440px);overflow:hidden;border:1px solid var(--border);border-radius:1rem;background:var(--surface);box-shadow:0 24px 70px rgba(17,24,39,.22);animation:confirm-in .18s ease-out}
   .confirm-body{padding:26px 26px 20px}
-  .confirm-icon{width:46px;height:46px;display:grid;place-items:center;margin-bottom:16px;border-radius:.75rem;background:#fef3c7;color:#92400e}
+  .confirm-icon{width:46px;height:46px;display:grid;place-items:center;margin-bottom:16px;border-radius:.75rem;background:#FFFBEB;color:#92400E}
   .confirm-title{margin:0;color:var(--text);font-size:18px;font-weight:800}
   .confirm-copy{margin:8px 0 0;color:var(--body);font-size:13px;line-height:1.55}
   .confirm-note{display:flex;align-items:flex-start;gap:9px;margin-top:18px;padding:12px;border:1px solid var(--border-light);border-radius:.65rem;background:var(--soft);color:var(--body);font-size:11px;line-height:1.45}
@@ -112,7 +112,7 @@ $dashboardContent = function () use (
   </div>
 
   <?php if ($pendingCustomer): ?>
-    <div class="panel" style="border-color:#92400e;background:#fffbeb">
+    <div class="panel" style="border-color:#92400E;background:#fffbeb">
       <strong><?= $replacementProofSubmitted ? 'Customer payment submitted.' : 'Waiting on customer.' ?></strong>
       <div class="swap-summary">
         <div class="swap-service">
@@ -169,7 +169,7 @@ $dashboardContent = function () use (
               <td><strong><?= $h($c['shop_name'] ?? '-') ?></strong></td>
               <td><?= $h($c['service_name'] ?? '-') ?></td>
               <td><?= $money($c['price'] ?? 0) ?></td>
-              <td style="color:<?= $delta > 0 ? '#991b1b' : '#065f46' ?>">
+              <td style="color:<?= $delta > 0 ? '#991B1B' : '#065F46' ?>">
                 <?= $delta > 0 ? '+' . $money($delta) : ($delta < 0 ? '-' . $money(abs($delta)) : 'same') ?>
                 <?php if ($overCap): ?>
                   <br><span style="font-size:10px;font-weight:700;color:#b45309">over +<?= (int)$maxUpchargePct ?>% cap</span>
@@ -288,17 +288,17 @@ $dashboardContent = function () use (
       .then(r => r.json())
       .then(j => {
         if (j.success) {
-          msg.style.color = '#065f46';
+          msg.style.color = '#065F46';
           msg.textContent = j.message || 'Done.';
           setTimeout(() => { window.location.href = base + '/admin/replacementQueue'; }, 1100);
         } else {
-          msg.style.color = '#991b1b';
+          msg.style.color = '#991B1B';
           msg.textContent = j.error || 'Something went wrong.';
           if (btn) btn.disabled = false;
         }
       })
       .catch(() => {
-        msg.style.color = '#991b1b';
+        msg.style.color = '#991B1B';
         msg.textContent = 'Network error.';
         if (btn) btn.disabled = false;
       });

@@ -43,7 +43,7 @@ $dashboardContent = function () use (
 ?>
 <style>
   .customer-detail-shell{min-height:100%;padding:30px;background:#fbfbf9}
-  .cv{--ink:#34232b;--body:#7b5c69;--muted:#a58b96;--line:#ead8c7;--wash:#faf5ef;--wine:#6d4c5b;max-width:1180px;margin:0 auto;color:var(--ink)}
+  .cv{--ink:#6d4c5b;--body:#7b5c69;--muted:#a58b96;--line:#ead8c7;--wash:#FFFFFF;--wine:#6d4c5b;max-width:1180px;margin:0 auto;color:var(--ink)}
   .cv-back{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;color:#8e727e;font-size:11px;font-weight:700;text-decoration:none}
   .cv-back:hover{color:var(--wine)}
   .cv-flash{display:flex;align-items:center;gap:9px;margin-bottom:18px;border:1px solid #cfe3d6;border-radius:11px;background:#eef7f1;padding:12px 15px;color:#3c6b51;font-size:12px;font-weight:650}

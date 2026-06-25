@@ -43,9 +43,9 @@ $dashboardContentClass = 'admin-payment-outlet';
 $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTotal, $expectedTotal, $missingCount, $h, $money, $dateTime, $activeStatus, $isPending, $copy) {
 ?>
 <style>
-  .admin-payment-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
+  .admin-payment-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
   .admin-payment-page *{box-sizing:border-box}
-  .admin-payment-page{--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#d1fae5;--success-text:#065f46;--warn-bg:#fef3c7;--warn-text:#92400e;--danger-bg:#fee2e2;--danger-text:#991b1b;--neutral-bg:#f3f4f6;--neutral-text:#57534e;max-width:1600px;margin:0 auto}
+  .admin-payment-page{--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#ECFDF5;--success-text:#065F46;--warn-bg:#FFFBEB;--warn-text:#92400E;--danger-bg:#FEF2F2;--danger-text:#991B1B;--neutral-bg:#F5F5F4;--neutral-text:#78716C;max-width:1600px;margin:0 auto}
 
   .page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
@@ -58,7 +58,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
   .filters{display:flex;gap:6px;flex-wrap:wrap}
   .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;font-family:inherit;white-space:nowrap;text-decoration:none}
-  .filter.active{border-color:var(--primary);background:var(--primary);color:#fcf8f5}
+  .filter.active{border-color:var(--primary);background:var(--primary);color:#FFFFFF}
   .divider{width:1px;height:20px;background:var(--border);margin:0 4px}
   .queue-note{height:34px;display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:0 12px;color:var(--body);font-size:12px;font-weight:700}
 
@@ -67,8 +67,8 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   .stat-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
   .stat-value{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.3px}
   .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
-  .stat-value.warn{color:#92400e}
-  .stat-value.danger{color:#991b1b}
+  .stat-value.warn{color:#92400E}
+  .stat-value.danger{color:#991B1B}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.04)}
   .card-head{padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -112,10 +112,10 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   .note-input{width:150px;height:30px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--text);font-size:11px;font-family:inherit;font-weight:600;padding:0 9px;outline:none}
   .note-input:focus{border-color:var(--primary)}
   .payment-actions{display:inline-flex;gap:6px;justify-content:flex-end}
-  .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#fcf8f5;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap}
+  .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#FFFFFF;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap}
   .action-approve{background:var(--primary)}
   .action-approve:hover{background:#7b5c69}
-  .action-reject{background:#991b1b}
+  .action-reject{background:#991B1B}
   .action-reject:hover{background:#7f1d1d}
   .empty-row{padding:34px 20px;text-align:center;color:var(--muted)}
 
@@ -123,13 +123,13 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   .page-info{font-size:12px;color:var(--muted)}
   .page-btns{display:flex;gap:4px}
   .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
-  .page-btn.active{background:var(--primary);color:#fcf8f5;border-color:var(--primary)}
+  .page-btn.active{background:var(--primary);color:#FFFFFF;border-color:var(--primary)}
   .page-btn:disabled{opacity:.4;cursor:default}
 
   .toast{position:fixed;right:16px;top:16px;z-index:50;max-width:360px;opacity:0;pointer-events:none;transition:all .2s;border-radius:.75rem;border:1px solid var(--border);background:var(--surface);padding:12px 14px;font-size:12px;font-weight:800;color:var(--body)}
   .toast.show{opacity:1;pointer-events:auto}
-  .toast.success{border-color:#a7f3d0;background:#ecfdf5;color:#065f46}
-  .toast.error{border-color:#fecdd3;background:#fff1f2;color:#991b1b}
+  .toast.success{border-color:#a7f3d0;background:#ecfdf5;color:#065F46}
+  .toast.error{border-color:#fecdd3;background:#fff1f2;color:#991B1B}
 
   @media(max-width:1200px){.summary-row{grid-template-columns:repeat(2,1fr)}.payment-verification-form{align-items:flex-end;flex-direction:column}.note-input{width:170px}}
   @media(max-width:760px){.admin-payment-outlet{padding:20px 16px}.page-header{align-items:flex-start;flex-direction:column}.summary-row{grid-template-columns:1fr}.pagination{align-items:flex-start;flex-direction:column;gap:10px}}

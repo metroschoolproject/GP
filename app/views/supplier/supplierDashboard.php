@@ -2,8 +2,8 @@
 $dashboardCardClass = 'supplier-admin-card p-5';
 $dashboardCompactCardClass = 'supplier-admin-card p-5';
 $dashboardMenuButtonClass = 'supplier-admin-control flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-sm hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-rose-100';
-$dashboardMenuItemClass = 'flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-stone-600 hover:bg-rose-50 hover:text-[#673049]';
-$dashboardMenuItemActiveClass = 'flex w-full items-center rounded-lg bg-rose-50 px-3 py-1.5 text-left text-xs font-semibold text-[#673049]';
+$dashboardMenuItemClass = 'flex w-full items-center rounded-lg px-3 py-1.5 text-left text-xs font-medium text-stone-600 hover:bg-rose-50 hover:text-[#6d4c5b]';
+$dashboardMenuItemActiveClass = 'flex w-full items-center rounded-lg bg-rose-50 px-3 py-1.5 text-left text-xs font-semibold text-[#6d4c5b]';
 $dashboardFilterTabClass = 'filter-tab rounded-full px-4 py-1.5 text-xs font-semibold border border-app-border transition-all';
 $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-wider text-app-muted font-semibold whitespace-nowrap';
 ?>
@@ -11,13 +11,13 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
 <style>
   .supplier-dashboard-overview {
     --supplier-admin-bg: #fbfbf9;
-    --supplier-admin-card: #fcf8f5;
-    --supplier-admin-border: #e7e5e4;
-    --supplier-admin-text: #1c1917;
-    --supplier-admin-muted: #78716c;
-    --supplier-admin-soft: #f5f5f3;
-    --supplier-admin-accent: #673049;
-    font-family: Inter, sans-serif;
+    --supplier-admin-card: #FFFFFF;
+    --supplier-admin-border: #ead8c7;
+    --supplier-admin-text: #6d4c5b;
+    --supplier-admin-muted: #A8A29E;
+    --supplier-admin-soft: #FAFAF9;
+    --supplier-admin-accent: #6d4c5b;
+    font-family: 'DM Sans', sans-serif;
     font-variant-numeric: tabular-nums;
   }
   .supplier-dashboard-overview .supplier-admin-card {
@@ -32,7 +32,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   }
   .supplier-dashboard-overview .supplier-admin-page-title {
     margin: 0;
-    color: #34232b;
+    color: #6d4c5b;
     font-family: "Playfair Display", serif;
     font-size: clamp(27px, 2.5vw, 36px);
     font-weight: 650;
@@ -72,21 +72,21 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   }
   .supplier-dashboard-overview .supplier-admin-control {
     border-color: var(--supplier-admin-border) !important;
-    background: #fcf8f5 !important;
+    background: #FFFFFF !important;
     color: var(--supplier-admin-accent) !important;
   }
   .supplier-dashboard-overview .filter-tab {
     border-color: var(--supplier-admin-border) !important;
     background: var(--supplier-admin-soft);
-    color: #57534e;
+    color: #78716C;
   }
   .supplier-dashboard-overview .filter-tab.bg-app-primary {
     border-color: var(--supplier-admin-accent) !important;
     background: var(--supplier-admin-accent) !important;
-    color: #fcf8f5 !important;
+    color: #FFFFFF !important;
   }
   .supplier-dashboard-overview table thead {
-    background: #f9f8f6;
+    background: #FAFAF9;
   }
   .supplier-dashboard-overview table thead th {
     color: var(--supplier-admin-muted) !important;
@@ -110,7 +110,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   }
   .supplier-dashboard-overview #weddingBookingsList > div:hover {
     border-color: var(--supplier-admin-border);
-    background: #eeece9;
+    background: #F4F1EE;
   }
   .supplier-dashboard-overview canvas {
     max-width: 100%;
@@ -236,10 +236,10 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M12 7v10"/><path d="M14.35 9A2 2 0 0 0 12 7.5h-1a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-1a2 2 0 0 1-2.35-1.5"/></svg>
                 </div>
                 <p class="supplier-admin-stat-label">Total Revenue</p>
-                <h2 id="totalRevenue" class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#1c1917">$63,400</h2>
+                <h2 id="totalRevenue" class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#6d4c5b">$63,400</h2>
                 <div class="mt-4 border-t pt-3" style="border-color:var(--supplier-admin-border)">
                     <p class="supplier-admin-stat-label">Average spend</p>
-                    <p id="avgSpend" class="mt-1 text-base font-bold" style="color:#1c1917">$200</p>
+                    <p id="avgSpend" class="mt-1 text-base font-bold" style="color:#6d4c5b">$200</p>
                 </div>
             </div>
 
@@ -249,7 +249,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     <svg class="h-4 w-4"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
                 </div>
                 <p class="supplier-admin-stat-label">Total Bookings</p>
-                <h2 id="totalBookings" class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#1c1917">317</h2>
+                <h2 id="totalBookings" class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#6d4c5b">317</h2>
                 <div class="mt-4 grid grid-cols-2 gap-3 border-t pt-3" style="border-color:var(--supplier-admin-border)">
                     <div>
                         <p class="supplier-admin-stat-label">Confirmed</p>
@@ -267,7 +267,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     <i data-lucide="store" class="h-4 w-4"></i>
                 </div>
                 <p class="supplier-admin-stat-label">Service portfolio</p>
-                <h2 class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#1c1917"><?= number_format((int)($dashboardData['stats']['total_services'] ?? 0)) ?></h2>
+                <h2 class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#6d4c5b"><?= number_format((int)($dashboardData['stats']['total_services'] ?? 0)) ?></h2>
                 <div class="mt-4 grid grid-cols-2 gap-3 border-t pt-3" style="border-color:var(--supplier-admin-border)">
                     <div>
                         <p class="supplier-admin-stat-label">Rating</p>
@@ -275,7 +275,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     </div>
                     <div>
                         <p class="supplier-admin-stat-label">Upcoming</p>
-                        <p class="mt-1 text-lg font-bold" style="color:#673049"><?= number_format(count($dashboardData['upcomingBookings'] ?? [])) ?></p>
+                        <p class="mt-1 text-lg font-bold" style="color:#6d4c5b"><?= number_format(count($dashboardData['upcomingBookings'] ?? [])) ?></p>
                     </div>
                 </div>
             </div>
@@ -290,7 +290,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     <div class="mb-2 flex items-start justify-between">
                         <div>
                             <h3 class="supplier-admin-section-title">Revenue trend</h3>
-                            <p class="mt-0.5 text-[11px]" style="color:#a8a29e">Monthly revenue performance</p>
+                            <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Monthly revenue performance</p>
                         </div>
                         <span class="self-start inline-flex items-center gap-1 bg-app-danger-soft text-app-danger font-bold text-[10px] px-2.5 py-1 rounded-full border border-app-border">PEAK: FEB</span>
                     </div>
@@ -318,7 +318,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     <div class="mb-2 flex items-start justify-between">
                         <div>
                             <h3 class="supplier-admin-section-title">Booking trend</h3>
-                            <p class="mt-0.5 text-[11px]" style="color:#a8a29e">Monthly booking volume</p>
+                            <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Monthly booking volume</p>
                         </div>
                         <span class="self-start inline-flex items-center gap-1 bg-app-danger-soft text-app-danger font-bold text-[10px] px-2.5 py-1 rounded-full border border-app-border">PEAK: FEB</span>
                     </div>
@@ -403,7 +403,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h3 class="supplier-admin-section-title text-sm">Payment status</h3>
-                        <p class="mt-0.5 text-[11px]" style="color:#a8a29e">Customer payments linked to your bookings</p>
+                        <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Customer payments linked to your bookings</p>
                     </div>
                     <div class="relative">
                         <button id="paymentFilterBtn" type="button" aria-expanded="false"
@@ -458,7 +458,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h3 class="supplier-admin-section-title text-sm">Withdrawal history</h3>
-                        <p class="mt-0.5 text-[11px]" style="color:#a8a29e">Recent supplier payout activity</p>
+                        <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Recent supplier payout activity</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="relative">
@@ -643,9 +643,9 @@ window.supplierDashboardData = <?= json_encode([
     var ch = (window.supplierDashboardData || {}).chartData || {};
     var revenueVals = ch.revenue || [0,0,0,0,0,0,0,0,0,0,0,0];
     var bookingVals = ch.bookings || [0,0,0,0,0,0,0,0,0,0,0,0];
-    const primaryColor = "#673049";
-    const mutedColor = "#a8a29e";
-    const gridColor = "#e7e5e4";
+    const primaryColor = "#6d4c5b";
+    const mutedColor = "#A8A29E";
+    const gridColor = "#ead8c7";
     const barColor = "#d6d3d1";
     const peakColor = "#fda4af";
     const revenuePeakIndex = revenueVals.indexOf(Math.max(...revenueVals));

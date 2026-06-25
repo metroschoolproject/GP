@@ -32,7 +32,71 @@ class Notification
             return false;
         }
 
+        if (!$this->shouldNotify((int)$userId, $type)) {
+            return true; // Silently skipped — not an error
+        }
+
         return $this->create((int)$userId, $title, $message, $type, $referenceType, $referenceId);
+    }
+
+    /**
+     * Check if a user has enabled notifications for a given type.
+     * Checks supplier's notification_prefs first, then falls back to user's.
+     * Returns true if enabled or if no preference is set (default on).
+     */
+    private function shouldNotify(int $userId, string $type): bool
+    {
+        // Supplier preference map
+        $supplierPrefMap = [
+            'booking'            => 'new_booking',
+            'payment'            => 'payment_received',
+            'payment_verified'   => 'payment_received',
+            'review'             => 'new_review',
+            'publish_approved'   => 'publish_approved',
+            'publish_request'    => 'publish_approved',
+        ];
+
+        // Customer preference map
+        $customerPrefMap = [
+            'booking_confirmed'  => 'booking_updates',
+            'booking_completed'  => 'booking_updates',
+            'booking_cancelled'  => 'booking_updates',
+            'payment_verified'   => 'payment_updates',
+            'replacement'        => 'replacement_updates',
+        ];
+
+        // Try supplier prefs first
+        $prefKey = $supplierPrefMap[$type] ?? null;
+        if ($prefKey) {
+            $this->db->dbquery("SELECT notification_prefs FROM suppliers WHERE user_id = :uid LIMIT 1");
+            $this->db->dbbind(':uid', $userId);
+            $row = $this->db->getsingledata();
+            if ($row && !empty($row['notification_prefs'])) {
+                $prefs = json_decode($row['notification_prefs'], true);
+                if (is_array($prefs) && isset($prefs[$prefKey]) && !$prefs[$prefKey]) {
+                    return false;
+                }
+            }
+            return true; // No prefs or enabled
+        }
+
+        // Try customer prefs
+        $prefKey = $customerPrefMap[$type] ?? null;
+        if ($prefKey) {
+            $this->db->dbquery("SELECT notification_prefs FROM users WHERE user_id = :uid LIMIT 1");
+            $this->db->dbbind(':uid', $userId);
+            $row = $this->db->getsingledata();
+            if ($row && !empty($row['notification_prefs'])) {
+                $prefs = json_decode($row['notification_prefs'], true);
+                if (is_array($prefs) && isset($prefs[$prefKey]) && !$prefs[$prefKey]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Unknown type — always send
+        return true;
     }
 
     public function getUnreadCount($userId = null)
@@ -357,6 +421,9 @@ class Notification
         }
 
         foreach ($userIds as $userId) {
+            if (!$this->shouldNotify((int)$userId, $type)) {
+                continue; // Skip — supplier disabled this type
+            }
             if (!$this->create($userId, $title, $message, $type, 'booking', $bookingId)) {
                 return false;
             }

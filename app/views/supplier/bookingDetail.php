@@ -202,8 +202,8 @@ $dashboardContent = function () use (
 <style>
   /* ── Supplier Booking Detail — Redesign ── */
   .sup-page {
-    --sup-surface: #fcf8f5;
-    --sup-soft: #faf5ef;
+    --sup-surface: #FFFFFF;
+    --sup-soft: #FFFFFF;
     --sup-border: #ead8c7;
     --sup-border-light: #eddecc;
     --sup-primary: #6d4c5b;
@@ -212,19 +212,19 @@ $dashboardContent = function () use (
     --sup-text: #111827;
     --sup-muted: #b79c8b;
     --sup-body: #7b5c69;
-    --sup-success-bg: #d1fae5;
+    --sup-success-bg: #ECFDF5;
     --sup-success-text: #065f46;
     --sup-success-border: #059669;
-    --sup-warn-bg: #fef3c7;
+    --sup-warn-bg: #FFFBEB;
     --sup-warn-text: #92400e;
     --sup-warn-border: #d97706;
-    --sup-danger-bg: #fee2e2;
+    --sup-danger-bg: #FEF2F2;
     --sup-danger-text: #991b1b;
     --sup-danger-border: #dc2626;
     --sup-info-bg: #e8e7ff;
     --sup-info-text: #4f46a5;
-    --sup-neutral-bg: #f3f4f6;
-    --sup-neutral-text: #57534e;
+    --sup-neutral-bg: #F5F5F4;
+    --sup-neutral-text: #78716C;
     width: 100%;
     max-width: 1600px;
     min-width: 0;
@@ -444,7 +444,7 @@ $dashboardContent = function () use (
   .sup-btn:disabled { cursor: wait; opacity: .55; }
   .sup-btn--accept  {
     background: var(--sup-success-text);
-    color: #fcf8f5;
+    color: #FFFFFF;
     border: 1px solid var(--sup-success-border);
   }
   .sup-btn--accept:hover {
@@ -538,7 +538,7 @@ $dashboardContent = function () use (
     transition: box-shadow .15s;
   }
   .sup-stat:hover { box-shadow: 0 2px 8px rgba(28, 25, 23, .06); }
-  .sup-stat--neutral { border-left-color: #a8a29e; }
+  .sup-stat--neutral { border-left-color: #A8A29E; }
   .sup-stat--primary { border-left-color: var(--sup-primary); }
   .sup-stat-label {
     font-size: 10px;
@@ -879,10 +879,10 @@ $dashboardContent = function () use (
     justify-content: space-between;
     gap: 16px;
     padding: 8px;
-    border: 1px solid #e7e5e4;
+    border: 1px solid #ead8c7;
     border-radius: 14px;
     background: rgba(250,249,248,.94);
-    box-shadow: 0 1px 2px rgba(28,25,23,.05);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     backdrop-filter: blur(14px);
   }
   .sup-booking-tab-list {
@@ -899,7 +899,7 @@ $dashboardContent = function () use (
     padding: 0 13px;
     border: 0;
     border-radius: 9px;
-    color: #78716c;
+    color: #A8A29E;
     background: transparent;
     font-size: 11px;
     font-weight: 750;
@@ -907,11 +907,11 @@ $dashboardContent = function () use (
     cursor: pointer;
   }
   .sup-booking-tab svg { width: 14px; height: 14px; }
-  .sup-booking-tab:hover { color: #673049; background: #fde8ef; }
+  .sup-booking-tab:hover { color: #6d4c5b; background: #F5F0F2; }
   .sup-booking-tab.is-active {
-    color: #673049;
-    background: #fcf8f5;
-    box-shadow: 0 2px 9px rgba(28,25,23,.08);
+    color: #6d4c5b;
+    background: #FFFFFF;
+    box-shadow: 0 2px 9px rgba(0,0,0,0.06);
   }
   .sup-booking-tab:focus-visible {
     outline: 3px solid rgba(103,48,73,.15);
@@ -922,7 +922,7 @@ $dashboardContent = function () use (
     align-items: center;
     gap: 6px;
     padding-right: 8px;
-    color: #78716c;
+    color: #A8A29E;
     font-size: 10px;
     font-weight: 650;
   }
@@ -966,20 +966,20 @@ $dashboardContent = function () use (
   }
   .sup-payment-fact {
     padding: 16px;
-    border: 1px solid #e7e5e4;
+    border: 1px solid #ead8c7;
     border-radius: 12px;
-    background: #f9f8f6;
+    background: #FAFAF9;
   }
   .sup-payment-fact small {
     display: block;
-    color: #78716c;
+    color: #A8A29E;
     font-size: 10px;
     font-weight: 700;
   }
   .sup-payment-fact strong {
     display: block;
     margin-top: 5px;
-    color: #1c1917;
+    color: #6d4c5b;
     font-size: 18px;
   }
   .sup-payment-track {
@@ -987,12 +987,12 @@ $dashboardContent = function () use (
     margin: 0 20px 20px;
     overflow: hidden;
     border-radius: 999px;
-    background: #e7e5e4;
+    background: #ead8c7;
   }
   .sup-payment-fill {
     height: 100%;
     border-radius: inherit;
-    background: #673049;
+    background: #6d4c5b;
   }
   @media (max-width: 820px) {
     .sup-booking-tabs { align-items: flex-start; flex-direction: column; }
@@ -1017,7 +1017,7 @@ $dashboardContent = function () use (
     padding: 4px 2px;
   }
   .sup-runsheet-head span {
-    color: #673049;
+    color: #6d4c5b;
     font-size: 10px;
     font-weight: 800;
     letter-spacing: .11em;
@@ -1025,7 +1025,7 @@ $dashboardContent = function () use (
   }
   .sup-runsheet-head h2 {
     margin: 3px 0 0;
-    color: #34232b;
+    color: #6d4c5b;
     font-family: "Playfair Display", serif;
     font-size: 27px;
     font-weight: 650;
@@ -1033,7 +1033,7 @@ $dashboardContent = function () use (
   }
   .sup-runsheet-head p {
     margin: 0;
-    color: #78716c;
+    color: #A8A29E;
     font-size: 11px;
   }
   .sup-runsheet-layout {
@@ -1065,11 +1065,11 @@ $dashboardContent = function () use (
   }
   .sup-runsheet-layout .sup-stat {
     border-left-width: 1px;
-    border-color: #e7e5e4;
+    border-color: #ead8c7;
     border-radius: 12px;
-    background: #fcf8f5;
+    background: #FFFFFF;
     padding: 14px;
-    box-shadow: 0 1px 2px rgba(28,25,23,.04);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
   .sup-runsheet-layout .sup-stat-value {
     font-size: 18px;
@@ -1090,20 +1090,20 @@ $dashboardContent = function () use (
     background: #eadce3;
   }
   .sup-runsheet-layout .sup-card {
-    border-color: #e7e5e4;
+    border-color: #ead8c7;
     border-radius: 16px;
   }
   .sup-runsheet-layout .sup-card-title {
-    color: #1c1917;
+    color: #6d4c5b;
     font-size: 12px;
     letter-spacing: -.01em;
     text-transform: none;
   }
   .sup-runsheet-layout .sup-table thead {
-    background: #f9f8f6;
+    background: #FAFAF9;
   }
   .sup-runsheet-layout .sup-table tr:hover td {
-    background: #f5f5f3;
+    background: #FAFAF9;
   }
   .sup-timeline-row.is-mine td {
     background: #fff8fb;
@@ -1111,7 +1111,7 @@ $dashboardContent = function () use (
     border-bottom: 1px solid #f3cddb;
   }
   .sup-timeline-row.is-mine td:first-child {
-    border-left: 4px solid #673049;
+    border-left: 4px solid #6d4c5b;
   }
   .sup-timeline-row.is-mine:hover td {
     background: #fdeef4;
@@ -1130,8 +1130,8 @@ $dashboardContent = function () use (
     margin-top: 5px;
     padding: 2px 7px;
     border-radius: 999px;
-    color: #673049;
-    background: #fde8ef;
+    color: #6d4c5b;
+    background: #F5F0F2;
     font-size: 9px;
     font-weight: 800;
   }
@@ -1143,7 +1143,7 @@ $dashboardContent = function () use (
     background: currentColor;
   }
   .sup-timeline-guest {
-    color: #1c1917;
+    color: #6d4c5b;
     font-size: 12px;
     font-weight: 750;
   }
@@ -1151,7 +1151,7 @@ $dashboardContent = function () use (
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    color: #673049;
+    color: #6d4c5b;
     font-size: 9px;
     font-weight: 750;
   }
@@ -1174,7 +1174,7 @@ $dashboardContent = function () use (
     height: 100vh;
     overflow-y: auto;
     border-left: 1px solid #ead8c7;
-    background: #fcf8f5;
+    background: #FFFFFF;
     padding: 25px;
     box-shadow: -20px 0 50px rgba(52,35,43,.13);
     transform: translateX(105%);
@@ -1205,7 +1205,7 @@ $dashboardContent = function () use (
   }
   .sup-service-drawer-title {
     margin: 0;
-    color: #34232b;
+    color: #6d4c5b;
     font: 700 21px "Playfair Display",serif;
   }
   .sup-service-drawer-close {
@@ -1217,7 +1217,7 @@ $dashboardContent = function () use (
     justify-content: center;
     border: 1px solid #ead8c7;
     border-radius: 10px;
-    background: #faf5ef;
+    background: #FFFFFF;
     color: #7b5c69;
     cursor: pointer;
   }
@@ -1238,7 +1238,7 @@ $dashboardContent = function () use (
   }
   .sup-service-detail dd {
     margin: 6px 0 0;
-    color: #34232b;
+    color: #6d4c5b;
     font-size: 12px;
     font-weight: 600;
     line-height: 1.55;
@@ -1260,7 +1260,7 @@ $dashboardContent = function () use (
   }
   .sup-drawer-timeline-head h3 {
     margin: 4px 0 0;
-    color: #34232b;
+    color: #6d4c5b;
     font-size: 14px;
     font-weight: 750;
   }
@@ -1300,7 +1300,7 @@ $dashboardContent = function () use (
     width: 22px;
     height: 22px;
     place-items: center;
-    border: 4px solid #fcf8f5;
+    border: 4px solid #FFFFFF;
     border-radius: 50%;
     background: #d6c8ce;
   }
@@ -1308,11 +1308,11 @@ $dashboardContent = function () use (
     padding: 10px 11px;
     border: 1px solid #ead8c7;
     border-radius: 10px;
-    background: #fcf8f5;
+    background: #FFFFFF;
   }
   .sup-drawer-timeline-copy strong {
     display: block;
-    color: #34232b;
+    color: #6d4c5b;
     font-size: 11px;
   }
   .sup-drawer-timeline-copy small {
@@ -1329,12 +1329,12 @@ $dashboardContent = function () use (
     background: #fff8fb;
   }
   .sup-drawer-timeline-item.is-current .sup-drawer-dot {
-    background: #673049;
-    box-shadow: 0 0 0 4px #fde8ef;
+    background: #6d4c5b;
+    box-shadow: 0 0 0 4px #F5F0F2;
   }
   .sup-drawer-timeline-item.is-current .sup-drawer-timeline-copy {
-    border-color: #673049;
-    background: #fde8ef;
+    border-color: #6d4c5b;
+    background: #F5F0F2;
     box-shadow: 0 4px 14px rgba(103,48,73,.1);
   }
   .sup-drawer-timeline-label {
@@ -1342,8 +1342,8 @@ $dashboardContent = function () use (
     margin-top: 6px;
     border-radius: 999px;
     padding: 2px 7px;
-    color: #673049;
-    background: #fcf8f5;
+    color: #6d4c5b;
+    background: #FFFFFF;
     font-size: 8px;
     font-weight: 800;
   }
@@ -1398,7 +1398,7 @@ $dashboardContent = function () use (
   }
   .sup-assignment-title {
     margin: 0;
-    color: #34232b;
+    color: #6d4c5b;
     font-family: "Playfair Display", serif;
     font-size: clamp(24px, 2.4vw, 34px);
     font-weight: 650;
@@ -1451,7 +1451,7 @@ $dashboardContent = function () use (
   }
   .sup-assignment-fact strong {
     display: block;
-    color: #34232b;
+    color: #6d4c5b;
     font-size: 12px;
     font-weight: 750;
     line-height: 1.35;
@@ -2041,7 +2041,7 @@ $dashboardContent = function () use (
           </div>
           <div class="sup-response-sub" style="margin-top:4px;opacity:.7">Your response will be sent to the customer and admin for review.</div>
           <?php if ($bookingTotal > 0): ?>
-          <div style="margin-top:6px;display:flex;gap:16px;font-size:11px;font-weight:600;color:var(--sup-text,#34232b)">
+          <div style="margin-top:6px;display:flex;gap:16px;font-size:11px;font-weight:600;color:var(--sup-text,#6d4c5b)">
             <span>Booking total: <?= $money($bookingTotal) ?></span>
             <?php if ($paidTotal > 0): ?><span>Paid: <?= $money($paidTotal) ?></span><?php endif; ?>
           </div>

@@ -2776,7 +2776,7 @@ if('IntersectionObserver' in window){
 
     var toast = document.createElement('div');
     toast.id = 'gp-wishlist-toast';
-    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:12px;background:#34232b;color:#fcf8f5;font-size:13px;font-weight:600;font-family:Poppins,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25);animation:wToastIn .3s ease-out;max-width:90vw;';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:12px;background:#6d4c5b;color:#fcf8f5;font-size:13px;font-weight:600;font-family:Poppins,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25);animation:wToastIn .3s ease-out;max-width:90vw;';
 
     var icon = document.createElement('span');
     icon.style.cssText = 'font-size:18px;';

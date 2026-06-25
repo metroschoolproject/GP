@@ -26,9 +26,9 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   }
 ?>
 <style>
-  .admin-pkg-create{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
+  .admin-pkg-create{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
   .admin-pkg-page *{box-sizing:border-box}
-  .admin-pkg-page{--bg:#FBFBF9;--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;max-width:980px;margin:0 auto}
+  .admin-pkg-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;max-width:980px;margin:0 auto}
 
   .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;margin-bottom:16px}
   .back-link:hover{color:var(--primary)}
@@ -43,7 +43,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
 
   .flash{border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:12px 14px;margin-bottom:18px;color:var(--body);font-size:13px;font-weight:600}
 
-  .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#fcf8f5;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
+  .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#FFFFFF;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-primary:hover{background:var(--primary-hover)}
 
   input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .12s}
@@ -67,7 +67,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   .toggle{position:relative;width:40px;height:22px;border-radius:999px;border:none;cursor:pointer;transition:background .2s}
   .toggle.on{background:var(--primary)}
   .toggle.off{background:var(--border)}
-  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fcf8f5;transition:transform .2s}
+  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#FFFFFF;transition:transform .2s}
   .toggle.on::after{transform:translateX(18px)}
 
   .cover-uploader{position:relative;min-height:250px;border:1.5px dashed #d8d5d2;border-radius:14px;background:#fcfcfb;overflow:hidden;transition:border-color .18s,background .18s,box-shadow .18s}
@@ -80,14 +80,14 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   .cover-upload-title{display:block;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px}
   .cover-upload-title span{color:var(--primary)}
   .cover-upload-help{display:block;font-size:12px;color:var(--muted);margin-bottom:18px}
-  .cover-upload-button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 16px;border:1px solid var(--border);border-radius:.65rem;background:#fcf8f5;color:var(--text);font-size:12px;font-weight:700;box-shadow:0 1px 2px rgba(17,24,39,.04)}
+  .cover-upload-button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 16px;border:1px solid var(--border);border-radius:.65rem;background:#FFFFFF;color:var(--text);font-size:12px;font-weight:700;box-shadow:0 1px 2px rgba(17,24,39,.04)}
   .cover-uploader-preview{position:absolute;inset:0;display:none}
   .cover-uploader.has-image .cover-uploader-preview{display:block}
   .cover-uploader.has-image .cover-uploader-empty{display:none}
   .cover-uploader-preview img{width:100%;height:100%;object-fit:cover}
-  .cover-preview-shade{position:absolute;inset:auto 0 0;padding:54px 20px 18px;background:linear-gradient(transparent,rgba(18,13,15,.82));display:flex;align-items:flex-end;justify-content:space-between;gap:16px;color:#fcf8f5}
+  .cover-preview-shade{position:absolute;inset:auto 0 0;padding:54px 20px 18px;background:linear-gradient(transparent,rgba(18,13,15,.82));display:flex;align-items:flex-end;justify-content:space-between;gap:16px;color:#FFFFFF}
   .cover-preview-name{min-width:0;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cover-preview-change{flex-shrink:0;border:1px solid rgba(252,248,245,.55);border-radius:.6rem;background:rgba(252,248,245,.14);color:#fcf8f5;padding:8px 12px;font-family:inherit;font-size:11px;font-weight:700;backdrop-filter:blur(8px);cursor:pointer}
+  .cover-preview-change{flex-shrink:0;border:1px solid rgba(252,248,245,.55);border-radius:.6rem;background:rgba(252,248,245,.14);color:#FFFFFF;padding:8px 12px;font-family:inherit;font-size:11px;font-weight:700;backdrop-filter:blur(8px);cursor:pointer}
   .cover-upload-error{display:none;margin-top:7px;color:#b42318;font-size:12px;font-weight:600}
   .cover-upload-error.is-visible{display:block}
 </style>
@@ -155,7 +155,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
           <label class="cover-uploader-label" for="packageCoverInput">
             <span class="cover-uploader-empty">
               <span class="cover-upload-icon" aria-hidden="true">
-                <svg width="58" height="44" viewBox="0 0 58 44" fill="none"><path d="M46.5 19.2A14.5 14.5 0 0 0 18.7 14 10.5 10.5 0 0 0 20 35h25.5a8 8 0 0 0 1-15.8Z" fill="currentColor"/><path d="m29 14-7 8h4v8h6v-8h4l-7-8Z" fill="#fcf8f5"/></svg>
+                <svg width="58" height="44" viewBox="0 0 58 44" fill="none"><path d="M46.5 19.2A14.5 14.5 0 0 0 18.7 14 10.5 10.5 0 0 0 20 35h25.5a8 8 0 0 0 1-15.8Z" fill="currentColor"/><path d="m29 14-7 8h4v8h6v-8h4l-7-8Z" fill="#FFFFFF"/></svg>
               </span>
               <span class="cover-upload-title">Choose an image or <span>drag &amp; drop it here</span></span>
               <span class="cover-upload-help">JPG, PNG or WebP · Up to 6MB</span>

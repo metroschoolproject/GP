@@ -11,7 +11,7 @@ $dashboardBreadcrumbs = [
     ['label' => 'Services', 'url' => null],
 ];
 $dashboardSearchPlaceholder = 'Search services, packages...';
-$dashboardContentClass = 'bg-[#f7f3ed] px-0 py-0';
+$dashboardContentClass = 'bg-[#F4F1EE] px-0 py-0';
 $initialServiceTab = ($_GET['tab'] ?? '') === 'packages' ? 'packages' : 'services';
 $dashboardContent = function () use ($serviceManagementData, $initialServiceTab) {
     $serviceManagementPath = APPROOT . '/views/supplier/service_management.html';

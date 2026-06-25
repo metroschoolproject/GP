@@ -30,8 +30,8 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
     $reviewCount = (int)($perf['review_count'] ?? 0);
 ?>
 <style>
-.supplier-review-content{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#111827;font-size:13px}
-.sr-shell{--s:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--b-light:#eddecc;--p:#6d4c5b;--ph:#7b5c69;--ps:#eddecc;--t:#111827;--m:#b79c8b;--b:#7b5c69;--sb:#d1fae5;--st:#065f46;--wb:#fef3c7;--wt:#92400e;--db:#fee2e2;--dt:#991b1b;--nb:#f3f4f6;max-width:1600px;margin:0 auto}
+.supplier-review-content{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#6d4c5b;font-size:13px}
+.sr-shell{--s:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--b-light:#eddecc;--p:#6d4c5b;--ph:#7b5c69;--ps:#eddecc;--t:#111827;--m:#b79c8b;--b:#7b5c69;--sb:#ECFDF5;--st:#065F46;--wb:#FFFBEB;--wt:#92400E;--db:#FEF2F2;--dt:#991B1B;--nb:#F5F5F4;max-width:1600px;margin:0 auto}
 .sr-shell *{box-sizing:border-box}
 .sr-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
 .sr-eyebrow,.sr-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--m)}
@@ -84,11 +84,11 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 .sr-empty{border:1px dashed var(--border);border-radius:.75rem;background:var(--soft);padding:18px;color:var(--m);text-align:center}
 
 .btn,.sr-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:38px;border:none;border-radius:.75rem;padding:0 14px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;transition:background .12s,transform .12s}
-.btn-primary,.sr-btn-primary{background:var(--p);color:#fcf8f5}
+.btn-primary,.sr-btn-primary{background:var(--p);color:#FFFFFF}
 .btn-primary:hover,.sr-btn-primary:hover{background:var(--ph);transform:translateY(-1px)}
-.btn-danger,.sr-btn-danger{background:var(--dt);color:#fcf8f5}
+.btn-danger,.sr-btn-danger{background:var(--dt);color:#FFFFFF}
 .btn-danger:hover,.sr-btn-danger:hover{background:#7f1d1d;transform:translateY(-1px)}
-.btn-warn,.sr-btn-warn{background:var(--wt);color:#fcf8f5}
+.btn-warn,.sr-btn-warn{background:var(--wt);color:#FFFFFF}
 .btn-warn:hover,.sr-btn-warn:hover{background:#78350f;transform:translateY(-1px)}
 .btn-outline,.sr-btn-outline{border:1px solid var(--border);background:var(--s);color:var(--t)}
 .btn-outline:hover,.sr-btn-outline:hover{background:var(--soft)}
@@ -97,12 +97,12 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 .sr-reviewed{border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:14px;color:var(--b);line-height:1.6}
 .sr-field{margin-bottom:14px}
 .sr-field label{display:block;font-size:11px;font-weight:700;color:var(--m);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
-.sr-field input,.sr-field textarea,.sr-field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:#fcf8f5;color:var(--t);font-size:13px;font-family:inherit;outline:none;resize:vertical}
+.sr-field input,.sr-field textarea,.sr-field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:#FFFFFF;color:var(--t);font-size:13px;font-family:inherit;outline:none;resize:vertical}
 .sr-field input:focus,.sr-field textarea:focus,.sr-field select:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(109,76,91,.08)}
 .sr-field textarea{min-height:70px}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
-.modal-box{background:#fcf8f5;border-radius:1rem;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-box{background:#FFFFFF;border-radius:1rem;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
 
 @media(max-width:1100px){.sr-layout{grid-template-columns:1fr}.sr-rail{position:static;grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.supplier-review-content{padding:20px 16px}.sr-rail{grid-template-columns:1fr}.sr-stats,.sr-perf{grid-template-columns:1fr 1fr}.sr-detail-row{grid-template-columns:1fr}}
@@ -158,15 +158,15 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
     $isFeePending = $feeStatus === 'pending';
   ?>
   <div class="sr-panel" style="margin-bottom:20px;border:2px solid <?= $isFeePending ? '#f59e0b' : ($feeStatus === 'success' ? '#10b981' : '#ef4444') ?>;border-radius:16px;overflow:hidden">
-    <div style="background:<?= $isFeePending ? '#fef3c7' : ($feeStatus === 'success' ? '#d1fae5' : '#fee2e2') ?>;padding:18px 24px;display:flex;align-items:center;gap:16px">
+    <div style="background:<?= $isFeePending ? '#FFFBEB' : ($feeStatus === 'success' ? '#ECFDF5' : '#FEF2F2') ?>;padding:18px 24px;display:flex;align-items:center;gap:16px">
       <div style="width:52px;height:52px;border-radius:14px;background:<?= $isFeePending ? '#f59e0b' : ($feeStatus === 'success' ? '#10b981' : '#ef4444') ?>;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0">
         <i data-lucide="<?= $isFeePending ? 'wallet' : ($feeStatus === 'success' ? 'check-circle' : 'x-circle') ?>" style="width:26px;height:26px"></i>
       </div>
       <div style="flex:1">
-        <div style="font-size:18px;font-weight:800;color:<?= $isFeePending ? '#92400e' : ($feeStatus === 'success' ? '#065f46' : '#991b1b') ?>">
+        <div style="font-size:18px;font-weight:800;color:<?= $isFeePending ? '#92400E' : ($feeStatus === 'success' ? '#065F46' : '#991B1B') ?>">
           <?= $isFeePending ? '⚠️ Supplier Fee Payment — Awaiting Review' : ($feeStatus === 'success' ? '✅ Supplier Fee — Approved' : '❌ Supplier Fee — Rejected') ?>
         </div>
-        <div style="font-size:13px;color:<?= $isFeePending ? '#92400e' : ($feeStatus === 'success' ? '#065f46' : '#991b1b') ?>;margin-top:2px;opacity:.8">
+        <div style="font-size:13px;color:<?= $isFeePending ? '#92400E' : ($feeStatus === 'success' ? '#065F46' : '#991B1B') ?>;margin-top:2px;opacity:.8">
           <?= $isFeePending ? 'Review the payment proof below and approve or reject.' : ($feeStatus === 'success' ? 'Payment verified. Supplier dashboard is unlocked.' : 'Payment was rejected.') ?>
         </div>
       </div>
@@ -417,7 +417,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
     <h3 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#3a2030">Permanently delete supplier</h3>
     <div class="sr-warn-note" style="margin-bottom:14px"><i data-lucide="alert-triangle"></i><span><strong>This cannot be undone.</strong> The account will be anonymized — name, email, shop name, and personal data will be erased. Booking and payment records are kept. The email can be used to register a new account.</span></div>
     <label style="display:block;font-size:11px;font-weight:700;color:#7b5c69;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">Type <strong style="color:#b94b4b">PERMANENTLY DELETE</strong> to confirm</label>
-    <input id="perm-delete-confirm" type="text" placeholder="Type PERMANENTLY DELETE" autocomplete="off" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:13px;color:#1f2937;margin-bottom:12px">
+    <input id="perm-delete-confirm" type="text" placeholder="Type PERMANENTLY DELETE" autocomplete="off" style="width:100%;box-sizing:border-box;border:1px solid #ead8c7;border-radius:8px;padding:10px 12px;font-size:13px;color:#6d4c5b;margin-bottom:12px">
     <div style="display:flex;justify-content:flex-end;gap:8px">
       <button type="button" class="sr-btn btn-outline" style="width:auto" onclick="closeModal('permanentDelete')">Cancel</button>
       <form method="POST" action="<?= URLROOT ?>/admin/supplierPermanentDelete/<?= (int)$supplier['supplier_id'] ?>" style="display:inline"><?= csrf_field() ?>

@@ -24,21 +24,21 @@ $statusLabels = [
 $dashboardContent = function () use ($replacements, $h, $money, $dateOnly, $statusLabels) {
 ?>
 <style>
-  .admin-booking-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#111827;font-size:13px;overflow-y:auto}
+  .admin-booking-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#6d4c5b;font-size:13px;overflow-y:auto}
   .repl-page{--surface:#fff;--border:#ead8c7;--primary:#6d4c5b;--muted:#b79c8b;max-width:1300px;margin:0 auto}
   .repl-page h1{font-size:22px;font-weight:700;margin:0 0 4px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
   .repl-card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden;margin-top:18px}
   .repl-table-scroll{overflow-x:auto}
   table.repl{width:100%;border-collapse:collapse}
-  table.repl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--border);background:#faf5ef}
+  table.repl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:12px 16px;border-bottom:1px solid var(--border);background:#FFFFFF}
   table.repl td{padding:13px 16px;border-bottom:1px solid #f0e6da;font-size:12.5px}
   table.repl tr:last-child td{border-bottom:none}
-  .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;background:#fef3c7;color:#92400e}
+  .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;background:#FFFBEB;color:#92400E}
   .badge.is-customer{background:#eff6ff;color:#1d4ed8}
   .badge.is-supplier{background:#f5f3ff;color:#6d28d9}
   .state-copy{display:block;max-width:210px;margin-top:5px;color:#7b5c69;font-size:10.5px;line-height:1.4;white-space:normal}
-  .btn-view{display:inline-flex;align-items:center;justify-content:center;min-width:150px;height:38px;padding:0 14px;border:1px solid var(--border);border-radius:.7rem;background:#faf5ef;color:var(--primary);font-size:11.5px;font-weight:800;text-decoration:none}
+  .btn-view{display:inline-flex;align-items:center;justify-content:center;min-width:150px;height:38px;padding:0 14px;border:1px solid var(--border);border-radius:.7rem;background:#FFFFFF;color:var(--primary);font-size:11.5px;font-weight:800;text-decoration:none}
   .action-cell{width:1%;white-space:nowrap;text-align:right}
   .btn-pick{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-width:150px;height:38px;padding:0 12px 0 16px;border:1px solid var(--primary);border-radius:.7rem;background:#fff;color:var(--primary);font-size:11.5px;font-weight:800;text-decoration:none;box-shadow:0 1px 2px rgba(17,24,39,.04);transition:background .15s,color .15s,box-shadow .15s,transform .15s}
   .btn-pick-icon{width:24px;height:24px;display:grid;place-items:center;border-radius:.45rem;background:var(--primary);color:#fff;transition:transform .15s}
@@ -46,7 +46,7 @@ $dashboardContent = function () use ($replacements, $h, $money, $dateOnly, $stat
   .btn-pick:hover .btn-pick-icon{transform:translateX(2px)}
   .btn-pick:focus-visible{outline:3px solid rgba(109,76,91,.2);outline-offset:2px}
   .empty{padding:48px;text-align:center;color:var(--muted)}
-  .package-name{color:#111827;font-weight:700}
+  .package-name{color:#6d4c5b;font-weight:700}
   .package-meta{display:block;margin-top:3px;color:var(--muted);font-size:10.5px}
   .service-arrow{display:inline-flex;align-items:center;gap:5px;margin-top:4px;color:#7b5c69;font-size:10.5px}
   @media(max-width:900px){

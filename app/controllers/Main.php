@@ -52,6 +52,72 @@ class Main extends Controller
     }
 
     /**
+     * Customer notification settings page.
+     */
+    public function notificationSettings()
+    {
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            redirect('users/login');
+        }
+
+        $userModel = $this->model('User');
+        $user = $userModel->getuserinfo($_SESSION['session_email'] ?? '');
+
+        $notifPrefs = [];
+        if (!empty($user['notification_prefs'])) {
+            $decoded = json_decode($user['notification_prefs'], true);
+            if (is_array($decoded)) {
+                $notifPrefs = $decoded;
+            }
+        }
+        $defaults = [
+            'booking_updates'    => true,
+            'payment_updates'    => true,
+            'replacement_updates' => true,
+        ];
+        $notifPrefs = array_merge($defaults, $notifPrefs);
+
+        $this->view('main/notification_settings', [
+            'notification_prefs' => $notifPrefs,
+        ]);
+    }
+
+    /**
+     * JSON endpoint — update customer notification preferences.
+     */
+    public function updateNotificationSettings()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $prefs = $input['notification_prefs'] ?? null;
+
+        if (!is_array($prefs)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid data.']);
+            return;
+        }
+
+        try {
+            $db = new Database();
+            $db->dbquery("UPDATE users SET notification_prefs = :prefs WHERE user_id = :uid");
+            $db->dbbind(':prefs', json_encode($prefs));
+            $db->dbbind(':uid', $userId);
+            $db->dbexecute();
+
+            echo json_encode(['ok' => true]);
+        } catch (\Exception $e) {
+            echo json_encode(['ok' => false, 'error' => 'Failed to update.']);
+        }
+    }
+
+    /**
      * JSON endpoint — upload profile photo for customer.
      */
     public function uploadProfilePhoto()

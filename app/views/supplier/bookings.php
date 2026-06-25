@@ -29,7 +29,7 @@ $statusBadgeClass = function (string $status): string {
 
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = 'Incoming bookings';
-$dashboardContentClass = 'bg-[#FBFBF9] px-0 py-0 overflow-y-auto';
+$dashboardContentClass = 'bg-[#F4F1EE] px-0 py-0 overflow-y-auto';
 $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters, $money, $h, $statusBadgeClass, $currentPage, $totalPages, $totalCount, $perPage, $searchQuery, $performanceMetrics, $upcomingBookings) {
     $pendingCount   = (int)($stats['pending_count'] ?? 0);
     $confirmedCount = (int)($stats['confirmed_count'] ?? 0);
@@ -52,31 +52,31 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     margin-bottom: 16px;
 }
 .bk-kpi {
-    background: #fcf8f5;
-    border: 1px solid #e7e5e4;
+    background: #FFFFFF;
+    border: 1px solid #ead8c7;
     border-radius: 1.2rem;
     padding: 20px;
-    box-shadow: 0 1px 2px rgba(28,25,23,.05);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     transition: box-shadow .18s ease;
 }
-.bk-kpi:hover { box-shadow: 0 4px 12px rgba(28,25,23,.08); }
+.bk-kpi:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 .bk-kpi-label {
     font-size: 11px;
     font-weight: 650;
     letter-spacing: .01em;
-    color: #78716c;
+    color: #A8A29E;
 }
 .bk-kpi-value {
     font-size: 24px;
     font-weight: 750;
     letter-spacing: -.025em;
-    color: #1c1917;
+    color: #6d4c5b;
     margin-top: 6px;
     line-height: 1;
 }
 .bk-kpi-sub {
     font-size: 11px;
-    color: #a8a29e;
+    color: #A8A29E;
     margin-top: 5px;
 }
 .bk-kpi-icon {
@@ -95,9 +95,9 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     gap: 12px;
     margin-top: 16px;
     padding-top: 12px;
-    border-top: 1px solid #e7e5e4;
+    border-top: 1px solid #ead8c7;
 }
-.bk-kpi-breakdown strong { display:block; margin-top:3px; font-size:16px; color:#1c1917; }
+.bk-kpi-breakdown strong { display:block; margin-top:3px; font-size:16px; color:#6d4c5b; }
 
 /* Pending alert banner */
 .bk-pending-banner {
@@ -126,11 +126,11 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 
 /* Section card */
 .bk-section {
-    background: #fcf8f5;
-    border: 1px solid #e7e5e4;
+    background: #FFFFFF;
+    border: 1px solid #ead8c7;
     border-radius: 1.2rem;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(28,25,23,.05);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
 /* Toolbar */
@@ -139,7 +139,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     align-items: center;
     gap: 8px;
     padding: 16px 20px;
-    border-bottom: 1px solid #e7e5e4;
+    border-bottom: 1px solid #ead8c7;
     flex-wrap: wrap;
 }
 .bk-filter-group {
@@ -156,40 +156,40 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     font-weight: 600;
     padding: 4px 12px;
     border-radius: 999px;
-    border: 1px solid #e7e5e4;
-    background: #f5f5f3;
-    color: #57534e;
+    border: 1px solid #ead8c7;
+    background: #FAFAF9;
+    color: #78716C;
     text-decoration: none;
     transition: all 0.12s ease;
     white-space: nowrap;
 }
 .bk-pill:hover {
-    background: var(--color-app-soft, #f9fafb);
-    color: var(--color-app-text, #111827);
+    background: #FAFAF9;
+    color: #6d4c5b;
 }
 .bk-pill-active-all {
-    background: #673049;
-    color: #fcf8f5;
-    border-color: #673049;
+    background: #6d4c5b;
+    color: #FFFFFF;
+    border-color: #6d4c5b;
 }
 .bk-pill-active-pending {
     background: #92400e;
-    color: #fcf8f5;
+    color: #FFFFFF;
     border-color: #92400e;
 }
 .bk-pill-active-confirmed {
     background: #065f46;
-    color: #fcf8f5;
+    color: #FFFFFF;
     border-color: #065f46;
 }
 .bk-pill-active-completed {
     background: #1e40af;
-    color: #fcf8f5;
+    color: #FFFFFF;
     border-color: #1e40af;
 }
 .bk-pill-active-rejected {
     background: #991b1b;
-    color: #fcf8f5;
+    color: #FFFFFF;
     border-color: #991b1b;
 }
 
@@ -205,7 +205,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     transform: translateY(-50%);
     width: 14px;
     height: 14px;
-    color: var(--color-app-muted, #9ca3af);
+    color: #A8A29E;
     pointer-events: none;
 }
 .bk-search-input {
@@ -213,24 +213,24 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     height: 34px;
     padding: 0 10px 0 30px;
     border-radius: 8px;
-    border: 1px solid #e7e5e4;
-    background: #fcf8f5;
-    color: #1c1917;
+    border: 1px solid #ead8c7;
+    background: #FFFFFF;
+    color: #6d4c5b;
     width: 220px;
     transition: border-color 0.12s;
 }
-.bk-search-input::placeholder { color: var(--color-app-muted, #9ca3af); }
+.bk-search-input::placeholder { color: #A8A29E; }
 .bk-search-input:focus {
     outline: none;
-    border-color: #673049;
+    border-color: #6d4c5b;
     box-shadow: 0 0 0 3px rgba(103,48,73,.08);
 }
 
 /* Table */
 .bk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .bk-table thead tr {
-    background: #f9f8f6;
-    border-bottom: 1px solid #e7e5e4;
+    background: #FAFAF9;
+    border-bottom: 1px solid #ead8c7;
 }
 .bk-table th {
     padding: 10px 16px;
@@ -238,21 +238,21 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     font-weight: 750;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #78716c;
+    color: #A8A29E;
     text-align: left;
     white-space: nowrap;
 }
 .bk-table th.bk-right,
 .bk-table td.bk-right { text-align: right; }
 .bk-table tbody tr {
-    border-bottom: 1px solid #e7e5e4;
+    border-bottom: 1px solid #ead8c7;
     transition: background 0.1s;
 }
 .bk-table tbody tr:last-child { border-bottom: none; }
-.bk-table tbody tr:hover { background: #f5f5f3; }
+.bk-table tbody tr:hover { background: #FAFAF9; }
 .bk-table td {
     padding: 13px 16px;
-    color: #1c1917;
+    color: #6d4c5b;
     vertical-align: middle;
 }
 
@@ -268,15 +268,15 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     font-size: 11px;
     font-weight: 600;
     flex-shrink: 0;
-    background: #fde8ef;
-    color: #673049;
+    background: #F5F0F2;
+    color: #6d4c5b;
 }
-.bk-cname { font-weight: 650; font-size: 13px; color: #1c1917; }
-.bk-cdate { font-size: 11px; color: #a8a29e; margin-top: 1px; }
+.bk-cname { font-weight: 650; font-size: 13px; color: #6d4c5b; }
+.bk-cdate { font-size: 11px; color: #A8A29E; margin-top: 1px; }
 .bk-ref {
     font-size: 12px;
     font-weight: 500;
-    color: var(--color-app-secondary, #6b7280);
+    color: #78716C;
     font-family: ui-monospace, monospace;
 }
 .bk-amount { font-weight: 600; }
@@ -293,15 +293,15 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     white-space: nowrap;
 }
 .bk-badge-dot { width: 5px; height: 5px; border-radius: 50%; }
-.bk-badge-pending   { background: #fef3c7; color: #92400e; }
+.bk-badge-pending   { background: #FFFBEB; color: #92400e; }
 .bk-badge-pending .bk-badge-dot   { background: #d97706; }
-.bk-badge-confirmed { background: #d1fae5; color: #065f46; }
+.bk-badge-confirmed { background: #ECFDF5; color: #065f46; }
 .bk-badge-confirmed .bk-badge-dot { background: #059669; }
-.bk-badge-completed { background: #dbeafe; color: #1e40af; }
+.bk-badge-completed { background: #EEF2FF; color: #1e40af; }
 .bk-badge-completed .bk-badge-dot { background: #2563eb; }
-.bk-badge-rejected  { background: #fee2e2; color: #991b1b; }
+.bk-badge-rejected  { background: #FEF2F2; color: #991b1b; }
 .bk-badge-rejected .bk-badge-dot  { background: #ef4444; }
-.bk-badge-cancelled { background: #fee2e2; color: #991b1b; }
+.bk-badge-cancelled { background: #FEF2F2; color: #991b1b; }
 .bk-badge-cancelled .bk-badge-dot { background: #ef4444; }
 .bk-badge-replacement { background: #e8e7ff; color: #4f46a5; }
 .bk-badge-replacement .bk-badge-dot { background: #6366f1; }
@@ -316,17 +316,17 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     font-weight: 600;
     padding: 5px 11px;
     border-radius: 7px;
-    border: 1px solid var(--color-app-border, #e5e7eb);
+    border: 1px solid #ead8c7;
     cursor: pointer;
     background: transparent;
-    color: var(--color-app-text, #111827);
+    color: #6d4c5b;
     text-decoration: none;
     transition: all 0.12s ease;
     white-space: nowrap;
 }
 .bk-btn i[data-lucide] { width: 13px; height: 13px; }
 .bk-btn-confirm {
-    background: #d1fae5;
+    background: #ECFDF5;
     color: #065f46;
     border-color: #6ee7b7;
 }
@@ -336,23 +336,23 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 }
 .bk-btn-decline {
     background: transparent;
-    color: var(--color-app-secondary, #6b7280);
-    border-color: var(--color-app-border, #e5e7eb);
+    color: #78716C;
+    border-color: #ead8c7;
 }
 .bk-btn-decline:hover {
-    background: #fee2e2;
+    background: #FEF2F2;
     color: #991b1b;
     border-color: #fca5a5;
 }
 .bk-btn-view {
-    color: #673049;
-    background: #fcf8f5;
-    border-color: #e7e5e4;
+    color: #6d4c5b;
+    background: #FFFFFF;
+    border-color: #ead8c7;
 }
 .bk-btn-view:hover {
-    background: #fde8ef;
-    color: #673049;
-    border-color: #f9c0d2;
+    background: #F5F0F2;
+    color: #6d4c5b;
+    border-color: #ead8c7;
 }
 
 /* Empty state */
@@ -368,18 +368,18 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     align-items: center;
     justify-content: center;
     border-radius: 14px;
-    background: var(--color-app-soft, #f9fafb);
-    color: var(--color-app-muted, #9ca3af);
+    background: #FAFAF9;
+    color: #A8A29E;
 }
 .bk-empty-icon i[data-lucide] { width: 22px; height: 22px; }
 .bk-empty-title {
     font-size: 15px;
     font-weight: 600;
-    color: var(--color-app-text, #111827);
+    color: #6d4c5b;
 }
 .bk-empty-sub {
     font-size: 13px;
-    color: var(--color-app-muted, #9ca3af);
+    color: #A8A29E;
     margin-top: 4px;
     max-width: 320px;
     margin-left: auto;
@@ -392,9 +392,9 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     align-items: center;
     justify-content: space-between;
     padding: 11px 16px;
-    border-top: 1px solid #e7e5e4;
+    border-top: 1px solid #ead8c7;
 }
-.bk-page-info { font-size: 12px; color: #78716c; }
+.bk-page-info { font-size: 12px; color: #A8A29E; }
 .bk-page-btns { display: flex; align-items: center; gap: 4px; }
 .bk-page-btn {
     width: 28px;
@@ -403,22 +403,22 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     align-items: center;
     justify-content: center;
     border-radius: 7px;
-    border: 1px solid #e7e5e4;
+    border: 1px solid #ead8c7;
     font-size: 12px;
     font-weight: 600;
     text-decoration: none;
-    color: #57534e;
-    background: #fcf8f5;
+    color: #78716C;
+    background: #FFFFFF;
     transition: all 0.1s;
 }
 .bk-page-btn:hover:not(.bk-page-btn-cur):not(.bk-page-btn-disabled) {
-    background: var(--color-app-soft, #f9fafb);
-    color: var(--color-app-text, #111827);
+    background: #FAFAF9;
+    color: #6d4c5b;
 }
 .bk-page-btn-cur {
-    background: #673049;
-    color: #fcf8f5;
-    border-color: #673049;
+    background: #6d4c5b;
+    color: #FFFFFF;
+    border-color: #6d4c5b;
 }
 .bk-page-btn-disabled { opacity: 0.35; pointer-events: none; }
 .bk-page-btn i[data-lucide] { width: 13px; height: 13px; }
@@ -444,18 +444,18 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 }
 </style>
 
-<section class="mx-auto max-w-[1600px] space-y-4 px-5 py-6 text-[13px] antialiased" style="font-family:Inter,sans-serif;color:#1c1917">
+<section class="mx-auto max-w-[1600px] space-y-4 px-5 py-6 text-[13px] antialiased" style="font-family:'DM Sans',sans-serif;color:#6d4c5b">
 
     <!-- Page header -->
     <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-            <p style="margin-bottom:4px;color:#78716c;font-size:11px;font-weight:650">Supplier workspace</p>
-            <h1 style="margin:0;color:#34232b;font-family:'Playfair Display',serif;font-size:clamp(27px,2.5vw,36px);font-weight:650;letter-spacing:-.025em;line-height:1.08">Booking operations</h1>
+            <p style="margin-bottom:4px;color:#A8A29E;font-size:11px;font-weight:650">Supplier workspace</p>
+            <h1 style="margin:0;color:#6d4c5b;font-family:'Playfair Display',serif;font-size:clamp(27px,2.5vw,36px);font-weight:650;letter-spacing:-.025em;line-height:1.08">Booking operations</h1>
             <p style="margin-top:6px;color:#7b5c69;font-size:12px;font-weight:500">Review requests, track upcoming events, and follow completed work.</p>
         </div>
         <a href="<?= URLROOT ?>/supplier/calendar"
            class="inline-flex h-8 items-center gap-1.5 rounded-xl border bg-white px-3 text-xs font-semibold shadow-sm"
-           style="border-color:#e7e5e4;color:#673049;text-decoration:none">
+           style="border-color:#ead8c7;color:#6d4c5b;text-decoration:none">
             <i data-lucide="calendar-days" class="h-3.5 w-3.5"></i>
             Open calendar
         </a>
@@ -489,12 +489,12 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     <!-- ── Main table section ────────────────────────────────────── -->
     <div class="bk-section">
 
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px;border-bottom:1px solid #e7e5e4">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px;border-bottom:1px solid #ead8c7">
             <div>
-                <h2 style="margin:0;color:#1c1917;font-size:14px;font-weight:750;letter-spacing:-.015em">Booking queue</h2>
-                <p style="margin-top:3px;color:#a8a29e;font-size:11px">Customer requests and confirmed event work</p>
+                <h2 style="margin:0;color:#6d4c5b;font-size:14px;font-weight:750;letter-spacing:-.015em">Booking queue</h2>
+                <p style="margin-top:3px;color:#A8A29E;font-size:11px">Customer requests and confirmed event work</p>
             </div>
-            <span style="color:#78716c;font-size:11px;font-weight:650"><?= number_format($totalCount) ?> records</span>
+            <span style="color:#A8A29E;font-size:11px;font-weight:650"><?= number_format($totalCount) ?> records</span>
         </div>
 
         <!-- Pending alert banner — only shown when there are pending bookings -->
@@ -606,7 +606,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
                             </td>
 
                             <!-- Event date (desktop column) -->
-                            <td class="bk-hide-sm" style="color: var(--color-app-secondary, #6b7280);">
+                            <td class="bk-hide-sm" style="color: #78716C;">
                                 <?= $h($eventDate) ?>
                             </td>
 
@@ -684,7 +684,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
                                class="bk-page-btn"><?= $p ?></a>
                             <?php endif; ?>
                         <?php elseif ($isEllipsisBefore || $isEllipsisAfter): ?>
-                            <span style="padding: 0 4px; color: var(--color-app-muted, #9ca3af); font-size: 12px;">…</span>
+                            <span style="padding: 0 4px; color: #A8A29E; font-size: 12px;">…</span>
                         <?php endif; ?>
                     <?php endfor; ?>
 
