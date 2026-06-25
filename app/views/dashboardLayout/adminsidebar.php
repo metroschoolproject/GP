@@ -122,6 +122,11 @@ if (!function_exists('dashboard_admin_nav_class')) {
                 <span class="flex-1">Packages</span>
             </a>
 
+            <a href="<?= URLROOT ?>/admin/categories" class="<?= dashboard_admin_nav_class('admin/categories', $currentPath) ?>">
+                <i data-lucide="tags" class="h-4 w-4"></i>
+                <span class="flex-1">Categories</span>
+            </a>
+
             <a href="<?= URLROOT ?>/admin/suppliers" class="<?= dashboard_admin_nav_class('admin/supplier', $currentPath) ?>">
                 <i data-lucide="store" class="h-4 w-4"></i>
                 <span class="flex-1">Suppliers</span>
@@ -251,7 +256,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
 
         <div class="admin-topbar-actions flex flex-wrap items-center gap-3">
             <?php require APPROOT . '/views/dashboardLayout/dashboardSearch.php'; ?>
-            <?php require APPROOT . '/views/dashboardLayout/notification.php'; ?>
+            <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
         </div>
     </div>
 

@@ -107,7 +107,7 @@ $gpNavEsc = function ($value) {
       <a class="<?= $gpNavActive === 'services' ? 'active' : '' ?>" href="<?= URLROOT ?>/customerServices/service">Services</a>
     </div>
     <div class="nav-actions">
-      <a class="nav-partner" href="<?= URLROOT ?>/users/register?type=supplier">Be a Partner</a>
+      <a class="nav-partner" href="<?= URLROOT ?>/users/auth?type=supplier">Be a Partner</a>
       <?php if ($isLoggedIn): ?>
         <?php if (defined('APPROOT') && file_exists(APPROOT . '/views/dashboardLayout/customerNotification.php')) require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
         <?php
@@ -154,7 +154,7 @@ $gpNavEsc = function ($value) {
     <a href="<?= URLROOT ?>/main/index#top">Home</a>
     <a href="<?= URLROOT ?>/customerServices/service">Our Service</a>
     <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
-    <a class="mobile-partner" href="<?= URLROOT ?>/users/register?type=supplier">Be a Partner</a>
+    <a class="mobile-partner" href="<?= URLROOT ?>/users/auth?type=supplier">Be a Partner</a>
     <?php if ($isLoggedIn): ?>
       <a href="<?= URLROOT ?>/booking/myBookings">My Bookings</a>
       <a href="<?= URLROOT ?>/review/my">My Reviews</a>

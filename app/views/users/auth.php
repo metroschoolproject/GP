@@ -343,35 +343,34 @@
 
   .auth-loading-panel {
     display: flex;
-    width: min(78%, 280px);
     flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
     border: 1px solid #ead8c7;
     border-radius: 14px;
     background: rgba(250, 245, 239, 0.95);
-    padding: 18px;
+    padding: 28px 32px;
     box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
   }
 
-  .auth-loading-line {
-    height: 10px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(109, 76, 91, 0.12), rgba(109, 76, 91, 0.32), rgba(109, 76, 91, 0.12));
-    background-size: 220% 100%;
-    animation: authSkeleton 1.05s ease-in-out infinite;
+  .auth-loading-spinner {
+    width: 40px;
+    height: 40px;
+    animation: authSpin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 
-  .auth-loading-line.short {
-    width: 64%;
+  .auth-loading-text {
+    font-family: var(--body-font);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.02em;
   }
 
-  .auth-loading-line.medium {
-    width: 82%;
-  }
-
-  @keyframes authSkeleton {
-    0% { background-position: 120% 0; }
-    100% { background-position: -120% 0; }
+  @keyframes authSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 
   @keyframes authButtonShimmer {
@@ -852,9 +851,11 @@
     <canvas class="sparkle-canvas" id="sparkleCanvas"></canvas>
     <div class="auth-loading-overlay" id="authLoadingOverlay" aria-hidden="true">
       <div class="auth-loading-panel" role="status" aria-live="polite">
-        <div class="auth-loading-line medium"></div>
-        <div class="auth-loading-line"></div>
-        <div class="auth-loading-line short"></div>
+        <svg class="auth-loading-spinner" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="16" stroke="rgba(109,76,91,0.12)" stroke-width="3.5" fill="none"/>
+          <path d="M20 4a16 16 0 0 1 16 16" stroke="#6d4c5b" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="auth-loading-text" id="authLoadingText">Please wait...</span>
       </div>
     </div>
 
@@ -1179,7 +1180,15 @@
                             }
 
                             if(res.status == 'email_unverified'){
-                                window.location.href = "<?= URLROOT ?>/users/verificationSent?e=" + encodeURIComponent(res.email || data.email);
+                                var unverifiedEmail = res.email || data.email;
+                                // Resend verification email in the background before redirecting
+                                fetch("<?= URLROOT ?>/users/resendVerification", {
+                                    method: 'POST',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({email: unverifiedEmail})
+                                }).finally(function() {
+                                    window.location.href = "<?= URLROOT ?>/users/verificationSent?e=" + encodeURIComponent(unverifiedEmail);
+                                });
                                 return;
                             }
 
@@ -1591,10 +1600,15 @@
                 const overlay = document.getElementById('authLoadingOverlay');
                 const button = document.getElementById('mainBtn');
                 const buttonText = document.getElementById('btnText');
+                const loadingText = document.getElementById('authLoadingText');
 
                 if (overlay) {
                     overlay.classList.toggle('show', isLoading);
                     overlay.setAttribute('aria-hidden', isLoading ? 'false' : 'true');
+                }
+
+                if (loadingText) {
+                    loadingText.textContent = message;
                 }
 
                 if (button) {

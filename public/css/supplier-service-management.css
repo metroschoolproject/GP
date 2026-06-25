@@ -426,12 +426,23 @@
 .room-row-inner .fm-label { font-size: 11px; margin-bottom: 4px; color: var(--fm-text-muted); }
 .room-row-remove {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: var(--fm-radius-sm);
+  width: 34px; height: 34px; border-radius: var(--fm-radius-sm);
   border: 1px solid var(--fm-border); background: #fcf8f5;
   color: #dc4a4a; cursor: pointer;
   transition: all var(--fm-transition); font-size: 16px;
 }
-.room-row-remove:hover { background: #fde8e8; border-color: #f5c6c6; }
+.room-row-remove:hover { background: #fde8e8; border-color: #e88; color: #c33; }
+/* Full-width remove button for card-style items (attire, rental) */
+.item-remove-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; margin-top: 12px; padding: 9px 16px;
+  border-radius: var(--fm-radius-sm);
+  border: 1px solid #f0d0d0; background: #fef8f8;
+  color: #c53030; font-size: 13px; font-weight: 500; font-family: inherit;
+  cursor: pointer; transition: all var(--fm-transition); letter-spacing: -0.01em;
+}
+.item-remove-btn:hover { background: #fde8e8; border-color: #e88; color: #a02020; }
+.item-remove-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
 .room-add {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: var(--fm-radius);

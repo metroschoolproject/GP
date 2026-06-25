@@ -155,11 +155,51 @@
         </div>
         <?php endif; ?>
         <div class="divider"></div>
-        <a href="<?= URLROOT ?>/users/auth" class="btn">
+        <button type="button" class="btn" id="resendBtn" onclick="resendVerification()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Resend verification email
+        </button>
+        <p class="help-text" id="resendStatus" style="margin-top:12px;min-height:18px;transition:opacity .3s"></p>
+        <div class="divider" style="margin-top:20px"></div>
+        <a href="<?= URLROOT ?>/users/auth" class="btn" style="background:transparent;color:var(--accent);border:1.5px solid var(--border);box-shadow:none">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             Back to sign in
         </a>
-        <p class="help-text">Didn't receive it? Check your spam folder or <a href="<?= URLROOT ?>/users/auth">try again</a>.</p>
     </div>
+    <script>
+    function resendVerification() {
+        var btn = document.getElementById('resendBtn');
+        var status = document.getElementById('resendStatus');
+        var email = <?= json_encode($email ?? '') ?>;
+        if (!email) { status.textContent = 'Email address not found.'; status.style.color = '#c53030'; return; }
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Sending…';
+        fetch('<?= URLROOT ?>/users/resendVerification', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email: email})
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d) {
+            status.textContent = d.message || 'Done.';
+            status.style.color = d.ok ? '#16a34a' : '#c53030';
+            if (d.ok) {
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Email sent!';
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Resend verification email';
+            }
+        })
+        .catch(function() {
+            status.textContent = 'Network error. Please try again.';
+            status.style.color = '#c53030';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Resend verification email';
+        });
+    }
+    </script>
 </body>
 </html>

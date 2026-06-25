@@ -1,5 +1,5 @@
 <?php
-$notificationConfig = [
+$notificationConfig = $notificationConfig ?? [
     'role' => 'booking',
     'reviewUrl' => URLROOT . '/booking/myBookings',
     'defaultUrl' => URLROOT . '/booking/myBookings',

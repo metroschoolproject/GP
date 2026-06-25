@@ -865,7 +865,7 @@ class Admin extends Controller
                 $supplierId
             );
             // Also send email
-            $userData = $this->customerModel->getUserById((int)$supplier['user_id']);
+            $userData = $this->customerModel->getCustomerById((int)$supplier['user_id']);
             if ($userData && !empty($userData['email'])) {
                 $emailService = new EmailService();
                 $emailService->sendSupplierApproved($userData['email'], $userData['name'] ?? 'Supplier');
@@ -1707,6 +1707,150 @@ class Admin extends Controller
         return $packageModel->updatePackageType((int)$packageId, [
             'base_price' => (float)($package['included_total'] ?? 0),
         ]);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CATEGORY MANAGEMENT
+    // ═══════════════════════════════════════════════════════════
+
+    public function categories()
+    {
+        $categoryModel = $this->model('Category');
+        $search = trim($_GET['search'] ?? '');
+        $allCategories = $categoryModel->getAll();
+
+        if ($search !== '') {
+            $searchLower = strtolower($search);
+            $allCategories = array_filter($allCategories, function ($cat) use ($searchLower) {
+                return strpos(strtolower($cat['name']), $searchLower) !== false
+                    || strpos(strtolower($cat['slug']), $searchLower) !== false;
+            });
+        }
+
+        $categories = [];
+        foreach ($allCategories as $cat) {
+            $cat['supplier_count'] = $categoryModel->getSupplierCount((int)$cat['id']);
+            $cat['service_count'] = $categoryModel->getServiceCount((int)$cat['id']);
+            $categories[] = $cat;
+        }
+
+        $this->view('admin/categories', [
+            'categories' => $categories,
+            'stats' => $categoryModel->getStats(),
+            'search' => $search,
+            'message' => $_SESSION['admin_flash'] ?? '',
+        ]);
+        unset($_SESSION['admin_flash']);
+    }
+
+    public function categoryCreate()
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/categories');
+        }
+
+        $this->requireCsrf();
+
+        $name = trim($_POST['name'] ?? '');
+        if ($name === '') {
+            $_SESSION['admin_flash'] = 'Category name is required.';
+            redirect('admin/categories');
+        }
+
+        if (mb_strlen($name) > 100) {
+            $_SESSION['admin_flash'] = 'Category name must be 100 characters or less.';
+            redirect('admin/categories');
+        }
+
+        $categoryModel = $this->model('Category');
+        $slug = Category::slugify($name);
+
+        if ($categoryModel->nameExists($name)) {
+            $_SESSION['admin_flash'] = 'A category with this name already exists.';
+            redirect('admin/categories');
+        }
+
+        if ($categoryModel->slugExists($slug)) {
+            $slug = $slug . '-' . time();
+        }
+
+        $categoryModel->create($name, $slug);
+
+        $_SESSION['admin_flash'] = 'Category "' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '" created successfully.';
+        redirect('admin/categories');
+    }
+
+    public function categoryUpdate($id = null)
+    {
+        if (!$id || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/categories');
+        }
+
+        $this->requireCsrf();
+
+        $categoryModel = $this->model('Category');
+        $category = $categoryModel->getById((int)$id);
+
+        if (!$category) {
+            $_SESSION['admin_flash'] = 'Category not found.';
+            redirect('admin/categories');
+        }
+
+        $name = trim($_POST['name'] ?? '');
+        if ($name === '') {
+            $_SESSION['admin_flash'] = 'Category name is required.';
+            redirect('admin/categories');
+        }
+
+        if (mb_strlen($name) > 100) {
+            $_SESSION['admin_flash'] = 'Category name must be 100 characters or less.';
+            redirect('admin/categories');
+        }
+
+        if ($categoryModel->nameExists($name, (int)$id)) {
+            $_SESSION['admin_flash'] = 'Another category with this name already exists.';
+            redirect('admin/categories');
+        }
+
+        $slug = Category::slugify($name);
+        if ($categoryModel->slugExists($slug, (int)$id)) {
+            $slug = $slug . '-' . time();
+        }
+
+        $categoryModel->update((int)$id, $name, $slug);
+
+        $_SESSION['admin_flash'] = 'Category updated successfully.';
+        redirect('admin/categories');
+    }
+
+    public function categoryDelete($id = null)
+    {
+        if (!$id || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/categories');
+        }
+
+        $this->requireCsrf();
+
+        $categoryModel = $this->model('Category');
+        $category = $categoryModel->getById((int)$id);
+
+        if (!$category) {
+            $_SESSION['admin_flash'] = 'Category not found.';
+            redirect('admin/categories');
+        }
+
+        $serviceCount = $categoryModel->getServiceCount((int)$id);
+        $supplierCount = $categoryModel->getSupplierCount((int)$id);
+
+        if ($serviceCount > 0 || $supplierCount > 0) {
+            $_SESSION['admin_flash'] = 'Cannot delete "' . htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') . '" — it is used by ' . $serviceCount . ' service(s) and ' . $supplierCount . ' supplier(s). Remove those associations first.';
+            redirect('admin/categories');
+        }
+
+        $categoryModel->delete((int)$id);
+
+        $_SESSION['admin_flash'] = 'Category deleted successfully.';
+        redirect('admin/categories');
     }
 
     private function currentUserId()

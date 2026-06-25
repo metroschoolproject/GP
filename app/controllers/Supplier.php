@@ -35,15 +35,15 @@ class Supplier extends SupplierControllerSupport
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $this->requireCsrf(false);
             $data = [
-                'email' => htmlspecialchars(trim($_POST['email'] ?? ($_SESSION['pending_register_email'] ?? '')), ENT_QUOTES, 'UTF-8'),
-                'business_name' => htmlspecialchars(trim($_POST['business_name'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'business_description' => htmlspecialchars(trim($_POST['business_description'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'phone' => htmlspecialchars(trim($_POST['phone'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'business_address' => htmlspecialchars(trim($_POST['business_address'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'category_prompt' => htmlspecialchars(trim($_POST['category_prompt'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'email' => trim($_POST['email'] ?? ($_SESSION['pending_register_email'] ?? '')),
+                'business_name' => trim($_POST['business_name'] ?? ''),
+                'business_description' => trim($_POST['business_description'] ?? ''),
+                'phone' => trim($_POST['phone'] ?? ''),
+                'business_address' => trim($_POST['business_address'] ?? ''),
+                'category_prompt' => trim($_POST['category_prompt'] ?? ''),
                 'category_ids' => array_map('intval', $_POST['category_ids'] ?? []),
                 'category_source' => 'manual',
-                'business_url' => htmlspecialchars(trim($_POST['business_url'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'business_url' => trim($_POST['business_url'] ?? ''),
                 'thumbnail_url' => null,
                 'agreement_accepted' => !empty($_POST['agreement_accepted']),
                 'agreement_accepted_at' => date('Y-m-d H:i:s'),
@@ -404,91 +404,7 @@ class Supplier extends SupplierControllerSupport
 
     public function earnings()
     {
-        $userId = $this->currentUserId();
-        if (!$userId) {
-            redirect('users/login');
-        }
-
-        $supplier = $this->supplierProfileModel->getByUserId($userId);
-        if (!$supplier) {
-            redirect('supplier/onboarding');
-        }
-
-        $supplierId = (int)$supplier['supplier_id'];
-        $page = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = 15;
-        $offset = ($page - 1) * $perPage;
-
-        // Get earnings summary from booking_suppliers
-        $db = new Database();
-
-        // Pending: completed but not yet paid out
-        $db->dbquery(
-            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
-             FROM booking_suppliers bs
-             WHERE bs.supplier_id = :sid AND bs.status = 'completed' AND bs.payout_status = 'unpaid'"
-        );
-        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $pending = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
-
-        // Processing
-        $db->dbquery(
-            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
-             FROM booking_suppliers bs
-             WHERE bs.supplier_id = :sid AND bs.payout_status = 'processing'"
-        );
-        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $processing = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
-
-        // Paid
-        $db->dbquery(
-            "SELECT COALESCE(SUM(bs.item_price), 0) AS amount, COUNT(*) AS cnt
-             FROM booking_suppliers bs
-             WHERE bs.supplier_id = :sid AND bs.payout_status = 'paid'"
-        );
-        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $paid = $db->getsingledata() ?: ['amount' => 0, 'cnt' => 0];
-
-        $earnings = [
-            'pending_amount' => (float)($pending['amount'] ?? 0),
-            'pending_count' => (int)($pending['cnt'] ?? 0),
-            'processing_amount' => (float)($processing['amount'] ?? 0),
-            'processing_count' => (int)($processing['cnt'] ?? 0),
-            'paid_amount' => (float)($paid['amount'] ?? 0),
-            'paid_count' => (int)($paid['cnt'] ?? 0),
-            'total_earned' => (float)($pending['amount'] ?? 0) + (float)($processing['amount'] ?? 0) + (float)($paid['amount'] ?? 0),
-        ];
-
-        // Payout history
-        $db->dbquery(
-            "SELECT bs.booking_id, bs.item_price AS amount, bs.payout_status AS status, bs.completed_at AS created_at
-             FROM booking_suppliers bs
-             WHERE bs.supplier_id = :sid AND bs.status = 'completed'
-             ORDER BY bs.completed_at DESC
-             LIMIT :limit OFFSET :offset"
-        );
-        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $db->dbbind(':limit', $perPage, PDO::PARAM_INT);
-        $db->dbbind(':offset', $offset, PDO::PARAM_INT);
-        $payouts = $db->getmultidata() ?: [];
-
-        // Total count for pagination
-        $db->dbquery(
-            "SELECT COUNT(*) AS total FROM booking_suppliers bs
-             WHERE bs.supplier_id = :sid AND bs.status = 'completed'"
-        );
-        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $totalPayouts = (int)(($db->getsingledata())['total'] ?? 0);
-
-        $this->view('supplier/earnings', [
-            'earnings' => $earnings,
-            'payouts' => $payouts,
-            'supplier' => $supplier,
-            'supplierId' => $supplierId,
-            'currentPage' => $page,
-            'totalPages' => max(1, (int)ceil($totalPayouts / $perPage)),
-            'totalPayouts' => $totalPayouts,
-        ]);
+        return $this->forwardTo(Booking::class, 'supplierEarnings', func_get_args());
     }
 
     public function reviews()

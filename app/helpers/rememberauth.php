@@ -75,6 +75,12 @@ function restoreRememberedUserSession()
         $_SESSION['session_name'] = $user['name'] ?? '';
         $_SESSION['session_avatar'] = $user['avatar'] ?? null;
 
+        // Cache primary role in session
+        require_once APPROOT . '/helpers/security.php';
+        $roles = $userModel->getUserRoles((int)$user['user_id']);
+        $_SESSION['session_role'] = in_array('admin', $roles, true) ? 'admin'
+            : (in_array('supplier', $roles, true) ? 'supplier' : 'customer');
+
         issueRememberMeCookie($userModel, $user['user_id']);
     } catch (Throwable $e) {
         // A missing database should not break public pages.

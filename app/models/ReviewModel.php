@@ -228,8 +228,10 @@ class ReviewModel
     public function getPendingBookings(int $customerId): array
     {
         $this->db->dbquery(
-            'SELECT b.id AS booking_id, b.event_date, b.total_amount
+            'SELECT b.id AS booking_id, b.total_amount,
+                    MIN(ed.event_date) AS event_date
              FROM bookings b
+             LEFT JOIN event_details ed ON ed.booking_id = b.id
              WHERE b.user_id = :customer_id
                AND b.status = \'completed\'
                AND b.created_at >= NOW() - INTERVAL 12 MONTH
@@ -239,7 +241,8 @@ class ReviewModel
                      AND r.customer_id = :customer_id2
                      AND r.deleted_at IS NULL
                )
-             ORDER BY b.event_date DESC'
+             GROUP BY b.id, b.total_amount
+             ORDER BY event_date DESC'
         );
         $this->db->dbbind(':customer_id', $customerId);
         $this->db->dbbind(':customer_id2', $customerId);

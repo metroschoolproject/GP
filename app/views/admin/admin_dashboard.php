@@ -291,6 +291,132 @@
         }
         .dropdown-item:hover { background: #fde8ef; color: #9b1c4a; }
         .dropdown-item.active { background: #fde8ef; font-weight: 600; color: #9b1c4a; }
+
+        /* ── Admin Date Calendar Popover (matches customer service detail gp-calendar) ── */
+        .venue-date-input-wrap {
+            position: relative;
+            min-height: 32px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(63, 36, 26, .18);
+            border-radius: 6px;
+            background: #FFF8EF;
+            color: #3F241A;
+            padding: 0 10px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(63, 36, 26, .06);
+        }
+        .venue-date-input-wrap .venue-date-icon { width: 14px; height: 14px; color: #7A4E3D; }
+        .venue-date-input-wrap .venue-date-chevron { width: 12px; height: 12px; color: #7A4E3D; }
+        .venue-date-input-wrap .gp-calendar-input {
+            position: absolute; inset: 0; opacity: 0; cursor: pointer; border: 0; width: 100%; height: 100%;
+        }
+        .gp-calendar-popover {
+            position: absolute;
+            left: 0;
+            top: calc(100% + 8px);
+            z-index: 60;
+            width: min(250px, calc(100vw - 32px));
+            padding: 12px;
+            border: 1px solid rgba(63, 36, 26, .14);
+            border-radius: 10px;
+            background: rgba(255, 248, 239, .98);
+            box-shadow: 0 24px 60px rgba(63, 36, 26, .18);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        .gp-calendar-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: #3F241A;
+            font-size: 12px;
+            font-weight: 900;
+            margin-bottom: 9px;
+        }
+        .gp-calendar-nav {
+            width: 22px;
+            height: 22px;
+            display: inline-grid;
+            place-items: center;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: #7A4E3D;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+        .gp-calendar-nav:hover { background: rgba(63, 36, 26, .08); }
+        .gp-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+        }
+        .gp-calendar-day-name,
+        .gp-calendar-day {
+            display: grid;
+            place-items: center;
+            height: 24px;
+            color: #6F5448;
+            font-size: 11px;
+            font-family: 'Inter', sans-serif;
+        }
+        .gp-calendar-day-name {
+            color: rgba(63, 36, 26, .52);
+            font-weight: 800;
+        }
+        .gp-calendar-day {
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .gp-calendar-day:hover { background: rgba(122, 78, 61, .12); }
+        .gp-calendar-day.is-selected {
+            background: #3F241A;
+            color: #FFF8EF;
+        }
+        .gp-calendar-day.is-today:not(.is-selected) {
+            outline: 1px solid rgba(63, 36, 26, .28);
+        }
+        .gp-calendar-day.is-disabled {
+            color: rgba(63, 36, 26, .24);
+            cursor: not-allowed;
+        }
+        .gp-calendar-footer {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(63, 36, 26, .10);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .gp-calendar-footer button {
+            border: 0; border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: background .12s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        .gp-cal-today-btn {
+            background: rgba(63, 36, 26, .08);
+            color: #3F241A;
+        }
+        .gp-cal-today-btn:hover { background: rgba(63, 36, 26, .14); }
+        .gp-cal-clear-btn {
+            background: transparent;
+            color: #7A4E3D;
+        }
+        .gp-cal-clear-btn:hover { background: rgba(63, 36, 26, .08); }
     </style>
 </head>
 <body class="antialiased">
@@ -302,12 +428,14 @@
                 <p class="dashboard-page-copy">Bookings, revenue, suppliers, and upcoming events at a glance.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-            <label class="flex h-8 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold shadow-sm"
-                style="color:var(--accent-color)">
-                <i data-lucide="calendar-days" class="h-3 w-3" style="color:#a8a29e"></i>
-                <input id="eventDateFilter" type="date" class="bg-transparent text-xs font-semibold focus:outline-none"
-                    style="color:var(--accent-color)">
-            </label>
+            <div class="relative" id="adminDatePickerWrap">
+                <span class="venue-date-input-wrap" id="adminDatePickerBtn">
+                    <i class="venue-date-icon" data-lucide="calendar-days"></i>
+                    <span class="venue-date-display" id="adminDatePickerLabel">Today</span>
+                    <i class="venue-date-chevron" data-lucide="chevron-down"></i>
+                </span>
+                <div id="adminDatePickerPopover" class="gp-calendar-popover" hidden></div>
+            </div>
             <div class="relative">
                 <button id="eventFilterBtn" type="button" aria-expanded="false"
                     class="flex h-8 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 text-xs font-semibold shadow-sm focus:outline-none"
@@ -523,9 +651,8 @@
 
         async function fetchDashboardData(filter = "week") {
             const params = new URLSearchParams({ filter: filter });
-            const dateEl = document.getElementById('eventDateFilter');
-            if (dateEl && dateEl.value) {
-                params.set('date', dateEl.value);
+            if (adminCalSelectedDate) {
+                params.set('date', adminCalSelectedDate);
             }
             const response = await fetch('../admin/overviewData?' + params.toString());
             if (!response.ok) {
@@ -538,6 +665,7 @@
         let supplierChart;
         let isLoading = false;
         let currentFilter = "week";
+        let adminCalSelectedDate = null;
 
         function currency(value) { return `MMK ${value.toLocaleString()}`; }
         function formatDateInputValue(date) {
@@ -801,7 +929,6 @@
             const evtMenu = document.getElementById("eventFilterMenu");
             const evtLbl  = document.getElementById("eventFilterLabel");
             const evtChev = document.getElementById("eventFilterChevron");
-            const eventDateFilter = document.getElementById("eventDateFilter");
             const labels  = { today:"Today", week:"This week", month:"This month", year:"This year" };
 
             function closeEvtMenu() { evtMenu.classList.add("invisible","opacity-0"); evtBtn.setAttribute("aria-expanded","false"); }
@@ -817,14 +944,139 @@
                 });
             });
             document.addEventListener("click", e => { if (!evtBtn.contains(e.target) && !evtMenu.contains(e.target)) closeEvtMenu(); });
-            const today = new Date();
-            const maxDate = formatDateInputValue(today);
-            eventDateFilter.max = maxDate;
-            eventDateFilter.value = maxDate;
-            eventDateFilter.addEventListener("change", () => {
-                if (eventDateFilter.value > maxDate) eventDateFilter.value = maxDate;
-                loadDashboardData();
+
+            /* ── Admin Date Calendar Picker (gp-calendar style from service detail) ── */
+            const calPopover   = document.getElementById('adminDatePickerPopover');
+            const calBtn       = document.getElementById('adminDatePickerBtn');
+            const calLabel     = document.getElementById('adminDatePickerLabel');
+            const today        = new Date();
+            const MONTH_SHORT  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+            let adminCalMonth = null;
+            adminCalSelectedDate = formatDateInputValue(today);
+
+            function updateAdminCalDisplay() {
+                const todayValue = formatDateInputValue(new Date());
+                if (adminCalSelectedDate === todayValue) {
+                    calLabel.textContent = 'Today';
+                } else if (adminCalSelectedDate) {
+                    const parsed = adminCalSelectedDate.split('-').map(Number);
+                    const d = new Date(parsed[0], parsed[1] - 1, parsed[2]);
+                    calLabel.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } else {
+                    calLabel.textContent = 'All dates';
+                }
+            }
+
+            function renderAdminCalendar() {
+                if (!adminCalMonth) return;
+                const monthStart = new Date(adminCalMonth.getFullYear(), adminCalMonth.getMonth(), 1);
+                const selectedValue = adminCalSelectedDate || '';
+                const todayValue = formatDateInputValue(new Date());
+                const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+                const leadingBlanks = monthStart.getDay(); // Sunday = 0
+                const monthTitle = monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+                let html = '<div class="gp-calendar-head">' +
+                    '<button class="gp-calendar-nav" type="button" data-cal-prev>&#8249;</button>' +
+                    '<span>' + monthTitle + '</span>' +
+                    '<button class="gp-calendar-nav" type="button" data-cal-next>&#8250;</button>' +
+                    '</div><div class="gp-calendar-grid">';
+
+                dayNames.forEach(d => { html += '<div class="gp-calendar-day-name">' + d + '</div>'; });
+                for (let i = 0; i < leadingBlanks; i++) html += '<span></span>';
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const value = monthStart.getFullYear() + '-' + String(monthStart.getMonth() + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                    const classes = ['gp-calendar-day'];
+                    if (value === selectedValue) classes.push('is-selected');
+                    if (value === todayValue) classes.push('is-today');
+                    html += '<button class="' + classes.join(' ') + '" type="button" data-date="' + value + '">' + day + '</button>';
+                }
+                html += '</div>';
+
+                // Footer with Today and Clear
+                html += '<div class="gp-calendar-footer">';
+                html += '<button type="button" class="gp-cal-clear-btn" data-cal-clear>Clear</button>';
+                html += '<button type="button" class="gp-cal-today-btn" data-cal-today>Today</button>';
+                html += '</div>';
+
+                calPopover.innerHTML = html;
+            }
+
+            calPopover.addEventListener('click', e => {
+                e.stopPropagation();
+                const prev = e.target.closest('[data-cal-prev]');
+                const next = e.target.closest('[data-cal-next]');
+                const day  = e.target.closest('[data-date]');
+                const todayBtn = e.target.closest('[data-cal-today]');
+                const clearBtn = e.target.closest('[data-cal-clear]');
+
+                if (prev) {
+                    adminCalMonth = new Date(adminCalMonth.getFullYear(), adminCalMonth.getMonth() - 1, 1);
+                    renderAdminCalendar();
+                    return;
+                }
+                if (next) {
+                    adminCalMonth = new Date(adminCalMonth.getFullYear(), adminCalMonth.getMonth() + 1, 1);
+                    renderAdminCalendar();
+                    return;
+                }
+                if (day) {
+                    adminCalSelectedDate = day.dataset.date;
+                    updateAdminCalDisplay();
+                    calPopover.hidden = true;
+                    loadDashboardData();
+                    return;
+                }
+                if (todayBtn) {
+                    const now = new Date();
+                    adminCalMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                    adminCalSelectedDate = formatDateInputValue(now);
+                    updateAdminCalDisplay();
+                    calPopover.hidden = true;
+                    loadDashboardData();
+                    return;
+                }
+                if (clearBtn) {
+                    adminCalSelectedDate = null;
+                    updateAdminCalDisplay();
+                    calPopover.hidden = true;
+                    loadDashboardData();
+                }
             });
+
+            calPopover.addEventListener('mousedown', e => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+
+            // Toggle popover
+            calBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                if (calPopover.hidden) {
+                    const base = adminCalSelectedDate ? adminCalSelectedDate.split('-').map(Number) : [today.getFullYear(), today.getMonth(), today.getDate()];
+                    adminCalMonth = new Date(base[0], base[1] - 1, 1);
+                    renderAdminCalendar();
+                    calPopover.hidden = false;
+                } else {
+                    calPopover.hidden = true;
+                }
+            });
+
+            // Close on outside click
+            document.addEventListener('click', e => {
+                if (!calPopover.hidden && !calPopover.contains(e.target) && !calBtn.contains(e.target)) {
+                    calPopover.hidden = true;
+                }
+            });
+
+            window.addEventListener('scroll', () => {
+                if (calPopover && !calPopover.hidden) calPopover.hidden = true;
+            }, { passive: true });
+
+            // Set initial label
+            updateAdminCalDisplay();
 
             refreshLucideIcons();
             loadDashboardData();

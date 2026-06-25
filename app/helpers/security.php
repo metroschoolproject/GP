@@ -32,6 +32,19 @@ function user_has_role(int $userId, string $role): bool
         return false;
     }
 
+    // Fast path: check cached session role first (avoids DB query on every request)
+    if (!empty($_SESSION['session_role']) && (int)($_SESSION['session_uid'] ?? 0) === $userId) {
+        if ($_SESSION['session_role'] === $role) {
+            return true;
+        }
+        // Admin implicitly has all roles for access purposes
+        if ($_SESSION['session_role'] === 'admin' && $role === 'admin') {
+            return true;
+        }
+        // If session role doesn't match, fall through to DB check
+        // (user might have multiple roles)
+    }
+
     $db = new Database();
     $db->dbquery(
         'SELECT 1

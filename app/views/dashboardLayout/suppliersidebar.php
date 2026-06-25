@@ -472,7 +472,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
 
         <div class="supplier-topbar-actions flex flex-wrap items-center gap-3">
             <?php require APPROOT . '/views/dashboardLayout/dashboardSearch.php'; ?>
-            <?php require APPROOT . '/views/dashboardLayout/notification.php'; ?>
+            <?php require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
         </div>
     </div>
 

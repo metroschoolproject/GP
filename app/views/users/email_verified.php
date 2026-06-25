@@ -149,10 +149,20 @@
         <h1>Email verified</h1>
         <p class="subtitle"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></p>
         <div class="divider"></div>
+        <?php if (!empty($isPendingSupplier)): ?>
+        <p class="subtitle" style="margin-bottom:20px;font-size:13px;color:var(--accent);background:rgba(109,76,91,0.06);border-radius:10px;padding:12px 14px;line-height:1.5;">
+            ⏳ You will receive an email once your application is approved. After approval, you can log in to access your supplier dashboard.
+        </p>
+        <a href="<?= URLROOT ?>/main/home" class="btn">
+            Browse as guest
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+        <?php else: ?>
         <a href="<?= URLROOT . '/' . $redirect ?>" class="btn success-btn">
             Continue
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </a>
+        <?php endif; ?>
         <?php else: ?>
         <div class="icon-circle error">
             <svg class="error-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

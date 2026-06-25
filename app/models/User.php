@@ -171,6 +171,10 @@ class User
                 $_SESSION['session_email'] = $data['email'];
                 $_SESSION['session_name'] = $row['name'] ?? '';
                 $_SESSION['session_avatar'] = $row['avatar'] ?? null;
+                // Cache primary role in session to avoid DB lookups on every request
+                $roles = $this->getUserRoles((int)$row['user_id']);
+                $_SESSION['session_role'] = in_array('admin', $roles, true) ? 'admin'
+                    : (in_array('supplier', $roles, true) ? 'supplier' : 'customer');
                 return true;
             } else {
                 return false;
