@@ -3,7 +3,7 @@ $adminEmail = htmlspecialchars($_SESSION['session_email'] ?? 'admin@example.com'
 $adminName = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['session_name'] ?? 'Admin User', ENT_QUOTES, 'UTF-8');
 $adminInitials = strtoupper(substr(trim($adminName) !== '' ? $adminName : 'Admin', 0, 1));
 $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
-$paymentStatusFilter = $_GET['status'] ?? 'pending';
+$paymentStatusFilter = (strpos($currentPath, 'admin/payments') !== false) ? ($_GET['status'] ?? 'pending') : '';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, suppliers...';
 $dashboardSearchAction = $dashboardSearchAction ?? URLROOT . '/admin/bookings';
 $notificationConfig = $notificationConfig ?? [
@@ -52,8 +52,8 @@ if (!function_exists('dashboard_admin_nav_class')) {
     }
 }
 ?>
-<aside class="bg-app-sidebar border-r border-app-panel-border">
-    <div class="flex h-full flex-col">
+<aside class="admin-sidebar-shell bg-app-sidebar border-r border-app-panel-border">
+    <div class="flex h-full min-h-0 flex-col">
         <div class="border-b border-app-panel-border bg-app-panel px-5 py-5">
             <div class="flex items-center gap-3">
                 <?php $sidebarAvatar = $_SESSION['session_avatar'] ?? null; ?>
@@ -75,7 +75,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
             <p class="px-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-app-header-muted">Profile</p>
         </div>
 
-        <nav class="px-4 py-3 space-y-1.5">
+        <nav class="admin-sidebar-nav-scroll px-4 py-3 space-y-1.5">
             <a href="<?= URLROOT ?>/admin/profile" class="<?= dashboard_admin_nav_class('admin/profile', $currentPath, true) ?>">
                 <i data-lucide="circle-user" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="flex-1">My Profile</span>
@@ -221,7 +221,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
             </div>
         </nav>
 
-        <div class="mt-auto border-t border-app-panel-border px-4 py-4">
+        <div class="flex-shrink-0 border-t border-app-panel-border px-4 py-4">
             <a href="<?= URLROOT ?>/admin/logout" class="group flex w-full items-center gap-3 rounded-xl px-4 py-3 transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] hover:bg-app-sidebar-hover">
                 <span class="flex h-8 w-8 items-center justify-center rounded-xl text-app-header-muted transition-all duration-300 group-hover:text-app-danger group-hover:bg-app-danger-soft">
                     <i data-lucide="log-out" class="h-5 w-5"></i>
@@ -313,6 +313,34 @@ if (!function_exists('dashboard_admin_nav_class')) {
         --admin-danger-soft: #f9dede;
         font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
         font-variant-numeric: tabular-nums;
+    }
+
+    .admin-sidebar-shell {
+        height: 100vh;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .admin-sidebar-nav-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #d8c8bb transparent;
+    }
+
+    .admin-sidebar-nav-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .admin-sidebar-nav-scroll::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: #d8c8bb;
+    }
+
+    .admin-sidebar-group-trigger.bg-app-primary .admin-sidebar-group-chevron,
+    .admin-sidebar-group-trigger.bg-app-primary [data-lucide] {
+        color: #FFFFFF;
     }
 
     .admin-dashboard-topbar nav[aria-label="Breadcrumb"] {
