@@ -62,8 +62,9 @@ class ReviewModel
 
     public function create(int $bookingId, int $customerId, int $rating, string $comment): int
     {
+        // Resolve supplier_id, service_id, and booking_item_id from the first service item
         $this->db->dbquery(
-            'SELECT s.supplier_id
+            'SELECT bi.id AS booking_item_id, bi.item_id AS service_id, s.supplier_id
               FROM booking_items bi
               JOIN services s ON s.id = bi.item_id AND bi.item_type = \'service\'
              WHERE bi.booking_id = :booking_id
@@ -72,12 +73,16 @@ class ReviewModel
         $this->db->dbbind(':booking_id', $bookingId);
         $row = $this->db->getsingledata();
         $supplierId = $row ? (int)$row['supplier_id'] : null;
+        $serviceId = $row ? (int)$row['service_id'] : 0;
+        $bookingItemId = $row ? (int)$row['booking_item_id'] : 0;
 
         $this->db->dbquery(
-            'INSERT INTO reviews (booking_id, customer_id, supplier_id, rating, comment, created_at)
-             VALUES (:booking_id, :customer_id, :supplier_id, :rating, :comment, NOW())'
+            'INSERT INTO reviews (booking_id, booking_item_id, service_id, customer_id, supplier_id, rating, comment, created_at)
+             VALUES (:booking_id, :booking_item_id, :service_id, :customer_id, :supplier_id, :rating, :comment, NOW())'
         );
         $this->db->dbbind(':booking_id', $bookingId);
+        $this->db->dbbind(':booking_item_id', $bookingItemId);
+        $this->db->dbbind(':service_id', $serviceId);
         $this->db->dbbind(':customer_id', $customerId);
         $this->db->dbbind(':supplier_id', $supplierId);
         $this->db->dbbind(':rating', $rating);

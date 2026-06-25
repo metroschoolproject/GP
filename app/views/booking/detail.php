@@ -579,12 +579,30 @@ a{color:inherit;text-decoration:none}
   <?php $reviewFlashSuccess = $_SESSION['review_success'] ?? null; $reviewFlashError = $_SESSION['review_error'] ?? null; unset($_SESSION['review_success'], $_SESSION['review_error']); ?>
   <?php if ($canReview || $existingReview): ?>
   <div class="gp-review-section">
-    <div class="gp-review-section-h">Your Review</div>
+    <div class="gp-review-section-h"><?= $existingReview ? 'Your Review' : 'Leave a Review' ?></div>
     <div class="gp-review-section-b">
       <?php if ($reviewFlashSuccess): ?>
         <div class="gp-flash-success"><?= $h($reviewFlashSuccess) ?></div>
       <?php elseif ($reviewFlashError): ?>
         <div class="gp-flash-error"><?= $h($reviewFlashError) ?></div>
+      <?php endif; ?>
+
+      <!-- Completed services list -->
+      <?php if (!empty($items)): ?>
+      <div style="margin-bottom:16px">
+        <p style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Services completed</p>
+        <?php foreach ($items as $idx => $svc): ?>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;<?= $idx > 0 ? 'border-top:1px solid var(--rule);' : '' ?>">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="color:var(--muted);font-size:14px">✓</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--text)"><?= $h($svc['service_name'] ?? 'Service') ?></div>
+            <div style="font-size:11px;color:var(--muted)"><?= $h($svc['supplier_name'] ?? '') ?></div>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
       <?php endif; ?>
 
       <?php if ($existingReview): ?>
@@ -619,14 +637,14 @@ a{color:inherit;text-decoration:none}
 
       <?php elseif ($canReview): ?>
         <form method="POST" action="<?=URLROOT?>/review/submit/<?=(int)($booking['id']??0)?>">
-          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">How was your experience with this booking?</p>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">How was your experience with these services?</p>
           <div class="gp-star-picker" id="submitStarPicker">
             <?php for ($s = 1; $s <= 5; $s++): ?>
               <button class="gp-star-btn" type="button" data-val="<?=$s?>" onclick="setSubmitStar(<?=$s?>)">★</button>
             <?php endfor; ?>
           </div>
           <input type="hidden" name="rating" id="submitRatingInput" value="">
-          <textarea class="gp-review-textarea" name="comment" placeholder="Share your experience (min 10 characters)…" maxlength="2000" oninput="updateCharCount('submitCommentCount',this.value,2000)"></textarea>
+          <textarea class="gp-review-textarea" name="comment" placeholder="Share your experience with the services you received (min 10 characters)…" maxlength="2000" oninput="updateCharCount('submitCommentCount',this.value,2000)"></textarea>
           <div class="gp-review-chars"><span id="submitCommentCount">0</span> / 2000</div>
           <div style="margin-top:12px">
             <button class="gp-btn-sm primary" type="submit" onclick="return validateReviewForm()">Submit Review</button>
