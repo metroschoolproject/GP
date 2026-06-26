@@ -7,10 +7,48 @@ $addonServices = $package['addon_services'] ?? [];
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
+$customerName = trim((string)($_SESSION['session_name'] ?? 'Guest customer'));
+$customerEmail = trim((string)($_SESSION['session_email'] ?? 'Email not provided'));
+$customerAvatar = trim((string)($_SESSION['session_avatar'] ?? ''));
+$customerInitial = strtoupper(substr($customerName !== '' ? $customerName : 'G', 0, 1));
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => 'MMK ' . number_format((float)$v, 0);
 $packageCustomerPrice = (float)($package['package_price'] ?? $package['base_price'] ?? 0);
+$inferPackageTier = static function (array $pkg): string {
+    $haystack = strtolower(implode(' ', [
+        $pkg['tier'] ?? '',
+        $pkg['type'] ?? '',
+        $pkg['package_type'] ?? '',
+        $pkg['category_name'] ?? '',
+        $pkg['name'] ?? '',
+        $pkg['slug'] ?? '',
+        $pkg['tagline'] ?? '',
+        $pkg['description'] ?? '',
+    ]));
+    if (str_contains($haystack, 'luxury')) return 'luxury';
+    if (str_contains($haystack, 'premium')) return 'premium';
+    if (str_contains($haystack, 'standard')) return 'standard';
+    return 'standard';
+};
+$packageTierKey = $inferPackageTier((array)$package);
+$packageTierLabel = ['standard' => 'Standard', 'premium' => 'Premium', 'luxury' => 'Luxury'][$packageTierKey] ?? 'Standard';
+$includedServices = [];
+foreach ($categoryServices as $cs) {
+    foreach (($cs['services'] ?? []) as $svc) {
+        $svc['category_name'] = $svc['category_name'] ?? ($cs['category_name'] ?? '');
+        $includedServices[] = $svc;
+    }
+}
+$packageImage = trim((string)($package['image_url'] ?? ''));
+if ($packageImage === '') {
+    foreach ($includedServices as $svc) {
+        if (!empty($svc['image'])) {
+            $packageImage = trim((string)$svc['image']);
+            break;
+        }
+    }
+}
 $moneyRange = function ($svc) use ($money) {
     if (($svc['quantity_type'] ?? 'fixed') === 'guests') {
         $quantity = max(1, (int)($svc['quantity'] ?? 1));
@@ -19,6 +57,19 @@ $moneyRange = function ($svc) use ($money) {
         return $money($total) . ' · ' . $quantity . ' guests at ' . $money($unit);
     }
     return $money($svc['package_price'] ?? $svc['unit_price'] ?? $svc['price_min'] ?? $svc['price'] ?? 0);
+};
+$addonDurationText = static function ($svc): string {
+    $type = $svc['booking_type'] ?? 'fullday';
+    $min = (int)($svc['duration_minutes'] ?? 0);
+    if ($type === 'slot' && $min > 0) {
+        $hours = $min / 60;
+        return $hours >= 1 ? rtrim(rtrim(number_format($hours, 1), '0'), '.') . ' hr' : $min . ' min';
+    }
+    return $type === 'flexible' ? 'Flexible' : 'Full day';
+};
+$addonLocation = static function ($svc): string {
+    $location = trim((string)($svc['venue_location'] ?? $svc['service_location'] ?? $svc['location'] ?? ''));
+    return $location !== '' ? $location : 'Location available after booking';
 };
 $isRentalCategory = static function ($svc): bool {
     $slug = strtolower(trim((string)($svc['category_slug'] ?? '')));
@@ -250,7 +301,11 @@ img { display: block; max-width: 100%; }
 .gp-profile-menu-item--danger:hover { background: rgba(185,75,75,0.08); }
 
 /* ─── PAGE ───────────────────────────────── */
-.gp-detail-page { padding: 0 var(--pad-x) 72px; }
+.gp-detail-page {
+  max-width: none;
+  margin: 0 auto;
+  padding: 0 0 72px;
+}
 
 /* ─── BREADCRUMB ─────────────────────────── */
 .gp-breadcrumb {
@@ -262,18 +317,16 @@ img { display: block; max-width: 100%; }
 .gp-breadcrumb-sep { color: var(--c-rule); }
 
 /* ─── HERO AREA ──────────────────────────── */
-.gp-detail-hero {
-  padding: 0 0 48px;
-}
+.gp-detail-hero { padding: 18px 0 28px; }
 .gp-detail-hero-overline {
   font-size: 12px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--c-danger); margin-bottom: 12px;
 }
 .gp-detail-hero h1 {
   font-family: var(--font-display);
-  font-size: clamp(40px, 5vw, 72px);
+  font-size: clamp(30px, 3.4vw, 46px);
   font-weight: 600;
-  line-height: 0.92;
+  line-height: 1.02;
   color: var(--c-text);
   margin-bottom: 12px;
 }
@@ -308,6 +361,454 @@ img { display: block; max-width: 100%; }
 }
 .gp-package-cart-btn:hover{background:#5a3d4a;transform:translateY(-1px)}
 
+/* ─── PACKAGE DETAIL LAYOUT ──────────────── */
+.gp-package-detail-shell {
+  display: block;
+  margin-bottom: 34px;
+}
+.gp-package-media-column {
+  min-width: 0;
+  max-width: none;
+}
+.gp-package-main-image {
+  position: relative;
+  overflow: hidden;
+  height: clamp(340px, 42vw, 480px);
+  min-height: 340px;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(140deg, #ead8c8, #d8c2af);
+  box-shadow: 0 20px 48px rgba(63,36,26,.12);
+}
+.gp-package-main-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(17,14,15,.22) 0%, rgba(17,14,15,.14) 42%, rgba(17,14,15,.68) 100%),
+    rgba(17,14,15,.08);
+  backdrop-filter: blur(1.6px);
+  -webkit-backdrop-filter: blur(1.6px);
+  pointer-events: none;
+}
+.gp-package-main-image img {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+  object-fit: cover;
+}
+.gp-package-image-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 340px;
+  color: rgba(109,76,91,.35);
+}
+.gp-package-type-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  width: fit-content;
+  margin-bottom: 10px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,248,239,.54);
+  border-radius: 999px;
+  background: rgba(255,248,239,.86);
+  color: var(--c-strong);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 18px rgba(17,14,15,.12);
+}
+.gp-package-image-title {
+  position: absolute;
+  left: 30px;
+  right: min(360px, 28vw);
+  bottom: 30px;
+  z-index: 2;
+  color: #fffaf3;
+}
+.gp-package-image-title h1 {
+  max-width: 820px;
+  color: #fffaf3;
+  font-family: var(--font-display);
+  font-size: clamp(38px, 6vw, 76px);
+  font-weight: 650;
+  line-height: 1;
+  text-shadow: 0 12px 32px rgba(0,0,0,.34);
+}
+.gp-package-hero-form {
+  position: absolute;
+  right: 30px;
+  bottom: 30px;
+  z-index: 2;
+  margin: 0;
+}
+.gp-package-hero-form .gp-package-cart-btn {
+  min-width: 160px;
+  min-height: 58px;
+  height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 10px 8px 24px;
+  border: 1px solid rgba(154,104,127,.22);
+  border-radius: 16px;
+  background: #f9ece2; /* change button background here */
+  color: #1b000f;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 18px 40px rgba(17,14,15,.28);
+  transition: all .2s var(--ease-out-expo);
+}
+
+.gp-package-hero-form .gp-package-cart-btn:hover {
+  background: #9A687F; /* hover color */
+  transform: translateY(-1px);
+  color : #fdf1f3;
+}
+
+.gp-package-hero-form .gc-book-btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 50%;
+  background: #1e0116;
+  color: #f8ecee; /* icon arrow color */
+}
+
+.gp-package-hero-form .gc-book-btn-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+.gp-package-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
+  gap: 28px;
+  align-items: start;
+  margin: 0 var(--pad-x);
+  padding: 34px 0 14px;
+}
+.gp-included-services-block h2,
+.gp-package-description-card h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--c-text);
+  margin-bottom: 4px;
+}
+.gp-included-subtitle {
+  color: var(--c-muted);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.gp-included-list {
+  display: grid;
+  gap: 16px;
+  max-height: 642px;
+  overflow-y: scroll;
+  padding-right: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(109,76,91,.34) rgba(234,216,199,.38);
+}
+.gp-included-list::-webkit-scrollbar {
+  width: 7px;
+}
+.gp-included-list::-webkit-scrollbar-track {
+  background: rgba(234,216,199,.38);
+  border-radius: 999px;
+}
+.gp-included-list::-webkit-scrollbar-thumb {
+  background: rgba(109,76,91,.34);
+  border-radius: 999px;
+}
+/* ─── INCLUDED SERVICES : COMPACT VERSION ───────────────── */
+.gp-included-list {
+  gap: 14px;
+}
+
+/* hide calendar line */
+.gp-included-date {
+  display: none !important;
+}
+
+/* compact included service card */
+.gp-included-item {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 118px;
+  padding: 16px 18px;
+  border: 1px solid rgba(224, 196, 167, 0.72);
+  border-radius: 18px;
+  background: rgba(255, 250, 244, 0.82);
+  box-shadow: none;
+}
+
+.gp-included-thumb {
+  width: 116px;
+  height: 86px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.gp-included-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* make the right side relative so the tag can sit at top-right */
+.gp-included-copy {
+  position: relative;
+  min-width: 0;
+  padding-top: 28px; /* space for the tag */
+}
+
+/* service type tag at top-right of card */
+.gp-included-category {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(232, 214, 223, 0.95);
+  color: #7E4F65;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gp-included-name {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 800;
+  color: var(--c-text);
+}
+
+.gp-included-price {
+  display: block;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 700;
+  color: rgba(109,76,91,.78);
+}
+.gp-package-description-card {
+  position: relative;
+  min-height: auto;
+  padding: 26px;
+  border: 1px solid rgba(234,216,199,.95);
+  border-radius: 18px;
+  background: rgba(255,250,244,.82);
+  box-shadow: 0 16px 34px rgba(63,36,26,.08);
+}
+.gp-package-description-card p {
+  color: var(--c-accent);
+  font-size: 14px;
+  line-height: 1.85;
+  padding-bottom: 86px;
+}
+.gp-package-description-price {
+  position: absolute;
+  right: 26px;
+  bottom: 24px;
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+.gp-package-description-price span {
+  color: rgba(74,52,47,.52);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.gp-package-description-price strong {
+  color: var(--c-strong);
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 700;
+  line-height: 1;
+}
+.gp-package-facilities {
+  max-width: 900px;
+  margin: 0 0 24px;
+}
+.gp-package-facilities h2 {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--c-text);
+  margin-bottom: 18px;
+}
+.gp-package-facility-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 28px;
+}
+.gp-package-facility {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--c-accent);
+  font-size: 14px;
+  font-weight: 500;
+}
+.gp-package-facility i {
+  color: #2f2a28;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+.gp-package-booking-card {
+  margin-top: 26px;
+  padding: 24px;
+  border: 1px solid rgba(234,216,199,.95);
+  border-radius: 18px;
+  background: #fffaf4;
+  box-shadow: 0 18px 42px rgba(63,36,26,.10);
+}
+.gp-included-panel > .gp-package-booking-card {
+  margin-top: 0;
+}
+.gp-included-services-block {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid rgba(234,216,199,.95);
+  border-radius: 18px;
+  background: rgba(255,250,244,.78);
+  box-shadow: 0 16px 34px rgba(63,36,26,.08);
+}
+.gp-booking-facts {
+  padding: 22px;
+  border: 1px solid rgba(234,216,199,.95);
+  border-radius: 14px;
+  background: rgba(255,248,239,.72);
+}
+.gp-booking-fact {
+  padding: 0 0 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--c-rule);
+}
+.gp-booking-fact:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+.gp-booking-fact span {
+  display: block;
+  color: rgba(74,52,47,.72);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.gp-booking-fact strong {
+  color: var(--c-text);
+  font-size: 18px;
+  font-weight: 800;
+}
+.gp-package-booking-details {
+  display: grid;
+  gap: 14px;
+  margin: 22px 0 18px;
+  padding: 18px;
+  border: 1px solid rgba(234,216,199,.95);
+  border-radius: 12px;
+  background: rgba(255,248,239,.72);
+}
+.gp-package-booking-price {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 8px 0 22px;
+  text-align: center;
+}
+.gp-package-booking-price span {
+  color: rgba(74,52,47,.42);
+  font-size: 14px;
+  font-weight: 700;
+}
+.gp-package-booking-price strong {
+  color: var(--c-strong);
+  font-family: var(--font-display);
+  font-size: clamp(42px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1;
+}
+.gp-package-booking-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-rule);
+}
+.gp-package-booking-row:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+.gp-package-booking-row i {
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  color: var(--c-strong);
+}
+.gp-package-booking-row span {
+  display: block;
+  color: rgba(74,52,47,.62);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.gp-package-booking-row strong {
+  display: block;
+  min-width: 0;
+  color: var(--c-text);
+  font-size: 14px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gp-package-booking-row small {
+  display: block;
+  min-width: 0;
+  color: var(--c-accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.gp-package-booking-card .gp-package-cart-form {
+  margin-top: 0;
+}
+.gp-package-booking-card .gp-package-cart-btn {
+  width: 100%;
+  justify-content: center;
+  height: 54px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+
 /* ─── HOW IT WORKS ───────────────────────── */
 .gp-how-it-works {
   display: grid;
@@ -338,7 +839,7 @@ img { display: block; max-width: 100%; }
 
 /* ─── CATEGORY SECTION ───────────────────── */
 .gp-cat-section {
-  margin-bottom: 36px;
+  margin: 0 var(--pad-x) 36px;
 }
 .gp-cat-section:last-child { margin-bottom: 0; }
 .gp-cat-header {
@@ -507,6 +1008,211 @@ img { display: block; max-width: 100%; }
 .gp-svc-add-btn:hover {
   background: var(--c-strong); color: #fcf8f5; border-color: var(--c-strong);
 }
+.gp-addon-section .gp-svc-card {
+  min-height: 390px;
+  border-radius: 14px;
+  background: #fff8ef;
+  border: 1.5px solid rgba(216,180,106,.68);
+  box-shadow: 0 14px 34px rgba(63,36,26,.12);
+}
+.gp-addon-section .gp-svc-img {
+  aspect-ratio: 16 / 10;
+}
+.gp-addon-section .gp-svc-name {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+}
+.gp-addon-section .gp-svc-add-btn {
+  min-height: 42px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 6px;
+  background: #6D4C5B;
+  color: #fff8ef;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  box-shadow: 0 12px 28px rgba(109,76,91,.22);
+}
+.gp-addon-section .gp-svc-add-btn:hover {
+  background: #563847;
+  color: #fff8ef;
+  transform: translateY(-1px);
+  box-shadow: 0 18px 36px rgba(109,76,91,.28);
+}
+.gp-addon-section .gp-track {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 26px 24px;
+  align-items: start;
+}
+.gp-addon-section .gp-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 430px;
+  min-height: 430px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(201,193,187,.58);
+  border-radius: 14px;
+  background: #fff8ef;
+  box-shadow: 0 18px 42px rgba(63,36,26,.13);
+  cursor: pointer;
+  transition: transform .22s var(--ease-out-expo), box-shadow .22s var(--ease-out-expo), border-color .22s var(--ease-out-expo);
+}
+.gp-addon-section .gp-card:hover {
+  transform: translateY(-7px);
+  border-color: rgba(154,104,127,.28);
+  box-shadow: 0 24px 52px rgba(63,36,26,.17);
+}
+.gp-addon-section .gc-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.gp-addon-section .gc-image-frame {
+  order: 1;
+  position: relative;
+  height: 250px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #ede0d0, #ddcebb);
+}
+.gp-addon-section .gc-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform .45s var(--ease-out-expo);
+}
+.gp-addon-section .gp-card:hover .gc-image-frame img {
+  transform: scale(1.035);
+}
+.gp-addon-section .gc-image-placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--c-pale);
+  opacity: .45;
+}
+.gp-addon-section .gc-top {
+  order: 2;
+  margin: 14px 4px 0;
+}
+.gp-addon-section .gc-name {
+  display: -webkit-box;
+  margin-bottom: 3px;
+  overflow: hidden;
+  color: #211d1a;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.gp-addon-section .gc-sup {
+  overflow: hidden;
+  color: #6f625a;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gp-addon-section .gc-location {
+  order: 3;
+  margin: 7px 4px 0;
+  overflow: hidden;
+  color: #7f6758;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gp-addon-section .gc-tags {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: block;
+  margin: 0;
+}
+.gp-addon-section .gc-tag {
+  display: inline-flex;
+  padding: 5px 10px;
+  border: 1px solid rgba(154,104,127,.14);
+  border-radius: 7px;
+  background: #f0dfe7;
+  color: #7E4F65;
+  font-size: 11px;
+  font-weight: 800;
+}
+.gp-addon-section .gc-stats {
+  order: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: auto 4px 0;
+}
+.gp-addon-section .gc-stat {
+  min-width: 0;
+  text-align: left;
+}
+.gp-addon-section .gc-stat strong {
+  display: block;
+  overflow: hidden;
+  color: #211d1a;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gp-addon-section .gc-stat span {
+  color: #8f7666;
+  font-size: 11px;
+  font-weight: 700;
+}
+.gp-addon-section .gc-book-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 8px 6px 20px;
+  border: 1px solid rgba(154,104,127,.22);
+  border-radius: 12px;
+  background: #6D4C5B;
+  color: #fff8ef;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: background .18s var(--ease-out-expo), transform .18s var(--ease-out-expo);
+}
+.gp-addon-section .gc-book-btn:hover {
+  background: #7E4F65;
+  transform: translateY(-1px);
+}
+.gp-addon-section .gc-book-btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #fff8ef;
+  color: #6D4C5B;
+}
+.gp-addon-section .gc-book-btn-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+}
 
 /* ─── EMPTY SERVICE ──────────────────────── */
 .gp-cat-empty {
@@ -538,11 +1244,54 @@ img { display: block; max-width: 100%; }
 .gp-reveal-d3 { transition-delay: 0.12s; }
 
 @media (max-width: 900px) {
+  .gp-package-content-grid { grid-template-columns: 1fr; }
+  .gp-package-main-image,
+  .gp-package-main-image img,
+  .gp-package-image-placeholder {
+    height: 340px;
+    min-height: 340px;
+  }
+  .gp-package-description-card { min-height: auto; }
+  .gp-package-facility-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gp-svc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gp-addon-section .gp-track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gp-how-it-works { grid-template-columns: 1fr; gap: 16px; }
 }
 @media (max-width: 700px) {
   .gp-svc-grid { grid-template-columns: 1fr; }
+  .gp-addon-section .gp-track { grid-template-columns: 1fr; gap: 20px; }
+  .gp-addon-section .gp-card { height: 390px; min-height: 390px; }
+  .gp-addon-section .gc-image-frame { height: 210px; }
+  .gp-package-facility-grid { grid-template-columns: 1fr; }
+  .gp-package-main-image,
+  .gp-package-main-image img,
+  .gp-package-image-placeholder {
+    height: 320px;
+    min-height: 320px;
+  }
+  .gp-package-image-title {
+    left: 20px;
+    right: 20px;
+    bottom: 96px;
+  }
+  .gp-package-hero-form {
+    left: 20px;
+    right: 20px;
+    bottom: 22px;
+  }
+  .gp-package-hero-form .gp-package-cart-btn {
+    width: 100%;
+  }
+  .gp-included-item {
+    grid-template-columns: 92px minmax(0, 1fr);
+    min-height: 112px;
+  }
+  .gp-included-thumb {
+    width: 92px;
+    height: 72px;
+  }
+  .gp-included-name { font-size: 16px; }
+  .gp-included-price { font-size: 12px; }
   .gp-header-nav a { display: none; }
   .gp-detail-page { padding-bottom: 40px; }
 }
@@ -555,154 +1304,117 @@ img { display: block; max-width: 100%; }
 
 <div class="gp-texture" aria-hidden="true"></div>
 
-<?php $gpNavActive = 'packages'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
+<?php $gpNavActive = 'packages'; $gpNavOverlay = true; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <main class="gp-detail-page">
 
-  <section class="gp-detail-hero">
-    <div class="gp-detail-hero-overline">Wedding package</div>
-    <h1><?= $h($package['name'] ?? 'Package') ?></h1>
-    <?php if (!empty($package['tagline'])): ?>
-      <p class="tagline"><?= $h($package['tagline']) ?></p>
+  <section class="gp-package-detail-shell gp-reveal" aria-label="Package details">
+    <div class="gp-package-media-column">
+      <div class="gp-package-main-image">
+        <?php if ($packageImage !== ''): ?>
+          <img src="<?= $h($packageImage) ?>" alt="<?= $h($package['name'] ?? 'Package') ?>">
+        <?php else: ?>
+          <div class="gp-package-image-placeholder">
+            <i data-lucide="image" style="width:44px;height:44px"></i>
+          </div>
+        <?php endif; ?>
+        <div class="gp-package-image-title">
+          <span class="gp-package-type-tag"><?= $h($packageTierLabel) ?></span>
+          <h1><?= $h($package['name'] ?? 'Package') ?></h1>
+        </div>
+        <form class="gp-package-cart-form gp-package-hero-form" method="POST" action="<?= URLROOT ?>/cart/addPackage">
+          <input type="hidden" name="package_id" value="<?= (int)($package['package_id'] ?? 0) ?>">
+          <input type="hidden" name="price" value="<?= $packageCustomerPrice ?>">
+          <button class="gp-package-cart-btn" type="submit">
+            <span>Book now</span>
+            <span class="gc-book-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
+            </span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="gp-package-content-grid">
+      <div class="gp-included-services-block">
+        <h2>Included services</h2>
+        <p class="gp-included-subtitle"><?= count($includedServices) ?> service<?= count($includedServices) === 1 ? '' : 's' ?> selected for this package</p>
+        <?php if (empty($includedServices)): ?>
+          <div class="gp-cat-empty">
+            <p>No services are currently included in this package.</p>
+          </div>
+        <?php else: ?>
+          <div class="gp-included-list">
+            <?php foreach ($includedServices as $svc): ?>
+              <?php $detailUrl = $serviceDetailUrl($svc); ?>
+              <a class="gp-included-item" href="<?= $h($detailUrl) ?>">
+  <span class="gp-included-thumb">
+    <?php if (!empty($svc['image'])): ?>
+      <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
     <?php endif; ?>
-    <?php if (!empty($package['description'])): ?>
-      <p class="desc"><?= $h($package['description']) ?></p>
-    <?php endif; ?>
-    <div class="price-hero">
-      <?= $money($packageCustomerPrice) ?>
-      <span class="price-hero-label">complete package price</span>
+  </span>
+
+  <span class="gp-included-copy">
+    <span class="gp-included-category"><?= $h($svc['category_name'] ?? '') ?></span>
+    <span class="gp-included-name"><?= $h($svc['name'] ?? '') ?></span>
+    <span class="gp-included-price"><?= $moneyRange($svc) ?></span>
+  </span>
+</a>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+
+      <aside class="gp-package-description-card" aria-label="Package description">
+        <h2>Description</h2>
+        <p><?= $h(trim((string)($package['description'] ?? '')) !== '' ? $package['description'] : 'A curated wedding package designed to bring your selected services together with Golden Promise care and coordination.') ?></p>
+        <div class="gp-package-description-price">
+          <span>Sub Total</span>
+          <strong><?= $money($packageCustomerPrice) ?></strong>
+        </div>
+      </aside>
     </div>
   </section>
 
-
-    <form class="gp-package-cart-form" method="POST" action="<?= URLROOT ?>/cart/addPackage">
-      <input type="hidden" name="package_id" value="<?= (int)($package['package_id'] ?? 0) ?>">
-      <input type="hidden" name="price" value="<?= $packageCustomerPrice ?>">
-      <button class="gp-package-cart-btn" type="submit">
-        Add package to cart · <?= $money($packageCustomerPrice) ?>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </button>
-    </form>
-
-  <!-- CATEGORIES WITH SERVICES -->
-  <?php if (empty($categoryServices)): ?>
-    <section class="gp-cat-section" aria-label="No services available">
-      <div class="gp-cat-empty" style="padding:48px;text-align:center">
-        <p style="font-size:16px;color:var(--c-accent)">No services are currently included in this package. Check back soon!</p>
-      </div>
-    </section>
-  <?php else: ?>
-    <?php foreach ($categoryServices as $cs): ?>
-    <section class="gp-cat-section gp-reveal" aria-label="<?= $h($cs['category_name'] ?? '') ?> services">
-      <div class="gp-cat-header">
-        <h2><?= $h($cs['category_name'] ?? '') ?></h2>
-        <span class="gp-cat-count"><?= (int)$cs['service_count'] ?> service<?= (int)$cs['service_count'] === 1 ? '' : 's' ?> included</span>
-      </div>
-
-      <?php if (empty($cs['services'])): ?>
-        <div class="gp-cat-empty">
-          <p>No <?= $h(strtolower($cs['category_name'] ?? '')) ?> services are included yet.</p>
-        </div>
-      <?php else: ?>
-        <div class="gp-svc-grid">
-          <?php foreach ($cs['services'] as $si => $svc): ?>
-          <article class="gp-svc-card gp-reveal gp-reveal-d<?= min($si % 4, 3) ?>">
-            <?php $detailUrl = $serviceDetailUrl($svc); ?>
-            <a class="gp-svc-img" href="<?= $h($detailUrl) ?>" tabindex="-1" aria-hidden="true">
-              <?php if (!empty($svc['image'])): ?>
-                <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
-              <?php else: ?>
-                <div class="gp-svc-img-placeholder">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                </div>
-              <?php endif; ?>
-            </a>
-            <div class="gp-svc-body">
-              <span class="gp-svc-supplier"><?= $h($svc['supplier_name'] ?? '') ?></span>
-              <?php if (!empty($svc['venue_room_name'])): ?>
-              <div class="gp-svc-hall" title="<?= $h($svc['venue_room_name']) ?>">
-                <i data-lucide="door-open" style="width:11px;height:11px"></i>
-                <?= $h($svc['venue_room_name']) ?>
-                <?php if (!empty($svc['venue_room_capacity'])): ?>
-                  · <?= (int)$svc['venue_room_capacity'] ?> guests
-                <?php endif; ?>
-              </div>
-              <?php endif; ?>
-              <h3 class="gp-svc-name"><?= $h($svc['name'] ?? '') ?></h3>
-              <p class="gp-svc-desc"><?= $h($svc['description'] ?? '') ?></p>
-              <?php $rentalOptions = $rentalRows($svc); ?>
-              <?php if (!empty($rentalOptions)): ?>
-              <div class="gp-svc-rental" aria-label="Dress and accessory rental pricing">
-                <?php foreach ($rentalOptions as $option): ?>
-                  <div class="gp-svc-rental-pill">
-                    <span class="gp-svc-rental-label">
-                      <i data-lucide="<?= $option['label'] === 'Borrow' ? 'refresh-cw' : 'shopping-bag' ?>" style="width:11px;height:11px"></i>
-                      <?= $h($option['label']) ?>
-                    </span>
-                    <div class="gp-svc-rental-value">
-                      <span class="gp-svc-rental-price">
-                        <small>Package</small>
-                        <strong><?= $h($option['package']) ?></strong>
-                      </span>
-                      <span class="gp-svc-rental-price">
-                        <small>Customize</small>
-                        <strong><?= $h($option['customize']) ?></strong>
-                      </span>
-                    </div>
-                    <span class="gp-svc-rental-meta"><?= $h($option['meta']) ?></span>
-                  </div>
-                <?php endforeach; ?>
-              </div>
-              <?php endif; ?>
-              <?php if ((float)($svc['rating'] ?? 0) > 0): ?>
-              <div class="gp-svc-rating">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                <?= number_format((float)$svc['rating'], 1) ?>
-                <span style="font-weight:400;opacity:0.6;font-size:10px;">(<?= (int)($svc['review_count'] ?? 0) ?>)</span>
-              </div>
-              <?php endif; ?>
-              <div class="gp-svc-foot">
-                <span class="gp-svc-price"><?= $moneyRange($svc) ?></span>
-                <a class="gp-svc-add-btn" href="<?= $h($detailUrl) ?>">
-                  View
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                </a>
-              </div>
-            </div>
-          </article>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
-    </section>
-    <?php endforeach; ?>
-  <?php endif; ?>
-
   <?php if (!empty($addonServices)): ?>
-    <section class="gp-cat-section gp-reveal" aria-label="Optional package add-ons">
+    <section class="gp-cat-section gp-addon-section gp-reveal" aria-label="Optional package add-ons">
       <div class="gp-cat-header">
         <h2>Optional add-ons</h2>
         <span class="gp-cat-count">Extra services priced separately</span>
       </div>
-      <div class="gp-svc-grid">
+      <div class="gp-track">
         <?php foreach ($addonServices as $si => $svc): ?>
           <?php $addonUrl = $addonDetailUrl($svc); ?>
-          <article class="gp-svc-card gp-reveal gp-reveal-d<?= min($si % 4, 3) ?>">
-            <a class="gp-svc-img" href="<?= $h($addonUrl) ?>" tabindex="-1" aria-hidden="true">
-              <?php if (!empty($svc['image'])): ?>
-                <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
-              <?php else: ?>
-                <div class="gp-svc-img-placeholder"><i data-lucide="plus" style="width:24px;height:24px"></i></div>
-              <?php endif; ?>
-            </a>
-            <div class="gp-svc-body">
-              <span class="gp-svc-supplier"><?= $h($svc['supplier_name'] ?? 'Golden Promise') ?></span>
-              <h3 class="gp-svc-name"><?= $h($svc['name'] ?? 'Add-on service') ?></h3>
-              <p class="gp-svc-desc"><?= $h($svc['description'] ?? '') ?></p>
-              <div class="gp-svc-foot">
-                <span class="gp-svc-price"><?= $money($svc['display_price'] ?? 0) ?></span>
-                <a class="gp-svc-add-btn" href="<?= $h($addonUrl) ?>">
-                  Add
-                  <i data-lucide="plus" style="width:12px;height:12px"></i>
+          <article class="gp-card gp-reveal gp-reveal-d<?= min($si % 4, 3) ?>" data-url="<?= $h($addonUrl) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($svc['name'] ?? 'add-on service') ?>">
+            <div class="gc-body">
+              <a class="gc-image-frame" href="<?= $h($addonUrl) ?>" tabindex="-1" aria-hidden="true">
+                <?php if (!empty($svc['image'])): ?>
+                  <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
+                <?php else: ?>
+                  <span class="gc-image-placeholder"><i data-lucide="image" style="width:24px;height:24px"></i></span>
+                <?php endif; ?>
+                <span class="gc-tags">
+                  <span class="gc-tag"><?= $h($svc['category_name'] ?? $svc['category'] ?? 'Service') ?></span>
+                </span>
+              </a>
+
+              <div class="gc-top">
+                <div class="gc-name"><?= $h($svc['name'] ?? 'Add-on service') ?></div>
+                <div class="gc-sup"><?= $h($svc['supplier_name'] ?? 'Golden Promise') ?></div>
+              </div>
+
+              <div class="gc-location"><?= $h($addonLocation($svc)) ?></div>
+
+              <div class="gc-stats">
+                <div class="gc-stat">
+                  <strong><?= $money($svc['display_price'] ?? $svc['price'] ?? 0) ?></strong>
+                  <span><?= $h($addonDurationText($svc)) ?></span>
+                </div>
+                <a class="gc-book-btn" href="<?= $h($addonUrl) ?>">
+                  <span>Add</span>
+                  <span class="gc-book-btn-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                  </span>
                 </a>
               </div>
             </div>
@@ -735,6 +1447,22 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     revealBoxes.forEach(el => el.classList.add('visible'));
   }
+
+  document.querySelectorAll('.gp-addon-section .gp-card[data-url]').forEach(card => {
+    const openCard = () => {
+      const url = card.getAttribute('data-url');
+      if (url) window.location.href = url;
+    };
+    card.addEventListener('click', event => {
+      if (event.target.closest('a, button')) return;
+      openCard();
+    });
+    card.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openCard();
+    });
+  });
 
   // Profile dropdown toggle
   const profileBtns = document.querySelectorAll('.gp-profile-btn');

@@ -37,33 +37,33 @@ $notificationConfig = $notificationConfig ?? [
     }
 
     .gp-customer-notification .dashboard-notification-panel {
-        width: min(282px, calc(100vw - 24px)) !important;
-        max-width: 282px !important;
-        padding: 8px 10px !important;
+        width: min(352px, calc(100vw - 24px)) !important;
+        max-width: 352px !important;
+        padding: 12px 14px !important;
         border: 1px solid rgba(107, 68, 89, 0.12) !important;
-        border-radius: 8px !important;
+        border-radius: 12px !important;
         background: #fffdf9 !important;
         box-shadow: 0 18px 45px rgba(43, 27, 36, 0.14);
     }
 
     .gp-customer-notification .dashboard-notification-header {
-        margin: -2px -4px 8px !important;
-        padding: 8px 10px !important;
+        margin: -2px -4px 10px !important;
+        padding: 11px 14px !important;
         border: 0 !important;
-        border-radius: 7px !important;
+        border-radius: 10px !important;
         background: #6D4C5B !important;
         color: #fcf8f5 !important;
     }
 
     .gp-customer-notification .dashboard-notification-title {
         color: #fcf8f5 !important;
-        font-size: 12px !important;
+        font-size: 14px !important;
         font-weight: 800 !important;
     }
 
     .gp-customer-notification .dashboard-notification-link {
         display: inline !important;
-        font-size: 10px !important;
+        font-size: 11px !important;
         font-weight: 400 !important;
         line-height: 1.1 !important;
         color: rgba(252, 248, 245, 0.72) !important;
@@ -92,7 +92,7 @@ $notificationConfig = $notificationConfig ?? [
 
     .gp-customer-notification .dashboard-notification-list {
         gap: 0 !important;
-        max-height: 290px !important;
+        max-height: 360px !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         padding-top: 0 !important;
@@ -112,8 +112,8 @@ $notificationConfig = $notificationConfig ?? [
         display: grid !important;
         grid-template-columns: 34px minmax(0, 1fr) !important;
         align-items: center !important;
-        gap: 10px !important;
-        padding: 12px 4px !important;
+        gap: 12px !important;
+        padding: 14px 5px !important;
         border: 0 !important;
         border-bottom: 1px solid rgba(107, 68, 89, 0.18) !important;
         border-radius: 0 !important;
@@ -132,8 +132,8 @@ $notificationConfig = $notificationConfig ?? [
     }
 
     .gp-customer-notification .dashboard-notification-icon {
-        width: 34px !important;
-        height: 34px !important;
+        width: 40px !important;
+        height: 40px !important;
         display: inline-grid !important;
         place-items: center !important;
         align-self: center !important;
@@ -143,8 +143,8 @@ $notificationConfig = $notificationConfig ?? [
     }
 
     .gp-customer-notification .dashboard-notification-icon svg {
-        width: 16px !important;
-        height: 16px !important;
+        width: 18px !important;
+        height: 18px !important;
         fill: none !important;
         stroke: currentColor !important;
         stroke-width: 2 !important;
@@ -168,7 +168,7 @@ $notificationConfig = $notificationConfig ?? [
     }
 
     .gp-customer-notification .dashboard-notification-type {
-        font-size: 9px !important;
+        font-size: 10px !important;
         line-height: 1.1 !important;
         letter-spacing: 0.05em !important;
         text-transform: uppercase !important;
@@ -180,7 +180,7 @@ $notificationConfig = $notificationConfig ?? [
 
     .gp-customer-notification .dashboard-notification-time {
         margin-left: auto !important;
-        font-size: 9px !important;
+        font-size: 10px !important;
         line-height: 1.1 !important;
         font-weight: 400 !important;
         color: #9b8b94 !important;
@@ -203,7 +203,7 @@ $notificationConfig = $notificationConfig ?? [
 
     .gp-customer-notification .dashboard-notification-item-title {
         margin: 4px 0 0 !important;
-        font-size: 12px !important;
+        font-size: 13px !important;
         line-height: 1.28 !important;
         font-weight: 800 !important;
         color: #2b1b24 !important;
@@ -213,7 +213,7 @@ $notificationConfig = $notificationConfig ?? [
         display: -webkit-box !important;
         margin-top: 3px !important;
         color: #9b8b94 !important;
-        font-size: 9.5px !important;
+        font-size: 11px !important;
         line-height: 1.35 !important;
         white-space: normal !important;
         overflow: hidden !important;
@@ -228,7 +228,7 @@ $notificationConfig = $notificationConfig ?? [
         display: inline-block !important;
         margin-top: 2px !important;
         color: #b7adb2 !important;
-        font-size: 10px !important;
+        font-size: 11px !important;
         font-weight: 400 !important;
         line-height: 1.2 !important;
         text-decoration: underline !important;
@@ -237,9 +237,9 @@ $notificationConfig = $notificationConfig ?? [
 
     .gp-customer-notification .dashboard-notification-empty {
         margin: 8px 0 0 !important;
-        padding: 14px 10px !important;
-        border-radius: 8px !important;
-        font-size: 11px !important;
+        padding: 18px 12px !important;
+        border-radius: 10px !important;
+        font-size: 12px !important;
     }
 </style>
 <div class="gp-customer-notification">
