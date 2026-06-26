@@ -102,7 +102,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 .sr-field textarea{min-height:70px}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
-.modal-box{background:#FFFFFF;border-radius:1rem;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-box{--p:#6d4c5b;--ph:#7b5c69;--t:#111827;--m:#b79c8b;--b:#7b5c69;--border:#ead8c7;--soft:#FFFFFF;--hover:#eddecc;--dt:#991B1B;--wt:#92400E;background:#FFFFFF;border-radius:1rem;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
 
 @media(max-width:1100px){.sr-layout{grid-template-columns:1fr}.sr-rail{position:static;grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.supplier-review-content{padding:20px 16px}.sr-rail{grid-template-columns:1fr}.sr-stats,.sr-perf{grid-template-columns:1fr 1fr}.sr-detail-row{grid-template-columns:1fr}}
