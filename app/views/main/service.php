@@ -329,9 +329,9 @@ button,input,select{font-family:var(--font-body);outline:none}
   top:calc(100% + 10px);
   right:0;
   z-index:1100;
-  width:min(232px,calc(100vw - 24px));
-  padding:10px;
-  border-radius:12px;
+  width:min(292px,calc(100vw - 24px));
+  padding:14px;
+  border-radius:14px;
   border:1px solid rgba(107,68,89,.12);
   background:#fcf8f5;
   box-shadow:0 18px 48px rgba(43,27,36,.18);
@@ -351,29 +351,29 @@ button,input,select{font-family:var(--font-body);outline:none}
 .home-profile-email{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700;color:#2b1b24}
 .home-profile-close{position:absolute;right:0;top:0;display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#4f454b;cursor:pointer;transition:background .15s ease,color .15s ease}
 .home-profile-close:hover{background:rgba(43,27,36,.08);color:#2b1b24}
-.home-profile-hero{display:grid;grid-template-columns:38px minmax(0,1fr);align-items:start;gap:6px 8px;padding:3px 1px 5px;text-align:left}
-.home-profile-photo{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#d8b46a;color:#3f2f24;font-size:15px;font-weight:800;overflow:hidden}
+.home-profile-hero{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:start;gap:7px 11px;padding:5px 2px 8px;text-align:left}
+.home-profile-photo{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#d8b46a;color:#3f2f24;font-size:17px;font-weight:800;overflow:hidden}
 .home-profile-photo img{width:100%;height:100%;object-fit:cover}
 .home-profile-profile-copy{min-width:0}
-.home-profile-greeting{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:600;color:#2b1b24;line-height:1.15}
-.home-profile-inline-email{display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:500;color:#7d6f76;line-height:1.15}
-.home-profile-edit{display:inline-flex;grid-column:2;align-items:center;justify-content:flex-start;min-height:16px;margin-top:-10px;padding:0;border:0;border-radius:5px;color:#6D4C5B;background:transparent;font-size:10px;font-weight:600;text-decoration:underline;text-underline-offset:2px;transition:all .15s ease}
+.home-profile-greeting{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700;color:#2b1b24;line-height:1.2}
+.home-profile-inline-email{display:block;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:500;color:#7d6f76;line-height:1.2}
+.home-profile-edit{display:inline-flex;grid-column:2;align-items:center;justify-content:flex-start;min-height:18px;margin-top:-8px;padding:0;border:0;border-radius:5px;color:#6D4C5B;background:transparent;font-size:11px;font-weight:600;text-decoration:underline;text-underline-offset:2px;transition:all .15s ease}
 .home-profile-edit:hover{background:rgba(154,104,127,.09);color:#3f241a;border-color:#6D4C5B}
-.home-profile-activity{margin-top:5px;padding:5px;border-radius:10px;background:#f4eee9;border:1px solid rgba(107,68,89,.08)}
-.home-profile-activity-title{display:flex;align-items:center;justify-content:space-between;padding:3px 5px 5px;color:#2b1b24;font-size:11px;font-weight:700}
+.home-profile-activity{margin-top:8px;padding:8px;border-radius:12px;background:#f4eee9;border:1px solid rgba(107,68,89,.08)}
+.home-profile-activity-title{display:flex;align-items:center;justify-content:space-between;padding:4px 7px 7px;color:#2b1b24;font-size:12.5px;font-weight:800}
 .home-profile-menu-item{
   display:flex;
   align-items:center;
-  gap:10px;
-  padding:6px 5px;
-  border-radius:8px;
+  gap:12px;
+  padding:9px 8px;
+  border-radius:9px;
   color:#4f454b;
-  font-size:10px;
-  font-weight:600;
+  font-size:12px;
+  font-weight:650;
   text-decoration:none;
   transition:all .15s;
 }
-.home-profile-menu-item svg{width:15px;height:15px;color:#6D4C5B}
+.home-profile-menu-item svg{width:17px;height:17px;color:#6D4C5B}
 .home-profile-menu-item:hover{background:rgba(154,104,127,.08);color:#3f241a}
 .home-profile-menu-item--danger{margin-top:8px;color:#b94a48}
 .home-profile-menu-item--danger svg{color:#b94a48}
@@ -430,7 +430,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .hero-banner{
     position:relative;
-    min-height:calc(82vh - var(--header-h) - 1px);
+    min-height:calc(100svh - var(--header-h) - 58px);
     background:url('../public/uploads/serviceHero1.png');
     background-size:cover;
     background-position:center;
@@ -1150,7 +1150,7 @@ button,input,select{font-family:var(--font-body);outline:none}
     font-family:var(--font-body);
     font-size:16px;
     line-height:1.25;
-    font-weight:800;
+    font-weight:700;
     color:#211d1a;
     margin-bottom:3px;
     display:-webkit-box;
@@ -1159,9 +1159,12 @@ button,input,select{font-family:var(--font-body);outline:none}
     overflow:hidden;
 }
 .gc-tags{
-    order:3;
+    position:absolute;
+    left:12px;
+    bottom:12px;
+    z-index:2;
     display:block;
-    margin:9px 4px 0;
+    margin:0;
 }
 .gc-tag{
     display:none;
@@ -1248,14 +1251,14 @@ button,input,select{font-family:var(--font-body);outline:none}
     display:inline-flex;
     align-items:center;
     justify-content:space-between;
-    gap:10px;
-    min-height:40px;
-    padding:5px 6px 5px 16px;
+    gap:12px;
+    min-height:48px;
+    padding:6px 8px 6px 20px;
     border:1px solid rgba(154,104,127,.22);
     border-radius:12px;
     background:#6D4C5B;
     color:#fff8ef;
-    font-size:12px;
+    font-size:13px;
     font-weight:800;
     white-space:nowrap;
     cursor:pointer;
@@ -1265,16 +1268,16 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gc-book-btn-icon{
     display:inline-grid;
     place-items:center;
-    width:24px;
-    height:24px;
+    width:30px;
+    height:30px;
     border-radius:50%;
     background:#fff8ef;
     color:#6D4C5B;
     flex:0 0 auto;
 }
 .gc-book-btn-icon svg{
-    width:13px;
-    height:13px;
+    width:15px;
+    height:15px;
     stroke:currentColor;
 }
 @media (prefers-reduced-motion:reduce){
@@ -1455,7 +1458,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   .nav-links,.nav-actions{display:none}
   .mobile-menu-btn{display:inline-flex}
   .gp-scene{min-height:calc(100svh - 65px)}
-  .hero-banner{min-height:calc(78svh - 76px)}
+  .hero-banner{min-height:calc(100svh - 65px - 58px)}
 }
 @media(max-width:700px){
   .navbar{min-height:59px;padding:10px 12px}
@@ -1465,7 +1468,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   .gp-floating-cart{width:44px;height:44px;border-radius:12px;bottom:80px}
   .gp-floating-cart svg{width:18px;height:18px}
   .gp-scene{min-height:calc(100svh - 59px);padding:28px 12px 44px}
-  .hero-banner{min-height:calc(76svh - 28px)}
+  .hero-banner{min-height:calc(100svh - 59px - 58px)}
   .gp-float-bar{border-radius:12px;width:100%;padding:10px}
   .fb-search{min-height:52px;padding:0 10px 0 18px}
   .fb-search input{font-size:15px}
@@ -1475,7 +1478,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   .gp-card{height:390px;min-height:390px;padding:12px;border-radius:14px}
   .gc-top{margin:12px 4px 0}
   .gc-name{font-size:16px}
-  .gc-tags{gap:6px;margin:8px 4px 0}
+  .gc-tags{left:10px;bottom:10px}
   .gc-tag{padding:5px 10px;font-size:10px}
   .gc-stats{margin:12px 4px 0}
   .gc-stat{padding:0}
@@ -1712,28 +1715,28 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 /* ===== Customer notification compact inbox design ===== */
 .nav-actions .gp-customer-notification .dashboard-notification-panel{
-  width:min(282px,calc(100vw - 24px)) !important;
-  max-width:282px !important;
-  padding:8px 10px !important;
+  width:min(352px,calc(100vw - 24px)) !important;
+  max-width:352px !important;
+  padding:12px 14px !important;
   border:1px solid rgba(107,68,89,.12) !important;
-  border-radius:8px !important;
+  border-radius:12px !important;
   background:#fffdf9 !important;
   box-shadow:0 18px 45px rgba(43,27,36,.14) !important;
   font-family:"Poppins",system-ui,-apple-system,sans-serif !important;
 }
 .nav-actions .gp-customer-notification .dashboard-notification-header{
-  margin:-2px -4px 8px !important;
-  padding:8px 10px !important;
+  margin:-2px -4px 10px !important;
+  padding:11px 14px !important;
   border:0 !important;
-  border-radius:7px !important;
+  border-radius:10px !important;
   background:#6D4C5B !important;
   color:#fcf8f5 !important;
 }
-.nav-actions .gp-customer-notification .dashboard-notification-title{font-size:12px !important;font-weight:800 !important;color:#fcf8f5 !important}
+.nav-actions .gp-customer-notification .dashboard-notification-title{font-size:14px !important;font-weight:800 !important;color:#fcf8f5 !important}
 .nav-actions .gp-customer-notification .dashboard-notification-link,
 .nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-link{
   display:inline !important;
-  font-size:10px !important;
+  font-size:11px !important;
   font-weight:400 !important;
   line-height:1.1 !important;
   color:rgba(252,248,245,.72) !important;
@@ -1767,7 +1770,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 .nav-actions .gp-customer-notification .dashboard-notification-list{
   display:grid !important;
   gap:0 !important;
-  max-height:290px !important;
+  max-height:360px !important;
   overflow-y:auto !important;
   overflow-x:hidden !important;
   padding-top:0 !important;
@@ -1782,10 +1785,10 @@ button,input,select{font-family:var(--font-body);outline:none}
 .nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-item{
   position:relative !important;
   display:grid !important;
-  grid-template-columns:34px minmax(0,1fr) !important;
+  grid-template-columns:40px minmax(0,1fr) !important;
   align-items:center !important;
-  gap:10px !important;
-  padding:12px 4px !important;
+  gap:12px !important;
+  padding:14px 5px !important;
   border:0 !important;
   border-bottom:1px solid rgba(107,68,89,.18) !important;
   border-radius:0 !important;
@@ -1799,8 +1802,8 @@ button,input,select{font-family:var(--font-body);outline:none}
   display:none !important;
 }
 .nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-icon{
-  width:34px !important;
-  height:34px !important;
+  width:40px !important;
+  height:40px !important;
   display:inline-grid !important;
   place-items:center !important;
   align-self:center !important;
@@ -1809,8 +1812,8 @@ button,input,select{font-family:var(--font-body);outline:none}
   color:#6D4C5B !important;
 }
 .nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-icon svg{
-  width:16px !important;
-  height:16px !important;
+  width:18px !important;
+  height:18px !important;
   fill:none !important;
   stroke:currentColor !important;
   stroke-width:2 !important;
@@ -1829,10 +1832,10 @@ button,input,select{font-family:var(--font-body);outline:none}
   display:flex !important;
   align-items:flex-start !important;
   justify-content:space-between !important;
-  gap:10px !important;
+  gap:12px !important;
 }
 .nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-type{
-  font-size:9px !important;
+  font-size:10px !important;
   line-height:1.1 !important;
   letter-spacing:.05em !important;
   text-transform:uppercase !important;
@@ -1843,7 +1846,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-time{
   margin-left:auto !important;
-  font-size:9px !important;
+  font-size:10px !important;
   line-height:1.1 !important;
   font-weight:400 !important;
   color:#9b8b94 !important;
@@ -1862,7 +1865,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .nav-actions .gp-customer-notification .dashboard-notification-panel .dashboard-notification-item-title{
   margin:4px 0 0 !important;
-  font-size:12px !important;
+  font-size:13px !important;
   line-height:1.28 !important;
   font-weight:800 !important;
   color:#2b1b24 !important;
@@ -1871,7 +1874,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   display:-webkit-box !important;
   margin-top:3px !important;
   color:#9b8b94 !important;
-  font-size:9.5px !important;
+  font-size:11px !important;
   line-height:1.35 !important;
   white-space:normal !important;
   overflow:hidden !important;
@@ -1885,7 +1888,7 @@ button,input,select{font-family:var(--font-body);outline:none}
   display:inline-block !important;
   margin-top:2px !important;
   color:#b7adb2 !important;
-  font-size:10px !important;
+  font-size:11px !important;
   font-weight:400 !important;
   line-height:1.2 !important;
   text-decoration:underline !important;
@@ -2151,6 +2154,9 @@ button,input,select{font-family:var(--font-body);outline:none}
             <?php if(trim((string)($svc['image'] ?? '')) !== ''): ?>
               <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>">
             <?php endif; ?>
+            <div class="gc-tags">
+              <span class="gc-tag"><?= $h($svc['category'] ?? 'Service') ?></span>
+            </div>
           </div>
 
           <div class="gc-top">
@@ -2163,10 +2169,6 @@ button,input,select{font-family:var(--font-body);outline:none}
           </div>
 
           <div class="gc-location"><?= $h($serviceLocation($svc)) ?></div>
-
-          <div class="gc-tags">
-            <span class="gc-tag"><?= $h($svc['category'] ?? 'Service') ?></span>
-          </div>
 
           <div class="gc-stats">
             <div class="gc-stat">

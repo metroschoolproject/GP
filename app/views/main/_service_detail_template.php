@@ -2161,6 +2161,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   background: var(--wine-dark);
 }
 
+
 .btn-heart {
   width: 48px; height: 48px; flex: 0 0 48px;
   display: grid; place-items: center;
@@ -2700,6 +2701,20 @@ button, input, select, textarea { font-family: var(--font-sans); }
   outline-offset: 3px;
 }
 
+.gp-package-notice .gp-view-package-btn {
+  margin-top: 12px;
+  min-width: 190px;
+  height: 52px;
+  padding: 0 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
 /* ─── FLOATING CART ─────────────────────────────────── */
 .floating-cart {
   position: fixed;
@@ -2747,7 +2762,53 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .floating-cart-count[hidden] {
   display: none;
 }
+/* Hide availability section only for included package service detail */
+body:has(.gp-package-notice) .availability-list {
+  display: none;
+}
 
+body:has(.gp-package-notice) .booking-grid {
+  grid-template-columns: 1fr;
+}
+
+body:has(.gp-package-notice) .sticky-summary {
+  max-width: 420px;
+  margin-left: auto;
+}
+
+/* Make included service summary cleaner */
+.gp-package-notice {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255,248,239,.9);
+  border: 1px solid rgba(118,90,70,.14);
+}
+
+.gp-package-notice span {
+  display: block;
+  color: #3A2E29;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.gp-package-notice .btn-cart {
+  margin-top: 14px !important;
+  min-width: 220px;
+  height: 52px;
+  justify-content: center;
+}
+
+/* Hide the included-service summary card too */
+body:has(.gp-package-notice) .sticky-summary {
+  display: none;
+}
+
+/* Remove the empty right column */
+body:has(.gp-package-notice) .booking-grid {
+  display: block;
+}
 /* ─── MOBILE BOTTOM BAR ─────────────────────────────── */
 .mobile-book-bar {
   display: none;
@@ -2779,8 +2840,11 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .mobile-book-label { font-size: 11px; color: var(--muted); font-weight: 600; }
 
 .mobile-book-btn {
-  flex: 0 0 auto; min-height: 44px; padding: 0 22px;
-  border: 0; border-radius: 999px;
+  flex: 0 0 auto;
+   min-height: 44px; 
+   padding: 0 22px;
+  border: 0; 
+  border-radius: 999px;
   background: var(--wine); color: #fcf8f5;
   font-size: 13px; font-weight: 800;
   display: inline-flex; align-items: center; gap: 8px;
@@ -3082,7 +3146,16 @@ button, input, select, textarea { font-family: var(--font-sans); }
       </div>
 
       <div class="product-actions">
-        <a class="product-action-primary" href="#<?= $isVenue ? 'available-halls' : 'availability' ?>">Book service</a>
+        <?php if ($isPackageContext): ?>
+  <a class="product-action-primary is-guidance" id="bookNowBtn" href="<?= $h($packageDetailUrl) ?>">
+    <i data-lucide="arrow-left" size="16"></i>
+    View Package
+  </a>
+<?php else: ?>
+  <a class="product-action-primary" id="bookNowBtn" href="<?= URLROOT ?>/cart">
+    <?= $isAddonContext ? 'Add to package' : 'Book now' ?>
+  </a>
+<?php endif; ?>
         <a class="product-action-secondary" href="#reviews">View reviews</a>
       </div>
     </div>
@@ -3401,10 +3474,10 @@ button, input, select, textarea { font-family: var(--font-sans); }
           <?php if ($isPackageContext): ?>
           <div class="gp-package-notice">
             <span>This service is included in the <strong><?= $h($packageName) ?></strong> package.</span>
-            <a href="<?= $h($packageDetailUrl) ?>" class="btn-cart is-guidance" style="margin-top:10px;">
-              <i data-lucide="arrow-left" size="16"></i>
-              View Package
-            </a>
+            <a href="<?= $h($packageDetailUrl) ?>" class="btn-cart is-guidance gp-view-package-btn">
+  <i data-lucide="arrow-left" size="16"></i>
+  View Package
+</a>
           </div>
           <?php elseif ($hasInitialBookOption): ?>
           <?php if ($isAddonContext): ?>
@@ -3536,7 +3609,7 @@ button, input, select, textarea { font-family: var(--font-sans); }
   </script>
 
   <!-- SECTION: RELATED SERVICES -->
-  <?php if (!empty($related)): ?>
+  <?php if (!$isAddonContext && !empty($related)): ?>
   <section class="related-section" data-aos="fade-up" data-aos-duration="800">
     <span class="related-kicker">you may also like</span>
     <h2 class="section-title">Explore Our Related Service</h2>

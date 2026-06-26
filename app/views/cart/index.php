@@ -299,45 +299,70 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 /* ─── Page header ────────────────────────────────────── */
 .gp-page-head {
+  position: relative;
   display: grid;
   place-items: center;
-  min-height: 220px;
-  margin-top: -92px;   /* pull it upward behind the navbar */
+  min-height: 300px;
+  margin-top: -92px;
   margin-bottom: 34px;
-  padding: 0;
-  border-radius: 0;
-  background: #f4eee9;
+  padding: 0 24px;
+  overflow: hidden;
   text-align: center;
 
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
+
+  /* fallback color while image loads */
+  background: #e9ddd0;
 }
+
+.gp-page-head::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(44, 26, 34, 0.35), rgba(44, 26, 34, 0.35)),
+    url("<?= URLROOT ?>/app/views/main/images/imageBanner.png") center center / cover no-repeat;
+  transform: scale(1.08);
+  filter: blur(3px);
+  z-index: 0;
+}
+.gp-page-head::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(249,241,233,0.08), rgba(249,241,233,0.18));
+  z-index: 1;
+}
+
+.gp-page-head > * {
+  position: relative;
+  z-index: 2;
+}
+.gp-page-title {
+  font-family: var(--font-d);
+  font-size: clamp(34px, 4vw, 58px);
+  font-weight: 700;
+  color: #fffaf5;
+  line-height: 1.05;
+  letter-spacing: 0;
+  margin-top: 92px;
+  text-shadow: 0 10px 30px rgba(26, 17, 24, 0.22);
+}
+
 .gp-page-eyebrow {
   order: 2;
   display: block;
-  margin-top: 12px;
-  font-size: 11px;
+  margin-top: 14px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text2);
-
+  color: rgba(255, 248, 239, 0.92);
   position: relative;
-  top: -18px;
+  top: -4px;
 }
-
-.gp-page-title {
-  font-family: var(--font-d);
-  font-size: clamp(28px, 3vw, 36px);
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.05;
-  letter-spacing: 0;
-
-  margin-top: 78px;   /* move only "Selected Services" downward */
-}
-
 /* ─── Two-column layout ──────────────────────────────── */
 .gp-layout {
   display: grid;
@@ -1129,6 +1154,13 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-empty h2 { font-family: var(--font-d); font-size: 36px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
 .gp-empty p { color: var(--muted); font-size: 14px; max-width: 420px; margin: 0 auto 32px; }
 
+.gp-empty-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .gp-btn-browse {
   display: inline-flex; align-items: center; gap: 8px;
   height: 50px; padding: 0 32px; border-radius: 999px; border: none;
@@ -1138,6 +1170,18 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   transition: all 0.25s var(--ease-expo);
 }
 .gp-btn-browse:hover { background: var(--plum-dk); transform: translateY(-2px); box-shadow: 0 16px 36px rgba(107,68,89,0.28); }
+.gp-btn-browse.secondary {
+  border: 1px solid var(--rule-strong);
+  background: rgba(252,248,245,0.75);
+  color: var(--plum);
+  box-shadow: none;
+}
+.gp-btn-browse.secondary:hover {
+  border-color: var(--plum);
+  background: rgba(107,68,89,0.08);
+  color: var(--plum-dk);
+  box-shadow: none;
+}
 
 /* ─── Included service reminder ───────────────────────── */
 .gp-included-reminder {
@@ -1472,10 +1516,15 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
     </div>
     <h2>No services selected yet</h2>
     <p>Browse our curated collection of wedding services and add the ones that make your day perfect.</p>
-    <a class="gp-btn-browse" href="<?= URLROOT ?>/customerServices/service">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      Explore services
-    </a>
+    <div class="gp-empty-actions">
+      <a class="gp-btn-browse" href="<?= URLROOT ?>/customerServices/service">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Services
+      </a>
+      <a class="gp-btn-browse secondary" href="<?= URLROOT ?>/customerServices/packages">
+        Packages
+      </a>
+    </div>
   </div>
 
   <?php else: ?>

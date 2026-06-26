@@ -20,6 +20,32 @@ $packageHeroImages = [
     URLROOT . '/app/views/main/images/heroPackage1.png',
     URLROOT . '/app/views/main/images/heroPackage2.png',
 ];
+$packageTierLabels = [
+    'standard' => 'Standard',
+    'luxury' => 'Luxury',
+    'premium' => 'Premium',
+];
+$packagesByTier = array_fill_keys(array_keys($packageTierLabels), []);
+$inferPackageTier = static function (array $pkg): string {
+    $haystack = strtolower(trim(implode(' ', [
+        $pkg['name'] ?? '',
+        $pkg['slug'] ?? '',
+        $pkg['tagline'] ?? '',
+        $pkg['description'] ?? '',
+    ])));
+    foreach (($pkg['categories'] ?? []) as $cat) {
+        $haystack .= ' ' . strtolower((string)($cat['category_name'] ?? ''));
+        $haystack .= ' ' . strtolower((string)($cat['category_slug'] ?? ''));
+    }
+    if (str_contains($haystack, 'luxury')) return 'luxury';
+    if (str_contains($haystack, 'premium')) return 'premium';
+    if (str_contains($haystack, 'standard')) return 'standard';
+    return 'standard';
+};
+foreach ($packages as $pkg) {
+    $tierKey = $inferPackageTier((array)$pkg);
+    $packagesByTier[$tierKey][] = $pkg;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,7 +59,7 @@ $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Ballet:opsz@16..72&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Ballet:opsz@16..72&family=Great+Vibes&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
 :root {
@@ -72,10 +98,6 @@ body {
 }
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
-
-.gp-texture {
-  display: none;
-}
 
 /* ─── HEADER ─────────────────────────────── */
 .gp-header {
@@ -222,11 +244,12 @@ img { display: block; max-width: 100%; }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 44px var(--pad-x) 124px;
+  padding: 54px var(--pad-x) 150px;
   overflow: hidden;
   background: linear-gradient(135deg, #6d4c5b 0%, #c7a078 100%);
   color: #fffaf3;
   border-radius: 0;
+  filter: drop-shadow(0 24px 22px rgba(65, 42, 53, 0.26));
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M0 0H1440V640C1320 688 1200 708 1080 684C960 660 840 590 720 626C600 662 480 708 360 684C240 660 120 590 0 632V0Z'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M0 0H1440V640C1320 688 1200 708 1080 684C960 660 840 590 720 626C600 662 480 708 360 684C240 660 120 590 0 632V0Z'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
@@ -265,7 +288,7 @@ img { display: block; max-width: 100%; }
   z-index: 2;
   width: min(760px, 100%);
   max-width: 760px;
-  margin: 0 auto;
+  margin: 42px auto 0;
   text-align: center;
 }
 .gp-pkg-hero-overline {
@@ -290,6 +313,16 @@ img { display: block; max-width: 100%; }
 }
 .gp-pkg-hero h1 span {
   display: block;
+}
+.gp-pkg-hero .gp-script-word {
+  display: inline-block;
+  font-family: 'Great Vibes', 'Ballet', cursive;
+  font-size: 1.28em;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: .84;
+  text-transform: none;
 }
 .gp-pkg-hero h1 em { font-style: normal; color: inherit; }
 .gp-pkg-hero p {
@@ -636,26 +669,24 @@ img { display: block; max-width: 100%; }
   box-shadow: 0 2px 6px rgba(107,114,128,0.22);
 }
 
-/* ─── PACKAGE GRID ───────────────────────── */
-.gp-pkg-section {
-  padding: 46px var(--pad-x) 84px;
-  background: linear-gradient(
-    180deg,
-    #ead8c8 0%,
-    #dfc9b7 48%,
-    #d2bba8 100%
-  );
-}
 .gp-tier-showcase {
   position: relative;
   z-index: 5;
   margin-top: 0;
-  padding: 64px var(--pad-x) 54px;
+  padding: 42px var(--pad-x) 0;
   background: #ead8c8;
 }
-.gp-tier-heading {
+.gp-tier-top {
+  position: relative;
   max-width: 1280px;
-  margin: 0 auto 28px;
+  margin: 0 auto 26px;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 24px;
+}
+.gp-tier-heading {
+  margin: 0;
   text-align: center;
   color: #111827;
   font-size: clamp(34px, 4vw, 56px);
@@ -664,6 +695,241 @@ img { display: block; max-width: 100%; }
 }
 .gp-tier-heading strong {
   font-weight: 800;
+}
+.gp-tier-top::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -20px;
+  width: min(560px, 72vw);
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent 0%, rgba(216,180,106,.26) 14%, rgba(216,180,106,.82) 50%, rgba(216,180,106,.26) 86%, transparent 100%);
+}
+.gp-package-type-sections {
+  display: grid;
+  gap: 42px;
+  max-width: 1280px;
+  margin: 58px auto 0;
+}
+.gp-package-type-section {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(230px, 0.28fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  min-height: 430px;
+  padding: 36px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent 0%, rgba(216,180,106,.24) 16%, rgba(216,180,106,.72) 50%, rgba(216,180,106,.24) 84%, transparent 100%) 1;
+  border-radius: 0;
+  background: transparent;
+  scroll-margin-top: 96px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.gp-package-type-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 320px;
+}
+.gp-package-type-section:last-child {
+  border-bottom: 0;
+}
+.gp-package-type-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #9A687F;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.gp-package-type-label::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: currentColor;
+  opacity: .45;
+}
+.gp-package-type-title {
+  margin-top: 10px;
+  color: #201a1d;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 3vw, 46px);
+  line-height: 1;
+  font-weight: 700;
+}
+.gp-package-type-copy {
+  margin-top: 4px;
+  color: rgba(32,26,29,.66);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+.gp-package-type-list {
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  list-style: none;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 700;
+}
+.gp-package-type-list li {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.gp-package-type-cards {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  align-items: center;
+}
+.gp-package-type-carousel-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  margin: 16px 0 0;
+}
+.gp-package-type-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.gp-package-type-nav[hidden] {
+  display: none;
+}
+.gp-package-type-nav button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(216,180,106,.72);
+  border-radius: 50%;
+  background: rgba(255,248,239,.72);
+  color: #6D4C5B;
+  cursor: pointer;
+  transition: transform .2s var(--ease-out-expo), background .2s var(--ease-out-expo), opacity .2s var(--ease-out-expo);
+}
+.gp-package-type-nav button:hover {
+  transform: translateY(-2px);
+  background: #fff8ef;
+}
+.gp-package-type-nav button:disabled {
+  cursor: default;
+  opacity: .38;
+  transform: none;
+}
+.gp-package-type-viewport {
+  overflow: hidden;
+  min-width: 0;
+  min-height: 470px;
+  padding: 28px 0 46px;
+  grid-row: 1;
+}
+.gp-package-type-track {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  will-change: transform;
+  transition: transform .48s var(--ease-out-expo);
+}
+.gp-package-type-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  min-height: 390px;
+  flex: 0 0 calc((100% - 32px) / 3);
+  max-width: none;
+  border: 1px solid rgba(216,180,106,.72);
+  border-radius: 18px;
+  background: #f5e8d9;
+  color: #201a1d;
+  box-shadow: 0 14px 32px rgba(63,36,26,.10);
+  transform: translateY(0);
+  transition: transform .34s var(--ease-out-expo), box-shadow .34s var(--ease-out-expo), border-color .34s var(--ease-out-expo);
+}
+.gp-package-type-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(216,180,106,.95);
+  box-shadow: 0 22px 48px rgba(63,36,26,.14);
+}
+.gp-package-type-card.is-jumping {
+  animation: packageJumpUp .58s var(--ease-out-expo) both;
+}
+.gp-package-type-card h4 {
+  text-align: center;
+  color: #111827;
+  font-size: clamp(16px, 1.35vw, 21px);
+  line-height: 1.05;
+  font-weight: 500;
+}
+.gp-package-type-image {
+  position: relative;
+  overflow: hidden;
+  min-height: 170px;
+  aspect-ratio: 16 / 10;
+  border: 1px solid rgba(117,75,35,.32);
+  border-radius: 20px;
+  background: rgba(255,255,255,.38);
+}
+.gp-package-type-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gp-package-type-card p {
+  color: rgba(32,26,29,.74);
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.gp-package-type-meta {
+  display: flex;
+  align-items: end;
+  justify-content: flex-start;
+  gap: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(117,75,35,.22);
+}
+.gp-package-type-price {
+  color: #111827;
+  font-size: clamp(14px, 1.25vw, 18px);
+  line-height: 1;
+  font-weight: 800;
+}
+.gp-package-type-count {
+  color: rgba(32,26,29,.54);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+.gp-package-type-empty {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  grid-column: 1 / -1;
+  border: 1px dashed rgba(154,104,127,.28);
+  border-radius: 22px;
+  color: rgba(32,26,29,.54);
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255,248,239,.38);
 }
 .gp-tier-grid {
   display: grid;
@@ -676,15 +942,20 @@ img { display: block; max-width: 100%; }
 }
 .gp-tier-card {
   position: relative;
-  min-height: 390px;
+  min-height: 430px;
   overflow: hidden;
-  border-radius: 18px;
-  background: var(--tier-bg);
-  border: 1px solid var(--tier-border);
-  box-shadow: 0 18px 38px rgba(63,36,26,.14);
+  border-radius: 24px;
+  background: #fffdf9;
+  border: 1px solid rgba(216,180,106,.72);
+  box-shadow: 0 16px 34px rgba(63,36,26,.10);
   color: #2b1b24;
   isolation: isolate;
-  padding: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.gp-tier-card.is-switching {
+  animation: packageJumpUp .58s var(--ease-out-expo) both;
 }
 .gp-tier-card::before {
   content: '';
@@ -711,7 +982,7 @@ img { display: block; max-width: 100%; }
   --tier-start: #E7E7E7;
   --tier-end: #E7E7E7;
   --tier-button: #9A687F;
-  --tier-border: #CFCFCF;
+  --tier-border: #D8B46A;
   margin-top: 26px;
 }
 .gp-tier-card--luxury {
@@ -719,12 +990,12 @@ img { display: block; max-width: 100%; }
   --tier-start: #F6E7D5;
   --tier-end: #E8C7A4;
   --tier-button: #9A687F;
-  --tier-border: #E8D7C3;
-  min-height: 430px;
+  --tier-border: #D8B46A;
+  min-height: 468px;
   margin-top: 10px;
   transform: scale(1.035);
-  border-width: 2px;
-  box-shadow: 0 30px 62px rgba(207,161,116,.28), inset 0 0 0 1px rgba(255,255,255,.55);
+  border-width: 1px;
+  box-shadow: 0 28px 58px rgba(207,161,116,.22), inset 0 0 0 1px rgba(255,255,255,.55);
   z-index: 2;
 }
 .gp-tier-card--premium {
@@ -733,23 +1004,24 @@ img { display: block; max-width: 100%; }
   --tier-start: #E7E7E7;
   --tier-end: #E7E7E7;
   --tier-button: #9A687F;
-  --tier-border: #CFCFCF;
+  --tier-border: #D8B46A;
   margin-top: 26px;
 }
 .gp-tier-panel {
-  min-height: 178px;
-  border-radius: 14px;
-  padding: 20px 22px;
+  min-height: 250px;
+  border-radius: 18px;
+  padding: 24px 24px 22px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   color: #201a1d;
+  border: 1px solid rgba(255,255,255,.56);
 }
 .gp-tier-card--standard .gp-tier-panel {
   background: var(--tier-panel);
 }
 .gp-tier-card--luxury .gp-tier-panel {
-  min-height: 226px;
+  min-height: 284px;
   background: linear-gradient(135deg, var(--tier-start) 0%, var(--tier-end) 100%);
 }
 .gp-tier-card--premium .gp-tier-panel {
@@ -765,16 +1037,16 @@ img { display: block; max-width: 100%; }
   text-transform: uppercase;
 }
 .gp-tier-card h2 {
-  margin: 0 0 6px;
-  font-size: 34px;
+  margin: 0 0 22px;
+  font-size: 30px;
   line-height: 1.1;
-  font-weight: 800;
+  font-weight: 700;
 }
 .gp-tier-card p {
-  max-width: 300px;
+  max-width: 340px;
   color: rgba(32,26,29,.76);
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.42;
   font-weight: 600;
 }
 .gp-tier-action {
@@ -783,22 +1055,32 @@ img { display: block; max-width: 100%; }
   justify-content: center;
   min-height: 44px;
   width: 100%;
-  margin-top: 22px;
-  border-radius: 12px;
+  margin-top: 20px;
+  border-radius: 10px;
   background: var(--tier-button);
   color: #fffaf3;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   box-shadow: 0 12px 24px rgba(23,23,25,.18);
+}
+.gp-tier-price {
+  display: block;
+  margin: 0 0 10px;
+  text-align: left;
+  color: #201a1d;
+  font-size: clamp(30px, 3.4vw, 46px);
+  font-weight: 800;
+  line-height: .95;
 }
 .gp-tier-features {
   list-style: none;
   display: grid;
-  gap: 8px;
-  padding: 18px 16px 8px;
+  gap: 14px;
+  padding: 24px 18px 8px;
   color: #4b5563;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
 }
 .gp-tier-features li {
   display: flex;
@@ -863,7 +1145,8 @@ img { display: block; max-width: 100%; }
 }
 .gp-tier-card.visible,
 .gp-pkg-card.visible {
-  animation: cardFlyIn .72s var(--ease-out-expo);
+  animation: cardFlyIn 1.05s var(--ease-out-expo) both;
+  animation-delay: var(--card-reveal-delay, 0s);
 }
 .gp-tier-card--luxury.visible {
   animation-name: luxuryCardFlyIn;
@@ -872,25 +1155,20 @@ img { display: block; max-width: 100%; }
 .gp-tier-card--luxury.visible:hover {
   transform: scale(1.045);
 }
-.gp-tier-card.visible:nth-child(2),
-.gp-pkg-card.visible:nth-child(2) { animation-delay: .05s; }
-.gp-tier-card.visible:nth-child(3),
-.gp-pkg-card.visible:nth-child(3) { animation-delay: .10s; }
-.gp-pkg-card.visible:nth-child(4) { animation-delay: .15s; }
-.gp-pkg-card.visible:nth-child(5) { animation-delay: .20s; }
-.gp-pkg-card.visible:nth-child(6) { animation-delay: .25s; }
-.gp-pkg-card.visible:nth-child(7) { animation-delay: .30s; }
-.gp-pkg-card.visible:nth-child(8) { animation-delay: .35s; }
-.gp-pkg-card.visible:nth-child(9) { animation-delay: .40s; }
 @keyframes cardFlyIn {
-  0% { opacity: 0; transform: translate3d(0,34px,0) rotateX(9deg) scale(.96); }
-  65% { opacity: 1; transform: translate3d(0,-5px,0) rotateX(-2deg) scale(1.01); }
-  100% { opacity: 1; transform: translate3d(0,0,0) rotateX(0) scale(1); }
+  0% { opacity: 0; transform: translate3d(0,38px,0) scale(.985); }
+  62% { opacity: 1; transform: translate3d(0,-5px,0) scale(1.01); }
+  100% { opacity: 1; transform: translate3d(0,0,0) scale(1); }
 }
 @keyframes luxuryCardFlyIn {
-  0% { opacity: 0; transform: translate3d(0,34px,0) rotateX(9deg) scale(.96); }
-  65% { opacity: 1; transform: translate3d(0,-5px,0) rotateX(-2deg) scale(1.045); }
-  100% { opacity: 1; transform: translate3d(0,0,0) rotateX(0) scale(1.035); }
+  0% { opacity: 0; transform: translate3d(0,38px,0) scale(.985); }
+  62% { opacity: 1; transform: translate3d(0,-5px,0) scale(1.045); }
+  100% { opacity: 1; transform: translate3d(0,0,0) scale(1.035); }
+}
+@keyframes packageJumpUp {
+  0% { opacity: 0; transform: translateY(28px) scale(.98); }
+  58% { opacity: 1; transform: translateY(-8px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .gp-pkg-visual {
   position: relative;
@@ -1027,6 +1305,12 @@ img { display: block; max-width: 100%; }
   transition: opacity 0.7s var(--ease-out-expo), transform 0.7s var(--ease-out-expo);
 }
 .gp-reveal.visible { opacity: 1; transform: translateY(0); }
+.gp-tier-card.gp-reveal,
+.gp-pkg-card.gp-reveal {
+  opacity: 0;
+  transform: translate3d(0, 38px, 0) scale(.985);
+  transform-origin: center;
+}
 .gp-tier-card.gp-reveal.visible:hover {
   transform: translateY(-6px) scale(1.035);
   box-shadow: 0 36px 70px rgba(207,161,116,.32), inset 0 0 0 1px rgba(255,255,255,.62);
@@ -1045,9 +1329,9 @@ img { display: block; max-width: 100%; }
 
 @media (max-width: 900px) {
   .gp-pkg-hero {
-    min-height: 700px;
+    min-height: 780px;
     padding-top: 30px;
-    padding-bottom: 96px;
+    padding-bottom: 118px;
   }
   .gp-search-row-fields {
     justify-content: flex-start;
@@ -1061,7 +1345,26 @@ img { display: block; max-width: 100%; }
   }
   .gp-search-panel { padding: 0; }
   .gp-pkg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .gp-tier-top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .gp-package-type-sections { gap: 32px; }
+  .gp-package-type-section {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    min-height: auto;
+    padding: 28px 0;
+  }
+  .gp-package-type-card {
+    flex-basis: min(72vw, 230px);
+    max-width: min(72vw, 230px);
+  }
+  .gp-package-type-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .gp-tier-grid { grid-template-columns: 1fr; }
+  .gp-tier-card { width: 100%; }
   .gp-tier-card--luxury,
   .gp-tier-card--luxury:hover {
     transform: none;
@@ -1080,6 +1383,7 @@ img { display: block; max-width: 100%; }
   .gp-tier-showcase {
     margin-top: 0;
     padding-top: 54px;
+    padding-bottom: 0;
     background: #ead8c8;
   }
 }
@@ -1087,17 +1391,19 @@ img { display: block; max-width: 100%; }
   .gp-pkg-grid { grid-template-columns: 1fr; }
   .gp-header-nav a { display: none; }
   .gp-pkg-hero {
-    min-height: 660px;
-    padding: 34px var(--pad-x) 88px;
+    min-height: 720px;
+    padding: 38px var(--pad-x) 106px;
   }
   .gp-pkg-hero-overline { margin-bottom: 30px; }
-  .gp-pkg-section { padding-bottom: 40px; }
   .gp-search-boutique { margin-top: 22px; }
   .gp-search-row-fields {
     align-items: stretch;
     gap: 8px;
   }
   .gp-search-filter-row { flex-direction: column; align-items: stretch; }
+  .gp-package-type-list {
+    grid-template-columns: 1fr;
+  }
   .gp-search-field-boutique {
     width: 100%;
     min-height: 42px;
@@ -1116,7 +1422,7 @@ img { display: block; max-width: 100%; }
   .gp-tier-showcase {
     margin-top: 0;
     padding-top: 42px;
-    padding-bottom: 34px;
+    padding-bottom: 0;
     background: #ead8c8;
   }
   .gp-cat-card { font-size: 12px; }
@@ -1130,8 +1436,6 @@ img { display: block; max-width: 100%; }
 </head>
 <body>
 
-<div class="gp-texture" aria-hidden="true"></div>
-
 <?php $gpNavActive = 'packages'; $gpNavOverlay = true; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <main>
@@ -1140,7 +1444,7 @@ img { display: block; max-width: 100%; }
     <span class="gp-pkg-hero-bg is-active" aria-hidden="true" style="background-image:url('<?= $h($packageHeroImages[0]) ?>');"></span>
     <span class="gp-pkg-hero-bg" aria-hidden="true"></span>
     <div class="gp-pkg-hero-inner">
-      <h1>Packages Designed for Your Love Story</h1>
+      <h1><span class="gp-script-word">Packages</span> Designed for Your <span class="gp-script-word">Love Story</span></h1>
       <p>From venue styling to bridal beauty, explore thoughtfully curated wedding packages made to suit your vision, style, and budget.</p>
       <section class="gp-search-boutique gp-reveal" aria-label="Search and filter">
         <form class="gp-search-panel" method="GET" action="<?= URLROOT ?>/customerServices/packages">
@@ -1219,15 +1523,18 @@ img { display: block; max-width: 100%; }
 
   <!-- STATIC PACKAGE TIERS -->
   <section class="gp-tier-showcase" aria-label="Package tiers">
-    <h2 class="gp-tier-heading">Our <strong>Packages</strong></h2>
+    <div class="gp-tier-top">
+      <h2 class="gp-tier-heading">Our <strong>Packages</strong></h2>
+    </div>
     <div class="gp-tier-grid">
-      <article class="gp-tier-card gp-tier-card--standard gp-reveal">
+      <article class="gp-tier-card gp-tier-card--standard gp-reveal" data-tier-card="standard">
         <div class="gp-tier-panel">
           <div>
             <h2>Standard</h2>
+            <span class="gp-tier-price">+ 30M MMK</span>
             <p>Elegant essentials for a polished celebration with trusted wedding services.</p>
           </div>
-          <span class="gp-tier-action">View Standard</span>
+          <a class="gp-tier-action" href="#package-standard">View Standard</a>
         </div>
         <ul class="gp-tier-features">
           <li>Covers the core wedding essentials only</li>
@@ -1236,13 +1543,14 @@ img { display: block; max-width: 100%; }
           <li>Perfect for intimate weddings</li>
         </ul>
       </article>
-      <article class="gp-tier-card gp-tier-card--luxury gp-reveal gp-reveal-d1">
+      <article class="gp-tier-card gp-tier-card--luxury gp-reveal gp-reveal-d1" data-tier-card="luxury">
         <div class="gp-tier-panel">
           <div>
             <h2>Luxury</h2>
+            <span class="gp-tier-price">+ 100M MMK</span>
             <p>Elevated styling, beauty, and planning support for a refined wedding experience.</p>
           </div>
-          <span class="gp-tier-action">View Luxury</span>
+          <a class="gp-tier-action" href="#package-luxury">View Luxury</a>
         </div>
         <ul class="gp-tier-features">
           <li>Most complete premium package</li>
@@ -1251,13 +1559,14 @@ img { display: block; max-width: 100%; }
           <li>Designed for an elegant luxury wedding</li>
         </ul>
       </article>
-      <article class="gp-tier-card gp-tier-card--premium gp-reveal gp-reveal-d2">
+      <article class="gp-tier-card gp-tier-card--premium gp-reveal gp-reveal-d2" data-tier-card="premium">
         <div class="gp-tier-panel">
           <div>
             <h2>Premium</h2>
+            <span class="gp-tier-price">+ 60M MMK</span>
             <p>A complete, high-touch package for couples who want every detail beautifully handled.</p>
           </div>
-          <span class="gp-tier-action">View Premium</span>
+          <a class="gp-tier-action" href="#package-premium">View Premium</a>
         </div>
         <ul class="gp-tier-features">
           <li>More complete service coverage</li>
@@ -1267,54 +1576,65 @@ img { display: block; max-width: 100%; }
         </ul>
       </article>
     </div>
-  </section>
 
-  <!-- PACKAGE GRID -->
-  <section class="gp-pkg-section" aria-label="Package types">
-    <h2 class="gp-pkg-heading">Our <strong>Packages</strong></h2>
-    <?php if (empty($packages)): ?>
-      <div class="gp-pkg-empty">
-        <div class="gp-pkg-empty-icon"><i data-lucide="search-x" size="28"></i></div>
-        <h3>No packages found</h3>
-        <p>We couldn't find any packages matching your criteria. Try adjusting your search or category filter.</p>
-        <div class="gp-pkg-empty-actions">
-          <a class="gp-pkg-empty-btn primary" href="<?= $resetUrl ?>">Clear all filters</a>
-          <a class="gp-pkg-empty-btn secondary" href="<?= URLROOT ?>/customerServices/packages">Browse all packages</a>
-        </div>
-      </div>
-    <?php else: ?>
-      <div class="gp-pkg-grid">
-        <?php foreach ($packages as $i => $pkg):
-          $revealClass = 'gp-reveal gp-reveal-d' . min($i % 6, 5);
-          $pkgImage = trim((string)($pkg['image_url'] ?? ''));
-        ?>
-        <a class="gp-pkg-card <?= $revealClass ?>" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>" aria-label="View <?= $h($pkg['name'] ?? 'package') ?> details">
-          <span class="gp-pkg-visual" aria-hidden="true">
-            <?php if ($pkgImage !== ''): ?>
-              <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy">
-            <?php endif; ?>
-            <span class="gp-pkg-badge"><?= (int)($pkg['item_count'] ?? 0) ?> service types</span>
-          </span>
-          <div class="gp-pkg-body">
-            <h2 class="gp-pkg-name"><?= $h($pkg['name'] ?? '') ?></h2>
-            <p class="gp-pkg-tagline"><?= $h($pkg['tagline'] ?? $pkg['description'] ?? '') ?></p>
-            <div class="gp-pkg-cats">
-              <?php foreach (($pkg['categories'] ?? []) as $cat): ?>
-                <span class="gp-pkg-cat-pill"><?= $h($cat['category_name'] ?? '') ?></span>
-              <?php endforeach; ?>
-            </div>
-            <div class="gp-pkg-foot">
-              <div>
-                <span class="gp-pkg-price"><?= $money($pkg['package_price'] ?? $pkg['base_price'] ?? 0) ?></span>
-                <span class="gp-pkg-price-label">Complete package price</span>
-              </div>
+    <div class="gp-package-type-sections" aria-label="Package type details">
+      <?php
+        $typeSectionCopy = [
+          'standard' => ['Essential Coverage', 'A graceful foundation for intimate weddings and carefully managed essentials.'],
+          'premium' => ['Full Celebration', 'A fuller package for couples who want guest experience and details handled together.'],
+          'luxury' => ['Grand Experience', 'The highest level package with elevated styling and top-tier supplier coordination.'],
+        ];
+        $typeOrder = ['standard', 'premium', 'luxury'];
+      ?>
+      <?php foreach ($typeOrder as $sectionIndex => $tierKey): ?>
+      <?php $tierPackageCount = count($packagesByTier[$tierKey]); ?>
+      <section class="gp-package-type-section gp-reveal gp-reveal-d<?= min($sectionIndex, 2) ?>" id="package-<?= $h($tierKey) ?>" aria-label="<?= $h($packageTierLabels[$tierKey]) ?> details" data-tier-section="<?= $h($tierKey) ?>">
+        <div class="gp-package-type-intro">
+          <span class="gp-package-type-label"><?= $h($packageTierLabels[$tierKey]) ?></span>
+          <h3 class="gp-package-type-title"><?= $h($typeSectionCopy[$tierKey][0]) ?></h3>
+          <p class="gp-package-type-copy"><?= $h($typeSectionCopy[$tierKey][1]) ?></p>
+          <div class="gp-package-type-carousel-head">
+            <div class="gp-package-type-nav" <?= $tierPackageCount > 3 ? '' : 'hidden' ?> aria-label="<?= $h($packageTierLabels[$tierKey]) ?> package navigation">
+              <button type="button" class="gp-package-type-prev" aria-label="Previous <?= $h($packageTierLabels[$tierKey]) ?> packages">
+                <i data-lucide="chevron-left" size="16"></i>
+              </button>
+              <button type="button" class="gp-package-type-next" aria-label="Next <?= $h($packageTierLabels[$tierKey]) ?> packages">
+                <i data-lucide="chevron-right" size="16"></i>
+              </button>
             </div>
           </div>
-        </a>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
+        </div>
+        <div class="gp-package-type-cards" data-package-type-carousel>
+          <?php if (empty($packagesByTier[$tierKey])): ?>
+            <div class="gp-package-type-empty">No <?= $h(strtolower($packageTierLabels[$tierKey])) ?> packages yet.</div>
+          <?php else: ?>
+            <div class="gp-package-type-viewport">
+              <div class="gp-package-type-track">
+                <?php foreach ($packagesByTier[$tierKey] as $pkg): 
+                  $pkgImage = trim((string)($pkg['image_url'] ?? ''));
+                ?>
+                  <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>" aria-label="View <?= $h($pkg['name'] ?? 'package') ?> details">
+                    <h4><?= $h($pkg['name'] ?? '') ?></h4>
+                    <span class="gp-package-type-image" aria-hidden="true">
+                      <?php if ($pkgImage !== ''): ?>
+                        <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy">
+                      <?php endif; ?>
+                    </span>
+                    <p><?= $h($pkg['tagline'] ?? $pkg['description'] ?? '') ?></p>
+                    <div class="gp-package-type-meta">
+                      <span class="gp-package-type-price"><?= $money($pkg['package_price'] ?? $pkg['base_price'] ?? 0) ?></span>
+                    </div>
+                  </a>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endif; ?>
+        </div>
+      </section>
+      <?php endforeach; ?>
+    </div>
   </section>
+
 </main>
 
 <footer class="gp-footer">
@@ -1363,6 +1683,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const revealBoxes = document.querySelectorAll('.gp-reveal');
   if (revealBoxes.length && 'IntersectionObserver' in window) {
+    let revealCardIndex = 0;
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -1371,10 +1692,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }, { threshold: 0.06, rootMargin: '0px 0px -40px 0px' });
-    revealBoxes.forEach(el => observer.observe(el));
+    revealBoxes.forEach(el => {
+      if (el.matches('.gp-tier-card, .gp-pkg-card')) {
+        el.style.setProperty('--card-reveal-delay', `${Math.min(revealCardIndex * 0.14, 1.12).toFixed(2)}s`);
+        revealCardIndex += 1;
+      }
+      observer.observe(el);
+    });
   } else {
     revealBoxes.forEach(el => el.classList.add('visible'));
   }
+
+  document.querySelectorAll('[data-package-type-carousel]').forEach(carousel => {
+    const section = carousel.closest('.gp-package-type-section');
+    const viewport = carousel.querySelector('.gp-package-type-viewport');
+    const track = carousel.querySelector('.gp-package-type-track');
+    const cards = Array.from(carousel.querySelectorAll('.gp-package-type-card'));
+    const prev = section?.querySelector('.gp-package-type-prev');
+    const next = section?.querySelector('.gp-package-type-next');
+    if (!viewport || !track || cards.length <= 3 || !prev || !next) return;
+
+    let index = 0;
+    const maxIndex = Math.max(cards.length - 3, 0);
+    const getStep = () => {
+      const first = cards[0];
+      if (!first) return 0;
+      const gap = parseFloat(window.getComputedStyle(track).columnGap || window.getComputedStyle(track).gap || '0') || 0;
+      return first.getBoundingClientRect().width + gap;
+    };
+    const update = () => {
+      index = Math.max(0, Math.min(index, maxIndex));
+      track.style.transform = `translateX(-${index * getStep()}px)`;
+      prev.disabled = index === 0;
+      next.disabled = index === maxIndex;
+    };
+    prev.addEventListener('click', () => {
+      index -= 1;
+      update();
+    });
+    next.addEventListener('click', () => {
+      index += 1;
+      update();
+    });
+    window.addEventListener('resize', update);
+    update();
+  });
 
   const closePackageSelects = (exceptWrap = null) => {
     document.querySelectorAll('.gp-pkg-select-wrap.is-open').forEach(wrap => {
