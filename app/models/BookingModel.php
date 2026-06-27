@@ -4921,6 +4921,8 @@ class BookingModel
                 p.id AS payment_id,
                 p.booking_id,
                 p.amount AS net_amount,
+                COALESCE(p.platform_fee, 0) AS platform_fee,
+                p.amount + COALESCE(p.platform_fee, 0) AS gross_amount,
                 p.status,
                 p.created_at,
                 p.verified_at,

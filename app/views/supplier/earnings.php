@@ -1,230 +1,368 @@
 <?php
-$earnings = $earnings ?? [];
-$payouts = $payouts ?? [];
-$supplier = $supplier ?? [];
-$supplierId = (int)($supplierId ?? 0);
-$currentPage = (int)($currentPage ?? 1);
-$totalPages = (int)($totalPages ?? 1);
-$totalPayouts = (int)($totalPayouts ?? 0);
+$earnings          = $earnings ?? [];
+$earningsBreakdown = $earningsBreakdown ?? [];
+$grossEarnings     = $grossEarnings ?? [];
+$supplier          = $supplier ?? [];
+$supplierId        = (int)($supplierId ?? 0);
+$currentPage       = (int)($currentPage ?? 1);
+$totalPages        = (int)($totalPages ?? 1);
+$totalPayouts      = (int)($totalPayouts ?? 0);
+$latestPaidPayout       = $latestPaidPayout ?? null;
+$latestProcessingPayout = $latestProcessingPayout ?? null;
 
-$h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+$h     = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
-$date = fn($v) => date('M d, Y', strtotime($v ?? 'now'));
+$date  = fn($v) => $v ? date('M d, Y', strtotime($v)) : '—';
+$dateShort = fn($v) => $v ? date('M d', strtotime($v)) : '—';
 
-$dashboardTitle = 'Supplier';
-$dashboardCrumb = 'Earnings';
-$dashboardBreadcrumbs = [
+$dashboardTitle          = 'Supplier';
+$dashboardCrumb          = 'Earnings';
+$dashboardBreadcrumbs    = [
     ['label' => 'Dashboard', 'url' => URLROOT . '/supplier/dashboard'],
-    ['label' => 'Earnings',   'url' => null],
+    ['label' => 'Earnings',  'url' => null],
 ];
 $dashboardContentClass = 'bg-[#F4F1EE] px-0 py-0 overflow-y-auto';
-$dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId, $currentPage, $totalPages, $totalPayouts, $h, $money, $date) {
+$dashboardContent = function () use (
+    $earnings, $earningsBreakdown, $grossEarnings, $supplier,
+    $supplierId, $currentPage, $totalPages, $totalPayouts,
+    $latestPaidPayout, $latestProcessingPayout,
+    $h, $money, $date, $dateShort
+) {
+    $pendingAmt    = (float)($earnings['pending_amount']    ?? 0);
+    $pendingCnt    = (int)  ($earnings['pending_count']     ?? 0);
+    $processingAmt = (float)($earnings['processing_amount'] ?? 0);
+    $paidAmt       = (float)($earnings['paid_amount']       ?? 0);
+    $paidCnt       = (int)  ($earnings['paid_count']        ?? 0);
+    $totalEarned   = (float)($earnings['total_earned']      ?? 0);
 
-    $pendingAmt   = (int)($earnings['pending_amount'] ?? 0);
-    $pendingCnt   = (int)($earnings['pending_count'] ?? 0);
-    $processingAmt = (int)($earnings['processing_amount'] ?? 0);
-    $paidAmt      = (int)($earnings['paid_amount'] ?? 0);
-    $paidCnt      = (int)($earnings['paid_count'] ?? 0);
-    $totalEarned  = (int)($earnings['total_earned'] ?? 0);
-    $hasPending   = $pendingAmt > 0;
+    $grossTotal    = (float)($grossEarnings['gross_earnings']        ?? 0);
+    $feeTotal      = (float)($grossEarnings['platform_fees']         ?? 0);
+    $netTotal      = (float)($grossEarnings['net_earnings']          ?? 0);
+    $completedCnt  = (int)  ($grossEarnings['completed_booking_count'] ?? 0);
+
+    $hasPending    = $pendingAmt    > 0;
     $hasProcessing = $processingAmt > 0;
+
+    // Derive fee rate from paid data
+    $feeRate = ($grossTotal > 0) ? round(($feeTotal / $grossTotal) * 100, 1) : 5.0;
 ?>
 <script src="<?= URLROOT ?>/public/js/supplier-toast.js"></script>
 
-<section class="mx-auto max-w-[1600px] space-y-4 px-5 py-6 text-[13px] antialiased" style="font-family:'Poppins',system-ui,sans-serif;color:#6d4c5b">
+<section class="mx-auto max-w-[1200px] space-y-6 px-6 py-7 text-[13px] antialiased" style="font-family:'Poppins',system-ui,sans-serif;color:#4a3240">
 
-    <!-- Page header -->
-    <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <!-- ── Page header ───────────────────────────────────────────── -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-            <p style="margin-bottom:4px;color:#A8A29E;font-size:11px;font-weight:650">Supplier workspace</p>
-            <h1 style="margin:0;color:#6d4c5b;font-family:'Playfair Display',serif;font-size:clamp(27px,2.5vw,36px);font-weight:650;letter-spacing:-.025em;line-height:1.08">Your Earnings</h1>
-            <p style="margin-top:6px;color:#7b5c69;font-size:12px;font-weight:500">Track payouts and request cash withdrawals.</p>
+            <p style="color:#A8A29E;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Supplier Workspace</p>
+            <h1 style="margin:0;color:#4a3240;font-family:'Playfair Display',serif;font-size:clamp(26px,2.4vw,34px);font-weight:700;letter-spacing:-.025em;line-height:1.1">Your Earnings</h1>
+            <p style="margin-top:5px;color:#7b5c69;font-size:12px;font-weight:500">Track your income, fees, and payout history in one place.</p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="<?= URLROOT ?>/supplier/paymentHistory" style="display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 14px;border:1px solid #ead8c7;border-radius:999px;background:transparent;color:#6d4c5b;font-size:12px;font-weight:600;text-decoration:none;transition:all .15s">
-                <i data-lucide="receipt" style="width:14px;height:14px"></i>
-                Payment History
-            </a>
-        </div>
+        <a href="<?= URLROOT ?>/supplier/paymentHistory"
+           style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 16px;border:1.5px solid #ddd0c8;border-radius:999px;background:#fff;color:#6d4c5b;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;transition:all .15s"
+           onmouseenter="this.style.background='#F4F1EE'" onmouseleave="this.style.background='#fff'">
+            <i data-lucide="scroll-text" style="width:13px;height:13px"></i>
+            Statement
+        </a>
     </div>
 
-    <!-- KPI row -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:4px">
-        <div style="background:#FFFFFF;border:1px solid #ead8c7;border-radius:1.2rem;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.04)">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                <div style="width:36px;height:36px;border-radius:10px;background:#fff7ed;display:flex;align-items:center;justify-content:center"><i data-lucide="wallet" style="width:18px;height:18px;color:#c2410c"></i></div>
-                <span style="font-size:11px;color:#A8A29E;font-weight:500">Available to Withdraw</span>
-            </div>
-            <p style="font-size:26px;font-weight:800;margin:0;color:#b45309"><?= $money($pendingAmt) ?></p>
-            <p style="font-size:11px;color:#A8A29E;margin-top:4px"><?= $pendingCnt ?> booking<?= $pendingCnt !== 1 ? 's' : '' ?></p>
-        </div>
-        <div style="background:#FFFFFF;border:1px solid #ead8c7;border-radius:1.2rem;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.04)">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                <div style="width:36px;height:36px;border-radius:10px;background:#eef2ff;display:flex;align-items:center;justify-content:center"><i data-lucide="loader" style="width:18px;height:18px;color:#4338ca"></i></div>
-                <span style="font-size:11px;color:#A8A29E;font-weight:500">Being Processed</span>
-            </div>
-            <p style="font-size:26px;font-weight:800;margin:0;color:#4338ca"><?= $money($processingAmt) ?></p>
-            <p style="font-size:11px;color:#A8A29E;margin-top:4px">Admin reviewing</p>
-        </div>
-        <div style="background:#FFFFFF;border:1px solid #ead8c7;border-radius:1.2rem;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.04)">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                <div style="width:36px;height:36px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center"><i data-lucide="badge-check" style="width:18px;height:18px;color:#047857"></i></div>
-                <span style="font-size:11px;color:#A8A29E;font-weight:500">Paid Out</span>
-            </div>
-            <p style="font-size:26px;font-weight:800;margin:0;color:#07825f"><?= $money($paidAmt) ?></p>
-            <p style="font-size:11px;color:#A8A29E;margin-top:4px"><?= $paidCnt ?> payout<?= $paidCnt !== 1 ? 's' : '' ?></p>
-        </div>
-        <div style="background:#FFFFFF;border:1px solid #ead8c7;border-radius:1.2rem;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.04)">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                <div style="width:36px;height:36px;border-radius:10px;background:#fdf2f8;display:flex;align-items:center;justify-content:center"><i data-lucide="trending-up" style="width:18px;height:18px;color:#9d174d"></i></div>
-                <span style="font-size:11px;color:#A8A29E;font-weight:500">Total Earned</span>
-            </div>
-            <p style="font-size:26px;font-weight:800;margin:0;color:#6d4c5b"><?= $money($totalEarned) ?></p>
-            <p style="font-size:11px;color:#A8A29E;margin-top:4px">All time</p>
-        </div>
-    </div>
+    <!-- ── Hero balance card ──────────────────────────────────────── -->
+    <div style="background:linear-gradient(135deg,#6d4c5b 0%,#4a3240 100%);border-radius:1.5rem;padding:28px 32px;color:#fff;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(74,50,64,.25)">
+        <!-- subtle texture ring -->
+        <div style="position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none"></div>
+        <div style="position:absolute;right:30px;bottom:-80px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none"></div>
 
-    <!-- CTA banner -->
-    <?php if ($hasPending): ?>
-    <div style="background:#FFFBEB;border:1px solid #ead8c7;border-radius:1.2rem;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:14px">
-            <div style="width:40px;height:40px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="banknote" style="width:20px;height:20px;color:#b45309"></i></div>
+        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;justify-content:space-between;position:relative;z-index:1">
             <div>
-                <p style="font-size:14px;font-weight:700;margin:0;color:#6d4c5b">Ready to Cash Out?</p>
-                <p style="font-size:12px;color:#A8A29E;margin-top:2px">You have <?= $money($pendingAmt) ?> available to withdraw.</p>
+                <p style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6);margin:0 0 10px">Available to Withdraw</p>
+                <p style="font-size:clamp(34px,4vw,52px);font-weight:800;margin:0;line-height:1;letter-spacing:-.03em"><?= number_format($pendingAmt, 0) ?></p>
+                <p style="font-size:13px;color:rgba(255,255,255,.6);margin:4px 0 0">MMK &nbsp;·&nbsp; <?= $pendingCnt ?> booking<?= $pendingCnt !== 1 ? 's' : '' ?> ready</p>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+                <?php if ($hasPending): ?>
+                <button id="cashout-btn" type="button"
+                    style="display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:0 24px;border:0;border-radius:999px;background:#fff;color:#6d4c5b;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,.12)">
+                    <i data-lucide="send" style="width:14px;height:14px"></i>
+                    Request Payout
+                </button>
+                <?php elseif ($hasProcessing): ?>
+                <span style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 18px;border-radius:999px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);font-size:12px;font-weight:600">
+                    <i data-lucide="clock" style="width:13px;height:13px"></i>
+                    Payout Under Review
+                </span>
+                <?php endif; ?>
+                <!-- Mini stats row -->
+                <div style="display:flex;gap:20px;text-align:right">
+                    <div>
+                        <p style="font-size:10px;color:rgba(255,255,255,.5);margin:0 0 2px;font-weight:600;letter-spacing:.05em;text-transform:uppercase">Total Earned</p>
+                        <p style="font-size:15px;font-weight:700;margin:0;color:rgba(255,255,255,.9)"><?= number_format($totalEarned, 0) ?></p>
+                    </div>
+                    <div>
+                        <p style="font-size:10px;color:rgba(255,255,255,.5);margin:0 0 2px;font-weight:600;letter-spacing:.05em;text-transform:uppercase">Platform Fee</p>
+                        <p style="font-size:15px;font-weight:700;margin:0;color:rgba(255,255,255,.9)"><?= $feeRate ?>%</p>
+                    </div>
+                    <div>
+                        <p style="font-size:10px;color:rgba(255,255,255,.5);margin:0 0 2px;font-weight:600;letter-spacing:.05em;text-transform:uppercase">Bookings</p>
+                        <p style="font-size:15px;font-weight:700;margin:0;color:rgba(255,255,255,.9)"><?= $completedCnt ?></p>
+                    </div>
+                </div>
             </div>
         </div>
-        <button id="cashout-btn" type="button" style="display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 22px;border:0;border-radius:999px;background:#6d4c5b;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap">
-            <i data-lucide="send" style="width:14px;height:14px"></i>
-            Request Payout
-        </button>
     </div>
-    <?php elseif ($hasProcessing): ?>
-    <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:1.2rem;padding:20px 24px;display:flex;align-items:center;gap:14px">
-        <div style="width:40px;height:40px;border-radius:10px;background:#e0e7ff;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="clock" style="width:20px;height:20px;color:#4338ca"></i></div>
-        <div>
-            <p style="font-size:14px;font-weight:700;margin:0;color:#6d4c5b">Payout Under Review</p>
-            <p style="font-size:12px;color:#A8A29E;margin-top:2px">You have <?= $money($processingAmt) ?> being processed. Admin will transfer the funds shortly.</p>
+
+    <!-- ── Two status cards ───────────────────────────────────────── -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+        <!-- Paid Out card -->
+        <div style="background:#fff;border:1.5px solid #ddd0c8;border-radius:1.2rem;padding:22px 24px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                <div style="width:36px;height:36px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <i data-lucide="badge-check" style="width:18px;height:18px;color:#047857"></i>
+                </div>
+                <div>
+                    <p style="font-size:11px;font-weight:600;color:#A8A29E;margin:0;letter-spacing:.04em;text-transform:uppercase">Paid Out</p>
+                    <p style="font-size:18px;font-weight:800;color:#07825f;margin:0;letter-spacing:-.02em"><?= $money($paidAmt) ?></p>
+                </div>
+            </div>
+            <?php if ($latestPaidPayout): ?>
+            <div style="border-top:1px solid #ead8c7;padding-top:14px;display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E">
+                    <span>Last payout</span>
+                    <span style="font-weight:600;color:#4a3240"><?= $date($latestPaidPayout['verified_at'] ?? $latestPaidPayout['created_at']) ?></span>
+                </div>
+                <?php if (!empty($latestPaidPayout['payout_batch_id'])): ?>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E">
+                    <span>Ref</span>
+                    <span style="font-weight:600;color:#4a3240;font-family:monospace;font-size:10px"><?= $h($latestPaidPayout['payout_batch_id']) ?></span>
+                </div>
+                <?php endif; ?>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E">
+                    <span><?= $paidCnt ?> payout<?= $paidCnt !== 1 ? 's' : '' ?> total</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;color:#047857;font-weight:600"><i data-lucide="check-circle-2" style="width:11px;height:11px"></i>Settled</span>
+                </div>
+            </div>
+            <?php else: ?>
+            <p style="font-size:12px;color:#A8A29E;margin:10px 0 0">No payouts settled yet.</p>
+            <?php endif; ?>
+        </div>
+
+        <!-- In Progress card -->
+        <div style="background:#fff;border:1.5px solid <?= $hasProcessing ? '#c7d2fe' : '#ddd0c8' ?>;border-radius:1.2rem;padding:22px 24px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                <div style="width:36px;height:36px;border-radius:10px;background:#eef2ff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <i data-lucide="loader" style="width:18px;height:18px;color:#4338ca"></i>
+                </div>
+                <div>
+                    <p style="font-size:11px;font-weight:600;color:#A8A29E;margin:0;letter-spacing:.04em;text-transform:uppercase">In Progress</p>
+                    <p style="font-size:18px;font-weight:800;color:#4338ca;margin:0;letter-spacing:-.02em"><?= $money($processingAmt) ?></p>
+                </div>
+            </div>
+            <?php if ($latestProcessingPayout): ?>
+            <div style="border-top:1px solid #ead8c7;padding-top:14px;display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E">
+                    <span>Requested</span>
+                    <span style="font-weight:600;color:#4a3240"><?= $date($latestProcessingPayout['created_at']) ?></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E">
+                    <span>Est. transfer</span>
+                    <span style="font-weight:600;color:#4a3240">1–3 business days</span>
+                </div>
+                <?php if (!empty($latestProcessingPayout['payout_batch_id'])): ?>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E">
+                    <span>Ref</span>
+                    <span style="font-weight:600;color:#4a3240;font-family:monospace;font-size:10px"><?= $h($latestProcessingPayout['payout_batch_id']) ?></span>
+                </div>
+                <?php endif; ?>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#A8A29E">
+                    <span>Admin reviewing</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;color:#4338ca;font-weight:600"><i data-lucide="clock" style="width:11px;height:11px"></i>Pending</span>
+                </div>
+            </div>
+            <?php else: ?>
+            <p style="font-size:12px;color:#A8A29E;margin:10px 0 0">No active payout request.</p>
+            <?php endif; ?>
         </div>
     </div>
-    <?php else: ?>
-    <div style="background:#FFFFFF;border:1px solid #ead8c7;border-radius:1.2rem;padding:20px 24px;display:flex;align-items:center;gap:14px">
-        <div style="width:40px;height:40px;border-radius:10px;background:#F4F1EE;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="info" style="width:20px;height:20px;color:#A8A29E"></i></div>
-        <p style="font-size:13px;color:#A8A29E;margin:0">No pending payouts yet. Once bookings are completed, payouts will appear here.</p>
+
+    <!-- ── Fee Transparency block ─────────────────────────────────── -->
+    <?php if ($grossTotal > 0): ?>
+    <div style="background:#fff;border:1.5px solid #ddd0c8;border-radius:1.2rem;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <i data-lucide="info" style="width:15px;height:15px;color:#A8A29E"></i>
+            <h2 style="margin:0;font-size:13px;font-weight:700;color:#4a3240;letter-spacing:-.01em">Fee Breakdown <span style="font-size:11px;font-weight:500;color:#A8A29E">(settled payouts only)</span></h2>
+        </div>
+        <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap">
+            <!-- Gross -->
+            <div style="flex:1;min-width:120px;text-align:center;padding:14px 10px">
+                <p style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#A8A29E;margin:0 0 6px">Gross Earnings</p>
+                <p style="font-size:20px;font-weight:800;color:#4a3240;margin:0"><?= number_format($grossTotal, 0) ?></p>
+                <p style="font-size:10px;color:#A8A29E;margin:3px 0 0">MMK</p>
+            </div>
+            <!-- arrow -->
+            <div style="color:#ddd0c8;font-size:18px;padding:0 4px">−</div>
+            <!-- Fee -->
+            <div style="flex:1;min-width:120px;text-align:center;padding:14px 10px;background:#fff9f5;border-radius:10px">
+                <p style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#A8A29E;margin:0 0 6px">Platform Fee
+                    <span style="display:inline-block;background:#f3e8d6;color:#b45309;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700;margin-left:4px"><?= $feeRate ?>%</span>
+                </p>
+                <p style="font-size:20px;font-weight:800;color:#b45309;margin:0"><?= number_format($feeTotal, 0) ?></p>
+                <p style="font-size:10px;color:#A8A29E;margin:3px 0 0">MMK</p>
+            </div>
+            <!-- arrow -->
+            <div style="color:#ddd0c8;font-size:18px;padding:0 4px">=</div>
+            <!-- Net -->
+            <div style="flex:1;min-width:120px;text-align:center;padding:14px 10px;background:#f0fdf4;border-radius:10px">
+                <p style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#A8A29E;margin:0 0 6px">You Received</p>
+                <p style="font-size:20px;font-weight:800;color:#047857;margin:0"><?= number_format($netTotal, 0) ?></p>
+                <p style="font-size:10px;color:#A8A29E;margin:3px 0 0">MMK</p>
+            </div>
+        </div>
     </div>
     <?php endif; ?>
 
-    <!-- Payout history table -->
-    <div style="background:#FFFFFF;border:1px solid #ead8c7;border-radius:1.2rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)">
-        <div style="padding:18px 22px;border-bottom:1px solid #ead8c7;display:flex;align-items:center;justify-content:space-between">
+    <!-- ── Timeline transactions ──────────────────────────────────── -->
+    <div style="background:#fff;border:1.5px solid #ddd0c8;border-radius:1.2rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.04)">
+        <!-- header -->
+        <div style="padding:18px 24px;border-bottom:1px solid #ead8c7;display:flex;align-items:center;justify-content:space-between">
             <div>
-                <h2 style="margin:0;font-size:14px;font-weight:750;color:#6d4c5b;letter-spacing:-.015em">Payout History</h2>
+                <h2 style="margin:0;font-size:14px;font-weight:700;color:#4a3240;letter-spacing:-.015em">Earnings Timeline</h2>
                 <p style="margin-top:3px;font-size:11px;color:#A8A29E"><?= $totalPayouts ?> total transaction<?= $totalPayouts !== 1 ? 's' : '' ?></p>
             </div>
-            <span style="font-size:11px;color:#A8A29E;font-weight:650"><?= $totalPayouts ?> records</span>
         </div>
 
-        <?php if (empty($payouts)): ?>
-            <div style="padding:48px 20px;text-align:center">
-                <div style="width:48px;height:48px;border-radius:12px;background:#F4F1EE;display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><i data-lucide="banknote" style="width:22px;height:22px;color:#A8A29E"></i></div>
-                <p style="font-size:14px;font-weight:600;color:#6d4c5b;margin:0 0 4px">No payouts yet</p>
-                <p style="font-size:12px;color:#A8A29E;margin:0">Once bookings are completed, payouts will appear here.</p>
+        <?php if (empty($earningsBreakdown)): ?>
+        <div style="padding:56px 20px;text-align:center">
+            <div style="width:52px;height:52px;border-radius:14px;background:#F4F1EE;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+                <i data-lucide="banknote" style="width:24px;height:24px;color:#A8A29E"></i>
             </div>
+            <p style="font-size:14px;font-weight:600;color:#4a3240;margin:0 0 4px">No earnings yet</p>
+            <p style="font-size:12px;color:#A8A29E;margin:0">Once bookings are completed, your earnings will appear here.</p>
+        </div>
         <?php else: ?>
-            <table style="width:100%;border-collapse:collapse">
-                <thead>
-                    <tr style="background:#F4F1EE">
-                        <th style="padding:10px 20px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#A8A29E;text-align:left">Booking</th>
-                        <th style="padding:10px 20px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#A8A29E;text-align:left">Amount</th>
-                        <th style="padding:10px 20px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#A8A29E;text-align:left">Status</th>
-                        <th style="padding:10px 20px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#A8A29E;text-align:left">Details</th>
-                        <th style="padding:10px 20px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#A8A29E;text-align:left">Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($payouts as $payout):
-                        $status = $payout['status'] ?? 'pending';
-                        $badgeCfg = match($status) {
-                            'success'    => ['bg' => '#ECFDF5', 'fg' => '#065f46', 'label' => 'Paid'],
-                            'processing' => ['bg' => '#EEF2FF', 'fg' => '#3730A3', 'label' => 'Under Review'],
-                            'failed'     => ['bg' => '#FEF2F2', 'fg' => '#991b1b', 'label' => 'Rejected'],
-                            default      => ['bg' => '#FFFBEB', 'fg' => '#92400e', 'label' => 'Pending'],
-                        };
-                        $note = trim((string)($payout['verified_note'] ?? ''));
-                    ?>
-                    <tr style="border-top:1px solid #ead8c7;transition:background .15s" onmouseenter="this.style.background='#F4F1EE'" onmouseleave="this.style.background='transparent'">
-                        <td style="padding:14px 20px;font-size:13px;font-weight:700;color:#6d4c5b">#<?= (int)($payout['booking_id'] ?? 0) ?></td>
-                        <td style="padding:14px 20px;font-size:13px;font-weight:700;color:#6d4c5b"><?= $money((float)($payout['amount'] ?? 0)) ?></td>
-                        <td style="padding:14px 20px"><span style="display:inline-flex;align-items:center;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:<?= $badgeCfg['bg'] ?>;color:<?= $badgeCfg['fg'] ?>"><?= $badgeCfg['label'] ?></span></td>
-                        <td style="padding:14px 20px;font-size:12px;color:#A8A29E;max-width:240px">
-                            <?php if ($status === 'success' && $note): ?>
-                                <?= $h($note) ?>
-                            <?php elseif ($status === 'failed' && $note): ?>
-                                <span style="color:#991b1b">Reason: <?= $h($note) ?></span>
-                            <?php elseif ($status === 'processing'): ?>
-                                Waiting for admin to transfer funds
-                            <?php else: ?>
-                                &mdash;
-                            <?php endif; ?>
-                        </td>
-                        <td style="padding:14px 20px;font-size:12px;color:#A8A29E"><?= $date($payout['created_at'] ?? 'now') ?></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
 
-            <?php if ($totalPages > 1): ?>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid #ead8c7">
-                <span style="font-size:12px;color:#A8A29E">Page <?= $currentPage ?> of <?= $totalPages ?></span>
-                <div style="display:flex;gap:6px">
-                    <?php if ($currentPage > 1): ?>
-                        <a href="?page=<?= $currentPage - 1 ?>" style="display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 14px;border:1px solid #ead8c7;border-radius:999px;background:transparent;color:#6d4c5b;font-size:12px;font-weight:600;text-decoration:none;transition:all .15s">&larr; Previous</a>
-                    <?php endif; ?>
-                    <?php if ($currentPage < $totalPages): ?>
-                        <a href="?page=<?= $currentPage + 1 ?>" style="display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 14px;border:1px solid #ead8c7;border-radius:999px;background:transparent;color:#6d4c5b;font-size:12px;font-weight:600;text-decoration:none;transition:all .15s">Next &rarr;</a>
-                    <?php endif; ?>
-                </div>
+        <div style="padding:8px 0">
+        <?php foreach ($earningsBreakdown as $i => $row):
+            $status   = $row['status'] ?? 'pending';
+            $net      = (float)($row['net_amount']   ?? 0);
+            $fee      = (float)($row['platform_fee'] ?? 0);
+            $gross    = (float)($row['gross_amount'] ?? ($net + $fee));
+            $services = $h($row['service_names'] ?? '');
+            $bookingId = (int)($row['booking_id'] ?? 0);
+            $rowDate   = $row['created_at'] ?? null;
+            $paidDate  = $row['verified_at'] ?? null;
+
+            $statusCfg = match($status) {
+                'success'    => ['bg' => '#ecfdf5', 'fg' => '#065f46', 'icon' => 'check-circle-2', 'label' => 'Paid',         'dot' => '#047857'],
+                'processing' => ['bg' => '#eef2ff', 'fg' => '#3730a3', 'icon' => 'clock',          'label' => 'Processing',   'dot' => '#4338ca'],
+                'failed'     => ['bg' => '#fef2f2', 'fg' => '#991b1b', 'icon' => 'x-circle',       'label' => 'Rejected',     'dot' => '#dc2626'],
+                default      => ['bg' => '#fffbeb', 'fg' => '#92400e', 'icon' => 'circle-dot',     'label' => 'Pending',      'dot' => '#d97706'],
+            };
+
+            $note = trim((string)($row['verified_note'] ?? ''));
+        ?>
+        <!-- timeline row -->
+        <div style="display:grid;grid-template-columns:56px 1fr;gap:0;padding:0 24px;<?= $i > 0 ? 'border-top:1px solid #f5ede8' : '' ?>"
+             onmouseenter="this.style.background='#fdfaf8'" onmouseleave="this.style.background='transparent'">
+
+            <!-- date column -->
+            <div style="padding:16px 0;display:flex;flex-direction:column;align-items:center;gap:2px">
+                <p style="font-size:16px;font-weight:800;color:#4a3240;margin:0;line-height:1"><?= $rowDate ? date('d', strtotime($rowDate)) : '—' ?></p>
+                <p style="font-size:10px;font-weight:600;color:#A8A29E;margin:0;text-transform:uppercase;letter-spacing:.06em"><?= $rowDate ? date('M', strtotime($rowDate)) : '' ?></p>
             </div>
-            <?php endif; ?>
+
+            <!-- content column -->
+            <div style="padding:14px 0 14px 16px;border-left:2px solid <?= $statusCfg['dot'] ?>;margin-left:8px">
+                <!-- top line: booking + service + status -->
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px">
+                    <span style="font-size:13px;font-weight:700;color:#4a3240">Booking #<?= $bookingId ?></span>
+                    <?php if ($services): ?>
+                    <span style="font-size:11px;color:#7b5c69;font-weight:500">· <?= $services ?></span>
+                    <?php endif; ?>
+                    <span style="display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:<?= $statusCfg['bg'] ?>;color:<?= $statusCfg['fg'] ?>">
+                        <i data-lucide="<?= $statusCfg['icon'] ?>" style="width:10px;height:10px"></i>
+                        <?= $status === 'success' && $paidDate ? ('Paid ' . date('M d', strtotime($paidDate))) : $statusCfg['label'] ?>
+                    </span>
+                </div>
+
+                <!-- fee breakdown line -->
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px;color:#7b5c69">
+                    <span>Gross <strong style="color:#4a3240"><?= number_format($gross, 0) ?></strong></span>
+                    <span style="color:#ddd0c8">│</span>
+                    <span>Fee <strong style="color:#b45309">−<?= number_format($fee, 0) ?></strong></span>
+                    <span style="color:#ddd0c8">│</span>
+                    <span style="font-weight:700;color:#047857">→ Net <?= number_format($net, 0) ?> MMK</span>
+                </div>
+
+                <!-- note line -->
+                <?php if ($note && $status === 'failed'): ?>
+                <p style="font-size:11px;color:#991b1b;margin:5px 0 0"><i data-lucide="alert-circle" style="width:10px;height:10px;display:inline;vertical-align:middle"></i> <?= $h($note) ?></p>
+                <?php elseif ($status === 'processing'): ?>
+                <p style="font-size:11px;color:#4338ca;margin:5px 0 0">Admin reviewing · funds transfer within 1–3 business days</p>
+                <?php elseif ($note && $status === 'success'): ?>
+                <p style="font-size:11px;color:#A8A29E;margin:5px 0 0"><?= $h($note) ?></p>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
+        </div>
+
+        <!-- pagination -->
+        <?php if ($totalPages > 1): ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-top:1px solid #ead8c7">
+            <span style="font-size:12px;color:#A8A29E">Page <?= $currentPage ?> of <?= $totalPages ?></span>
+            <div style="display:flex;gap:6px">
+                <?php if ($currentPage > 1): ?>
+                    <a href="?page=<?= $currentPage - 1 ?>" style="display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 14px;border:1.5px solid #ddd0c8;border-radius:999px;background:transparent;color:#6d4c5b;font-size:12px;font-weight:600;text-decoration:none">← Previous</a>
+                <?php endif; ?>
+                <?php if ($currentPage < $totalPages): ?>
+                    <a href="?page=<?= $currentPage + 1 ?>" style="display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 14px;border:1.5px solid #ddd0c8;border-radius:999px;background:transparent;color:#6d4c5b;font-size:12px;font-weight:600;text-decoration:none">Next →</a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
         <?php endif; ?>
     </div>
+
 </section>
 
-<!-- Cash Out Modal -->
+<!-- ── Cash Out Modal ─────────────────────────────────────────────── -->
 <div id="cashout-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)">
-    <div style="background:#FFFFFF;border-radius:1.2rem;max-width:460px;width:100%;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.15)">
-        <div style="padding:20px 24px;border-bottom:1px solid #ead8c7;display:flex;align-items:center;gap:12px">
-            <div style="width:36px;height:36px;border-radius:10px;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="send" style="width:18px;height:18px;color:#b45309"></i></div>
-            <h2 style="margin:0;font-size:16px;font-weight:750;color:#6d4c5b">Request Payout</h2>
+    <div style="background:#FFFFFF;border-radius:1.4rem;max-width:460px;width:100%;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.18)">
+        <div style="padding:22px 26px;border-bottom:1px solid #ead8c7;display:flex;align-items:center;gap:12px">
+            <div style="width:38px;height:38px;border-radius:10px;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i data-lucide="send" style="width:18px;height:18px;color:#b45309"></i>
+            </div>
+            <h2 style="margin:0;font-size:16px;font-weight:700;color:#4a3240">Request Payout</h2>
         </div>
-        <form id="cashout-form" style="padding:22px 24px">
+        <form id="cashout-form" style="padding:22px 26px">
             <?= csrf_field() ?>
             <div style="margin-bottom:16px">
-                <label style="display:block;font-size:12px;font-weight:700;color:#6d4c5b;margin-bottom:6px">Bank Account Number</label>
-                <input type="text" name="bank_account" value="<?= $h($supplier['bank_account'] ?? '') ?>" placeholder="e.g., 1234567890" required style="width:100%;padding:10px 14px;border:1px solid #ead8c7;border-radius:10px;font-size:13px;color:#6d4c5b;background:#FFFFFF;transition:border-color .2s;box-sizing:border-box">
+                <label style="display:block;font-size:12px;font-weight:700;color:#4a3240;margin-bottom:6px">Bank Account Number</label>
+                <input type="text" name="bank_account" value="<?= $h($supplier['bank_account'] ?? '') ?>" placeholder="e.g., 1234567890" required
+                       style="width:100%;padding:10px 14px;border:1.5px solid #ddd0c8;border-radius:10px;font-size:13px;color:#4a3240;background:#fff;transition:border-color .2s;box-sizing:border-box">
             </div>
             <div style="margin-bottom:16px">
-                <label style="display:block;font-size:12px;font-weight:700;color:#6d4c5b;margin-bottom:6px">Bank</label>
-                <select name="bank_code" required style="width:100%;padding:10px 14px;border:1px solid #ead8c7;border-radius:10px;font-size:13px;color:#6d4c5b;background:#FFFFFF;transition:border-color .2s;box-sizing:border-box">
-                    <option value="">Select bank...</option>
+                <label style="display:block;font-size:12px;font-weight:700;color:#4a3240;margin-bottom:6px">Bank</label>
+                <select name="bank_code" required style="width:100%;padding:10px 14px;border:1.5px solid #ddd0c8;border-radius:10px;font-size:13px;color:#4a3240;background:#fff;transition:border-color .2s;box-sizing:border-box">
+                    <option value="">Select bank…</option>
                     <?php $selectedBank = (string)($supplier['bank_code'] ?? ''); ?>
-                    <option value="AYA" <?= $selectedBank === 'AYA' ? 'selected' : '' ?>>AYA Bank</option>
-                    <option value="KBZ" <?= $selectedBank === 'KBZ' ? 'selected' : '' ?>>KBZ Bank</option>
-                    <option value="AGD" <?= $selectedBank === 'AGD' ? 'selected' : '' ?>>AGD Bank</option>
-                    <option value="CBD" <?= $selectedBank === 'CBD' ? 'selected' : '' ?>>CB Bank</option>
+                    <option value="AYA"    <?= $selectedBank === 'AYA'    ? 'selected' : '' ?>>AYA Bank</option>
+                    <option value="KBZ"    <?= $selectedBank === 'KBZ'    ? 'selected' : '' ?>>KBZ Bank</option>
+                    <option value="AGD"    <?= $selectedBank === 'AGD'    ? 'selected' : '' ?>>AGD Bank</option>
+                    <option value="CBD"    <?= $selectedBank === 'CBD'    ? 'selected' : '' ?>>CB Bank</option>
                     <option value="MYBANK" <?= $selectedBank === 'MYBANK' ? 'selected' : '' ?>>MyBank</option>
                 </select>
             </div>
             <div style="margin-bottom:16px">
-                <label style="display:block;font-size:12px;font-weight:700;color:#6d4c5b;margin-bottom:6px">Amount</label>
-                <input type="number" name="amount" value="<?= number_format((float)($earnings['pending_amount'] ?? 0), 2, '.', '') ?>" readonly required style="width:100%;padding:10px 14px;border:1px solid #ead8c7;border-radius:10px;font-size:13px;color:#6d4c5b;background:#F4F1EE;box-sizing:border-box">
-                <p style="font-size:11px;color:#A8A29E;margin-top:4px;margin-bottom:0">Full available balance submitted as one payout batch.</p>
+                <label style="display:block;font-size:12px;font-weight:700;color:#4a3240;margin-bottom:6px">Amount</label>
+                <input type="number" name="amount" value="<?= number_format((float)($earnings['pending_amount'] ?? 0), 2, '.', '') ?>" readonly required
+                       style="width:100%;padding:10px 14px;border:1.5px solid #ddd0c8;border-radius:10px;font-size:13px;color:#4a3240;background:#F4F1EE;box-sizing:border-box">
+                <p style="font-size:11px;color:#A8A29E;margin:4px 0 0">Full available balance submitted as one payout batch.</p>
             </div>
-            <div style="background:#F4F1EE;border-radius:10px;padding:14px 18px;margin-bottom:20px">
-                <p style="font-size:12px;color:#A8A29E;margin:0;line-height:1.6">After you submit, admin will manually transfer the funds to your bank account. This usually takes 1&ndash;3 business days. You'll be notified once the payment is sent.</p>
+            <div style="background:#F4F1EE;border-radius:10px;padding:14px 16px;margin-bottom:20px">
+                <p style="font-size:12px;color:#7b5c69;margin:0;line-height:1.6">Admin will manually transfer funds to your bank account within 1–3 business days. You'll be notified once the payment is sent.</p>
             </div>
             <div style="display:flex;gap:10px">
-                <button type="button" onclick="closeCashoutModal()" style="flex:1;min-height:40px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid #ead8c7;background:transparent;color:#6d4c5b;transition:all .2s">Cancel</button>
+                <button type="button" onclick="closeCashoutModal()" style="flex:1;min-height:40px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #ddd0c8;background:transparent;color:#4a3240;transition:all .2s">Cancel</button>
                 <button type="submit" id="cashout-submit" style="flex:1;min-height:40px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:0;background:#6d4c5b;color:#fff;transition:all .2s">Submit Request</button>
             </div>
         </form>
@@ -233,8 +371,7 @@ $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId
 
 <script>
 function openCashoutModal() {
-    var m = document.getElementById('cashout-modal');
-    m.style.display = 'flex';
+    document.getElementById('cashout-modal').style.display = 'flex';
     lucide.createIcons();
 }
 function closeCashoutModal() {
