@@ -358,13 +358,19 @@ a{color:inherit;text-decoration:none}
         if (in_array($replacementStatus, ['confirmed', 'completed'], true)) $journeyCurrent = 4;
         $journeyCopy = 'Your confirmed booking is being updated with a replacement supplier.';
     } elseif ($journeyIsCancellation) {
+        $supplierInitiatedJourney = false;
+        foreach ($suppliers as $sup) {
+            if (($sup['status'] ?? '') === 'supplier_cancellation_requested') { $supplierInitiatedJourney = true; break; }
+        }
         $journeySteps = [
             'Booking Placed',
-            'Cancellation Requested',
+            $supplierInitiatedJourney ? 'Supplier Requests Cancellation' : 'Cancellation Requested',
             'Cancelled',
         ];
         $journeyCurrent = $journeyStatus === 'cancelled' ? 2 : 1;
-        $journeyCopy = 'Your cancellation progress is shown here in soft red for clarity.';
+        $journeyCopy = $supplierInitiatedJourney
+            ? 'Your supplier has requested to cancel this booking. Admin will review and process your refund.'
+            : 'Your cancellation progress is shown here in soft red for clarity.';
     } else {
         $journeySteps = [
             'Booking Placed',
@@ -749,9 +755,15 @@ a{color:inherit;text-decoration:none}
       <?php
       $supplierApproved = false;
       $supplierPending = false;
+      $supplierInitiated = false;
+      $supplierInitiatedName = '';
       foreach ($suppliers as $sup) {
         if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
         if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
+        if (($sup['status'] ?? '') === 'supplier_cancellation_requested') {
+          $supplierInitiated = true;
+          $supplierInitiatedName = $sup['shop_name'] ?? 'Your supplier';
+        }
       }
       // Find cancellation reason from status logs
       $cancelReason = '';
@@ -762,7 +774,27 @@ a{color:inherit;text-decoration:none}
         }
       }
       ?>
-      <?php if ($supplierPending): ?>
+      <?php if ($supplierInitiated): ?>
+      <div style="background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:16px 18px;margin-top:8px;color:#9a3412">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:18px">⚠️</span>
+          <div>
+            <strong style="font-size:14px">Your supplier has requested to cancel this booking</strong>
+            <div style="font-size:12px;color:#c2410c;margin-top:2px"><?= $h($supplierInitiatedName) ?> is unable to fulfill this booking. Our admin team will review the request and process your refund.</div>
+          </div>
+        </div>
+        <?php if ($cancelReason): ?>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fdba74;font-size:12px">
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Reason from supplier</span><br>
+          <span style="font-weight:600"><?= $h($cancelReason) ?></span>
+        </div>
+        <?php endif; ?>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fdba74;font-size:12px;color:#c2410c;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>You will be notified once the admin processes your refund. No action is required from you.</span>
+        </div>
+      </div>
+      <?php elseif ($supplierPending): ?>
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:8px">
         <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
         <?php if ($cancelReason): ?>
@@ -791,7 +823,7 @@ a{color:inherit;text-decoration:none}
       $refund = $refund ?? null;
       $currentStatus2 = $booking['status'] ?? '';
     ?>
-    <?php if ($refund && $currentStatus2 === 'cancelled'): ?>
+    <?php if ($refund): ?>
       <?php
         $refundStatus = (string)($refund['status'] ?? 'pending');
         $refundColors = [

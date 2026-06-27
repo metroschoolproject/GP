@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jun 26, 2026 at 09:49 AM
+-- Generation Time: Jun 27, 2026 at 01:41 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -64,6 +64,7 @@ CREATE TABLE `attire_items` (
   `buy_package_price` decimal(12,2) DEFAULT NULL,
   `buy_customize_price` decimal(12,2) DEFAULT NULL,
   `return_days` int(11) DEFAULT NULL,
+  `buffer_days` int(11) NOT NULL DEFAULT 1 COMMENT 'Days blocked after return for cleaning/alteration',
   `sort_order` int(11) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -72,36 +73,108 @@ CREATE TABLE `attire_items` (
 -- Dumping data for table `attire_items`
 --
 
-INSERT INTO `attire_items` (`id`, `service_id`, `name`, `description`, `photo_url`, `borrow_package_price`, `borrow_customize_price`, `buy_package_price`, `buy_customize_price`, `return_days`, `sort_order`, `created_at`) VALUES
-(4, 47, 'Long Sleeve Bridle Grown', '', 'http://localhost/GP/public/uploads/suppliers/20/service-management/attire-item/20260620035241-a07efc0a.jpg', 750000.00, 800000.00, 990000.00, 1000000.00, 1, 0, '2026-06-20 01:52:41'),
-(5, 55, 'Long Sleve', '', 'http://localhost/GP/public/uploads/suppliers/21/service-management/attire-item/20260619054200-81b2bc18.jpg', 40000.00, 410000.00, 50000.00, 500000.00, 3, 0, '2026-06-20 04:17:22'),
-(7, 57, 'Long Sleeve', '', 'http://localhost/GP/public/uploads/suppliers/21/service-management/attire-item/20260620090252-c82101c2.jpg', 750000.00, 790000.00, 1000000.00, 750000.00, 3, 0, '2026-06-20 07:03:10'),
-(8, 64, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 750000.00, 975000.00, 2250000.00, 2700000.00, 3, 0, '2026-06-20 13:57:16'),
-(9, 64, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 412500.00, 600000.00, 1500000.00, 1800000.00, 3, 1, '2026-06-20 13:57:16'),
-(10, 64, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 900000.00, 1200000.00, 2550000.00, 3000000.00, 5, 2, '2026-06-20 13:57:16'),
-(11, 65, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 800000.00, 1040000.00, 2400000.00, 2880000.00, 3, 0, '2026-06-20 13:57:16'),
-(12, 65, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 440000.00, 640000.00, 1600000.00, 1920000.00, 3, 1, '2026-06-20 13:57:16'),
-(13, 65, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 960000.00, 1280000.00, 2720000.00, 3200000.00, 5, 2, '2026-06-20 13:57:16'),
-(14, 66, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 1500000.00, 1950000.00, 4500000.00, 5400000.00, 3, 0, '2026-06-20 13:57:16'),
-(15, 66, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 825000.00, 1200000.00, 3000000.00, 3600000.00, 3, 1, '2026-06-20 13:57:16'),
-(16, 66, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 1800000.00, 2400000.00, 5100000.00, 6000000.00, 5, 2, '2026-06-20 13:57:16'),
-(17, 67, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 200000.00, 260000.00, 600000.00, 720000.00, 3, 0, '2026-06-20 13:57:16'),
-(18, 67, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 110000.00, 160000.00, 400000.00, 480000.00, 3, 1, '2026-06-20 13:57:16'),
-(19, 67, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 240000.00, 320000.00, 680000.00, 800000.00, 5, 2, '2026-06-20 13:57:16'),
-(20, 68, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 400000.00, 520000.00, 1200000.00, 1440000.00, 3, 0, '2026-06-20 13:57:16'),
-(21, 68, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 220000.00, 320000.00, 800000.00, 960000.00, 3, 1, '2026-06-20 13:57:16'),
-(22, 68, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 480000.00, 640000.00, 1360000.00, 1600000.00, 5, 2, '2026-06-20 13:57:16'),
-(23, 69, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 300000.00, 390000.00, 900000.00, 1080000.00, 3, 0, '2026-06-20 13:57:16'),
-(24, 69, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 165000.00, 240000.00, 600000.00, 720000.00, 3, 1, '2026-06-20 13:57:16'),
-(25, 69, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 360000.00, 480000.00, 1020000.00, 1200000.00, 5, 2, '2026-06-20 13:57:16'),
-(26, 70, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 500000.00, 650000.00, 1500000.00, 1800000.00, 3, 0, '2026-06-20 13:57:16'),
-(27, 70, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 275000.00, 400000.00, 1000000.00, 1200000.00, 3, 1, '2026-06-20 13:57:16'),
-(28, 70, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 600000.00, 800000.00, 1700000.00, 2000000.00, 5, 2, '2026-06-20 13:57:16'),
-(29, 71, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 480000.00, 624000.00, 1440000.00, 1728000.00, 3, 0, '2026-06-20 13:57:16'),
-(30, 71, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 264000.00, 384000.00, 960000.00, 1152000.00, 3, 1, '2026-06-20 13:57:16'),
-(31, 71, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 576000.00, 768000.00, 1632000.00, 1920000.00, 5, 2, '2026-06-20 13:57:16'),
-(34, 166, 'Western Wedding Dress', '', NULL, 250000.00, 350000.00, 850000.00, 120000.00, 3, 0, '2026-06-24 02:48:34'),
-(35, 167, 'Dress', '', 'https://4b2b50ea8de75a5e-204-157-173-127.serveousercontent.com/GP/public/uploads/suppliers/134/service-management/attire-item/20260626100614-e8c5b682.png', 2500000.00, 23000.00, 450000.00, 12000.00, 22, 0, '2026-06-26 03:36:14');
+INSERT INTO `attire_items` (`id`, `service_id`, `name`, `description`, `photo_url`, `borrow_package_price`, `borrow_customize_price`, `buy_package_price`, `buy_customize_price`, `return_days`, `buffer_days`, `sort_order`, `created_at`) VALUES
+(5, 55, 'Long Sleve', '', 'http://localhost/GP/public/uploads/suppliers/21/service-management/attire-item/20260619054200-81b2bc18.jpg', 40000.00, 410000.00, 50000.00, 500000.00, 3, 1, 0, '2026-06-20 04:17:22'),
+(7, 57, 'Long Sleeve', '', 'http://localhost/GP/public/uploads/suppliers/21/service-management/attire-item/20260620090252-c82101c2.jpg', 750000.00, 790000.00, 1000000.00, 750000.00, 3, 1, 0, '2026-06-20 07:03:10'),
+(8, 64, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 750000.00, 975000.00, 2250000.00, 2700000.00, 3, 1, 0, '2026-06-20 13:57:16'),
+(9, 64, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 412500.00, 600000.00, 1500000.00, 1800000.00, 3, 1, 1, '2026-06-20 13:57:16'),
+(10, 64, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 900000.00, 1200000.00, 2550000.00, 3000000.00, 5, 1, 2, '2026-06-20 13:57:16'),
+(11, 65, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 800000.00, 1040000.00, 2400000.00, 2880000.00, 3, 1, 0, '2026-06-20 13:57:16'),
+(12, 65, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 440000.00, 640000.00, 1600000.00, 1920000.00, 3, 1, 1, '2026-06-20 13:57:16'),
+(13, 65, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 960000.00, 1280000.00, 2720000.00, 3200000.00, 5, 1, 2, '2026-06-20 13:57:16'),
+(14, 66, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 1500000.00, 1950000.00, 4500000.00, 5400000.00, 3, 1, 0, '2026-06-20 13:57:16'),
+(15, 66, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 825000.00, 1200000.00, 3000000.00, 3600000.00, 3, 1, 1, '2026-06-20 13:57:16'),
+(16, 66, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 1800000.00, 2400000.00, 5100000.00, 6000000.00, 5, 1, 2, '2026-06-20 13:57:16'),
+(17, 67, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 200000.00, 260000.00, 600000.00, 720000.00, 3, 1, 0, '2026-06-20 13:57:16'),
+(18, 67, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 110000.00, 160000.00, 400000.00, 480000.00, 3, 1, 1, '2026-06-20 13:57:16'),
+(19, 67, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 240000.00, 320000.00, 680000.00, 800000.00, 5, 1, 2, '2026-06-20 13:57:16'),
+(20, 68, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 400000.00, 520000.00, 1200000.00, 1440000.00, 3, 1, 0, '2026-06-20 13:57:16'),
+(21, 68, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 220000.00, 320000.00, 800000.00, 960000.00, 3, 1, 1, '2026-06-20 13:57:16'),
+(22, 68, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 480000.00, 640000.00, 1360000.00, 1600000.00, 5, 1, 2, '2026-06-20 13:57:16'),
+(23, 69, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 300000.00, 390000.00, 900000.00, 1080000.00, 3, 1, 0, '2026-06-20 13:57:16'),
+(24, 69, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 165000.00, 240000.00, 600000.00, 720000.00, 3, 1, 1, '2026-06-20 13:57:16'),
+(25, 69, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 360000.00, 480000.00, 1020000.00, 1200000.00, 5, 1, 2, '2026-06-20 13:57:16'),
+(26, 70, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 500000.00, 650000.00, 1500000.00, 1800000.00, 3, 1, 0, '2026-06-20 13:57:16'),
+(27, 70, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 275000.00, 400000.00, 1000000.00, 1200000.00, 3, 1, 1, '2026-06-20 13:57:16'),
+(28, 70, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 600000.00, 800000.00, 1700000.00, 2000000.00, 5, 1, 2, '2026-06-20 13:57:16'),
+(29, 71, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 480000.00, 624000.00, 1440000.00, 1728000.00, 3, 1, 0, '2026-06-20 13:57:16'),
+(30, 71, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 264000.00, 384000.00, 960000.00, 1152000.00, 3, 1, 1, '2026-06-20 13:57:16'),
+(31, 71, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 576000.00, 768000.00, 1632000.00, 1920000.00, 5, 1, 2, '2026-06-20 13:57:16'),
+(34, 166, 'Western Wedding Dress', '', NULL, 250000.00, 350000.00, 850000.00, 120000.00, 3, 1, 0, '2026-06-24 02:48:34'),
+(35, 167, 'Dress', '', 'https://4b2b50ea8de75a5e-204-157-173-127.serveousercontent.com/GP/public/uploads/suppliers/134/service-management/attire-item/20260626100614-e8c5b682.png', 2500000.00, 23000.00, 450000.00, 12000.00, 22, 1, 0, '2026-06-26 03:36:14'),
+(42, 171, 'Tranditional Dress', '', 'http://localhost/GP/public/uploads/suppliers/20/service-management/attire-item/20260627151756-bf42c19e.jpg', 1000000.00, 1200000.00, 1500000.00, 1500000.00, 3, 1, 0, '2026-06-27 08:50:00'),
+(43, 171, 'Long Sleeve Bridle', '', 'http://localhost/GP/public/uploads/suppliers/20/service-management/attire-item/20260627151924-80138b27.jpg', NULL, NULL, 3000000.00, 3000000.00, NULL, 1, 1, '2026-06-27 08:50:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attire_rental_bookings`
+--
+
+CREATE TABLE `attire_rental_bookings` (
+  `id` bigint(20) NOT NULL,
+  `booking_item_id` bigint(20) NOT NULL,
+  `attire_item_id` bigint(20) NOT NULL,
+  `rental_type` enum('borrow','buy') NOT NULL,
+  `borrow_date` date DEFAULT NULL,
+  `return_date` date DEFAULT NULL,
+  `rental_days` int(11) DEFAULT NULL,
+  `buffer_until` date DEFAULT NULL COMMENT 'return_date + buffer_days — end of blocked range',
+  `status` enum('reserved','picked_up','returned','cancelled') NOT NULL DEFAULT 'reserved',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attire_rental_options`
+--
+
+CREATE TABLE `attire_rental_options` (
+  `id` bigint(20) NOT NULL,
+  `attire_item_id` bigint(20) NOT NULL,
+  `days` int(11) NOT NULL COMMENT 'Rental duration in days',
+  `price` decimal(12,2) NOT NULL COMMENT 'Package price for this duration',
+  `customize_price` decimal(12,2) DEFAULT NULL COMMENT 'Customize price for this duration',
+  `sort_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `attire_rental_options`
+--
+
+INSERT INTO `attire_rental_options` (`id`, `attire_item_id`, `days`, `price`, `customize_price`, `sort_order`, `created_at`) VALUES
+(2, 5, 3, 40000.00, 410000.00, 0, '2026-06-26 11:12:00'),
+(3, 7, 3, 750000.00, 790000.00, 0, '2026-06-26 11:12:00'),
+(4, 8, 3, 750000.00, 975000.00, 0, '2026-06-26 11:12:00'),
+(5, 9, 3, 412500.00, 600000.00, 0, '2026-06-26 11:12:00'),
+(6, 10, 5, 900000.00, 1200000.00, 0, '2026-06-26 11:12:00'),
+(7, 11, 3, 800000.00, 1040000.00, 0, '2026-06-26 11:12:00'),
+(8, 12, 3, 440000.00, 640000.00, 0, '2026-06-26 11:12:00'),
+(9, 13, 5, 960000.00, 1280000.00, 0, '2026-06-26 11:12:00'),
+(10, 14, 3, 1500000.00, 1950000.00, 0, '2026-06-26 11:12:00'),
+(11, 15, 3, 825000.00, 1200000.00, 0, '2026-06-26 11:12:00'),
+(12, 16, 5, 1800000.00, 2400000.00, 0, '2026-06-26 11:12:00'),
+(13, 17, 3, 200000.00, 260000.00, 0, '2026-06-26 11:12:00'),
+(14, 18, 3, 110000.00, 160000.00, 0, '2026-06-26 11:12:00'),
+(15, 19, 5, 240000.00, 320000.00, 0, '2026-06-26 11:12:00'),
+(16, 20, 3, 400000.00, 520000.00, 0, '2026-06-26 11:12:00'),
+(17, 21, 3, 220000.00, 320000.00, 0, '2026-06-26 11:12:00'),
+(18, 22, 5, 480000.00, 640000.00, 0, '2026-06-26 11:12:00'),
+(19, 23, 3, 300000.00, 390000.00, 0, '2026-06-26 11:12:00'),
+(20, 24, 3, 165000.00, 240000.00, 0, '2026-06-26 11:12:00'),
+(21, 25, 5, 360000.00, 480000.00, 0, '2026-06-26 11:12:00'),
+(22, 26, 3, 500000.00, 650000.00, 0, '2026-06-26 11:12:00'),
+(23, 27, 3, 275000.00, 400000.00, 0, '2026-06-26 11:12:00'),
+(24, 28, 5, 600000.00, 800000.00, 0, '2026-06-26 11:12:00'),
+(25, 29, 3, 480000.00, 624000.00, 0, '2026-06-26 11:12:00'),
+(26, 30, 3, 264000.00, 384000.00, 0, '2026-06-26 11:12:00'),
+(27, 31, 5, 576000.00, 768000.00, 0, '2026-06-26 11:12:00'),
+(28, 34, 3, 250000.00, 350000.00, 0, '2026-06-26 11:12:00'),
+(29, 35, 22, 2500000.00, 23000.00, 0, '2026-06-26 11:12:00'),
+(34, 42, 2, 1800000.00, 1850000.00, 0, '2026-06-27 08:50:00'),
+(35, 43, 2, 2000000.00, 2100000.00, 0, '2026-06-27 08:50:00');
 
 -- --------------------------------------------------------
 
@@ -132,7 +205,7 @@ INSERT INTO `bookings` (`id`, `user_id`, `cart_id`, `total_amount`, `paid_amount
 (49, 30, 3, 1473360.00, 294671.00, 'partial', 'cancelled', NULL, 1, '2026-06-19 13:03:53', '2026-06-18 11:10:23'),
 (50, 30, 3, 76860.00, 15372.00, 'partial', 'cancelled', NULL, 1, '2026-06-19 13:17:24', '2026-06-18 14:36:16'),
 (51, 30, 3, 7035000.00, 0.00, 'unpaid', 'cancelled', '2026-06-21 11:18:47', NULL, NULL, '2026-06-19 15:48:47'),
-(52, 30, 3, 4074000.00, 814800.00, 'partial', 'confirmed', NULL, NULL, NULL, '2026-06-20 01:33:55'),
+(52, 30, 3, 4074000.00, 814800.00, 'partial', 'cancelled', NULL, 1, '2026-06-27 10:48:41', '2026-06-20 01:33:55'),
 (53, 30, 3, 5074000.00, 1814800.00, 'partial', 'cancelled', '2026-06-22 10:00:35', 1, '2026-06-22 09:39:43', '2026-06-20 02:31:24'),
 (126, 1, 4, 2900000.00, 2900000.00, 'paid', 'completed', NULL, 1, '2026-06-20 14:19:11', '2026-06-20 14:19:11'),
 (127, 24, 5, 2900000.00, 2900000.00, 'paid', 'completed', NULL, 1, '2026-06-20 14:19:11', '2026-06-20 14:19:11'),
@@ -314,13 +387,13 @@ INSERT INTO `bookings` (`id`, `user_id`, `cart_id`, `total_amount`, `paid_amount
 (303, 24, 5, 150000.00, 150000.00, 'paid', 'completed', NULL, 1, '2026-06-20 14:19:11', '2026-06-20 14:19:11'),
 (304, 27, 2, 150000.00, 150000.00, 'paid', 'completed', NULL, 1, '2026-06-20 14:19:11', '2026-06-20 14:19:11'),
 (305, 29, 6, 150000.00, 150000.00, 'paid', 'completed', NULL, 1, '2026-06-20 14:19:11', '2026-06-20 14:19:11'),
-(310, 30, 3, 4150650.00, 830130.00, 'partial', 'confirmed', NULL, NULL, NULL, '2026-06-21 06:25:06'),
+(310, 30, 3, 4150650.00, 830130.00, 'partial', 'pending_final_payment', NULL, NULL, NULL, '2026-06-21 06:25:06'),
 (311, 30, 3, 750000.00, 150000.00, 'partial', 'cancellation_requested', '2026-06-23 02:42:10', NULL, NULL, '2026-06-21 07:12:10'),
 (312, 30, 3, 150000.00, 30000.00, 'partial', 'cancelled', '2026-06-23 03:09:00', 1, '2026-06-21 12:32:52', '2026-06-21 07:39:00'),
 (313, 30, 3, 1000000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-23 23:03:34', NULL, NULL, '2026-06-22 03:33:34'),
 (314, 30, 3, 150000.00, 0.00, 'unpaid', 'cancelled', '2026-06-23 23:15:48', NULL, NULL, '2026-06-22 03:45:48'),
 (315, 30, 3, 15000000.00, 0.00, 'unpaid', 'payment_submitted', '2026-06-24 03:07:58', NULL, NULL, '2026-06-22 07:37:58'),
-(316, 30, 3, 4150650.00, 0.00, 'unpaid', 'pending_payment', NULL, NULL, NULL, '2026-06-22 09:49:24'),
+(316, 30, 3, 4150650.00, 1079169.00, 'partial', 'confirmed', NULL, NULL, NULL, '2026-06-22 09:49:24'),
 (317, 112, 8, 3953000.00, 0.00, 'unpaid', 'pending_payment', NULL, NULL, NULL, '2026-06-23 05:07:04'),
 (318, 113, 9, 3953000.00, 0.00, 'unpaid', 'pending_payment', NULL, NULL, NULL, '2026-06-23 05:15:13'),
 (319, 113, 9, 2100000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-25 05:17:31', NULL, NULL, '2026-06-23 05:17:31'),
@@ -340,7 +413,16 @@ INSERT INTO `bookings` (`id`, `user_id`, `cart_id`, `total_amount`, `paid_amount
 (333, 132, 15, 845000.00, 0.00, 'unpaid', 'cancellation_requested', '2026-06-27 05:01:14', NULL, NULL, '2026-06-25 05:01:14'),
 (334, 29, 6, 900000.00, 0.00, 'unpaid', 'payment_submitted', '2026-06-27 13:10:35', NULL, NULL, '2026-06-25 13:10:35'),
 (335, 29, 6, 500000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-28 03:33:41', NULL, NULL, '2026-06-26 03:33:41'),
-(336, 126, 14, 2500000.00, 0.00, 'unpaid', 'pending_payment', '2026-06-28 04:40:29', NULL, NULL, '2026-06-26 04:40:29');
+(336, 126, 14, 2500000.00, 0.00, 'unpaid', 'pending_payment', '2026-06-28 04:40:29', NULL, NULL, '2026-06-26 04:40:29'),
+(337, 30, 3, 3000000.00, 0.00, 'unpaid', 'cancelled', '2026-06-28 07:41:56', NULL, NULL, '2026-06-27 07:41:56'),
+(338, 30, 3, 3000000.00, 780000.00, 'partial', 'pending_final_payment', '2026-06-28 08:07:50', NULL, NULL, '2026-06-27 08:07:50'),
+(339, 30, 3, 2100000.00, 546000.00, 'partial', 'cancelled', '2026-06-28 09:57:00', 1, '2026-06-27 09:59:09', '2026-06-27 09:57:00'),
+(340, 30, 3, 2100000.00, 546000.00, 'partial', 'cancelled', '2026-06-28 10:17:07', 1, '2026-06-27 10:36:22', '2026-06-27 10:17:07'),
+(341, 30, 3, 2100000.00, 546000.00, 'partial', 'pending_final_payment', '2026-06-28 10:39:57', NULL, NULL, '2026-06-27 10:39:57'),
+(342, 30, 3, 2100000.00, 546000.00, 'partial', 'pending_final_payment', '2026-06-28 10:53:32', NULL, NULL, '2026-06-27 10:53:32'),
+(343, 30, 3, 2100000.00, 546000.00, 'partial', 'pending_final_payment', '2026-06-28 11:04:29', NULL, NULL, '2026-06-27 11:04:29'),
+(344, 30, 3, 2100000.00, 546000.00, 'partial', 'cancelled', '2026-06-28 11:09:35', 1, '2026-06-27 11:36:37', '2026-06-27 11:09:35'),
+(345, 29, 6, 2100000.00, 546000.00, 'partial', 'pending_final_payment', '2026-06-28 11:39:58', NULL, NULL, '2026-06-27 11:39:58');
 
 -- --------------------------------------------------------
 
@@ -363,6 +445,9 @@ CREATE TABLE `booking_items` (
   `status` enum('pending','accepted','completed','cancelled') DEFAULT NULL,
   `venue_room_id` bigint(20) DEFAULT NULL,
   `attire_item_id` bigint(20) DEFAULT NULL,
+  `rental_type` enum('borrow','buy') DEFAULT NULL,
+  `borrow_date` date DEFAULT NULL,
+  `return_date` date DEFAULT NULL,
   `decoration_style_id` bigint(20) DEFAULT NULL,
   `cake_design_id` bigint(20) DEFAULT NULL,
   `slot_id` bigint(20) DEFAULT NULL,
@@ -376,225 +461,234 @@ CREATE TABLE `booking_items` (
 -- Dumping data for table `booking_items`
 --
 
-INSERT INTO `booking_items` (`id`, `booking_id`, `item_type`, `source`, `item_id`, `booking_date`, `price`, `item_name`, `supplier_name`, `category_name`, `thumbnail_url`, `status`, `venue_room_id`, `attire_item_id`, `decoration_style_id`, `cake_design_id`, `slot_id`, `start_time`, `end_time`, `booking_type`, `package_booking_item_id`) VALUES
-(99, 48, 'service', 'custom', 42, '2026-09-24 06:00:00', 600000.00, NULL, NULL, NULL, NULL, 'accepted', 20, NULL, NULL, NULL, NULL, '06:00:00', '17:00:00', 'slot', NULL),
-(100, 49, 'package', 'package', 19, NULL, 1473360.00, NULL, NULL, NULL, 'http://localhost/GP/public/uploads/suppliers/21-wyndham-grand-yangon-hotel/documents/cover-photo-20260611070115-9e2abb41.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(101, 50, 'package', 'package', 20, NULL, 76860.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618152115-7d249ee0.png', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(102, 51, 'package', 'package', 23, NULL, 4935000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(103, 51, 'service', 'custom', 50, '2026-06-27 09:00:00', 2100000.00, 'H &amp; H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260619040841-541df810.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
-(105, 52, 'package', 'package', 26, NULL, 4074000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(106, 53, 'package', 'package', 26, NULL, 2900000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(179, 126, 'service', 'custom', 59, '2026-03-15 18:00:00', 2900000.00, 'Excel Jade Hall — Grand Wedding Decoration', 'Excel River View Hotel & Resort', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(180, 127, 'service', 'custom', 59, '2026-04-12 18:00:00', 2900000.00, 'Excel Jade Hall — Grand Wedding Decoration', 'Excel River View Hotel & Resort', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(181, 128, 'service', 'custom', 60, '2026-04-12 18:00:00', 2000000.00, 'Golden Inya - Lakeside Wedding Venue', 'Golden Inya Restaurant', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(182, 129, 'service', 'custom', 60, '2026-04-26 18:00:00', 2000000.00, 'Golden Inya - Lakeside Wedding Venue', 'Golden Inya Restaurant', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(183, 130, 'service', 'custom', 60, '2026-05-10 18:00:00', 2000000.00, 'Golden Inya - Lakeside Wedding Venue', 'Golden Inya Restaurant', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(184, 131, 'service', 'custom', 61, '2026-04-26 18:00:00', 500000.00, 'Western Park Ruby - Garden Wedding Venue', 'Western Park Ruby - People\'s Park', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(185, 132, 'service', 'custom', 61, '2026-05-10 18:00:00', 500000.00, 'Western Park Ruby - Garden Wedding Venue', 'Western Park Ruby - People\'s Park', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(186, 133, 'service', 'custom', 62, '2026-05-10 18:00:00', 900000.00, 'Zephyr - Garden Wedding Venue', 'Zephyr (Sein Lann So Pyay Garden)', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(187, 134, 'service', 'custom', 62, '2026-05-24 18:00:00', 900000.00, 'Zephyr - Garden Wedding Venue', 'Zephyr (Sein Lann So Pyay Garden)', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(188, 135, 'service', 'custom', 62, '2026-06-07 18:00:00', 900000.00, 'Zephyr - Garden Wedding Venue', 'Zephyr (Sein Lann So Pyay Garden)', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(189, 136, 'service', 'custom', 63, '2026-05-24 18:00:00', 800000.00, 'The White Cottage - Garden & Lounge Venue', 'The White Cottage Restaurant & Lounge', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(190, 137, 'service', 'custom', 63, '2026-06-07 18:00:00', 800000.00, 'The White Cottage - Garden & Lounge Venue', 'The White Cottage Restaurant & Lounge', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(191, 138, 'service', 'custom', 64, '2026-06-07 18:00:00', 750000.00, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ - Wedding Attire', 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(192, 139, 'service', 'custom', 64, '2026-03-15 18:00:00', 750000.00, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ - Wedding Attire', 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(193, 140, 'service', 'custom', 64, '2026-04-12 18:00:00', 750000.00, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ - Wedding Attire', 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(194, 141, 'service', 'custom', 65, '2026-03-15 18:00:00', 800000.00, 'Dear Brides Wedding Dress Studio - Wedding Attire', 'Dear Brides Wedding Dress Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(195, 142, 'service', 'custom', 65, '2026-04-12 18:00:00', 800000.00, 'Dear Brides Wedding Dress Studio - Wedding Attire', 'Dear Brides Wedding Dress Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(196, 143, 'service', 'custom', 66, '2026-04-12 18:00:00', 1500000.00, 'The Vow Wedding Studio Myanmar - Wedding Attire', 'The Vow Wedding Studio Myanmar', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(197, 144, 'service', 'custom', 66, '2026-04-26 18:00:00', 1500000.00, 'The Vow Wedding Studio Myanmar - Wedding Attire', 'The Vow Wedding Studio Myanmar', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(198, 145, 'service', 'custom', 66, '2026-05-10 18:00:00', 1500000.00, 'The Vow Wedding Studio Myanmar - Wedding Attire', 'The Vow Wedding Studio Myanmar', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(199, 146, 'service', 'custom', 67, '2026-04-26 18:00:00', 200000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire', 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(200, 147, 'service', 'custom', 67, '2026-05-10 18:00:00', 200000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire', 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(201, 148, 'service', 'custom', 68, '2026-05-10 18:00:00', 400000.00, 'T&T Bridal Collection - Wedding Attire', 'T&T Bridal Collection', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(202, 149, 'service', 'custom', 68, '2026-05-24 18:00:00', 400000.00, 'T&T Bridal Collection - Wedding Attire', 'T&T Bridal Collection', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(203, 150, 'service', 'custom', 68, '2026-06-07 18:00:00', 400000.00, 'T&T Bridal Collection - Wedding Attire', 'T&T Bridal Collection', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(204, 151, 'service', 'custom', 69, '2026-05-24 18:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(205, 152, 'service', 'custom', 69, '2026-06-07 18:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(206, 153, 'service', 'custom', 70, '2026-06-07 18:00:00', 500000.00, 'Peter\'s Bridal Garden - Studio - Wedding Attire', 'Peter\'s Bridal Garden - Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(207, 154, 'service', 'custom', 70, '2026-03-15 18:00:00', 500000.00, 'Peter\'s Bridal Garden - Studio - Wedding Attire', 'Peter\'s Bridal Garden - Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(208, 155, 'service', 'custom', 70, '2026-04-12 18:00:00', 500000.00, 'Peter\'s Bridal Garden - Studio - Wedding Attire', 'Peter\'s Bridal Garden - Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(209, 156, 'service', 'custom', 71, '2026-03-15 18:00:00', 480000.00, 'My Everything Wedding Dresses - Wedding Attire', 'My Everything Wedding Dresses', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(210, 157, 'service', 'custom', 71, '2026-04-12 18:00:00', 480000.00, 'My Everything Wedding Dresses - Wedding Attire', 'My Everything Wedding Dresses', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(211, 158, 'service', 'custom', 103, '2026-04-12 18:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(212, 159, 'service', 'custom', 103, '2026-04-26 18:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(213, 160, 'service', 'custom', 103, '2026-05-10 18:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(214, 161, 'service', 'custom', 104, '2026-04-26 18:00:00', 430000.00, 'H & H Photo Studio - Studio', 'H & H Photo Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(215, 162, 'service', 'custom', 104, '2026-05-10 18:00:00', 430000.00, 'H & H Photo Studio - Studio', 'H & H Photo Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(216, 163, 'service', 'custom', 105, '2026-05-10 18:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(217, 164, 'service', 'custom', 105, '2026-05-24 18:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(218, 165, 'service', 'custom', 105, '2026-06-07 18:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(219, 166, 'service', 'custom', 106, '2026-05-24 18:00:00', 400000.00, 'PNA’S Wedding Studio - Studio', 'PNA’S Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(220, 167, 'service', 'custom', 106, '2026-06-07 18:00:00', 400000.00, 'PNA’S Wedding Studio - Studio', 'PNA’S Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(221, 168, 'service', 'custom', 107, '2026-06-07 18:00:00', 400000.00, 'Together Wedding Studio - Studio', 'Together Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(222, 169, 'service', 'custom', 107, '2026-03-15 18:00:00', 400000.00, 'Together Wedding Studio - Studio', 'Together Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(223, 170, 'service', 'custom', 107, '2026-04-12 18:00:00', 400000.00, 'Together Wedding Studio - Studio', 'Together Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(224, 171, 'service', 'custom', 108, '2026-03-15 18:00:00', 500000.00, 'Western Park Ruby – People’s Park - Venue', 'Western Park Ruby – People’s Park', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(225, 172, 'service', 'custom', 108, '2026-04-12 18:00:00', 500000.00, 'Western Park Ruby – People’s Park - Venue', 'Western Park Ruby – People’s Park', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(226, 173, 'service', 'custom', 109, '2026-04-12 18:00:00', 1000000.00, 'MG & J Jewelry - Jewelry', 'MG & J Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(227, 174, 'service', 'custom', 109, '2026-04-26 18:00:00', 1000000.00, 'MG & J Jewelry - Jewelry', 'MG & J Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(228, 175, 'service', 'custom', 109, '2026-05-10 18:00:00', 1000000.00, 'MG & J Jewelry - Jewelry', 'MG & J Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(229, 176, 'service', 'custom', 110, '2026-04-26 18:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(230, 177, 'service', 'custom', 110, '2026-05-10 18:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(231, 178, 'service', 'custom', 111, '2026-05-10 18:00:00', 5400000.00, 'Myat Pan Tha Zin Diamond and Jewelry - Jewelry', 'Myat Pan Tha Zin Diamond and Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(232, 179, 'service', 'custom', 111, '2026-05-24 18:00:00', 5400000.00, 'Myat Pan Tha Zin Diamond and Jewelry - Jewelry', 'Myat Pan Tha Zin Diamond and Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(233, 180, 'service', 'custom', 111, '2026-06-07 18:00:00', 5400000.00, 'Myat Pan Tha Zin Diamond and Jewelry - Jewelry', 'Myat Pan Tha Zin Diamond and Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(234, 181, 'service', 'custom', 112, '2026-05-24 18:00:00', 2800000.00, 'Vivian Diamond Jewellery - Jewelry', 'Vivian Diamond Jewellery', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(235, 182, 'service', 'custom', 112, '2026-06-07 18:00:00', 2800000.00, 'Vivian Diamond Jewellery - Jewelry', 'Vivian Diamond Jewellery', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(236, 183, 'service', 'custom', 113, '2026-06-07 18:00:00', 1000000.00, 'Theingi Moe Jewelry - Jewelry', 'Theingi Moe Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(237, 184, 'service', 'custom', 113, '2026-03-15 18:00:00', 1000000.00, 'Theingi Moe Jewelry - Jewelry', 'Theingi Moe Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(238, 185, 'service', 'custom', 113, '2026-04-12 18:00:00', 1000000.00, 'Theingi Moe Jewelry - Jewelry', 'Theingi Moe Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(239, 186, 'service', 'custom', 118, '2026-03-15 18:00:00', 200000.00, 'Parisian Cake&Cafe - Cake', 'Parisian Cake&Cafe', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(240, 187, 'service', 'custom', 118, '2026-04-12 18:00:00', 200000.00, 'Parisian Cake&Cafe - Cake', 'Parisian Cake&Cafe', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(241, 188, 'service', 'custom', 119, '2026-04-12 18:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(242, 189, 'service', 'custom', 119, '2026-04-26 18:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(243, 190, 'service', 'custom', 119, '2026-05-10 18:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(244, 191, 'service', 'custom', 120, '2026-04-26 18:00:00', 200000.00, 'Kudo’s - Cake', 'Kudo’s', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(245, 192, 'service', 'custom', 120, '2026-05-10 18:00:00', 200000.00, 'Kudo’s - Cake', 'Kudo’s', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(246, 193, 'service', 'custom', 121, '2026-05-10 18:00:00', 60000.00, 'Shwe Pu Zun - Cake', 'Shwe Pu Zun', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(247, 194, 'service', 'custom', 121, '2026-05-24 18:00:00', 60000.00, 'Shwe Pu Zun - Cake', 'Shwe Pu Zun', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(248, 195, 'service', 'custom', 121, '2026-06-07 18:00:00', 60000.00, 'Shwe Pu Zun - Cake', 'Shwe Pu Zun', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(249, 196, 'service', 'custom', 122, '2026-05-24 18:00:00', 60000.00, '77 Cake - Cake', '77 Cake', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(250, 197, 'service', 'custom', 122, '2026-06-07 18:00:00', 60000.00, '77 Cake - Cake', '77 Cake', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(251, 198, 'service', 'custom', 123, '2026-06-07 18:00:00', 60000.00, 'El Dorado - Cake', 'El Dorado', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(252, 199, 'service', 'custom', 123, '2026-03-15 18:00:00', 60000.00, 'El Dorado - Cake', 'El Dorado', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(253, 200, 'service', 'custom', 123, '2026-04-12 18:00:00', 60000.00, 'El Dorado - Cake', 'El Dorado', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(254, 201, 'service', 'custom', 124, '2026-03-15 18:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(255, 202, 'service', 'custom', 124, '2026-04-12 18:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(256, 203, 'service', 'custom', 125, '2026-04-12 18:00:00', 30000.00, 'KSS နတ်သုဒ္ဓါဒံပေါက် - Catering', 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(257, 204, 'service', 'custom', 125, '2026-04-26 18:00:00', 30000.00, 'KSS နတ်သုဒ္ဓါဒံပေါက် - Catering', 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(258, 205, 'service', 'custom', 125, '2026-05-10 18:00:00', 30000.00, 'KSS နတ်သုဒ္ဓါဒံပေါက် - Catering', 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(259, 206, 'service', 'custom', 126, '2026-04-26 18:00:00', 10000.00, 'ထူး ရေခဲမုန့် - Catering', 'ထူး ရေခဲမုန့်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(260, 207, 'service', 'custom', 126, '2026-05-10 18:00:00', 10000.00, 'ထူး ရေခဲမုန့် - Catering', 'ထူး ရေခဲမုန့်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(261, 208, 'service', 'custom', 127, '2026-05-10 18:00:00', 28000.00, 'The Hundred -Grilled Chicken - Catering', 'The Hundred -Grilled Chicken', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(262, 209, 'service', 'custom', 127, '2026-05-24 18:00:00', 28000.00, 'The Hundred -Grilled Chicken - Catering', 'The Hundred -Grilled Chicken', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(263, 210, 'service', 'custom', 127, '2026-06-07 18:00:00', 28000.00, 'The Hundred -Grilled Chicken - Catering', 'The Hundred -Grilled Chicken', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(264, 211, 'service', 'custom', 128, '2026-05-24 18:00:00', 18000.00, 'Royal Chef - Catering', 'Royal Chef', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(265, 212, 'service', 'custom', 128, '2026-06-07 18:00:00', 18000.00, 'Royal Chef - Catering', 'Royal Chef', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(266, 213, 'service', 'custom', 129, '2026-06-07 18:00:00', 11000.00, 'Rice Box - Catering', 'Rice Box', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(267, 214, 'service', 'custom', 129, '2026-03-15 18:00:00', 11000.00, 'Rice Box - Catering', 'Rice Box', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(268, 215, 'service', 'custom', 129, '2026-04-12 18:00:00', 11000.00, 'Rice Box - Catering', 'Rice Box', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(269, 216, 'service', 'custom', 130, '2026-03-15 18:00:00', 12000.00, 'Boke & Bee - Catering', 'Boke & Bee', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(270, 217, 'service', 'custom', 130, '2026-04-12 18:00:00', 12000.00, 'Boke & Bee - Catering', 'Boke & Bee', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(271, 218, 'service', 'custom', 131, '2026-04-12 18:00:00', 10000.00, 'နှင်းသီရိ - Catering', 'နှင်းသီရိ', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(272, 219, 'service', 'custom', 131, '2026-04-26 18:00:00', 10000.00, 'နှင်းသီရိ - Catering', 'နှင်းသီရိ', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(273, 220, 'service', 'custom', 131, '2026-05-10 18:00:00', 10000.00, 'နှင်းသီရိ - Catering', 'နှင်းသီရိ', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(274, 221, 'service', 'custom', 132, '2026-04-26 18:00:00', 330000.00, 'H&H Floral and Wedding Service - Decoration', 'H&H Floral and Wedding Service', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(275, 222, 'service', 'custom', 132, '2026-05-10 18:00:00', 330000.00, 'H&H Floral and Wedding Service - Decoration', 'H&H Floral and Wedding Service', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(276, 223, 'service', 'custom', 133, '2026-05-10 18:00:00', 500000.00, 'Eternal Flowers - Decoration', 'Eternal Flowers', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(277, 224, 'service', 'custom', 133, '2026-05-24 18:00:00', 500000.00, 'Eternal Flowers - Decoration', 'Eternal Flowers', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(278, 225, 'service', 'custom', 133, '2026-06-07 18:00:00', 500000.00, 'Eternal Flowers - Decoration', 'Eternal Flowers', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(279, 226, 'service', 'custom', 134, '2026-05-24 18:00:00', 500000.00, 'Aphrodite Wedding Planning & Decoration - Decoration', 'Aphrodite Wedding Planning & Decoration', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(280, 227, 'service', 'custom', 134, '2026-06-07 18:00:00', 500000.00, 'Aphrodite Wedding Planning & Decoration - Decoration', 'Aphrodite Wedding Planning & Decoration', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(281, 228, 'service', 'custom', 135, '2026-06-07 18:00:00', 3000000.00, 'Elysian Floral Art & Events Planning - Decoration', 'Elysian Floral Art & Events Planning', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(282, 229, 'service', 'custom', 135, '2026-03-15 18:00:00', 3000000.00, 'Elysian Floral Art & Events Planning - Decoration', 'Elysian Floral Art & Events Planning', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(283, 230, 'service', 'custom', 135, '2026-04-12 18:00:00', 3000000.00, 'Elysian Floral Art & Events Planning - Decoration', 'Elysian Floral Art & Events Planning', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(284, 231, 'service', 'custom', 136, '2026-03-15 18:00:00', 500000.00, 'S&S Events and Floral - Decoration', 'S&S Events and Floral', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(285, 232, 'service', 'custom', 136, '2026-04-12 18:00:00', 500000.00, 'S&S Events and Floral - Decoration', 'S&S Events and Floral', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(286, 233, 'service', 'custom', 137, '2026-04-12 18:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(287, 234, 'service', 'custom', 137, '2026-04-26 18:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(288, 235, 'service', 'custom', 137, '2026-05-10 18:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(289, 236, 'service', 'custom', 138, '2026-04-26 18:00:00', 800000.00, 'Governor’s Residence - Venue', 'Governor’s Residence', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(290, 237, 'service', 'custom', 138, '2026-05-10 18:00:00', 800000.00, 'Governor’s Residence - Venue', 'Governor’s Residence', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(291, 238, 'service', 'custom', 139, '2026-05-10 18:00:00', 99000.00, 'Novotel Yangon Max - Venue', 'Novotel Yangon Max', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(292, 239, 'service', 'custom', 139, '2026-05-24 18:00:00', 99000.00, 'Novotel Yangon Max - Venue', 'Novotel Yangon Max', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(293, 240, 'service', 'custom', 139, '2026-06-07 18:00:00', 99000.00, 'Novotel Yangon Max - Venue', 'Novotel Yangon Max', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(294, 241, 'service', 'custom', 140, '2026-05-24 18:00:00', 800000.00, 'Sedona Hotel Yangon - Venue', 'Sedona Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(295, 242, 'service', 'custom', 140, '2026-06-07 18:00:00', 800000.00, 'Sedona Hotel Yangon - Venue', 'Sedona Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(296, 243, 'service', 'custom', 141, '2026-06-07 18:00:00', 63000.00, 'Inya Lake Hotel - Venue', 'Inya Lake Hotel', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(297, 244, 'service', 'custom', 141, '2026-03-15 18:00:00', 63000.00, 'Inya Lake Hotel - Venue', 'Inya Lake Hotel', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(298, 245, 'service', 'custom', 141, '2026-04-12 18:00:00', 63000.00, 'Inya Lake Hotel - Venue', 'Inya Lake Hotel', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(299, 246, 'service', 'custom', 142, '2026-03-15 18:00:00', 85500.00, 'Meliá Yangon - Venue', 'Meliá Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(300, 247, 'service', 'custom', 142, '2026-04-12 18:00:00', 85500.00, 'Meliá Yangon - Venue', 'Meliá Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(301, 248, 'service', 'custom', 143, '2026-04-12 18:00:00', 800000.00, 'Hotel Yangon - Venue', 'Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(302, 249, 'service', 'custom', 143, '2026-04-26 18:00:00', 800000.00, 'Hotel Yangon - Venue', 'Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(303, 250, 'service', 'custom', 143, '2026-05-10 18:00:00', 800000.00, 'Hotel Yangon - Venue', 'Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(304, 251, 'service', 'custom', 144, '2026-04-26 18:00:00', 135000.00, 'Myanmar Car Rental - Car Rental', 'Myanmar Car Rental', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(305, 252, 'service', 'custom', 144, '2026-05-10 18:00:00', 135000.00, 'Myanmar Car Rental - Car Rental', 'Myanmar Car Rental', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(306, 253, 'service', 'custom', 145, '2026-05-10 18:00:00', 180000.00, 'The Experience Rent A Car - Car Rental', 'The Experience Rent A Car', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(307, 254, 'service', 'custom', 145, '2026-05-24 18:00:00', 180000.00, 'The Experience Rent A Car - Car Rental', 'The Experience Rent A Car', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(308, 255, 'service', 'custom', 145, '2026-06-07 18:00:00', 180000.00, 'The Experience Rent A Car - Car Rental', 'The Experience Rent A Car', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(309, 256, 'service', 'custom', 146, '2026-05-24 18:00:00', 100000.00, 'AVIS MYANMAR - Car Rental', 'AVIS MYANMAR', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(310, 257, 'service', 'custom', 146, '2026-06-07 18:00:00', 100000.00, 'AVIS MYANMAR - Car Rental', 'AVIS MYANMAR', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(311, 258, 'service', 'custom', 147, '2026-06-07 18:00:00', 135000.00, 'inoventure - Car Rental', 'inoventure', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(312, 259, 'service', 'custom', 147, '2026-03-15 18:00:00', 135000.00, 'inoventure - Car Rental', 'inoventure', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(313, 260, 'service', 'custom', 147, '2026-04-12 18:00:00', 135000.00, 'inoventure - Car Rental', 'inoventure', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(314, 261, 'service', 'custom', 148, '2026-03-15 18:00:00', 55000.00, 'Concierge Business Limousine - Car Rental', 'Concierge Business Limousine', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(315, 262, 'service', 'custom', 148, '2026-04-12 18:00:00', 55000.00, 'Concierge Business Limousine - Car Rental', 'Concierge Business Limousine', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(316, 263, 'service', 'custom', 149, '2026-04-12 18:00:00', 50000.00, 'Elegant Star (Recommended) - Invitation & Gifts', 'Elegant Star (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(317, 264, 'service', 'custom', 149, '2026-04-26 18:00:00', 50000.00, 'Elegant Star (Recommended) - Invitation & Gifts', 'Elegant Star (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(318, 265, 'service', 'custom', 149, '2026-05-10 18:00:00', 50000.00, 'Elegant Star (Recommended) - Invitation & Gifts', 'Elegant Star (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(319, 266, 'service', 'custom', 150, '2026-04-26 18:00:00', 50000.00, 'Memory Memory Handmade invitation cards and gifts (Recommended) - Invitation & Gifts', 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(320, 267, 'service', 'custom', 150, '2026-05-10 18:00:00', 50000.00, 'Memory Memory Handmade invitation cards and gifts (Recommended) - Invitation & Gifts', 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(321, 268, 'service', 'custom', 151, '2026-05-10 18:00:00', 50000.00, 'Moe Kaung Kin - Invitation & Gifts', 'Moe Kaung Kin', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(322, 269, 'service', 'custom', 151, '2026-05-24 18:00:00', 50000.00, 'Moe Kaung Kin - Invitation & Gifts', 'Moe Kaung Kin', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(323, 270, 'service', 'custom', 151, '2026-06-07 18:00:00', 50000.00, 'Moe Kaung Kin - Invitation & Gifts', 'Moe Kaung Kin', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(324, 271, 'service', 'custom', 152, '2026-05-24 18:00:00', 50000.00, 'Y Collection - Invitation & Gifts', 'Y Collection', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(325, 272, 'service', 'custom', 152, '2026-06-07 18:00:00', 50000.00, 'Y Collection - Invitation & Gifts', 'Y Collection', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(326, 273, 'service', 'custom', 153, '2026-06-07 18:00:00', 50000.00, 'Paperie Tale (Recommended) - Invitation & Gifts', 'Paperie Tale (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(327, 274, 'service', 'custom', 153, '2026-03-15 18:00:00', 50000.00, 'Paperie Tale (Recommended) - Invitation & Gifts', 'Paperie Tale (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(328, 275, 'service', 'custom', 153, '2026-04-12 18:00:00', 50000.00, 'Paperie Tale (Recommended) - Invitation & Gifts', 'Paperie Tale (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(329, 276, 'service', 'custom', 154, '2026-03-15 18:00:00', 50000.00, 'THIRI Handmade Invatation - Invitation & Gifts', 'THIRI Handmade Invatation', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(330, 277, 'service', 'custom', 154, '2026-04-12 18:00:00', 50000.00, 'THIRI Handmade Invatation - Invitation & Gifts', 'THIRI Handmade Invatation', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(331, 278, 'service', 'custom', 155, '2026-04-12 18:00:00', 50000.00, 'Pyan Kann - Invitation & Gifts', 'Pyan Kann', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(332, 279, 'service', 'custom', 155, '2026-04-26 18:00:00', 50000.00, 'Pyan Kann - Invitation & Gifts', 'Pyan Kann', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(333, 280, 'service', 'custom', 155, '2026-05-10 18:00:00', 50000.00, 'Pyan Kann - Invitation & Gifts', 'Pyan Kann', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(334, 281, 'service', 'custom', 156, '2026-04-26 18:00:00', 150000.00, 'SORA - Makeup & Hair', 'SORA', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(335, 282, 'service', 'custom', 156, '2026-05-10 18:00:00', 150000.00, 'SORA - Makeup & Hair', 'SORA', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(336, 283, 'service', 'custom', 157, '2026-05-10 18:00:00', 150000.00, 'ကိုသာဂိ - Makeup & Hair', 'ကိုသာဂိ', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(337, 284, 'service', 'custom', 157, '2026-05-24 18:00:00', 150000.00, 'ကိုသာဂိ - Makeup & Hair', 'ကိုသာဂိ', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(338, 285, 'service', 'custom', 157, '2026-06-07 18:00:00', 150000.00, 'ကိုသာဂိ - Makeup & Hair', 'ကိုသာဂိ', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(339, 286, 'service', 'custom', 158, '2026-05-24 18:00:00', 150000.00, 'Ma Htet-pop soul - Makeup & Hair', 'Ma Htet-pop soul', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(340, 287, 'service', 'custom', 158, '2026-06-07 18:00:00', 150000.00, 'Ma Htet-pop soul - Makeup & Hair', 'Ma Htet-pop soul', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(341, 288, 'service', 'custom', 159, '2026-06-07 18:00:00', 150000.00, 'Lin Lin - Makeup & Hair', 'Lin Lin', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(342, 289, 'service', 'custom', 159, '2026-03-15 18:00:00', 150000.00, 'Lin Lin - Makeup & Hair', 'Lin Lin', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(343, 290, 'service', 'custom', 159, '2026-04-12 18:00:00', 150000.00, 'Lin Lin - Makeup & Hair', 'Lin Lin', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(344, 291, 'service', 'custom', 160, '2026-03-15 18:00:00', 150000.00, 'make up Kin San Win - Makeup & Hair', 'make up Kin San Win', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(345, 292, 'service', 'custom', 160, '2026-04-12 18:00:00', 150000.00, 'make up Kin San Win - Makeup & Hair', 'make up Kin San Win', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(346, 293, 'service', 'custom', 161, '2026-04-12 18:00:00', 150000.00, 'Magic Touch Beauty Boutique - Makeup & Hair', 'Magic Touch Beauty Boutique', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(347, 294, 'service', 'custom', 161, '2026-04-26 18:00:00', 150000.00, 'Magic Touch Beauty Boutique - Makeup & Hair', 'Magic Touch Beauty Boutique', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(348, 295, 'service', 'custom', 161, '2026-05-10 18:00:00', 150000.00, 'Magic Touch Beauty Boutique - Makeup & Hair', 'Magic Touch Beauty Boutique', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(349, 296, 'service', 'custom', 162, '2026-04-26 18:00:00', 150000.00, 'Chi Chi’s Touch - Makeup & Hair', 'Chi Chi’s Touch', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(350, 297, 'service', 'custom', 162, '2026-05-10 18:00:00', 150000.00, 'Chi Chi’s Touch - Makeup & Hair', 'Chi Chi’s Touch', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(351, 298, 'service', 'custom', 163, '2026-05-10 18:00:00', 150000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(352, 299, 'service', 'custom', 163, '2026-05-24 18:00:00', 150000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(353, 300, 'service', 'custom', 163, '2026-06-07 18:00:00', 150000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(354, 301, 'service', 'custom', 164, '2026-05-24 18:00:00', 150000.00, 'Makeup Non Thit San - Makeup & Hair', 'Makeup Non Thit San', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(355, 302, 'service', 'custom', 164, '2026-06-07 18:00:00', 150000.00, 'Makeup Non Thit San - Makeup & Hair', 'Makeup Non Thit San', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(356, 303, 'service', 'custom', 165, '2026-06-07 18:00:00', 150000.00, 'Sweet Hair& Make up - Makeup & Hair', 'Sweet Hair& Make up', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(357, 304, 'service', 'custom', 165, '2026-03-15 18:00:00', 150000.00, 'Sweet Hair& Make up - Makeup & Hair', 'Sweet Hair& Make up', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(358, 305, 'service', 'custom', 165, '2026-04-12 18:00:00', 150000.00, 'Sweet Hair& Make up - Makeup & Hair', 'Sweet Hair& Make up', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(363, 310, 'package', 'package', 30, NULL, 4150650.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(364, 311, 'service', 'custom', 64, '2026-06-21 00:00:00', 750000.00, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ - Wedding Attire', 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'Attire', 'http://localhost/GP/public/uploads/serviceHero3.png', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(365, 312, 'service', 'custom', 56, '2026-06-21 14:00:00', 150000.00, 'Lin Lin', 'Wyndham Grand Yangon Hotel', 'Make Up & Hair', 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620065739-732ff480.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, '14:00:00', '17:00:00', 'slot', NULL),
-(366, 313, 'service', 'custom', 110, '2026-06-22 00:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(367, 314, 'service', 'custom', 56, '2026-06-22 13:00:00', 150000.00, 'Lin Lin', 'Wyndham Grand Yangon Hotel', 'Make Up & Hair', 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620065739-732ff480.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, '13:00:00', '16:00:00', 'slot', NULL),
-(368, 315, 'service', 'custom', 164, '2026-06-24 00:00:00', 15000000.00, 'Makeup Non Thit San - Makeup & Hair', 'Makeup Non Thit San', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero2.png', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(369, 316, 'package', 'package', 30, NULL, 4150650.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(370, 317, 'package', 'package', 30, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(371, 318, 'package', 'package', 30, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(372, 319, 'service', 'custom', 48, '2026-06-26 09:00:00', 2100000.00, 'H&amp;H Floral and Wedding Service', 'JV', 'Decoration', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618210245-d5b57c03.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, '09:00:00', '13:00:00', 'slot', NULL),
-(373, 320, 'service', 'custom', 124, '2026-06-24 00:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(374, 321, 'service', 'custom', 105, '2026-07-01 00:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(375, 321, 'service', 'custom', 110, '2026-06-24 00:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(377, 322, 'service', 'custom', 137, '2026-06-30 00:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(378, 322, 'service', 'custom', 69, '2026-06-30 00:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(380, 323, 'package', 'package', 31, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(381, 324, 'service', 'custom', 124, '2026-06-25 00:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(382, 325, 'package', 'package', 20, NULL, 70000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618152115-7d249ee0.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(383, 326, 'service', 'custom', 67, '2026-06-28 10:00:00', 200000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire', 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Attire', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, '10:00:00', '18:00:00', 'fullday', NULL),
-(384, 327, 'service', 'custom', 69, '2026-06-25 00:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(385, 328, 'service', 'custom', 163, '2026-06-25 00:00:00', 300000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(386, 329, 'service', 'custom', 119, '2026-06-25 00:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(387, 330, 'service', 'custom', 156, '2026-06-30 00:00:00', 300000.00, 'SORA - Makeup & Hair', 'SORA', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(388, 331, 'service', 'custom', 154, '2026-06-28 00:00:00', 50000.00, 'THIRI Handmade Invatation - Invitation & Gifts', 'THIRI Handmade Invatation', 'Invitation & Gifts', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(389, 332, 'service', 'custom', 144, '2026-06-26 00:00:00', 135000.00, 'Myanmar Car Rental - Car Rental', 'Myanmar Car Rental', 'Car', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(390, 333, 'service', 'custom', 105, '2026-06-26 00:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(391, 333, 'service', 'custom', 103, '2026-06-26 00:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(393, 334, 'service', 'custom', 49, '2026-07-26 09:00:00', 900000.00, 'Zephyr Sein Lann So pyay', 'JV', 'Venue', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 'accepted', 22, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL);
-INSERT INTO `booking_items` (`id`, `booking_id`, `item_type`, `source`, `item_id`, `booking_date`, `price`, `item_name`, `supplier_name`, `category_name`, `thumbnail_url`, `status`, `venue_room_id`, `attire_item_id`, `decoration_style_id`, `cake_design_id`, `slot_id`, `start_time`, `end_time`, `booking_type`, `package_booking_item_id`) VALUES
-(394, 335, 'service', 'custom', 55, '2026-06-29 10:00:00', 500000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Wyndham Grand Yangon Hotel', 'Attire', 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260619054309-45b53c74.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, '10:00:00', '11:00:00', 'slot', NULL),
-(395, 336, 'service', 'custom', 167, '2026-07-08 09:00:00', 2500000.00, 'Grand', 'Shwe Phoo Sar', 'Attire', '', 'accepted', NULL, NULL, NULL, NULL, NULL, '09:00:00', '10:00:00', 'slot', NULL);
+INSERT INTO `booking_items` (`id`, `booking_id`, `item_type`, `source`, `item_id`, `booking_date`, `price`, `item_name`, `supplier_name`, `category_name`, `thumbnail_url`, `status`, `venue_room_id`, `attire_item_id`, `rental_type`, `borrow_date`, `return_date`, `decoration_style_id`, `cake_design_id`, `slot_id`, `start_time`, `end_time`, `booking_type`, `package_booking_item_id`) VALUES
+(99, 48, 'service', 'custom', 42, '2026-09-24 06:00:00', 600000.00, NULL, NULL, NULL, NULL, 'accepted', 20, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '06:00:00', '17:00:00', 'slot', NULL),
+(100, 49, 'package', 'package', 19, NULL, 1473360.00, NULL, NULL, NULL, 'http://localhost/GP/public/uploads/suppliers/21-wyndham-grand-yangon-hotel/documents/cover-photo-20260611070115-9e2abb41.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(101, 50, 'package', 'package', 20, NULL, 76860.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618152115-7d249ee0.png', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(102, 51, 'package', 'package', 23, NULL, 4935000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(103, 51, 'service', 'custom', 50, '2026-06-27 09:00:00', 2100000.00, 'H &amp; H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260619040841-541df810.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
+(105, 52, 'package', 'package', 26, NULL, 4074000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(106, 53, 'package', 'package', 26, NULL, 2900000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(179, 126, 'service', 'custom', 59, '2026-03-15 18:00:00', 2900000.00, 'Excel Jade Hall — Grand Wedding Decoration', 'Excel River View Hotel & Resort', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(180, 127, 'service', 'custom', 59, '2026-04-12 18:00:00', 2900000.00, 'Excel Jade Hall — Grand Wedding Decoration', 'Excel River View Hotel & Resort', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(181, 128, 'service', 'custom', 60, '2026-04-12 18:00:00', 2000000.00, 'Golden Inya - Lakeside Wedding Venue', 'Golden Inya Restaurant', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(182, 129, 'service', 'custom', 60, '2026-04-26 18:00:00', 2000000.00, 'Golden Inya - Lakeside Wedding Venue', 'Golden Inya Restaurant', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(183, 130, 'service', 'custom', 60, '2026-05-10 18:00:00', 2000000.00, 'Golden Inya - Lakeside Wedding Venue', 'Golden Inya Restaurant', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(184, 131, 'service', 'custom', 61, '2026-04-26 18:00:00', 500000.00, 'Western Park Ruby - Garden Wedding Venue', 'Western Park Ruby - People\'s Park', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(185, 132, 'service', 'custom', 61, '2026-05-10 18:00:00', 500000.00, 'Western Park Ruby - Garden Wedding Venue', 'Western Park Ruby - People\'s Park', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(186, 133, 'service', 'custom', 62, '2026-05-10 18:00:00', 900000.00, 'Zephyr - Garden Wedding Venue', 'Zephyr (Sein Lann So Pyay Garden)', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(187, 134, 'service', 'custom', 62, '2026-05-24 18:00:00', 900000.00, 'Zephyr - Garden Wedding Venue', 'Zephyr (Sein Lann So Pyay Garden)', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(188, 135, 'service', 'custom', 62, '2026-06-07 18:00:00', 900000.00, 'Zephyr - Garden Wedding Venue', 'Zephyr (Sein Lann So Pyay Garden)', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(189, 136, 'service', 'custom', 63, '2026-05-24 18:00:00', 800000.00, 'The White Cottage - Garden & Lounge Venue', 'The White Cottage Restaurant & Lounge', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(190, 137, 'service', 'custom', 63, '2026-06-07 18:00:00', 800000.00, 'The White Cottage - Garden & Lounge Venue', 'The White Cottage Restaurant & Lounge', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(191, 138, 'service', 'custom', 64, '2026-06-07 18:00:00', 750000.00, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ - Wedding Attire', 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(192, 139, 'service', 'custom', 64, '2026-03-15 18:00:00', 750000.00, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ - Wedding Attire', 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(193, 140, 'service', 'custom', 64, '2026-04-12 18:00:00', 750000.00, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ - Wedding Attire', 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(194, 141, 'service', 'custom', 65, '2026-03-15 18:00:00', 800000.00, 'Dear Brides Wedding Dress Studio - Wedding Attire', 'Dear Brides Wedding Dress Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(195, 142, 'service', 'custom', 65, '2026-04-12 18:00:00', 800000.00, 'Dear Brides Wedding Dress Studio - Wedding Attire', 'Dear Brides Wedding Dress Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(196, 143, 'service', 'custom', 66, '2026-04-12 18:00:00', 1500000.00, 'The Vow Wedding Studio Myanmar - Wedding Attire', 'The Vow Wedding Studio Myanmar', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(197, 144, 'service', 'custom', 66, '2026-04-26 18:00:00', 1500000.00, 'The Vow Wedding Studio Myanmar - Wedding Attire', 'The Vow Wedding Studio Myanmar', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(198, 145, 'service', 'custom', 66, '2026-05-10 18:00:00', 1500000.00, 'The Vow Wedding Studio Myanmar - Wedding Attire', 'The Vow Wedding Studio Myanmar', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(199, 146, 'service', 'custom', 67, '2026-04-26 18:00:00', 200000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire', 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(200, 147, 'service', 'custom', 67, '2026-05-10 18:00:00', 200000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire', 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(201, 148, 'service', 'custom', 68, '2026-05-10 18:00:00', 400000.00, 'T&T Bridal Collection - Wedding Attire', 'T&T Bridal Collection', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(202, 149, 'service', 'custom', 68, '2026-05-24 18:00:00', 400000.00, 'T&T Bridal Collection - Wedding Attire', 'T&T Bridal Collection', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(203, 150, 'service', 'custom', 68, '2026-06-07 18:00:00', 400000.00, 'T&T Bridal Collection - Wedding Attire', 'T&T Bridal Collection', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(204, 151, 'service', 'custom', 69, '2026-05-24 18:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(205, 152, 'service', 'custom', 69, '2026-06-07 18:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(206, 153, 'service', 'custom', 70, '2026-06-07 18:00:00', 500000.00, 'Peter\'s Bridal Garden - Studio - Wedding Attire', 'Peter\'s Bridal Garden - Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(207, 154, 'service', 'custom', 70, '2026-03-15 18:00:00', 500000.00, 'Peter\'s Bridal Garden - Studio - Wedding Attire', 'Peter\'s Bridal Garden - Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(208, 155, 'service', 'custom', 70, '2026-04-12 18:00:00', 500000.00, 'Peter\'s Bridal Garden - Studio - Wedding Attire', 'Peter\'s Bridal Garden - Studio', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(209, 156, 'service', 'custom', 71, '2026-03-15 18:00:00', 480000.00, 'My Everything Wedding Dresses - Wedding Attire', 'My Everything Wedding Dresses', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(210, 157, 'service', 'custom', 71, '2026-04-12 18:00:00', 480000.00, 'My Everything Wedding Dresses - Wedding Attire', 'My Everything Wedding Dresses', 'Attire', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(211, 158, 'service', 'custom', 103, '2026-04-12 18:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(212, 159, 'service', 'custom', 103, '2026-04-26 18:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(213, 160, 'service', 'custom', 103, '2026-05-10 18:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(214, 161, 'service', 'custom', 104, '2026-04-26 18:00:00', 430000.00, 'H & H Photo Studio - Studio', 'H & H Photo Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(215, 162, 'service', 'custom', 104, '2026-05-10 18:00:00', 430000.00, 'H & H Photo Studio - Studio', 'H & H Photo Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(216, 163, 'service', 'custom', 105, '2026-05-10 18:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(217, 164, 'service', 'custom', 105, '2026-05-24 18:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(218, 165, 'service', 'custom', 105, '2026-06-07 18:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(219, 166, 'service', 'custom', 106, '2026-05-24 18:00:00', 400000.00, 'PNA’S Wedding Studio - Studio', 'PNA’S Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(220, 167, 'service', 'custom', 106, '2026-06-07 18:00:00', 400000.00, 'PNA’S Wedding Studio - Studio', 'PNA’S Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(221, 168, 'service', 'custom', 107, '2026-06-07 18:00:00', 400000.00, 'Together Wedding Studio - Studio', 'Together Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(222, 169, 'service', 'custom', 107, '2026-03-15 18:00:00', 400000.00, 'Together Wedding Studio - Studio', 'Together Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(223, 170, 'service', 'custom', 107, '2026-04-12 18:00:00', 400000.00, 'Together Wedding Studio - Studio', 'Together Wedding Studio', 'Studio', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(224, 171, 'service', 'custom', 108, '2026-03-15 18:00:00', 500000.00, 'Western Park Ruby – People’s Park - Venue', 'Western Park Ruby – People’s Park', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(225, 172, 'service', 'custom', 108, '2026-04-12 18:00:00', 500000.00, 'Western Park Ruby – People’s Park - Venue', 'Western Park Ruby – People’s Park', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(226, 173, 'service', 'custom', 109, '2026-04-12 18:00:00', 1000000.00, 'MG & J Jewelry - Jewelry', 'MG & J Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(227, 174, 'service', 'custom', 109, '2026-04-26 18:00:00', 1000000.00, 'MG & J Jewelry - Jewelry', 'MG & J Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(228, 175, 'service', 'custom', 109, '2026-05-10 18:00:00', 1000000.00, 'MG & J Jewelry - Jewelry', 'MG & J Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(229, 176, 'service', 'custom', 110, '2026-04-26 18:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(230, 177, 'service', 'custom', 110, '2026-05-10 18:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(231, 178, 'service', 'custom', 111, '2026-05-10 18:00:00', 5400000.00, 'Myat Pan Tha Zin Diamond and Jewelry - Jewelry', 'Myat Pan Tha Zin Diamond and Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(232, 179, 'service', 'custom', 111, '2026-05-24 18:00:00', 5400000.00, 'Myat Pan Tha Zin Diamond and Jewelry - Jewelry', 'Myat Pan Tha Zin Diamond and Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(233, 180, 'service', 'custom', 111, '2026-06-07 18:00:00', 5400000.00, 'Myat Pan Tha Zin Diamond and Jewelry - Jewelry', 'Myat Pan Tha Zin Diamond and Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(234, 181, 'service', 'custom', 112, '2026-05-24 18:00:00', 2800000.00, 'Vivian Diamond Jewellery - Jewelry', 'Vivian Diamond Jewellery', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(235, 182, 'service', 'custom', 112, '2026-06-07 18:00:00', 2800000.00, 'Vivian Diamond Jewellery - Jewelry', 'Vivian Diamond Jewellery', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(236, 183, 'service', 'custom', 113, '2026-06-07 18:00:00', 1000000.00, 'Theingi Moe Jewelry - Jewelry', 'Theingi Moe Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(237, 184, 'service', 'custom', 113, '2026-03-15 18:00:00', 1000000.00, 'Theingi Moe Jewelry - Jewelry', 'Theingi Moe Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(238, 185, 'service', 'custom', 113, '2026-04-12 18:00:00', 1000000.00, 'Theingi Moe Jewelry - Jewelry', 'Theingi Moe Jewelry', 'Jewelry', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(239, 186, 'service', 'custom', 118, '2026-03-15 18:00:00', 200000.00, 'Parisian Cake&Cafe - Cake', 'Parisian Cake&Cafe', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(240, 187, 'service', 'custom', 118, '2026-04-12 18:00:00', 200000.00, 'Parisian Cake&Cafe - Cake', 'Parisian Cake&Cafe', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(241, 188, 'service', 'custom', 119, '2026-04-12 18:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(242, 189, 'service', 'custom', 119, '2026-04-26 18:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(243, 190, 'service', 'custom', 119, '2026-05-10 18:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(244, 191, 'service', 'custom', 120, '2026-04-26 18:00:00', 200000.00, 'Kudo’s - Cake', 'Kudo’s', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(245, 192, 'service', 'custom', 120, '2026-05-10 18:00:00', 200000.00, 'Kudo’s - Cake', 'Kudo’s', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(246, 193, 'service', 'custom', 121, '2026-05-10 18:00:00', 60000.00, 'Shwe Pu Zun - Cake', 'Shwe Pu Zun', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(247, 194, 'service', 'custom', 121, '2026-05-24 18:00:00', 60000.00, 'Shwe Pu Zun - Cake', 'Shwe Pu Zun', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(248, 195, 'service', 'custom', 121, '2026-06-07 18:00:00', 60000.00, 'Shwe Pu Zun - Cake', 'Shwe Pu Zun', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(249, 196, 'service', 'custom', 122, '2026-05-24 18:00:00', 60000.00, '77 Cake - Cake', '77 Cake', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(250, 197, 'service', 'custom', 122, '2026-06-07 18:00:00', 60000.00, '77 Cake - Cake', '77 Cake', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(251, 198, 'service', 'custom', 123, '2026-06-07 18:00:00', 60000.00, 'El Dorado - Cake', 'El Dorado', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(252, 199, 'service', 'custom', 123, '2026-03-15 18:00:00', 60000.00, 'El Dorado - Cake', 'El Dorado', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(253, 200, 'service', 'custom', 123, '2026-04-12 18:00:00', 60000.00, 'El Dorado - Cake', 'El Dorado', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(254, 201, 'service', 'custom', 124, '2026-03-15 18:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(255, 202, 'service', 'custom', 124, '2026-04-12 18:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(256, 203, 'service', 'custom', 125, '2026-04-12 18:00:00', 30000.00, 'KSS နတ်သုဒ္ဓါဒံပေါက် - Catering', 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(257, 204, 'service', 'custom', 125, '2026-04-26 18:00:00', 30000.00, 'KSS နတ်သုဒ္ဓါဒံပေါက် - Catering', 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(258, 205, 'service', 'custom', 125, '2026-05-10 18:00:00', 30000.00, 'KSS နတ်သုဒ္ဓါဒံပေါက် - Catering', 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(259, 206, 'service', 'custom', 126, '2026-04-26 18:00:00', 10000.00, 'ထူး ရေခဲမုန့် - Catering', 'ထူး ရေခဲမုန့်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(260, 207, 'service', 'custom', 126, '2026-05-10 18:00:00', 10000.00, 'ထူး ရေခဲမုန့် - Catering', 'ထူး ရေခဲမုန့်', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(261, 208, 'service', 'custom', 127, '2026-05-10 18:00:00', 28000.00, 'The Hundred -Grilled Chicken - Catering', 'The Hundred -Grilled Chicken', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(262, 209, 'service', 'custom', 127, '2026-05-24 18:00:00', 28000.00, 'The Hundred -Grilled Chicken - Catering', 'The Hundred -Grilled Chicken', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(263, 210, 'service', 'custom', 127, '2026-06-07 18:00:00', 28000.00, 'The Hundred -Grilled Chicken - Catering', 'The Hundred -Grilled Chicken', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(264, 211, 'service', 'custom', 128, '2026-05-24 18:00:00', 18000.00, 'Royal Chef - Catering', 'Royal Chef', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(265, 212, 'service', 'custom', 128, '2026-06-07 18:00:00', 18000.00, 'Royal Chef - Catering', 'Royal Chef', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(266, 213, 'service', 'custom', 129, '2026-06-07 18:00:00', 11000.00, 'Rice Box - Catering', 'Rice Box', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(267, 214, 'service', 'custom', 129, '2026-03-15 18:00:00', 11000.00, 'Rice Box - Catering', 'Rice Box', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(268, 215, 'service', 'custom', 129, '2026-04-12 18:00:00', 11000.00, 'Rice Box - Catering', 'Rice Box', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(269, 216, 'service', 'custom', 130, '2026-03-15 18:00:00', 12000.00, 'Boke & Bee - Catering', 'Boke & Bee', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(270, 217, 'service', 'custom', 130, '2026-04-12 18:00:00', 12000.00, 'Boke & Bee - Catering', 'Boke & Bee', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(271, 218, 'service', 'custom', 131, '2026-04-12 18:00:00', 10000.00, 'နှင်းသီရိ - Catering', 'နှင်းသီရိ', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(272, 219, 'service', 'custom', 131, '2026-04-26 18:00:00', 10000.00, 'နှင်းသီရိ - Catering', 'နှင်းသီရိ', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(273, 220, 'service', 'custom', 131, '2026-05-10 18:00:00', 10000.00, 'နှင်းသီရိ - Catering', 'နှင်းသီရိ', 'Food', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(274, 221, 'service', 'custom', 132, '2026-04-26 18:00:00', 330000.00, 'H&H Floral and Wedding Service - Decoration', 'H&H Floral and Wedding Service', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(275, 222, 'service', 'custom', 132, '2026-05-10 18:00:00', 330000.00, 'H&H Floral and Wedding Service - Decoration', 'H&H Floral and Wedding Service', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(276, 223, 'service', 'custom', 133, '2026-05-10 18:00:00', 500000.00, 'Eternal Flowers - Decoration', 'Eternal Flowers', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(277, 224, 'service', 'custom', 133, '2026-05-24 18:00:00', 500000.00, 'Eternal Flowers - Decoration', 'Eternal Flowers', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(278, 225, 'service', 'custom', 133, '2026-06-07 18:00:00', 500000.00, 'Eternal Flowers - Decoration', 'Eternal Flowers', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(279, 226, 'service', 'custom', 134, '2026-05-24 18:00:00', 500000.00, 'Aphrodite Wedding Planning & Decoration - Decoration', 'Aphrodite Wedding Planning & Decoration', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(280, 227, 'service', 'custom', 134, '2026-06-07 18:00:00', 500000.00, 'Aphrodite Wedding Planning & Decoration - Decoration', 'Aphrodite Wedding Planning & Decoration', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(281, 228, 'service', 'custom', 135, '2026-06-07 18:00:00', 3000000.00, 'Elysian Floral Art & Events Planning - Decoration', 'Elysian Floral Art & Events Planning', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(282, 229, 'service', 'custom', 135, '2026-03-15 18:00:00', 3000000.00, 'Elysian Floral Art & Events Planning - Decoration', 'Elysian Floral Art & Events Planning', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(283, 230, 'service', 'custom', 135, '2026-04-12 18:00:00', 3000000.00, 'Elysian Floral Art & Events Planning - Decoration', 'Elysian Floral Art & Events Planning', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(284, 231, 'service', 'custom', 136, '2026-03-15 18:00:00', 500000.00, 'S&S Events and Floral - Decoration', 'S&S Events and Floral', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(285, 232, 'service', 'custom', 136, '2026-04-12 18:00:00', 500000.00, 'S&S Events and Floral - Decoration', 'S&S Events and Floral', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(286, 233, 'service', 'custom', 137, '2026-04-12 18:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(287, 234, 'service', 'custom', 137, '2026-04-26 18:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(288, 235, 'service', 'custom', 137, '2026-05-10 18:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(289, 236, 'service', 'custom', 138, '2026-04-26 18:00:00', 800000.00, 'Governor’s Residence - Venue', 'Governor’s Residence', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(290, 237, 'service', 'custom', 138, '2026-05-10 18:00:00', 800000.00, 'Governor’s Residence - Venue', 'Governor’s Residence', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(291, 238, 'service', 'custom', 139, '2026-05-10 18:00:00', 99000.00, 'Novotel Yangon Max - Venue', 'Novotel Yangon Max', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(292, 239, 'service', 'custom', 139, '2026-05-24 18:00:00', 99000.00, 'Novotel Yangon Max - Venue', 'Novotel Yangon Max', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(293, 240, 'service', 'custom', 139, '2026-06-07 18:00:00', 99000.00, 'Novotel Yangon Max - Venue', 'Novotel Yangon Max', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(294, 241, 'service', 'custom', 140, '2026-05-24 18:00:00', 800000.00, 'Sedona Hotel Yangon - Venue', 'Sedona Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(295, 242, 'service', 'custom', 140, '2026-06-07 18:00:00', 800000.00, 'Sedona Hotel Yangon - Venue', 'Sedona Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(296, 243, 'service', 'custom', 141, '2026-06-07 18:00:00', 63000.00, 'Inya Lake Hotel - Venue', 'Inya Lake Hotel', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(297, 244, 'service', 'custom', 141, '2026-03-15 18:00:00', 63000.00, 'Inya Lake Hotel - Venue', 'Inya Lake Hotel', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(298, 245, 'service', 'custom', 141, '2026-04-12 18:00:00', 63000.00, 'Inya Lake Hotel - Venue', 'Inya Lake Hotel', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(299, 246, 'service', 'custom', 142, '2026-03-15 18:00:00', 85500.00, 'Meliá Yangon - Venue', 'Meliá Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(300, 247, 'service', 'custom', 142, '2026-04-12 18:00:00', 85500.00, 'Meliá Yangon - Venue', 'Meliá Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(301, 248, 'service', 'custom', 143, '2026-04-12 18:00:00', 800000.00, 'Hotel Yangon - Venue', 'Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(302, 249, 'service', 'custom', 143, '2026-04-26 18:00:00', 800000.00, 'Hotel Yangon - Venue', 'Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(303, 250, 'service', 'custom', 143, '2026-05-10 18:00:00', 800000.00, 'Hotel Yangon - Venue', 'Hotel Yangon', 'Venue', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(304, 251, 'service', 'custom', 144, '2026-04-26 18:00:00', 135000.00, 'Myanmar Car Rental - Car Rental', 'Myanmar Car Rental', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(305, 252, 'service', 'custom', 144, '2026-05-10 18:00:00', 135000.00, 'Myanmar Car Rental - Car Rental', 'Myanmar Car Rental', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(306, 253, 'service', 'custom', 145, '2026-05-10 18:00:00', 180000.00, 'The Experience Rent A Car - Car Rental', 'The Experience Rent A Car', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(307, 254, 'service', 'custom', 145, '2026-05-24 18:00:00', 180000.00, 'The Experience Rent A Car - Car Rental', 'The Experience Rent A Car', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(308, 255, 'service', 'custom', 145, '2026-06-07 18:00:00', 180000.00, 'The Experience Rent A Car - Car Rental', 'The Experience Rent A Car', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(309, 256, 'service', 'custom', 146, '2026-05-24 18:00:00', 100000.00, 'AVIS MYANMAR - Car Rental', 'AVIS MYANMAR', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(310, 257, 'service', 'custom', 146, '2026-06-07 18:00:00', 100000.00, 'AVIS MYANMAR - Car Rental', 'AVIS MYANMAR', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(311, 258, 'service', 'custom', 147, '2026-06-07 18:00:00', 135000.00, 'inoventure - Car Rental', 'inoventure', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(312, 259, 'service', 'custom', 147, '2026-03-15 18:00:00', 135000.00, 'inoventure - Car Rental', 'inoventure', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(313, 260, 'service', 'custom', 147, '2026-04-12 18:00:00', 135000.00, 'inoventure - Car Rental', 'inoventure', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(314, 261, 'service', 'custom', 148, '2026-03-15 18:00:00', 55000.00, 'Concierge Business Limousine - Car Rental', 'Concierge Business Limousine', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(315, 262, 'service', 'custom', 148, '2026-04-12 18:00:00', 55000.00, 'Concierge Business Limousine - Car Rental', 'Concierge Business Limousine', 'Car', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(316, 263, 'service', 'custom', 149, '2026-04-12 18:00:00', 50000.00, 'Elegant Star (Recommended) - Invitation & Gifts', 'Elegant Star (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(317, 264, 'service', 'custom', 149, '2026-04-26 18:00:00', 50000.00, 'Elegant Star (Recommended) - Invitation & Gifts', 'Elegant Star (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(318, 265, 'service', 'custom', 149, '2026-05-10 18:00:00', 50000.00, 'Elegant Star (Recommended) - Invitation & Gifts', 'Elegant Star (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(319, 266, 'service', 'custom', 150, '2026-04-26 18:00:00', 50000.00, 'Memory Memory Handmade invitation cards and gifts (Recommended) - Invitation & Gifts', 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(320, 267, 'service', 'custom', 150, '2026-05-10 18:00:00', 50000.00, 'Memory Memory Handmade invitation cards and gifts (Recommended) - Invitation & Gifts', 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(321, 268, 'service', 'custom', 151, '2026-05-10 18:00:00', 50000.00, 'Moe Kaung Kin - Invitation & Gifts', 'Moe Kaung Kin', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(322, 269, 'service', 'custom', 151, '2026-05-24 18:00:00', 50000.00, 'Moe Kaung Kin - Invitation & Gifts', 'Moe Kaung Kin', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(323, 270, 'service', 'custom', 151, '2026-06-07 18:00:00', 50000.00, 'Moe Kaung Kin - Invitation & Gifts', 'Moe Kaung Kin', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(324, 271, 'service', 'custom', 152, '2026-05-24 18:00:00', 50000.00, 'Y Collection - Invitation & Gifts', 'Y Collection', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(325, 272, 'service', 'custom', 152, '2026-06-07 18:00:00', 50000.00, 'Y Collection - Invitation & Gifts', 'Y Collection', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(326, 273, 'service', 'custom', 153, '2026-06-07 18:00:00', 50000.00, 'Paperie Tale (Recommended) - Invitation & Gifts', 'Paperie Tale (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(327, 274, 'service', 'custom', 153, '2026-03-15 18:00:00', 50000.00, 'Paperie Tale (Recommended) - Invitation & Gifts', 'Paperie Tale (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(328, 275, 'service', 'custom', 153, '2026-04-12 18:00:00', 50000.00, 'Paperie Tale (Recommended) - Invitation & Gifts', 'Paperie Tale (Recommended)', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(329, 276, 'service', 'custom', 154, '2026-03-15 18:00:00', 50000.00, 'THIRI Handmade Invatation - Invitation & Gifts', 'THIRI Handmade Invatation', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(330, 277, 'service', 'custom', 154, '2026-04-12 18:00:00', 50000.00, 'THIRI Handmade Invatation - Invitation & Gifts', 'THIRI Handmade Invatation', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(331, 278, 'service', 'custom', 155, '2026-04-12 18:00:00', 50000.00, 'Pyan Kann - Invitation & Gifts', 'Pyan Kann', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(332, 279, 'service', 'custom', 155, '2026-04-26 18:00:00', 50000.00, 'Pyan Kann - Invitation & Gifts', 'Pyan Kann', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(333, 280, 'service', 'custom', 155, '2026-05-10 18:00:00', 50000.00, 'Pyan Kann - Invitation & Gifts', 'Pyan Kann', 'Invitation & Gifts', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(334, 281, 'service', 'custom', 156, '2026-04-26 18:00:00', 150000.00, 'SORA - Makeup & Hair', 'SORA', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(335, 282, 'service', 'custom', 156, '2026-05-10 18:00:00', 150000.00, 'SORA - Makeup & Hair', 'SORA', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(336, 283, 'service', 'custom', 157, '2026-05-10 18:00:00', 150000.00, 'ကိုသာဂိ - Makeup & Hair', 'ကိုသာဂိ', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(337, 284, 'service', 'custom', 157, '2026-05-24 18:00:00', 150000.00, 'ကိုသာဂိ - Makeup & Hair', 'ကိုသာဂိ', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(338, 285, 'service', 'custom', 157, '2026-06-07 18:00:00', 150000.00, 'ကိုသာဂိ - Makeup & Hair', 'ကိုသာဂိ', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(339, 286, 'service', 'custom', 158, '2026-05-24 18:00:00', 150000.00, 'Ma Htet-pop soul - Makeup & Hair', 'Ma Htet-pop soul', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(340, 287, 'service', 'custom', 158, '2026-06-07 18:00:00', 150000.00, 'Ma Htet-pop soul - Makeup & Hair', 'Ma Htet-pop soul', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(341, 288, 'service', 'custom', 159, '2026-06-07 18:00:00', 150000.00, 'Lin Lin - Makeup & Hair', 'Lin Lin', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(342, 289, 'service', 'custom', 159, '2026-03-15 18:00:00', 150000.00, 'Lin Lin - Makeup & Hair', 'Lin Lin', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(343, 290, 'service', 'custom', 159, '2026-04-12 18:00:00', 150000.00, 'Lin Lin - Makeup & Hair', 'Lin Lin', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(344, 291, 'service', 'custom', 160, '2026-03-15 18:00:00', 150000.00, 'make up Kin San Win - Makeup & Hair', 'make up Kin San Win', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(345, 292, 'service', 'custom', 160, '2026-04-12 18:00:00', 150000.00, 'make up Kin San Win - Makeup & Hair', 'make up Kin San Win', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(346, 293, 'service', 'custom', 161, '2026-04-12 18:00:00', 150000.00, 'Magic Touch Beauty Boutique - Makeup & Hair', 'Magic Touch Beauty Boutique', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(347, 294, 'service', 'custom', 161, '2026-04-26 18:00:00', 150000.00, 'Magic Touch Beauty Boutique - Makeup & Hair', 'Magic Touch Beauty Boutique', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(348, 295, 'service', 'custom', 161, '2026-05-10 18:00:00', 150000.00, 'Magic Touch Beauty Boutique - Makeup & Hair', 'Magic Touch Beauty Boutique', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(349, 296, 'service', 'custom', 162, '2026-04-26 18:00:00', 150000.00, 'Chi Chi’s Touch - Makeup & Hair', 'Chi Chi’s Touch', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(350, 297, 'service', 'custom', 162, '2026-05-10 18:00:00', 150000.00, 'Chi Chi’s Touch - Makeup & Hair', 'Chi Chi’s Touch', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(351, 298, 'service', 'custom', 163, '2026-05-10 18:00:00', 150000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(352, 299, 'service', 'custom', 163, '2026-05-24 18:00:00', 150000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(353, 300, 'service', 'custom', 163, '2026-06-07 18:00:00', 150000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(354, 301, 'service', 'custom', 164, '2026-05-24 18:00:00', 150000.00, 'Makeup Non Thit San - Makeup & Hair', 'Makeup Non Thit San', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(355, 302, 'service', 'custom', 164, '2026-06-07 18:00:00', 150000.00, 'Makeup Non Thit San - Makeup & Hair', 'Makeup Non Thit San', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(356, 303, 'service', 'custom', 165, '2026-06-07 18:00:00', 150000.00, 'Sweet Hair& Make up - Makeup & Hair', 'Sweet Hair& Make up', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(357, 304, 'service', 'custom', 165, '2026-03-15 18:00:00', 150000.00, 'Sweet Hair& Make up - Makeup & Hair', 'Sweet Hair& Make up', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(358, 305, 'service', 'custom', 165, '2026-04-12 18:00:00', 150000.00, 'Sweet Hair& Make up - Makeup & Hair', 'Sweet Hair& Make up', 'Make Up & Hair', NULL, 'completed', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(363, 310, 'package', 'package', 30, NULL, 4150650.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(364, 311, 'service', 'custom', 64, '2026-06-21 00:00:00', 750000.00, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ - Wedding Attire', 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'Attire', 'http://localhost/GP/public/uploads/serviceHero3.png', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(365, 312, 'service', 'custom', 56, '2026-06-21 14:00:00', 150000.00, 'Lin Lin', 'Wyndham Grand Yangon Hotel', 'Make Up & Hair', 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620065739-732ff480.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '14:00:00', '17:00:00', 'slot', NULL),
+(366, 313, 'service', 'custom', 110, '2026-06-22 00:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(367, 314, 'service', 'custom', 56, '2026-06-22 13:00:00', 150000.00, 'Lin Lin', 'Wyndham Grand Yangon Hotel', 'Make Up & Hair', 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620065739-732ff480.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '13:00:00', '16:00:00', 'slot', NULL),
+(368, 315, 'service', 'custom', 164, '2026-06-24 00:00:00', 15000000.00, 'Makeup Non Thit San - Makeup & Hair', 'Makeup Non Thit San', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero2.png', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(369, 316, 'package', 'package', 30, NULL, 4150650.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(370, 317, 'package', 'package', 30, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(371, 318, 'package', 'package', 30, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(372, 319, 'service', 'custom', 48, '2026-06-26 09:00:00', 2100000.00, 'H&amp;H Floral and Wedding Service', 'JV', 'Decoration', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618210245-d5b57c03.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '13:00:00', 'slot', NULL),
+(373, 320, 'service', 'custom', 124, '2026-06-24 00:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(374, 321, 'service', 'custom', 105, '2026-07-01 00:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(375, 321, 'service', 'custom', 110, '2026-06-24 00:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(377, 322, 'service', 'custom', 137, '2026-06-30 00:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(378, 322, 'service', 'custom', 69, '2026-06-30 00:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL);
+INSERT INTO `booking_items` (`id`, `booking_id`, `item_type`, `source`, `item_id`, `booking_date`, `price`, `item_name`, `supplier_name`, `category_name`, `thumbnail_url`, `status`, `venue_room_id`, `attire_item_id`, `rental_type`, `borrow_date`, `return_date`, `decoration_style_id`, `cake_design_id`, `slot_id`, `start_time`, `end_time`, `booking_type`, `package_booking_item_id`) VALUES
+(380, 323, 'package', 'package', 31, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(381, 324, 'service', 'custom', 124, '2026-06-25 00:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(382, 325, 'package', 'package', 20, NULL, 70000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618152115-7d249ee0.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(383, 326, 'service', 'custom', 67, '2026-06-28 10:00:00', 200000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire', 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Attire', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '10:00:00', '18:00:00', 'fullday', NULL),
+(384, 327, 'service', 'custom', 69, '2026-06-25 00:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(385, 328, 'service', 'custom', 163, '2026-06-25 00:00:00', 300000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(386, 329, 'service', 'custom', 119, '2026-06-25 00:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(387, 330, 'service', 'custom', 156, '2026-06-30 00:00:00', 300000.00, 'SORA - Makeup & Hair', 'SORA', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(388, 331, 'service', 'custom', 154, '2026-06-28 00:00:00', 50000.00, 'THIRI Handmade Invatation - Invitation & Gifts', 'THIRI Handmade Invatation', 'Invitation & Gifts', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(389, 332, 'service', 'custom', 144, '2026-06-26 00:00:00', 135000.00, 'Myanmar Car Rental - Car Rental', 'Myanmar Car Rental', 'Car', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(390, 333, 'service', 'custom', 105, '2026-06-26 00:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(391, 333, 'service', 'custom', 103, '2026-06-26 00:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(393, 334, 'service', 'custom', 49, '2026-07-26 09:00:00', 900000.00, 'Zephyr Sein Lann So pyay', 'JV', 'Venue', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 'accepted', 22, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
+(394, 335, 'service', 'custom', 55, '2026-06-29 10:00:00', 500000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Wyndham Grand Yangon Hotel', 'Attire', 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260619054309-45b53c74.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '10:00:00', '11:00:00', 'slot', NULL),
+(395, 336, 'service', 'custom', 167, '2026-07-08 09:00:00', 2500000.00, 'Grand', 'Shwe Phoo Sar', 'Attire', '', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '10:00:00', 'slot', NULL),
+(396, 337, 'service', 'custom', 49, '2026-07-06 09:00:00', 3000000.00, 'Zephyr Sein Lann So pyay', 'JV', 'Venue', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 'cancelled', 57, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
+(397, 338, 'service', 'custom', 49, '2026-07-06 09:00:00', 3000000.00, 'Zephyr Sein Lann So pyay', 'JV', 'Venue', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 'accepted', 57, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
+(398, 339, 'service', 'custom', 50, '2026-07-04 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
+(399, 340, 'service', 'custom', 50, '2026-06-28 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 88, '09:00:00', '17:00:00', 'slot', NULL),
+(400, 341, 'service', 'custom', 50, '2026-06-28 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 88, '09:00:00', '17:00:00', 'slot', NULL),
+(401, 342, 'service', 'custom', 50, '2026-06-29 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 106, '09:00:00', '17:00:00', 'slot', NULL),
+(402, 343, 'service', 'custom', 50, '2026-06-30 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
+(403, 344, 'service', 'custom', 50, '2026-06-30 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
+(404, 345, 'service', 'custom', 50, '2026-06-30 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL);
 
 -- --------------------------------------------------------
 
@@ -667,7 +761,10 @@ INSERT INTO `booking_slot_reservations` (`id`, `booking_id`, `booking_item_id`, 
 (66, 323, NULL, 120, 50, 142, 'package', '2026-06-24 02:53:58', NULL),
 (67, 323, NULL, 122, 56, 143, 'package', '2026-06-24 02:53:58', NULL),
 (68, 325, NULL, 65, 42, 144, 'package', '2026-06-24 03:09:11', NULL),
-(69, 325, NULL, 65, 42, 145, 'package', '2026-06-24 03:09:11', NULL);
+(69, 325, NULL, 65, 42, 145, 'package', '2026-06-24 03:09:11', NULL),
+(70, 340, 399, NULL, 50, 88, 'custom', '2026-06-27 10:17:07', '2026-06-27 10:36:22'),
+(71, 341, 400, NULL, 50, 88, 'custom', '2026-06-27 10:39:57', NULL),
+(72, 342, 401, NULL, 50, 106, 'custom', '2026-06-27 10:53:32', NULL);
 
 -- --------------------------------------------------------
 
@@ -809,7 +906,70 @@ INSERT INTO `booking_status_logs` (`id`, `booking_id`, `old_status`, `new_status
 (195, 336, NULL, 'draft', 126, NULL, '2026-06-26 04:40:29'),
 (196, 336, 'draft', 'pending_supplier_response', 126, NULL, '2026-06-26 04:40:29'),
 (197, 336, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-26 04:41:05'),
-(198, 336, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-26 04:41:05');
+(198, 336, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-26 04:41:05'),
+(199, 316, 'payment_submitted', 'confirmed', 1, 'Deposit verified by admin', '2026-06-27 07:02:43'),
+(200, 337, NULL, 'draft', 30, NULL, '2026-06-27 07:41:56'),
+(201, 337, 'draft', 'pending_supplier_response', 30, NULL, '2026-06-27 07:41:56'),
+(202, 337, NULL, 'supplier_rejected', NULL, 'Supplier declineed booking', '2026-06-27 07:42:12'),
+(203, 337, 'pending_supplier_response', 'cancelled', NULL, 'Supplier declined', '2026-06-27 07:42:12'),
+(204, 338, NULL, 'draft', 30, NULL, '2026-06-27 08:07:50'),
+(205, 338, 'draft', 'pending_supplier_response', 30, NULL, '2026-06-27 08:07:50'),
+(206, 338, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 08:08:05'),
+(207, 338, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 08:08:05'),
+(208, 338, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 08:09:04'),
+(209, 339, NULL, 'draft', 30, NULL, '2026-06-27 09:57:00'),
+(210, 339, 'draft', 'pending_supplier_response', 30, NULL, '2026-06-27 09:57:00'),
+(211, 339, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 09:57:13'),
+(212, 339, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 09:57:13'),
+(213, 339, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 09:58:02'),
+(214, 339, 'cancelled', 'cancelled', 1, 'Refund of 273,000 MMK queued (50% refund - cancelled 2-7 days before event)', '2026-06-27 09:59:09'),
+(215, 339, NULL, 'cancelled', 1, 'Cancelled by admin: cancle ချင်လို့ကွာ', '2026-06-27 09:59:09'),
+(216, 339, 'cancelled', 'cancelled', 1, 'Refund processing: proof uploaded via AYA Pay (ref: TXN-12345678)', '2026-06-27 10:12:16'),
+(217, 340, NULL, 'draft', 30, NULL, '2026-06-27 10:17:07'),
+(218, 340, 'draft', 'pending_supplier_response', 30, NULL, '2026-06-27 10:17:07'),
+(219, 340, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 10:17:26'),
+(220, 340, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 10:17:26'),
+(221, 340, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 10:26:01'),
+(222, 340, 'pending_final_payment', 'cancellation_requested', NULL, 'Cancellation requested: we don\'t want you', '2026-06-27 10:35:33'),
+(223, 340, 'cancelled', 'cancelled', 1, 'Refund of 0 MMK queued (No refund - cancelled less than 2 days before event)', '2026-06-27 10:36:22'),
+(224, 340, NULL, 'cancelled', 1, 'Cancelled by admin: the customer sent the canclelation request', '2026-06-27 10:36:22'),
+(225, 340, 'cancelled', 'cancelled', 1, 'Refund processing: proof uploaded via AYA Pay (ref: TXN-12345678)', '2026-06-27 10:36:38'),
+(226, 340, 'cancelled', 'cancelled', 1, 'Refund completed: 0 MMK', '2026-06-27 10:37:19'),
+(227, 339, 'cancelled', 'cancelled', 1, 'Refund processing: proof uploaded via AYA Pay (ref: TXN-12345678)', '2026-06-27 10:37:41'),
+(228, 339, 'cancelled', 'cancelled', 1, 'Refund completed: 273,000 MMK', '2026-06-27 10:38:01'),
+(229, 341, NULL, 'draft', 30, NULL, '2026-06-27 10:39:57'),
+(230, 341, 'draft', 'pending_supplier_response', 30, NULL, '2026-06-27 10:39:57'),
+(231, 341, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 10:40:10'),
+(232, 341, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 10:40:10'),
+(233, 341, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 10:41:11'),
+(234, 52, 'cancelled', 'cancelled', 1, 'Refund of 0 MMK queued (No refund - cancelled less than 2 days before event)', '2026-06-27 10:48:41'),
+(235, 52, NULL, 'cancelled', 1, 'Cancelled by admin: refund', '2026-06-27 10:48:41'),
+(236, 52, 'cancelled', 'cancelled', 1, 'Refund processing: proof uploaded via AYA Pay (ref: TXN-12345678)', '2026-06-27 10:48:59'),
+(237, 52, 'cancelled', 'cancelled', 1, 'Refund completed: 0 MMK', '2026-06-27 10:49:09'),
+(238, 342, NULL, 'draft', 30, NULL, '2026-06-27 10:53:32'),
+(239, 342, 'draft', 'pending_supplier_response', 30, NULL, '2026-06-27 10:53:32'),
+(240, 342, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 10:53:43'),
+(241, 342, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 10:53:43'),
+(242, 342, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 10:54:18'),
+(243, 343, NULL, 'draft', 30, NULL, '2026-06-27 11:04:29'),
+(244, 343, 'draft', 'pending_supplier_response', 30, NULL, '2026-06-27 11:04:29'),
+(245, 343, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 11:04:45'),
+(246, 343, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 11:04:45'),
+(247, 343, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 11:05:25'),
+(248, 344, NULL, 'draft', 30, NULL, '2026-06-27 11:09:35'),
+(249, 344, 'draft', 'pending_supplier_response', 30, NULL, '2026-06-27 11:09:35'),
+(250, 344, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 11:09:51'),
+(251, 344, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 11:09:51'),
+(252, 344, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 11:11:25'),
+(253, 344, 'paid', 'cancellation_requested', 24, 'Supplier requested cancellation. Reason: i don\'t want to do', '2026-06-27 11:30:41'),
+(254, 344, 'cancelled', 'cancelled', 1, 'Refund of 273,000 MMK queued (50% refund - cancelled 2-7 days before event)', '2026-06-27 11:36:37'),
+(255, 344, NULL, 'cancelled', 1, 'Cancelled by admin: supplier request to cancle', '2026-06-27 11:36:37'),
+(256, 344, 'cancelled', 'cancelled', 1, 'Refund processing: proof uploaded via AYA Pay (ref: TXN-12345678)', '2026-06-27 11:36:50'),
+(257, 345, NULL, 'draft', 29, NULL, '2026-06-27 11:39:58'),
+(258, 345, 'draft', 'pending_supplier_response', 29, NULL, '2026-06-27 11:39:58'),
+(259, 345, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 11:40:10'),
+(260, 345, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 11:40:10'),
+(261, 345, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 11:40:52');
 
 -- --------------------------------------------------------
 
@@ -825,7 +985,7 @@ CREATE TABLE `booking_suppliers` (
   `category_id` bigint(20) DEFAULT NULL,
   `package_item_id` bigint(20) DEFAULT NULL,
   `item_price` decimal(10,2) DEFAULT NULL,
-  `status` enum('pending','confirmed','in_progress','completed','cancelled','rejected','needs_replacement','replaced','declined_again','cancellation_pending','cancellation_approved') NOT NULL DEFAULT 'pending',
+  `status` enum('pending','confirmed','in_progress','completed','cancelled','rejected','needs_replacement','replaced','declined_again','cancellation_pending','cancellation_approved','supplier_cancellation_requested') NOT NULL DEFAULT 'pending',
   `confirmed_at` timestamp NULL DEFAULT NULL,
   `declined_at` timestamp NULL DEFAULT NULL,
   `completed_at` timestamp NULL DEFAULT NULL,
@@ -849,10 +1009,10 @@ INSERT INTO `booking_suppliers` (`id`, `booking_id`, `supplier_id`, `service_id`
 (60, 51, 20, 48, 12, 73, 2100000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-20 03:17:33'),
 (61, 51, 20, 49, 6, 74, 900000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-20 03:17:33'),
 (62, 51, 20, 50, 5, 75, 200000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-20 03:17:33'),
-(63, 52, 20, 47, 2, 79, 750000.00, 'confirmed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-20 03:17:33'),
-(64, 52, 20, 48, 12, 80, 2100000.00, 'confirmed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-20 03:17:33'),
-(65, 52, 20, 50, 5, 82, 200000.00, 'confirmed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-20 03:17:33'),
-(66, 52, 21, 55, 2, 86, 40000.00, 'confirmed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-20 03:17:33'),
+(63, 52, 20, 47, 2, 79, 750000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-27 10:48:41'),
+(64, 52, 20, 48, 12, 80, 2100000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-27 10:48:41'),
+(65, 52, 20, 50, 5, 82, 200000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-27 10:48:41'),
+(66, 52, 21, 55, 2, 86, 40000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 03:17:33', '2026-06-27 10:48:41'),
 (67, 53, 20, 47, 2, NULL, 750000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', 75, '2026-06-20 03:17:33', '2026-06-22 09:39:43'),
 (68, 53, 20, 48, 12, NULL, 2100000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', 74, '2026-06-20 03:17:33', '2026-06-22 09:39:43'),
 (69, 53, 20, 50, 5, NULL, 200000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', 256, '2026-06-20 03:17:33', '2026-06-22 09:39:43'),
@@ -1050,11 +1210,11 @@ INSERT INTO `booking_suppliers` (`id`, `booking_id`, `supplier_id`, `service_id`
 (266, 313, 75, 110, 9, NULL, 1000000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 03:33:34', '2026-06-22 03:33:34'),
 (267, 314, 21, 56, 10, NULL, 150000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 03:45:48', '2026-06-22 03:46:27'),
 (268, 315, 129, 164, 10, NULL, 15000000.00, 'confirmed', '2026-06-22 07:48:12', NULL, NULL, 'unpaid', NULL, '2026-06-22 07:37:58', '2026-06-22 07:48:12'),
-(269, 316, 20, 47, 2, 110, 750000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
-(270, 316, 20, 48, 12, 111, 2100000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
-(271, 316, 20, 50, 5, 112, 200000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
-(272, 316, 21, 55, 2, 113, 40000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
-(273, 316, 21, 56, 10, 117, 73000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
+(269, 316, 20, 47, 2, 110, 750000.00, 'confirmed', '2026-06-27 07:02:32', NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-27 07:02:32'),
+(270, 316, 20, 48, 12, 111, 2100000.00, 'confirmed', '2026-06-27 07:02:32', NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-27 07:02:32'),
+(271, 316, 20, 50, 5, 112, 200000.00, 'confirmed', '2026-06-27 07:02:32', NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-27 07:02:32'),
+(272, 316, 21, 55, 2, 113, 40000.00, 'confirmed', '2026-06-27 07:02:32', NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-27 07:02:32'),
+(273, 316, 21, 56, 10, 117, 73000.00, 'confirmed', '2026-06-27 07:02:32', NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-27 07:02:32'),
 (276, 317, 20, 47, 2, 110, 750000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:07:04', '2026-06-23 05:07:04'),
 (277, 317, 20, 48, 12, 111, 2100000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:07:04', '2026-06-23 05:07:04'),
 (278, 317, 20, 50, 5, 112, 200000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:07:04', '2026-06-23 05:07:04'),
@@ -1093,7 +1253,16 @@ INSERT INTO `booking_suppliers` (`id`, `booking_id`, `supplier_id`, `service_id`
 (320, 310, 134, NULL, NULL, NULL, NULL, 'confirmed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 04:30:00', '2026-06-25 07:33:59'),
 (321, 334, 20, 49, 6, NULL, 900000.00, 'confirmed', '2026-06-25 16:17:16', NULL, NULL, 'unpaid', NULL, '2026-06-25 13:10:35', '2026-06-25 16:17:16'),
 (322, 335, 21, 55, 2, NULL, 500000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-26 03:33:41', '2026-06-26 03:33:41'),
-(323, 336, 134, 167, 2, NULL, 2500000.00, 'confirmed', '2026-06-26 04:41:05', NULL, NULL, 'unpaid', NULL, '2026-06-26 04:40:29', '2026-06-26 04:41:05');
+(323, 336, 134, 167, 2, NULL, 2500000.00, 'confirmed', '2026-06-26 04:41:05', NULL, NULL, 'unpaid', NULL, '2026-06-26 04:40:29', '2026-06-26 04:41:05'),
+(324, 337, 20, 49, 6, NULL, 3000000.00, 'cancelled', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-27 07:41:56', '2026-06-27 07:42:12'),
+(325, 338, 20, 49, 6, NULL, 3000000.00, 'confirmed', '2026-06-27 08:08:05', NULL, NULL, 'unpaid', NULL, '2026-06-27 08:07:50', '2026-06-27 08:08:05'),
+(326, 339, 20, 50, 5, NULL, 2100000.00, 'cancelled', '2026-06-27 09:57:13', NULL, NULL, 'unpaid', NULL, '2026-06-27 09:57:00', '2026-06-27 09:59:09'),
+(327, 340, 20, 50, 5, NULL, 2100000.00, 'cancelled', '2026-06-27 10:17:26', NULL, NULL, 'unpaid', NULL, '2026-06-27 10:17:07', '2026-06-27 10:36:22'),
+(328, 341, 20, 50, 5, NULL, 2100000.00, 'confirmed', '2026-06-27 10:40:10', NULL, NULL, 'unpaid', NULL, '2026-06-27 10:39:57', '2026-06-27 10:40:10'),
+(329, 342, 20, 50, 5, NULL, 2100000.00, 'confirmed', '2026-06-27 10:53:43', NULL, NULL, 'unpaid', NULL, '2026-06-27 10:53:32', '2026-06-27 10:53:43'),
+(330, 343, 20, 50, 5, NULL, 2100000.00, 'confirmed', '2026-06-27 11:04:45', NULL, NULL, 'unpaid', NULL, '2026-06-27 11:04:29', '2026-06-27 11:04:45'),
+(331, 344, 20, 50, 5, NULL, 2100000.00, 'cancelled', '2026-06-27 11:09:51', NULL, NULL, 'unpaid', NULL, '2026-06-27 11:09:35', '2026-06-27 11:36:37'),
+(332, 345, 20, 50, 5, NULL, 2100000.00, 'confirmed', '2026-06-27 11:40:10', NULL, NULL, 'unpaid', NULL, '2026-06-27 11:39:58', '2026-06-27 11:40:10');
 
 -- --------------------------------------------------------
 
@@ -1168,25 +1337,8 @@ INSERT INTO `booking_vouchers` (`id`, `booking_id`, `voucher_number`, `service_i
 (12, 50, 'VCH-PKG-12F37AD8', NULL, 21, 'Standard Wedding Package', 'Service', NULL, NULL, NULL, 'အမှတ်-(132) အင်းယားလမ်း၊ ကမာရွတ်မြို့နယ်၊ ရန်ကုန်မြို့။', 76860.00, 'active', '2026-06-19 10:52:23'),
 (13, 52, 'VCH-PKG-365D3EEE', NULL, 20, 'Standard Wedding Package', 'Service', NULL, NULL, NULL, '35, Taw Win Road, Dagon Township, Yangon', 4074000.00, 'active', '2026-06-20 01:36:28'),
 (14, 53, 'VCH-PKG-77D47D61', NULL, 20, 'Standard Wedding Package', 'Service', NULL, NULL, NULL, 'အမှတ်-(132) အင်းယားလမ်း၊ ကမာရွတ်မြို့နယ်၊ ရန်ကုန်မြို့။', 4074000.00, 'active', '2026-06-20 02:33:51'),
-(15, 310, 'VCH-PKG-36A2060D', NULL, 20, 'Standard Wedding Package', 'Service', NULL, NULL, NULL, 'No 39. Hnin Si Street', 4150650.00, 'active', '2026-06-21 06:25:46');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `cake_designs`
---
-
-CREATE TABLE `cake_designs` (
-  `id` bigint(20) NOT NULL,
-  `service_id` bigint(20) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `price` decimal(10,2) DEFAULT 0.00,
-  `package_price` decimal(10,2) DEFAULT NULL,
-  `customize_price` decimal(10,2) DEFAULT NULL,
-  `photo_url` varchar(500) DEFAULT NULL,
-  `sort_order` int(11) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+(15, 310, 'VCH-PKG-36A2060D', NULL, 20, 'Standard Wedding Package', 'Service', NULL, NULL, NULL, 'No 39. Hnin Si Street', 4150650.00, 'active', '2026-06-21 06:25:46'),
+(16, 316, 'VCH-PKG-1E2DBDEC', NULL, 20, 'Standard Wedding Package', 'Service', NULL, NULL, NULL, 'No 39. Hnin Si Street', 4150650.00, 'active', '2026-06-27 07:02:32');
 
 -- --------------------------------------------------------
 
@@ -1239,8 +1391,12 @@ CREATE TABLE `cart_items` (
   `end_time` time DEFAULT NULL,
   `venue_room_id` bigint(20) DEFAULT NULL,
   `attire_item_id` bigint(20) DEFAULT NULL,
+  `rental_type` enum('borrow','buy') DEFAULT NULL,
+  `borrow_date` date DEFAULT NULL,
+  `rental_option_id` bigint(20) DEFAULT NULL COMMENT 'References attire_rental_options.id',
   `decoration_style_id` bigint(20) DEFAULT NULL,
   `cake_design_id` bigint(20) DEFAULT NULL,
+  `guest_count` int(11) DEFAULT NULL,
   `package_cart_item_id` bigint(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -1248,10 +1404,9 @@ CREATE TABLE `cart_items` (
 -- Dumping data for table `cart_items`
 --
 
-INSERT INTO `cart_items` (`id`, `cart_id`, `user_id`, `item_type`, `item_id`, `selected_date`, `price`, `source`, `slot_id`, `start_time`, `end_time`, `venue_room_id`, `attire_item_id`, `decoration_style_id`, `cake_design_id`, `package_cart_item_id`) VALUES
-(95, 3, 30, 'service', 67, '2026-06-23', 240000.00, 'custom', NULL, NULL, NULL, NULL, 19, NULL, NULL, NULL),
-(96, 4, 1, 'package', 30, NULL, 4150650.00, 'package', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(110, 3, 30, 'package', 31, NULL, 4150650.00, 'package', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `cart_items` (`id`, `cart_id`, `user_id`, `item_type`, `item_id`, `selected_date`, `price`, `source`, `slot_id`, `start_time`, `end_time`, `venue_room_id`, `attire_item_id`, `rental_type`, `borrow_date`, `rental_option_id`, `decoration_style_id`, `cake_design_id`, `guest_count`, `package_cart_item_id`) VALUES
+(96, 4, 1, 'package', 30, NULL, 4150650.00, 'package', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(135, 2, 27, 'service', 121, '2026-06-28', 60000.00, 'custom', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1324,10 +1479,6 @@ CREATE TABLE `decoration_styles` (
 
 INSERT INTO `decoration_styles` (`id`, `service_id`, `name`, `price`, `package_price`, `customize_price`, `photo_url`, `sort_order`, `created_at`) VALUES
 (2, 37, 'Ballon Arch', 2000000.00, NULL, NULL, NULL, 0, '2026-06-17 09:27:00'),
-(7, 46, 'Ballon Arh', 1000000.00, NULL, NULL, 'http://localhost/GP/public/uploads/suppliers/20/service-management/decoration-style/20260618123229-ae63d4c6.png', 0, '2026-06-18 10:37:12'),
-(8, 46, 'Premium', 750000.00, NULL, NULL, 'http://localhost/GP/public/uploads/suppliers/20/service-management/decoration-style/20260618123712-769732da.png', 1, '2026-06-18 10:37:12'),
-(11, 48, 'Flower Deco', 2100000.00, 2100000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/decoration-style/20260618210222-a1b9542f.png', 0, '2026-06-18 19:15:57'),
-(12, 48, 'Golden Deco', 1800000.00, 1800000.00, 1800000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/decoration-style/20260618211557-3e2f52ad.png', 1, '2026-06-18 19:15:57'),
 (13, 43, 'Ballon Arch', 3400000.00, 3400000.00, 3400000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/decoration-style/20260619054808-272a7a46.png', 0, '2026-06-19 03:48:08'),
 (14, 59, 'Classic Elegance', 2900000.00, 2900000.00, 3480000.00, 'http://localhost/GP/public/uploads/serviceHero1.png', 0, '2026-06-20 13:57:16'),
 (15, 59, 'Floral Romance', 3770000.00, 3770000.00, 4524000.00, 'http://localhost/GP/public/uploads/serviceHero2.png', 1, '2026-06-20 13:57:16'),
@@ -1349,7 +1500,9 @@ INSERT INTO `decoration_styles` (`id`, `service_id`, `name`, `price`, `package_p
 (31, 136, 'Theme-based Custom', 800000.00, 800000.00, 960000.00, 'http://localhost/GP/public/uploads/serviceHero2.png', 2, '2026-06-20 13:57:16'),
 (32, 137, 'Classic Elegance', 4300000.00, 4300000.00, 5160000.00, 'http://localhost/GP/public/uploads/serviceHero1.png', 0, '2026-06-20 13:57:16'),
 (33, 137, 'Floral Romance', 5590000.00, 5590000.00, 6708000.00, 'http://localhost/GP/public/uploads/serviceHero2.png', 1, '2026-06-20 13:57:16'),
-(34, 137, 'Theme-based Custom', 6880000.00, 6880000.00, 8256000.00, 'http://localhost/GP/public/uploads/serviceHero3.png', 2, '2026-06-20 13:57:16');
+(34, 137, 'Theme-based Custom', 6880000.00, 6880000.00, 8256000.00, 'http://localhost/GP/public/uploads/serviceHero3.png', 2, '2026-06-20 13:57:16'),
+(35, 48, 'Flower Deco', 2100000.00, 2100000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/decoration-style/20260618210222-a1b9542f.png', 0, '2026-06-26 11:40:47'),
+(36, 48, 'Golden Deco', 1800000.00, 1800000.00, 1800000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/decoration-style/20260618211557-3e2f52ad.png', 1, '2026-06-26 11:40:47');
 
 -- --------------------------------------------------------
 
@@ -1695,7 +1848,16 @@ INSERT INTO `event_details` (`id`, `booking_id`, `booking_item_id`, `event_date`
 (288, 333, 391, '2026-06-26', '09:00:00', '18:00:00', 2, NULL, 'Ballroom A', NULL, NULL, 'Tina', '09252208158', 'make it pretty too', NULL, '2026-06-25 05:01:14'),
 (289, 334, 393, '2026-07-27', '09:00:00', '17:00:00', 200, NULL, 'Ballon A', NULL, NULL, 'Saen', '09123456789', '', NULL, '2026-06-25 13:10:35'),
 (290, 335, 394, '2026-06-29', '10:00:00', '17:00:00', 1, NULL, 'Ballon A', NULL, NULL, 'Saen', '09451777705', 'special request', NULL, '2026-06-26 03:33:41'),
-(291, 336, 395, '2026-07-08', '09:00:00', '17:00:00', 1, NULL, 'Yangon', NULL, NULL, 'dfnsdjfb', '09781344861', 'make more beautiful', NULL, '2026-06-26 04:40:29');
+(291, 336, 395, '2026-07-08', '09:00:00', '17:00:00', 1, NULL, 'Yangon', NULL, NULL, 'dfnsdjfb', '09781344861', 'make more beautiful', NULL, '2026-06-26 04:40:29'),
+(292, 337, 396, '2026-07-07', '09:00:00', '17:00:00', 700, NULL, 'Zpyr', NULL, NULL, 'Zaw Moe', '09123456789', '', NULL, '2026-06-27 07:41:56'),
+(293, 338, 397, '2026-07-06', '09:00:00', '17:00:00', 700, NULL, 'အမှတ်-(28) စိမ်းလန်းစိုပြေပန်းခြံ၊ အင်းယားလမ်း၊ ကမာရွတ်မြို့နယ်၊ ရန်ကုန်မြို့။', NULL, NULL, 'zaw moe', '09123456789', '', NULL, '2026-06-27 08:07:50'),
+(294, 339, 398, '2026-07-04', '09:00:00', '17:00:00', 1, NULL, 'အနော်မာ', NULL, NULL, 'Aye Aye', '09123456789', '', NULL, '2026-06-27 09:57:00'),
+(295, 340, 399, '2026-06-28', '09:00:00', '17:00:00', 1, NULL, 'sein mya kan thar', NULL, NULL, 'Zin Gyi', '09123456789', '', NULL, '2026-06-27 10:17:07'),
+(296, 341, 400, '2026-06-28', '09:00:00', '17:00:00', 1, NULL, 'kan taw gyi', NULL, NULL, 'ZM', '09123456789', '', NULL, '2026-06-27 10:39:57'),
+(297, 342, 401, '2026-06-29', '09:00:00', '17:00:00', 1, NULL, 'babylone', NULL, NULL, 'Kyaw Kyaw', '09123456789', '', NULL, '2026-06-27 10:53:32'),
+(298, 343, 402, '2026-06-30', '09:00:00', '17:00:00', 1, NULL, 'a naw mar', NULL, NULL, 'HH', '0912345678', '', NULL, '2026-06-27 11:04:29'),
+(299, 344, 403, '2026-06-30', '09:00:00', '17:00:00', 1, NULL, 'ballon', NULL, NULL, 'HH', '0912345678', '', NULL, '2026-06-27 11:09:35'),
+(300, 345, 404, '2026-06-30', '09:00:00', '17:00:00', 1, NULL, 'a naw mar', NULL, NULL, 'Saen', '0912345678', '', NULL, '2026-06-27 11:39:58');
 
 -- --------------------------------------------------------
 
@@ -1722,6 +1884,33 @@ INSERT INTO `favorites` (`id`, `user_id`, `item_type`, `item_id`, `collection_id
 (3, 30, 'service', 165, NULL, NULL, '2026-06-20 13:11:59'),
 (4, 30, 'service', 154, 2, NULL, '2026-06-22 03:23:37'),
 (5, 30, 'service', 144, NULL, NULL, '2026-06-22 03:24:38');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `food_items`
+--
+
+CREATE TABLE `food_items` (
+  `id` bigint(20) NOT NULL,
+  `service_id` bigint(20) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `description` varchar(500) DEFAULT NULL,
+  `price` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `package_price` decimal(12,2) DEFAULT NULL,
+  `customize_price` decimal(12,2) DEFAULT NULL,
+  `pricing_model` enum('flat','per_person') NOT NULL DEFAULT 'flat',
+  `photo_url` varchar(500) DEFAULT NULL,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `food_items`
+--
+
+INSERT INTO `food_items` (`id`, `service_id`, `name`, `description`, `price`, `package_price`, `customize_price`, `pricing_model`, `photo_url`, `sort_order`, `created_at`) VALUES
+(1, 170, 'Chocolate Wedding Cake', NULL, 300000.00, 300000.00, 400000.00, 'flat', 'http://localhost/GP/public/uploads/suppliers/20/service-management/food-item/20260627150931-4169c320.png', 0, '2026-06-27 08:39:31');
 
 -- --------------------------------------------------------
 
@@ -1962,7 +2151,7 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `refer
 (198, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 315, 0, '2026-06-22 08:23:21'),
 (199, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 3,750,000 MMK for booking BK-20260622-315. Please verify it.', 'payment', 'booking', 315, 1, '2026-06-22 08:23:21'),
 (200, 30, 'Booking Cancelled by Admin', 'Your booking has been cancelled by the administrator. Reason: cancle booking Your deposit will be refunded.', 'booking', 'booking', 53, 1, '2026-06-22 09:39:43'),
-(201, 24, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
+(201, 24, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 1, '2026-06-22 09:39:43'),
 (202, 40, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
 (203, 32, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
 (204, 47, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
@@ -2038,7 +2227,112 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `refer
 (274, 27, 'New Booking Request', 'Avary is requesting: Grand. Please accept or decline within 48 hours.', 'booking', 'booking', 336, 1, '2026-06-26 04:40:29');
 INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `reference_type`, `reference_id`, `is_read`, `created_at`) VALUES
 (275, 1, 'New Custom Booking Request', 'Avary created a custom or mixed booking for: Grand. Supplier responses are pending.', 'booking', 'booking', 336, 0, '2026-06-26 04:40:29'),
-(276, 126, 'Supplier Accepted — Please Pay', 'Shwe Phoo Sar accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 336, 1, '2026-06-26 04:41:05');
+(276, 126, 'Supplier Accepted — Please Pay', 'Shwe Phoo Sar accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 336, 1, '2026-06-26 04:41:05'),
+(277, 1, 'Service publish request', 'JV requested publishing for \"Aphrodite Wedding Planning & Decoration\".', 'approval', 'service', 46, 1, '2026-06-27 04:27:30'),
+(278, 24, 'Publish request sent', 'Your request to publish \"Aphrodite Wedding Planning & Decoration\" was sent to admin.', 'approval', 'service', 46, 0, '2026-06-27 04:27:30'),
+(279, 30, 'Remaining Payment Submitted', 'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.', 'payment', 'booking', 310, 0, '2026-06-27 04:48:09'),
+(280, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 3,320,520 MMK for booking BK-20260621-310. Please verify it.', 'payment', 'booking', 310, 1, '2026-06-27 04:48:09'),
+(281, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 316, 0, '2026-06-27 07:02:18'),
+(282, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 1,079,169 MMK for booking BK-20260622-316. Please verify it.', 'payment', 'booking', 316, 1, '2026-06-27 07:02:18'),
+(283, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 316, 0, '2026-06-27 07:02:32'),
+(284, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 316, 1, '2026-06-27 07:02:32'),
+(285, 29, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 316, 0, '2026-06-27 07:02:32'),
+(286, 1, 'Service publish request', 'JV requested publishing for \"Zephyr Sein Lann So pyay\".', 'approval', 'service', 49, 1, '2026-06-27 07:39:09'),
+(287, 24, 'Publish request sent', 'Your request to publish \"Zephyr Sein Lann So pyay\" was sent to admin.', 'approval', 'service', 49, 1, '2026-06-27 07:39:09'),
+(288, 24, 'New Booking Request', 'zaw moe is requesting: Zephyr Sein Lann So pyay. Please accept or decline within 24 hours.', 'booking', 'booking', 337, 1, '2026-06-27 07:41:56'),
+(289, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: Zephyr Sein Lann So pyay. Supplier responses are pending.', 'booking', 'booking', 337, 0, '2026-06-27 07:41:56'),
+(290, 30, 'Booking Request Declined', 'JV is unavailable for your requested dates. Please search for another supplier.', 'booking', 'booking', 337, 0, '2026-06-27 07:42:12'),
+(291, 24, 'New Booking Request', 'zaw moe is requesting: Zephyr Sein Lann So pyay. Please accept or decline within 24 hours.', 'booking', 'booking', 338, 1, '2026-06-27 08:07:50'),
+(292, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: Zephyr Sein Lann So pyay. Supplier responses are pending.', 'booking', 'booking', 338, 0, '2026-06-27 08:07:50'),
+(293, 30, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 338, 0, '2026-06-27 08:08:05'),
+(294, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 338, 0, '2026-06-27 08:08:32'),
+(295, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 780,000 MMK for booking BK-20260627-338. Please verify it.', 'payment', 'booking', 338, 1, '2026-06-27 08:08:32'),
+(296, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 338, 0, '2026-06-27 08:08:57'),
+(297, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 338, 1, '2026-06-27 08:08:57'),
+(298, 1, 'Service publish request', 'JV requested publishing for \"Eldora\".', 'approval', 'service', 170, 1, '2026-06-27 08:40:33'),
+(299, 24, 'Publish request sent', 'Your request to publish \"Eldora\" was sent to admin.', 'approval', 'service', 170, 1, '2026-06-27 08:40:33'),
+(300, 30, 'Remaining Payment Submitted', 'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.', 'payment', 'booking', 338, 0, '2026-06-27 09:04:13'),
+(301, 1, 'Remaining Payment Submitted', 'A customer submitted remaining balance payment proof for 2,220,000 MMK for booking BK-20260627-338. Please verify it.', 'payment', 'booking', 338, 1, '2026-06-27 09:04:13'),
+(302, 24, 'New Booking Request', 'zaw moe is requesting: H & H Wedding Studio. Please accept or decline within 24 hours.', 'booking', 'booking', 339, 1, '2026-06-27 09:57:00'),
+(303, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: H & H Wedding Studio. Supplier responses are pending.', 'booking', 'booking', 339, 0, '2026-06-27 09:57:00'),
+(304, 30, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 339, 0, '2026-06-27 09:57:13'),
+(305, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 339, 0, '2026-06-27 09:57:44'),
+(306, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 546,000 MMK for booking BK-20260627-339. Please verify it.', 'payment', 'booking', 339, 1, '2026-06-27 09:57:44'),
+(307, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 339, 0, '2026-06-27 09:57:54'),
+(308, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 339, 0, '2026-06-27 09:57:54'),
+(309, 30, 'Booking Cancelled by Admin', 'Your booking has been cancelled by the administrator. Reason: cancle ချင်လို့ကွာ Your deposit will be refunded.', 'booking', 'booking', 339, 0, '2026-06-27 09:59:09'),
+(310, 24, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle ချင်လို့ကွာ', 'booking', 'booking', 339, 1, '2026-06-27 09:59:09'),
+(311, 30, 'Refund Being Processed', 'Your refund of 273,000 MMK is being processed. You will receive it shortly.', 'booking', 'booking', 339, 0, '2026-06-27 10:12:16'),
+(312, 24, 'New Booking Request', 'zaw moe is requesting: H & H Wedding Studio. Please accept or decline within 24 hours.', 'booking', 'booking', 340, 1, '2026-06-27 10:17:07'),
+(313, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: H & H Wedding Studio. Supplier responses are pending.', 'booking', 'booking', 340, 0, '2026-06-27 10:17:07'),
+(314, 30, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 340, 0, '2026-06-27 10:17:26'),
+(315, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 340, 0, '2026-06-27 10:17:50'),
+(316, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 546,000 MMK for booking BK-20260627-340. Please verify it.', 'payment', 'booking', 340, 1, '2026-06-27 10:17:50'),
+(317, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 340, 0, '2026-06-27 10:25:53'),
+(318, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 340, 1, '2026-06-27 10:25:53'),
+(319, 30, 'Remaining Payment Submitted', 'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.', 'payment', 'booking', 340, 0, '2026-06-27 10:26:27'),
+(320, 1, 'Remaining Payment Submitted', 'A customer submitted remaining balance payment proof for 1,680,000 MMK for booking BK-20260627-340. Please verify it.', 'payment', 'booking', 340, 1, '2026-06-27 10:26:27'),
+(321, 24, 'Cancellation Request — BK-20260627-340', 'zaw moe has requested cancellation of booking BK-20260627-340. Reason: we don\'t want you. Please review and approve or decline this request.', 'booking', 'booking', 340, 0, '2026-06-27 10:35:33'),
+(322, 1, 'Cancellation Request (Pending Supplier Review) — BK-20260627-340', 'zaw moe has requested cancellation of customize booking BK-20260627-340. The supplier has been asked to review first.', 'booking', 'booking', 340, 1, '2026-06-27 10:35:33'),
+(323, 30, 'Booking Cancelled by Admin', 'Your booking has been cancelled by the administrator. Reason: the customer sent the canclelation request Your deposit will be refunded.', 'booking', 'booking', 340, 0, '2026-06-27 10:36:22'),
+(324, 24, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: the customer sent the canclelation request', 'booking', 'booking', 340, 0, '2026-06-27 10:36:22'),
+(325, 30, 'Refund Being Processed', 'Your refund of 0 MMK is being processed. You will receive it shortly.', 'booking', 'booking', 340, 0, '2026-06-27 10:36:38'),
+(326, 30, 'Refund Completed', 'Your refund of 0 MMK has been completed. Please check your account.', 'booking', 'booking', 340, 0, '2026-06-27 10:37:19'),
+(327, 30, 'Refund Being Processed', 'Your refund of 273,000 MMK is being processed. You will receive it shortly.', 'booking', 'booking', 339, 0, '2026-06-27 10:37:41'),
+(328, 30, 'Refund Completed', 'Your refund of 273,000 MMK has been completed. Please check your account.', 'booking', 'booking', 339, 0, '2026-06-27 10:38:01'),
+(329, 24, 'New Booking Request', 'zaw moe is requesting: H & H Wedding Studio. Please accept or decline within 24 hours.', 'booking', 'booking', 341, 1, '2026-06-27 10:39:57'),
+(330, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: H & H Wedding Studio. Supplier responses are pending.', 'booking', 'booking', 341, 1, '2026-06-27 10:39:57'),
+(331, 30, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 341, 0, '2026-06-27 10:40:10'),
+(332, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 341, 0, '2026-06-27 10:40:57'),
+(333, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 546,000 MMK for booking BK-20260627-341. Please verify it.', 'payment', 'booking', 341, 0, '2026-06-27 10:40:57'),
+(334, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 341, 0, '2026-06-27 10:41:04'),
+(335, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 341, 0, '2026-06-27 10:41:04'),
+(336, 30, 'Remaining Payment Submitted', 'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.', 'payment', 'booking', 341, 0, '2026-06-27 10:41:54'),
+(337, 1, 'Remaining Payment Submitted', 'A customer submitted remaining balance payment proof for 1,680,000 MMK for booking BK-20260627-341. Please verify it.', 'payment', 'booking', 341, 0, '2026-06-27 10:41:54'),
+(338, 30, 'Booking Cancelled by Admin', 'Your booking has been cancelled by the administrator. Reason: refund Your deposit will be refunded.', 'booking', 'booking', 52, 0, '2026-06-27 10:48:41'),
+(339, 24, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: refund', 'booking', 'booking', 52, 0, '2026-06-27 10:48:41'),
+(340, 29, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: refund', 'booking', 'booking', 52, 0, '2026-06-27 10:48:41'),
+(341, 30, 'Refund Being Processed', 'Your refund of 0 MMK is being processed. You will receive it shortly.', 'booking', 'booking', 52, 0, '2026-06-27 10:48:59'),
+(342, 30, 'Refund Completed', 'Your refund of 0 MMK has been completed. Please check your account.', 'booking', 'booking', 52, 0, '2026-06-27 10:49:09'),
+(343, 24, 'New Booking Request', 'zaw moe is requesting: H & H Wedding Studio. Please accept or decline within 24 hours.', 'booking', 'booking', 342, 1, '2026-06-27 10:53:32'),
+(344, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: H & H Wedding Studio. Supplier responses are pending.', 'booking', 'booking', 342, 0, '2026-06-27 10:53:32'),
+(345, 30, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 342, 0, '2026-06-27 10:53:43'),
+(346, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 342, 0, '2026-06-27 10:54:01'),
+(347, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 546,000 MMK for booking BK-20260627-342. Please verify it.', 'payment', 'booking', 342, 1, '2026-06-27 10:54:01'),
+(348, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 342, 0, '2026-06-27 10:54:09'),
+(349, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 342, 1, '2026-06-27 10:54:09'),
+(350, 30, 'Remaining Payment Submitted', 'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.', 'payment', 'booking', 342, 0, '2026-06-27 11:03:15'),
+(351, 1, 'Remaining Payment Submitted', 'A customer submitted remaining balance payment proof for 1,680,000 MMK for booking BK-20260627-342. Please verify it.', 'payment', 'booking', 342, 0, '2026-06-27 11:03:15'),
+(352, 24, 'New Booking Request', 'zaw moe is requesting: H & H Wedding Studio. Please accept or decline within 24 hours.', 'booking', 'booking', 343, 1, '2026-06-27 11:04:29'),
+(353, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: H & H Wedding Studio. Supplier responses are pending.', 'booking', 'booking', 343, 0, '2026-06-27 11:04:29'),
+(354, 30, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 343, 0, '2026-06-27 11:04:45'),
+(355, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 343, 0, '2026-06-27 11:05:06'),
+(356, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 546,000 MMK for booking BK-20260627-343. Please verify it.', 'payment', 'booking', 343, 1, '2026-06-27 11:05:06'),
+(357, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 343, 0, '2026-06-27 11:05:15'),
+(358, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 343, 1, '2026-06-27 11:05:15'),
+(359, 30, 'Remaining Payment Submitted', 'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.', 'payment', 'booking', 343, 0, '2026-06-27 11:05:49'),
+(360, 1, 'Remaining Payment Submitted', 'A customer submitted remaining balance payment proof for 1,680,000 MMK for booking BK-20260627-343. Please verify it.', 'payment', 'booking', 343, 0, '2026-06-27 11:05:49'),
+(361, 24, 'New Booking Request', 'zaw moe is requesting: H & H Wedding Studio. Please accept or decline within 24 hours.', 'booking', 'booking', 344, 1, '2026-06-27 11:09:35'),
+(362, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: H & H Wedding Studio. Supplier responses are pending.', 'booking', 'booking', 344, 0, '2026-06-27 11:09:35'),
+(363, 30, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 344, 0, '2026-06-27 11:09:51'),
+(364, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 344, 0, '2026-06-27 11:11:04'),
+(365, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 546,000 MMK for booking BK-20260627-344. Please verify it.', 'payment', 'booking', 344, 1, '2026-06-27 11:11:04'),
+(366, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 344, 0, '2026-06-27 11:11:17'),
+(367, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 344, 1, '2026-06-27 11:11:17'),
+(368, 30, 'Supplier Cancellation Request — BK-20260627-344', 'JV has requested to cancel your booking BK-20260627-344. Reason: i don\'t want to do. Admin will review and process your refund.', 'booking', 'booking', 344, 0, '2026-06-27 11:30:41'),
+(369, 1, 'Supplier Requests Cancellation — BK-20260627-344', 'JV has requested cancellation of booking BK-20260627-344. Reason: i don\'t want to do. Please review and process the refund.', 'booking', 'booking', 344, 1, '2026-06-27 11:30:41'),
+(370, 30, 'Booking Cancelled by Admin', 'Your booking has been cancelled by the administrator. Reason: supplier request to cancle Your deposit will be refunded.', 'booking', 'booking', 344, 0, '2026-06-27 11:36:37'),
+(371, 24, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: supplier request to cancle', 'booking', 'booking', 344, 0, '2026-06-27 11:36:37'),
+(372, 30, 'Refund Being Processed', 'Your refund of 273,000 MMK is being processed. You will receive it shortly.', 'booking', 'booking', 344, 0, '2026-06-27 11:36:50'),
+(373, 24, 'New Booking Request', 'Saen is requesting: H & H Wedding Studio. Please accept or decline within 24 hours.', 'booking', 'booking', 345, 1, '2026-06-27 11:39:58'),
+(374, 1, 'New Custom Booking Request', 'Saen created a custom or mixed booking for: H & H Wedding Studio. Supplier responses are pending.', 'booking', 'booking', 345, 1, '2026-06-27 11:39:58'),
+(375, 29, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 345, 0, '2026-06-27 11:40:10'),
+(376, 29, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 345, 0, '2026-06-27 11:40:40'),
+(377, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 546,000 MMK for booking BK-20260627-345. Please verify it.', 'payment', 'booking', 345, 0, '2026-06-27 11:40:40'),
+(378, 29, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 345, 0, '2026-06-27 11:40:45'),
+(379, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 345, 0, '2026-06-27 11:40:45'),
+(380, 29, 'Remaining Payment Submitted', 'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.', 'payment', 'booking', 345, 0, '2026-06-27 11:41:09'),
+(381, 1, 'Remaining Payment Submitted', 'A customer submitted remaining balance payment proof for 1,680,000 MMK for booking BK-20260627-345. Please verify it.', 'payment', 'booking', 345, 0, '2026-06-27 11:41:09');
 
 -- --------------------------------------------------------
 
@@ -2202,7 +2496,15 @@ INSERT INTO `otps` (`id`, `user_id`, `code`, `type`, `expires_at`, `is_used`, `a
 (151, 27, '938329', 'login', '2026-06-26 04:10:47', 1, 0, 3, '2026-06-26 04:09:30'),
 (152, 27, '951586', 'login', '2026-06-26 04:11:06', 1, 0, 3, '2026-06-26 04:10:47'),
 (153, 126, '278803', 'login', '2026-06-26 04:24:37', 1, 0, 3, '2026-06-26 04:24:19'),
-(154, 1, '435152', 'login', '2026-06-26 05:00:51', 1, 0, 3, '2026-06-26 05:00:34');
+(154, 1, '435152', 'login', '2026-06-26 05:00:51', 1, 0, 3, '2026-06-26 05:00:34'),
+(155, 1, '834756', 'login', '2026-06-27 03:58:44', 1, 0, 3, '2026-06-27 03:58:18'),
+(156, 1, '926504', 'login', '2026-06-27 03:59:05', 1, 0, 3, '2026-06-27 03:58:52'),
+(157, 1, '140268', 'login', '2026-06-27 04:00:42', 1, 0, 3, '2026-06-27 04:00:31'),
+(158, 27, '223095', 'login', '2026-06-27 04:01:25', 1, 0, 3, '2026-06-27 04:01:04'),
+(159, 24, '470945', 'login', '2026-06-27 04:03:28', 1, 0, 3, '2026-06-27 04:03:12'),
+(160, 27, '988739', 'login', '2026-06-27 04:56:50', 1, 1, 3, '2026-06-27 04:56:14'),
+(161, 27, '137464', 'login', '2026-06-27 04:57:21', 1, 0, 3, '2026-06-27 04:56:50'),
+(162, 24, '917931', 'login', '2026-06-27 07:28:09', 1, 0, 3, '2026-06-27 07:27:51');
 
 -- --------------------------------------------------------
 
@@ -2241,8 +2543,9 @@ INSERT INTO `packages` (`package_id`, `name`, `category_id`, `slug`, `type`, `de
 (29, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2-2', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3953000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-20 05:19:32', '2026-06-20 05:49:06'),
 (30, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2-2-2', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3953000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-20 05:45:31', '2026-06-23 05:14:57'),
 (31, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2-2-2-2', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3953000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-20 08:32:17', NULL),
-(32, 'Standard Wedding Package', 4, 'standard-wedding-package-2-draft-1782267656', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 70000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618152115-7d249ee0.png', 0, 'draft', 20, 0, '2026-06-24 02:20:56', NULL),
-(35, 'Luxury Package', 2, 'luxury-package', 'curated', 'အဆင့်မြင့်၊ သီးသန့်ဆန်ပြီး အထူးခမ်းနားထည်ဝါသော မင်္ဂလာပွဲကို ရည်ရွယ်သော စုံတွဲများအတွက် အကောင်းဆုံး Package ဖြစ်ပါသည်။ အစီအစဉ်ရေးဆွဲခြင်းမှ စ၍ ပွဲပြီးဆုံးသည်အထိ Premium Service များဖြင့် အသေးစိတ် ဂရုစိုက်ဆောင်ရွက်ပေးကာ ဇိမ်ခံဆန်သော အလှဆင်ဒီဇိုင်းများ၊ သီးသန့်ဝန်ဆောင်မှုများနှင့် အကောင်းဆုံးအတွေ့အကြုံများကို ပေးအပ်ပါသည်။ သင့်၏ ချစ်ခြင်းမေတ္တာဇာတ်လမ်းကို အထူးခမ်းနားစွာ ဖော်ဆောင်ပေးမည့် Luxury Wedding Experience ကို ရရှိစေပါသည်။', 'Enjoy your journey with us', 0.00, 10, '', 1, 'published', NULL, 0, '2026-06-26 04:21:34', NULL);
+(35, 'Luxury Package', 2, 'luxury-package', 'curated', 'အဆင့်မြင့်၊ သီးသန့်ဆန်ပြီး အထူးခမ်းနားထည်ဝါသော မင်္ဂလာပွဲကို ရည်ရွယ်သော စုံတွဲများအတွက် အကောင်းဆုံး Package ဖြစ်ပါသည်။ အစီအစဉ်ရေးဆွဲခြင်းမှ စ၍ ပွဲပြီးဆုံးသည်အထိ Premium Service များဖြင့် အသေးစိတ် ဂရုစိုက်ဆောင်ရွက်ပေးကာ ဇိမ်ခံဆန်သော အလှဆင်ဒီဇိုင်းများ၊ သီးသန့်ဝန်ဆောင်မှုများနှင့် အကောင်းဆုံးအတွေ့အကြုံများကို ပေးအပ်ပါသည်။ သင့်၏ ချစ်ခြင်းမေတ္တာဇာတ်လမ်းကို အထူးခမ်းနားစွာ ဖော်ဆောင်ပေးမည့် Luxury Wedding Experience ကို ရရှိစေပါသည်။', 'Enjoy your journey with us', 0.00, 10, '', 1, 'published', NULL, 0, '2026-06-26 04:21:34', '2026-06-26 11:17:28'),
+(37, 'Luxury Package', 2, 'luxury-package-2', 'curated', 'အဆင့်မြင့်၊ သီးသန့်ဆန်ပြီး အထူးခမ်းနားထည်ဝါသော မင်္ဂလာပွဲကို ရည်ရွယ်သော စုံတွဲများအတွက် အကောင်းဆုံး Package ဖြစ်ပါသည်။ အစီအစဉ်ရေးဆွဲခြင်းမှ စ၍ ပွဲပြီးဆုံးသည်အထိ Premium Service များဖြင့် အသေးစိတ် ဂရုစိုက်ဆောင်ရွက်ပေးကာ ဇိမ်ခံဆန်သော အလှဆင်ဒီဇိုင်းများ၊ သီးသန့်ဝန်ဆောင်မှုများနှင့် အကောင်းဆုံးအတွေ့အကြုံများကို ပေးအပ်ပါသည်။ သင့်၏ ချစ်ခြင်းမေတ္တာဇာတ်လမ်းကို အထူးခမ်းနားစွာ ဖော်ဆောင်ပေးမည့် Luxury Wedding Experience ကို ရရှိစေပါသည်။', 'Enjoy your journey with us', 0.00, 10, '', 1, 'published', NULL, 0, '2026-06-26 11:08:12', '2026-06-26 11:18:27'),
+(38, 'Luxury Package', 2, 'luxury-package-2-2', 'curated', 'အဆင့်မြင့်၊ သီးသန့်ဆန်ပြီး အထူးခမ်းနားထည်ဝါသော မင်္ဂလာပွဲကို ရည်ရွယ်သော စုံတွဲများအတွက် အကောင်းဆုံး Package ဖြစ်ပါသည်။ အစီအစဉ်ရေးဆွဲခြင်းမှ စ၍ ပွဲပြီးဆုံးသည်အထိ Premium Service များဖြင့် အသေးစိတ် ဂရုစိုက်ဆောင်ရွက်ပေးကာ ဇိမ်ခံဆန်သော အလှဆင်ဒီဇိုင်းများ၊ သီးသန့်ဝန်ဆောင်မှုများနှင့် အကောင်းဆုံးအတွေ့အကြုံများကို ပေးအပ်ပါသည်။ သင့်၏ ချစ်ခြင်းမေတ္တာဇာတ်လမ်းကို အထူးခမ်းနားစွာ ဖော်ဆောင်ပေးမည့် Luxury Wedding Experience ကို ရရှိစေပါသည်။', 'Enjoy your journey with us', 0.00, 10, '', 1, 'published', NULL, 0, '2026-06-26 11:18:07', '2026-06-26 11:34:44');
 
 -- --------------------------------------------------------
 
@@ -2258,6 +2561,7 @@ CREATE TABLE `package_items` (
   `venue_room_id` bigint(20) DEFAULT NULL,
   `attire_item_id` bigint(20) DEFAULT NULL,
   `decoration_style_id` bigint(20) DEFAULT NULL,
+  `cake_design_id` bigint(20) DEFAULT NULL,
   `default_supplier_id` bigint(20) DEFAULT NULL,
   `default_price` decimal(10,2) DEFAULT NULL,
   `customize_price` decimal(10,2) DEFAULT NULL,
@@ -2271,39 +2575,41 @@ CREATE TABLE `package_items` (
 -- Dumping data for table `package_items`
 --
 
-INSERT INTO `package_items` (`id`, `package_id`, `category_id`, `service_id`, `venue_room_id`, `attire_item_id`, `decoration_style_id`, `default_supplier_id`, `default_price`, `customize_price`, `max_concurrent`, `quantity_type`, `quantity`, `deleted_at`) VALUES
-(65, 20, 6, 42, 21, NULL, NULL, 21, 70000.00, NULL, NULL, 'fixed', 1, NULL),
-(67, 19, 2, 47, NULL, NULL, NULL, 20, 750000.00, 1000000.00, NULL, 'guests', 2, NULL),
-(71, 23, 2, 47, NULL, NULL, NULL, 20, 750000.00, 1000000.00, NULL, 'guests', 2, NULL),
-(73, 23, 12, 48, NULL, NULL, 11, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
-(74, 23, 6, 49, 22, NULL, NULL, 20, 900000.00, 910000.00, NULL, 'fixed', 1, NULL),
-(75, 23, 5, 50, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
-(79, 26, 2, 47, NULL, NULL, NULL, 20, 750000.00, 1000000.00, NULL, 'guests', 2, NULL),
-(80, 26, 12, 48, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
-(82, 26, 5, 50, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
-(86, 26, 2, 55, NULL, 3, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
-(102, 29, 2, 47, NULL, NULL, NULL, 20, 750000.00, 1000000.00, NULL, 'guests', 2, NULL),
-(103, 29, 12, 48, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
-(104, 29, 5, 50, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
-(105, 29, 2, 55, NULL, NULL, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
-(109, 29, 10, 56, NULL, NULL, NULL, 21, 73000.00, 75000.00, 3, 'guests', 1, NULL),
-(110, 30, 2, 47, NULL, NULL, NULL, 20, 750000.00, 1000000.00, NULL, 'guests', 2, NULL),
-(111, 30, 12, 48, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
-(112, 30, 5, 50, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
-(113, 30, 2, 55, NULL, NULL, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
-(117, 30, 10, 56, NULL, NULL, NULL, 21, 73000.00, 75000.00, 2, 'guests', 1, NULL),
-(118, 31, 2, 47, NULL, NULL, NULL, 20, 750000.00, 1000000.00, NULL, 'guests', 2, NULL),
-(119, 31, 12, 48, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
-(120, 31, 5, 50, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
-(121, 31, 2, 55, NULL, NULL, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
-(122, 31, 10, 56, NULL, NULL, NULL, 21, 73000.00, 75000.00, 2, 'guests', 1, NULL),
-(123, 32, 6, 42, 21, NULL, NULL, 21, 70000.00, NULL, NULL, 'fixed', 1, NULL),
-(140, 35, 11, 148, NULL, NULL, NULL, 113, 55000.00, NULL, NULL, 'fixed', 1, NULL),
-(141, 35, 12, 135, NULL, NULL, NULL, 100, 3000000.00, NULL, NULL, 'guests', 100, NULL),
-(142, 35, 3, 130, NULL, NULL, NULL, 95, 12000.00, NULL, NULL, 'guests', 100, NULL),
-(143, 35, 8, 44, NULL, NULL, NULL, 20, 3200.00, 4000.00, NULL, 'fixed', 1, NULL),
-(144, 35, 10, 159, NULL, NULL, NULL, 124, 150000.00, NULL, NULL, 'guests', 100, NULL),
-(145, 35, 6, 138, NULL, NULL, NULL, 103, 800000.00, NULL, NULL, 'fixed', 1, NULL);
+INSERT INTO `package_items` (`id`, `package_id`, `category_id`, `service_id`, `venue_room_id`, `attire_item_id`, `decoration_style_id`, `cake_design_id`, `default_supplier_id`, `default_price`, `customize_price`, `max_concurrent`, `quantity_type`, `quantity`, `deleted_at`) VALUES
+(65, 20, 6, 42, 21, NULL, NULL, NULL, 21, 70000.00, NULL, NULL, 'fixed', 1, NULL),
+(73, 23, 12, 48, NULL, NULL, 11, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
+(74, 23, 6, 49, 22, NULL, NULL, NULL, 20, 900000.00, 910000.00, NULL, 'fixed', 1, NULL),
+(75, 23, 5, 50, NULL, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
+(80, 26, 12, 48, NULL, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
+(82, 26, 5, 50, NULL, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
+(86, 26, 2, 55, NULL, 3, NULL, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
+(103, 29, 12, 48, NULL, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
+(104, 29, 5, 50, NULL, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
+(105, 29, 2, 55, NULL, NULL, NULL, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
+(109, 29, 10, 56, NULL, NULL, NULL, NULL, 21, 73000.00, 75000.00, 3, 'guests', 1, NULL),
+(111, 30, 12, 48, NULL, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
+(112, 30, 5, 50, NULL, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
+(113, 30, 2, 55, NULL, NULL, NULL, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
+(117, 30, 10, 56, NULL, NULL, NULL, NULL, 21, 73000.00, 75000.00, 2, 'guests', 1, NULL),
+(119, 31, 12, 48, NULL, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
+(120, 31, 5, 50, NULL, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
+(121, 31, 2, 55, NULL, NULL, NULL, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
+(122, 31, 10, 56, NULL, NULL, NULL, NULL, 21, 73000.00, 75000.00, 2, 'guests', 1, NULL),
+(140, 35, 11, 148, NULL, NULL, NULL, NULL, 113, 55000.00, NULL, NULL, 'fixed', 1, NULL),
+(141, 35, 12, 135, NULL, NULL, NULL, NULL, 100, 3000000.00, NULL, NULL, 'guests', 100, NULL),
+(142, 35, 3, 130, NULL, NULL, NULL, NULL, 95, 12000.00, NULL, NULL, 'guests', 100, NULL),
+(144, 35, 10, 159, NULL, NULL, NULL, NULL, 124, 150000.00, NULL, NULL, 'guests', 100, NULL),
+(145, 35, 6, 138, NULL, NULL, NULL, NULL, 103, 800000.00, NULL, NULL, 'fixed', 1, NULL),
+(153, 37, 11, 148, NULL, NULL, NULL, NULL, 113, 55000.00, NULL, NULL, 'fixed', 1, NULL),
+(154, 37, 12, 135, NULL, NULL, NULL, NULL, 100, 3000000.00, NULL, NULL, 'guests', 100, NULL),
+(155, 37, 3, 130, NULL, NULL, NULL, NULL, 95, 12000.00, NULL, NULL, 'guests', 100, NULL),
+(157, 37, 10, 159, NULL, NULL, NULL, NULL, 124, 150000.00, NULL, NULL, 'guests', 100, NULL),
+(158, 37, 6, 138, NULL, NULL, NULL, NULL, 103, 800000.00, NULL, NULL, 'fixed', 1, NULL),
+(161, 38, 12, 135, NULL, NULL, NULL, NULL, 100, 3000000.00, NULL, NULL, 'guests', 100, NULL),
+(162, 38, 3, 130, NULL, NULL, NULL, NULL, 95, 12000.00, NULL, NULL, 'guests', 100, NULL),
+(164, 38, 10, 159, NULL, NULL, NULL, NULL, 124, 150000.00, NULL, NULL, 'guests', 100, NULL),
+(165, 38, 6, 138, NULL, NULL, NULL, NULL, 103, 800000.00, NULL, NULL, 'fixed', 1, NULL),
+(167, 38, 2, 166, NULL, 34, NULL, NULL, 131, 250000.00, 350000.00, 0, 'fixed', 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -2372,7 +2678,7 @@ INSERT INTO `payments` (`id`, `booking_id`, `supplier_id`, `amount`, `platform_f
 (47, 48, NULL, 120000.00, NULL, NULL, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 120000.00, '2026-06-18 11:34:51', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618113451-2fe925b3.jpg', 1, '2026-06-18 09:35:07', '', NULL, NULL, '2026-06-18 09:34:51'),
 (48, 49, NULL, 294671.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 294671.00, '2026-06-18 13:10:53', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618131053-55929485.jpg', 1, '2026-06-18 11:11:38', '', NULL, NULL, '2026-06-18 11:10:53'),
 (49, 50, NULL, 15372.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'U Kyaw Kyaw', '09123456789', 15372.00, '2026-06-18 16:37:10', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618163710-6140d9cb.jpg', 1, '2026-06-19 10:52:23', '', NULL, NULL, '2026-06-18 14:37:10'),
-(50, 52, NULL, 814800.00, NULL, NULL, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'U Zaw Zaw', '09123456789', 814800.00, '2026-06-20 03:34:23', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620033423-1013b3f3.jpg', 1, '2026-06-20 01:36:28', '', NULL, NULL, '2026-06-20 01:34:23'),
+(50, 52, NULL, 814800.00, NULL, NULL, 'refunded', 3, 'deposit', 'AYA Pay', 'AYA Pay', 'U Zaw Zaw', '09123456789', 814800.00, '2026-06-20 03:34:23', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620033423-1013b3f3.jpg', 1, '2026-06-20 01:36:28', '', NULL, NULL, '2026-06-20 01:34:23'),
 (51, 53, NULL, 814800.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 814800.00, '2026-06-20 04:31:46', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620043146-a61b0104.jpg', 1, '2026-06-20 02:33:51', '', NULL, NULL, '2026-06-20 02:31:46'),
 (52, 53, NULL, 800000.00, NULL, NULL, NULL, NULL, 'replacement_delta', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:31:01'),
 (53, 53, NULL, 200000.00, NULL, NULL, 'refunded', NULL, 'replacement_delta', 'AYA Pay', 'AYA Pay', 'U Zaw Moe', '09123456789', 200000.00, '2026-06-20 20:31:17', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620160117-7d2a74be.jpg', 1, '2026-06-20 14:30:35', NULL, NULL, NULL, '2026-06-20 09:25:14'),
@@ -2392,18 +2698,23 @@ INSERT INTO `payments` (`id`, `booking_id`, `supplier_id`, `amount`, `platform_f
 (69, 304, 134, 142500.00, NULL, NULL, NULL, NULL, 'payout', 'Bank Transfer', 'KBZ Bank', 'Shwe Phoo Sar', NULL, NULL, NULL, 'success', NULL, 'PO-20260617-AUTO', NULL, 1, '2026-06-25 14:51:34', 'Transfer via 1234', NULL, NULL, '2026-06-17 02:30:00'),
 (70, 305, 134, 142500.00, NULL, NULL, NULL, NULL, 'payout', 'Bank Transfer', NULL, NULL, NULL, NULL, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-22 02:30:00'),
 (71, 334, NULL, 225000.00, 45000.00, 180000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'ko kyaw zin', '09123456789', 225000.00, '2026-06-25 23:26:57', 'pending', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260625232657-cad931b9.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-25 16:56:57'),
-(72, NULL, 135, 50000.00, 50000.00, 0.00, NULL, NULL, 'supplier_fee', 'Wave Money', 'Wave Money', 'Kaung Min Khant', '09781344861', 50000.00, '2026-06-26 09:28:00', 'success', 'payment', '123456', NULL, 1, '2026-06-26 03:24:53', NULL, NULL, NULL, '2026-06-26 02:59:22');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `permissions`
---
-
-CREATE TABLE `permissions` (
-  `id` bigint(20) NOT NULL,
-  `name` varchar(100) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+(72, NULL, 135, 50000.00, 50000.00, 0.00, NULL, NULL, 'supplier_fee', 'Wave Money', 'Wave Money', 'Kaung Min Khant', '09781344861', 50000.00, '2026-06-26 09:28:00', 'success', 'payment', '123456', NULL, 1, '2026-06-26 03:24:53', NULL, NULL, NULL, '2026-06-26 02:59:22'),
+(73, 310, NULL, 3320520.00, NULL, NULL, 'held', NULL, 'remaining', 'KBZ Pay', 'KBZ Pay', 'U Zaw Moe', '09123456789', 3320520.00, '2026-06-27 11:18:09', 'pending', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627111809-5c1edb9e.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 04:48:09'),
+(74, 316, NULL, 1079169.00, 249039.00, 830130.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Zaww Zaw', '09123456789', 1079169.00, '2026-06-27 13:32:18', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627133218-76202efe.jpg', 1, '2026-06-27 07:02:32', '', NULL, NULL, '2026-06-27 07:02:18'),
+(75, 338, NULL, 780000.00, 180000.00, 600000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 780000.00, '2026-06-27 14:38:32', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627143832-a4fe32df.jpg', 1, '2026-06-27 08:08:57', '', NULL, NULL, '2026-06-27 08:08:32'),
+(76, 338, NULL, 2220000.00, NULL, NULL, 'held', NULL, 'remaining', 'KBZ Pay', 'KBZ Pay', 'Ko Kyaw Zin', '09123456789', 2220000.00, '2026-06-27 15:34:13', 'pending', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627153413-f42728c5.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 09:04:13'),
+(77, 339, NULL, 546000.00, 126000.00, 420000.00, 'refunded', 1, 'deposit', 'AYA Pay', 'AYA Pay', 'Aye Aye', '09123456789', 546000.00, '2026-06-27 16:27:44', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627162744-23edcdae.jpg', 1, '2026-06-27 09:57:54', '', NULL, NULL, '2026-06-27 09:57:44'),
+(78, 340, NULL, 546000.00, 126000.00, 420000.00, 'refunded', 2, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 546000.00, '2026-06-27 16:47:50', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627164750-c47eb7ff.jpg', 1, '2026-06-27 10:25:53', '', NULL, NULL, '2026-06-27 10:17:50'),
+(79, 340, NULL, 1680000.00, NULL, NULL, 'held', NULL, 'remaining', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 1680000.00, '2026-06-27 16:56:27', 'pending', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627165627-b4b470fe.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 10:26:27'),
+(80, 341, NULL, 546000.00, 126000.00, 420000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'NN', '09123456789', 546000.00, '2026-06-27 17:10:57', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627171057-c9f4383a.jpg', 1, '2026-06-27 10:41:04', '', NULL, NULL, '2026-06-27 10:40:57'),
+(81, 341, NULL, 1680000.00, NULL, NULL, 'held', NULL, 'remaining', 'AYA Pay', 'AYA Pay', 'NN', '09123456789', 1680000.00, '2026-06-27 17:11:54', 'pending', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627171154-41445cc9.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 10:41:54'),
+(82, 342, NULL, 546000.00, 126000.00, 420000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 546000.00, '2026-06-27 17:24:01', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627172401-d6845d03.jpg', 1, '2026-06-27 10:54:09', '', NULL, NULL, '2026-06-27 10:54:01'),
+(83, 342, NULL, 1680000.00, NULL, NULL, 'held', NULL, 'remaining', 'AYA Pay', 'AYA Pay', 'U Zaw Moe', '09123456789', 1680000.00, '2026-06-27 17:33:15', 'pending', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627173315-794782da.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 11:03:15'),
+(84, 343, NULL, 546000.00, 126000.00, 420000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'HH', '09123456789', 546000.00, '2026-06-27 17:35:06', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627173506-72bec7e8.jpg', 1, '2026-06-27 11:05:15', '', NULL, NULL, '2026-06-27 11:05:06'),
+(85, 343, NULL, 1680000.00, NULL, NULL, 'held', NULL, 'remaining', 'Wave Money', 'Wave Money', 'HH', '09123456789', 1680000.00, '2026-06-27 17:35:49', 'pending', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627173549-8f73ffa8.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 11:05:49'),
+(86, 344, NULL, 546000.00, 126000.00, 420000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'NN', '09123456789', 546000.00, '2026-06-27 17:41:04', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627174104-eba0db9d.jpg', 1, '2026-06-27 11:11:17', '', NULL, NULL, '2026-06-27 11:11:04'),
+(87, 345, NULL, 546000.00, 126000.00, 420000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'ko kyaw zin', '09123456789', 546000.00, '2026-06-27 18:10:40', 'success', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260627181040-b27de2fc.jpg', 1, '2026-06-27 11:40:45', '', NULL, NULL, '2026-06-27 11:40:40'),
+(88, 345, NULL, 1680000.00, NULL, NULL, 'held', NULL, 'remaining', 'AYA Pay', 'AYA Pay', 'ko kyaw zin', '09123456789', 1680000.00, '2026-06-27 18:11:09', 'pending', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260627181109-f5835473.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 11:41:09');
 
 -- --------------------------------------------------------
 
@@ -2422,7 +2733,8 @@ CREATE TABLE `platform_settings` (
 --
 
 INSERT INTO `platform_settings` (`setting_key`, `setting_value`, `updated_at`) VALUES
-('platform_fee_percent', '5.00', '2026-06-22 12:32:08');
+('platform_fee_percent', '6.00', '2026-06-27 04:11:43'),
+('supplier_membership_fee', '50000.00', '2026-06-27 04:11:43');
 
 -- --------------------------------------------------------
 
@@ -2449,6 +2761,16 @@ CREATE TABLE `refunds` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `note` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `refunds`
+--
+
+INSERT INTO `refunds` (`id`, `booking_id`, `payment_id`, `amount`, `reason`, `policy_reason`, `method`, `status`, `refund_slip_path`, `refund_transaction_ref`, `refund_bank_name`, `requested_by`, `processed_by`, `requested_at`, `processed_at`, `completed_at`, `note`) VALUES
+(1, 339, NULL, 273000.00, 'cancle ချင်လို့ကွာ', '50% refund - cancelled 2-7 days before event', 'manual_bank_transfer', 'completed', 'public/uploads/payment-slips/2026/06/slip-20260627170741-8cd4c042.jpg', 'TXN-12345678', 'AYA Pay', 1, 1, '2026-06-27 09:59:09', '2026-06-27 10:37:41', '2026-06-27 10:38:01', ''),
+(2, 340, NULL, 0.00, 'the customer sent the canclelation request', 'No refund - cancelled less than 2 days before event', 'manual_bank_transfer', 'completed', 'public/uploads/payment-slips/2026/06/slip-20260627170638-0865cabb.jpg', 'TXN-12345678', 'AYA Pay', 1, 1, '2026-06-27 10:36:22', '2026-06-27 10:36:38', '2026-06-27 10:37:19', 'abc'),
+(3, 52, NULL, 0.00, 'refund', 'No refund - cancelled less than 2 days before event', 'manual_bank_transfer', 'completed', 'public/uploads/payment-slips/2026/06/slip-20260627171859-ee4f1368.jpg', 'TXN-12345678', 'AYA Pay', 1, 1, '2026-06-27 10:48:41', '2026-06-27 10:48:59', '2026-06-27 10:49:09', ''),
+(4, 344, NULL, 273000.00, 'supplier request to cancle', '50% refund - cancelled 2-7 days before event', 'manual_bank_transfer', 'processing', 'public/uploads/payment-slips/2026/06/slip-20260627180650-622c33cc.jpg', 'TXN-12345678', 'AYA Pay', 1, 1, '2026-06-27 11:36:37', '2026-06-27 11:36:50', NULL, '');
 
 -- --------------------------------------------------------
 
@@ -2682,19 +3004,6 @@ INSERT INTO `roles` (`id`, `name`, `description`, `created_at`, `updated_at`) VA
 -- --------------------------------------------------------
 
 --
--- Table structure for table `role_permissions`
---
-
-CREATE TABLE `role_permissions` (
-  `id` bigint(20) NOT NULL,
-  `role_id` bigint(20) NOT NULL,
-  `permission_id` bigint(20) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `services`
 --
 
@@ -2729,14 +3038,9 @@ CREATE TABLE `services` (
 INSERT INTO `services` (`id`, `supplier_id`, `category_id`, `name`, `description`, `price`, `price_min`, `price_max`, `thumbnail_url`, `is_active`, `booking_type`, `duration_minutes`, `pricing_unit`, `buffer_minutes`, `max_concurrent`, `max_concurrent_package`, `max_concurrent_customize`, `created_at`, `min_lead_days`, `default_start_time`, `default_end_time`) VALUES
 (42, 21, 6, 'Governor\'s Residence', 'ရန်ကုန်မြိုမှာ ကိုလိုနီခေတ်က တည်ရှိခဲ့တဲ့ အဆောက်အအုံများစွာအနက် Governor’s Residence ကို ၁၉၂၀ ပြည့်လွန် နှစ်များက တန်ဖိုးကြီး မြန်မာ့ ကျွန်းသစ်၊ မြန်မာ့ လက်မှုပညာတွေနဲ့ ပေါင်းစပ် တည်ဆောက်ခဲ့တဲ့ အဆောက်အအုံတစ်ခုဖြစ်သည်။\n\nသံရုံးများတည်ရှိရာ ရန်ကုန်မြိုရဲ့ အေးဆေးတိတ်ဆိတ်တဲ့ နေရာ၊ သမိုင်းဝင်အဆောက်အအုံများရဲ့ အလှတရားနှင့် ခေတ်မှီဇိမ်ခံပစ္စည်းများနဲ့ ပြန်လည်ပေါင်းစပ် တည်ဆောက်ထားတာ ဖြစ်ပါတယ်။ ကျယ်ဝန်းတဲ့ အိပ်ခန်းဆောင်များတွင် သစ်သား၊ ပိုးသားချည်မျှင်များနဲ့ အလှဆင်ထားတဲ့အပြင် စိမ်းလန်းစိုပြေပြီး ဝေဆာပွင့်လန်းနေတဲ့ ဥယျာဉ်ရဲ့ အလှကိုလည်း မြင်တွေ့ရဦးမှာ ဖြစ်ပါတယ်။ ဒါ့ပြင် ရေကူးကန်ကိုလည်း စပိန်မှ တင်သွင်းထားတဲ့ ကြွေပြားများနဲ့ ပြန်လည် အလှဆင် တည်ဆောက် ထားပါသေးတယ်။\n\nGovernor’s Residence ရဲ့ The Monkey Bar၊ The State Room နှင့် The Peacock Portico တိုမှာလည်း ခမ်းနားတဲ့ ညစာစားပွဲများကို တည်ခင်းရောင်းချပေးတာဖြစ်ပြီး Outlets တစ်ခုချင်းစီတိုင်းမှ မတူကွဲပြားတဲ့ ပရိဘောဂများရဲ့ အလှတွေကလည်း လာရောက်တဲ့ ဧည့်သည်တိုင်းအတွက် အမှတ်တရ ဖြစ်စေမှာပဲ ဖြစ်ပါတယ်။\nကိုလိုခေတ် မြန်မာ့ လက်မှုပညာရဲ့ ခန့်ညားထည်ဝါမှုအပြင် ရှေးခေတ် အငွေ့အသက်တွေကို အပြည့်အဝ ခံစားနိုင်ဖို Governor’s Residence သို ဖိတ်ခေါ်လိုက်ပါတယ်။', 70000.00, 70000.00, 600000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260618102917-41aebacc.jpg', 1, 'slot', 720, 'per_session', 0, 300, 0, 300, '2026-06-18 08:29:17', 90, NULL, NULL),
 (43, 21, 12, 'Aphrodite Wedding Planning & Decoration', 'မိမိတိုရဲ့ အလှပဆုံး မင်္ဂလာအချိန်လေးကို လစ်ဟာမှုတွေ၊ လိုအပ်ချက်တွေမရှိဘဲ အချိုမြိန်ဆုံးအခိုက်အတန့်တွေကိုသာ အမှတ်တရဖြစ် နေစေဖို ကျွမ်းကျင်တဲ့ Wedding Professional တွေနဲ့အတူ မိမိတိုရဲ့ မင်္ဂလာနေ့ရက်လေးကို အပြည့်အစုံဆုံး ပုံဖော်လိုက်ပါ။\nမိမိတိုရဲ့ တစ်သက်မှတစ်ခါ ရင်အခုန်ရဆုံးနဲ့ အလှပဆုံး နေ့ရက် လေးအတွက် အကောင်းဆုံး Service အကောင်းဆုံး Quality တွေအပြင် ကျွမ်းကျင် Professional Wedding Planner တွေနဲ့ မိမိတိုရဲ့ ပွဲ ကို စိတ်အေးရချင်တယ်ဆိုရင်တော့ Aphrodite Wedding Planning and Decoration ကို အခုပဲရွေးချယ်လိုက်ပါ။', 3400000.00, 3400000.00, 3400000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260618104902-604f0759.jpg', 1, 'fullday', 60, 'per_session', 0, 1, 0, 1, '2026-06-18 08:49:02', 3, NULL, NULL),
-(44, 20, 8, 'Elegance Star', 'မင်္ဂလာပါရှင့် 𝗘𝗹𝗲𝗴𝗮𝗻𝘁 𝗦𝘁𝗮𝗿 𝗪𝗲𝗱𝗱𝗶𝗻𝗴 𝗦𝘁𝗮𝘁𝗶𝗼𝗻𝗲𝗿𝘆 𝗦𝗲𝗿𝘃𝗶𝗰𝗲 မှ ကြိုဆိုပါတယ်။\nMarriage Certificates ၊လက်ထပ်စာချုပ် ၊\nInvitation cards ဖိတ်စာ ၊\nWedding Gift Box ငွေသား ၊  လက်ဖွဲ့ပုံး ၊\nမင်္ဂလာပြန်ကမ်း ၊\nWedding Guest Book ၊\nVows Books ၊\nSigning pens၊ \nCanvas Fingerprint Tree ၊(Customization avaliable) ၊\nAcrylic Photobooth & Welcomeboard Services များကို Customized အပ်နှံနိုင်ပါတယ်။ \nOpening hours 9:00 AM - 5:30 PM', 3200.00, 3200.00, 4000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618112551-21cc8a57.jpg', 1, 'slot', 720, 'per_session', 0, 2, 0, 1, '2026-06-18 09:25:51', 4, NULL, NULL),
-(45, 20, 2, 'Dear Brides', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel & Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 800000.00, 800000.00, 1200000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618120107-9e4d4636.jpg', 1, 'fullday', NULL, 'per_session', 0, 1, 0, 1, '2026-06-18 10:01:07', 90, NULL, NULL),
-(46, 20, 12, 'Aphrodite Wedding Planning & Decoration', 'မိမိတိုရဲ့ အလှပဆုံး မင်္ဂလာအချိန်လေးကို လစ်ဟာမှုတွေ၊ လိုအပ်ချက်တွေမရှိဘဲ အချိုမြိန်ဆုံးအခိုက်အတန့်တွေကိုသာ အမှတ်တရဖြစ် နေစေဖို ကျွမ်းကျင်တဲ့ Wedding Professional တွေနဲ့အတူ မိမိတိုရဲ့ မင်္ဂလာနေ့ရက်လေးကို အပြည့်အစုံဆုံး ပုံဖော်လိုက်ပါ။\nမိမိတိုရဲ့ တစ်သက်မှတစ်ခါ ရင်အခုန်ရဆုံးနဲ့ အလှပဆုံး နေ့ရက် လေးအတွက် အကောင်းဆုံး Service အကောင်းဆုံး Quality တွေအပြင် ကျွမ်းကျင် Professional Wedding Planner တွေနဲ့ မိမိတိုရဲ့ ပွဲ ကို စိတ်အေးရချင်တယ်ဆိုရင်တော့ Aphrodite Wedding Planning and Decoration ကို အခုပဲရွေးချယ်လိုက်ပါ။', 750000.00, 750000.00, 1000000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618123229-3fd3faea.jpg', 0, 'fullday', 60, 'per_session', 0, 1, 0, 1, '2026-06-18 10:32:29', 3, NULL, NULL),
-(47, 20, 2, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'ကျွန်မတို့ဆီမှာ မင်္ဂလာမောင်နှံအတွက် ထိုင်မသိမ်း၊ ဆွမ်းကပ်/လက်မှတ်ထိုးဝတ်စုံ၊ တိုက်ပုံ၊ တောင်ရှည် တို့အပြင် မိဘဝတ်စုံများကိုပါ ထိုင်းပိုးချိတ်၊ စီးကရက်ပိုးချိတ်၊ ဘရိုကိတ်ပိုးချိတ် စသည့် ပိုးထည်အမျိုးမျိုးဖြင့် စုံလင်စွာ ရရှိနိုင်ပါတယ်။ ထို့အပြင် အရံ၊ ပန်းကြဲ နှင့် ဗန်းကိုင်များအတွက်လည်း အသင့်ငှားရမ်းနိုင်သလို စိတ်ကြိုက်ဒီဇိုင်းများလည်း ဖန်တီးချုပ်လုပ်ပေးပါတယ်ရှင်။\n\nအသစ်ချုပ်အငှားနှင့် စိတ်ကြိုက်ဖန်တီးမှုဝတ်စုံများကို အငှားရော အရောင်းပါ ရရှိနိုင်ပြီး အသစ်ချုပ်အငှား (Custom-made Rental) ဝန်ဆောင်မှုလည်း ရှိပါတယ်ရှင်။ သတို့သမီးရဲ့ အသားအရောင်၊ ခန္ဓာကိုယ်အချိုးအစားတို့နှင့် လိုက်ဖက်မည့် အရောင်နှင့် စီးကွင့်ဒီဇိုင်းများကို သီးသန့်ဆွဲပေးတာကြောင့် ပွဲနေ့မှာ အထူးခြားဆုံး ဖြစ်နေစေမှာပါ။ (အသစ်ချုပ်အငှားအတွက် ၃ လမှ ၆ လကြိုတင် အပ်နှံပေးရန် လိုအပ်ပါတယ်ရှင်)\n\n💰 ဈေးနှုန်းနှင့် အထူးဝန်ဆောင်မှုများဈေးနှုန်း: ထိုင်မသိမ်း (မောင်နှံစုံ) အငှားကို ၃ သိန်းခွဲမှ သိန်း ၂၀ ဝန်းကျင် အထိလည်းကောင်း၊ ဆွမ်းကပ်ဝတ်စုံ (မောင်နှံစုံ) ကို ၂ သိန်းဝန်းကျင် မှ စတင်၍လည်းကောင်း စိတ်ကြိုက် ရွေးချယ်နိုင်ပါတယ်။\n\nFitting: အငှားထည်များကိုလည်း သတို့သား/သတို့သမီး ကိုယ်တိုင်းယူကာ Fitting ကွက်တိ ဖြစ်အောင် ပြင်ဆင်ပေးပြီး၊ ပွဲမတိုင်ခင် ၄ ရက်အလိုမှာ Final Fitting ပြန်လည် စစ်ဆေးပေးပါတယ်။\n\nPackage ဝန်ဆောင်မှု: Package ယူထားသော ရန်ကုန်နှင့် မန္တလေးမြို့တွင်း ပွဲများအတွက် Charges ပေးစရာမလိုဘဲ လူကိုယ်တိုင် လိုက်လံဝတ်ဆင်ပေးပါတယ်ရှင်။နယ်ဝေးဝန်ဆောင်မှု: နယ်မှ ငှားရမ်းသူများအတွက် နယ်ကြေးထပ်ပေးစရာမလိုဘဲ ၄ ရက် အချိန်ပေးထားပါတယ်ရှင်။', 750000.00, 750000.00, 1000000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618152953-60c74c06.jpg', 1, 'slot', 480, 'per_session', 0, 3, 0, 0, '2026-06-18 13:29:53', 7, NULL, NULL),
-(48, 20, 12, 'H&H Floral and Wedding Service', 'H&H floral မှာဈေးနှုန်း ချိုချိုသာသာလေးတွေနဲ့\nအလှဆုံးတွေပြင်ဆင်ပေးမှာပါနော်\nလိုချင်တဲ့ရက်လေးရဖို booking လေးတွေ\nကြိုယူထားဖိုလိုပါမယ်ရှင်', 1800000.00, 1800000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618210245-d5b57c03.jpg', 1, 'slot', 240, 'per_session', 0, 1, 0, 1, '2026-06-18 19:02:22', 3, NULL, NULL),
-(49, 20, 6, 'Zephyr Sein Lann So pyay', 'Zephyr (Sein Lann So Pyay Garden)ကရန်ကုန်မြို့အတွင်းတည်ရှိတဲ့အေးချမ်းပြီးသဘာဝပတ်ဝန်းကျင်နဲ့ကိုက်ညီတဲ့ fine dining & event venue တစ်ခုဖြစ်ပါတယ်။Sein Lann So Pyay Gardenအနားမှာရှိလို့ မိသားစုစားသောက်မှု၊ မင်္ဂလာပွဲ၊ အခမ်းအနားများအတွက်လူကြိုက်များပါတယ်။သဘာဝအလှနဲ့ လှပနဲ့background ကြောင့်pre-weeding/ event-photo ရိုက်ရအဆင်ပြေစေပါတယ်။outdoor garden weeding နဲ့ အေးချမ်းတဲ့weeding လုပ်ချင်သူများ Decoration+ food+ Serviceကိုတစ်နေရာထဲမှာpackageလိုချင်သူများအတွက်အဆင်ပြေပြီး ရွေးချယ်ဖို့သင့်တော်တဲ့နေရာတစ်ခုဖြစ်ပါတယ်။', 900000.00, 900000.00, 910000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 1, 'slot', 480, 'per_session', 0, 1, 0, 1, '2026-06-18 19:26:54', 8, NULL, NULL),
-(50, 20, 5, 'H & H Wedding Studio', 'Capturing your the most meaningful moments with elegance & style             H&H Photo Studio ကို ယုံကြည်ပြီးအရေးကြီးတဲ့ အမှတ်တရနေ့ရက်တွေကို အပ်နှံပေးတဲ့ client တိုင်းကို အထူးကျေးဇူးတင်ရှိပါတယ် 💛ရိုက်ကူးမှုတိုင်းမှာcomfortable experience, clear communication, pose guidance နဲ့quality result ကို အရေးထားပြီး detail ကျကျ ဂရုစိုက်ဆောင်ရွက်ပေးနေပါတယ် ✨', 200000.00, 200000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260619040841-541df810.jpg', 1, 'slot', 480, 'per_session', 0, 3, 0, 3, '2026-06-19 02:08:41', 7, NULL, NULL),
-(54, 20, 6, 'Western Park Ruby – People’s Park', 'မြို့အလယ်မှာရှိပေမဲ့ပန်းခြံဖြစ်လို့ ရှုပ်ထွေးမှုမရှိ၊မြက်ခင်းပြင်ကျယ် သဘာဝစိမ်းလန်းမှူများ၊နေရာကျယ်ဝန်းလို့ weeding, event venue အဖြစ်လူကြိုက်များပြီးဧည့်သည်အရေအတွက်များတဲ့eventများတွက်အဆင်   ပြေအောင်ဆောင်ရွက်ပေးနေပြီဖြစ်ပါတယ်။', 500000.00, 500000.00, 500000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260619051941-7b6ccd02.jpg', 0, 'slot', 480, 'per_session', 0, 1, 0, 0, '2026-06-19 03:18:58', 3, NULL, NULL),
+(48, 20, 12, 'H&H Floral and Wedding Service', 'H&H floral မှာဈေးနှုန်း ချိုချိုသာသာလေးတွေနဲ့\nအလှဆုံးတွေပြင်ဆင်ပေးမှာပါနော်\nလိုချင်တဲ့ရက်လေးရဖို booking လေးတွေ\nကြိုယူထားဖိုလိုပါမယ်ရှင်', 1800000.00, 1800000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181047-6c1da8a5.jpg', 1, 'slot', 240, 'per_session', 0, 1, 0, 0, '2026-06-18 19:02:22', 3, NULL, NULL),
+(49, 20, 6, 'Zephyr Sein Lann So pyay', 'Zephyr (Sein Lann So Pyay Garden)ကရန်ကုန်မြို့အတွင်းတည်ရှိတဲ့အေးချမ်းပြီးသဘာဝပတ်ဝန်းကျင်နဲ့ကိုက်ညီတဲ့ fine dining & event venue တစ်ခုဖြစ်ပါတယ်။Sein Lann So Pyay Gardenအနားမှာရှိလို့ မိသားစုစားသောက်မှု၊ မင်္ဂလာပွဲ၊ အခမ်းအနားများအတွက်လူကြိုက်များပါတယ်။သဘာဝအလှနဲ့ လှပနဲ့background ကြောင့်pre-weeding/ event-photo ရိုက်ရအဆင်ပြေစေပါတယ်။outdoor garden weeding နဲ့ အေးချမ်းတဲ့weeding လုပ်ချင်သူများ Decoration+ food+ Serviceကိုတစ်နေရာထဲမှာpackageလိုချင်သူများအတွက်အဆင်ပြေပြီး ရွေးချယ်ဖို့သင့်တော်တဲ့နေရာတစ်ခုဖြစ်ပါတယ်။', 900000.00, 900000.00, 3000000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 1, 'slot', 480, 'per_session', 0, 700, 0, 0, '2026-06-18 19:26:54', 8, NULL, NULL),
+(50, 20, 5, 'H & H Wedding Studio', 'Capturing your the most meaningful moments with elegance & style             H&H Photo Studio ကို ယုံကြည်ပြီးအရေးကြီးတဲ့ အမှတ်တရနေ့ရက်တွေကို အပ်နှံပေးတဲ့ client တိုင်းကို အထူးကျေးဇူးတင်ရှိပါတယ် 💛ရိုက်ကူးမှုတိုင်းမှာcomfortable experience, clear communication, pose guidance နဲ့quality result ကို အရေးထားပြီး detail ကျကျ ဂရုစိုက်ဆောင်ရွက်ပေးနေပါတယ် ✨', 200000.00, 200000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 1, 'slot', 480, 'per_session', 0, 3, 0, 0, '2026-06-19 02:08:41', 1, NULL, NULL),
 (55, 21, 2, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel & Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 40000.00, 40000.00, 500000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260619054309-45b53c74.jpg', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-19 03:42:00', 3, NULL, NULL),
 (56, 21, 10, 'Lin Lin', 'မိတ်ကပ်ပညာကို စနစ်တကျ သင်ယူချင်သူများအတွက် Lin Lin Makeup Academy ရှိသလို၊ ထူးခြားဆန်းသစ်တဲ့ Look တွေကို ပိုင်ဆိုင်ချင်တဲ့ ပွဲတက်သတို့သမီးများအတွက်လည်း Lin Lin က အနီးကပ် ရှိနေမှာပါ။ Color Theory နှင့် Face Anatomy အခြေခံကာ လူတစ်ဦးချင်းစီနဲ့ အလိုက်ဖက်ဆုံး အလှတရားတွေကို ဖန်တီးပေးနေသည့် သူမ၏ လက်ရာများကို Lin Lin Facebook Page တွင် လေ့လာနိုင်ပါသည်။', 73000.00, 73000.00, 75000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620065739-732ff480.jpg', 1, 'slot', 180, 'per_session', 0, 2, 0, 0, '2026-06-20 04:57:39', 3, '04:00:00', '17:00:00'),
 (57, 21, 2, 'Dear Brides Wedding Dress Studio', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel & Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 750000.00, 750000.00, 1000000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620090310-439efa63.jpg', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-20 07:02:52', 7, NULL, NULL),
@@ -2781,12 +3085,12 @@ INSERT INTO `services` (`id`, `supplier_id`, `category_id`, `name`, `description
 (132, 97, 12, 'H&H Floral and Wedding Service - Decoration', 'H&H floral မှာဈေးနှုန်း ချိုချိုသာသာလေးတွေနဲ့\nအလှဆုံးတွေပြင်ဆင်ပေးမှာပါနော်\nလိုချင်တဲ့ရက်လေးရဖို booking လေးတွေ\nကြိုယူထားဖိုလိုပါမယ်ရှင် ☺️\n\nOther services: ပန်းစည်းအမျိုးမျိုး / လက်ကိုင်ပန်း / surprise box များ မှာယူနိုင်ပါသည်။\n\nPricing: ပိတ်စ Photobooth ဈေးနှုန်းများ 8x8 ပေ - 330000 (စလုံးတို)         8x8 ပေ - 350000 (စလုံးရှည်)     8x10 ပေ - 380000 (စလုံးတို)     8x10 ပေ - 400000 (စလုံးရှည်)   8x12 ပေ - 430000 (စလုံးတို)     8x12 ပေ - 450000 (စလုံးရှည်)           ဗီနိုင်း Photobooth ဈေးနှုန်းများ  8x8 ပေ - 400000                         8x10 ပေ- 450000                        8x12 ပေ - 500000                     10x12 ပေ - 600000                     8x16 ပေ - 900000', 330000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (133, 98, 12, 'Eternal Flowers - Decoration', 'မင်္ဂလာပွဲ၊ လက်မှတ်ရေးထိုးပွဲ၊ စေ့စပ်ပွဲ၊ bridal shower၊ မွေးနေ့ပွဲ၊ ကုမ္ပဏီပွဲ အပြင်အဆင်တိုအတွက် ဆွေးနွေးမေးမြန်းလိုပါက appointment ယူပြီးလာရောက်ဆွေးနွေးနိုင်ပါ တယ်ရှင်။', 500000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero1.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (134, 99, 12, 'Aphrodite Wedding Planning & Decoration - Decoration', 'မိမိတိုရဲ့ အလှပဆုံး မင်္ဂလာအချိန်လေးကို လစ်ဟာမှုတွေ၊ လိုအပ်ချက်တွေမရှိဘဲ အချိုမြိန်ဆုံးအခိုက်အတန့်တွေကိုသာ အမှတ်တရဖြစ် နေစေဖို ကျွမ်းကျင်တဲ့ Wedding Professional တွေနဲ့အတူ မိမိတိုရဲ့ မင်္ဂလာနေ့ရက်လေးကို အပြည့်အစုံဆုံး ပုံဖော်လိုက်ပါ။\nမိမိတိုရဲ့ တစ်သက်မှတစ်ခါ ရင်အခုန်ရဆုံးနဲ့ အလှပဆုံး နေ့ရက် လေးအတွက် အကောင်းဆုံး Service အကောင်းဆုံး Quality တွေအပြင် ကျွမ်းကျင် Professional Wedding Planner တွေနဲ့ မိမိတိုရဲ့ ပွဲ ကို စိတ်အေးရချင်တယ်ဆိုရင်တော့ Aphrodite Wedding Planning and Decoration ကို အခုပဲရွေးချယ်လိုက်ပါ။\n\nPricing: ဈေးနှုန်းအကြမ်းဖျင်းအားဖြင့်\n- structure\n- floral decoration\n- lighting\n- sound system\n- ဘိသိက်ခွင် တွေ အတွက်ကို သိန်း 400 နဲ့ 500 ဝန်းကျင်ကြားလောက်မှာဆိုရင် ပုံမှန်မြိုင်တယ်ဆိုတဲ့ design ပုံစံမျိုးလေးတွေရနိုင်ပါတယ်ရှင့်။\n\nအကယ်၍ ကိုယ်ကပွဲအတွက် လုံးဝထည်ချင်တယ်၊ မြိုင်ချင်တယ်ဆိုရင်တော့ လုပ်မယ့် design ပေါ်လိုက်ပြီး ကုန်ကျစရိတ်လေးတွေရှိနိုင်ပါတယ်ရှင့်။\n\nတကယ်လို လျာထားတဲ့ budget ရှိတယ်ဆိုရင်လည်း အဲ့ budget ပေါ်မှာလိုက်ပြီး ရနိုင်မယ့် design လေးတွေ ပြန်လုပ်ပေးလိုရပါတယ်ရှင့်။\n\nအခု ဈေးနှုန်းလေးကတော့ အကြမ်းဖျင်းဈေးလေးဖြစ်တဲ့အတွက် ကိုယ်လုပ်ချင်တဲ့ design တွေပေါ်၊ သုံးရတဲ့ material တွေပေါ်မူတည်ပြီး ဈေးလေးတွေကတော့ အတိုး၊အလျှော့ ရှိနိုင်ပါတယ်ရှင့်။                                                                                                         Decoration အတွက် ရွေးချယ်ထားတဲ့ designပေါ်မှာ ထွက်လာတဲ့ ဈေးနှုန်းလေးတွေကိုလည်း ကိုယ့်စိတ်ကြိုက် အတိုးအလျှော့လုပ်‌လိုရပါတယ်ရှင့်။\n\nကျန်တဲ့ ပွဲအတွက် လိုအပ်‌တဲ့ Vendor တွေအတွက်ကတော့ Extra charges တွေအနေနဲ့ ဖြစ်မှာပါရှင့်။', 500000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero2.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
-(135, 100, 12, 'Elysian Floral Art & Events Planning - Decoration', 'မင်္ဂလာပွဲအတွက် မောင်နှံလေးတွေ သိချင်တာ သိသင့်တာ လိုအပ်တာတွေကို\nလဲ Free Consultation ပြုလုပ်ပေးသွားဦးမှာပါ\nအပ်နှံကြတဲ့ မင်္ဂလာမောင်နှံလေးတွေကို Special Lucky Draw နဲ့\nGifts တွေလဲ ထည့်ပေးဦးမှာဆိုတော့ လာဖြစ်အောင်လာသင့်ပါတယ်ရှင်🥰\nဘဝရဲ့ အမှတ်တရ နေ့ရက်လေးမှာ ပြန်တွေးကြည့်တိုင်း ပျော်ရွှင်နေဖိုဆို မင်\nမင်တို Elysian Team က တာဝန်ယူပါရစေရှင့်. ❤️❤️❤️❤️\n\nPricing: ပန်းအလှဆင် Package ဈေးလေးတွေက \nလက်မှတ်ထိုး ဆွမ်းကျွေးပွဲလေး တွေ အတွက် 30သိန်း ၊ \nHotel Wedding Reception  ကို သိန်း 60 ကနေ မှစပြီးတော့ အမျိုးမျိုး ရှိပါတယ်ရှင့်..လုပ်မည့် နေရာ၊ လုပ်ချင်တဲ့ ပုံစံအပေါ် မူတည်ပြီး ဈေးနှုန်းလေးတွေက အမျိုးမျိုးရှိပါတယ်ရှင့် ၊ \nလုပ်ချင်တဲ့ ဒီဇိုင်း ၊ သုံးချင်တဲ့ budget အပေါ် မူတည်ပြီး ညှိနှိုင်းဆောင်ရွက်ပေးပါတယ်..', 3000000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL);
-INSERT INTO `services` (`id`, `supplier_id`, `category_id`, `name`, `description`, `price`, `price_min`, `price_max`, `thumbnail_url`, `is_active`, `booking_type`, `duration_minutes`, `pricing_unit`, `buffer_minutes`, `max_concurrent`, `max_concurrent_package`, `max_concurrent_customize`, `created_at`, `min_lead_days`, `default_start_time`, `default_end_time`) VALUES
+(135, 100, 12, 'Elysian Floral Art & Events Planning - Decoration', 'မင်္ဂလာပွဲအတွက် မောင်နှံလေးတွေ သိချင်တာ သိသင့်တာ လိုအပ်တာတွေကို\nလဲ Free Consultation ပြုလုပ်ပေးသွားဦးမှာပါ\nအပ်နှံကြတဲ့ မင်္ဂလာမောင်နှံလေးတွေကို Special Lucky Draw နဲ့\nGifts တွေလဲ ထည့်ပေးဦးမှာဆိုတော့ လာဖြစ်အောင်လာသင့်ပါတယ်ရှင်🥰\nဘဝရဲ့ အမှတ်တရ နေ့ရက်လေးမှာ ပြန်တွေးကြည့်တိုင်း ပျော်ရွှင်နေဖိုဆို မင်\nမင်တို Elysian Team က တာဝန်ယူပါရစေရှင့်. ❤️❤️❤️❤️\n\nPricing: ပန်းအလှဆင် Package ဈေးလေးတွေက \nလက်မှတ်ထိုး ဆွမ်းကျွေးပွဲလေး တွေ အတွက် 30သိန်း ၊ \nHotel Wedding Reception  ကို သိန်း 60 ကနေ မှစပြီးတော့ အမျိုးမျိုး ရှိပါတယ်ရှင့်..လုပ်မည့် နေရာ၊ လုပ်ချင်တဲ့ ပုံစံအပေါ် မူတည်ပြီး ဈေးနှုန်းလေးတွေက အမျိုးမျိုးရှိပါတယ်ရှင့် ၊ \nလုပ်ချင်တဲ့ ဒီဇိုင်း ၊ သုံးချင်တဲ့ budget အပေါ် မူတည်ပြီး ညှိနှိုင်းဆောင်ရွက်ပေးပါတယ်..', 3000000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (136, 101, 12, 'S&S Events and Floral - Decoration', 'S&S (Events & Floral) လိုကြားလိုက်တာနဲ့ ပန်းအလှဆင်ဝန်ဆောင်မှုပဲရှိတယ် ထင်ရင်မှားနေပြီနော်။\nမင်္ဂလာပွဲနဲ့ အခမ်းအနားအမျိုးမျိုးအတွက် ပန်းအလှဆင်ခြင်းဝန်ဆောင်မှု အပြင်\n-ပွဲအခမ်းအနားကျင်းပဖို နေရာရွေးချယ်တာကစလို\n-ပွဲတစ်ခုလုံး အောင်အောင်မြင်မြင်ပြီးမြောက်အောင် အသေးစိတ်ကအစ တာဝန်ယူစီစဉ်ဆောင်ရွက်ပေးနေတာပါ။\nဒါကြောင့် S&S (Events & Floral) မှာ ပန်းအပြင်အဆင်တစ်ခုအတွက်ပဲ မဟုတ်ဘဲ ပွဲတစ်ခုလုံးအတွက် ယုံကြည်စိတ်ချစွာ အပ်နှံနိုင်ပါတယ်ရှင့်။\nS&S (Events & Floral)\nသင့်တော်တဲ့စျေးနှုန်း၊ သာလွန်တဲ့ ဝန်ဆောင်မှုနဲ့ အတူ စေတနာတွေအပိုဆောင်းပြီး အခမ်းအနားအလှဆင်ပေးနေတာ S&S ပါနော်။\n\nPricing: အကြမ်းဖျင်းက သိန်း ၄၀ ကစပြီး ပြင်ပေးလေ့ရှိပါတယ်..လုပ်မည့် နေရာ၊ လုပ်ချင်တဲ့ ပုံစံအပေါ် မူတည်ပြီး ဈေးနှုန်းလေးတွေက အမျိုးမျိုးရှိပါတယ်ရှင့် ၊ \nလုပ်ချင်တဲ့ ဒီဇိုင်း ၊ သုံးချင်တဲ့ budget အပေါ် မူတည်ပြီး ညှိနှိုင်းဆောင်ရွက်ပေးပါတယ်..', 500000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero1.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (137, 102, 12, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events Wedding Company Event ပွဲတော်များ : Opening Ceremony Product Launch Birthday Bridal Shower, Baby Shower Anniversary, Staff Party, Gathering, Private Dinner စတဲ့ ပွဲလေးတွေ စီစဉ်လိုလျှင် ဖြစ်ဖြစ် အမှတ်တရကောင်းတွေ ဖန်တီးဖို ပွဲများကို Event Design ဆွဲပေးခြင်း အပြင် အသေးစိတ်ဆွေးနွေးပေးခြင်း ၊ one stop planning service များပါ အသေးစိတ်ဆောင်ရွက်ပေးနေပြီဖြစ်ပါတယ်\nSigning Package, Wedding Package One Stop Planning Services အစီအစဉ်များနှင့်အတူ တစ်သက်မှာတစ်ခါ ကျင်းပမည့် မင်္ဂလာပွဲအတွက် ပွဲစီစဉ်မှုအတွေ့အကြုံများစွာရှိသည့် Event Organizers များနှင့်အတူညှိနှိင်း၍အကောင်းဆုံး ဝန်ဆောင်မှုများအား ရယူနိုင်ပါပြီနော်.\n\nPricing: WEDDING PACKAGE -A (2026) 4,300,000MMK\nBACKDROP (20X9FT) 2,300,000MMK\nPHOTO BOOTH(12X9FT) 650,000MMK\nENTRANCE FLORAL ARCH 450, 000MMK\nSTAGE FLORAL TRAY 550,000MMK\nWELCOME BOARD 180, 000 MMK\nBRIDAL BOUQUET & TWO180, 00OMMK CORSAGES                        \nWEDDING PACKAGE -B (2026) 5,880,000MMK\nBACKDROP (24X9FT) 2,600,000MMK\nPHOTO BOOTH(12X9FT) 650,000MMK\nENTRANCE FLORAL ARCH 500, 000MMK\nSTAGE FLORAL TRAY 700,000MMK\nWELCOME BOARD 200, 000 MMK\nBRIDAL BOUQUET & TWO180, 00OMMK CORSAGES', 4300000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero2.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (138, 103, 6, 'Governor’s Residence - Venue', 'Standard Indoor reception Cost: \n110$ to 150$ per a guest\nAdditional Services\n-Venue hall use (few hours)\n-Standard table & chair setup\n-Basic decorations \n-Buffet or plated menu(Standard-110$/Premium-130$to180$ per a guest)\n-Wedding coordinator\n\nOther services: ရန်ကုန်မြိုမှာ ကိုလိုနီခေတ်က တည်ရှိခဲ့တဲ့ အဆောက်အအုံများစွာအနက် Governor’s Residence ကို ၁၉၂၀ ပြည့်လွန် နှစ်များက တန်ဖိုးကြီး မြန်မာ့ ကျွန်းသစ်၊ မြန်မာ့ လက်မှုပညာတွေနဲ့ ပေါင်းစပ် တည်ဆောက်ခဲ့တဲ့ အဆောက်အအုံတစ်ခုဖြစ်သည်။\n\nသံရုံးများတည်ရှိရာ ရန်ကုန်မြိုရဲ့ အေးဆေးတိတ်ဆိတ်တဲ့ နေရာ၊ သမိုင်းဝင်အဆောက်အအုံများရဲ့ အလှတရားနှင့် ခေတ်မှီဇိမ်ခံပစ္စည်းများနဲ့ ပြန်လည်ပေါင်းစပ် တည်ဆောက်ထားတာ ဖြစ်ပါတယ်။ ကျယ်ဝန်းတဲ့ အိပ်ခန်းဆောင်များတွင် သစ်သား၊ ပိုးသားချည်မျှင်များနဲ့ အလှဆင်ထားတဲ့အပြင် စိမ်းလန်းစိုပြေပြီး ဝေဆာပွင့်လန်းနေတဲ့ ဥယျာဉ်ရဲ့ အလှကိုလည်း မြင်တွေ့ရဦးမှာ ဖြစ်ပါတယ်။ ဒါ့ပြင် ရေကူးကန်ကိုလည်း စပိန်မှ တင်သွင်းထားတဲ့ ကြွေပြားများနဲ့ ပြန်လည် အလှဆင် တည်ဆောက် ထားပါသေးတယ်။\n\nGovernor’s Residence ရဲ့ The Monkey Bar၊ The State Room နှင့် The Peacock Portico တိုမှာလည်း ခမ်းနားတဲ့ ညစာစားပွဲများကို တည်ခင်းရောင်းချပေးတာဖြစ်ပြီး Outlets တစ်ခုချင်းစီတိုင်းမှ မတူကွဲပြားတဲ့ ပရိဘောဂများရဲ့ အလှတွေကလည်း လာရောက်တဲ့ ဧည့်သည်တိုင်းအတွက် အမှတ်တရ ဖြစ်စေမှာပဲ ဖြစ်ပါတယ်။\nကိုလိုခေတ် မြန်မာ့ လက်မှုပညာရဲ့ ခန့်ညားထည်ဝါမှုအပြင် ရှေးခေတ် အငွေ့အသက်တွေကို အပြည့်အဝ ခံစားနိုင်ဖို Governor’s Residence သို ဖိတ်ခေါ်လိုက်ပါတယ်။\n\nPricing: Indoor and outdoor hotel', 800000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
-(139, 104, 6, 'Novotel Yangon Max - Venue', 'A delightful experience awaits you when booking your wedding venue at Novotel Yangon Max. Whether indoor or outdoor, a large-scale banquet, high profile event with personalized butler, or intimate ceremonial gathering, we’ll be at your service to assist and provide helpful suggestions for personalizing this extremely important occasion.\n\nOther services: Yangon Ballroom (Ground floor) မှာ ဧည့်သည် 500 မှ 750 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\nPyay Ballroom (Level 4) မှာ ဧည့်သည် 200 မှ 250 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\nPathein Ballroom (Ground floor) မှာ ဧည့်သည် 100 မှ 180 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\n\nPricing: Pearl Package: မုန့် (၃) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 22\nRuby Package: မုန့် (၄) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 24\nDiamond Package: မုန့် (၅) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 26\nThe package includes:\n-Choice of Snacks, Coffee Tea & Ice Cream\n-4 x Unique Romantic Floral Stand on Stage\n-8 x Romantic Floral Stands Along the Red Carpet\n-Floral Decoration on all the Table\n-Decorated Wedding Cake\n-Red Carpet to the bridal walkway to the wedding stage\n-Usage of one fully setup bridal dressing room\n-1 night stay in a Deluxe Suite including breakfast\n-1 bottle of wine  in the room\n-Backdrop to grace the occasion\n-Food tasting for booking\n-VIP Parking for Bridal Car\n\nBreakfast buffet: 28$ per a person\n\nDinner set package :Chinese Set Menu – at least US$ 40\n(Additional services are the same)', 99000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero1.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
+(139, 104, 6, 'Novotel Yangon Max - Venue', 'A delightful experience awaits you when booking your wedding venue at Novotel Yangon Max. Whether indoor or outdoor, a large-scale banquet, high profile event with personalized butler, or intimate ceremonial gathering, we’ll be at your service to assist and provide helpful suggestions for personalizing this extremely important occasion.\n\nOther services: Yangon Ballroom (Ground floor) မှာ ဧည့်သည် 500 မှ 750 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\nPyay Ballroom (Level 4) မှာ ဧည့်သည် 200 မှ 250 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\nPathein Ballroom (Ground floor) မှာ ဧည့်သည် 100 မှ 180 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\n\nPricing: Pearl Package: မုန့် (၃) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 22\nRuby Package: မုန့် (၄) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 24\nDiamond Package: မုန့် (၅) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 26\nThe package includes:\n-Choice of Snacks, Coffee Tea & Ice Cream\n-4 x Unique Romantic Floral Stand on Stage\n-8 x Romantic Floral Stands Along the Red Carpet\n-Floral Decoration on all the Table\n-Decorated Wedding Cake\n-Red Carpet to the bridal walkway to the wedding stage\n-Usage of one fully setup bridal dressing room\n-1 night stay in a Deluxe Suite including breakfast\n-1 bottle of wine  in the room\n-Backdrop to grace the occasion\n-Food tasting for booking\n-VIP Parking for Bridal Car\n\nBreakfast buffet: 28$ per a person\n\nDinner set package :Chinese Set Menu – at least US$ 40\n(Additional services are the same)', 99000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero1.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL);
+INSERT INTO `services` (`id`, `supplier_id`, `category_id`, `name`, `description`, `price`, `price_min`, `price_max`, `thumbnail_url`, `is_active`, `booking_type`, `duration_minutes`, `pricing_unit`, `buffer_minutes`, `max_concurrent`, `max_concurrent_package`, `max_concurrent_customize`, `created_at`, `min_lead_days`, `default_start_time`, `default_end_time`) VALUES
 (140, 105, 6, 'Sedona Hotel Yangon - Venue', 'Sitting majestically on eight acres of beautifully landscaped gardens, Sedona Hotel Yangon is a 20minute drive away from Yangon International Airport and the bustling city centre. Conveniently located across from Yangon’s first international retail shopping centre, Myanmar Plaza, Sedona 5-star hotel in Yangon is close to iconic attractions such as the Shwedagon Pagoda and Inya Lake.\n\nOther services: Grand Ballroom မှာ ဧည့်သည် 350 ကနေ 600 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\nYankin Room မှာ ဧည့်သည် 200 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\nMindon Room မှာ ဧည့်သည် 150 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\nInya Room မှာ ဧည့်သည် 140 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။', 800000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero2.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (141, 106, 6, 'Inya Lake Hotel - Venue', 'Dreaming of a spectacular location for your wedding? The Inya Lake Hotel has a dedicated and professional team. We will help you with the planning, decorations, catering and hostess services, and more to make your wedding truly special.\n\nOther services: Mingalar Hall မှာ ဧည့်သည် 200 ကနေ 500 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\nOutdoor Wedding အတွက် Sunset Terrace, Lake Side Lawn, Pool Side Lawn တို့မှာကျင်းပနိုင်ပြီး ဧည့်သည် 1000 အထိ တည်ခင်းနိုင်ပါတယ်။\n\nPricing: Promise Package: မုန့် (၃) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 14\nJoyous Package: မုန့် (၄) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 15\nRomance Package: မုန့် (၅) မျိုး၊ ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 16', 63000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (142, 107, 6, 'Meliá Yangon - Venue', 'A contemporary hotel with an avant-garde feel located alongside Lake Inya. The hotel offers the finest hospitality with a passion for detail. A first-class hotel in one of the most vibrant cities in Asia, ideal for weddings.\n\nOther services: Grand Ballroom မှာ ဧည့်သည် 350 ကနေ 600 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။Inya Ballroom မှာ ဧည့်သည် 180 အထိ တည်ခင်းဧည့်ခံနိုင်ပါတယ်။\n\nPricing: မုန့် (၃) မျိုး:  ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 19\nမုန့် (၄) မျိုး:  ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 20\nမုန့် (၅) မျိုး:  ကော်ဖီ၊ လက်ဖက်ရည်၊ ရေခဲမုန့် – US$ 21\nChinese/Asian/Western Set Menu – US$ 35 per a person', 85500.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero1.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
@@ -2814,7 +3118,9 @@ INSERT INTO `services` (`id`, `supplier_id`, `category_id`, `name`, `description
 (164, 129, 10, 'Makeup Non Thit San - Makeup & Hair', 'Pricing: 10', 150000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero2.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (165, 130, 10, 'Sweet Hair& Make up - Makeup & Hair', 'Pricing: 15', 150000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (166, 131, 2, 'Y\'s dress', 'We provide accessories', 250000.00, 250000.00, 850000.00, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/131/service-management/service/20260624085706-a41e8881.jpg', 1, 'slot', 240, 'per_session', 0, 3, 2, 2, '2026-06-24 02:27:06', 3, NULL, NULL),
-(167, 134, 2, 'Grand', 'Hello', 450000.00, 450000.00, 2500000.00, '', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-26 03:36:14', 12, '10:05:00', '13:05:00');
+(167, 134, 2, 'Grand', 'Hello', 450000.00, 450000.00, 2500000.00, '', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-26 03:36:14', 12, '10:05:00', '13:05:00'),
+(170, 20, 3, 'Eldora', 'El Dorado (အဲလ်ဒိုရာဒို) အကြောင်းEl Dorado သည် ရန်ကုန်မြို့တွင် လူကြိုက်များသော Bakery & Cake Shop တစ်ခုဖြစ်ပြီး နေ့စဉ်လတ်ဆတ်သော ကိတ်မုန့်များ၊ မုန့်ဖုတ်ပစ္စည်းများနှင့် ပေါင်မုန့်များကို ရောင်းချလျက်ရှိသည်။🎂 ထူးခြားချက်များမွေးနေ့၊ မင်္ဂလာပွဲ၊ နှစ်ပတ်လည် အခမ်းအနားများအတွက် Custom Cake များ လက်ခံပြုလုပ်သည်နေ့စဉ်ထုတ်လျက်ရှိသော Pastry၊ Bread၊ Specialty Cakesဝန်ဆောင်မှုကောင်းမွန်ပြီး သန့်ရှင်းသပ်ရပ်သော ဆိုင်ပတ်ဝန်းကျင်အရသာကောင်းမွန်မှုနှင့် လူကြိုက်များမှုကြောင့် Yangon တွင် အကြိုက်ဆုံး Bakery အဖြစ် သိရှိခံရသည်🍰 El Dorado သည် အမှန်တကယ် အရသာနှင့် အရည်အသွေးကို အားထားသူများအတွက် သင့်တော်သည့် Bakery ဖြစ်ပြီး၊ သင့် မွေးနေ့၊ မင်္ဂလာပွဲ နှင့် အခြား အခမ်းအနားများအတွက် အကောင်းဆုံးရွေးချယ်မှုတစ်ခုဖြစ်သည်။', 0.00, 0.00, 0.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260627150931-3840189c.jpg', 1, 'slot', 480, 'per_session', 0, 1, 1, 1, '2026-06-27 08:39:31', 4, NULL, NULL),
+(171, 20, 2, 'Dear Brides Wedding Dress Studio', 'ကျွန်မတို့ Studio ရဲ့ ထူးခြားချက်များကျယ်ဝန်းသော Studio နှင့် ကားပါကင်: စိတ်အေးချမ်းသာစွာ ဝတ်စုံရွေးချယ်နိုင်ဖို့ ကျယ်ဝန်းသပ်ရပ်တဲ့ Studio အပြင်၊ လာရောက်သူတိုင်းအတွက် အဆင်ပြေစေမယ့် ကိုယ်ပိုင်ကားပါကင်လည်း စီစဉ်ပေးထားပါတယ်။ကျွမ်းကျင် Stylist များ: သတို့သမီးတစ်ဦးချင်းစီရဲ့ အလှတရားကို ပေါ်လွင်စေဖို့ အတွေ့အကြုံရှိ Stylist များက ဝတ်စုံရွေးချယ်မှုမှသည် ပုံဖော်ပေးမှုအထိ အနီးကပ်အကြံပြုပေးမှာပါရှင်။Photo Studio နှင့် တစ်ဆက်တည်း: Studio အတွင်းမှာတင် Photo Studio ပါရှိလို့ အချိန်မကုန် လူမပင်ပန်းဘဲ တစ်ခါတည်း Photoshoot နိုင်တာက ကျွန်မတို့ရဲ့ အားသာချက်ပါပဲရှင်။', 1000000.00, 1000000.00, 3000000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260627151756-619c2298.jpg', 0, 'fullday', 60, 'per_session', 0, 1, 0, 0, '2026-06-27 08:47:56', 3, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2838,7 +3144,6 @@ CREATE TABLE `service_availability` (
 --
 
 INSERT INTO `service_availability` (`id`, `service_id`, `date`, `type`, `open_time`, `close_time`, `reason`, `created_at`) VALUES
-(9, 54, '2026-06-30', 'unavailable', NULL, NULL, NULL, '2026-06-20 02:56:21'),
 (11, 56, '2026-06-21', 'unavailable', NULL, NULL, NULL, '2026-06-21 07:46:22'),
 (12, 166, '2026-07-01', 'unavailable', NULL, NULL, 'owner\'s birthday', '2026-06-24 02:49:57');
 
@@ -2868,22 +3173,6 @@ INSERT INTO `service_media` (`id`, `service_id`, `file_url`, `type`) VALUES
 (77, 42, 'http://localhost/GP/public/uploads/suppliers/21/service-management/media/20260618103259-e7cfcd2b.jpg', 'image'),
 (78, 42, 'http://localhost/GP/public/uploads/suppliers/21/service-management/media/20260618103303-62e2f364.jpg', 'image'),
 (79, 42, 'http://localhost/GP/public/uploads/suppliers/21/service-management/media/20260618103307-951e5978.jpg', 'image'),
-(80, 44, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618112626-b5fa1681.jpg', 'image'),
-(81, 44, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618112629-0f06d57e.jpg', 'image'),
-(82, 44, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618112634-d5d458b6.jpg', 'image'),
-(83, 44, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618112639-08d32d46.jpg', 'image'),
-(85, 45, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618120120-c4be27c5.jpg', 'image'),
-(86, 45, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618120123-72685357.jpg', 'image'),
-(87, 45, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618120127-985feb11.jpg', 'image'),
-(88, 46, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618123316-51c01436.png', 'image'),
-(89, 46, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618123320-3b184584.png', 'image'),
-(90, 46, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618123324-32b56870.png', 'image'),
-(91, 46, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618123328-6ffeb74a.png', 'image'),
-(92, 46, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618123332-023d315f.png', 'image'),
-(95, 47, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618153527-97b60c51.jpg', 'image'),
-(96, 47, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618153540-64fe93cc.jpg', 'image'),
-(97, 47, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618153544-9bd4b5f7.jpg', 'image'),
-(99, 47, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618153558-73496044.jpg', 'image'),
 (100, 48, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618210337-4e038754.png', 'image'),
 (101, 48, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618210344-2247d48e.png', 'image'),
 (102, 48, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260618210350-59732434.png', 'image'),
@@ -2927,7 +3216,16 @@ INSERT INTO `service_media` (`id`, `service_id`, `file_url`, `type`) VALUES
 (141, 166, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/131/service-management/media/20260624110739-5c1b9ea5.jpg', 'image'),
 (142, 166, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/131/service-management/media/20260624110752-f37bb4b2.jpg', 'image'),
 (143, 166, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/131/service-management/media/20260624110830-3bd7de88.jpg', 'image'),
-(144, 167, 'https://4b2b50ea8de75a5e-204-157-173-127.serveousercontent.com/GP/public/uploads/suppliers/134/service-management/media/20260626104300-56c10968.png', 'image');
+(144, 167, 'https://4b2b50ea8de75a5e-204-157-173-127.serveousercontent.com/GP/public/uploads/suppliers/134/service-management/media/20260626104300-56c10968.png', 'image'),
+(145, 49, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627134704-d1f5737f.jpg', 'image'),
+(149, 170, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627150940-a53e07d3.png', 'image'),
+(150, 170, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627150943-86b04556.png', 'image'),
+(151, 170, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627150946-5875f662.png', 'image'),
+(152, 170, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627150952-fe48c78b.png', 'image'),
+(153, 171, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627151803-299a3be7.jpg', 'image'),
+(154, 171, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627151806-fbdddfd0.jpg', 'image'),
+(155, 171, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627151809-63068888.jpg', 'image'),
+(156, 171, 'http://localhost/GP/public/uploads/suppliers/20/service-management/media/20260627151813-6690a1dd.jpg', 'image');
 
 -- --------------------------------------------------------
 
@@ -2953,12 +3251,11 @@ CREATE TABLE `service_rental_pricing` (
 --
 
 INSERT INTO `service_rental_pricing` (`id`, `service_id`, `borrow_package_price`, `borrow_customize_price`, `borrow_price`, `return_days`, `buy_package_price`, `buy_customize_price`, `buy_price`, `created_at`) VALUES
-(4, 45, 800000.00, 830000.00, 800000.00, 1, 1000000.00, 1200000.00, 1000000.00, '2026-06-18 10:01:07'),
-(5, 47, 750000.00, 800000.00, 750000.00, 3, 989999.85, 1000000.00, 989999.85, '2026-06-18 13:29:53'),
 (9, 55, 400000.00, 410000.00, 400000.00, 1, 500000.00, 500000.00, 500000.00, '2026-06-19 03:42:00'),
 (10, 57, 750000.00, 790000.00, 750000.00, 3, 1000000.00, 1000000.00, 1000000.00, '2026-06-20 07:02:52'),
 (11, 166, 150000.00, 220000.00, 150000.00, 3, 850000.00, 1200000.00, 850000.00, '2026-06-24 02:27:06'),
-(12, 167, 150000.00, 220000.00, 150000.00, 2, 230000.00, 230000.00, 230000.00, '2026-06-26 03:36:14');
+(12, 167, 150000.00, 220000.00, 150000.00, 2, 230000.00, 230000.00, 230000.00, '2026-06-26 03:36:14'),
+(14, 171, 1000000.00, 1100000.00, 1000000.00, 3, 1500000.00, 1500000.00, 1500000.00, '2026-06-27 08:47:56');
 
 -- --------------------------------------------------------
 
@@ -2988,13 +3285,6 @@ INSERT INTO `service_schedules` (`id`, `service_id`, `day_of_week`, `open_time`,
 (369, 42, 5, '09:00:00', '17:00:00', 1, '2026-06-18 08:33:11'),
 (370, 42, 6, '09:00:00', '17:00:00', 1, '2026-06-18 08:33:11'),
 (371, 42, 7, '09:00:00', '17:00:00', 1, '2026-06-18 08:33:11'),
-(393, 47, 1, '09:00:00', '17:00:00', 1, '2026-06-18 18:10:37'),
-(394, 47, 2, '09:00:00', '17:00:00', 1, '2026-06-18 18:10:37'),
-(395, 47, 3, '09:00:00', '17:00:00', 1, '2026-06-18 18:10:37'),
-(396, 47, 4, '09:00:00', '17:00:00', 1, '2026-06-18 18:10:37'),
-(397, 47, 5, '09:00:00', '17:00:00', 1, '2026-06-18 18:10:37'),
-(398, 47, 6, '09:00:00', '17:00:00', 1, '2026-06-18 18:10:37'),
-(399, 47, 7, '09:00:00', '17:00:00', 1, '2026-06-18 18:10:37'),
 (421, 48, 1, '09:00:00', '17:00:00', 1, '2026-06-18 19:16:14'),
 (422, 48, 2, '09:00:00', '17:00:00', 1, '2026-06-18 19:16:14'),
 (423, 48, 3, '09:00:00', '17:00:00', 1, '2026-06-18 19:16:14'),
@@ -3002,20 +3292,6 @@ INSERT INTO `service_schedules` (`id`, `service_id`, `day_of_week`, `open_time`,
 (425, 48, 5, '09:00:00', '17:00:00', 1, '2026-06-18 19:16:14'),
 (426, 48, 6, '09:00:00', '17:00:00', 1, '2026-06-18 19:16:14'),
 (427, 48, 7, '09:00:00', '17:00:00', 1, '2026-06-18 19:16:14'),
-(435, 49, 1, '09:00:00', '17:00:00', 1, '2026-06-18 19:27:46'),
-(436, 49, 2, '09:00:00', '17:00:00', 1, '2026-06-18 19:27:46'),
-(437, 49, 3, '09:00:00', '17:00:00', 1, '2026-06-18 19:27:46'),
-(438, 49, 4, '09:00:00', '17:00:00', 1, '2026-06-18 19:27:46'),
-(439, 49, 5, '09:00:00', '17:00:00', 1, '2026-06-18 19:27:46'),
-(440, 49, 6, '09:00:00', '17:00:00', 1, '2026-06-18 19:27:46'),
-(441, 49, 7, '09:00:00', '17:00:00', 1, '2026-06-18 19:27:46'),
-(442, 50, 1, '09:00:00', '17:00:00', 1, '2026-06-19 02:09:30'),
-(443, 50, 2, '09:00:00', '17:00:00', 1, '2026-06-19 02:09:30'),
-(444, 50, 3, '09:00:00', '17:00:00', 1, '2026-06-19 02:09:30'),
-(445, 50, 4, '09:00:00', '17:00:00', 1, '2026-06-19 02:09:30'),
-(446, 50, 5, '09:00:00', '17:00:00', 1, '2026-06-19 02:09:30'),
-(447, 50, 6, '09:00:00', '17:00:00', 1, '2026-06-19 02:09:30'),
-(448, 50, 7, '09:00:00', '17:00:00', 1, '2026-06-19 02:09:30'),
 (456, 55, 1, '09:00:00', '17:00:00', 1, '2026-06-19 13:00:43'),
 (457, 55, 2, '09:00:00', '17:00:00', 1, '2026-06-19 13:00:43'),
 (458, 55, 3, '09:00:00', '17:00:00', 1, '2026-06-19 13:00:43'),
@@ -3023,13 +3299,6 @@ INSERT INTO `service_schedules` (`id`, `service_id`, `day_of_week`, `open_time`,
 (460, 55, 5, '09:00:00', '17:00:00', 1, '2026-06-19 13:00:43'),
 (461, 55, 6, '09:00:00', '17:00:00', 1, '2026-06-19 13:00:43'),
 (462, 55, 7, '09:00:00', '17:00:00', 1, '2026-06-19 13:00:43'),
-(463, 54, 1, '09:00:00', '17:00:00', 1, '2026-06-20 02:56:40'),
-(464, 54, 2, '09:00:00', '17:00:00', 1, '2026-06-20 02:56:40'),
-(465, 54, 3, '09:00:00', '17:00:00', 1, '2026-06-20 02:56:40'),
-(466, 54, 4, '09:00:00', '17:00:00', 1, '2026-06-20 02:56:40'),
-(467, 54, 5, '09:00:00', '17:00:00', 1, '2026-06-20 02:56:40'),
-(468, 54, 6, '09:00:00', '17:00:00', 1, '2026-06-20 02:56:40'),
-(469, 54, 7, '09:00:00', '17:00:00', 1, '2026-06-20 02:56:40'),
 (512, 57, 1, '09:00:00', '17:00:00', 1, '2026-06-20 07:03:54'),
 (513, 57, 2, '09:00:00', '17:00:00', 1, '2026-06-20 07:03:54'),
 (514, 57, 3, '09:00:00', '17:00:00', 1, '2026-06-20 07:03:54'),
@@ -3533,13 +3802,6 @@ INSERT INTO `service_schedules` (`id`, `service_id`, `day_of_week`, `open_time`,
 (1274, 165, 5, '09:00:00', '18:00:00', 1, '2026-06-20 07:52:35'),
 (1275, 165, 6, '09:00:00', '18:00:00', 1, '2026-06-20 07:52:35'),
 (1276, 165, 7, '09:00:00', '18:00:00', 1, '2026-06-20 07:52:35'),
-(1277, 44, 1, '09:00:00', '17:00:00', 1, '2026-06-21 07:07:11'),
-(1278, 44, 2, '09:00:00', '17:00:00', 1, '2026-06-21 07:07:11'),
-(1279, 44, 3, '09:00:00', '17:00:00', 1, '2026-06-21 07:07:11'),
-(1280, 44, 4, '09:00:00', '17:00:00', 1, '2026-06-21 07:07:11'),
-(1281, 44, 5, '09:00:00', '17:00:00', 1, '2026-06-21 07:07:11'),
-(1282, 44, 6, '09:00:00', '17:00:00', 1, '2026-06-21 07:07:11'),
-(1283, 44, 7, '09:00:00', '17:00:00', 1, '2026-06-21 07:07:11'),
 (1284, 64, 1, '10:00:00', '18:00:00', 1, '2026-06-21 07:27:47'),
 (1285, 64, 2, '10:00:00', '18:00:00', 1, '2026-06-21 07:27:47'),
 (1286, 64, 3, '10:00:00', '18:00:00', 1, '2026-06-21 07:27:47'),
@@ -3567,7 +3829,28 @@ INSERT INTO `service_schedules` (`id`, `service_id`, `day_of_week`, `open_time`,
 (1399, 167, 4, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
 (1400, 167, 5, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
 (1401, 167, 6, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
-(1402, 167, 7, '09:00:00', '17:00:00', 0, '2026-06-26 04:35:28');
+(1402, 167, 7, '09:00:00', '17:00:00', 0, '2026-06-26 04:35:28'),
+(1473, 49, 1, '09:00:00', '17:00:00', 1, '2026-06-27 07:26:05'),
+(1474, 49, 2, '09:00:00', '17:00:00', 1, '2026-06-27 07:26:05'),
+(1475, 49, 3, '09:00:00', '17:00:00', 1, '2026-06-27 07:26:05'),
+(1476, 49, 4, '09:00:00', '17:00:00', 1, '2026-06-27 07:26:05'),
+(1477, 49, 5, '09:00:00', '17:00:00', 1, '2026-06-27 07:26:05'),
+(1478, 49, 6, '09:00:00', '17:00:00', 1, '2026-06-27 07:26:05'),
+(1479, 49, 7, '09:00:00', '17:00:00', 1, '2026-06-27 07:26:05'),
+(1494, 170, 1, '09:00:00', '17:00:00', 1, '2026-06-27 08:40:31'),
+(1495, 170, 2, '09:00:00', '17:00:00', 1, '2026-06-27 08:40:31'),
+(1496, 170, 3, '09:00:00', '17:00:00', 1, '2026-06-27 08:40:31'),
+(1497, 170, 4, '09:00:00', '17:00:00', 1, '2026-06-27 08:40:31'),
+(1498, 170, 5, '09:00:00', '17:00:00', 1, '2026-06-27 08:40:31'),
+(1499, 170, 6, '09:00:00', '17:00:00', 1, '2026-06-27 08:40:31'),
+(1500, 170, 7, '09:00:00', '17:00:00', 1, '2026-06-27 08:40:31'),
+(1501, 50, 1, '09:00:00', '17:00:00', 1, '2026-06-27 10:16:16'),
+(1502, 50, 2, '09:00:00', '17:00:00', 1, '2026-06-27 10:16:16'),
+(1503, 50, 3, '09:00:00', '17:00:00', 1, '2026-06-27 10:16:16'),
+(1504, 50, 4, '09:00:00', '17:00:00', 1, '2026-06-27 10:16:16'),
+(1505, 50, 5, '09:00:00', '17:00:00', 1, '2026-06-27 10:16:16'),
+(1506, 50, 6, '09:00:00', '17:00:00', 1, '2026-06-27 10:16:16'),
+(1507, 50, 7, '09:00:00', '17:00:00', 1, '2026-06-27 10:16:16');
 
 -- --------------------------------------------------------
 
@@ -3596,15 +3879,11 @@ CREATE TABLE `service_time_slots` (
 --
 
 INSERT INTO `service_time_slots` (`id`, `service_id`, `date`, `start_time`, `end_time`, `confirmed_count`, `confirmed_package_count`, `confirmed_customize_count`, `max_concurrent`, `max_concurrent_package`, `max_concurrent_customize`, `status`, `created_at`) VALUES
-(3, 44, '2026-09-16', '09:00:00', '17:00:00', 1, 0, 1, 1, 0, 1, 'full', '2026-06-18 11:10:23'),
 (4, 42, '2026-09-16', '09:00:00', '17:00:00', 1, 0, 1, 1, 0, 1, 'full', '2026-06-18 11:10:23'),
-(5, 44, '2026-07-18', '09:00:00', '17:00:00', 1, 0, 1, 1, 0, 1, 'full', '2026-06-18 14:36:16'),
 (6, 42, '2026-07-18', '09:00:00', '17:00:00', 1, 0, 1, 1, 0, 1, 'full', '2026-06-18 14:36:16'),
-(9, 47, '2026-07-19', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-19 15:48:47'),
 (10, 48, '2026-07-19', '09:00:00', '17:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-19 15:48:47'),
 (11, 50, '2026-07-19', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-19 15:48:47'),
 (12, 49, '2026-07-19', '09:00:00', '17:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-19 15:48:47'),
-(13, 47, '2026-06-27', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-20 01:33:55'),
 (14, 55, '2026-06-27', '09:00:00', '17:00:00', 1, 1, 0, 1, 1, 1, 'full', '2026-06-20 01:33:55'),
 (15, 48, '2026-06-27', '09:00:00', '17:00:00', 0, 0, 0, 1, 0, 1, 'available', '2026-06-20 01:33:55'),
 (16, 50, '2026-06-27', '09:00:00', '17:00:00', 2, 2, 0, 3, 0, 3, 'full', '2026-06-20 01:33:55'),
@@ -3644,13 +3923,10 @@ INSERT INTO `service_time_slots` (`id`, `service_id`, `date`, `start_time`, `end
 (51, 67, '2026-06-27', '16:00:00', '17:00:00', 0, 0, 0, 2, 0, 0, 'available', '2026-06-20 18:22:16'),
 (52, 67, '2026-06-27', '17:00:00', '18:00:00', 0, 0, 0, 2, 0, 0, 'available', '2026-06-20 18:22:16'),
 (84, 56, '2026-06-28', '04:00:00', '17:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-21 06:25:06'),
-(85, 47, '2026-06-28', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-21 06:25:06'),
 (86, 55, '2026-06-28', '09:00:00', '17:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-21 06:25:06'),
 (87, 48, '2026-06-28', '09:00:00', '17:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-21 06:25:06'),
-(88, 50, '2026-06-28', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-21 06:25:06'),
+(88, 50, '2026-06-28', '09:00:00', '17:00:00', 2, 1, 1, 3, 0, 0, 'full', '2026-06-21 06:25:06'),
 (89, 50, '2026-06-21', '09:00:00', '17:00:00', 0, 0, 0, 3, 0, 0, 'available', '2026-06-21 06:57:57'),
-(90, 54, '2026-06-21', '09:00:00', '17:00:00', 0, 0, 0, 1, 0, 0, 'available', '2026-06-21 07:01:57'),
-(91, 54, '2026-06-28', '09:00:00', '17:00:00', 0, 0, 0, 1, 0, 0, 'available', '2026-06-21 07:02:01'),
 (92, 64, '2026-06-21', '10:00:00', '11:00:00', 0, 0, 0, 2, 0, 0, 'available', '2026-06-21 07:13:47'),
 (93, 64, '2026-06-21', '11:00:00', '12:00:00', 0, 0, 0, 2, 0, 0, 'available', '2026-06-21 07:13:47'),
 (94, 64, '2026-06-21', '12:00:00', '13:00:00', 0, 0, 0, 2, 0, 0, 'available', '2026-06-21 07:13:47'),
@@ -3662,49 +3938,43 @@ INSERT INTO `service_time_slots` (`id`, `service_id`, `date`, `start_time`, `end
 (100, 56, '2026-06-21', '11:00:00', '14:00:00', 0, 0, 0, 2, 0, 0, 'available', '2026-06-21 07:40:15'),
 (101, 56, '2026-06-21', '14:00:00', '17:00:00', 0, 0, 0, 2, 0, 0, 'available', '2026-06-21 07:40:15'),
 (102, 56, '2026-06-29', '04:00:00', '17:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-22 09:49:24'),
-(103, 47, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-22 09:49:24'),
 (104, 55, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-22 09:49:24'),
 (105, 48, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-22 09:49:24'),
-(106, 50, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-22 09:49:24'),
+(106, 50, '2026-06-29', '09:00:00', '17:00:00', 2, 1, 1, 3, 0, 3, 'full', '2026-06-22 09:49:24'),
 (108, 56, '2026-07-01', '04:00:00', '07:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:07:04'),
 (109, 56, '2026-07-01', '07:00:00', '10:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:07:04'),
-(110, 47, '2026-07-01', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-23 05:07:04'),
 (111, 55, '2026-07-01', '09:00:00', '12:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-23 05:07:04'),
 (112, 48, '2026-07-01', '09:00:00', '12:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-23 05:07:04'),
 (113, 50, '2026-07-01', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-23 05:07:04'),
 (114, 56, '2026-07-01', '10:00:00', '13:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:07:04'),
-(115, 47, '2026-07-01', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-23 05:07:04'),
 (116, 55, '2026-07-01', '12:00:00', '15:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-23 05:07:04'),
 (117, 48, '2026-07-01', '12:00:00', '15:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-23 05:07:04'),
 (118, 50, '2026-07-01', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-23 05:07:04'),
 (119, 56, '2026-07-01', '13:00:00', '16:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:07:04'),
 (120, 56, '2027-08-04', '04:00:00', '07:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:15:13'),
 (121, 56, '2027-08-04', '07:00:00', '10:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:15:13'),
-(122, 47, '2027-08-04', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-23 05:15:13'),
 (123, 55, '2027-08-04', '09:00:00', '12:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-23 05:15:13'),
 (124, 48, '2027-08-04', '09:00:00', '12:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-23 05:15:13'),
 (125, 50, '2027-08-04', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-23 05:15:13'),
 (126, 56, '2027-08-04', '10:00:00', '13:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:15:13'),
-(127, 47, '2027-08-04', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-23 05:15:13'),
 (128, 55, '2027-08-04', '12:00:00', '15:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-23 05:15:13'),
 (129, 48, '2027-08-04', '12:00:00', '15:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-23 05:15:13'),
 (130, 50, '2027-08-04', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-23 05:15:13'),
 (131, 56, '2027-08-04', '13:00:00', '16:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:15:13'),
 (132, 56, '2026-07-02', '04:00:00', '07:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-24 02:53:58'),
 (133, 56, '2026-07-02', '07:00:00', '10:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-24 02:53:58'),
-(134, 47, '2026-07-02', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-24 02:53:58'),
 (135, 55, '2026-07-02', '09:00:00', '12:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-24 02:53:58'),
 (136, 48, '2026-07-02', '09:00:00', '12:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-24 02:53:58'),
 (137, 50, '2026-07-02', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-24 02:53:58'),
 (138, 56, '2026-07-02', '10:00:00', '13:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-24 02:53:58'),
-(139, 47, '2026-07-02', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-24 02:53:58'),
 (140, 55, '2026-07-02', '12:00:00', '15:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-24 02:53:58'),
 (141, 48, '2026-07-02', '12:00:00', '15:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-24 02:53:58'),
 (142, 50, '2026-07-02', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-24 02:53:58'),
 (143, 56, '2026-07-02', '13:00:00', '16:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-24 02:53:58'),
 (144, 42, '2026-07-24', '09:00:00', '12:00:00', 1, 1, 0, 300, 0, 300, 'available', '2026-06-24 03:09:11'),
 (145, 42, '2026-07-24', '12:00:00', '15:00:00', 1, 1, 0, 300, 0, 300, 'available', '2026-06-24 03:09:11'),
-(146, 50, '2026-06-26', '09:00:00', '17:00:00', 0, 0, 0, 3, 0, 0, 'available', '2026-06-26 06:33:05');
+(146, 50, '2026-06-26', '09:00:00', '17:00:00', 0, 0, 0, 3, 0, 0, 'available', '2026-06-26 06:33:05'),
+(147, 49, '2026-06-27', '09:00:00', '17:00:00', 0, 0, 0, 1, 0, 0, 'available', '2026-06-26 13:54:33');
 
 -- --------------------------------------------------------
 
@@ -3730,6 +4000,8 @@ CREATE TABLE `suppliers` (
   `min_advance_days` int(11) NOT NULL DEFAULT 0,
   `cancellation_policy` text DEFAULT NULL,
   `warning_level` tinyint(4) NOT NULL DEFAULT 0 COMMENT '0=none, 1=warning, 2=final_warning',
+  `missed_response_count` int(11) NOT NULL DEFAULT 0 COMMENT 'Number of bookings auto-cancelled due to supplier non-response',
+  `last_warning_at` timestamp NULL DEFAULT NULL COMMENT 'When the supplier was last issued a system warning for missed responses',
   `admin_note` text DEFAULT NULL,
   `bank_code` varchar(50) DEFAULT NULL,
   `notification_prefs` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`notification_prefs`)),
@@ -3742,86 +4014,86 @@ CREATE TABLE `suppliers` (
 -- Dumping data for table `suppliers`
 --
 
-INSERT INTO `suppliers` (`supplier_id`, `user_id`, `shop_name`, `description`, `status`, `verified_by`, `approved_by`, `verify_url`, `agreement_accepted`, `agreement_accepted_at`, `agreement_version`, `payment_status`, `is_available`, `auto_accept_bookings`, `min_advance_days`, `cancellation_policy`, `warning_level`, `admin_note`, `bank_code`, `notification_prefs`, `bank_account`, `created_at`, `deleted_at`) VALUES
-(20, 24, 'JV', 'we sell dress', 'verified', NULL, 1, 'https://www.facebook.com/jv230', 1, '2026-06-10 02:08:51', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-10 06:38:51', NULL),
-(21, 29, 'Wyndham Grand Yangon Hotel', 'ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Tea Package များကို US$ 7 တောင် လျော့ပေးမယ့်အပြင် မိမိရွေး ချယ်တဲ့ Package ပေါ် မူတည်၍ Walkway နဲ့ LED အသုံးပြုခွင့်များပါ ရရှိနိုင်မှာပဲဖြစ်ပါတယ်...\r\n\r\nဒါ့အပြင် Wedding Dinner Packages ဝယ်ယူသူတိုင်းအတွက် အခမဲ့ Complimentary Table များ (သိုမဟုတ်) Walkway အသုံးပြုခွင့် (သိုမဟုတ်)  LED အသုံးပြုခွင့်ဆိုပြီး မိမိ နှစ်သက်ရာ အကျိုးခံစားခွင့်ကို ရွေးချယ်ရယူနိုင်မှာပါ...\r\n\r\n သင့်စိတ်ကူးထဲကအတိုင်း ကြီးကျယ်ခမ်းနားလှပတဲ့ Wedding ပွဲကြီးကို စိတ်တိုင်းကျဖန်တီးနိုင်ဖိုအတွက် ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Venue Area များက အသင့်တော်ဆုံးရွေးချယ်မှုဖြစ်စေမှာပါ...Wedding Period ကိုလည်း ၂၀၂၇ ခုနှစ် နှစ်ကုန်အထိ ပေးထားတာမို တအားတန်တဲ့ ဒီအခွင့်အရေးကို လက်မလွတ်ရလေအောင် အမိအရဖမ်းဆုပ်လိုက်တော့နော်...🤍', 'verified', 1, 1, 'htpps://www.wyndhamgrandyangon.com', 1, '2026-06-11 00:31:15', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-11 05:01:15', NULL),
-(23, 32, 'Excel River View Hotel & Resort', 'Riverside hotel on the Bago River offering stage decoration, table & chair arrangement, floral decoration and theme colour design for weddings.', 'approved', NULL, NULL, 'excelriverview@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:13:56', NULL),
-(24, 33, 'Golden Inya Restaurant', 'Lakeside fine-dining restaurant on Inya Lake with indoor and outdoor space (outdoor seats 700-800). Popular for weddings, engagements and receptions, buffet and set/custom menus available.', 'approved', NULL, NULL, 'golden-inya-restaurant.business.site', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
-(25, 34, 'Western Park Ruby - People\'s Park', 'Garden venue inside People\'s Park, Dagon Township. Indoor (100-200) and outdoor (200-800) wedding space, guests skip the park entrance fee. Reception buffet on request.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
-(26, 35, 'Zephyr (Sein Lann So Pyay Garden)', 'Calm garden fine-dining and event venue beside Inya Lake. Outdoor lawn seats up to 400. Offers stage decoration, floral arrangement and theme-based decoration, Asian & Western set/buffet menus.', 'approved', NULL, NULL, 'zephyrcafe2018@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
-(27, 36, 'The White Cottage Restaurant & Lounge', 'European cottage-style restaurant and lounge in Shwe Taung Kyar, Bahan. Romantic indoor space and green garden (outdoor 100-150), suited to Western-style civil weddings. Decor/planner/MC not included.', 'approved', NULL, NULL, 'thewhitecottageyangon.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
-(28, 37, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'No.991, Thu Mingalar Road, Thingangyun Township, Yangon. Tel 09 250 500 809\n\nTraditional Myanmar bridal wear — htaing-ma-theim, offering/registration outfits, taik-pon and taung-shay for the couple and parents, in various silk weaves. Rental and sale, plus custom-made rental (book 3-6 months ahead). Htaing-ma-theim rental approx 350,000 to 2,000,000, offering outfits from approx 200,000. Add-ons: floral decoration, hand bouquets, hotel/makeup booking and wedding car decoration.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
-(29, 38, 'Dear Brides Wedding Dress Studio', 'Karaweik Garden, near Myaw Sin Kyun entry, Mingalar Taung Nyunt, Yangon. Tel 09 771471462. Open 10:00-18:00 daily\n\nWestern and traditional bridal wear — wedding gowns, mermaid dresses, evening dresses and pre-wedding outfits. Latest imported designs for rent or sale, customised bridal veils, and custom-made rental. Spacious studio with parking, in-house photo studio and experienced stylists. Range approx 800,000 to 3,000,000 depending on dress.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
-(30, 39, 'The Vow Wedding Studio Myanmar', 'No.789, 47 ward, Bohmu Ba Htoo Road, North Dagon, Yangon. Tel 09 451355553, 09 791580503. Open 09:00-17:00\n\nWomen\'s bridal studio with finely tailored gowns, quality fabrics and detailed finishing for each bride. Rental and sale; crowns and bridal shoes also available. Event-day rental approx 1,500,000 to 6,000,000+.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
-(31, 40, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Thu Mingalar main road (between Sa Taik and Inn Wa bus stops), South Okkalapa, Yangon — above Khit Pyaing toy shop, next to CB Bank. Tel 09 777775512\n\nWedding suits and dresses for men and women. Reliable remote/line ordering with good fit. Price approx 200,000 to 500,000+. Booking required.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
-(32, 41, 'T&T Bridal Collection', 'No.666, Thudamar Road (near Eaindra bus stop), North Okkalapa, Yangon. Tel 09 799515633, 09 799515622. Open 10:00-17:30, closed Wednesdays\n\nWestern wedding dresses with hundreds of new pieces. Rental approx 400,000 to 1,500,000; wholesale purchase from 230,000. 10+ years wedding-industry founder advises on current trends, body-fit styling, matching makeup look and accessories. New stock monthly plus resale of older pieces.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
-(33, 42, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'No.293, Brahmaso 4/6 Street, South Okkalapa Township, Yangon. Tel 09 422999929, 09 985808800\n\nMen\'s ceremony wear — \"Gon\" taik-pon (M/L/XL/XXL) at 300,000 and pasoe (longyi) from 43,000 to 420,000. Detailed sizing help and sharp cutting for a smart, dignified look.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
-(34, 43, 'Peter\'s Bridal Garden - Studio', 'No.542, Ou Zanar Street, ward 11, Mya Thidar Housing, South Okkalapa, Yangon. Tel 09 777 595010\n\nPre-wedding outfit and photography studio. Indoor and outdoor pre-wedding packages (e.g. 3-outfit indoor package), traditional looks, makeup and full-team support with raw photos provided. Highly recommended for pre-wedding shoots.', 'approved', NULL, NULL, 'peterbridalgarden@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
-(35, 44, 'My Everything Wedding Dresses', 'No.1253, 13 ward, Ratana main road, South Okkalapa Township, Yangon. Tel 09 776040862, 09 760396053. Open 09:00-17:00\n\nBridal dress rental for brides. Rental price range approx 480,000 to 1,860,000. Rental only.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
-(68, 45, 'Forever One Stop Wedding Studio', 'No. 108, Phone Gyi Road, Lanmadaw Township, Yangon, Myanmar. +95 9 777 299 466 , +95 9 776 275 302 foreverstudio.mm@gmail.com              Garden Studio;\nNo.619, Padagyi - Thilawa Rd,\nShwe Pyout, Kyauktan, Yangon.\nPh : 09-777299477', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(69, 46, 'H & H Photo Studio', '🏨 - No.968, Thiri Zayar 18 A Street, 7 Ward, South Oakkalapa, Yangon.                 09770837838', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(70, 47, 'Venus Wedding Studio', 'Yangon Add：အမှတ်(A+B), မေဥယျာဥ်အိမ်ယာ၊ ရတနာလမ်းမပေါ်၊ သင်္ဃန်းကျွန်းမြို့နယ်၊ ရန်ကုန်မြို့။️Hotline：09957373666 /09957373999', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(71, 48, 'PNA’S Wedding Studio', 'Main Branch Address   No.93, သရက်တောလမ်း၊ ကမ်းနားလမ်းမပေါ် ၊ ကြည့်မြင်တိုင်မြိုနယ် ၊ ရန်ကုန်မြို ။\nNorth Dagon Branch Address ( Opening Soon )\nအမှတ် ၉၀၄ ၊ ဒဂုံသီရိလမ်း ၊ ၄၃ ရပ်ကွက် ၊ မြောက်ဒဂုံမြိုနယ် (ဗိုလ်ဗထူး အိမ်ရာ အနီး) ။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(72, 49, 'Together Wedding Studio', 'YANGON\nAdd : No.1242, ရတနာလမ်းမလိခအိမ်ရာအရှေ့ / တောင်ဥက္ကလာပမြိုနယ် / ရန်ကုန်မြို။\nHotline : 09 787 888 818 , 09 7679 10070, 09 967 888 818, 09 778 617 797, 09 974 468 884, 09 766 208 568, 09 785 255 890, 09 420 003 031', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(73, 50, 'Western Park Ruby – People’s Park', 'ပြည်သူ့ရင်ပြင်ဝန်းအတွင်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။                                                                                                      09-444437223,09-444437226,09-444437225', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(74, 51, 'MG & J Jewelry', 'No(80/A), Kanbawza Lane(2), Bahan, Yangon.(closed on Wednesday)\n\nTel : +95 9 762510251, Viber : +95 9 762510251, Whatsapp: +95 9 762510251 Email:info@mgjmyanmar.com\n\n**Facebook**: @MG&J Jewelry International, **Instagram:** @mgjjewelryco, **Youtube**:@mgjmyanmar, **Tiktok**: @mgjmyanmar', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(75, 52, 'U Hton', 'အခန်း (B) 01-05 (မြေညီထပ်)၊ လမ်းမတော်ပလာဇာ (သံစျေးအနီး)၊ လမ်းမတော်လမ်း၊လသာမြို့နယ်၊ ရန်ကုန်မြို့။\n\n01-701390, 09-790609656\nViber Number: +959 965152335\n\nတနင်္ဂနွေနေ့တိုင်းဆိုင်ပိတ်သည်။ဆိုင်ဖွင့်ချိန် မနက် ၉ နာရီ မှ ည ၅ နာရီခွဲ အထိဖွင့်လှစ်ပါသည်။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(76, 53, 'Myat Pan Tha Zin Diamond and Jewelry', '**Located in:** Salween Institute for Public Policy office**Address:** Times City, A 313, Level 3, Jewellery Mall, Kyun Taw Rd, Yangon 11041\n\n**Phone:** 09 890 006320', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(77, 54, 'Vivian Diamond Jewellery', 'No.22 Pyi Thu Kwat Thit 1st Street, Yangon 11111\n\n09 44313 6572+wedding+rings&oq=vivian&gs_lcrp=EgZjaHJvbWUqCAgAEEUYJxg7MggIABBFGCcYOzIHCAEQLhiABDIHCAIQLhiABDIGCAMQRRg7MgYIBBBFGDsyBwgFEC4YgAQyBwgGEAAYgAQyBwgHEC4YgAQyBwgIEC4YgAQyBwgJEC4YgATSAQgyMjAwajBqN6gCALACAA&sourceid=chrome&ie=UTF-8#)', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(78, 55, 'Theingi Moe Jewelry', 'No5 Mahar, Myint Mo St, Yangon 11201\n\n09 42009 7809', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(83, 56, 'Parisian Cake&Cafe', 'Yangon. **Parisian Cake & Coffee**\n📍 446 Lower Kyeemyindaing Rd, Yangon\n📞 +95 1 230 1512\n➡️ Classic large branch where you can order custom cakes (including wedding cakes).', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(84, 57, 'Season', '**Seasons Bakery**\n📍 City Mart, Pyay Rd, Yangon, Myanmar\n☎️ +95 1 650 771\n✅ Popular bakery & cake shop — good for daily cakes and custom orders.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(85, 58, 'Kudo’s', '**Kudos Bakery** – Anawrahta Rd, Yangon\n📞 **+95 9 422 886 667**\nOne of the main bakery locations with a wide selection of baked goods', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(86, 59, 'Shwe Pu Zun', '**Main Bakery & Cafe – Dawbon BranchShwe Pu Zun Cafeteria & Bakery House**\n📌 Address: No.14/A Min Nandar Rd, Dawbon Township, Yangon, Myanmar (Burma)\n📞 Phone: +95 1 553062', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(87, 60, '77 Cake', '**77 Cakes – Kyauk Kone, Tamwe** 🎂\n📍 Address: No. 1 သမ္မာဓိလမ်း, ကျောက်ကုန်း, Yangon\n📞 Phone: +95 9 799558070\n🕒 Hours: ~08:00 AM – 05:00 PM', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(88, 61, 'El Dorado', '**El Dorado**\n📌 Address: No. 4 Wai Za Yan Tar Rd, Yangon, Myanmar (Thingangyun)\n📞 Phone: +95 9 9788 46073\n⭐ Rating: ~4.1 ★ (300+ reviews)\n💰 Price: $$\n🕒 Hours: 07:30 AM – 09:00 PM (daily)', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(89, 62, 'Shan Yoe Yar Restaurant', 'Event sales-09255166608မနော်ဟရီဆိုင်ခွဲ\n\n 📌အမှတ် ၅၄၊ မနော်ဟရီလမ်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။ (ခရေပင်လမ်းနှင့် တော်ဝင်လမ်းကြား) 09-250566695, 09-255166655opening hour - 6am to 10pmရန်ကင်းဆိုင်ခွဲ \n\n📌အမှတ်7 အောင်ဇေယျလမ်း နှင့် မင်းရဲကျော်စွာလမ်းထောင့် ရန်ကင်းမြို့နယ်09 255 166 604, 09 255 166 605opening hour - 7:00 am to 10pmဆူးလေဆိုင်ခွဲ \n\n📌Sule Square Mall ပထမထပ် ကျောက်တံတားမြို့နယ်09 258 777 070', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(90, 63, 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'ရုံးချုပ်📍 အမှတ် (၁၃၃)(C)/၀၆ မြို့တော်လမ်း သာကေတမြို့နယ် ရန်ကုန်မြို့📞 09 4222 333 35, 09 45 453 5858\n\nမင်္ဂလာတောင်ညွန့်📍 တိုက် (၃) အခန်း (၁၀၀) ကန်လမ်း မင်္ဂလာတောင်ညွန့်မြို့နယ် ရန်ကုန်မြို့📞 09 88 335 4411, 09 4222 333 35 (Manager)\n\nပုဇွန်တောင် (၆)လမ်းမ)📍 အမှတ် (၂၅) ၆လမ်းမ ပုဇွန်တောင်မြို့နယ် ရန်ကုန်မြို့📞 09 88 335 4400, 09 4222 333 36 (Manager)\n\nလှိုင်📍 တိုက် (၂) အခန်း (၀၆) အင်းစိန်လမ်းမကြီး လှိုင်မြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 33\n\nစမ်းချောင်း (ပြည်လမ်း)📍 အမှတ် (၁၁) (C-1) ပြည်လမ်း စမ်းချောင်းမြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 66\n\nလမ်းမတော်📍 အမှတ် (၇၄/၇၆) အနော်ရထာလမ်း လမ်းမတော်မြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 11\n\nကျောက်တံတား📍 အမှတ် (၆၁) ပန်းဆိုးတန်းလမ်း ကျောက်တံတားမြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 99\n\nအင်းစိန်📍 အမှတ် (၁၉၆) ကမ်းနားလမ်း အင်းစိန်မြို့နယ် ရန်ကုန်မြို့📞 09 89 244 0044\n\nပန်းဆိုးတန်း (ဗိုလ်ချုပ်အောင်ဆန်း)📍 အမှတ် (၇၀/၇၂) ဗိုလ်ချုပ်အောင်ဆန်းလမ်း ပန်းဆိုးတန်းမြို့နယ် ရန်ကုန်မြို့📞 09 8833 544 33', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(91, 64, 'ထူး ရေခဲမုန့်', 'အမှတ်(၂၂)၊ အထက်ပုဇွန်တောင်လမ်းမကြီး၊ ပုဇွန်တောင်မြို့နယ်။အမှတ်(၁၂၇)၊ လူညီတန်း - အင်းစိန်လမ်းမကြီး၊ ကမာရွတ်မြို့နယ် (၁)ရပ်ကွက်၊ ဆင်ရေတွင်းမှတ်တိုင်၊ ဂမုန်းပွင့်စံရိပ်ငြိမ်အနီး။\n\n0969598333809975285954', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(92, 65, 'The Hundred -Grilled Chicken', 'စံရိပ်ငြိမ် ဂမုန်းပွင့် Shopping Mall(ရှေ့မျက်နှာစာ)စံရိပ်ငြိမ်မှတ်တိုင်၊ အင်းစိန်လမ်းမ၊ ကမာရွတ်မြို့နယ်။‌\n\n0995444520009753628843', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(93, 66, 'Royal Chef', 'No. 15/17, Nantha Phyu Street,Pazundaung Township, Yangon,Myanmar, 11171\n\n09762225667', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(94, 67, 'Rice Box', 'No. 668, 4/6 Byamaso Street, 4th Ward, South Okkalapa, Yangon\n\n09-765-2030-17\n09-7933-7472-6', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(95, 68, 'Boke & Bee', 'အမှတ်(၄၀)၊ အောင်သိဒ္ဓိလမ်း (၁) ၊ (၃)ရပ်ကွက် ၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်။\n\n📞 09 791992746 , 09 404916066', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(96, 69, 'နှင်းသီရိ', 'ရန်ကုန်၊ မြောက်ဥက္ကလာပ၊ သုနန္ဒာ (၁၂) လမ်း၊ (ဆ) ရပ်ကွက်။ \n📞 မှာယူရန် ဖုန်း: 09-456666422', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(97, 70, 'H&H Floral and Wedding Service', 'Add 1 - 35B, 69-70 Maharaungmyay Township.\nAdd 2 - Ta Kon Taing, Pyigyitagon\nTownship, Mandalay, Mandalay, Myanmar                                        09 977 819738\nhaymanoo3111995@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(98, 71, 'Eternal Flowers', 'အမှတ်(449-A)၊ တက္ကသိုလ်ရိပ်သာလမ်းသစ်၊ ဗဟန်းမြို့နယ်၊ ရန်ကုန်မြို့။ (The Link Hotel ဘေး)           **Phone:** 01 9541217, 01 9559011, 09 404014512,  09 421017797 eternalflowers99@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(99, 72, 'Aphrodite Wedding Planning & Decoration', 'အမှတ် ၄၈၊ ၃ရပ်ကွက် ၄ လမ်း၊ ငွေကြာရံ၊ တောင်ဥက္ကလာပမြိုနယ်၊ Yangon, Myanmar,11091             09 975 288653\ninfo@aphroditeweddingplanning.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(100, 73, 'Elysian Floral Art & Events Planning', 'အမှတ်(352A/353B)၊ ကျန်စစ်သား(1)လမ်း၊ မြောက်ကြီးပွားရေးရပ်ကွက်၊ သင်္ဃန်းကျွန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 5086711, 09 775086711,  09 965085711  elysian.floral.art.mm@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(101, 74, 'S&S Events and Floral', 'အမှတ် 5/46(A2)၊ အောင်ဇေယျလမ်း၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 254886898, 09 779922703', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(102, 75, 'His & Hers Events and Wedding Studio', 'အမှတ်(560)၊ မစိုးရိမ်လမ်းသွယ်(3)၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 250188137, 09 256795792 hnhbridal@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(103, 76, 'Governor’s Residence', 'Governor’s Residence', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(104, 77, 'Novotel Yangon Max', '**Novotel Yangon Max**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(105, 78, 'Sedona Hotel Yangon', '**Sedona Hotel Yangon**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(106, 79, 'Inya Lake Hotel', '**Inya Lake Hotel**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(107, 80, 'Meliá Yangon', '**Meliá Yangon**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(108, 81, 'Hotel Yangon', 'Hotel Yangon', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(109, 82, 'Myanmar Car Rental', 'No. 741, Ground Floor, 3rd Street, 1st Ward,Mayangone Township,Yangon, Myanmar.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(110, 83, 'The Experience Rent A Car', 'No.1 , Kaba Aye Pagoda Road , Sedona Hotel , Yankin Township , Yangon , Myanmar +95 9880034504', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(111, 84, 'AVIS MYANMAR', '+959977875099       Unit 15, M Tower, No.527 Pyay Road, 04 15th Floor, 11041, မြန်မာ', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(112, 85, 'inoventure', 'No. 631, Pyay Road, Kamayut Township, Yangon, Myanmar.+959897308080', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(113, 86, 'Concierge Business Limousine', 'Room (302) Tower A, Shwe Zabu Deik Condo, Strand Road, Ahlone Township, Yangon, Myanmar +959 450061110 , +959 960760732', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(114, 87, 'Elegant Star (Recommended)', '3C, Shwe Kinnari Estate, Nar Nat Taw Street, Kamayut, Yangon, Myanmar    \n\n+95 9421736316,\n +95 9678884898', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(115, 88, 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'Hlaing, Kamayut, Myanmar\n\n09740016907 or 095501302 for Viber', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(116, 89, 'Moe Kaung Kin', '62(A)29x30ကြား', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(117, 90, 'Y Collection', '၁၀၆၊ ၄၉ လမ်း (အနော်ရထာလမ်း နှင့် မဟာဗန္ဓုလလမ်းကြား)၊ ပုဇွန်တောင်မြို့နယ်၊ ရန်ကုန်။\n\n099 8484 8787, 09 78 666 2998', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(118, 91, 'Paperie Tale (Recommended)', '09-251158839', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(119, 92, 'THIRI Handmade Invatation', '+95 9 772 244608\n\nအမှတ် 122(2)လွှာ အောင်ဇေယျလမ်း  လွတ်လပ်ရေးရပ်ကွက်  အလုံမြို့နယ်\nရန်ကုန်မြို့။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(120, 93, 'Pyan Kann', '၁၄၂၊၂ ကျိုက်ဝိုင်းဘုရားလမ်း၊ မရမ်းကုန်း၊ ရဲရန်အောင်မှတ်တိုင်အနီး နေဝင်းမျက်မှန် အပေါ်(ပ)ထပ်\n\n09783945706,09446986613', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(121, 94, 'SORA', 'အမှတ် ၆၉၄၊ ဘုရင့်နောင်လမ်း၊ ၃၂ ရပ်ကွက်၊ မြောက်ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့ (Kaung Htue စားသောက်ဆိုင် မျက်နှာချင်းဆိုင်)Yangon,Myanmar\n09882233765', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(122, 95, 'ကိုသာဂိ', 'အမှတ်(၂၈)၊၆ရက်ကွက်၊တောင်ဉက္ကလာပမြို့နယ်၊သစ္စာလမ်း၊ရန်ကုန်\n09894881122', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(123, 96, 'Ma Htet-pop soul', 'No.3\nMa Har Myint Mo street (u chit mg rood )\nSayarsan ( south)Quartar\nBahan township, Yangon, Myanmar,\n095166069\n09765166069', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(124, 97, 'Lin Lin', 'Yangon\n095163167\n0973132666', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(125, 98, 'make up Kin San Win', 'အမှတ် (၂၅၉)၊ ပထမထပ်၊ ၃၅ လမ်း (အထက်ဘလောက်)၊ သွင်ရုပ်ရှင်ရုံအနီး၊ ကျောက်တံတားမြို့နယ်၊ ရန်ကုန်မြို့။\n095101144\n095012581', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(126, 99, 'Magic Touch Beauty Boutique', 'Mandaly\n09444700382', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(127, 100, 'Chi Chi’s Touch', '77/34-35Mandalay\n09758646836', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(128, 101, 'Makeup Hazel', 'No.14, Yandanar streets , Kamayut\nYangon\n09779922564', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(129, 102, 'Makeup Non Thit San', 'Yangon,Myanmar\n09796217995', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(130, 103, 'Sweet Hair& Make up', 'No.52, First Floor, 157 Road 9, Tamwe, Yangon.\n09791157650', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
-(131, 105, 'Chanel', 'we provide accessories', 'verified', 1, 1, 'https://dribble.com', 1, '2026-06-23 04:23:48', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-23 04:23:48', NULL),
-(132, 114, 'Forever Wedding Studio', 'Forever One Stop Wedding Service & Planning was established in 2006 and has earned a name in bridal industries for wedding photography and wedding gowns collection. Our motto is to capture your most precious memories while still maintain customer satisfaction, innovation leadership and continuing operation, leaving customers happy dreams and memories.', 'verified', 1, 1, 'https://www.foreverweddingstudio.com/', 1, '2026-06-23 05:50:02', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-23 05:50:02', NULL),
-(133, 124, 'Yadanar', 'We rent bridal dresses, accessories, and provide pre-wedding studio photos.', 'approved', NULL, 1, 'https://t.me/nawpanydn', 1, '2026-06-24 04:20:55', 'supplier-v1', 'unpaid', 0, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-24 04:20:55', NULL),
-(134, 27, 'Shwe Phoo Sar', 'မင်္ဂလာရက်အထူးစိတ်တက်ကြွစေမယ့် ရွှေဖူးစာ (shwephoosar) ပါဝင်သော wedding dress အကြောင်းဖြစ်သည်။ သာမာန်ဝတ်စုံမဟုတ်ပါ၊ ဂါဝန် (dress) ကိုဘက်တစ်ဖက်စီလှည့်ပြီး လှုပ်လိုက်ခြင်း၊ လက်နှစ်ဖက်ချထားသည့် စတိုင်ဖြင့် မင်္ဂလာနေ့မှာ အထင်ကရ ပေါ်လာစေနိုင်သည်။', 'verified', 1, 1, 'https://www.tiktok.com/@shwephoosar22', 1, '2026-06-25 04:43:57', 'supplier-v1', 'paid', 1, 0, 0, NULL, 1, '\nWARN L1 (admin #1): Do the work properly — 2026-06-26 11:18:17', NULL, NULL, NULL, '2026-06-25 04:43:57', NULL),
-(135, 133, 'Cake', 'Hi', 'banned', 1, 1, 'https://kudosmm.com/', 1, '2026-06-26 02:36:13', 'supplier-v1', 'paid', 1, 0, 0, NULL, 1, 'BANNED: I want to ban', NULL, NULL, NULL, '2026-06-26 02:36:13', NULL);
+INSERT INTO `suppliers` (`supplier_id`, `user_id`, `shop_name`, `description`, `status`, `verified_by`, `approved_by`, `verify_url`, `agreement_accepted`, `agreement_accepted_at`, `agreement_version`, `payment_status`, `is_available`, `auto_accept_bookings`, `min_advance_days`, `cancellation_policy`, `warning_level`, `missed_response_count`, `last_warning_at`, `admin_note`, `bank_code`, `notification_prefs`, `bank_account`, `created_at`, `deleted_at`) VALUES
+(20, 24, 'JV', 'we sell dress', 'verified', NULL, 1, 'https://www.facebook.com/jv230', 1, '2026-06-10 02:08:51', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-10 06:38:51', NULL),
+(21, 29, 'Wyndham Grand Yangon Hotel', 'ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Tea Package များကို US$ 7 တောင် လျော့ပေးမယ့်အပြင် မိမိရွေး ချယ်တဲ့ Package ပေါ် မူတည်၍ Walkway နဲ့ LED အသုံးပြုခွင့်များပါ ရရှိနိုင်မှာပဲဖြစ်ပါတယ်...\r\n\r\nဒါ့အပြင် Wedding Dinner Packages ဝယ်ယူသူတိုင်းအတွက် အခမဲ့ Complimentary Table များ (သိုမဟုတ်) Walkway အသုံးပြုခွင့် (သိုမဟုတ်)  LED အသုံးပြုခွင့်ဆိုပြီး မိမိ နှစ်သက်ရာ အကျိုးခံစားခွင့်ကို ရွေးချယ်ရယူနိုင်မှာပါ...\r\n\r\n သင့်စိတ်ကူးထဲကအတိုင်း ကြီးကျယ်ခမ်းနားလှပတဲ့ Wedding ပွဲကြီးကို စိတ်တိုင်းကျဖန်တီးနိုင်ဖိုအတွက် ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Venue Area များက အသင့်တော်ဆုံးရွေးချယ်မှုဖြစ်စေမှာပါ...Wedding Period ကိုလည်း ၂၀၂၇ ခုနှစ် နှစ်ကုန်အထိ ပေးထားတာမို တအားတန်တဲ့ ဒီအခွင့်အရေးကို လက်မလွတ်ရလေအောင် အမိအရဖမ်းဆုပ်လိုက်တော့နော်...🤍', 'verified', 1, 1, 'htpps://www.wyndhamgrandyangon.com', 1, '2026-06-11 00:31:15', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-11 05:01:15', NULL),
+(23, 32, 'Excel River View Hotel & Resort', 'Riverside hotel on the Bago River offering stage decoration, table & chair arrangement, floral decoration and theme colour design for weddings.', 'approved', NULL, NULL, 'excelriverview@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:13:56', NULL),
+(24, 33, 'Golden Inya Restaurant', 'Lakeside fine-dining restaurant on Inya Lake with indoor and outdoor space (outdoor seats 700-800). Popular for weddings, engagements and receptions, buffet and set/custom menus available.', 'approved', NULL, NULL, 'golden-inya-restaurant.business.site', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
+(25, 34, 'Western Park Ruby - People\'s Park', 'Garden venue inside People\'s Park, Dagon Township. Indoor (100-200) and outdoor (200-800) wedding space, guests skip the park entrance fee. Reception buffet on request.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
+(26, 35, 'Zephyr (Sein Lann So Pyay Garden)', 'Calm garden fine-dining and event venue beside Inya Lake. Outdoor lawn seats up to 400. Offers stage decoration, floral arrangement and theme-based decoration, Asian & Western set/buffet menus.', 'approved', NULL, NULL, 'zephyrcafe2018@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
+(27, 36, 'The White Cottage Restaurant & Lounge', 'European cottage-style restaurant and lounge in Shwe Taung Kyar, Bahan. Romantic indoor space and green garden (outdoor 100-150), suited to Western-style civil weddings. Decor/planner/MC not included.', 'approved', NULL, NULL, 'thewhitecottageyangon.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
+(28, 37, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'No.991, Thu Mingalar Road, Thingangyun Township, Yangon. Tel 09 250 500 809\n\nTraditional Myanmar bridal wear — htaing-ma-theim, offering/registration outfits, taik-pon and taung-shay for the couple and parents, in various silk weaves. Rental and sale, plus custom-made rental (book 3-6 months ahead). Htaing-ma-theim rental approx 350,000 to 2,000,000, offering outfits from approx 200,000. Add-ons: floral decoration, hand bouquets, hotel/makeup booking and wedding car decoration.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(29, 38, 'Dear Brides Wedding Dress Studio', 'Karaweik Garden, near Myaw Sin Kyun entry, Mingalar Taung Nyunt, Yangon. Tel 09 771471462. Open 10:00-18:00 daily\n\nWestern and traditional bridal wear — wedding gowns, mermaid dresses, evening dresses and pre-wedding outfits. Latest imported designs for rent or sale, customised bridal veils, and custom-made rental. Spacious studio with parking, in-house photo studio and experienced stylists. Range approx 800,000 to 3,000,000 depending on dress.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(30, 39, 'The Vow Wedding Studio Myanmar', 'No.789, 47 ward, Bohmu Ba Htoo Road, North Dagon, Yangon. Tel 09 451355553, 09 791580503. Open 09:00-17:00\n\nWomen\'s bridal studio with finely tailored gowns, quality fabrics and detailed finishing for each bride. Rental and sale; crowns and bridal shoes also available. Event-day rental approx 1,500,000 to 6,000,000+.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(31, 40, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Thu Mingalar main road (between Sa Taik and Inn Wa bus stops), South Okkalapa, Yangon — above Khit Pyaing toy shop, next to CB Bank. Tel 09 777775512\n\nWedding suits and dresses for men and women. Reliable remote/line ordering with good fit. Price approx 200,000 to 500,000+. Booking required.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(32, 41, 'T&T Bridal Collection', 'No.666, Thudamar Road (near Eaindra bus stop), North Okkalapa, Yangon. Tel 09 799515633, 09 799515622. Open 10:00-17:30, closed Wednesdays\n\nWestern wedding dresses with hundreds of new pieces. Rental approx 400,000 to 1,500,000; wholesale purchase from 230,000. 10+ years wedding-industry founder advises on current trends, body-fit styling, matching makeup look and accessories. New stock monthly plus resale of older pieces.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(33, 42, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'No.293, Brahmaso 4/6 Street, South Okkalapa Township, Yangon. Tel 09 422999929, 09 985808800\n\nMen\'s ceremony wear — \"Gon\" taik-pon (M/L/XL/XXL) at 300,000 and pasoe (longyi) from 43,000 to 420,000. Detailed sizing help and sharp cutting for a smart, dignified look.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(34, 43, 'Peter\'s Bridal Garden - Studio', 'No.542, Ou Zanar Street, ward 11, Mya Thidar Housing, South Okkalapa, Yangon. Tel 09 777 595010\n\nPre-wedding outfit and photography studio. Indoor and outdoor pre-wedding packages (e.g. 3-outfit indoor package), traditional looks, makeup and full-team support with raw photos provided. Highly recommended for pre-wedding shoots.', 'approved', NULL, NULL, 'peterbridalgarden@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(35, 44, 'My Everything Wedding Dresses', 'No.1253, 13 ward, Ratana main road, South Okkalapa Township, Yangon. Tel 09 776040862, 09 760396053. Open 09:00-17:00\n\nBridal dress rental for brides. Rental price range approx 480,000 to 1,860,000. Rental only.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(68, 45, 'Forever One Stop Wedding Studio', 'No. 108, Phone Gyi Road, Lanmadaw Township, Yangon, Myanmar. +95 9 777 299 466 , +95 9 776 275 302 foreverstudio.mm@gmail.com              Garden Studio;\nNo.619, Padagyi - Thilawa Rd,\nShwe Pyout, Kyauktan, Yangon.\nPh : 09-777299477', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(69, 46, 'H & H Photo Studio', '🏨 - No.968, Thiri Zayar 18 A Street, 7 Ward, South Oakkalapa, Yangon.                 09770837838', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(70, 47, 'Venus Wedding Studio', 'Yangon Add：အမှတ်(A+B), မေဥယျာဥ်အိမ်ယာ၊ ရတနာလမ်းမပေါ်၊ သင်္ဃန်းကျွန်းမြို့နယ်၊ ရန်ကုန်မြို့။️Hotline：09957373666 /09957373999', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(71, 48, 'PNA’S Wedding Studio', 'Main Branch Address   No.93, သရက်တောလမ်း၊ ကမ်းနားလမ်းမပေါ် ၊ ကြည့်မြင်တိုင်မြိုနယ် ၊ ရန်ကုန်မြို ။\nNorth Dagon Branch Address ( Opening Soon )\nအမှတ် ၉၀၄ ၊ ဒဂုံသီရိလမ်း ၊ ၄၃ ရပ်ကွက် ၊ မြောက်ဒဂုံမြိုနယ် (ဗိုလ်ဗထူး အိမ်ရာ အနီး) ။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(72, 49, 'Together Wedding Studio', 'YANGON\nAdd : No.1242, ရတနာလမ်းမလိခအိမ်ရာအရှေ့ / တောင်ဥက္ကလာပမြိုနယ် / ရန်ကုန်မြို။\nHotline : 09 787 888 818 , 09 7679 10070, 09 967 888 818, 09 778 617 797, 09 974 468 884, 09 766 208 568, 09 785 255 890, 09 420 003 031', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(73, 50, 'Western Park Ruby – People’s Park', 'ပြည်သူ့ရင်ပြင်ဝန်းအတွင်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။                                                                                                      09-444437223,09-444437226,09-444437225', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(74, 51, 'MG & J Jewelry', 'No(80/A), Kanbawza Lane(2), Bahan, Yangon.(closed on Wednesday)\n\nTel : +95 9 762510251, Viber : +95 9 762510251, Whatsapp: +95 9 762510251 Email:info@mgjmyanmar.com\n\n**Facebook**: @MG&J Jewelry International, **Instagram:** @mgjjewelryco, **Youtube**:@mgjmyanmar, **Tiktok**: @mgjmyanmar', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(75, 52, 'U Hton', 'အခန်း (B) 01-05 (မြေညီထပ်)၊ လမ်းမတော်ပလာဇာ (သံစျေးအနီး)၊ လမ်းမတော်လမ်း၊လသာမြို့နယ်၊ ရန်ကုန်မြို့။\n\n01-701390, 09-790609656\nViber Number: +959 965152335\n\nတနင်္ဂနွေနေ့တိုင်းဆိုင်ပိတ်သည်။ဆိုင်ဖွင့်ချိန် မနက် ၉ နာရီ မှ ည ၅ နာရီခွဲ အထိဖွင့်လှစ်ပါသည်။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(76, 53, 'Myat Pan Tha Zin Diamond and Jewelry', '**Located in:** Salween Institute for Public Policy office**Address:** Times City, A 313, Level 3, Jewellery Mall, Kyun Taw Rd, Yangon 11041\n\n**Phone:** 09 890 006320', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(77, 54, 'Vivian Diamond Jewellery', 'No.22 Pyi Thu Kwat Thit 1st Street, Yangon 11111\n\n09 44313 6572+wedding+rings&oq=vivian&gs_lcrp=EgZjaHJvbWUqCAgAEEUYJxg7MggIABBFGCcYOzIHCAEQLhiABDIHCAIQLhiABDIGCAMQRRg7MgYIBBBFGDsyBwgFEC4YgAQyBwgGEAAYgAQyBwgHEC4YgAQyBwgIEC4YgAQyBwgJEC4YgATSAQgyMjAwajBqN6gCALACAA&sourceid=chrome&ie=UTF-8#)', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(78, 55, 'Theingi Moe Jewelry', 'No5 Mahar, Myint Mo St, Yangon 11201\n\n09 42009 7809', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(83, 56, 'Parisian Cake&Cafe', 'Yangon. **Parisian Cake & Coffee**\n📍 446 Lower Kyeemyindaing Rd, Yangon\n📞 +95 1 230 1512\n➡️ Classic large branch where you can order custom cakes (including wedding cakes).', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(84, 57, 'Season', '**Seasons Bakery**\n📍 City Mart, Pyay Rd, Yangon, Myanmar\n☎️ +95 1 650 771\n✅ Popular bakery & cake shop — good for daily cakes and custom orders.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(85, 58, 'Kudo’s', '**Kudos Bakery** – Anawrahta Rd, Yangon\n📞 **+95 9 422 886 667**\nOne of the main bakery locations with a wide selection of baked goods', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(86, 59, 'Shwe Pu Zun', '**Main Bakery & Cafe – Dawbon BranchShwe Pu Zun Cafeteria & Bakery House**\n📌 Address: No.14/A Min Nandar Rd, Dawbon Township, Yangon, Myanmar (Burma)\n📞 Phone: +95 1 553062', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(87, 60, '77 Cake', '**77 Cakes – Kyauk Kone, Tamwe** 🎂\n📍 Address: No. 1 သမ္မာဓိလမ်း, ကျောက်ကုန်း, Yangon\n📞 Phone: +95 9 799558070\n🕒 Hours: ~08:00 AM – 05:00 PM', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(88, 61, 'El Dorado', '**El Dorado**\n📌 Address: No. 4 Wai Za Yan Tar Rd, Yangon, Myanmar (Thingangyun)\n📞 Phone: +95 9 9788 46073\n⭐ Rating: ~4.1 ★ (300+ reviews)\n💰 Price: $$\n🕒 Hours: 07:30 AM – 09:00 PM (daily)', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(89, 62, 'Shan Yoe Yar Restaurant', 'Event sales-09255166608မနော်ဟရီဆိုင်ခွဲ\n\n 📌အမှတ် ၅၄၊ မနော်ဟရီလမ်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။ (ခရေပင်လမ်းနှင့် တော်ဝင်လမ်းကြား) 09-250566695, 09-255166655opening hour - 6am to 10pmရန်ကင်းဆိုင်ခွဲ \n\n📌အမှတ်7 အောင်ဇေယျလမ်း နှင့် မင်းရဲကျော်စွာလမ်းထောင့် ရန်ကင်းမြို့နယ်09 255 166 604, 09 255 166 605opening hour - 7:00 am to 10pmဆူးလေဆိုင်ခွဲ \n\n📌Sule Square Mall ပထမထပ် ကျောက်တံတားမြို့နယ်09 258 777 070', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(90, 63, 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'ရုံးချုပ်📍 အမှတ် (၁၃၃)(C)/၀၆ မြို့တော်လမ်း သာကေတမြို့နယ် ရန်ကုန်မြို့📞 09 4222 333 35, 09 45 453 5858\n\nမင်္ဂလာတောင်ညွန့်📍 တိုက် (၃) အခန်း (၁၀၀) ကန်လမ်း မင်္ဂလာတောင်ညွန့်မြို့နယ် ရန်ကုန်မြို့📞 09 88 335 4411, 09 4222 333 35 (Manager)\n\nပုဇွန်တောင် (၆)လမ်းမ)📍 အမှတ် (၂၅) ၆လမ်းမ ပုဇွန်တောင်မြို့နယ် ရန်ကုန်မြို့📞 09 88 335 4400, 09 4222 333 36 (Manager)\n\nလှိုင်📍 တိုက် (၂) အခန်း (၀၆) အင်းစိန်လမ်းမကြီး လှိုင်မြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 33\n\nစမ်းချောင်း (ပြည်လမ်း)📍 အမှတ် (၁၁) (C-1) ပြည်လမ်း စမ်းချောင်းမြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 66\n\nလမ်းမတော်📍 အမှတ် (၇၄/၇၆) အနော်ရထာလမ်း လမ်းမတော်မြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 11\n\nကျောက်တံတား📍 အမှတ် (၆၁) ပန်းဆိုးတန်းလမ်း ကျောက်တံတားမြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 99\n\nအင်းစိန်📍 အမှတ် (၁၉၆) ကမ်းနားလမ်း အင်းစိန်မြို့နယ် ရန်ကုန်မြို့📞 09 89 244 0044\n\nပန်းဆိုးတန်း (ဗိုလ်ချုပ်အောင်ဆန်း)📍 အမှတ် (၇၀/၇၂) ဗိုလ်ချုပ်အောင်ဆန်းလမ်း ပန်းဆိုးတန်းမြို့နယ် ရန်ကုန်မြို့📞 09 8833 544 33', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(91, 64, 'ထူး ရေခဲမုန့်', 'အမှတ်(၂၂)၊ အထက်ပုဇွန်တောင်လမ်းမကြီး၊ ပုဇွန်တောင်မြို့နယ်။အမှတ်(၁၂၇)၊ လူညီတန်း - အင်းစိန်လမ်းမကြီး၊ ကမာရွတ်မြို့နယ် (၁)ရပ်ကွက်၊ ဆင်ရေတွင်းမှတ်တိုင်၊ ဂမုန်းပွင့်စံရိပ်ငြိမ်အနီး။\n\n0969598333809975285954', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(92, 65, 'The Hundred -Grilled Chicken', 'စံရိပ်ငြိမ် ဂမုန်းပွင့် Shopping Mall(ရှေ့မျက်နှာစာ)စံရိပ်ငြိမ်မှတ်တိုင်၊ အင်းစိန်လမ်းမ၊ ကမာရွတ်မြို့နယ်။‌\n\n0995444520009753628843', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(93, 66, 'Royal Chef', 'No. 15/17, Nantha Phyu Street,Pazundaung Township, Yangon,Myanmar, 11171\n\n09762225667', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(94, 67, 'Rice Box', 'No. 668, 4/6 Byamaso Street, 4th Ward, South Okkalapa, Yangon\n\n09-765-2030-17\n09-7933-7472-6', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(95, 68, 'Boke & Bee', 'အမှတ်(၄၀)၊ အောင်သိဒ္ဓိလမ်း (၁) ၊ (၃)ရပ်ကွက် ၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်။\n\n📞 09 791992746 , 09 404916066', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(96, 69, 'နှင်းသီရိ', 'ရန်ကုန်၊ မြောက်ဥက္ကလာပ၊ သုနန္ဒာ (၁၂) လမ်း၊ (ဆ) ရပ်ကွက်။ \n📞 မှာယူရန် ဖုန်း: 09-456666422', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(97, 70, 'H&H Floral and Wedding Service', 'Add 1 - 35B, 69-70 Maharaungmyay Township.\nAdd 2 - Ta Kon Taing, Pyigyitagon\nTownship, Mandalay, Mandalay, Myanmar                                        09 977 819738\nhaymanoo3111995@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(98, 71, 'Eternal Flowers', 'အမှတ်(449-A)၊ တက္ကသိုလ်ရိပ်သာလမ်းသစ်၊ ဗဟန်းမြို့နယ်၊ ရန်ကုန်မြို့။ (The Link Hotel ဘေး)           **Phone:** 01 9541217, 01 9559011, 09 404014512,  09 421017797 eternalflowers99@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(99, 72, 'Aphrodite Wedding Planning & Decoration', 'အမှတ် ၄၈၊ ၃ရပ်ကွက် ၄ လမ်း၊ ငွေကြာရံ၊ တောင်ဥက္ကလာပမြိုနယ်၊ Yangon, Myanmar,11091             09 975 288653\ninfo@aphroditeweddingplanning.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(100, 73, 'Elysian Floral Art & Events Planning', 'အမှတ်(352A/353B)၊ ကျန်စစ်သား(1)လမ်း၊ မြောက်ကြီးပွားရေးရပ်ကွက်၊ သင်္ဃန်းကျွန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 5086711, 09 775086711,  09 965085711  elysian.floral.art.mm@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(101, 74, 'S&S Events and Floral', 'အမှတ် 5/46(A2)၊ အောင်ဇေယျလမ်း၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 254886898, 09 779922703', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(102, 75, 'His & Hers Events and Wedding Studio', 'အမှတ်(560)၊ မစိုးရိမ်လမ်းသွယ်(3)၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 250188137, 09 256795792 hnhbridal@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(103, 76, 'Governor’s Residence', 'Governor’s Residence', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(104, 77, 'Novotel Yangon Max', '**Novotel Yangon Max**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(105, 78, 'Sedona Hotel Yangon', '**Sedona Hotel Yangon**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(106, 79, 'Inya Lake Hotel', '**Inya Lake Hotel**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(107, 80, 'Meliá Yangon', '**Meliá Yangon**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(108, 81, 'Hotel Yangon', 'Hotel Yangon', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(109, 82, 'Myanmar Car Rental', 'No. 741, Ground Floor, 3rd Street, 1st Ward,Mayangone Township,Yangon, Myanmar.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(110, 83, 'The Experience Rent A Car', 'No.1 , Kaba Aye Pagoda Road , Sedona Hotel , Yankin Township , Yangon , Myanmar +95 9880034504', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(111, 84, 'AVIS MYANMAR', '+959977875099       Unit 15, M Tower, No.527 Pyay Road, 04 15th Floor, 11041, မြန်မာ', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(112, 85, 'inoventure', 'No. 631, Pyay Road, Kamayut Township, Yangon, Myanmar.+959897308080', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(113, 86, 'Concierge Business Limousine', 'Room (302) Tower A, Shwe Zabu Deik Condo, Strand Road, Ahlone Township, Yangon, Myanmar +959 450061110 , +959 960760732', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(114, 87, 'Elegant Star (Recommended)', '3C, Shwe Kinnari Estate, Nar Nat Taw Street, Kamayut, Yangon, Myanmar    \n\n+95 9421736316,\n +95 9678884898', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(115, 88, 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'Hlaing, Kamayut, Myanmar\n\n09740016907 or 095501302 for Viber', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(116, 89, 'Moe Kaung Kin', '62(A)29x30ကြား', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(117, 90, 'Y Collection', '၁၀၆၊ ၄၉ လမ်း (အနော်ရထာလမ်း နှင့် မဟာဗန္ဓုလလမ်းကြား)၊ ပုဇွန်တောင်မြို့နယ်၊ ရန်ကုန်။\n\n099 8484 8787, 09 78 666 2998', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(118, 91, 'Paperie Tale (Recommended)', '09-251158839', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(119, 92, 'THIRI Handmade Invatation', '+95 9 772 244608\n\nအမှတ် 122(2)လွှာ အောင်ဇေယျလမ်း  လွတ်လပ်ရေးရပ်ကွက်  အလုံမြို့နယ်\nရန်ကုန်မြို့။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(120, 93, 'Pyan Kann', '၁၄၂၊၂ ကျိုက်ဝိုင်းဘုရားလမ်း၊ မရမ်းကုန်း၊ ရဲရန်အောင်မှတ်တိုင်အနီး နေဝင်းမျက်မှန် အပေါ်(ပ)ထပ်\n\n09783945706,09446986613', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(121, 94, 'SORA', 'အမှတ် ၆၉၄၊ ဘုရင့်နောင်လမ်း၊ ၃၂ ရပ်ကွက်၊ မြောက်ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့ (Kaung Htue စားသောက်ဆိုင် မျက်နှာချင်းဆိုင်)Yangon,Myanmar\n09882233765', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(122, 95, 'ကိုသာဂိ', 'အမှတ်(၂၈)၊၆ရက်ကွက်၊တောင်ဉက္ကလာပမြို့နယ်၊သစ္စာလမ်း၊ရန်ကုန်\n09894881122', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(123, 96, 'Ma Htet-pop soul', 'No.3\nMa Har Myint Mo street (u chit mg rood )\nSayarsan ( south)Quartar\nBahan township, Yangon, Myanmar,\n095166069\n09765166069', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(124, 97, 'Lin Lin', 'Yangon\n095163167\n0973132666', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(125, 98, 'make up Kin San Win', 'အမှတ် (၂၅၉)၊ ပထမထပ်၊ ၃၅ လမ်း (အထက်ဘလောက်)၊ သွင်ရုပ်ရှင်ရုံအနီး၊ ကျောက်တံတားမြို့နယ်၊ ရန်ကုန်မြို့။\n095101144\n095012581', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(126, 99, 'Magic Touch Beauty Boutique', 'Mandaly\n09444700382', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(127, 100, 'Chi Chi’s Touch', '77/34-35Mandalay\n09758646836', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(128, 101, 'Makeup Hazel', 'No.14, Yandanar streets , Kamayut\nYangon\n09779922564', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(129, 102, 'Makeup Non Thit San', 'Yangon,Myanmar\n09796217995', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(130, 103, 'Sweet Hair& Make up', 'No.52, First Floor, 157 Road 9, Tamwe, Yangon.\n09791157650', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(131, 105, 'Chanel', 'we provide accessories', 'verified', 1, 1, 'https://dribble.com', 1, '2026-06-23 04:23:48', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-23 04:23:48', NULL),
+(132, 114, 'Forever Wedding Studio', 'Forever One Stop Wedding Service & Planning was established in 2006 and has earned a name in bridal industries for wedding photography and wedding gowns collection. Our motto is to capture your most precious memories while still maintain customer satisfaction, innovation leadership and continuing operation, leaving customers happy dreams and memories.', 'verified', 1, 1, 'https://www.foreverweddingstudio.com/', 1, '2026-06-23 05:50:02', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-23 05:50:02', NULL),
+(133, 124, 'Yadanar', 'We rent bridal dresses, accessories, and provide pre-wedding studio photos.', 'approved', NULL, 1, 'https://t.me/nawpanydn', 1, '2026-06-24 04:20:55', 'supplier-v1', 'unpaid', 0, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-24 04:20:55', NULL),
+(134, 27, 'Shwe Phoo Sar', 'မင်္ဂလာရက်အထူးစိတ်တက်ကြွစေမယ့် ရွှေဖူးစာ (shwephoosar) ပါဝင်သော wedding dress အကြောင်းဖြစ်သည်။ သာမာန်ဝတ်စုံမဟုတ်ပါ၊ ဂါဝန် (dress) ကိုဘက်တစ်ဖက်စီလှည့်ပြီး လှုပ်လိုက်ခြင်း၊ လက်နှစ်ဖက်ချထားသည့် စတိုင်ဖြင့် မင်္ဂလာနေ့မှာ အထင်ကရ ပေါ်လာစေနိုင်သည်။', 'verified', 1, 1, 'https://www.tiktok.com/@shwephoosar22', 1, '2026-06-25 04:43:57', 'supplier-v1', 'paid', 1, 0, 0, NULL, 1, 0, NULL, '\nWARN L1 (admin #1): Do the work properly — 2026-06-26 11:18:17', NULL, NULL, NULL, '2026-06-25 04:43:57', NULL),
+(135, 133, 'Cake', 'Hi', 'approved', 1, 1, 'https://kudosmm.com/', 1, '2026-06-26 02:36:13', 'supplier-v1', 'paid', 1, 0, 0, NULL, 1, 0, NULL, 'BANNED: I want to ban\nUnbanned by admin #1 at 2026-06-26 21:19:54', NULL, NULL, NULL, '2026-06-26 02:36:13', NULL);
 
 -- --------------------------------------------------------
 
@@ -4444,7 +4716,35 @@ INSERT INTO `system_logs` (`id`, `user_id`, `action`, `ip_address`, `user_agent`
 (547, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 05:00:29', '2026-06-26 05:00:29', NULL, '2026-06-26 05:00:29'),
 (548, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 05:00:38', '2026-06-26 05:00:38', NULL, '2026-06-26 05:00:38'),
 (549, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 05:00:51', '2026-06-26 05:00:51', NULL, '2026-06-26 05:00:51'),
-(550, 29, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 06:52:59', '2026-06-26 06:52:59', '2026-06-26 06:52:59', '2026-06-26 06:52:59');
+(550, 29, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 06:52:59', '2026-06-26 06:52:59', '2026-06-26 06:52:59', '2026-06-26 06:52:59'),
+(551, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 03:58:16', '2026-06-27 03:58:16', NULL, '2026-06-27 03:58:16'),
+(552, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 03:58:22', '2026-06-27 03:58:22', NULL, '2026-06-27 03:58:22'),
+(553, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 03:58:44', '2026-06-27 03:58:44', NULL, '2026-06-27 03:58:44'),
+(554, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 03:58:56', '2026-06-27 03:58:56', NULL, '2026-06-27 03:58:56'),
+(555, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 03:59:05', '2026-06-27 03:59:05', NULL, '2026-06-27 03:59:05'),
+(556, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:00:28', '2026-06-27 04:00:28', NULL, '2026-06-27 04:00:28'),
+(557, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:00:34', '2026-06-27 04:00:34', NULL, '2026-06-27 04:00:34'),
+(558, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:00:42', '2026-06-27 04:00:42', NULL, '2026-06-27 04:00:42'),
+(559, 1, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:00:51', '2026-06-27 04:00:51', '2026-06-27 04:00:51', '2026-06-27 04:00:51'),
+(560, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:01:02', '2026-06-27 04:01:02', NULL, '2026-06-27 04:01:02'),
+(561, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:01:07', '2026-06-27 04:01:07', NULL, '2026-06-27 04:01:07'),
+(562, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:01:25', '2026-06-27 04:01:25', NULL, '2026-06-27 04:01:25'),
+(563, 27, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:02:28', '2026-06-27 04:02:28', '2026-06-27 04:02:28', '2026-06-27 04:02:28'),
+(564, 24, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:03:10', '2026-06-27 04:03:10', NULL, '2026-06-27 04:03:10'),
+(565, 24, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:03:15', '2026-06-27 04:03:15', NULL, '2026-06-27 04:03:15'),
+(566, 24, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:03:28', '2026-06-27 04:03:28', NULL, '2026-06-27 04:03:28'),
+(567, 24, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:11:56', '2026-06-27 04:11:56', '2026-06-27 04:11:56', '2026-06-27 04:11:56'),
+(568, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:56:13', '2026-06-27 04:56:13', NULL, '2026-06-27 04:56:13'),
+(569, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:56:18', '2026-06-27 04:56:18', NULL, '2026-06-27 04:56:18'),
+(570, 27, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:56:30', '2026-06-27 04:56:30', NULL, '2026-06-27 04:56:30'),
+(571, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:56:53', '2026-06-27 04:56:53', NULL, '2026-06-27 04:56:53'),
+(572, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 04:57:21', '2026-06-27 04:57:21', NULL, '2026-06-27 04:57:21'),
+(573, 29, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 06:51:05', '2026-06-27 06:51:05', '2026-06-27 06:51:05', '2026-06-27 06:51:05'),
+(574, 27, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 07:13:36', '2026-06-27 07:13:36', '2026-06-27 07:13:36', '2026-06-27 07:13:36'),
+(575, 24, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 07:26:11', '2026-06-27 07:26:11', '2026-06-27 07:26:11', '2026-06-27 07:26:11'),
+(576, 24, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 07:27:49', '2026-06-27 07:27:49', NULL, '2026-06-27 07:27:49'),
+(577, 24, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 07:27:55', '2026-06-27 07:27:55', NULL, '2026-06-27 07:27:55'),
+(578, 24, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-27 07:28:09', '2026-06-27 07:28:09', NULL, '2026-06-27 07:28:09');
 
 -- --------------------------------------------------------
 
@@ -4483,11 +4783,11 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `name`, `email`, `password`, `phone`, `address`, `status`, `lock_reason`, `locked_until`, `failed_password_attempts`, `failed_otp_attempts`, `last_failed_at`, `last_login`, `is_online`, `created_at`, `deleted_at`, `google_id`, `avatar`, `facebook_id`, `updated_at`, `email_verified_at`, `remember_token`, `notification_prefs`) VALUES
-(1, 'Hsu Myat Moe', 'hsumyatm7308@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-26 05:00:29', 1, '2026-05-21 17:36:05', NULL, '108175427434445055275', 'https://lh3.googleusercontent.com/a/ACg8ocJe2tVcu-OZRevJWFdEJzRQYM7rUvS-PP7VTfvv54W2K70gmX2v=s96-c', NULL, '2026-06-26 05:00:29', '2026-06-23 19:18:53', NULL, NULL),
-(24, 'J V', 'mhsu537@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09771471462', 'ကန်တော်ကြီး ကရဝိတ်၊ မျှော်စင်ကျွန်းဝင်ပေါက်အနီး၊ မင်္ဂလာတောင်ညွန့်မြို့နယ်၊ ရန်ကုန်မြို့။ ', 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 04:19:46', 1, '2026-06-10 06:38:38', NULL, '112808788643014027786', 'https://lh3.googleusercontent.com/a/ACg8ocIXClMfEn5duPuil8ov2K8LCsnUDcK7DYKGSo2DuULXo1tqaHi2=s96-c', NULL, '2026-06-26 04:58:51', '2026-06-26 04:58:51', NULL, NULL),
-(27, 'HsuHive', 'hsuhive38@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09750625628', 'Yangon', 'active', NULL, NULL, 0, 0, NULL, '2026-06-26 04:10:42', 1, '2026-06-11 02:32:31', NULL, '106937788818804252855', 'http://localhost/GP/public/uploads/supplier/avatars/avatar-27-20260625181338-db6c9db2.jpg', NULL, '2026-06-26 04:10:42', '2026-06-24 14:08:40', NULL, NULL),
-(29, 'Saen', 'saenintiktok@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09451777705', 'no.11, corner of Kan Yeik Thar Road &amp; U Aung Myat Road, Mingalar Taung township', 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 05:32:47', 0, '2026-06-11 04:43:46', NULL, '113883451541620508706', 'https://lh3.googleusercontent.com/a/ACg8ocKa0OVagjb-Z034lNGR1feDM9cWYi9krO4byxaDck2Fzyjv1w=s96-c', NULL, '2026-06-26 06:52:59', '2026-06-25 12:35:34', NULL, NULL),
-(30, 'zaw moe', '7zawzawmoe8@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 2, 0, '2026-06-23 13:09:53', NULL, 0, '2026-06-18 09:44:03', NULL, '105962240867007474645', 'https://lh3.googleusercontent.com/a/ACg8ocJ3JrvFxn1cRzuotErkuS0lsXh9eb2rdG8kLIL3S3pQEJYCGg=s96-c', NULL, '2026-06-26 06:53:20', '2026-06-26 06:53:20', NULL, NULL),
+(1, 'Hsu Myat Moe', 'hsumyatm7308@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-27 04:00:28', 0, '2026-05-21 17:36:05', NULL, '108175427434445055275', 'https://lh3.googleusercontent.com/a/ACg8ocJe2tVcu-OZRevJWFdEJzRQYM7rUvS-PP7VTfvv54W2K70gmX2v=s96-c', NULL, '2026-06-27 04:00:51', '2026-06-23 19:18:53', NULL, NULL),
+(24, 'J V', 'mhsu537@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09771471462', 'ကန်တော်ကြီး ကရဝိတ်၊ မျှော်စင်ကျွန်းဝင်ပေါက်အနီး၊ မင်္ဂလာတောင်ညွန့်မြို့နယ်၊ ရန်ကုန်မြို့။ ', 'active', NULL, NULL, 0, 0, NULL, '2026-06-27 07:27:49', 1, '2026-06-10 06:38:38', NULL, '112808788643014027786', 'https://lh3.googleusercontent.com/a/ACg8ocIXClMfEn5duPuil8ov2K8LCsnUDcK7DYKGSo2DuULXo1tqaHi2=s96-c', NULL, '2026-06-27 07:28:09', '2026-06-27 07:27:30', '8a146541d271249763bfbec2a30ed03b4b484f0db1b3b04a6112247da4621a65', NULL),
+(27, 'HsuHive', 'hsuhive38@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09750625628', 'Yangon', 'active', NULL, NULL, 0, 0, NULL, '2026-06-27 04:56:13', 0, '2026-06-11 02:32:31', NULL, '106937788818804252855', 'http://localhost/GP/public/uploads/supplier/avatars/avatar-27-20260625181338-db6c9db2.jpg', NULL, '2026-06-27 07:13:36', '2026-06-24 14:08:40', NULL, NULL),
+(29, 'Saen', 'saenintiktok@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09451777705', 'no.11, corner of Kan Yeik Thar Road &amp; U Aung Myat Road, Mingalar Taung township', 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 05:32:47', 0, '2026-06-11 04:43:46', NULL, '113883451541620508706', 'https://lh3.googleusercontent.com/a/ACg8ocKa0OVagjb-Z034lNGR1feDM9cWYi9krO4byxaDck2Fzyjv1w=s96-c', NULL, '2026-06-27 11:39:01', '2026-06-27 11:39:01', NULL, NULL),
+(30, 'zaw moe', '7zawzawmoe8@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 2, 0, '2026-06-23 13:09:53', NULL, 0, '2026-06-18 09:44:03', NULL, '105962240867007474645', 'https://lh3.googleusercontent.com/a/ACg8ocJ3JrvFxn1cRzuotErkuS0lsXh9eb2rdG8kLIL3S3pQEJYCGg=s96-c', NULL, '2026-06-27 04:12:07', '2026-06-27 04:12:07', NULL, NULL),
 (31, 'Naw Paw', 'nawpawtarmalar20@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 1, 0, '2026-06-23 04:03:28', NULL, 0, '2026-06-19 15:07:43', NULL, '114585182535071373461', 'https://lh3.googleusercontent.com/a/ACg8ocLxtArBhTcl9Vsk7CgrCP2_uGTcD2ejVrBVEajJWmYxSaaTdg=s96-c', NULL, '2026-06-23 04:03:28', '2026-06-19 15:07:43', NULL, NULL),
 (32, 'Excel River View Hotel & Resort', 'supplier23@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
 (33, 'Golden Inya Restaurant', 'supplier24@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
@@ -4757,8 +5057,8 @@ INSERT INTO `venues` (`id`, `supplier_id`, `service_id`, `name`, `location`, `de
 (18, 20, NULL, 'Hotel Yangon', 'အမှတ်(91/93)၊ ပြည်လမ်းနှင့် ကမ္ဘာအေးဘုရားလမ်းထောင့်၊ ၈မိုင်လမ်းဆုံ၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။', 'Hotel Yangon, a luxurious business as well as leisure hotel sits majesticallyon a beautifully landscaped garden with a panoramic view of Yangon City.It is strategically located at 8th Mile junction area which is situated with many businessand commercial offices. Our hotel is close to Junction 8 Shopping Center and , just 10 minutes drivefrom Yangon International Airport &amp; 30 minutes driveto famous landmark of Yangon, Myanmar, Shwedagon Pagoda.', '2026-06-17 08:29:07'),
 (19, 20, NULL, 'Hotel Yangon', 'အမှတ်(91/93)၊ ပြည်လမ်းနှင့် ကမ္ဘာအေးဘုရားလမ်းထောင့်၊ ၈မိုင်လမ်းဆုံ၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။', 'Hotel Yangon, a luxurious business as well as leisure hotel sits majesticallyon a beautifully landscaped garden with a panoramic view of Yangon City.It is strategically located at 8th Mile junction area which is situated with many businessand commercial offices. Our hotel is close to Junction 8 Shopping Center and , just 10 minutes drivefrom Yangon International Airport &amp;amp;amp;amp;amp; 30 minutes driveto famous landmark of Yangon, Myanmar, Shwedagon Pagoda.', '2026-06-17 08:31:38'),
 (20, 21, 42, 'Governor\'s Residence', '35, Taw Win Road, Dagon Township, Yangon', 'ရန်ကုန်မြိုမှာ ကိုလိုနီခေတ်က တည်ရှိခဲ့တဲ့ အဆောက်အအုံများစွာအနက် Governor’s Residence ကို ၁၉၂၀ ပြည့်လွန် နှစ်များက တန်ဖိုးကြီး မြန်မာ့ ကျွန်းသစ်၊ မြန်မာ့ လက်မှုပညာတွေနဲ့ ပေါင်းစပ် တည်ဆောက်ခဲ့တဲ့ အဆောက်အအုံတစ်ခုဖြစ်သည်။\n\nသံရုံးများတည်ရှိရာ ရန်ကုန်မြိုရဲ့ အေးဆေးတိတ်ဆိတ်တဲ့ နေရာ၊ သမိုင်းဝင်အဆောက်အအုံများရဲ့ အလှတရားနှင့် ခေတ်မှီဇိမ်ခံပစ္စည်းများနဲ့ ပြန်လည်ပေါင်းစပ် တည်ဆောက်ထားတာ ဖြစ်ပါတယ်။ ကျယ်ဝန်းတဲ့ အိပ်ခန်းဆောင်များတွင် သစ်သား၊ ပိုးသားချည်မျှင်များနဲ့ အလှဆင်ထားတဲ့အပြင် စိမ်းလန်းစိုပြေပြီး ဝေဆာပွင့်လန်းနေတဲ့ ဥယျာဉ်ရဲ့ အလှကိုလည်း မြင်တွေ့ရဦးမှာ ဖြစ်ပါတယ်။ ဒါ့ပြင် ရေကူးကန်ကိုလည်း စပိန်မှ တင်သွင်းထားတဲ့ ကြွေပြားများနဲ့ ပြန်လည် အလှဆင် တည်ဆောက် ထားပါသေးတယ်။\n\nGovernor’s Residence ရဲ့ The Monkey Bar၊ The State Room နှင့် The Peacock Portico တိုမှာလည်း ခမ်းနားတဲ့ ညစာစားပွဲများကို တည်ခင်းရောင်းချပေးတာဖြစ်ပြီး Outlets တစ်ခုချင်းစီတိုင်းမှ မတူကွဲပြားတဲ့ ပရိဘောဂများရဲ့ အလှတွေကလည်း လာရောက်တဲ့ ဧည့်သည်တိုင်းအတွက် အမှတ်တရ ဖြစ်စေမှာပဲ ဖြစ်ပါတယ်။\nကိုလိုခေတ် မြန်မာ့ လက်မှုပညာရဲ့ ခန့်ညားထည်ဝါမှုအပြင် ရှေးခေတ် အငွေ့အသက်တွေကို အပြည့်အဝ ခံစားနိုင်ဖို Governor’s Residence သို ဖိတ်ခေါ်လိုက်ပါတယ်။', '2026-06-18 08:29:17'),
-(21, 20, 49, 'Zephyr Sein Lann So Pyay Garden', 'အမှတ်-(28) စိမ်းလန်းစိုပြေပန်းခြံ၊ အင်းယားလမ်း၊ ကမာရွတ်မြို့နယ်၊ ရန်ကုန်မြို့။', 'Zephyr (Sein Lann So Pyay Garden)ကရန်ကုန်မြို့အတွင်းတည်ရှိတဲ့အေးချမ်းပြီးသဘာဝပတ်ဝန်းကျင်နဲ့ကိုက်ညီတဲ့ fine dining &amp; event venue တစ်ခုဖြစ်ပါတယ်။Sein Lann So Pyay Gardenအနားမှာရှိလို့ မိသားစုစားသောက်မှု၊ မင်္ဂလာပွဲ၊ အခမ်းအနားများအတွက်လူကြိုက်များပါတယ်။သဘာဝအလှနဲ့ လှပနဲ့background ကြောင့်pre-weeding/ event-photo ရိုက်ရအဆင်ပြေစေပါတယ်။outdoor garden weeding နဲ့ အေးချမ်းတဲ့weeding လုပ်ချင်သူများ Decoration+ food+ Serviceကိုတစ်နေရာထဲမှာpackageလိုချင်သူများအတွက်အဆင်ပြေပြီး ရွေးချယ်ဖို့သင့်တော်တဲ့နေရာတစ်ခုဖြစ်ပါတယ်။', '2026-06-18 19:26:54'),
-(22, 20, 54, 'Western Park Ruby – People’s Park', 'ပြည်သူ့ရင်ပြင်ဝန်းအတွင်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။', 'မြို့အလယ်မှာရှိပေမဲ့ပန်းခြံဖြစ်လို့ ရှုပ်ထွေးမှုမရှိ၊မြက်ခင်းပြင်ကျယ် သဘာဝစိမ်းလန်းမှူများ၊နေရာကျယ်ဝန်းလို့ weeding, event venue အဖြစ်လူကြိုက်များပြီးဧည့်သည်အရေအတွက်များတဲ့eventများတွက်အဆင်   ပြေအောင်ဆောင်ရွက်ပေးနေပြီဖြစ်ပါတယ်။', '2026-06-19 03:18:58'),
+(21, 20, 49, 'Zephyr Sein Lann So Pyay Garden', 'အမှတ်-(28) စိမ်းလန်းစိုပြေပန်းခြံ၊ အင်းယားလမ်း၊ ကမာရွတ်မြို့နယ်၊ ရန်ကုန်မြို့။', 'Zephyr (Sein Lann So Pyay Garden)ကရန်ကုန်မြို့အတွင်းတည်ရှိတဲ့အေးချမ်းပြီးသဘာဝပတ်ဝန်းကျင်နဲ့ကိုက်ညီတဲ့ fine dining & event venue တစ်ခုဖြစ်ပါတယ်။Sein Lann So Pyay Gardenအနားမှာရှိလို့ မိသားစုစားသောက်မှု၊ မင်္ဂလာပွဲ၊ အခမ်းအနားများအတွက်လူကြိုက်များပါတယ်။သဘာဝအလှနဲ့ လှပနဲ့background ကြောင့်pre-weeding/ event-photo ရိုက်ရအဆင်ပြေစေပါတယ်။outdoor garden weeding နဲ့ အေးချမ်းတဲ့weeding လုပ်ချင်သူများ Decoration+ food+ Serviceကိုတစ်နေရာထဲမှာpackageလိုချင်သူများအတွက်အဆင်ပြေပြီး ရွေးချယ်ဖို့သင့်တော်တဲ့နေရာတစ်ခုဖြစ်ပါတယ်။', '2026-06-18 19:26:54'),
+(22, 20, NULL, 'Western Park Ruby – People’s Park', 'ပြည်သူ့ရင်ပြင်ဝန်းအတွင်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။', 'မြို့အလယ်မှာရှိပေမဲ့ပန်းခြံဖြစ်လို့ ရှုပ်ထွေးမှုမရှိ၊မြက်ခင်းပြင်ကျယ် သဘာဝစိမ်းလန်းမှူများ၊နေရာကျယ်ဝန်းလို့ weeding, event venue အဖြစ်လူကြိုက်များပြီးဧည့်သည်အရေအတွက်များတဲ့eventများတွက်အဆင်   ပြေအောင်ဆောင်ရွက်ပေးနေပြီဖြစ်ပါတယ်။', '2026-06-19 03:18:58'),
 (23, 24, 60, 'Golden Inya - Lakeside Wedding Venue', 'Yangon', 'Wedding venue', '2026-06-20 08:15:32'),
 (24, 25, 61, 'Western Park Ruby - Garden Wedding Venue', 'Yangon', 'Wedding venue', '2026-06-20 08:15:32'),
 (25, 26, 62, 'Zephyr - Garden Wedding Venue', 'Yangon', 'Wedding venue', '2026-06-20 08:15:32'),
@@ -4818,7 +5118,8 @@ INSERT INTO `venue_rooms` (`id`, `venue_id`, `name`, `capacity`, `price`, `creat
 (53, 32, 'Grand Ballroom (Indoor)', 400, 300000.00, '2026-06-20 13:57:16', 0, 'http://localhost/GP/public/uploads/serviceHero1.png'),
 (54, 32, 'Garden Lawn (Outdoor)', 250, 240000.00, '2026-06-20 13:57:16', 0, 'http://localhost/GP/public/uploads/serviceHero2.png'),
 (55, 33, 'Grand Ballroom (Indoor)', 400, 800000.00, '2026-06-20 13:57:16', 0, 'http://localhost/GP/public/uploads/serviceHero2.png'),
-(56, 33, 'Garden Lawn (Outdoor)', 250, 640000.00, '2026-06-20 13:57:16', 0, 'http://localhost/GP/public/uploads/serviceHero3.png');
+(56, 33, 'Garden Lawn (Outdoor)', 250, 640000.00, '2026-06-20 13:57:16', 0, 'http://localhost/GP/public/uploads/serviceHero3.png'),
+(57, 21, 'Roof top', 700, 3000000.00, '2026-06-27 07:15:24', 1, 'http://localhost/GP/public/uploads/suppliers/20/service-management/hall/20260627134548-705d4ae9.jpg');
 
 -- --------------------------------------------------------
 
@@ -4842,8 +5143,9 @@ CREATE TABLE `venue_room_availability` (
 INSERT INTO `venue_room_availability` (`id`, `room_id`, `date`, `start_time`, `end_time`, `is_available`) VALUES
 (44, 20, NULL, '06:00:00', '17:00:00', 1),
 (45, 21, NULL, '09:00:00', '17:00:00', 1),
-(46, 22, NULL, '09:00:00', '17:00:00', 1),
-(48, 23, NULL, '09:00:00', '17:00:00', 1);
+(49, 23, NULL, '09:00:00', '17:00:00', 1),
+(64, 22, NULL, '09:00:00', '17:00:00', 1),
+(65, 57, NULL, '09:00:00', '17:00:00', 1);
 
 -- --------------------------------------------------------
 
@@ -4901,6 +5203,22 @@ ALTER TABLE `account_lockout_logs`
 ALTER TABLE `attire_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_service` (`service_id`);
+
+--
+-- Indexes for table `attire_rental_bookings`
+--
+ALTER TABLE `attire_rental_bookings`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_booking_item_id` (`booking_item_id`),
+  ADD KEY `idx_attire_item_id` (`attire_item_id`),
+  ADD KEY `idx_attire_dates` (`attire_item_id`,`borrow_date`,`buffer_until`,`status`);
+
+--
+-- Indexes for table `attire_rental_options`
+--
+ALTER TABLE `attire_rental_options`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_attire_item_id` (`attire_item_id`);
 
 --
 -- Indexes for table `bookings`
@@ -4970,13 +5288,6 @@ ALTER TABLE `booking_vouchers`
   ADD KEY `supplier_id` (`supplier_id`);
 
 --
--- Indexes for table `cake_designs`
---
-ALTER TABLE `cake_designs`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_cake_designs_service` (`service_id`);
-
---
 -- Indexes for table `carts`
 --
 ALTER TABLE `carts`
@@ -5037,6 +5348,13 @@ ALTER TABLE `favorites`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_favorite` (`user_id`,`item_type`,`item_id`),
   ADD KEY `idx_favorites_collection` (`collection_id`);
+
+--
+-- Indexes for table `food_items`
+--
+ALTER TABLE `food_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_food_items_service` (`service_id`);
 
 --
 -- Indexes for table `login_attempts`
@@ -5101,12 +5419,6 @@ ALTER TABLE `payments`
   ADD KEY `idx_payments_payout_batch` (`payout_batch_id`);
 
 --
--- Indexes for table `permissions`
---
-ALTER TABLE `permissions`
-  ADD PRIMARY KEY (`id`);
-
---
 -- Indexes for table `platform_settings`
 --
 ALTER TABLE `platform_settings`
@@ -5137,15 +5449,6 @@ ALTER TABLE `reviews`
 ALTER TABLE `roles`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_role_name` (`name`);
-
---
--- Indexes for table `role_permissions`
---
-ALTER TABLE `role_permissions`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_role_permission` (`role_id`,`permission_id`),
-  ADD KEY `idx_role_id` (`role_id`),
-  ADD KEY `idx_permission_id` (`permission_id`);
 
 --
 -- Indexes for table `services`
@@ -5317,37 +5620,49 @@ ALTER TABLE `account_lockout_logs`
 -- AUTO_INCREMENT for table `attire_items`
 --
 ALTER TABLE `attire_items`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+
+--
+-- AUTO_INCREMENT for table `attire_rental_bookings`
+--
+ALTER TABLE `attire_rental_bookings`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `attire_rental_options`
+--
+ALTER TABLE `attire_rental_options`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=337;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=346;
 
 --
 -- AUTO_INCREMENT for table `booking_items`
 --
 ALTER TABLE `booking_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=396;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=405;
 
 --
 -- AUTO_INCREMENT for table `booking_slot_reservations`
 --
 ALTER TABLE `booking_slot_reservations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- AUTO_INCREMENT for table `booking_status_logs`
 --
 ALTER TABLE `booking_status_logs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=199;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=262;
 
 --
 -- AUTO_INCREMENT for table `booking_suppliers`
 --
 ALTER TABLE `booking_suppliers`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=324;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=333;
 
 --
 -- AUTO_INCREMENT for table `booking_supplier_replacements`
@@ -5359,13 +5674,7 @@ ALTER TABLE `booking_supplier_replacements`
 -- AUTO_INCREMENT for table `booking_vouchers`
 --
 ALTER TABLE `booking_vouchers`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
-
---
--- AUTO_INCREMENT for table `cake_designs`
---
-ALTER TABLE `cake_designs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `carts`
@@ -5377,7 +5686,7 @@ ALTER TABLE `carts`
 -- AUTO_INCREMENT for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=135;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=147;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -5395,7 +5704,7 @@ ALTER TABLE `customer_status_logs`
 -- AUTO_INCREMENT for table `decoration_styles`
 --
 ALTER TABLE `decoration_styles`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `email_verifications`
@@ -5407,13 +5716,19 @@ ALTER TABLE `email_verifications`
 -- AUTO_INCREMENT for table `event_details`
 --
 ALTER TABLE `event_details`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=292;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=301;
 
 --
 -- AUTO_INCREMENT for table `favorites`
 --
 ALTER TABLE `favorites`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT for table `food_items`
+--
+ALTER TABLE `food_items`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `login_attempts`
@@ -5425,25 +5740,25 @@ ALTER TABLE `login_attempts`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=277;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=382;
 
 --
 -- AUTO_INCREMENT for table `otps`
 --
 ALTER TABLE `otps`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=155;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=163;
 
 --
 -- AUTO_INCREMENT for table `packages`
 --
 ALTER TABLE `packages`
-  MODIFY `package_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `package_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `package_items`
 --
 ALTER TABLE `package_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=146;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=175;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
@@ -5455,19 +5770,13 @@ ALTER TABLE `password_resets`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
-
---
--- AUTO_INCREMENT for table `permissions`
---
-ALTER TABLE `permissions`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
 
 --
 -- AUTO_INCREMENT for table `refunds`
 --
 ALTER TABLE `refunds`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `reviews`
@@ -5482,16 +5791,10 @@ ALTER TABLE `roles`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT for table `role_permissions`
---
-ALTER TABLE `role_permissions`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `services`
 --
 ALTER TABLE `services`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=168;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=172;
 
 --
 -- AUTO_INCREMENT for table `service_availability`
@@ -5503,25 +5806,25 @@ ALTER TABLE `service_availability`
 -- AUTO_INCREMENT for table `service_media`
 --
 ALTER TABLE `service_media`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=145;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=157;
 
 --
 -- AUTO_INCREMENT for table `service_rental_pricing`
 --
 ALTER TABLE `service_rental_pricing`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `service_schedules`
 --
 ALTER TABLE `service_schedules`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1403;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1508;
 
 --
 -- AUTO_INCREMENT for table `service_time_slots`
 --
 ALTER TABLE `service_time_slots`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=147;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=148;
 
 --
 -- AUTO_INCREMENT for table `suppliers`
@@ -5557,7 +5860,7 @@ ALTER TABLE `supplier_warnings`
 -- AUTO_INCREMENT for table `system_logs`
 --
 ALTER TABLE `system_logs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=551;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=579;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -5581,13 +5884,13 @@ ALTER TABLE `venues`
 -- AUTO_INCREMENT for table `venue_rooms`
 --
 ALTER TABLE `venue_rooms`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `venue_room_availability`
 --
 ALTER TABLE `venue_room_availability`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
 
 --
 -- AUTO_INCREMENT for table `wallets`
@@ -5611,6 +5914,12 @@ ALTER TABLE `wishlist_collections`
 ALTER TABLE `account_lockout_logs`
   ADD CONSTRAINT `all_ibfk_unlocked_by` FOREIGN KEY (`unlocked_by`) REFERENCES `users` (`user_id`),
   ADD CONSTRAINT `all_ibfk_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
+
+--
+-- Constraints for table `attire_rental_options`
+--
+ALTER TABLE `attire_rental_options`
+  ADD CONSTRAINT `fk_rental_option_attire_item` FOREIGN KEY (`attire_item_id`) REFERENCES `attire_items` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `bookings`
@@ -5650,12 +5959,6 @@ ALTER TABLE `booking_vouchers`
   ADD CONSTRAINT `booking_vouchers_ibfk_1` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`),
   ADD CONSTRAINT `booking_vouchers_ibfk_2` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`),
   ADD CONSTRAINT `booking_vouchers_ibfk_3` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`supplier_id`);
-
---
--- Constraints for table `cake_designs`
---
-ALTER TABLE `cake_designs`
-  ADD CONSTRAINT `fk_cake_designs_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `carts`
@@ -5736,13 +6039,6 @@ ALTER TABLE `reviews`
   ADD CONSTRAINT `reviews_ibfk_3` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`),
   ADD CONSTRAINT `reviews_ibfk_4` FOREIGN KEY (`customer_id`) REFERENCES `users` (`user_id`),
   ADD CONSTRAINT `reviews_ibfk_5` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`supplier_id`);
-
---
--- Constraints for table `role_permissions`
---
-ALTER TABLE `role_permissions`
-  ADD CONSTRAINT `role_permissions_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `role_permissions_ibfk_2` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `services`

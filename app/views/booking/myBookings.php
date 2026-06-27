@@ -211,6 +211,23 @@ button { font-family: var(--font-b); cursor: pointer; }
               (<?= round((float)$b['paid_amount'] / (float)$b['total_amount'] * 100) ?>%)
             </span>
           <?php endif; ?>
+          <?php
+            $cardRefund = $b['refund'] ?? null;
+            if ($cardRefund):
+              $rfStatus = (string)($cardRefund['status'] ?? 'pending');
+              $rfColors = [
+                'pending'    => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e'],
+                'processing' => ['bg' => '#eff6ff', 'border' => '#bfdbfe', 'text' => '#1e40af'],
+                'completed'  => ['bg' => '#f0fdf4', 'border' => '#bbf7d0', 'text' => '#166534'],
+                'rejected'   => ['bg' => '#fef2f2', 'border' => '#fecaca', 'text' => '#991b1b'],
+              ];
+              $rfc = $rfColors[$rfStatus] ?? $rfColors['pending'];
+              $rfLabels = ['pending' => 'Refund Pending', 'processing' => 'Refund Processing', 'completed' => 'Refunded', 'rejected' => 'Refund Rejected'];
+          ?>
+            <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $rfc['bg'] ?>;border:1px solid <?= $rfc['border'] ?>;color:<?= $rfc['text'] ?>">
+              <?= $rfLabels[$rfStatus] ?? 'Refund' ?>: <?= $money((float)($cardRefund['amount'] ?? 0)) ?>
+            </div>
+          <?php endif; ?>
         </div>
         <div class="gp-card-actions">
           <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/detail/<?= (int)$b['id'] ?>">

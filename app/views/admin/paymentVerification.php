@@ -108,6 +108,8 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
   .badge-pending{background:var(--warn-bg);color:var(--warn-text)}
   .badge-success{background:var(--success-bg);color:var(--success-text)}
   .badge-failed{background:var(--danger-bg);color:var(--danger-text)}
+  .badge-deposit{background:#e8e7ff;color:#4f46a5}
+  .badge-remaining{background:#fdf4ff;color:#86198f}
   .filter{cursor:pointer}
   .review-meta{font-size:11px;color:var(--muted);white-space:nowrap}
   .review-note{font-size:11px;color:var(--body);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -164,17 +166,17 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
     <div class="stat">
       <div class="stat-label"><?= $isPending ? 'Awaiting Review' : ($activeStatus === 'verified' ? 'Verified' : 'Rejected') ?></div>
       <div class="stat-value <?= $isPending ? 'warn' : '' ?>"><?= (int)$pendingCount ?></div>
-      <div class="stat-sub">Customer deposit proofs</div>
+      <div class="stat-sub">Deposit & remaining proofs</div>
     </div>
     <div class="stat">
       <div class="stat-label"><?= $isPending ? 'Submitted Amount' : 'Total Amount' ?></div>
       <div class="stat-value"><?= $money($pendingTotal) ?></div>
-      <div class="stat-sub"><?= $isPending ? 'From pending records' : 'Across these deposits' ?></div>
+      <div class="stat-sub"><?= $isPending ? 'From pending records' : 'Across these payments' ?></div>
     </div>
     <div class="stat">
-      <div class="stat-label">Expected Deposit</div>
+      <div class="stat-label">Expected Total</div>
       <div class="stat-value"><?= $money($expectedTotal) ?></div>
-      <div class="stat-sub"><?= BOOKING_DEPOSIT_PERCENT ?>% booking deposits</div>
+      <div class="stat-sub">Deposit + remaining balance</div>
     </div>
     <?php if ($isPending): ?>
     <div class="stat">
@@ -199,6 +201,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
         <thead>
           <tr>
             <th>Booking</th>
+            <th>Type</th>
             <th>Amount</th>
             <th>Method</th>
             <th>Sender</th>
@@ -212,7 +215,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
         <tbody>
           <?php if (empty($pendingPayments)): ?>
             <tr>
-              <td colspan="9" class="empty-row"><?= $isPending ? 'All payment proofs are reviewed.' : ($activeStatus === 'verified' ? 'No verified deposits yet.' : 'No rejected deposits.') ?></td>
+              <td colspan="10" class="empty-row"><?= $isPending ? 'All payment proofs are reviewed.' : ($activeStatus === 'verified' ? 'No verified payments yet.' : 'No rejected payments.') ?></td>
             </tr>
           <?php endif; ?>
 
@@ -250,6 +253,13 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
                   <a class="booking-link" href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>"><?= $h($bookingRef) ?></a>
                 </div>
                 <div class="biz-email"><?= $h($customerName) ?><?= $customerEmail !== '' ? ' - ' . $h($customerEmail) : '' ?></div>
+              </td>
+              <td>
+                <?php if ($paymentType === 'remaining'): ?>
+                  <span class="badge badge-remaining">Remaining</span>
+                <?php else: ?>
+                  <span class="badge badge-deposit">Deposit</span>
+                <?php endif; ?>
               </td>
               <td>
                 <div class="amount"><?= $money($paidAmount) ?></div>

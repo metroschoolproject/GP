@@ -95,7 +95,7 @@ $statusBadgeClass = function (string $status): string {
         return 'sup-badge--success';
     if (in_array($s, ['pending', 'unpaid', 'partial', 'payment_submitted'], true))
         return 'sup-badge--warn';
-    if (in_array($s, ['rejected', 'cancelled', 'canceled', 'failed', 'cancelled_by_customer', 'supplier_rejected'], true))
+    if (in_array($s, ['rejected', 'cancelled', 'canceled', 'failed', 'cancelled_by_customer', 'supplier_rejected', 'supplier_cancellation_requested'], true))
         return 'sup-badge--danger';
     return 'sup-badge--neutral';
 };
@@ -146,6 +146,13 @@ $dashboardContent = function () use (
     $declinableRows = $withinDeclineWindow
         ? array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['confirmed', 'in_progress'], true)))
         : [];
+
+    // Supplier-initiated cancellation
+    $supplierCancellationRequested = in_array($supplierStatus, ['supplier_cancellation_requested'], true);
+    $canRequestCancellation = !$supplierCancellationRequested
+        && !$needsResponse
+        && in_array($bookingStatus, ['confirmed', 'paid'], true)
+        && in_array($supplierStatus, ['confirmed', 'in_progress'], true);
 
     // Services of this supplier already routed to replacement.
     $replacementRows = array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['needs_replacement', 'rejected'], true)));
@@ -586,6 +593,40 @@ $dashboardContent = function () use (
           </li>
         <?php endforeach; ?>
       </ul>
+    </div>
+  </details>
+  <?php endif; ?>
+
+  <?php if ($supplierCancellationRequested): ?>
+  <div class="sup-response-bar" style="background:#fffbeb;border-color:#fde68a">
+    <div class="sup-response-info">
+      <div class="sup-response-icon" style="color:#d97706">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
+      </div>
+      <div>
+        <div class="sup-response-text">Cancellation request submitted</div>
+        <div class="sup-response-sub">Admin will review your request and process the refund. The customer has been notified.</div>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($canRequestCancellation): ?>
+  <details class="sup-secondary-action">
+    <summary>Need to cancel this booking?</summary>
+    <div class="sup-selfdecline">
+      <div class="sup-selfdecline-head">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
+        <div>
+          <div class="sup-response-text">Request booking cancellation</div>
+          <div class="sup-response-sub">The customer and admin will be notified. Admin will review and process the refund.</div>
+        </div>
+      </div>
+      <button type="button" class="sup-btn sup-btn--decline" id="supplier-cancel-btn"
+              style="margin-top:10px">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        Request Cancellation
+      </button>
     </div>
   </details>
   <?php endif; ?>
@@ -1040,6 +1081,34 @@ $dashboardContent = function () use (
     </div>
   </div>
 
+  <!-- Supplier Request Cancellation Modal -->
+  <div id="supplier-cancel-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="supplier-cancel-modal-title">
+    <div class="sup-modal">
+      <div class="sup-modal-head">
+        <h2 id="supplier-cancel-modal-title" class="sup-modal-title">Request Booking Cancellation</h2>
+        <button type="button" class="supplier-cancel-close sup-modal-close" aria-label="Close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+      <form id="supplier-cancel-form">
+        <div class="sup-modal-body">
+          <p class="sup-response-sub" style="margin-bottom:14px">
+            The customer and admin will be notified of your cancellation request. Admin will review and process any applicable refund.
+          </p>
+          <div class="sup-field" style="margin-bottom:0">
+            <label class="sup-label" for="supplier-cancel-reason">Reason for cancellation <span style="color:var(--sup-danger-text)">*</span></label>
+            <textarea id="supplier-cancel-reason" name="reason" rows="3" required minlength="10" maxlength="500" placeholder="e.g., Unforeseen circumstances, double booking, unable to fulfill" class="sup-textarea"></textarea>
+            <span class="sup-char-count" id="supplier-cancel-char-count">0 / 500</span>
+          </div>
+        </div>
+        <div class="sup-modal-foot">
+          <button type="button" class="supplier-cancel-close sup-btn sup-btn--ghost">Cancel</button>
+          <button type="submit" class="sup-btn sup-btn--decline">Submit cancellation request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -1338,6 +1407,71 @@ $dashboardContent = function () use (
     } catch (err) {
       supToastError('Network error. Please try again.');
     }
+  }
+
+  /* ── Supplier request cancellation ── */
+  var supplierCancelBtn   = document.getElementById('supplier-cancel-btn');
+  var supplierCancelModal = document.getElementById('supplier-cancel-modal');
+  var supplierCancelForm  = document.getElementById('supplier-cancel-form');
+
+  if (supplierCancelBtn && supplierCancelModal && supplierCancelForm) {
+    var scReason = document.getElementById('supplier-cancel-reason');
+    var scCharCount = document.getElementById('supplier-cancel-char-count');
+
+    if (scReason && scCharCount) {
+      scReason.addEventListener('input', function() {
+        scCharCount.textContent = scReason.value.length + ' / 500';
+      });
+    }
+
+    supplierCancelBtn.addEventListener('click', function() {
+      scReason.value = '';
+      if (scCharCount) scCharCount.textContent = '0 / 500';
+      supplierCancelModal.classList.add('is-open');
+      scReason.focus();
+    });
+
+    document.querySelectorAll('.supplier-cancel-close').forEach(function(b) {
+      b.addEventListener('click', function() { supplierCancelModal.classList.remove('is-open'); });
+    });
+    supplierCancelModal.addEventListener('click', function(e) {
+      if (e.target === supplierCancelModal) supplierCancelModal.classList.remove('is-open');
+    });
+
+    supplierCancelForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var reason = (scReason.value || '').trim();
+      if (!reason || reason.length < 10) {
+        supToastWarning('Please provide a reason (at least 10 characters).');
+        return;
+      }
+
+      var submitBtn = supplierCancelForm.querySelector('button[type="submit"]');
+      var original = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Submitting…';
+
+      var formData = new FormData();
+      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+      formData.append('reason', reason);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+      try {
+        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRequestCancellation', { method: 'POST', body: formData });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (data.success) {
+          supplierCancelModal.classList.remove('is-open');
+          supToastSuccess('Cancellation request submitted. Admin will review.');
+          setTimeout(function() { window.location.reload(); }, 1500);
+          return;
+        }
+        supToastError(data.error || 'Could not submit cancellation request.');
+      } catch (err) {
+        supToastError('Network error. Please try again.');
+      }
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = original;
+    });
   }
 })();
 </script>

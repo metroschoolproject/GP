@@ -1303,13 +1303,14 @@ class Booking extends Controller
         $bookings = $this->bookingModel->getCustomerBookings($this->userId, $filter, $perPage, $offset);
         $totalCount = $this->bookingModel->getCustomerBookingsCount($this->userId, $filter);
 
-        // Enrich each booking with items count and booking ref
+        // Enrich each booking with items count, booking ref, and refund info
         $enriched = [];
         foreach ($bookings as $b) {
             $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
             $b['items'] = $this->bookingModel->getBookingItems((int)$b['id']);
             $b['total_amount'] = (float)$b['total_amount'];
             $b['paid_amount'] = (float)$b['paid_amount'];
+            $b['refund'] = $this->bookingModel->getBookingRefund((int)$b['id']) ?: null;
             $enriched[] = $b;
         }
 
@@ -2145,6 +2146,78 @@ class Booking extends Controller
             'message' => $result === 'approved'
                 ? 'You have approved the cancellation request.'
                 : 'You have declined the cancellation request.',
+        ]);
+    }
+
+    /**
+     * Supplier requests cancellation of a confirmed booking (AJAX POST).
+     * Notifies customer and admin. Admin will process the refund.
+     */
+    public function supplierRequestCancellation(): void
+    {
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Unauthorized'], 401);
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $reason = trim($_POST['reason'] ?? '');
+
+        if ($bookingId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid booking.'], 400);
+        }
+        if ($reason === '' || mb_strlen($reason) < 10) {
+            $this->jsonResponse(['error' => 'Please provide a reason (at least 10 characters).'], 422);
+        }
+
+        if (!$this->bookingModel->supplierRequestCancellation($bookingId, $supplierId, $reason)) {
+            $this->jsonResponse(['error' => 'Could not submit cancellation request. The booking may no longer be cancellable.'], 400);
+        }
+
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $customerInfo = $this->bookingModel->getCustomerForBooking($bookingId);
+        $supplierProfile = $this->supplierProfileModel->getByUserId((int)($_SESSION['session_uid'] ?? 0));
+        $supplierName = $supplierProfile['shop_name'] ?? $supplierProfile['name'] ?? 'Your supplier';
+
+        // Notify customer
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Supplier Cancellation Request — ' . $bookingRef,
+            $supplierName . ' has requested to cancel your booking ' . $bookingRef . '. Reason: ' . $reason . '. Admin will review and process your refund.',
+            'booking'
+        );
+
+        // Notify admin
+        $this->notificationModel->notifyAdmins(
+            'Supplier Requests Cancellation — ' . $bookingRef,
+            $supplierName . ' has requested cancellation of booking ' . $bookingRef . '. Reason: ' . $reason . '. Please review and process the refund.',
+            'booking', 'booking', $bookingId
+        );
+
+        // Send emails
+        $emailService = new EmailService();
+
+        if (!empty($customerInfo['email'])) {
+            $emailService->sendSupplierInitiatedCancellationToCustomer(
+                $customerInfo, $bookingId, $bookingRef, $supplierName, $reason
+            );
+        }
+
+        $admins = $this->bookingModel->getAdminEmails();
+        foreach ($admins as $admin) {
+            $emailService->sendSupplierInitiatedCancellationToAdmin(
+                $admin, $bookingId, $bookingRef, $supplierName, $reason
+            );
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Cancellation request submitted. Admin will review and process the refund.',
         ]);
     }
 

@@ -2128,7 +2128,7 @@ class Admin extends Controller
         if ($isRemaining) {
             // Check if booking is now fully paid after this verification
             $afterBooking = $bookingModel->getBookingById($bookingId);
-            $isFullyPaid = ($afterBooking['payment_status'] ?? '') === 'full';
+            $isFullyPaid = ($afterBooking['payment_status'] ?? '') === 'paid';
             $notifMessage = $isFullyPaid
                 ? 'Your remaining balance payment has been verified! Your booking is now fully paid and finalized.'
                 : 'Your remaining balance payment has been verified! You can continue making payments toward your remaining balance.';

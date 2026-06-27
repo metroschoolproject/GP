@@ -2952,6 +2952,71 @@ class BookingModel
     }
 
     /**
+     * Supplier requests cancellation of a confirmed booking.
+     * Sets booking to cancellation_requested and marks the supplier's rows.
+     * Admin will review and process the refund.
+     */
+    public function supplierRequestCancellation(int $bookingId, int $supplierId, string $reason): bool
+    {
+        // Verify booking is in a cancellable state
+        $this->db->dbquery("SELECT status FROM bookings WHERE id = :bid LIMIT 1");
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+        if (!$booking || !in_array($booking['status'] ?? '', ['confirmed', 'paid'], true)) {
+            return false;
+        }
+
+        // Verify supplier has confirmed/in_progress rows for this booking
+        $this->db->dbquery(
+            "SELECT id FROM booking_suppliers
+             WHERE booking_id = :bid AND supplier_id = :sid AND status IN ('confirmed', 'in_progress')
+             LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $supplierRow = $this->db->getsingledata();
+        if (!$supplierRow) {
+            return false;
+        }
+
+        // Resolve supplier's user_id for logging
+        $this->db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $supplierUser = $this->db->getsingledata();
+        $changedBy = (int)($supplierUser['user_id'] ?? 0) ?: null;
+
+        // Update booking status
+        $this->db->dbquery(
+            "UPDATE bookings SET status = 'cancellation_requested' WHERE id = :bid LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Mark supplier's rows as supplier_cancellation_requested
+        $this->db->dbquery(
+            "UPDATE booking_suppliers
+             SET status = 'supplier_cancellation_requested'
+             WHERE booking_id = :bid AND supplier_id = :sid AND status IN ('confirmed', 'in_progress')"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        // Log the status change
+        $this->logStatusChange(
+            $bookingId,
+            $booking['status'],
+            'cancellation_requested',
+            $changedBy,
+            'Supplier requested cancellation. Reason: ' . $reason
+        );
+
+        return true;
+    }
+
+    /**
      * Supplier responds to a cancellation request (customize bookings only).
      * @return string 'approved' or 'declined', or '' on failure
      */
@@ -4335,7 +4400,7 @@ class BookingModel
                 $this->db->dbquery(
                     "UPDATE bookings
                         SET status = 'finalized',
-                            payment_status = 'full',
+                            payment_status = 'paid',
                             paid_amount = total_amount
                       WHERE id = :id LIMIT 1"
                 );

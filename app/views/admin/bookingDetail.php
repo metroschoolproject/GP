@@ -781,15 +781,20 @@ $dashboardContent = function () use (
     // Step progress
     $currentStep = 1;
     if ($isPendingSupplier) $currentStep = 2;
+    elseif ($isRemainingPaymentStage) $currentStep = 5;
     elseif ($isPendingPayment || $isPaymentSubmitted) $currentStep = 3;
-    elseif ($isConfirmed) $currentStep = 4;
+    elseif (in_array($bookingStatus, ['confirmed', 'paid'], true)) $currentStep = 4;
+    elseif (in_array($bookingStatus, ['finalized', 'in_progress'], true)) $currentStep = 5;
+    elseif ($bookingStatus === 'completed') $currentStep = 6;
     elseif ($isCancelled) $currentStep = 0;
 
     $steps = [
         1 => ['label' => 'Created', 'icon' => 'clipboard-list'],
         2 => ['label' => 'Suppliers', 'icon' => 'users'],
-        3 => ['label' => 'Payment', 'icon' => 'wallet'],
+        3 => ['label' => 'Deposit', 'icon' => 'wallet'],
         4 => ['label' => 'Confirmed', 'icon' => 'check-circle'],
+        5 => ['label' => 'Balance', 'icon' => 'banknote'],
+        6 => ['label' => 'Completed', 'icon' => 'party-popper'],
     ];
 
     $refParts = $bookingRef ? explode('-', $bookingRef, 2) : ['Booking #' . $bookingId, ''];
@@ -861,8 +866,8 @@ $dashboardContent = function () use (
   <div class="bkd-steps">
     <?php foreach ($steps as $num => $step): ?>
       <?php
-        $isDone = $num < $currentStep || ($num === $currentStep && $currentStep === 4);
-        $isCur = $num === $currentStep && $currentStep < 4;
+        $isDone = $num < $currentStep || ($num === $currentStep && $currentStep === 6);
+        $isCur = $num === $currentStep && $currentStep < 6;
         $stepClass = $isDone ? 'is-done' : ($isCur ? 'is-current' : '');
       ?>
       <div class="bkd-step <?= $stepClass ?>">
@@ -906,15 +911,15 @@ $dashboardContent = function () use (
             </div>
             <div class="bkd-kv">
               <div class="bkd-kv-label">Expected</div>
-              <div class="bkd-kv-value"><?= $money($expectedPayment) ?></div>
+              <div class="bkd-kv-value"><?= $money($isRemainingPaymentStage ? $balanceDue : $expectedPayment) ?></div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Type</div>
+              <div class="bkd-kv-value"><?= $isRemainingPaymentStage ? 'Remaining Balance' : 'Deposit + Fee' ?></div>
             </div>
             <div class="bkd-kv">
               <div class="bkd-kv-label">Method</div>
               <div class="bkd-kv-value"><?= $h($paymentMethod ?: '-') ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Reference</div>
-              <div class="bkd-kv-value" style="font-size:11px"><?= $h($transactionRef ?: '-') ?></div>
             </div>
           </div>
           <div class="bkd-progress">
@@ -955,6 +960,17 @@ $dashboardContent = function () use (
       <div>
         <div class="bkd-action-title">Waiting for Customer Payment</div>
         <div class="bkd-action-sub">Expected: <?= $money($expectedPayment) ?> (<?= (int)$depositPercent ?>% deposit + <?= (int)$platformFeePercent ?>% fee)</div>
+      </div>
+    </div>
+  </div>
+
+  <?php elseif ($isRemainingPaymentStage && !$isPaymentSubmitted): ?>
+  <div class="bkd-action">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--neutral"><i data-lucide="banknote"></i></div>
+      <div>
+        <div class="bkd-action-title">Awaiting Remaining Balance Payment</div>
+        <div class="bkd-action-sub">Customer has not yet submitted the remaining balance of <?= $money($balanceDue) ?></div>
       </div>
     </div>
   </div>

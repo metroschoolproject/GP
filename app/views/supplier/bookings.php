@@ -21,7 +21,7 @@ $statusBadgeClass = function (string $status): string {
     if ($s === 'pending') {
         return 'bg-app-warning/10 text-app-warning';
     }
-    if (in_array($s, ['rejected', 'cancelled'], true)) {
+    if (in_array($s, ['rejected', 'cancelled', 'supplier_cancellation_requested'], true)) {
         return 'bg-app-danger/10 text-app-danger';
     }
     return 'bg-app-soft text-app-secondary';
