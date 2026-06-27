@@ -103,6 +103,7 @@ $dashboardContent = function () use (
     $notificationMarkAllUrl,
     $notificationKicker,
     $notificationSubtitle,
+    $notificationRole,
     $currentPage,
     $totalPages,
     $totalCount,
@@ -223,8 +224,10 @@ $dashboardContent = function () use (
                 'booking' => ['Bookings', $stats['booking']],
                 'payment' => ['Payments', $stats['payment']],
                 'approval' => ['Approvals', $stats['approval']],
-                'system' => ['System', $stats['system']],
             ];
+            if ($notificationRole === 'admin') {
+                $tabs['system'] = ['System', $stats['system']];
+            }
             foreach ($tabs as $value => [$label, $count]):
             ?>
                 <a class="inbox-tab <?= $filters['type'] === $value ? 'active' : '' ?>" href="<?= $h($tabUrl($value)) ?>">
@@ -239,6 +242,7 @@ $dashboardContent = function () use (
         </nav>
 
         <div class="inbox-tools">
+            <?php if ($notificationRole === 'admin'): ?>
             <form class="inbox-search-form" method="get" action="<?= $h($notificationBaseUrl) ?>">
                 <?php if ($filters['type'] !== 'all'): ?><input type="hidden" name="type" value="<?= $h($filters['type']) ?>"><?php endif; ?>
                 <?php if ($filters['state'] !== 'all'): ?><input type="hidden" name="state" value="<?= $h($filters['state']) ?>"><?php endif; ?>
@@ -251,6 +255,7 @@ $dashboardContent = function () use (
                 </div>
                 <button class="inbox-search-button" type="submit">Search</button>
             </form>
+            <?php endif; ?>
             <form method="post" action="<?= $h($notificationMarkAllUrl) ?>">
                 <button class="inbox-mark-all" type="submit" <?= (int)$stats['unread'] === 0 ? 'disabled' : '' ?>>
                     <i data-lucide="check-check" class="h-4 w-4"></i>

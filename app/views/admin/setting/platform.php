@@ -1,5 +1,6 @@
 <?php
 $currentFee = (float)($currentFee ?? 5);
+$supplierFee = (float)($supplierFee ?? 50000);
 
 $dashboardTitle = 'Settings';
 $dashboardCrumb = 'Platform fees';
@@ -15,7 +16,7 @@ $h = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $flash = $_SESSION['platform_flash'] ?? null;
 unset($_SESSION['platform_flash']);
 
-$dashboardContent = function () use ($currentFee, $h, $flash) {
+$dashboardContent = function () use ($currentFee, $supplierFee, $h, $flash) {
 ?>
 <style>
     .platform-settings-shell { min-height: 100%; padding: 30px; background: #fbfbf9; }
@@ -78,7 +79,7 @@ $dashboardContent = function () use ($currentFee, $h, $flash) {
 <div class="ps-page">
     <p class="ps-kicker">System Configuration</p>
     <h1 class="ps-title">Platform Fees</h1>
-    <p class="ps-subtitle">Configure the platform service fee charged to customers on every booking. The fee is added on top of the deposit at checkout.</p>
+    <p class="ps-subtitle">Configure the agent fee charged to customers per booking, and the one-time membership fee suppliers pay to join the platform.</p>
 
     <?php if ($flash): ?>
         <?php $flashType = ($flash['type'] ?? 'error') === 'success' ? 'success' : 'error'; ?>
@@ -98,19 +99,19 @@ $dashboardContent = function () use ($currentFee, $h, $flash) {
 
     <div class="ps-info-grid">
         <div class="ps-info-card">
-            <div class="ps-info-card-label">Current Rate</div>
+            <div class="ps-info-card-label">Agent Fee Rate</div>
             <div class="ps-info-card-value"><?= $currentFee > 0 ? rtrim(rtrim(number_format($currentFee, 2), '0'), '.') . '%' : 'No fee' ?></div>
-            <div class="ps-info-card-note">Applied to all bookings</div>
+            <div class="ps-info-card-note">Per-booking, paid by customer</div>
         </div>
         <div class="ps-info-card">
-            <div class="ps-info-card-label">Example: 1,000,000 MMK booking</div>
-            <div class="ps-info-card-value"><?= $currentFee > 0 ? number_format(1000000 * ($currentFee / 100), 0) . ' MMK' : '0 MMK' ?></div>
-            <div class="ps-info-card-note">Platform fee collected</div>
+            <div class="ps-info-card-label">Supplier Membership Fee</div>
+            <div class="ps-info-card-value"><?= number_format($supplierFee, 0) ?> MMK</div>
+            <div class="ps-info-card-note">One-time, paid by supplier</div>
         </div>
         <div class="ps-info-card">
             <div class="ps-info-card-label">Customer pays at checkout</div>
             <div class="ps-info-card-value"><?= number_format(1000000 * 0.20 + 1000000 * ($currentFee / 100), 0) ?> MMK</div>
-            <div class="ps-info-card-note">20% deposit<?= $currentFee > 0 ? ' + ' . rtrim(rtrim(number_format($currentFee, 2), '0'), '.') . '% fee' : '' ?></div>
+            <div class="ps-info-card-note">20% deposit + agent fee (1M example)</div>
         </div>
     </div>
 
@@ -119,8 +120,8 @@ $dashboardContent = function () use ($currentFee, $h, $flash) {
 
         <div class="ps-card">
             <div class="ps-card-header">
-                <h2 class="ps-card-title">Platform Fee Percentage</h2>
-                <p class="ps-card-desc">Set the percentage charged on every booking's total amount. This applies to both package and custom service bookings.</p>
+                <h2 class="ps-card-title">Agent Fee (Per Booking)</h2>
+                <p class="ps-card-desc">Set the percentage charged to customers on every booking's total amount. This applies to both package and custom service bookings.</p>
             </div>
             <div class="ps-card-body">
                 <div class="ps-field">
@@ -142,7 +143,7 @@ $dashboardContent = function () use ($currentFee, $h, $flash) {
                         <span>1,000,000 MMK</span>
                     </div>
                     <div class="ps-preview-row">
-                        <span>Platform fee (<span id="previewRate"><?= rtrim(rtrim(number_format($currentFee, 2), '0'), '.') ?></span>%)</span>
+                        <span>Agent fee (<span id="previewRate"><?= rtrim(rtrim(number_format($currentFee, 2), '0'), '.') ?></span>%)</span>
                         <span id="previewFee"><?= number_format(1000000 * ($currentFee / 100), 0) ?> MMK</span>
                     </div>
                     <hr class="ps-preview-divider">
@@ -151,7 +152,7 @@ $dashboardContent = function () use ($currentFee, $h, $flash) {
                         <span>200,000 MMK</span>
                     </div>
                     <div class="ps-preview-row">
-                        <span>Platform fee</span>
+                        <span>Agent fee</span>
                         <span id="previewFee2"><?= number_format(1000000 * ($currentFee / 100), 0) ?> MMK</span>
                     </div>
                     <hr class="ps-preview-divider">
@@ -160,11 +161,31 @@ $dashboardContent = function () use ($currentFee, $h, $flash) {
                         <span id="previewDeposit"><?= number_format(1000000 * 0.20 + 1000000 * ($currentFee / 100), 0) ?> MMK</span>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="ps-actions">
-                    <button type="submit" class="ps-btn ps-btn-primary" id="saveBtn">Save Changes</button>
+        <div class="ps-card">
+            <div class="ps-card-header">
+                <h2 class="ps-card-title">Supplier Membership Fee</h2>
+                <p class="ps-card-desc">Set the one-time fee suppliers pay when they create their account to start receiving bookings on the platform.</p>
+            </div>
+            <div class="ps-card-body">
+                <div class="ps-field">
+                    <label class="ps-label" for="supplier_membership_fee">Fee Amount</label>
+                    <div class="ps-input-wrap" style="max-width: 240px;">
+                        <input type="number" id="supplier_membership_fee" name="supplier_membership_fee"
+                               class="ps-input" min="0" step="1" required
+                               autocomplete="off" inputmode="numeric"
+                               value="<?= number_format($supplierFee, 0, '.', '') ?>">
+                        <span class="ps-input-suffix">MMK</span>
+                    </div>
+                    <p class="ps-hint">Fixed amount in MMK. Set to 0 to make supplier registration free.</p>
                 </div>
             </div>
+        </div>
+
+        <div class="ps-actions">
+            <button type="submit" class="ps-btn ps-btn-primary" id="saveBtn">Save Changes</button>
         </div>
     </form>
 </div>

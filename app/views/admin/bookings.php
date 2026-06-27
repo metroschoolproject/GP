@@ -26,6 +26,10 @@ $timeOnly = static function ($value, string $fallback = '') {
 
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = 'All bookings';
+$dashboardBreadcrumbs = [
+    ['label' => 'Bookings', 'url' => URLROOT . '/admin/bookings'],
+    ['label' => 'All bookings', 'url' => null],
+];
 $dashboardContentClass = 'admin-booking-outlet';
 
 $filters = [
@@ -95,7 +99,7 @@ $dashboardContent = function () use (
     $rangeEnd = min($currentPage * $perPage, $totalCount);
 ?>
 <style>
-  .admin-booking-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px;overflow-y:auto}
+  .admin-booking-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-size:13.5px;overflow-y:auto}
   .admin-booking-page *{box-sizing:border-box}
   .admin-booking-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#ECFDF5;--success-text:#065F46;--warn-bg:#FFFBEB;--warn-text:#92400E;--danger-bg:#FEF2F2;--danger-text:#991B1B;--info-bg:#e8e7ff;--info-text:#4f46a5;--neutral-bg:#F5F5F4;--neutral-text:#78716C;max-width:1600px;margin:0 auto}
   .page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
@@ -155,6 +159,12 @@ $dashboardContent = function () use (
   .badge-info{background:var(--info-bg);color:var(--info-text)}
   .badge-neutral{background:var(--neutral-bg);color:var(--neutral-text)}
   .action-link{display:inline-flex;align-items:center;gap:6px;height:28px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:0 9px;color:var(--primary);font-size:11px;font-weight:800;text-decoration:none;white-space:nowrap}
+  .type-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+  .type-chip-package{background:#EDE9FE;color:#5B21B6}
+  .type-chip-package-addon{background:#FCE7F3;color:#9D174D}
+  .type-chip-supplier-package{background:#FEF3C7;color:#92400E}
+  .type-chip-custom{background:#E0F2FE;color:#075985}
+  .type-chip-mixed{background:#F5F5F4;color:#78716C}
   .action-link:hover{background:var(--hover)}
   .empty-row{padding:34px 20px;text-align:center;color:var(--muted)}
   .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-light)}
@@ -261,6 +271,7 @@ $dashboardContent = function () use (
           <tr>
             <th>Booking</th>
             <th>Customer</th>
+            <th>Type</th>
             <th>Suppliers</th>
             <th>Total</th>
             <th>Paid</th>
@@ -272,7 +283,7 @@ $dashboardContent = function () use (
         <tbody>
           <?php if (empty($bookings)): ?>
             <tr>
-              <td colspan="8" class="empty-row">No bookings found.</td>
+              <td colspan="9" class="empty-row">No bookings found.</td>
             </tr>
           <?php endif; ?>
 
@@ -286,6 +297,20 @@ $dashboardContent = function () use (
               $status = (string)($booking['status'] ?? 'draft');
               $eventDate = $dateOnly($booking['event_date'] ?? null, 'Not scheduled');
               $eventTime = $timeOnly($booking['event_start_time'] ?? null);
+              $bookingType = (string)($booking['booking_type'] ?? 'Booking');
+              $typeChipClass = match ($bookingType) {
+                  'Package' => 'type-chip-package',
+                  'Package + Add-ons' => 'type-chip-package-addon',
+                  'Supplier Package' => 'type-chip-supplier-package',
+                  'Custom Services' => 'type-chip-custom',
+                  default => 'type-chip-mixed',
+              };
+              $typeIcon = match ($bookingType) {
+                  'Package', 'Package + Add-ons' => 'gift',
+                  'Supplier Package' => 'box',
+                  'Custom Services' => 'puzzle',
+                  default => 'layers',
+              };
             ?>
             <tr>
               <td><span class="booking-ref"><?= $h($bookingRef) ?></span></td>
@@ -294,6 +319,12 @@ $dashboardContent = function () use (
                 <?php if ($customerEmail !== ''): ?>
                   <div class="customer-email"><?= $h($customerEmail) ?></div>
                 <?php endif; ?>
+              </td>
+              <td>
+                <span class="type-chip <?= $typeChipClass ?>">
+                  <i data-lucide="<?= $typeIcon ?>" style="width:11px;height:11px"></i>
+                  <?= $h($bookingType) ?>
+                </span>
               </td>
               <td><span class="supplier-text"><?= $h($supplierNames !== '' ? $supplierNames : '-') ?></span></td>
               <td><span class="amount"><?= $money($booking['total_amount'] ?? 0) ?></span></td>

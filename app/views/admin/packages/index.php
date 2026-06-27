@@ -18,7 +18,7 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
   $agentFeeRate = get_platform_fee_percent() / 100;
 ?>
 <style>
-  .admin-pkg-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
+  .admin-pkg-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-size:13.5px;overflow-y:auto}
   .admin-pkg-page *{box-sizing:border-box}
   .admin-pkg-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--danger:#991B1B;--danger-bg:#FEF2F2;max-width:1600px;margin:0 auto}
 
@@ -44,8 +44,8 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
   .flash{border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:12px 14px;margin-bottom:18px;color:var(--body);font-size:13px;font-weight:600}
 
   .pkg-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden}
-  .pkg-table th{padding:12px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--soft);border-bottom:1px solid var(--border)}
-  .pkg-table td{padding:12px 14px;border-bottom:1px solid var(--border-light);font-size:13px;color:var(--text);vertical-align:middle}
+  .pkg-table th{padding:9px 20px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--soft);border-bottom:1px solid var(--border)}
+  .pkg-table td{padding:13px 20px;border-bottom:1px solid var(--border-light);font-size:13px;color:var(--text);vertical-align:middle}
   .pkg-table tr:last-child td{border-bottom:none}
   .pkg-table tr:hover td{background:var(--soft)}
 
@@ -66,6 +66,21 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
   .pkg-name:hover{text-decoration:underline}
   .empty-state{padding:40px;text-align:center;color:var(--muted)}
   .empty-state h3{font-size:18px;color:var(--text);margin:0 0 8px}
+
+  /* Delete confirmation modal — matches supplier_review modal pattern */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.open{display:flex}
+  .modal-box{background:#FFFFFF;border-radius:1rem;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+  .modal-box h3{font-size:16px;font-weight:700;margin:0 0 12px;color:var(--text)}
+  .modal-box p{font-size:13px;color:var(--body);margin:0 0 16px;line-height:1.6}
+  .modal-box strong{color:var(--text)}
+  .pkg-modal-warn{display:flex;gap:10px;align-items:flex-start;margin:0 0 16px;padding:12px;border-radius:10px;background:var(--danger-bg);border:1px solid #e5c4c4;color:var(--danger);font-size:12px;font-weight:600;line-height:1.5}
+  .pkg-modal-warn svg{flex-shrink:0;margin-top:1px}
+  .modal-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;border:none;border-radius:.75rem;padding:0 14px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;transition:background .12s,transform .12s}
+  .modal-btn.btn-danger{background:var(--danger);color:#FFFFFF}
+  .modal-btn.btn-danger:hover{background:#7f1d1d;transform:translateY(-1px)}
+  .modal-btn.btn-outline{border:1px solid var(--border);background:var(--surface);color:var(--text)}
+  .modal-btn.btn-outline:hover{background:var(--hover)}
 </style>
 <div class="admin-pkg-page">
   <div class="page-header">
@@ -139,9 +154,11 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
             <td>
               <div class="actions">
                 <a class="btn-ghost btn-sm" href="<?= URLROOT ?>/admin/packageDetail/<?= (int)$pkg['package_id'] ?>">Edit</a>
-                <form method="POST" action="<?= URLROOT ?>/admin/packageDelete/<?= (int)$pkg['package_id'] ?>" onsubmit="return confirm('Delete this package type?')" style="display:inline">
-                  <button class="btn-ghost btn-sm btn-danger" type="submit">Del</button>
-                </form>
+                <button class="btn-ghost btn-sm btn-danger delete-pkg-btn" type="button"
+                        data-id="<?= (int)$pkg['package_id'] ?>"
+                        data-name="<?= htmlspecialchars($pkg['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                        data-status="<?= htmlspecialchars($pkg['status'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                        data-has-bookings="<?= !empty($pkg['has_bookings']) ? '1' : '0' ?>">Del</button>
               </div>
             </td>
           </tr>
@@ -159,7 +176,63 @@ $dashboardContent = function () use ($packages, $total, $page, $totalPages, $fil
       </div>
     <?php endif; ?>
   <?php endif; ?>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="modalDelete">
+    <div class="modal-box">
+      <h3 id="deleteModalTitle">Delete Package</h3>
+      <p>Are you sure you want to delete <strong id="deletePkgName"></strong>?</p>
+      <div class="pkg-modal-warn" id="deletePkgArchiveNote" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <span>This package has existing bookings. It will be <strong>archived</strong> — hidden from all listings but booking history is preserved.</span>
+      </div>
+      <div class="pkg-modal-warn" id="deletePkgPermanentNote" style="display:none;background:#f0fdf4;border-color:#bbf7d0;color:#166534">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>This package has no bookings and will be <strong>permanently deleted</strong> from the database.</span>
+      </div>
+      <form method="POST" id="deletePkgForm" action="">
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+          <button type="button" class="modal-btn btn-outline" style="width:auto" onclick="closeDeleteModal()">Cancel</button>
+          <button type="submit" class="modal-btn btn-danger" id="deleteConfirmBtn" style="width:auto">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span id="deleteConfirmLabel">Delete Package</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
+<script>
+(function() {
+  var modal = document.getElementById('modalDelete');
+  var form = document.getElementById('deletePkgForm');
+  var nameEl = document.getElementById('deletePkgName');
+  var archiveNote = document.getElementById('deletePkgArchiveNote');
+  var permanentNote = document.getElementById('deletePkgPermanentNote');
+  var confirmLabel = document.getElementById('deleteConfirmLabel');
+
+  document.querySelectorAll('.delete-pkg-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = btn.dataset.id;
+      var name = btn.dataset.name;
+      var hasBookings = btn.dataset.hasBookings === '1';
+
+      form.action = '<?= URLROOT ?>/admin/packageDelete/' + id;
+      nameEl.textContent = name;
+
+      archiveNote.style.display = hasBookings ? 'flex' : 'none';
+      permanentNote.style.display = hasBookings ? 'none' : 'flex';
+      confirmLabel.textContent = hasBookings ? 'Archive Package' : 'Delete Package';
+
+      modal.classList.add('open');
+    });
+  });
+
+  window.closeDeleteModal = function() { modal.classList.remove('open'); };
+  modal.addEventListener('click', function(e) { if (e.target === modal) closeDeleteModal(); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeDeleteModal(); });
+})();
+</script>
 <?php
 };
 ?>

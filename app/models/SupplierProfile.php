@@ -41,6 +41,8 @@ class SupplierProfile
                     suppliers.agreement_version,
                     suppliers.payment_status,
                     suppliers.is_available,
+                    suppliers.warning_level,
+                    suppliers.missed_response_count,
                     suppliers.created_at,
                     suppliers.verify_url AS business_url,
                     users.name AS owner_name,
@@ -130,6 +132,8 @@ class SupplierProfile
                          suppliers.created_at,
                          users.name AS owner_name,
                          users.email AS owner_email,
+                         users.last_login,
+                         users.is_online,
                          (
                             SELECT GROUP_CONCAT(categories.name ORDER BY categories.name SEPARATOR \', \')
                             FROM supplier_categories
@@ -308,6 +312,8 @@ class SupplierProfile
                     users.email AS owner_email,
                     users.phone,
                     users.address,
+                    users.last_login,
+                    users.is_online,
                     users.deleted_at AS user_deleted_at,
                     (
                         SELECT GROUP_CONCAT(categories.name ORDER BY categories.name SEPARATOR \', \')
@@ -462,6 +468,81 @@ class SupplierProfile
         );
         $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
         return $this->db->getsingledata() ?: ['total_bookings' => 0, 'active_bookings' => 0, 'completed_bookings' => 0, 'cancelled_bookings' => 0, 'revenue_earned' => 0, 'avg_rating' => 0, 'review_count' => 0];
+    }
+
+    public function getSupplierServices(int $supplierId): array
+    {
+        $this->db->dbquery(
+            'SELECT id, name, is_active, price_min, price_max, category_id,
+                    (SELECT name FROM categories WHERE categories.id = services.category_id) AS category_name
+             FROM services
+             WHERE supplier_id = :sid
+             ORDER BY is_active DESC, id DESC'
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        return $this->db->getmultidata() ?: [];
+    }
+
+    public function getSupplierRecentBookings(int $supplierId, int $limit = 5): array
+    {
+        $this->db->dbquery(
+            'SELECT bs.id, bs.status, bs.created_at, bs.confirmed_at, bs.completed_at,
+                    bs.item_price,
+                    b.id AS booking_id,
+                    ed.event_date,
+                    s.name AS service_name
+             FROM booking_suppliers bs
+             LEFT JOIN bookings b ON b.id = bs.booking_id
+             LEFT JOIN services s ON s.id = bs.service_id
+             LEFT JOIN event_details ed ON ed.booking_id = bs.booking_id AND ed.booking_item_id = bs.id
+             WHERE bs.supplier_id = :sid
+             ORDER BY bs.created_at DESC
+             LIMIT :limit'
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        return $this->db->getmultidata() ?: [];
+    }
+
+    public function getSupplierReviews(int $supplierId, int $limit = 5): array
+    {
+        $this->db->dbquery(
+            'SELECT r.id, r.rating, r.comment, r.created_at,
+                    u.name AS customer_name,
+                    s.name AS service_name
+             FROM reviews r
+             LEFT JOIN users u ON u.user_id = r.customer_id
+             LEFT JOIN services s ON s.id = r.service_id
+             WHERE r.supplier_id = :sid AND r.deleted_at IS NULL
+             ORDER BY r.created_at DESC
+             LIMIT :limit'
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        return $this->db->getmultidata() ?: [];
+    }
+
+    public function getSupplierWarnings(int $supplierId): array
+    {
+        $this->db->dbquery(
+            'SELECT sw.id, sw.reason, sw.severity, sw.source, sw.resolved,
+                    sw.resolved_at, sw.resolution_note, sw.created_at,
+                    u.name AS issued_by_name
+             FROM supplier_warnings sw
+             LEFT JOIN users u ON u.user_id = sw.issued_by
+             WHERE sw.supplier_id = :sid
+             ORDER BY sw.created_at DESC'
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        return $this->db->getmultidata() ?: [];
+    }
+
+    public function updateAdminNote(int $supplierId, string $note): bool
+    {
+        $this->db->dbquery('UPDATE suppliers SET admin_note = :note WHERE supplier_id = :sid');
+        $this->db->dbbind(':note', $note);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        return $this->db->dbexecute();
     }
 
     public function updatePaymentReview($supplierId, $paymentStatus, $supplierStatus = null, $isAvailable = null, $adminId = null)

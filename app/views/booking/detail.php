@@ -1,5 +1,6 @@
 <?php
 $booking = $booking ?? [];
+$bookingId = (int)($booking['id'] ?? 0);
 $items = $items ?? [];
 $eventDetails = $eventDetails ?? [];
 $suppliers = $suppliers ?? [];
@@ -325,10 +326,13 @@ a{color:inherit;text-decoration:none}
   <?php endif; ?>
 
   <?php
-    // Remaining balance state for confirmed bookings
-    $isConfirmedOrLater = in_array($currentStatus, ['confirmed', 'pending_final_payment', 'finalized'], true);
-    $hasRemainingBalance = $isConfirmedOrLater && $summaryBalance > 0;
+    // Remaining balance state — available after deposit is verified (paid, confirmed, or later)
+    $isConfirmedOrLater = in_array($currentStatus, ['paid', 'payment_verified', 'confirmed', 'pending_final_payment', 'finalized'], true);
+    $summaryBalanceEarly = max(0, (float)($booking['total_amount'] ?? 0) - (float)($booking['paid_amount'] ?? 0));
+    $hasRemainingBalance = $isConfirmedOrLater && $summaryBalanceEarly > 0;
     $hasPendingRemaining = $hasPendingRemaining ?? false;
+    $eventDateDisplay = $eventDate ?? null;
+    $remainingPaymentsList = $remainingPayments ?? [];
   ?>
 
   <?php
@@ -691,6 +695,52 @@ a{color:inherit;text-decoration:none}
     <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance (<?= $money($summaryBalance) ?>)</a>
     <?php elseif ($hasRemainingBalance && $hasPendingRemaining): ?>
     <span class="gp-btn-sm" style="cursor:default;opacity:0.6;">Remaining Payment Under Review</span>
+    <?php endif; ?>
+
+    <?php if ($hasRemainingBalance): ?>
+    <div class="gp-card" style="margin-top:12px;">
+      <div class="gp-card-h">Remaining Balance Details</div>
+      <div class="gp-card-b" style="gap:10px;">
+        <?php if ($eventDateDisplay): ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px;">
+          <span style="color:var(--muted);font-weight:600;">Due Date (Event Date)</span>
+          <span style="font-weight:700;color:#b8924a;"><?= date('M d, Y', strtotime($eventDateDisplay)) ?></span>
+        </div>
+        <?php endif; ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px;">
+          <span style="color:var(--muted);font-weight:600;">Remaining Balance</span>
+          <span style="font-weight:700;color:var(--plum);"><?= $money($summaryBalance) ?></span>
+        </div>
+        <?php if (!empty($remainingPaymentsList)): ?>
+        <div style="padding-top:8px;">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Payment History</div>
+          <?php foreach ($remainingPaymentsList as $rp): ?>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px;">
+            <div>
+              <span style="font-weight:600;"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
+              <?php if (($rp['bank_name'] ?? '') !== ''): ?>
+              <span style="color:var(--muted);margin-left:8px;"><?= $h($rp['bank_name']) ?></span>
+              <?php endif; ?>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-weight:700;"><?= $money($rp['paid_amount'] ?? $rp['amount']) ?></span>
+              <?php
+                $rpStatus = $rp['status'] ?? 'pending';
+                $rpColors = [
+                  'success' => ['bg' => '#f0fdf4', 'color' => '#166534', 'label' => 'Verified'],
+                  'pending' => ['bg' => '#fffbeb', 'color' => '#92400e', 'label' => 'Under Review'],
+                  'failed'  => ['bg' => '#fef2f2', 'color' => '#991b1b', 'label' => 'Rejected'],
+                ];
+                $rpSt = $rpColors[$rpStatus] ?? $rpColors['pending'];
+              ?>
+              <span style="background:<?= $rpSt['bg'] ?>;color:<?= $rpSt['color'] ?>;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;"><?= $rpSt['label'] ?></span>
+            </div>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
     <?php endif; ?>
     <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
     <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>

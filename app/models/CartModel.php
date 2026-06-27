@@ -8,6 +8,7 @@ class CartModel
     private ?bool $serviceDefaultTimeColumns = null;
     private ?bool $packageItemConcurrentColumn = null;
     private ?bool $packageConcurrentColumn = null;
+    private ?bool $cartGuestCountColumn = null;
     private ?bool $slotPoolColumns = null;
     private ?bool $servicePoolColumns = null;
 
@@ -54,9 +55,15 @@ class CartModel
         $attireItemId = !empty($data['attire_item_id']) ? (int)$data['attire_item_id'] : null;
         $decorationStyleId = !empty($data['decoration_style_id']) ? (int)$data['decoration_style_id'] : null;
         $cakeDesignId = !empty($data['cake_design_id']) ? (int)$data['cake_design_id'] : null;
+        $guestCount = !empty($data['guest_count']) ? (int)$data['guest_count'] : null;
+        $rentalType = in_array($data['rental_type'] ?? '', ['borrow', 'buy'], true) ? $data['rental_type'] : null;
+        $borrowDate = !empty($data['borrow_date']) ? $data['borrow_date'] : null;
+        $rentalOptionId = !empty($data['rental_option_id']) ? (int)$data['rental_option_id'] : null;
         $hasVenueRoomColumn = $this->hasCartVenueRoomColumn();
         $hasPackageParentColumn = $this->hasCartPackageParentColumn();
         $hasDesignColumns = $this->hasCartDesignColumns();
+        $hasRentalColumns = $this->hasCartRentalColumns();
+        $hasGuestCountColumn = $this->hasCartGuestCountColumn();
 
         if ($itemId <= 0) {
             return false;
@@ -103,9 +110,13 @@ class CartModel
         $packageParentValueSql = $hasPackageParentColumn ? ', :package_cart_item_id' : '';
         $designColumnSql = $hasDesignColumns ? ', attire_item_id, decoration_style_id, cake_design_id' : '';
         $designValueSql = $hasDesignColumns ? ', :attire_item_id, :decoration_style_id, :cake_design_id' : '';
+        $rentalColumnSql = $hasRentalColumns ? ', rental_type, borrow_date, rental_option_id' : '';
+        $rentalValueSql = $hasRentalColumns ? ', :rental_type, :borrow_date, :rental_option_id' : '';
+        $guestCountColumnSql = $hasGuestCountColumn ? ', guest_count' : '';
+        $guestCountValueSql = $hasGuestCountColumn ? ', :guest_count' : '';
         $this->db->dbquery(
-            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql}{$packageParentColumnSql}{$designColumnSql})
-             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql}{$packageParentValueSql}{$designValueSql})"
+            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql}{$packageParentColumnSql}{$designColumnSql}{$rentalColumnSql}{$guestCountColumnSql})
+             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql}{$packageParentValueSql}{$designValueSql}{$rentalValueSql}{$guestCountValueSql})"
         );
         $this->db->dbbind(':cid', $cartId, PDO::PARAM_INT);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
@@ -131,6 +142,14 @@ class CartModel
             $this->db->dbbind(':attire_item_id', $attireItemId, $attireItemId ? PDO::PARAM_INT : PDO::PARAM_NULL);
             $this->db->dbbind(':decoration_style_id', $decorationStyleId, $decorationStyleId ? PDO::PARAM_INT : PDO::PARAM_NULL);
             $this->db->dbbind(':cake_design_id', $cakeDesignId, $cakeDesignId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
+        if ($hasRentalColumns) {
+            $this->db->dbbind(':rental_type', $rentalType, $rentalType ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $this->db->dbbind(':borrow_date', $borrowDate, $borrowDate ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $this->db->dbbind(':rental_option_id', $rentalOptionId, $rentalOptionId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
+        if ($hasGuestCountColumn) {
+            $this->db->dbbind(':guest_count', $guestCount, $guestCount ? PDO::PARAM_INT : PDO::PARAM_NULL);
         }
 
         if ($this->db->dbexecute()) {
@@ -519,6 +538,96 @@ class CartModel
         $this->cartDesignColumns = (bool)$this->db->getsingledata();
 
         return $this->cartDesignColumns;
+    }
+
+    private ?bool $cartRentalColumns = null;
+
+    private function hasCartRentalColumns(): bool
+    {
+        if ($this->cartRentalColumns !== null) {
+            return $this->cartRentalColumns;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'rental_type'");
+        $this->cartRentalColumns = (bool)$this->db->getsingledata();
+
+        return $this->cartRentalColumns;
+    }
+
+    private function hasCartGuestCountColumn(): bool
+    {
+        if ($this->cartGuestCountColumn !== null) {
+            return $this->cartGuestCountColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'guest_count'");
+        $this->cartGuestCountColumn = (bool)$this->db->getsingledata();
+
+        return $this->cartGuestCountColumn;
+    }
+
+    /**
+     * Check if an attire item is available for a given date range.
+     * Returns true if available, false if there's a conflict.
+     */
+    public function isAttireItemAvailable(int $attireItemId, string $borrowDate, string $bufferUntil): bool
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS cnt FROM attire_rental_bookings
+             WHERE attire_item_id = :attire_item_id
+               AND status IN ('reserved', 'picked_up')
+               AND borrow_date <= :buffer_until
+               AND buffer_until >= :borrow_date"
+        );
+        $this->db->dbbind(':attire_item_id', $attireItemId, PDO::PARAM_INT);
+        $this->db->dbbind(':buffer_until', $bufferUntil);
+        $this->db->dbbind(':borrow_date', $borrowDate);
+        $result = $this->db->getsingledata();
+
+        return ((int)($result['cnt'] ?? 0)) === 0;
+    }
+
+    /**
+     * Get blocked date ranges for an attire item (for calendar disabling).
+     */
+    public function getAttireBlockedDates(int $attireItemId): array
+    {
+        $this->db->dbquery(
+            "SELECT borrow_date, buffer_until FROM attire_rental_bookings
+             WHERE attire_item_id = :attire_item_id
+               AND status IN ('reserved', 'picked_up')
+             ORDER BY borrow_date ASC"
+        );
+        $this->db->dbbind(':attire_item_id', $attireItemId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Get rental option details by ID.
+     */
+    public function getRentalOption(int $optionId): ?array
+    {
+        $this->db->dbquery(
+            "SELECT aro.*, ai.buffer_days, ai.service_id
+             FROM attire_rental_options aro
+             JOIN attire_items ai ON ai.id = aro.attire_item_id
+             WHERE aro.id = :id"
+        );
+        $this->db->dbbind(':id', $optionId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        return $result ?: null;
+    }
+
+    public function getFoodItem(int $foodItemId): ?array
+    {
+        $this->db->dbquery(
+            "SELECT id, name, price, pricing_model
+             FROM food_items
+             WHERE id = :id"
+        );
+        $this->db->dbbind(':id', $foodItemId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        return $result ?: null;
     }
 
     private function hasPackageItemConcurrentColumn(): bool
@@ -1022,8 +1131,18 @@ class CartModel
                     
                     -- Venue location for booking auto-fill
                     v.location AS service_location,
-                    s.id AS service_id
-                    
+                    s.id AS service_id,
+
+                    -- Attire rental fields
+                    ci.attire_item_id,
+                    ci.rental_type,
+                    ci.borrow_date,
+                    ci.rental_option_id,
+                    ai.name AS attire_item_name,
+                    ai.photo_url AS attire_item_photo,
+                    ai.buffer_days AS attire_buffer_days,
+                    aro.days AS rental_days,
+                    aro.price AS rental_option_price
             FROM cart_items ci
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN venues v ON v.service_id = s.id
@@ -1035,6 +1154,8 @@ class CartModel
             {$packageParentJoin}
             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
             LEFT JOIN categories cat ON s.category_id = cat.id
+            LEFT JOIN attire_items ai ON ai.id = ci.attire_item_id
+            LEFT JOIN attire_rental_options aro ON aro.id = ci.rental_option_id
             LEFT JOIN categories package_cat ON package_cat.slug = 'package'
             WHERE ci.user_id = :uid
             ORDER BY ci.id DESC"

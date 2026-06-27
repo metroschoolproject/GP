@@ -17,7 +17,7 @@ $dashboardContentClass = 'earnings-page';
 $dashboardContent = function () use ($earnings, $payouts, $supplier, $supplierId, $currentPage, $totalPages, $totalPayouts, $h, $money, $date) {
 ?>
 <style>
-.earnings-page { --ink:#6d4c5b; --muted:#A8A29E; --soft:#F4F1EE; --panel:#FFFFFF; --line:#ead8c7; --primary:#6d4c5b; --green:#166534; --amber:#92400e; --danger:#991b1b; color:var(--ink); }
+.earnings-page { --ink:#6d4c5b; --muted:#A8A29E; --soft:#F4F1EE; --panel:#FFFFFF; --line:#ead8c7; --primary:#6d4c5b; --green:#166534; --amber:#92400e; --danger:#991b1b; color:var(--ink); padding:28px 32px; }
 .earnings-page h1 { font-size:clamp(28px,3vw,42px); font-weight:900; margin:6px 0 7px; }
 .earnings-page .kicker { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.17em; color:var(--muted); }
 .earnings-top { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; margin-bottom:22px; }

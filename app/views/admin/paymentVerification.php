@@ -16,13 +16,17 @@ $expectedTotal = 0.0;
 $missingCount = 0;
 
 foreach ($pendingPayments as $payment) {
-    $totalAmount = (float)($payment['total_amount'] ?? 0);
+    $totalAmount = (float)($payment['booking_total_amount'] ?? $payment['total_amount'] ?? 0);
+    $paymentType = (string)($payment['payment_type'] ?? 'deposit');
     $expectedDeposit = $totalAmount * (BOOKING_DEPOSIT_PERCENT / 100);
+    $expectedAmount = $paymentType === 'remaining'
+        ? max(0, $totalAmount - $expectedDeposit)
+        : $expectedDeposit;
     $paidAmountRaw = $payment['paid_amount'] ?? $payment['payment_amount'] ?? null;
-    $paidAmount = $paidAmountRaw !== null && $paidAmountRaw !== '' ? (float)$paidAmountRaw : $expectedDeposit;
+    $paidAmount = $paidAmountRaw !== null && $paidAmountRaw !== '' ? (float)$paidAmountRaw : $expectedAmount;
 
     $pendingTotal += $paidAmount;
-    $expectedTotal += $expectedDeposit;
+    $expectedTotal += $expectedAmount;
 
     if (empty($payment['payment_id'])) {
         $missingCount++;
@@ -31,9 +35,9 @@ foreach ($pendingPayments as $payment) {
 
 // Per-tab copy.
 $tabCopy = [
-    'pending'  => ['title' => 'Payment Verification', 'subtitle' => 'Review submitted booking deposits before confirming payment.', 'card' => 'Verification Queue', 'note' => $pendingCount . ' proofs waiting'],
-    'verified' => ['title' => 'Verified Deposits',    'subtitle' => 'Deposits you have confirmed as received.',                  'card' => 'Verified deposits', 'note' => $pendingCount . ' verified'],
-    'rejected' => ['title' => 'Rejected Deposits',    'subtitle' => 'Deposit proofs that were rejected and returned to the customer.', 'card' => 'Rejected deposits', 'note' => $pendingCount . ' rejected'],
+    'pending'  => ['title' => 'Payment Verification', 'subtitle' => 'Review submitted booking deposits and remaining payments before confirming.', 'card' => 'Verification Queue', 'note' => $pendingCount . ' proofs waiting'],
+    'verified' => ['title' => 'Verified Payments',    'subtitle' => 'Deposits and remaining payments you have confirmed as received.',              'card' => 'Verified payments', 'note' => $pendingCount . ' verified'],
+    'rejected' => ['title' => 'Rejected Payments',    'subtitle' => 'Payment proofs that were rejected and returned to the customer.',              'card' => 'Rejected payments', 'note' => $pendingCount . ' rejected'],
 ];
 $copy = $tabCopy[$activeStatus] ?? $tabCopy['pending'];
 
@@ -219,10 +223,16 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               $bookingRef = (string)($payment['booking_ref'] ?? ('Booking #' . $bookingId));
               $customerName = (string)($payment['name'] ?? 'Unknown customer');
               $customerEmail = (string)($payment['email'] ?? '');
-              $totalAmount = (float)($payment['total_amount'] ?? 0);
+              $totalAmount = (float)($payment['booking_total_amount'] ?? $payment['total_amount'] ?? 0);
+              $paymentType = (string)($payment['payment_type'] ?? 'deposit');
               $expectedDeposit = $totalAmount * (BOOKING_DEPOSIT_PERCENT / 100);
+              // Remaining balance = total minus the deposit portion only (excluding platform fee).
+              // bookings.paid_amount includes the platform fee, so we use the deposit percent instead.
+              $expectedAmount = $paymentType === 'remaining'
+                  ? max(0, $totalAmount - $expectedDeposit)
+                  : $expectedDeposit;
               $paidAmountRaw = $payment['paid_amount'] ?? $payment['payment_amount'] ?? null;
-              $paidAmount = $paidAmountRaw !== null && $paidAmountRaw !== '' ? (float)$paidAmountRaw : $expectedDeposit;
+              $paidAmount = $paidAmountRaw !== null && $paidAmountRaw !== '' ? (float)$paidAmountRaw : $expectedAmount;
               $method = (string)($payment['bank_name'] ?? $payment['method'] ?? '-');
               $accountName = (string)($payment['account_name'] ?? '-');
               $mobileNumber = (string)($payment['mobile_number'] ?? '');
@@ -243,7 +253,7 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               </td>
               <td>
                 <div class="amount"><?= $money($paidAmount) ?></div>
-                <div class="expected">Expected <?= $money($expectedDeposit) ?></div>
+                <div class="expected">Expected <?= $money($expectedAmount) ?></div>
               </td>
               <td><span class="method-text"><?= $h($method ?: '-') ?></span></td>
               <td>
@@ -345,6 +355,7 @@ async function handleVerification(form, approve) {
     : '<?= URLROOT ?>/admin/rejectPaymentSlipPost';
 
   const formData = new FormData();
+  formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
   formData.append('booking_id', bookingId);
   formData.append('note', noteField ? noteField.value : '');
 
@@ -365,7 +376,14 @@ async function handleVerification(form, approve) {
 
   try {
     const response = await fetch(endpoint, { method: 'POST', body: formData });
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      showToast('Server returned invalid response (HTTP ' + response.status + ').', 'error');
+      if (actionButton) { actionButton.disabled = false; actionButton.textContent = actionButton.dataset.originalText || (approve ? 'Approve' : 'Reject'); }
+      return;
+    }
 
     if (data.success) {
       showToast(data.message || 'Payment review saved.', data.email_sent === false ? 'error' : 'success');
@@ -391,7 +409,7 @@ async function handleVerification(form, approve) {
       }
     }
   } catch (error) {
-    showToast('Connection error. Please try again.', 'error');
+    showToast('Connection error: ' + (error.message || 'unknown'), 'error');
     if (actionButton) {
       actionButton.disabled = false;
       actionButton.textContent = actionButton.dataset.originalText || (approve ? 'Approve' : 'Reject');

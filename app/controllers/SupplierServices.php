@@ -308,7 +308,7 @@ class SupplierServices extends SupplierControllerSupport
                 ], 422);
             }
 
-            $cooldownMessage = $this->servicePublishCooldownMessage($serviceId);
+            $cooldownMessage = $this->servicePublishCooldownMessage($serviceId, $existingService);
 
             if ($cooldownMessage !== '') {
                 $this->jsonResponse(['status' => 'error', 'message' => $cooldownMessage], 429);
@@ -379,7 +379,7 @@ class SupplierServices extends SupplierControllerSupport
         }
 
         $service = $readiness['service'];
-        $cooldownMessage = $this->servicePublishCooldownMessage($serviceId);
+        $cooldownMessage = $this->servicePublishCooldownMessage($serviceId, $service);
 
         if ($cooldownMessage !== '') {
             $this->jsonResponse(['status' => 'error', 'message' => $cooldownMessage], 429);
@@ -433,8 +433,14 @@ class SupplierServices extends SupplierControllerSupport
         ]);
     }
 
-    private function servicePublishCooldownMessage($serviceId)
+    private function servicePublishCooldownMessage($serviceId, array $service = [])
     {
+        // Skip cooldown if the service was previously approved and is now back
+        // in draft (e.g. supplier edited it after approval, triggering auto-unpublish).
+        if (!empty($service) && ($service['is_active'] ?? 0) == 0) {
+            return '';
+        }
+
         $latest = $this->notificationModel->getLatestForReference('approval', 'service', (int)$serviceId);
 
         if (empty($latest['created_at'])) {

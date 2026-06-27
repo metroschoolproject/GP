@@ -72,7 +72,8 @@ class PlatformPackage
                        p.sort_order,
                        p.created_at,
                        COUNT(pi.service_id) AS item_count,
-                       COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total
+                       COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total,
+                       EXISTS(SELECT 1 FROM booking_items bi WHERE bi.item_type = \'package\' AND bi.item_id = p.package_id LIMIT 1) AS has_bookings
                 FROM packages p
              LEFT JOIN package_items pi ON pi.package_id = p.package_id
              LEFT JOIN services svc ON svc.id = pi.service_id
@@ -347,11 +348,34 @@ class PlatformPackage
     }
 
     /**
+     * ── Admin: Check if package has any bookings ──
+     */
+    public function hasPackageBookings(int $packageId): bool
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS cnt FROM booking_items WHERE item_type = 'package' AND item_id = :package_id"
+        );
+        $this->db->dbbind(':package_id', $packageId);
+        $row = $this->db->getsingledata();
+        return ((int)($row['cnt'] ?? 0)) > 0;
+    }
+
+    /**
      * ── Admin: Delete package type ──
+     * Soft-deletes (sets deleted_at) when bookings reference this package,
+     * hard-deletes when no bookings exist.
      */
     public function deletePackageType($packageId)
     {
         try {
+            if ($this->hasPackageBookings((int)$packageId)) {
+                // Soft-delete: preserve booking history
+                $this->db->dbquery('UPDATE packages SET deleted_at = NOW(), is_active = 0 WHERE package_id = :package_id LIMIT 1');
+                $this->db->dbbind(':package_id', (int)$packageId);
+                return $this->db->dbexecute();
+            }
+
+            // Hard-delete: no bookings, safe to remove entirely
             $this->db->dbquery('DELETE FROM package_items WHERE package_id = :package_id');
             $this->db->dbbind(':package_id', (int)$packageId);
             $this->db->dbexecute();
@@ -363,6 +387,16 @@ class PlatformPackage
         } catch (PDOException $e) {
             return false;
         }
+    }
+
+    /**
+     * ── Admin: Restore a soft-deleted package ──
+     */
+    public function restorePackageType(int $packageId): bool
+    {
+        $this->db->dbquery('UPDATE packages SET deleted_at = NULL, is_active = 1 WHERE package_id = :package_id AND deleted_at IS NOT NULL LIMIT 1');
+        $this->db->dbbind(':package_id', $packageId);
+        return $this->db->dbexecute();
     }
 
     /**
@@ -1781,5 +1815,52 @@ class PlatformPackage
         }
 
         return (bool)$this->db->getsingledata();
+    }
+
+    /**
+     * Get IDs of sub-items (venue rooms, attire items, decoration styles)
+     * that are locked to active published packages.
+     * These items should not be available for customize (standalone) booking.
+     */
+    public function getLockedItemIds(): array
+    {
+        $result = [
+            'venue_room_ids' => [],
+            'attire_item_ids' => [],
+            'decoration_style_ids' => [],
+            'food_item_ids' => [],
+        ];
+
+        $this->db->dbquery(
+            "SELECT DISTINCT pi.venue_room_id, pi.attire_item_id, pi.decoration_style_id, pi.cake_design_id
+             FROM package_items pi
+             INNER JOIN packages p ON p.package_id = pi.package_id
+             WHERE pi.deleted_at IS NULL
+               AND p.is_active = 1
+               AND p.status = 'published'"
+        );
+        $rows = $this->db->getmultidata();
+
+        foreach ($rows as $row) {
+            if (!empty($row['venue_room_id'])) {
+                $result['venue_room_ids'][] = (int)$row['venue_room_id'];
+            }
+            if (!empty($row['attire_item_id'])) {
+                $result['attire_item_ids'][] = (int)$row['attire_item_id'];
+            }
+            if (!empty($row['decoration_style_id'])) {
+                $result['decoration_style_ids'][] = (int)$row['decoration_style_id'];
+            }
+            if (!empty($row['cake_design_id'])) {
+                $result['food_item_ids'][] = (int)$row['cake_design_id'];
+            }
+        }
+
+        $result['venue_room_ids'] = array_values(array_unique($result['venue_room_ids']));
+        $result['attire_item_ids'] = array_values(array_unique($result['attire_item_ids']));
+        $result['decoration_style_ids'] = array_values(array_unique($result['decoration_style_ids']));
+        $result['food_item_ids'] = array_values(array_unique($result['food_item_ids']));
+
+        return $result;
     }
 }

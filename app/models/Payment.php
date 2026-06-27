@@ -324,11 +324,12 @@ class Payment
                     p.status AS payment_status,
                     p.verified_at,
                     p.verified_note,
-                    p.created_at AS payment_created_at
+                    p.created_at AS payment_created_at,
+                    p.type AS payment_type
              FROM payments p
              JOIN bookings b ON b.id = p.booking_id
              LEFT JOIN users u ON u.user_id = b.user_id
-             WHERE p.type = 'deposit' AND p.status = :pstatus
+             WHERE p.type IN ('deposit', 'remaining') AND p.status = :pstatus
              ORDER BY p.verified_at DESC, p.id DESC
              LIMIT :limit OFFSET :offset"
         );
@@ -347,7 +348,7 @@ class Payment
             "SELECT COUNT(*) AS total
              FROM payments p
              JOIN bookings b ON b.id = p.booking_id
-             WHERE p.type = 'deposit' AND p.status = :pstatus"
+             WHERE p.type IN ('deposit', 'remaining') AND p.status = :pstatus"
         );
         $this->db->dbbind(':pstatus', $payStatus);
         return (int)($this->db->getsingledata()['total'] ?? 0);

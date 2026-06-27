@@ -563,6 +563,105 @@ HTML;
     }
 
     /**
+     * Notify customer that their remaining balance payment was verified and
+     * the booking is now fully paid / finalized.
+     */
+    public function sendRemainingPaymentVerifiedToCustomer(
+        array $customer,
+        array $booking,
+        array $payment,
+        array $items,
+        array $eventDetails
+    ): bool {
+        if (empty($customer['email'])) {
+            return false;
+        }
+
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($customer['email'], $customer['name'] ?? 'Customer');
+            $this->mailer->isHTML(true);
+
+            $bookingId = (int)($booking['id'] ?? 0);
+            $customerName = htmlspecialchars((string)($customer['name'] ?? 'Customer'), ENT_QUOTES);
+            $amount = (float)($payment['paid_amount'] ?? $payment['amount'] ?? 0);
+            $amountText = number_format($amount, 0) . ' MMK';
+            $method = htmlspecialchars((string)($payment['bank_name'] ?? $payment['method'] ?? 'Manual payment'), ENT_QUOTES);
+            $reference = htmlspecialchars((string)($payment['transaction_ref'] ?? '-'), ENT_QUOTES);
+            $verifiedAt = !empty($payment['verified_at'])
+                ? date('M j, Y g:i A', strtotime((string)$payment['verified_at']))
+                : date('M j, Y g:i A');
+            $totalAmount = number_format((float)($booking['total_amount'] ?? 0), 0) . ' MMK';
+            $bookingUrl = URLROOT . '/booking/detail/' . $bookingId;
+
+            $eventsByItem = [];
+            foreach ($eventDetails as $event) {
+                $itemId = (int)($event['booking_item_id'] ?? 0);
+                if ($itemId > 0) {
+                    $eventsByItem[$itemId] = $event;
+                }
+            }
+
+            $itemRows = '';
+            foreach ($items as $item) {
+                $event = $eventsByItem[(int)($item['id'] ?? 0)] ?? [];
+                $name = htmlspecialchars((string)($item['service_name'] ?? 'Service'), ENT_QUOTES);
+                $date = !empty($event['event_date'])
+                    ? date('M j, Y', strtotime((string)$event['event_date']))
+                    : (!empty($item['booking_date']) ? date('M j, Y', strtotime((string)$item['booking_date'])) : 'TBD');
+                $start = $event['start_time'] ?? $item['start_time'] ?? null;
+                $end = $event['end_time'] ?? $item['end_time'] ?? null;
+                $time = $start
+                    ? date('g:i A', strtotime((string)$start)) . ($end ? ' - ' . date('g:i A', strtotime((string)$end)) : '')
+                    : 'Full day';
+                $guests = !empty($event['guest_count']) ? (int)$event['guest_count'] : '-';
+                $itemRows .= "<tr>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$name}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$date}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$time}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;text-align:right;'>{$guests}</td>
+                </tr>";
+            }
+
+            $this->mailer->Subject = 'Booking Fully Paid — Booking #' . $bookingId;
+            $this->mailer->Body = <<<HTML
+<div style="font-family:Poppins,Arial,sans-serif;max-width:640px;margin:0 auto;color:#2d2530;">
+  <div style="background:#065F46;padding:28px;color:#fff;text-align:center;">
+    <h1 style="margin:0;font-size:24px;">🎉 Booking Fully Paid!</h1>
+    <p style="margin:8px 0 0;">Your remaining balance has been verified.</p>
+  </div>
+  <div style="padding:28px;background:#faf5ef;">
+    <p>Dear {$customerName},</p>
+    <p>Your remaining balance payment for booking <strong>#{$bookingId}</strong> was verified on {$verifiedAt}. Your booking is now <strong>fully paid and finalized</strong>!</p>
+    <div style="background:#fff;padding:16px;border:1px solid #ead8c7;margin:20px 0;">
+      <p style="margin:0 0 7px;"><strong>Remaining amount paid:</strong> {$amountText}</p>
+      <p style="margin:0 0 7px;"><strong>Total booking amount:</strong> {$totalAmount}</p>
+      <p style="margin:0 0 7px;"><strong>Payment method:</strong> {$method}</p>
+      <p style="margin:0;"><strong>Reference:</strong> {$reference}</p>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;padding-bottom:7px;">Service</th>
+        <th style="text-align:left;padding-bottom:7px;">Date</th>
+        <th style="text-align:left;padding-bottom:7px;">Time</th>
+        <th style="text-align:right;padding-bottom:7px;">Guests</th>
+      </tr></thead>
+      <tbody>{$itemRows}</tbody>
+    </table>
+    <p style="margin-top:24px;"><a href="{$bookingUrl}" style="display:inline-block;padding:12px 24px;background:#6d4c5b;color:#fff;text-decoration:none;">View booking details</a></p>
+  </div>
+</div>
+HTML;
+            $this->mailer->AltBody = "Your remaining balance of {$amountText} for booking #{$bookingId} has been verified. Your booking is now fully paid! View details: {$bookingUrl}";
+
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (remaining payment verified customer): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Notify customer that a supplier accepted their booking.
      */
     public function sendSupplierAccepted(array $customer, string $shopName, string $serviceName, string $eventDate, int $bookingId): bool

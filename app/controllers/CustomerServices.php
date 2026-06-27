@@ -48,8 +48,8 @@ class CustomerServices extends Controller
 
         $packageId = (int)($_GET['package_id'] ?? 0);
         $packageItemId = (int)($_GET['package_item_id'] ?? 0);
+        $packageModel = $this->model('PlatformPackage');
         if ($packageId > 0 && $packageItemId > 0) {
-            $packageModel = $this->model('PlatformPackage');
             $packageContext = $packageModel->getServicePackageContext($packageId, $packageItemId, $serviceId);
             if ($packageContext) {
                 $standalonePrice = (float)($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
@@ -71,7 +71,6 @@ class CustomerServices extends Controller
         } else {
             $addonPackageId = (int)($_GET['addon_package_id'] ?? 0);
             if ($addonPackageId > 0) {
-                $packageModel = $this->model('PlatformPackage');
                 $addonPackage = $packageModel->getPackageById($addonPackageId);
                 if ($addonPackage && !empty($addonPackage['is_active']) && empty($addonPackage['deleted_at'])) {
                     $service['addon_context'] = [
@@ -106,6 +105,9 @@ class CustomerServices extends Controller
             $wishlistCount = $wishlistModel->getWishlistCount((int)$userId);
         }
 
+        // Get locked item IDs from active packages
+        $service['locked_items'] = $packageModel->getLockedItemIds();
+
         $view = strtolower((string)($service['category'] ?? '')) === 'venue'
             ? 'main/venue_detail'
             : 'main/other_service_detail';
@@ -118,6 +120,35 @@ class CustomerServices extends Controller
             'cartCount' => $cartCount,
             'recentlyViewedServices' => $recentlyViewedServices,
         ]);
+    }
+
+    /**
+     * AJAX endpoint: check attire item availability for a date range.
+     * Returns JSON with blocked dates.
+     */
+    public function attireAvailability($serviceId = null)
+    {
+        header('Content-Type: application/json');
+        $attireItemId = (int)($_GET['attire_item_id'] ?? 0);
+        if ($attireItemId <= 0) {
+            echo json_encode(['blocked' => []]);
+            return;
+        }
+
+        $cartModel = $this->model('CartModel');
+        $blocked = $cartModel->getAttireBlockedDates($attireItemId);
+
+        // Expand blocked ranges into individual dates for the frontend
+        $blockedDates = [];
+        foreach ($blocked as $range) {
+            $start = strtotime($range['borrow_date']);
+            $end = strtotime($range['buffer_until']);
+            for ($ts = $start; $ts <= $end; $ts += 86400) {
+                $blockedDates[] = date('Y-m-d', $ts);
+            }
+        }
+
+        echo json_encode(['blocked' => array_unique($blockedDates)]);
     }
 
     /**

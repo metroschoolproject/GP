@@ -65,7 +65,7 @@ $dashboardContent = function () use (
 ) {
 ?>
 <style>
-  .admin-payment-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
+  .admin-payment-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-size:13.5px;overflow-y:auto}
   .admin-payment-page *{box-sizing:border-box}
   .admin-payment-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#ECFDF5;--success-text:#065F46;--warn-bg:#FFFBEB;--warn-text:#92400E;--danger-bg:#FEF2F2;--danger-text:#991B1B;--neutral-bg:#F5F5F4;--neutral-text:#78716C;max-width:1600px;margin:0 auto}
 

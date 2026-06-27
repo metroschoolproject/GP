@@ -43,408 +43,10 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     $performanceMetrics = $performanceMetrics ?? [];
     $upcomingBookings   = $upcomingBookings ?? [];
 ?>
-<style>
-/* ── Bookings view ────────────────────────────────────────────── */
-.bk-kpi-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-}
-.bk-kpi {
-    background: #FFFFFF;
-    border: 1px solid #ead8c7;
-    border-radius: 1.2rem;
-    padding: 20px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-    transition: box-shadow .18s ease;
-}
-.bk-kpi:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-.bk-kpi-label {
-    font-size: 11px;
-    font-weight: 650;
-    letter-spacing: .01em;
-    color: #A8A29E;
-}
-.bk-kpi-value {
-    font-size: 24px;
-    font-weight: 750;
-    letter-spacing: -.025em;
-    color: #6d4c5b;
-    margin-top: 6px;
-    line-height: 1;
-}
-.bk-kpi-sub {
-    font-size: 11px;
-    color: #A8A29E;
-    margin-top: 5px;
-}
-.bk-kpi-icon {
-    display: flex;
-    width: 32px;
-    height: 32px;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 12px;
-    border-radius: 8px;
-}
-.bk-kpi-icon svg { width: 16px; height: 16px; }
-.bk-kpi-breakdown {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 16px;
-    padding-top: 12px;
-    border-top: 1px solid #ead8c7;
-}
-.bk-kpi-breakdown strong { display:block; margin-top:3px; font-size:16px; color:#6d4c5b; }
+<link rel="stylesheet" href="<?= URLROOT ?>/public/css/supplier-bookings.css?v=<?= filemtime(APPROOT . '/../public/css/supplier-bookings.css') ?>">
+<script src="<?= URLROOT ?>/public/js/supplier-toast.js"></script>
 
-/* Pending alert banner */
-.bk-pending-banner {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 11px 16px;
-    background: #fffbeb;
-    border-bottom: 1px solid #fde68a;
-}
-.bk-pending-banner .bk-pb-icon {
-    color: #92400e;
-    flex-shrink: 0;
-    margin-top: 1px;
-}
-.bk-pending-banner .bk-pb-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #92400e;
-}
-.bk-pending-banner .bk-pb-sub {
-    font-size: 12px;
-    color: #b45309;
-    margin-top: 1px;
-}
-
-/* Section card */
-.bk-section {
-    background: #FFFFFF;
-    border: 1px solid #ead8c7;
-    border-radius: 1.2rem;
-    overflow: hidden;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
-
-/* Toolbar */
-.bk-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 16px 20px;
-    border-bottom: 1px solid #ead8c7;
-    flex-wrap: wrap;
-}
-.bk-filter-group {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-}
-.bk-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 999px;
-    border: 1px solid #ead8c7;
-    background: #FAFAF9;
-    color: #78716C;
-    text-decoration: none;
-    transition: all 0.12s ease;
-    white-space: nowrap;
-}
-.bk-pill:hover {
-    background: #FAFAF9;
-    color: #6d4c5b;
-}
-.bk-pill-active-all {
-    background: #6d4c5b;
-    color: #FFFFFF;
-    border-color: #6d4c5b;
-}
-.bk-pill-active-pending {
-    background: #92400e;
-    color: #FFFFFF;
-    border-color: #92400e;
-}
-.bk-pill-active-confirmed {
-    background: #065f46;
-    color: #FFFFFF;
-    border-color: #065f46;
-}
-.bk-pill-active-completed {
-    background: #1e40af;
-    color: #FFFFFF;
-    border-color: #1e40af;
-}
-.bk-pill-active-rejected {
-    background: #991b1b;
-    color: #FFFFFF;
-    border-color: #991b1b;
-}
-
-/* Search */
-.bk-search-wrap {
-    margin-left: auto;
-    position: relative;
-}
-.bk-search-wrap i[data-lucide] {
-    position: absolute;
-    left: 9px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 14px;
-    height: 14px;
-    color: #A8A29E;
-    pointer-events: none;
-}
-.bk-search-input {
-    font-size: 13px;
-    height: 34px;
-    padding: 0 10px 0 30px;
-    border-radius: 8px;
-    border: 1px solid #ead8c7;
-    background: #FFFFFF;
-    color: #6d4c5b;
-    width: 220px;
-    transition: border-color 0.12s;
-}
-.bk-search-input::placeholder { color: #A8A29E; }
-.bk-search-input:focus {
-    outline: none;
-    border-color: #6d4c5b;
-    box-shadow: 0 0 0 3px rgba(103,48,73,.08);
-}
-
-/* Table */
-.bk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.bk-table thead tr {
-    background: #FAFAF9;
-    border-bottom: 1px solid #ead8c7;
-}
-.bk-table th {
-    padding: 10px 16px;
-    font-size: 10px;
-    font-weight: 750;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #A8A29E;
-    text-align: left;
-    white-space: nowrap;
-}
-.bk-table th.bk-right,
-.bk-table td.bk-right { text-align: right; }
-.bk-table tbody tr {
-    border-bottom: 1px solid #ead8c7;
-    transition: background 0.1s;
-}
-.bk-table tbody tr:last-child { border-bottom: none; }
-.bk-table tbody tr:hover { background: #FAFAF9; }
-.bk-table td {
-    padding: 13px 16px;
-    color: #6d4c5b;
-    vertical-align: middle;
-}
-
-/* Customer cell */
-.bk-customer-cell { display: flex; align-items: center; gap: 9px; }
-.bk-avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 600;
-    flex-shrink: 0;
-    background: #F5F0F2;
-    color: #6d4c5b;
-}
-.bk-cname { font-weight: 650; font-size: 13px; color: #6d4c5b; }
-.bk-cdate { font-size: 11px; color: #A8A29E; margin-top: 1px; }
-.bk-ref {
-    font-size: 12px;
-    font-weight: 500;
-    color: #78716C;
-    font-family: ui-monospace, monospace;
-}
-.bk-amount { font-weight: 600; }
-
-/* Status badges */
-.bk-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 9px;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-.bk-badge-dot { width: 5px; height: 5px; border-radius: 50%; }
-.bk-badge-pending   { background: #FFFBEB; color: #92400e; }
-.bk-badge-pending .bk-badge-dot   { background: #d97706; }
-.bk-badge-confirmed { background: #ECFDF5; color: #065f46; }
-.bk-badge-confirmed .bk-badge-dot { background: #059669; }
-.bk-badge-completed { background: #EEF2FF; color: #1e40af; }
-.bk-badge-completed .bk-badge-dot { background: #2563eb; }
-.bk-badge-rejected  { background: #FEF2F2; color: #991b1b; }
-.bk-badge-rejected .bk-badge-dot  { background: #ef4444; }
-.bk-badge-cancelled { background: #FEF2F2; color: #991b1b; }
-.bk-badge-cancelled .bk-badge-dot { background: #ef4444; }
-.bk-badge-replacement { background: #e8e7ff; color: #4f46a5; }
-.bk-badge-replacement .bk-badge-dot { background: #6366f1; }
-
-/* Action buttons */
-.bk-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
-.bk-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 5px 11px;
-    border-radius: 7px;
-    border: 1px solid #ead8c7;
-    cursor: pointer;
-    background: transparent;
-    color: #6d4c5b;
-    text-decoration: none;
-    transition: all 0.12s ease;
-    white-space: nowrap;
-}
-.bk-btn i[data-lucide] { width: 13px; height: 13px; }
-.bk-btn-confirm {
-    background: #ECFDF5;
-    color: #065f46;
-    border-color: #6ee7b7;
-}
-.bk-btn-confirm:hover {
-    background: #a7f3d0;
-    border-color: #34d399;
-}
-.bk-btn-decline {
-    background: transparent;
-    color: #78716C;
-    border-color: #ead8c7;
-}
-.bk-btn-decline:hover {
-    background: #FEF2F2;
-    color: #991b1b;
-    border-color: #fca5a5;
-}
-.bk-btn-view {
-    color: #6d4c5b;
-    background: #FFFFFF;
-    border-color: #ead8c7;
-}
-.bk-btn-view:hover {
-    background: #F5F0F2;
-    color: #6d4c5b;
-    border-color: #ead8c7;
-}
-
-/* Empty state */
-.bk-empty {
-    text-align: center;
-    padding: 56px 24px;
-}
-.bk-empty-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 14px;
-    background: #FAFAF9;
-    color: #A8A29E;
-}
-.bk-empty-icon i[data-lucide] { width: 22px; height: 22px; }
-.bk-empty-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #6d4c5b;
-}
-.bk-empty-sub {
-    font-size: 13px;
-    color: #A8A29E;
-    margin-top: 4px;
-    max-width: 320px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* Pagination */
-.bk-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 11px 16px;
-    border-top: 1px solid #ead8c7;
-}
-.bk-page-info { font-size: 12px; color: #A8A29E; }
-.bk-page-btns { display: flex; align-items: center; gap: 4px; }
-.bk-page-btn {
-    width: 28px;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 7px;
-    border: 1px solid #ead8c7;
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: none;
-    color: #78716C;
-    background: #FFFFFF;
-    transition: all 0.1s;
-}
-.bk-page-btn:hover:not(.bk-page-btn-cur):not(.bk-page-btn-disabled) {
-    background: #FAFAF9;
-    color: #6d4c5b;
-}
-.bk-page-btn-cur {
-    background: #6d4c5b;
-    color: #FFFFFF;
-    border-color: #6d4c5b;
-}
-.bk-page-btn-disabled { opacity: 0.35; pointer-events: none; }
-.bk-page-btn i[data-lucide] { width: 13px; height: 13px; }
-
-/* Responsive */
-@media (max-width: 768px) {
-    .bk-kpi-row { grid-template-columns: repeat(2, 1fr); }
-    .bk-hide-sm { display: none !important; }
-    .bk-search-wrap { margin-left: 0; width: 100%; }
-    .bk-search-input { width: 100%; }
-    .bk-toolbar { gap: 6px; }
-}
-@media (max-width: 480px) {
-    .bk-kpi-row { grid-template-columns: 1fr; }
-    .bk-filter-group {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        padding-bottom: 2px;
-    }
-    .bk-filter-group::-webkit-scrollbar { display: none; }
-}
-</style>
-
-<section class="mx-auto max-w-[1600px] space-y-4 px-5 py-6 text-[13px] antialiased" style="font-family:'DM Sans',sans-serif;color:#6d4c5b">
+<section class="mx-auto max-w-[1600px] space-y-4 px-5 py-6 text-[13px] antialiased" style="font-family:'Poppins',system-ui,sans-serif;color:#6d4c5b">
 
     <!-- Page header -->
     <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -453,12 +55,16 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
             <h1 style="margin:0;color:#6d4c5b;font-family:'Playfair Display',serif;font-size:clamp(27px,2.5vw,36px);font-weight:650;letter-spacing:-.025em;line-height:1.08">Booking operations</h1>
             <p style="margin-top:6px;color:#7b5c69;font-size:12px;font-weight:500">Review requests, track upcoming events, and follow completed work.</p>
         </div>
-        <a href="<?= URLROOT ?>/supplier/calendar"
-           class="inline-flex h-8 items-center gap-1.5 rounded-xl border bg-white px-3 text-xs font-semibold shadow-sm"
-           style="border-color:#ead8c7;color:#6d4c5b;text-decoration:none">
-            <i data-lucide="calendar-days" class="h-3.5 w-3.5"></i>
-            Open calendar
-        </a>
+        <div class="bk-nav-group">
+            <a href="<?= URLROOT ?>/supplier/assignments" class="bk-nav-link">
+                <i data-lucide="clipboard-list"></i>
+                Assignments
+            </a>
+            <a href="<?= URLROOT ?>/supplier/calendar" class="bk-nav-link">
+                <i data-lucide="calendar-days"></i>
+                Calendar
+            </a>
+        </div>
     </div>
 
     <!-- ── KPI row ───────────────────────────────────────────────── -->
@@ -576,7 +182,6 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
                         <tr>
                             <th>Customer</th>
                             <th class="bk-hide-sm">Booking ref</th>
-                            <th class="bk-hide-sm">Event date</th>
                             <th>Amount</th>
                             <th>Status</th>
                             <th class="bk-right">Actions</th>
@@ -595,7 +200,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
                                     <div class="bk-avatar"><?= $h($initials) ?></div>
                                     <div>
                                         <div class="bk-cname"><?= $h($booking['customer_name'] ?? 'Customer') ?></div>
-                                        <div class="bk-cdate bk-hide-sm"><?= $h($eventDate) ?></div>
+                                        <div class="bk-cdate"><?= $h($eventDate) ?></div>
                                     </div>
                                 </div>
                             </td>
@@ -603,11 +208,6 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
                             <!-- Ref -->
                             <td class="bk-hide-sm">
                                 <span class="bk-ref"><?= $h($booking['booking_ref'] ?? '') ?></span>
-                            </td>
-
-                            <!-- Event date (desktop column) -->
-                            <td class="bk-hide-sm" style="color: #78716C;">
-                                <?= $h($eventDate) ?>
                             </td>
 
                             <!-- Amount -->
@@ -628,16 +228,25 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
                                 </span>
                             </td>
 
-	                            <!-- Actions -->
-	                            <td class="bk-right">
-	                                <div class="bk-actions">
-	                                    <a class="bk-btn bk-btn-view"
-	                                       href="<?= URLROOT ?>/supplier/bookingDetail/<?= (int)$booking['id'] ?>">
-	                                        <i data-lucide="<?= $bStatus === 'pending' ? 'clipboard-check' : 'eye' ?>"></i>
-	                                        <?= $bStatus === 'pending' ? 'Review' : 'View' ?>
-	                                    </a>
-	                                </div>
-	                            </td>
+                            <!-- Actions -->
+                            <td class="bk-right">
+                                <div class="bk-actions">
+                                    <?php if ($bStatus === 'pending'): ?>
+                                    <button type="button"
+                                            class="bk-btn bk-btn-accept-sm bk-quick-accept"
+                                            data-booking-id="<?= (int)$booking['id'] ?>"
+                                            title="Accept this booking">
+                                        <i data-lucide="check"></i>
+                                        Accept
+                                    </button>
+                                    <?php endif; ?>
+                                    <a class="bk-btn bk-btn-view"
+                                       href="<?= URLROOT ?>/supplier/bookingDetail/<?= (int)$booking['id'] ?>">
+                                        <i data-lucide="<?= $bStatus === 'pending' ? 'clipboard-check' : 'eye' ?>"></i>
+                                        <?= $bStatus === 'pending' ? 'Review' : 'View' ?>
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -707,6 +316,38 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
     </div><!-- /.bk-section -->
 
 </section>
+<script>
+/* Quick accept from table row */
+document.querySelectorAll('.bk-quick-accept').forEach(function(btn) {
+    btn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        var bookingId = btn.dataset.bookingId;
+        if (!bookingId) return;
+        btn.disabled = true;
+        btn.innerHTML = '<svg style="width:13px;height:13px;animation:spin .6s linear infinite" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6" stroke-dasharray="30" stroke-dashoffset="10"/></svg> Accepting…';
+        var formData = new FormData();
+        formData.append('booking_id', bookingId);
+        formData.append('action', 'accept');
+        formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+        try {
+            var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
+            var data = await resp.json().catch(function() { return {}; });
+            if (data.success) {
+                supToastSuccess('Booking accepted successfully!');
+                setTimeout(function() { window.location.reload(); }, 1200);
+                return;
+            }
+            supToastError(data.error || 'Could not accept booking. Please try again.');
+        } catch (err) {
+            supToastError('Network error. Please try again.');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="check"></i> Accept';
+        if (window.lucide) lucide.createIcons();
+    });
+});
+</script>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 <?php
 };
 ?>

@@ -109,35 +109,21 @@ function packageCheckboxHtml(category, className) {
 
 function renderCategoryControls() {
   var csSelect = document.getElementById('csCategory');
-  var createCategoryCards = document.getElementById('createCategoryCards');
+  var createPills = document.getElementById('createCategoryPills');
   var epCategoryList = document.getElementById('epCategoryList');
   var cpCategoryList = document.getElementById('cpCategoryList');
-  var nonVenueCategories = serviceCategories.filter(function(category){ return category !== 'Venue'; });
-  var selectableCategories = nonVenueCategories.length ? nonVenueCategories : serviceCategories;
 
   if (csSelect) {
     csSelect.innerHTML = '<option value="">Choose category...</option>' + serviceCategories.map(categoryOptionHtml).join('');
   }
 
-  if (createCategoryCards) {
-    var categoryMeta = {
-      Venue: ['⌂', 'Rooms, halls and event spaces'],
-      Decoration: ['✦', 'Themes, styling and décor'],
-      Dress: ['♢', 'Wedding and formal wear'],
-      Accessories: ['◌', 'Jewellery and finishing pieces'],
-      Food: ['◇', 'Catering, cakes and dining'],
-      Studio: ['□', 'Photo and video services'],
-      Package: ['▦', 'Bundled service offerings']
-    };
-    createCategoryCards.innerHTML = serviceCategories.map(function(category, index) {
-      var meta = categoryMeta[category] || ['＋', 'Specialist wedding service'];
-      return '<button type="button" class="create-category-card" data-create-category-index="' + index + '" data-create-category="' + escapeHtml(category) + '">' +
-        '<span class="create-category-icon" aria-hidden="true">' + meta[0] + '</span>' +
-        '<strong>' + escapeHtml(category) + '</strong><small>' + meta[1] + '</small></button>';
+  if (createPills) {
+    createPills.innerHTML = serviceCategories.map(function(category) {
+      return '<button type="button" class="create-cat-pill" data-pill-cat="' + escapeHtml(category) + '">' + escapeHtml(category) + '</button>';
     }).join('');
-    createCategoryCards.querySelectorAll('[data-create-category-index]').forEach(function(card) {
-      card.addEventListener('click', function() {
-        selectCreateCategory(serviceCategories[Number(card.dataset.createCategoryIndex)] || '');
+    createPills.querySelectorAll('[data-pill-cat]').forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        selectCreateCategory(pill.dataset.pillCat);
       });
     });
   }
@@ -490,6 +476,100 @@ function validateVenueRooms(prefix) {
   return true;
 }
 
+// ── FOOD ITEMS (CAKES) ──────────────────────────────────────
+let foodItemCounter = 0;
+
+function foodItemRowHtml(prefix, item = {}) {
+  const uid = ++foodItemCounter;
+  const name = escapeHtml(item.name || '');
+  const desc = escapeHtml(item.description || '');
+  const packagePrice = item.package_price ?? item.price ?? '';
+  const customizePrice = item.customize_price ?? item.price ?? '';
+  const photoUrl = item.photo_url || '';
+  const photoInputId = `foodPhotoInput_${uid}`;
+  const photoPreviewId = `foodPhotoPreview_${uid}`;
+  const photoDataId = `foodPhotoData_${uid}`;
+  const photoPreviewHtml = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`
+    : `<span style="font-size:11px;color:#aaa">Photo</span>`;
+  return `
+    <div class="${prefix}-food-item" style="background:var(--fm-surface-warm);border:1px solid var(--fm-border);border-radius:var(--fm-radius);padding:14px 16px">
+      <div style="display:grid;grid-template-columns:80px minmax(0,1fr);gap:12px;align-items:start">
+        <input type="hidden" class="food-photo-data" id="${photoDataId}" value="${escapeHtml(photoUrl)}">
+        <label for="${photoInputId}" id="${photoPreviewId}" style="display:flex;align-items:center;justify-content:center;width:80px;height:60px;border:1.5px dashed #d1c9c0;border-radius:6px;cursor:pointer;overflow:hidden;background:#faf8f5">${photoPreviewHtml}</label>
+        <input type="file" id="${photoInputId}" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="onFoodItemPhotoChange(this,'${photoDataId}','${photoPreviewId}')"/>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input type="text" value="${name}" placeholder="e.g. Chocolate Wedding Cake" class="fm-input food-name" style="font-size:13px;padding:6px 8px"/>
+          <input type="text" value="${desc}" placeholder="Description (optional)" class="fm-input food-description" style="font-size:12px;padding:6px 8px"/>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;align-items:center;margin-top:10px">
+        <input type="number" min="0" step="0.01" value="${packagePrice}" placeholder="Package price" class="fm-input food-package-price" style="font-size:12px;padding:6px 8px"/>
+        <input type="number" min="0" step="0.01" value="${customizePrice}" placeholder="Customize price" class="fm-input food-customize-price" style="font-size:12px;padding:6px 8px"/>
+        <button type="button" onclick="removeFoodItem(this,'${prefix}')" class="room-row-remove" title="Remove">&times;</button>
+      </div>
+    </div>
+  `;
+}
+
+function collectFoodItems(prefix) {
+  const rows = Array.from(document.querySelectorAll('.' + prefix + '-food-item'));
+  return rows.map(row => ({
+    name: row.querySelector('.food-name')?.value.trim() || '',
+    description: row.querySelector('.food-description')?.value.trim() || '',
+    price: parseFloat(row.querySelector('.food-package-price')?.value || '0') || 0,
+    package_price: parseFloat(row.querySelector('.food-package-price')?.value || '0') || 0,
+    customize_price: parseFloat(row.querySelector('.food-customize-price')?.value || '0') || 0,
+    photo_url: row.querySelector('.food-photo-data')?.value || null,
+  })).filter(s => s.name !== '');
+}
+
+function renderFoodItems(prefix, items = []) {
+  const list = document.getElementById(prefix + 'FoodItemsList');
+  if (!list) return;
+  const rows = items.length ? items : [{}];
+  list.innerHTML = rows.map(s => foodItemRowHtml(prefix, s)).join('');
+}
+
+function addFoodItem(prefix) {
+  const list = document.getElementById(prefix + 'FoodItemsList');
+  if (!list) return;
+  list.insertAdjacentHTML('beforeend', foodItemRowHtml(prefix));
+}
+
+function removeFoodItem(btn, prefix) {
+  const list = document.getElementById(prefix + 'FoodItemsList');
+  const row = btn.closest('.' + prefix + '-food-item');
+  if (!list || !row) return;
+  if (list.querySelectorAll('.' + prefix + '-food-item').length <= 1) {
+    row.querySelectorAll('input').forEach(i => { if (i.type !== 'hidden') i.value = ''; });
+    return;
+  }
+  row.remove();
+}
+
+function onFoodItemPhotoChange(input, dataId, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const dataInput = document.getElementById(dataId);
+    if (dataInput) dataInput.value = dataUrl;
+    const preview = document.getElementById(previewId);
+    if (preview) preview.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function validateFoodItems(prefix) {
+  const items = collectFoodItems(prefix);
+  if (!items.length) { showToast('Add at least one cake item with a name.', 'error'); return false; }
+  const missingPrice = items.find(s => s.price <= 0);
+  if (missingPrice) { showToast('Each cake item needs a price greater than zero.', 'error'); return false; }
+  return true;
+}
+
 // ── DECORATION STYLES ────────────────────────────────────────
 let decorationStyleCounter = 0;
 
@@ -743,12 +823,31 @@ function renderAttireItems(prefix, items) {
   });
 }
 
+function validateDefaultEventTime(prefix) {
+  var startEl = document.getElementById(prefix + 'DefaultStartTime');
+  var endEl = document.getElementById(prefix + 'DefaultEndTime');
+  if (!startEl || !endEl) return true;
+  var start = startEl.value.trim();
+  var end = endEl.value.trim();
+  if (start === '' && end === '') return true;
+  if (start === '' || end === '') {
+    showToast('Add both default event start and end time, or leave both blank.', 'error');
+    return false;
+  }
+  if (start >= end) {
+    showToast('Default event start time must be before end time.', 'error');
+    return false;
+  }
+  return true;
+}
+
 function serviceFormPayload(prefix, category) {
   const isVenue = category === 'Venue';
   const isDecoration = category === 'Decoration';
-  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire') || category === 'Attire';
+  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire');
+  const isFood = category === 'Food';
   const rooms = isVenue ? collectVenueRooms(prefix) : [];
-  const priceRange = isVenue ? venueRoomPriceRange(prefix) : (isDecoration || isRental ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload(prefix));
+  const priceRange = isVenue ? venueRoomPriceRange(prefix) : (isDecoration || isRental || isFood ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload(prefix));
   const minLeadDaysEl = document.getElementById(prefix + 'MinLeadDays');
   const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
   const minLeadDays = minLeadDaysValue === '' ? 0 : Math.max(0, Math.min(365, parseInt(minLeadDaysValue) || 0));
@@ -770,6 +869,7 @@ function serviceFormPayload(prefix, category) {
     default_end_time: document.getElementById(prefix + 'DefaultEndTime')?.value || null,
     rooms,
     decoration_styles: isDecoration ? collectDecorationStyles(prefix) : [],
+    food_items: isFood ? collectFoodItems(prefix) : [],
     rental_pricing: isRental ? collectRentalPricing(prefix) : null,
     attire_items: isRental ? collectAttireItems(prefix) : [],
     attire_items_replace: isRental,
@@ -876,34 +976,31 @@ function pkgTableRow(item) {
 
 // ── UNIFIED CREATE SERVICE MODAL ─────────────────────────────
 let currentCreateCategory = '';
-let currentCreateStep = 1;
 
 function selectCreateCategory(cat) {
   currentCreateCategory = cat;
   var select = document.getElementById('csCategory');
   if (select) select.value = cat;
-  document.querySelectorAll('[data-create-category]').forEach(function(card) {
-    card.classList.toggle('is-selected', card.dataset.createCategory === cat);
-    card.setAttribute('aria-pressed', card.dataset.createCategory === cat ? 'true' : 'false');
+  document.querySelectorAll('[data-pill-cat]').forEach(function(pill) {
+    pill.classList.toggle('is-selected', pill.dataset.pillCat === cat);
   });
-  var detailCategory = document.getElementById('createDetailCategory');
-  if (detailCategory) detailCategory.textContent = cat || 'your category';
   toggleCategoryFields(cat);
-  updateCreateFlowControls();
 }
 
 function toggleCategoryFields(category) {
   var isVenue = category === 'Venue';
   var isDecoration = category === 'Decoration';
-  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire') || category === 'Attire';
+  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire');
+  var isFood = category === 'Food';
 
   var standard = document.getElementById('csStandardPriceFields');
   var venueExtras = document.getElementById('csVenueExtras');
   var decoExtras = document.getElementById('csDecorationExtras');
   var rentalExtras = document.getElementById('csRentalExtras');
+  var foodExtras = document.getElementById('csFoodExtras');
   var attireList = document.getElementById('csAttireItemsList');
 
-  if (standard) standard.classList.toggle('hidden-section', isVenue || isDecoration || isRental);
+  if (standard) standard.classList.toggle('hidden-section', isVenue || isDecoration || isRental || isFood);
   if (attireList) {
     if (isRental && !attireList.querySelectorAll('.cs-attire-item').length) {
       addAttireItem('cs');
@@ -912,8 +1009,10 @@ function toggleCategoryFields(category) {
   if (venueExtras) venueExtras.classList.toggle('hidden-section', !isVenue);
   if (decoExtras) decoExtras.classList.toggle('hidden-section', !isDecoration);
   if (rentalExtras) rentalExtras.classList.toggle('hidden-section', !isRental);
+  if (foodExtras) foodExtras.classList.toggle('hidden-section', !isFood);
 
   if (isDecoration && !document.querySelectorAll('.cs-style-row').length) renderDecorationStyles('cs');
+  if (isFood && !document.querySelectorAll('.cs-food-item').length) renderFoodItems('cs');
 }
 
 function onCreateCategoryChange(value) {
@@ -923,15 +1022,15 @@ function onOthersCategoryChange(value) { onCreateCategoryChange(value); }
 
 function openCreateServiceModal() {
   resetCreateForm();
-  document.getElementById('createServiceModal').classList.remove('hidden');
+  document.getElementById('createServicePage').classList.remove('hidden');
+  document.querySelector('.sm-page').classList.add('hidden');
   renderCategoryControls();
-  currentCreateStep = 1;
   selectCreateCategory('');
-  showCreateStep(1);
 }
 
 function closeCreateServiceModal() {
-  document.getElementById('createServiceModal').classList.add('hidden');
+  document.getElementById('createServicePage').classList.add('hidden');
+  document.querySelector('.sm-page').classList.remove('hidden');
 }
 
 function resetCreateForm() {
@@ -949,113 +1048,19 @@ function resetCreateForm() {
   currentCreateCategory = '';
 }
 
-function showCreateStep(step) {
-  currentCreateStep = Math.max(1, Math.min(3, Number(step) || 1));
-  document.querySelectorAll('[data-create-step]').forEach(function(panel) {
-    panel.classList.toggle('is-active', Number(panel.dataset.createStep) === currentCreateStep);
-  });
-  document.querySelectorAll('[data-create-step-button]').forEach(function(button) {
-    var buttonStep = Number(button.dataset.createStepButton);
-    button.classList.toggle('is-active', buttonStep === currentCreateStep);
-    button.classList.toggle('is-complete', buttonStep < currentCreateStep);
-  });
-
-  var subtitles = {
-    1: 'Start by choosing what you provide.',
-    2: 'Add the information customers need at a glance.',
-    3: 'Complete pricing, availability, and category details.'
-  };
-  var subtitle = document.getElementById('createServiceSubtitle');
-  if (subtitle) subtitle.textContent = subtitles[currentCreateStep];
-  updateCreateFlowControls();
-
-  var body = document.querySelector('#createServiceModal .create-service-body');
-  if (body) body.scrollTop = 0;
-}
-
-function updateCreateFlowControls() {
-  var back = document.getElementById('createBackBtn');
-  var next = document.getElementById('createNextBtn');
-  var save = document.getElementById('createSaveBtn');
-  var summary = document.getElementById('createStepSummary');
-  if (back) back.classList.toggle('hidden', currentCreateStep === 1);
-  if (next) {
-    next.classList.toggle('hidden', currentCreateStep === 3);
-    next.disabled = currentCreateStep === 1 && !currentCreateCategory;
-  }
-  if (save) save.classList.toggle('hidden', currentCreateStep !== 3);
-  if (summary) {
-    summary.textContent = currentCreateStep === 1
-      ? (currentCreateCategory ? currentCreateCategory + ' selected' : 'Choose one category to continue')
-      : currentCreateStep === 2
-        ? 'Step 2 of 3 · ' + currentCreateCategory
-        : 'Ready to create · ' + currentCreateCategory;
-  }
-}
-
-function validateCreateEssentials() {
-  var name = document.getElementById('csName');
-  if (!name || !name.value.trim()) {
-    showToast('Add a service name before continuing.', 'error');
-    if (name) name.focus();
-    return false;
-  }
-  return true;
-}
-
-function validateDefaultEventTime(prefix) {
-  const start = document.getElementById(prefix + 'DefaultStartTime');
-  const end = document.getElementById(prefix + 'DefaultEndTime');
-  if (!start || !end) return true;
-
-  const startValue = start.value.trim();
-  const endValue = end.value.trim();
-  if (!startValue && !endValue) return true;
-
-  if (!startValue || !endValue) {
-    showToast('Add both default event start and end time, or leave both blank.', 'error');
-    (startValue ? end : start).focus();
-    return false;
-  }
-
-  if (startValue >= endValue) {
-    showToast('Default event end time must be later than the start time.', 'error');
-    end.focus();
-    return false;
-  }
-
-  return true;
-}
-
-function nextCreateStep() {
-  if (currentCreateStep === 1 && !currentCreateCategory) {
-    showToast('Choose a service category first.', 'error');
-    return;
-  }
-  if (currentCreateStep === 2 && !validateCreateEssentials()) return;
-  showCreateStep(currentCreateStep + 1);
-}
-
-function previousCreateStep() {
-  showCreateStep(currentCreateStep - 1);
-}
-
-function goToCreateStep(step) {
-  step = Number(step);
-  if (step >= currentCreateStep) return;
-  showCreateStep(step);
-}
-
 async function saveCreateService() {
   var category = document.getElementById('csCategory').value || currentCreateCategory;
+  if (!category) { showToast('Please choose a category.', 'error'); return; }
   var name = document.getElementById('csName').value.trim();
-  if (!name) { showCreateStep(2); showToast('Please fill in the service name.', 'error'); return; }
-  if (!validateDefaultEventTime('cs')) { showCreateStep(3); return; }
+  if (!name) { showToast('Please fill in the service name.', 'error'); document.getElementById('csName').focus(); return; }
+  if (!validateDefaultEventTime('cs')) return;
 
   if (category === 'Venue') {
     if (!validateVenueRooms('cs')) return;
   } else if (category === 'Decoration') {
     if (!validateDecorationStyles('cs')) return;
+  } else if (category === 'Food') {
+    if (!validateFoodItems('cs')) return;
   } else if (category === 'Dress' || category === 'Accessories' || category === 'Attire') {
     if (!validateAttireItems('cs')) return;
   } else {
@@ -1385,13 +1390,11 @@ function setStatusFilter(f) {
 // ── CLOSE ALL MODALS ──────────────────────────────────────────
 function closeAll() {
   if(currentCropperInstance) { currentCropperInstance.destroy(); currentCropperInstance = null; }
-  ['createServiceModal','editServiceModal','editPackageModal','createPackageModal']
+  ['editServiceModal','editPackageModal','createPackageModal']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
+  closeCreateServiceModal();
 }
 
-function closeServiceTypeModal() { closeCreateServiceModal(); }
-function closeTypeModal() { closeCreateServiceModal(); }
-function openServiceTypeModal() { openCreateServiceModal(); }
 
 function confirmDeleteModal({ title = 'Delete item?', message = 'This action cannot be undone.', requireType = null } = {}) {
   const modal = document.getElementById('deleteConfirmModal');
@@ -1478,14 +1481,17 @@ function openEditService(id) {
   else resetImgBox('esImgBox', true);
   const venueExtras = document.getElementById('esVenueExtras');
   const decoExtras = document.getElementById('esDecorationExtras');
+  const foodExtras = document.getElementById('esFoodExtras');
   const rentalExtras = document.getElementById('esRentalExtras');
   const isVenueEdit = item.category === 'Venue';
   const isDecoEdit = item.category === 'Decoration';
+  const isFoodEdit = item.category === 'Food';
   const isRentalEdit = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
   venueExtras?.classList.toggle('hidden', !isVenueEdit);
   decoExtras?.classList.toggle('hidden', !isDecoEdit);
+  foodExtras?.classList.toggle('hidden', !isFoodEdit);
   rentalExtras?.classList.toggle('hidden', !isRentalEdit);
-  document.getElementById('esServicePriceFields')?.classList.toggle('hidden', isVenueEdit || isDecoEdit || isRentalEdit);
+  document.getElementById('esServicePriceFields')?.classList.toggle('hidden', isVenueEdit || isDecoEdit || isFoodEdit || isRentalEdit);
   document.getElementById('esDefaultTimeRow')?.classList.toggle('hidden', isVenueEdit);
   if (isVenueEdit) {
     document.getElementById('esType').value=item.type||'';
@@ -1496,6 +1502,9 @@ function openEditService(id) {
   if (isDecoEdit) {
     renderDecorationStyles('es', item.decoration_styles || []);
   }
+  if (isFoodEdit) {
+    renderFoodItems('es', item.food_items || []);
+  }
   if (isRentalEdit) {
     const rp = item.rental_pricing || {};
     document.getElementById('esBorrowPackagePrice').value = rp.borrow_package_price ?? rp.borrow_price ?? '';
@@ -1503,7 +1512,6 @@ function openEditService(id) {
     document.getElementById('esReturnDays').value = rp.return_days ?? '';
     document.getElementById('esBuyPackagePrice').value = rp.buy_package_price ?? rp.buy_price ?? '';
     document.getElementById('esBuyCustomizePrice').value = rp.buy_customize_price ?? rp.buy_price ?? '';
-    renderAttireItems('es', item.attire_items || []);
   }
   document.getElementById('editServiceModal').classList.remove('hidden');
 }
@@ -1511,13 +1519,14 @@ async function updateService() {
   const item=services.find(s=>s.id===editingSvcId); if (!item) return;
   const isVenueUpd = item.category === 'Venue';
   const isDecoUpd = item.category === 'Decoration';
+  const isFoodUpd = item.category === 'Food';
   const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
-  if (!isVenueUpd && !isDecoUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
+  if (!isVenueUpd && !isDecoUpd && !isFoodUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
   if (!validateDefaultEventTime('es')) return;
   if (isVenueUpd && !validateVenueRooms('es')) return;
   if (isDecoUpd && !validateDecorationStyles('es')) return;
-  if (isRentalUpd && !validateAttireItems('es')) return;
-  const priceRange = isVenueUpd ? venueRoomPriceRange('es') : (isDecoUpd || isRentalUpd ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload('es'));
+  if (isFoodUpd && !validateFoodItems('es')) return;
+  const priceRange = isVenueUpd ? venueRoomPriceRange('es') : (isDecoUpd || isFoodUpd || isRentalUpd ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload('es'));
   const minLeadDaysEl = document.getElementById('esMinLeadDays');
   const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
   const minLeadDays = minLeadDaysValue === '' ? 0 : Math.max(0, Math.min(365, parseInt(minLeadDaysValue) || 0));
@@ -1538,9 +1547,8 @@ async function updateService() {
     rooms: isVenueUpd ? collectVenueRooms('es') : [],
     rooms_replace: isVenueUpd,
     decoration_styles: isDecoUpd ? collectDecorationStyles('es') : [],
+    food_items: isFoodUpd ? collectFoodItems('es') : [],
     rental_pricing: isRentalUpd ? collectRentalPricing('es') : null,
-    attire_items: isRentalUpd ? collectAttireItems('es') : [],
-    attire_items_replace: isRentalUpd,
   };
   try {
     const result = await apiRequest(serviceManagementUrls.serviceUpdate + editingSvcId, payload);
@@ -1883,7 +1891,7 @@ document.addEventListener('change', function(e) {
 });
 
 // Close when overlay is clicked
-['createServiceModal','editServiceModal','editPackageModal','createPackageModal'].forEach(function(id){
+['editServiceModal','editPackageModal','createPackageModal'].forEach(function(id){
   document.getElementById(id).addEventListener('click', function(e){ if(e.target===this) closeAll(); });
 });
 

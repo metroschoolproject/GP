@@ -1,6 +1,10 @@
 <?php
 $dashboardTitle = 'Suppliers';
 $dashboardCrumb = 'Directory';
+$dashboardBreadcrumbs = [
+    ['label' => 'Suppliers', 'url' => URLROOT . '/admin/suppliers'],
+    ['label' => 'Directory', 'url' => null],
+];
 $suppliers = $suppliers ?? [];
 $status = $status ?? 'all';
 $search = $search ?? '';
@@ -73,241 +77,269 @@ $dashboardContent = function () use (
         'rejected' => (int)($stats['rejected'] ?? 0),
         'banned' => (int)($stats['banned'] ?? 0),
     ];
+
+    // Relative time helper
+    $relativeTime = static function (?string $date): string {
+        if (!$date) return '—';
+        $ts = strtotime($date);
+        if (!$ts) return '—';
+        $diff = time() - $ts;
+        if ($diff < 60) return 'Just now';
+        if ($diff < 3600) return floor($diff / 60) . 'm ago';
+        if ($diff < 86400) return floor($diff / 3600) . 'h ago';
+        if ($diff < 604800) return floor($diff / 86400) . 'd ago';
+        return date('M j', $ts);
+    };
+
+    $statusBadge = static function (string $status): array {
+        return match (strtolower($status)) {
+            'pending' => ['Pending', '#b7792f', '#fdf6e8'],
+            'approved', 'verified' => ['Active', '#166534', '#ecfdf5'],
+            'rejected' => ['Rejected', '#991b1b', '#fef2f2'],
+            'banned' => ['Banned', '#8c3941', '#fef2f2'],
+            default => [ucfirst($status), '#7b5c69', '#f5f1ec'],
+        };
+    };
 ?>
 <style>
-  .supplier-directory-shell{min-height:100%;padding:30px;background:#fbfbf9}
-  .supplier-directory{--ink:#6d4c5b;--body:#7b5c69;--muted:#a58b96;--line:#ead8c7;--paper:#FFFFFF;--wash:#FFFFFF;--wine:#6d4c5b;max-width:1380px;margin:0 auto;color:var(--ink)}
-  .sd-head{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin-bottom:22px}
-  .sd-kicker{margin:0 0 7px;color:#9b7d89;font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase}
-  .sd-title{margin:0;color:var(--ink);font:650 clamp(30px,3vw,42px)/1 "Playfair Display",serif}
-  .sd-copy{max-width:620px;margin:10px 0 0;color:var(--body);font-size:12px;line-height:1.6}
-  .sd-total{display:inline-flex;min-height:40px;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:0 14px;background:#FFFFFF;color:var(--wine);font-size:11px;font-weight:800;box-shadow:0 10px 28px rgba(52,35,43,.06)}
-  .sd-total strong{font-size:15px;font-variant-numeric:tabular-nums}
+  .suppliers-page{min-height:100%;background:#F4F1EE;padding:28px 32px;font-size:13.5px;overflow-y:auto}
+  .suppliers-page *{box-sizing:border-box}
+  .sp-inner{--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;max-width:1600px;margin:0 auto}
+  .sp-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .sp-head-left{min-width:0}
+  .sp-eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .sp-title{margin:0;font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+  .sp-count{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:11px;font-weight:700;color:var(--primary)}
+  .sp-count strong{font-size:14px}
+  .sp-view-toggle{display:inline-flex;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:2px}
+  .sp-view-btn{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border:0;border-radius:.5rem;background:transparent;color:var(--muted);cursor:pointer;transition:all .12s}
+  .sp-view-btn:hover{color:var(--primary)}
+  .sp-view-btn.is-active{background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.06)}
 
-  .sd-toolbar{overflow:hidden;margin-bottom:18px;border:1px solid var(--line);border-radius:15px;background:#FFFFFF;box-shadow:0 18px 45px rgba(52,35,43,.055)}
-  .sd-search-row{padding:14px}
-  .sd-search-form{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1fr) minmax(180px,1fr) auto;gap:8px;align-items:center}
-  .sd-select:focus-visible,.sd-search-btn:focus-visible,.sd-filter:focus-visible,.sd-action:focus-visible,.page-btn:focus-visible{outline:3px solid rgba(109,76,91,.2);outline-offset:2px}
-  .sd-search-btn{display:inline-flex;min-height:42px;align-items:center;justify-content:center;gap:6px;border:1px solid var(--wine);border-radius:10px;padding:0 15px;background:var(--wine);color:#FFFFFF;font:750 11px Inter,sans-serif;cursor:pointer}
-  .sd-select-wrap{position:relative;min-width:0}
-  .sd-select-icon{position:absolute;left:12px;top:50%;width:14px;height:14px;color:#9b7d89;transform:translateY(-50%);pointer-events:none}
-  .sd-select{width:100%;min-height:42px;box-sizing:border-box;appearance:none;border:1px solid #e4d2c3;border-radius:10px;background:#FFFFFF;padding:0 31px 0 34px;color:#5f4651;font:650 10px Inter,sans-serif;cursor:pointer}
-  .sd-select-chevron{position:absolute;right:10px;top:50%;width:13px;height:13px;color:#9b7d89;transform:translateY(-50%);pointer-events:none}
-  .sd-active-filters{display:flex;flex-wrap:wrap;align-items:center;gap:7px;border-top:1px solid var(--line);padding:10px 13px;background:#FFFFFF}
-  .sd-active-label{margin-right:2px;color:#a58b96;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
-  .sd-active-chip{display:inline-flex;min-height:27px;align-items:center;gap:6px;border-radius:999px;padding:0 10px;background:#f2e8e1;color:#6d4c5b;font-size:11px;font-weight:750;text-decoration:none}
-  .sd-active-chip:hover{background:#e9d8cc}
-  .sd-active-chip svg{width:11px;height:11px}
-  .sd-clear-all{margin-left:auto;color:#8e727e;font-size:11px;font-weight:750;text-decoration:none}
-  .sd-clear-all:hover{color:var(--wine);text-decoration:underline}
-  .sd-filter-row{display:flex;gap:4px;overflow-x:auto;border-top:1px solid var(--line);padding:9px 12px;background:var(--wash)}
-  .sd-filter{display:inline-flex;min-height:35px;flex:0 0 auto;align-items:center;gap:7px;border-radius:9px;padding:0 11px;color:#8e727e;font-size:12px;font-weight:750;text-decoration:none}
-  .sd-filter:hover{background:#FFFFFF;color:var(--wine)}
-  .sd-filter.active{background:var(--wine);color:#FFFFFF;box-shadow:0 8px 18px rgba(109,76,91,.17)}
-  .sd-filter-count{display:inline-flex;min-width:20px;height:20px;align-items:center;justify-content:center;border-radius:999px;padding:0 5px;background:rgba(109,76,91,.09);font-size:10px;font-variant-numeric:tabular-nums}
-  .sd-filter.active .sd-filter-count{background:rgba(252,248,245,.16)}
+  .sp-card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.04)}
+  .toolbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border-light);flex-wrap:wrap}
+  .filters{display:flex;gap:6px;flex-wrap:wrap}
+  .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s;white-space:nowrap;text-decoration:none}
+  .filter:hover{border-color:var(--border);background:var(--hover);color:var(--primary)}
+  .filter.active{border-color:var(--primary);background:var(--primary);color:#fff}
+  .filter-count{font-size:10px;font-weight:800;margin-left:5px;opacity:.7}
 
-  .sd-featured{margin-bottom:18px;border:1px solid var(--line);border-radius:15px;background:#FFFFFF;box-shadow:0 16px 40px rgba(52,35,43,.05)}
-  .sd-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 17px;border-bottom:1px solid var(--line)}
-  .sd-section-title{display:flex;align-items:center;gap:8px;margin:0;color:var(--ink);font-size:11px;font-weight:800}
-  .sd-section-title svg{width:15px;height:15px;color:#b7792f}
-  .sd-section-note{color:#a58b96;font-size:11px;font-weight:700}
-  .sd-featured-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0}
-  .sd-featured-item{min-width:0;padding:15px;border-right:1px solid #f0e5dc;text-decoration:none;transition:background .15s ease}
-  .sd-featured-item:last-child{border-right:0}
-  .sd-featured-item:hover{background:#fdf9f5}
-  .sd-featured-rank{color:#b7792f;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-  .sd-featured-name{margin-top:5px;overflow:hidden;color:var(--ink);font-size:13px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
-  .sd-featured-stats{margin-top:6px;color:#8e727e;font-size:11px;font-weight:650;line-height:1.5}
+  .sp-table-wrap{overflow-x:auto}
+  .sp-table{width:100%;border-collapse:collapse}
+  .sp-table thead tr{background:var(--soft)}
+  .sp-table th{padding:9px 20px;text-align:left;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .sp-table th:last-child{text-align:right}
+  .sp-table tbody tr{border-top:1px solid var(--border-light);transition:background .1s}
+  .sp-table tbody tr:hover{background:var(--soft)}
+  .sp-table td{padding:13px 20px;vertical-align:middle;font-size:13px}
+  .sp-table td:last-child{text-align:right}
 
-  .sd-directory-list{display:grid;gap:10px}
-  .sd-row{position:relative;display:grid;grid-template-columns:minmax(250px,1.35fr) minmax(190px,.9fr) minmax(255px,1.1fr) auto;gap:18px;align-items:center;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#FFFFFF;padding:17px 18px;box-shadow:0 10px 28px rgba(52,35,43,.04);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
-  .sd-row:hover{transform:translateY(-1px);border-color:#d8c1b1;box-shadow:0 16px 34px rgba(52,35,43,.075)}
-  .sd-business{display:flex;min-width:0;align-items:center;gap:12px}
-  .sd-avatar{display:inline-flex;width:44px;height:44px;flex:0 0 44px;align-items:center;justify-content:center;border-radius:12px;background:color-mix(in srgb,var(--status-color) 10%,white);color:var(--status-color);font-size:14px;font-weight:800}
-  .sd-business-copy{min-width:0}
-  .sd-name{overflow:hidden;color:var(--ink);font-size:13px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
-  .sd-owner{margin-top:3px;overflow:hidden;color:#8e727e;font-size:12px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
-  .sd-category{display:flex;flex-wrap:wrap;gap:5px}
-  .sd-chip{display:inline-flex;min-height:26px;align-items:center;border-radius:999px;padding:0 10px;background:#FFFFFF;color:#7b5c69;font-size:10px;font-weight:750}
-  .sd-chip-more{background:#f0e6df;color:#6d4c5b}
-  .sd-signals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-  .sd-signal{min-width:0;border-left:1px solid #f0e5dc;padding-left:10px}
-  .sd-signal:first-child{border-left:0;padding-left:0}
-  .sd-signal-label{color:#a58b96;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-  .sd-signal-value{display:block;margin-top:4px;overflow:hidden;color:var(--ink);font-size:13px;font-weight:750;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
-  .sd-state{display:grid;min-width:125px;gap:8px;justify-items:end}
-  .sd-badge{display:inline-flex;min-height:27px;align-items:center;gap:6px;border-radius:999px;padding:0 11px;color:var(--status-color);background:color-mix(in srgb,var(--status-color) 10%,white);font-size:10px;font-weight:800;text-transform:uppercase}
-  .sd-badge svg{width:11px;height:11px}
-  .sd-payment{display:inline-flex;align-items:center;gap:5px;color:#8e727e;font-size:11px;font-weight:700}
-  .sd-payment::before{content:"";width:6px;height:6px;border-radius:50%;background:#a58b96}
-  .sd-payment.is-paid::before{background:#4f7c69}.sd-payment.is-pending::before{background:#b7792f}.sd-payment.is-unpaid::before{background:#b94b4b}
-  .sd-warning{color:#b94b4b;font-size:10px;font-weight:800}
-  .sd-action{display:inline-flex;min-height:34px;align-items:center;gap:6px;border:1px solid #ddc8b9;border-radius:9px;padding:0 12px;background:#FFFFFF;color:var(--wine);font-size:11px;font-weight:800;text-decoration:none}
-  .sd-action:hover{background:var(--wine);color:#FFFFFF;border-color:var(--wine)}
-  .sd-action svg{width:12px;height:12px}
-  .sd-empty{border:1px dashed #decbbb;border-radius:15px;background:#FFFFFF;padding:70px 24px;text-align:center}
-  .sd-empty-icon{display:inline-flex;width:52px;height:52px;align-items:center;justify-content:center;border-radius:16px;background:#FFFFFF;color:#9b7d89;box-shadow:0 10px 25px rgba(52,35,43,.06)}
-  .sd-empty h2{margin:15px 0 6px;color:var(--ink);font-size:16px}
-  .sd-empty p{margin:0;color:#9b7d89;font-size:11px}
+  .sp-name-cell{display:flex;align-items:center;gap:10px;min-width:0}
+  .sp-avatar{width:36px;height:36px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+  .sp-name-text{min-width:0}
+  .sp-shop{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+  .sp-owner{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
 
-  .pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:17px;border:1px solid var(--line);border-radius:12px;background:#FFFFFF;padding:13px 15px}
-  .page-info{color:#9b7d89;font-size:12px;font-weight:650}.page-btns{display:flex;align-items:center;gap:5px}.page-btn{display:inline-flex;width:32px;height:32px;align-items:center;justify-content:center;border:1px solid #e4d2c3;border-radius:8px;background:#FFFFFF;color:#7b5c69;font-size:12px;font-weight:700;text-decoration:none}.page-btn.active{border-color:var(--wine);background:var(--wine);color:#FFFFFF}
+  .sp-status{display:inline-flex;align-items:center;border-radius:20px;padding:3px 9px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
 
-  @media(max-width:1150px){.sd-search-form{grid-template-columns:1fr 1fr 1fr}.sd-search-btn{grid-column:3}.sd-featured-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.sd-featured-item:nth-child(3){border-right:0}.sd-row{grid-template-columns:minmax(230px,1.2fr) minmax(170px,.8fr) minmax(220px,1fr)}.sd-state{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end}}
-  @media(max-width:780px){.supplier-directory-shell{padding:20px}.sd-head{align-items:flex-start;flex-direction:column}.sd-search-form{grid-template-columns:1fr}.sd-search-btn{grid-column:auto}.sd-active-filters{align-items:flex-start}.sd-clear-all{width:100%;margin:2px 0 0}.sd-featured-grid{grid-template-columns:1fr}.sd-featured-item{border-right:0;border-bottom:1px solid #f0e5dc}.sd-featured-item:last-child{border-bottom:0}.sd-row{grid-template-columns:1fr;gap:14px;padding:17px 16px}.sd-state{grid-column:auto;justify-content:flex-start}.sd-signals{padding-top:12px;border-top:1px solid #f0e5dc}.pagination{align-items:flex-start;flex-direction:column}}
-  @media(prefers-reduced-motion:reduce){.sd-row,.sd-featured-item{transition:none}}
+  .sp-online{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--body)}
+  .sp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .sp-dot.on{background:#059669}
+  .sp-dot.off{background:#d4d4d4}
+
+  .sp-time{font-size:12px;color:var(--body);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .sp-action{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 12px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--primary);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;transition:all .12s}
+  .sp-action:hover{background:var(--hover)}
+
+  .sp-empty{padding:34px 20px;text-align:center;color:var(--muted)}
+
+  .sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;padding:14px}
+  .sp-grid-card{border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:16px;transition:transform .15s,border-color .15s,box-shadow .15s}
+  .sp-grid-card:hover{transform:translateY(-2px);border-color:#d4c0b0;box-shadow:0 4px 12px rgba(28,25,23,.06)}
+  .sp-grid-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .sp-grid-avatar{width:40px;height:40px;border-radius:.75rem;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+  .sp-grid-name{font-weight:600;color:var(--text);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-grid-owner{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp-grid-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .sp-grid-meta .sp-status{font-size:9px;padding:2px 8px}
+  .sp-grid-meta .sp-online{font-size:11px}
+  .sp-grid-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--border-light);font-size:12px}
+  .sp-grid-row:first-child{border-top:0;padding-top:0}
+  .sp-grid-label{color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+  .sp-grid-val{color:var(--body);font-weight:600;font-variant-numeric:tabular-nums}
+  .sp-grid-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-light)}
+  .sp-grid-cat{font-size:10px;font-weight:700;color:var(--body);background:var(--soft);padding:2px 8px;border-radius:999px;border:1px solid var(--border-light)}
+  .sp-grid .sp-action{font-size:10px;height:28px;padding:0 10px}
+
+  .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-light)}
+  .page-info{font-size:12px;color:var(--muted)}
+  .page-btns{display:flex;gap:4px}
+  .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
+  .page-btn:hover{background:var(--soft)}
+  .page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+  @media(max-width:900px){.suppliers-page{padding:20px 16px}.sp-table-wrap{overflow-x:auto}}
 </style>
 
-<div class="supplier-directory">
-  <header class="sd-head">
-    <div>
-      <p class="sd-kicker">Partner operations</p>
-      <h1 class="sd-title">Supplier directory</h1>
-      <p class="sd-copy">Review applications, monitor account health, and open each supplier’s operational record.</p>
-    </div>
-    <span class="sd-total"><strong><?= number_format($counts['all']) ?></strong> suppliers</span>
-  </header>
-
-  <section class="sd-toolbar" aria-label="Supplier filters">
-    <div class="sd-search-row">
-      <form class="sd-search-form" method="get" action="<?= URLROOT ?>/admin/suppliers">
-        <div class="sd-select-wrap">
-          <i data-lucide="activity" class="sd-select-icon"></i>
-          <select class="sd-select" name="status" aria-label="Supplier status">
-            <?php foreach (['all' => 'All statuses', 'pending' => 'Pending', 'approved' => 'Approved', 'verified' => 'Verified', 'rejected' => 'Rejected', 'banned' => 'Banned'] as $value => $label): ?>
-              <option value="<?= $value ?>" <?= $status === $value ? 'selected' : '' ?>><?= $label ?></option>
-            <?php endforeach; ?>
-          </select>
-          <i data-lucide="chevron-down" class="sd-select-chevron"></i>
-        </div>
-        <div class="sd-select-wrap">
-          <i data-lucide="tags" class="sd-select-icon"></i>
-          <select class="sd-select" name="category" aria-label="Supplier category">
-            <option value="0">All categories</option>
-            <?php foreach ($categories as $category): ?>
-              <option value="<?= (int)$category['id'] ?>" <?= $categoryId === (int)$category['id'] ? 'selected' : '' ?>><?= $h($category['name'] ?? '') ?></option>
-            <?php endforeach; ?>
-          </select>
-          <i data-lucide="chevron-down" class="sd-select-chevron"></i>
-        </div>
-        <div class="sd-select-wrap">
-          <i data-lucide="wallet-cards" class="sd-select-icon"></i>
-          <select class="sd-select" name="payment" aria-label="Payment status">
-            <option value="all" <?= $paymentStatus === 'all' ? 'selected' : '' ?>>All payments</option>
-            <option value="paid" <?= $paymentStatus === 'paid' ? 'selected' : '' ?>>Paid</option>
-            <option value="unpaid" <?= $paymentStatus === 'unpaid' ? 'selected' : '' ?>>Unpaid</option>
-          </select>
-          <i data-lucide="chevron-down" class="sd-select-chevron"></i>
-        </div>
-        <button class="sd-search-btn" type="submit"><i data-lucide="sliders-horizontal" class="h-3.5 w-3.5"></i>Apply</button>
-      </form>
-    </div>
-    <?php
-      $activeCategoryName = '';
-      foreach ($categories as $category) {
-          if ((int)$category['id'] === $categoryId) $activeCategoryName = (string)($category['name'] ?? '');
-      }
-      $hasActiveFilters = $search !== '' || $status !== 'all' || $categoryId > 0 || $paymentStatus !== 'all';
-    ?>
-    <?php if ($hasActiveFilters): ?>
-      <div class="sd-active-filters">
-        <span class="sd-active-label">Active filters</span>
-        <?php if ($search !== ''): ?>
-          <a class="sd-active-chip" href="<?= $h($filterUrl($status, '', $categoryId, $paymentStatus)) ?>">Search: “<?= $h($search) ?>” <i data-lucide="x"></i></a>
-        <?php endif; ?>
-        <?php if ($status !== 'all'): ?>
-          <a class="sd-active-chip" href="<?= $h($filterUrl('all', $search, $categoryId, $paymentStatus)) ?>"><?= $h(ucfirst($status)) ?> <i data-lucide="x"></i></a>
-        <?php endif; ?>
-        <?php if ($categoryId > 0): ?>
-          <a class="sd-active-chip" href="<?= $h($filterUrl($status, $search, 0, $paymentStatus)) ?>"><?= $h($activeCategoryName) ?> <i data-lucide="x"></i></a>
-        <?php endif; ?>
-        <?php if ($paymentStatus !== 'all'): ?>
-          <a class="sd-active-chip" href="<?= $h($filterUrl($status, $search, $categoryId, 'all')) ?>"><?= $h(ucfirst($paymentStatus)) ?> <i data-lucide="x"></i></a>
-        <?php endif; ?>
-        <a class="sd-clear-all" href="<?= URLROOT ?>/admin/suppliers">Clear all</a>
+<div class="suppliers-page">
+  <div class="sp-inner">
+    <div class="sp-head">
+      <div class="sp-head-left">
+        <p class="sp-eyebrow">Partner operations</p>
+        <h1 class="sp-title">Suppliers</h1>
       </div>
-    <?php endif; ?>
-  </section>
-
-  <?php if ($status === 'all' && $search === '' && $categoryId === 0 && $paymentStatus === 'all' && !empty($topSuppliers)): ?>
-    <section class="sd-featured">
-      <div class="sd-section-head">
-        <h2 class="sd-section-title"><i data-lucide="trophy"></i> Top-performing partners</h2>
-        <span class="sd-section-note">Ranked by confirmed revenue</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="sp-count"><strong><?= number_format($counts['all']) ?></strong> total</span>
+        <div class="sp-view-toggle">
+          <button type="button" class="sp-view-btn is-active" data-view="table" onclick="setSupplierView('table')" title="Table view">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <button type="button" class="sp-view-btn" data-view="grid" onclick="setSupplierView('grid')" title="Grid view">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="sd-featured-grid">
-        <?php foreach ($topSuppliers as $index => $top): ?>
-          <a class="sd-featured-item" href="<?= URLROOT ?>/admin/supplier/<?= (int)$top['supplier_id'] ?>">
-            <div class="sd-featured-rank">Rank <?= $index + 1 ?></div>
-            <div class="sd-featured-name"><?= $h($top['shop_name'] ?? 'Supplier') ?></div>
-            <div class="sd-featured-stats"><?= $money($top['revenue_earned'] ?? 0) ?><br><?= (int)($top['completed_bookings'] ?? 0) ?> bookings · <?= number_format((float)($top['avg_rating'] ?? 0), 1) ?> ★</div>
-          </a>
-        <?php endforeach; ?>
-      </div>
-    </section>
-  <?php endif; ?>
-
-  <?php if (empty($suppliers)): ?>
-    <div class="sd-empty">
-      <span class="sd-empty-icon"><i data-lucide="store"></i></span>
-      <h2>No suppliers found</h2>
-      <p>Adjust the filters or clear the active filters above.</p>
     </div>
-  <?php else: ?>
-    <section class="sd-directory-list" aria-label="Supplier directory results">
-      <?php foreach ($suppliers as $supplier): ?>
-        <?php
-        [$statusLabel, $statusColor, $statusIcon] = $statusMeta($supplier['status'] ?? '');
-        [$paymentLabel, $paymentClass] = $paymentMeta($supplier['payment_status'] ?? '');
-        $supplierCategories = array_values(array_filter(array_map('trim', explode(',', (string)($supplier['category_names'] ?? '')))));
-        $initial = mb_strtoupper(mb_substr(trim((string)($supplier['shop_name'] ?? 'S')), 0, 1));
-        $warningLevel = (int)($supplier['warning_level'] ?? 0);
-        ?>
-        <article class="sd-row" style="--status-color:<?= $h($statusColor) ?>">
-          <div class="sd-business">
-            <span class="sd-avatar"><?= $h($initial) ?></span>
-            <div class="sd-business-copy">
-              <div class="sd-name"><?= $h($supplier['shop_name'] ?? 'Supplier') ?></div>
-              <div class="sd-owner"><?= $h($supplier['owner_name'] ?? 'Unknown owner') ?> · <?= $h($supplier['owner_email'] ?? 'No email') ?></div>
-            </div>
-          </div>
 
-          <div class="sd-category">
-            <?php if (empty($supplierCategories)): ?><span class="sd-chip">Uncategorized</span><?php endif; ?>
-            <?php foreach (array_slice($supplierCategories, 0, 2) as $category): ?><span class="sd-chip"><?= $h($category) ?></span><?php endforeach; ?>
-            <?php if (count($supplierCategories) > 2): ?><span class="sd-chip sd-chip-more">+<?= count($supplierCategories) - 2 ?></span><?php endif; ?>
-          </div>
-
-          <div class="sd-signals">
-            <div class="sd-signal"><span class="sd-signal-label">Bookings</span><strong class="sd-signal-value"><?= number_format((int)($supplier['booking_count'] ?? 0)) ?></strong></div>
-            <div class="sd-signal"><span class="sd-signal-label">Rating</span><strong class="sd-signal-value"><?= (int)($supplier['review_count'] ?? 0) > 0 ? number_format((float)$supplier['avg_rating'], 1) . ' ★' : 'New' ?></strong></div>
-            <div class="sd-signal"><span class="sd-signal-label">Payment</span><strong class="sd-signal-value"><?= $h($paymentLabel) ?></strong></div>
-          </div>
-
-          <div class="sd-state">
-            <span class="sd-badge"><i data-lucide="<?= $h($statusIcon) ?>"></i><?= $h($statusLabel) ?></span>
-            <span class="sd-payment <?= $h($paymentClass) ?>"><?= $h($paymentLabel) ?></span>
-            <?php if ($warningLevel > 0): ?><span class="sd-warning">Warning level <?= $warningLevel ?></span><?php endif; ?>
-            <a class="sd-action" href="<?= URLROOT ?>/admin/supplier/<?= (int)$supplier['supplier_id'] ?>">
-              <?= strtolower((string)($supplier['status'] ?? '')) === 'pending' ? 'Review' : 'Manage' ?>
-              <i data-lucide="arrow-up-right"></i>
+    <div class="sp-card">
+      <div class="toolbar">
+        <div class="filters">
+          <?php foreach (['all' => 'All', 'pending' => 'Pending', 'approved' => 'Active', 'verified' => 'Verified', 'rejected' => 'Rejected', 'banned' => 'Banned'] as $val => $label): ?>
+            <a href="<?= URLROOT ?>/admin/suppliers?status=<?= $val ?><?= $search !== '' ? '&search=' . urlencode($search) : '' ?>"
+               class="filter <?= $status === $val ? 'active' : '' ?>">
+              <?= $label ?>
+              <span class="filter-count"><?= number_format($counts[$val] ?? 0) ?></span>
             </a>
-          </div>
-        </article>
-      <?php endforeach; ?>
-    </section>
-  <?php endif; ?>
+          <?php endforeach; ?>
+        </div>
+      </div>
 
-  <?php
-  $baseParams = http_build_query(array_filter([
-      'status' => $status,
-      'search' => $search,
-      'category' => $categoryId > 0 ? $categoryId : '',
-      'payment' => $paymentStatus !== 'all' ? $paymentStatus : '',
-  ], static fn($value) => $value !== ''));
-  require APPROOT . '/views/partials/_pagination.php';
-  ?>
+      <?php if (empty($suppliers)): ?>
+        <div class="sp-empty">
+          <strong>No suppliers found</strong>
+          <p>Try adjusting your filters.</p>
+        </div>
+      <?php else: ?>
+        <!-- Table View -->
+        <div id="tableView">
+          <div class="sp-table-wrap">
+          <table class="sp-table">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Online</th>
+                <th>Last Login</th>
+                <th style="text-align:right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($suppliers as $supplier): ?>
+                <?php
+                  [$sLabel, $sColor, $sBg] = $statusBadge($supplier['status'] ?? '');
+                  $cats = array_values(array_filter(array_map('trim', explode(',', (string)($supplier['category_names'] ?? '')))));
+                  $initial = mb_strtoupper(mb_substr(trim((string)($supplier['shop_name'] ?? 'S')), 0, 1));
+                  $isOnline = !empty($supplier['is_online']);
+                  $lastLogin = $relativeTime($supplier['last_login'] ?? null);
+                ?>
+                <tr>
+                  <td>
+                    <div class="sp-name-cell">
+                      <span class="sp-avatar" style="background:<?= $sBg ?>;color:<?= $sColor ?>"><?= $h($initial) ?></span>
+                      <div class="sp-name-text">
+                        <div class="sp-shop"><?= $h($supplier['shop_name'] ?? 'Supplier') ?></div>
+                        <div class="sp-owner"><?= $h($supplier['owner_name'] ?? '') ?></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <?php if (!empty($cats)): ?>
+                      <?= $h($cats[0]) ?><?= count($cats) > 1 ? ' <span style="color:#A8A29E;font-size:11px">+' . (count($cats) - 1) . '</span>' : '' ?>
+                    <?php else: ?>
+                      <span style="color:#A8A29E">—</span>
+                    <?php endif; ?>
+                  </td>
+                  <td><span class="sp-status" style="color:<?= $sColor ?>;background:<?= $sBg ?>"><?= $h($sLabel) ?></span></td>
+                  <td>
+                    <span class="sp-online">
+                      <span class="sp-dot <?= $isOnline ? 'on' : 'off' ?>"></span>
+                      <?= $isOnline ? 'Online' : 'Offline' ?>
+                    </span>
+                  </td>
+                  <td><span class="sp-time"><?= $h($lastLogin) ?></span></td>
+                  <td style="text-align:right">
+                    <a class="sp-action" href="<?= URLROOT ?>/admin/supplier/<?= (int)$supplier['supplier_id'] ?>">
+                      View <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+                    </a>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <!-- Grid View -->
+        <div id="gridView" style="display:none">
+          <div class="sp-grid">
+            <?php foreach ($suppliers as $supplier): ?>
+              <?php
+                [$sLabel, $sColor, $sBg] = $statusBadge($supplier['status'] ?? '');
+                $cats = array_values(array_filter(array_map('trim', explode(',', (string)($supplier['category_names'] ?? '')))));
+                $initial = mb_strtoupper(mb_substr(trim((string)($supplier['shop_name'] ?? 'S')), 0, 1));
+                $isOnline = !empty($supplier['is_online']);
+                $lastLogin = $relativeTime($supplier['last_login'] ?? null);
+              ?>
+              <div class="sp-grid-card">
+                <div class="sp-grid-top">
+                  <span class="sp-grid-avatar" style="background:<?= $sBg ?>;color:<?= $sColor ?>"><?= $h($initial) ?></span>
+                  <div style="min-width:0;flex:1">
+                    <div class="sp-grid-name"><?= $h($supplier['shop_name'] ?? 'Supplier') ?></div>
+                    <div class="sp-grid-owner"><?= $h($supplier['owner_name'] ?? '') ?></div>
+                  </div>
+                </div>
+                <div class="sp-grid-meta">
+                  <span class="sp-status" style="color:<?= $sColor ?>;background:<?= $sBg ?>"><?= $h($sLabel) ?></span>
+                  <span class="sp-online">
+                    <span class="sp-dot <?= $isOnline ? 'on' : 'off' ?>"></span>
+                    <?= $isOnline ? 'Online' : 'Offline' ?>
+                  </span>
+                </div>
+                <div class="sp-grid-row">
+                  <span class="sp-grid-label">Category</span>
+                  <span class="sp-grid-val"><?= !empty($cats) ? $h($cats[0]) : '—' ?></span>
+                </div>
+                <div class="sp-grid-row">
+                  <span class="sp-grid-label">Last Login</span>
+                  <span class="sp-grid-val"><?= $h($lastLogin) ?></span>
+                </div>
+                <div class="sp-grid-foot">
+                  <?php if (!empty($cats)): ?>
+                    <span class="sp-grid-cat"><?= $h($cats[0]) ?></span>
+                  <?php else: ?>
+                    <span></span>
+                  <?php endif; ?>
+                  <a class="sp-action" href="<?= URLROOT ?>/admin/supplier/<?= (int)$supplier['supplier_id'] ?>">
+                    View <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+                  </a>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php
+      $baseParams = http_build_query(array_filter([
+          'status' => $status,
+          'search' => $search,
+      ], static fn($value) => $value !== ''));
+      require APPROOT . '/views/partials/_pagination.php';
+      ?>
+    </div>
+  </div>
 </div>
 <?php
 };
@@ -317,5 +349,23 @@ $dashboardContent = function () use (
 <head><?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns:280px 1fr">
   <?php require APPROOT . '/views/dashboardLayout/adminsidebar.php'; ?>
+  <script>
+    function setSupplierView(mode) {
+      var table = document.getElementById('tableView');
+      var grid = document.getElementById('gridView');
+      if (table) table.style.display = mode === 'table' ? '' : 'none';
+      if (grid) grid.style.display = mode === 'grid' ? '' : 'none';
+      document.querySelectorAll('.sp-view-btn').forEach(function(btn) {
+        btn.classList.toggle('is-active', btn.dataset.view === mode);
+      });
+      try { localStorage.setItem('supplierViewMode', mode); } catch(e) {}
+    }
+    (function() {
+      try {
+        var saved = localStorage.getItem('supplierViewMode');
+        if (saved === 'grid') setSupplierView('grid');
+      } catch(e) {}
+    })();
+  </script>
 </body>
 </html>

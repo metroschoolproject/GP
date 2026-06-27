@@ -1,7 +1,6 @@
 <?php
 $package = $package ?? null;
 $message = $message ?? '';
-$categories = $categories ?? [];
 $serviceOptions = $serviceOptions ?? [];
 $hallOptionsByService = $hallOptionsByService ?? [];
 $attireOptionsByService = $attireOptionsByService ?? [];
@@ -16,7 +15,7 @@ $dashboardBreadcrumbs = [
 ];
 $dashboardContentClass = 'admin-pkg-detail';
 
-$dashboardContent = function () use ($package, $message, $categories, $serviceOptions, $hallOptionsByService, $attireOptionsByService, $decoOptionsByService) {
+$dashboardContent = function () use ($package, $message, $serviceOptions, $hallOptionsByService, $attireOptionsByService, $decoOptionsByService) {
   $h = fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
   $money = fn($value) => 'MMK ' . number_format((float)$value, 0);
 
@@ -52,12 +51,6 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
   $packageAgentFee  = $packageBasePrice * $agentFeeRate;
   $packagePrice     = $packageBasePrice + $packageAgentFee;
   $saving           = max(0, $suggestedPrice - $packagePrice);
-
-  // ── Package category label ───────────────────────────────────────────────
-  $pkgCategoryId   = (int)($package['category_id'] ?? 0);
-  $pkgCategoryName = trim((string)($package['category_name'] ?? ''));
-  $pkgCategorySlug = strtolower(trim((string)($package['category_slug'] ?? $pkgCategoryName)));
-  $isVenuePackage  = str_contains($pkgCategorySlug, 'venue') || str_contains($pkgCategorySlug, 'hall');
 
   $isDraft = (($package['status'] ?? '') === 'draft');
   $isPublished = (($package['status'] ?? '') === 'published');
@@ -265,14 +258,6 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
 .cover-upload-error{display:none;margin-top:7px;color:#b42318;font-size:12px;font-weight:600}
 .cover-upload-error.is-visible{display:block}
 
-/* ── Category badge strip ─────────────────────────────────────────────── */
-.pkg-category-strip{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding:12px 16px;background:var(--soft);border:1px solid var(--border-light);border-radius:.75rem}
-.pkg-category-icon{width:32px;height:32px;border-radius:50%;background:var(--primary);display:grid;place-items:center;flex-shrink:0}
-.pkg-category-icon svg{stroke:#fff}
-.pkg-category-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:1px}
-.pkg-category-name{font-size:14px;font-weight:700;color:var(--text)}
-.pkg-category-note{margin-left:auto;font-size:11px;color:var(--muted)}
-
 /* ── Add-service panel ────────────────────────────────────────────────── */
 .service-catalog-modal{
   --surface:#fff;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;
@@ -460,27 +445,8 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
           <span class="badge badge-inactive">● <?= $h($package['status'] ?? 'Unknown') ?></span>
         <?php endif; ?>
       </div>
-      <div class="stat-sub"><?= $pkgCategoryName ?: 'No category set' ?></div>
     </div>
   </div>
-
-  <!-- ── Package category strip ────────────────────────────────────────── -->
-  <?php if ($pkgCategoryName): ?>
-  <div class="pkg-category-strip">
-    <div class="pkg-category-icon">
-      <?php if ($isVenuePackage): ?>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <?php else: ?>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-      <?php endif; ?>
-    </div>
-    <div>
-      <div class="pkg-category-label">Package Category</div>
-      <div class="pkg-category-name"><?= $h($pkgCategoryName) ?></div>
-    </div>
-    <div class="pkg-category-note">Packages can include any services admin chooses.</div>
-  </div>
-  <?php endif; ?>
 
   <!-- ── Basic information ─────────────────────────────────────────────── -->
   <div class="card">
@@ -497,15 +463,9 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
         <label>Name</label>
         <div class="value"><?= $h($package['name'] ?? '') ?></div>
       </div>
-      <div class="two-col">
-        <div class="field">
-          <label>Slug</label>
-          <div class="value muted"><?= $h($package['slug'] ?? '') ?></div>
-        </div>
-        <div class="field">
-          <label>Category</label>
-          <div class="value muted"><?= $h($pkgCategoryName ?: '—') ?></div>
-        </div>
+      <div class="field">
+        <label>Slug</label>
+        <div class="value muted"><?= $h($package['slug'] ?? '') ?></div>
       </div>
       <div class="field">
         <label>Tagline</label>
@@ -554,28 +514,9 @@ $dashboardContent = function () use ($package, $message, $categories, $serviceOp
           </div>
         </div>
 
-        <div class="two-col">
-          <div class="field">
-            <label>Tagline</label>
-            <input type="text" name="tagline" value="<?= $h($package['tagline'] ?? '') ?>">
-          </div>
-          <div class="field">
-            <label>Category</label>
-            <?php if (!empty($categories)): ?>
-              <select name="category_id">
-                <option value="">— No category —</option>
-                <?php foreach ($categories as $cat): ?>
-                  <option value="<?= (int)$cat['id'] ?>"
-                    <?= ((int)$cat['id'] === $pkgCategoryId) ? 'selected' : '' ?>>
-                    <?= $h($cat['name']) ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            <?php else: ?>
-              <input type="text" value="<?= $h($pkgCategoryName) ?>" readonly style="background:var(--soft);color:var(--muted)">
-              <input type="hidden" name="category_id" value="<?= $pkgCategoryId ?>">
-            <?php endif; ?>
-          </div>
+        <div class="field">
+          <label>Tagline</label>
+          <input type="text" name="tagline" value="<?= $h($package['tagline'] ?? '') ?>">
         </div>
 
         <div class="field">

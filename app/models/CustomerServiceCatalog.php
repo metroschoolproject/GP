@@ -326,6 +326,8 @@ class CustomerServiceCatalog
         $formatted['selected_date'] = $selectedDate ?: '';
         $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate, $formatted['min_lead_days']) : [];
         $formatted['decoration_styles'] = strtolower((string)$formatted['category']) === 'decoration' ? $this->getDecorationStyles($serviceId) : [];
+        $formatted['food_items'] = strtolower((string)$formatted['category']) === 'food' ? $this->getFoodItems($serviceId) : [];
+        $formatted['attire_items'] = strtolower((string)$formatted['category']) === 'attire' ? $this->getAttireItemsWithRentalOptions($serviceId) : [];
         $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted, $selectedDate);
 
         require_once APPROOT . '/models/ReviewModel.php';
@@ -883,6 +885,34 @@ class CustomerServiceCatalog
         }, $this->db->getmultidata());
     }
 
+    private function getFoodItems($serviceId): array
+    {
+        try {
+            $this->db->dbquery(
+                'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
+                 FROM food_items
+                 WHERE service_id = :service_id
+                 ORDER BY sort_order ASC, id ASC'
+            );
+            $this->db->dbbind(':service_id', (int)$serviceId);
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        return array_map(function ($row) {
+            return [
+                'id' => (int)($row['id'] ?? 0),
+                'name' => $row['name'] ?? '',
+                'description' => $row['description'] ?? '',
+                'price' => (float)($row['price'] ?? 0),
+                'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
+                'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
+                'photo_url' => trim((string)($row['photo_url'] ?? '')),
+                'pricing_model' => $row['pricing_model'] ?? 'flat',
+            ];
+        }, $this->db->getmultidata());
+    }
+
     private function getRelatedServices($serviceId, $categorySlug, $limit = 3)
     {
         if (!$categorySlug) {
@@ -1293,5 +1323,32 @@ class CustomerServiceCatalog
         $this->db->dbbind(':township_like2', $townshipLike);
 
         return array_map(fn($row) => (int)$row['id'], $this->db->getmultidata());
+    }
+
+    /**
+     * Fetch attire items for a service with their rental options.
+     */
+    private function getAttireItemsWithRentalOptions(int $serviceId): array
+    {
+        $this->db->dbquery(
+            'SELECT * FROM attire_items
+             WHERE service_id = :service_id
+             ORDER BY sort_order ASC, id ASC'
+        );
+        $this->db->dbbind(':service_id', $serviceId);
+        $items = $this->db->getmultidata();
+
+        foreach ($items as &$item) {
+            $this->db->dbquery(
+                'SELECT * FROM attire_rental_options
+                 WHERE attire_item_id = :attire_item_id
+                 ORDER BY days ASC'
+            );
+            $this->db->dbbind(':attire_item_id', (int)$item['id']);
+            $item['rental_options'] = $this->db->getmultidata();
+        }
+        unset($item);
+
+        return $items;
     }
 }

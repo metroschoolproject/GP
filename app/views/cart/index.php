@@ -1650,6 +1650,30 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             </span>
           </div>
           <?php endif; ?>
+          <?php
+            // Attire rental info
+            $rentalType = $item['rental_type'] ?? null;
+            $attireItemName = $item['attire_item_name'] ?? null;
+            $rentalDays = $item['rental_days'] ?? null;
+            $borrowDate = $item['borrow_date'] ?? null;
+          ?>
+          <?php if ($rentalType && $attireItemName): ?>
+          <div class="gp-item-meta">
+            <span class="gp-item-pill">
+              <i data-lucide="hanger" style="width:11px;height:11px"></i>
+              <?= $h($attireItemName) ?>
+            </span>
+            <span class="gp-item-pill">
+              <?php if ($rentalType === 'borrow'): ?>
+                <i data-lucide="refresh-cw" style="width:11px;height:11px"></i>
+                Borrow <?= (int)$rentalDays ?> day<?= (int)$rentalDays !== 1 ? 's' : '' ?>
+              <?php else: ?>
+                <i data-lucide="shopping-bag" style="width:11px;height:11px"></i>
+                Buy
+              <?php endif; ?>
+            </span>
+          </div>
+          <?php endif; ?>
           <?php if ($selectedDate || $timeRange): ?>
           <div class="gp-item-date-line">
             <?php if ($selectedDate): ?>

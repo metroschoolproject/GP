@@ -19,6 +19,11 @@ $replacementProofSubmitted = $pendingCustomer
 
 $dashboardTitle = 'Pick Replacement';
 $dashboardCrumb = 'Replacements';
+$dashboardBreadcrumbs = [
+    ['label' => 'Bookings', 'url' => URLROOT . '/admin/bookings'],
+    ['label' => 'Replacements', 'url' => URLROOT . '/admin/replacementQueue'],
+    ['label' => 'Pick replacement', 'url' => null],
+];
 $dashboardContentClass = 'admin-booking-outlet';
 
 $dashboardContent = function () use (

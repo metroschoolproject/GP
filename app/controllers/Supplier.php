@@ -382,6 +382,11 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(Booking::class, 'supplierBookings', func_get_args());
     }
 
+    public function assignments()
+    {
+        return $this->forwardTo(Booking::class, 'supplierAssignments', func_get_args());
+    }
+
     public function bookingDetail($bookingId = null)
     {
         return $this->forwardTo(Booking::class, 'supplierBookingDetail', [(int)$bookingId]);

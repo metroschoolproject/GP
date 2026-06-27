@@ -203,379 +203,342 @@
 </main>
 
 
-<!-- ══════════════════ MODAL: CREATE SERVICE (UNIFIED) ══════════════════ -->
-<div id="createServiceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(28,22,20,0.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
-  <div class="modal-box modal-box-wide create-service-dialog" role="dialog" aria-modal="true" aria-labelledby="createServiceTitle">
-    <div class="modal-h create-service-head">
-      <div>
-        <span class="create-service-kicker">Service management</span>
-        <h2 id="createServiceTitle" class="modal-h-title">Create a new service</h2>
-        <p id="createServiceSubtitle" class="modal-h-sub">Start by choosing what you provide.</p>
+<!-- ══════════════════ CREATE SERVICE PAGE ══════════════════ -->
+<section id="createServicePage" class="create-page hidden">
+  <div class="create-page-inner">
+    <a href="javascript:void(0)" onclick="closeCreateServiceModal()" class="create-back-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Back to Services
+    </a>
+
+    <!-- Card: Category -->
+    <div class="create-card">
+      <div class="create-card-title">Category</div>
+      <div id="createCategoryPills" class="create-cat-pills"></div>
+    </div>
+
+    <!-- Card: Service Details -->
+    <div class="create-card">
+      <div class="create-card-title">Service Details</div>
+
+      <div class="create-field">
+        <label class="create-label" for="csName">Name *</label>
+        <input id="csName" type="text" placeholder="e.g. Grand Ballroom" class="create-input"/>
       </div>
-      <button onclick="closeCreateServiceModal()" class="modal-h-close" aria-label="Close">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l10 10M13 3L3 13"/></svg>
-      </button>
-    </div>
 
-    <div class="create-service-progress" aria-label="Service creation progress">
-      <button type="button" class="create-progress-item is-active" data-create-step-button="1" onclick="goToCreateStep(1)">
-        <span>1</span><strong>Category</strong>
-      </button>
-      <i></i>
-      <button type="button" class="create-progress-item" data-create-step-button="2" onclick="goToCreateStep(2)">
-        <span>2</span><strong>Essentials</strong>
-      </button>
-      <i></i>
-      <button type="button" class="create-progress-item" data-create-step-button="3" onclick="goToCreateStep(3)">
-        <span>3</span><strong>Details</strong>
-      </button>
-    </div>
+      <div class="create-field">
+        <label class="create-label" for="csDesc">Description</label>
+        <textarea id="csDesc" rows="3" placeholder="Describe what makes this service special…" class="create-input create-textarea"></textarea>
+      </div>
 
-    <div class="modal-b create-service-body">
-      <section class="create-step is-active" data-create-step="1">
-        <div class="create-step-intro">
-          <span class="create-step-number">01</span>
-          <div>
-            <h3>What kind of service is this?</h3>
-            <p>Your choice shapes the pricing and detail fields in the next steps.</p>
-          </div>
-        </div>
-        <div id="createCategoryCards" class="create-category-grid"></div>
-      </section>
-
-      <section class="create-step" data-create-step="2">
-        <div class="create-step-intro">
-          <span class="create-step-number">02</span>
-          <div>
-            <h3>Give customers the essentials</h3>
-            <p>Add a clear name, cover image, and the information they compare first.</p>
-          </div>
-        </div>
-        <div class="create-essentials-grid">
-      <!-- Section: Media -->
-      <div class="create-cover-column">
-        <label class="fm-label">Cover photo</label>
+      <div class="create-field">
+        <label class="create-label">Cover Photo</label>
         <div id="csImgBox" onclick="triggerBrowse(event,'csImgInput')" class="img-zone" role="button" tabindex="0">
           <div class="img-zone-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
           </div>
-          <span class="img-zone-label">Upload an image</span>
-          <span class="img-zone-hint">JPG, PNG or WebP — shown in listings</span>
+          <span class="img-zone-label">Upload image</span>
         </div>
         <input id="csImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('csImgInput','csImgBox','csImgData', 16/9)"/>
         <input type="hidden" id="csImgData"/>
       </div>
 
-      <!-- Section: Basic info -->
-      <div class="create-main-fields">
-      <div class="modal-grid-2">
-        <div>
-          <label class="fm-label" for="csName">Service name <span class="fm-required">*</span></label>
-          <input id="csName" type="text" placeholder="e.g. Grand Ballroom" class="fm-input"/>
-        </div>
-        <div>
-          <label class="fm-label" for="csCategory">Category <span class="fm-required">*</span></label>
-          <select id="csCategory" class="fm-select" onchange="onCreateCategoryChange(this.value)"></select>
-        </div>
-      </div>
+      <!-- Hidden category select (used by JS for payload) -->
+      <select id="csCategory" class="hidden"></select>
 
-      <div>
-        <label class="fm-label" for="csDesc">Description</label>
-        <textarea id="csDesc" rows="3" placeholder="Describe what makes this service special…" class="fm-textarea"></textarea>
-      </div>
-      </div>
-      </div>
-
-      <!-- Section: Pricing (standard — hidden for Venue, Decoration, Dress, Accessories) -->
-      <div id="csStandardPriceFields" class="modal-grid-2" style="grid-template-columns:1fr 1fr 1fr">
-        <div>
-          <label class="fm-label" for="csPriceMin">Package price (MMK) <span class="fm-required">*</span></label>
-          <input id="csPriceMin" type="number" min="0" step="0.01" placeholder="e.g. 800" class="fm-input"/>
-        </div>
-        <div>
-          <label class="fm-label" for="csPriceMax">Customize price (MMK) <span class="fm-required">*</span></label>
-          <input id="csPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 1500" class="fm-input"/>
-        </div>
-	        <div>
-	          <label class="fm-label" for="csCapacity">Bookings per time slot</label>
-	          <input id="csCapacity" type="number" min="1" step="1" placeholder="e.g. 4" class="fm-input"/>
-	          <p class="fm-hint">How many bookings you can handle in the same slot. This is not a daily limit.</p>
-	        </div>
-      </div>
-      </section>
-
-      <section class="create-step" data-create-step="3">
-        <div class="create-step-intro">
-          <span class="create-step-number">03</span>
-          <div>
-            <h3>Finish the service setup</h3>
-            <p>Add the details specific to <strong id="createDetailCategory">your category</strong>, then set booking availability.</p>
+      <!-- Standard pricing -->
+      <div id="csStandardPriceFields" class="hidden-section">
+        <div class="create-two-col">
+          <div class="create-field">
+            <label class="create-label" for="csPriceMin">Package Price (MMK) *</label>
+            <input id="csPriceMin" type="number" min="0" step="0.01" placeholder="e.g. 800" class="create-input"/>
+          </div>
+          <div class="create-field">
+            <label class="create-label" for="csPriceMax">Customize Price (MMK) *</label>
+            <input id="csPriceMax" type="number" min="0" step="0.01" placeholder="e.g. 1500" class="create-input"/>
           </div>
         </div>
-      <!-- Section: Venue-specific -->
-      <div id="csVenueExtras" class="form-section-wrap hidden-section">
-        <div class="form-section-inner">
-          <div class="fm-section-label">Venue details</div>
-          <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
-            <div>
-              <label class="fm-label" for="csVenue">Venue name</label>
-              <input id="csVenue" type="text" placeholder="e.g. KL Convention Centre" class="fm-input"/>
-            </div>
-            <div class="modal-grid-2">
-              <div>
-                <label class="fm-label" for="csLocation">Location</label>
-                <input id="csLocation" type="text" placeholder="e.g. Yangon, Myanmar" class="fm-input"/>
-              </div>
-              <div>
-                <label class="fm-label" for="csType">Venue type</label>
-                <select id="csType" class="fm-select">
-                  <option value="">Select type…</option>
-                  <option value="Indoor">Indoor</option>
-                  <option value="Outdoor">Outdoor</option>
-                  <option value="Indoor+Outdoor">Indoor + Outdoor</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <div class="flex items-center justify-between" style="margin-bottom:12px">
-                <span class="fm-label" style="margin-bottom:0">Rooms / halls</span>
-                <button type="button" onclick="addVenueRoom('cs')" class="room-add">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
-                  Add room
-                </button>
-              </div>
-              <div id="csRoomsList" class="space-y-3"></div>
-            </div>
-          </div>
+        <div class="create-field">
+          <label class="create-label" for="csCapacity">Bookings per time slot</label>
+          <input id="csCapacity" type="number" min="1" step="1" placeholder="e.g. 4" class="create-input" style="max-width:160px"/>
+          <p class="create-hint">How many bookings you can handle in the same slot.</p>
         </div>
       </div>
-
-      <!-- Section: Decoration-specific -->
-      <div id="csDecorationExtras" class="form-section-wrap hidden-section">
-        <div class="form-section-inner">
-          <div class="fm-section-label">Decoration styles</div>
-          <div style="margin-top:12px">
-            <div class="flex items-center justify-between" style="margin-bottom:12px">
-              <span class="fm-label" style="margin-bottom:0">Styles &amp; prices</span>
-              <button type="button" onclick="addDecorationStyle('cs')" class="room-add">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
-                Add style
-              </button>
-            </div>
-            <div id="csStylesList" class="space-y-2"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section: Rental-specific (Dress / Accessories) -->
-      <div id="csRentalExtras" class="form-section-wrap hidden-section">
-        <div class="form-section-inner">
-          <div class="fm-section-label">Pricing options</div>
-          <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
-            <div class="modal-grid-2">
-              <div>
-                <label class="fm-label" for="csBorrowPackagePrice">Borrow package price (MMK)</label>
-                <input id="csBorrowPackagePrice" type="number" min="0" step="0.01" placeholder="e.g. 150,000" class="fm-input"/>
-              </div>
-              <div>
-                <label class="fm-label" for="csBorrowCustomizePrice">Borrow customize price (MMK)</label>
-                <input id="csBorrowCustomizePrice" type="number" min="0" step="0.01" placeholder="e.g. 220,000" class="fm-input"/>
-              </div>
-            </div>
-            <div class="modal-grid-2">
-              <div>
-                <label class="fm-label" for="csBuyPackagePrice">Buy package price (MMK)</label>
-                <input id="csBuyPackagePrice" type="number" min="0" step="0.01" placeholder="e.g. 850,000" class="fm-input"/>
-              </div>
-              <div>
-                <label class="fm-label" for="csBuyCustomizePrice">Buy customize price (MMK)</label>
-                <input id="csBuyCustomizePrice" type="number" min="0" step="0.01" placeholder="e.g. 1,200,000" class="fm-input"/>
-              </div>
-            </div>
-            <div class="modal-grid-2">
-              <div>
-                <label class="fm-label" for="csReturnDays">Return within (days)</label>
-                <input id="csReturnDays" type="number" min="1" step="1" placeholder="e.g. 3" class="fm-input"/>
-              </div>
-            </div>
-            <p class="fm-hint">Fill in borrow, buy, or both. Leave blank to hide unavailable options.</p>
-          </div>
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--fm-border)">
-            <div class="flex items-center justify-between" style="margin-bottom:12px">
-              <span class="fm-label" style="margin-bottom:0">Individual items</span>
-              <button type="button" onclick="addAttireItem('cs')" class="room-add">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
-                Add item
-              </button>
-            </div>
-            <div id="csAttireItemsList" class="space-y-3"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section: Settings -->
-      <div>
-        <div class="fm-section-label">Booking settings</div>
-        <div style="margin-top:16px;display:flex;flex-direction:column;gap:16px">
-          <div>
-            <label class="fm-label" for="csMinLeadDays">Minimum booking notice (days)</label>
-            <input id="csMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0" class="fm-input" style="max-width:160px"/>
-            <p class="fm-hint">How many days in advance customers must book. 0 = same day.</p>
-          </div>
-	          <div>
-	            <label class="fm-label">Default event time <span style="font-weight:400;color:var(--fm-text-muted)">— optional</span></label>
-	            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-	              <input id="csDefaultStartTime" type="time" class="fm-input" style="max-width:150px"/>
-	              <span style="color:var(--fm-text-soft);flex-shrink:0;font-size:13px">to</span>
-	              <input id="csDefaultEndTime" type="time" class="fm-input" style="max-width:150px"/>
-	            </div>
-	            <p class="fm-hint">Fallback time for package/full-day bookings. This does not open your weekly calendar.</p>
-	          </div>
-        </div>
-      </div>
-      </section>
     </div>
-    <div class="modal-f create-service-footer">
-      <button id="createCancelBtn" onclick="closeCreateServiceModal()" class="btn-dull">Cancel</button>
-      <span id="createStepSummary" class="create-step-summary">Choose one category to continue</span>
-      <button id="createBackBtn" type="button" onclick="previousCreateStep()" class="btn-dull hidden">Back</button>
-      <button id="createNextBtn" type="button" onclick="nextCreateStep()" class="btn-save" disabled>Continue</button>
-      <button id="createSaveBtn" type="button" onclick="saveCreateService()" class="btn-save hidden">Create service</button>
+
+    <!-- Card: Venue Details -->
+    <div id="csVenueExtras" class="create-card hidden-section">
+      <div class="create-card-title">Venue Details</div>
+      <div class="create-field">
+        <label class="create-label" for="csVenue">Venue name</label>
+        <input id="csVenue" type="text" placeholder="e.g. KL Convention Centre" class="create-input"/>
+      </div>
+      <div class="create-two-col">
+        <div class="create-field">
+          <label class="create-label" for="csLocation">Location</label>
+          <input id="csLocation" type="text" placeholder="e.g. Yangon" class="create-input"/>
+        </div>
+        <div class="create-field">
+          <label class="create-label" for="csType">Venue type</label>
+          <select id="csType" class="create-input">
+            <option value="">Select type…</option>
+            <option value="Indoor">Indoor</option>
+            <option value="Outdoor">Outdoor</option>
+            <option value="Indoor+Outdoor">Indoor + Outdoor</option>
+          </select>
+        </div>
+      </div>
+      <div class="create-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label class="create-label" style="margin-bottom:0">Rooms / halls</label>
+          <button type="button" onclick="addVenueRoom('cs')" class="room-add">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+            Add room
+          </button>
+        </div>
+        <div id="csRoomsList" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- Card: Decoration Styles -->
+    <div id="csDecorationExtras" class="create-card hidden-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="create-card-title" style="margin-bottom:0;padding-bottom:0;border-bottom:0">Decoration Styles</div>
+        <button type="button" onclick="addDecorationStyle('cs')" class="room-add">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+          Add style
+        </button>
+      </div>
+      <div id="csStylesList" class="space-y-2"></div>
+    </div>
+
+    <!-- Card: Cake Items -->
+    <div id="csFoodExtras" class="create-card hidden-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="create-card-title" style="margin-bottom:0;padding-bottom:0;border-bottom:0">Cake Items</div>
+        <button type="button" onclick="addFoodItem('cs')" class="room-add">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+          Add cake
+        </button>
+      </div>
+      <div id="csFoodItemsList" class="space-y-3"></div>
+    </div>
+
+    <!-- Card: Rental Pricing -->
+    <div id="csRentalExtras" class="create-card hidden-section">
+      <div class="create-card-title">Rental Pricing</div>
+      <div class="create-two-col">
+        <div class="create-field">
+          <label class="create-label" for="csBorrowPackagePrice">Borrow package price</label>
+          <input id="csBorrowPackagePrice" type="number" min="0" step="0.01" placeholder="e.g. 150,000" class="create-input"/>
+        </div>
+        <div class="create-field">
+          <label class="create-label" for="csBorrowCustomizePrice">Borrow customize price</label>
+          <input id="csBorrowCustomizePrice" type="number" min="0" step="0.01" placeholder="e.g. 220,000" class="create-input"/>
+        </div>
+        <div class="create-field">
+          <label class="create-label" for="csBuyPackagePrice">Buy package price</label>
+          <input id="csBuyPackagePrice" type="number" min="0" step="0.01" placeholder="e.g. 850,000" class="create-input"/>
+        </div>
+        <div class="create-field">
+          <label class="create-label" for="csBuyCustomizePrice">Buy customize price</label>
+          <input id="csBuyCustomizePrice" type="number" min="0" step="0.01" placeholder="e.g. 1,200,000" class="create-input"/>
+        </div>
+      </div>
+      <div class="create-field">
+        <label class="create-label" for="csReturnDays">Return within (days)</label>
+        <input id="csReturnDays" type="number" min="1" step="1" placeholder="e.g. 3" class="create-input" style="max-width:160px"/>
+      </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--create-border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label class="create-label" style="margin-bottom:0">Individual items</label>
+          <button type="button" onclick="addAttireItem('cs')" class="room-add">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+            Add item
+          </button>
+        </div>
+        <div id="csAttireItemsList" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- Card: Booking Settings -->
+    <div class="create-card">
+      <div class="create-card-title">Booking Settings</div>
+      <div class="create-two-col">
+        <div class="create-field">
+          <label class="create-label" for="csMinLeadDays">Minimum booking notice (days)</label>
+          <input id="csMinLeadDays" type="number" min="0" max="365" value="0" placeholder="0" class="create-input" style="max-width:160px"/>
+          <p class="create-hint">How many days in advance customers must book. 0 = same day.</p>
+        </div>
+        <div class="create-field">
+          <label class="create-label">Default event time <span style="font-weight:400;color:var(--create-muted)">optional</span></label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input id="csDefaultStartTime" type="time" class="create-input" style="max-width:150px"/>
+            <span style="color:var(--create-muted);font-size:12px">to</span>
+            <input id="csDefaultEndTime" type="time" class="create-input" style="max-width:150px"/>
+          </div>
+          <p class="create-hint">Fallback time for package/full-day bookings.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button type="button" onclick="saveCreateService()" class="create-btn-primary">Create Service</button>
+      <button type="button" onclick="closeCreateServiceModal()" class="create-btn-ghost">Cancel</button>
     </div>
   </div>
-</div>
+
+</section>
 
 
 <!-- ══════════════════ MODAL: EDIT SERVICE ══════════════════ -->
-<div id="editServiceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(28,22,20,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)">
-  <div class="modal-box" style="max-width:580px">
-    <div class="modal-h">
+<div id="editServiceModal" class="hidden fixed inset-0 z-50 flex items-start justify-center" style="background:rgba(28,22,20,0.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);overflow-y:auto;padding:40px 16px">
+  <div class="create-modal-box" style="max-width:740px" onclick="event.stopPropagation()">
+    <div class="create-modal-header">
       <div>
-        <h2 class="modal-h-title">Edit Service</h2>
-        <p class="modal-h-sub">Update service details</p>
+        <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--create-text)">Edit Service</h2>
+        <p style="margin:4px 0 0;font-size:12px;color:var(--create-muted)">Update service details</p>
       </div>
-      <button onclick="closeAll()" class="modal-h-close" aria-label="Close">&times;</button>
+      <button onclick="closeAll()" class="create-modal-close" aria-label="Close">&times;</button>
     </div>
-    <div class="modal-b modal-b-space">
-      <div id="esImgBox" onclick="triggerBrowse(event,'esImgInput')" class="img-zone" role="button" tabindex="0" style="min-height:130px">
-        <div class="img-zone-icon">+</div>
-        <span class="img-zone-label">Add a photo</span>
-      </div>
-      <input id="esImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('esImgInput','esImgBox','esImgData', 16/9)"/>
-      <input type="hidden" id="esImgData"/>
-      <div>
-        <label class="fm-label" for="esName">Name</label>
-        <input id="esName" type="text" class="fm-input"/>
-      </div>
-      <div>
-        <label class="fm-label" for="esDesc">Description</label>
-        <textarea id="esDesc" rows="3" class="fm-textarea"></textarea>
-      </div>
-      <div id="esServicePriceFields" class="modal-grid-2">
-        <div>
-          <label class="fm-label" for="esPriceMin">Package price (MMK)</label>
-          <input id="esPriceMin" type="number" min="0" step="0.01" class="fm-input"/>
+    <div class="create-modal-body">
+      <div class="create-card" style="margin-bottom:0">
+        <div class="create-card-title">Basic Info</div>
+        <div class="create-field">
+          <label class="create-label">Cover Photo</label>
+          <div id="esImgBox" onclick="triggerBrowse(event,'esImgInput')" class="img-zone" role="button" tabindex="0" style="min-height:140px">
+            <div class="img-zone-icon">+</div>
+            <span class="img-zone-label">Add a photo</span>
+          </div>
+          <input id="esImgInput" type="file" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="initAdjustmentFramework('esImgInput','esImgBox','esImgData', 16/9)"/>
+          <input type="hidden" id="esImgData"/>
         </div>
-        <div>
-          <label class="fm-label" for="esPriceMax">Customize price (MMK)</label>
-          <input id="esPriceMax" type="number" min="0" step="0.01" class="fm-input"/>
+        <div class="create-field">
+          <label class="create-label" for="esName">Name</label>
+          <input id="esName" type="text" class="create-input"/>
+        </div>
+        <div class="create-field">
+          <label class="create-label" for="esDesc">Description</label>
+          <textarea id="esDesc" rows="3" class="create-input create-textarea"></textarea>
+        </div>
+        <div id="esServicePriceFields" class="create-two-col">
+          <div class="create-field">
+            <label class="create-label" for="esPriceMin">Package price (MMK)</label>
+            <input id="esPriceMin" type="number" min="0" step="0.01" class="create-input"/>
+          </div>
+          <div class="create-field">
+            <label class="create-label" for="esPriceMax">Customize price (MMK)</label>
+            <input id="esPriceMax" type="number" min="0" step="0.01" class="create-input"/>
+          </div>
         </div>
       </div>
-      <div>
-        <label class="fm-label" for="esMinLeadDays">Minimum booking notice (days)</label>
-        <input id="esMinLeadDays" type="number" min="0" max="365" placeholder="0 = same day, 30 = 1 month, 90 = 3 months" class="fm-input"/>
-        <div style="font-size:12px;color:#666;margin-top:4px">How many days in advance must customers book this service?</div>
-      </div>
-	      <div id="esDefaultTimeRow">
-	        <label class="fm-label">Default event time <span style="font-weight:400;color:#9a8b82">(optional)</span></label>
-	        <div style="display:flex;align-items:center;gap:8px">
-	          <input id="esDefaultStartTime" type="time" class="fm-input" style="max-width:130px"/>
-	          <span style="color:#9a8b82;flex-shrink:0">to</span>
-	          <input id="esDefaultEndTime" type="time" class="fm-input" style="max-width:130px"/>
-	        </div>
-	        <div style="font-size:12px;color:#666;margin-top:4px">Fallback time for package/full-day bookings. Weekly availability is set separately.</div>
-	      </div>
-      <div id="esVenueExtras" class="hidden space-y-4">
-        <div class="modal-grid-2">
-          <div>
-            <label class="fm-label" for="esType">Venue type</label>
-            <select id="esType" class="fm-select">
+
+      <!-- Venue extras -->
+      <div id="esVenueExtras" class="create-card hidden" style="margin-bottom:0">
+        <div class="create-card-title">Venue Details</div>
+        <div class="create-field">
+          <label class="create-label" for="esVenue">Venue name</label>
+          <input id="esVenue" type="text" class="create-input"/>
+        </div>
+        <div class="create-two-col">
+          <div class="create-field">
+            <label class="create-label" for="esLocation">Location</label>
+            <input id="esLocation" type="text" class="create-input"/>
+          </div>
+          <div class="create-field">
+            <label class="create-label" for="esType">Venue type</label>
+            <select id="esType" class="create-input">
               <option value="Indoor">Indoor</option>
               <option value="Outdoor">Outdoor</option>
               <option value="Indoor+Outdoor">Indoor + Outdoor</option>
             </select>
           </div>
         </div>
-        <div>
-          <label class="fm-label" for="esVenue">Venue name</label>
-          <input id="esVenue" type="text" class="fm-input"/>
-        </div>
-        <div>
-          <label class="fm-label" for="esLocation">Location</label>
-          <input id="esLocation" type="text" class="fm-input"/>
-        </div>
-        <div>
-          <div class="flex items-center justify-between" style="margin-bottom:10px">
-            <span class="fm-label" style="margin-bottom:0">Rooms / halls</span>
+        <div class="create-field">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <label class="create-label" style="margin-bottom:0">Rooms / halls</label>
             <button type="button" onclick="addVenueRoom('es')" class="room-add">+ Add room</button>
           </div>
           <div id="esRoomsList" class="space-y-3"></div>
         </div>
       </div>
-      <!-- Decoration extras — shown only for Decoration -->
-      <div id="esDecorationExtras" class="hidden space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="fm-label" style="margin-bottom:0">Decoration styles &amp; prices</span>
+
+      <!-- Decoration extras -->
+      <div id="esDecorationExtras" class="create-card hidden" style="margin-bottom:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="create-card-title" style="margin-bottom:0;padding-bottom:0;border-bottom:0">Decoration Styles</div>
           <button type="button" onclick="addDecorationStyle('es')" class="room-add">+ Add style</button>
         </div>
         <div id="esStylesList" class="space-y-2"></div>
       </div>
-      <!-- Rental extras — shown only for Dress / Accessories -->
-      <div id="esRentalExtras" class="hidden space-y-3">
-        <div class="fm-label" style="margin-bottom:4px">Pricing options</div>
-        <div class="modal-grid-2">
-          <div>
-            <label class="fm-label" for="esBorrowPackagePrice">Borrow package price (MMK)</label>
-            <input id="esBorrowPackagePrice" type="number" min="0" step="0.01" class="fm-input"/>
+
+      <!-- Food extras -->
+      <div id="esFoodExtras" class="create-card hidden" style="margin-bottom:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="create-card-title" style="margin-bottom:0;padding-bottom:0;border-bottom:0">Cake Items</div>
+          <button type="button" onclick="addFoodItem('es')" class="room-add">+ Add cake</button>
+        </div>
+        <div id="esFoodItemsList" class="space-y-3"></div>
+      </div>
+
+      <!-- Rental extras -->
+      <div id="esRentalExtras" class="create-card hidden" style="margin-bottom:0">
+        <div class="create-card-title">Rental Pricing</div>
+        <div class="create-two-col">
+          <div class="create-field">
+            <label class="create-label" for="esBorrowPackagePrice">Borrow package price</label>
+            <input id="esBorrowPackagePrice" type="number" min="0" step="0.01" class="create-input"/>
           </div>
-          <div>
-            <label class="fm-label" for="esBorrowCustomizePrice">Borrow customize price (MMK)</label>
-            <input id="esBorrowCustomizePrice" type="number" min="0" step="0.01" class="fm-input"/>
+          <div class="create-field">
+            <label class="create-label" for="esBorrowCustomizePrice">Borrow customize price</label>
+            <input id="esBorrowCustomizePrice" type="number" min="0" step="0.01" class="create-input"/>
+          </div>
+          <div class="create-field">
+            <label class="create-label" for="esBuyPackagePrice">Buy package price</label>
+            <input id="esBuyPackagePrice" type="number" min="0" step="0.01" class="create-input"/>
+          </div>
+          <div class="create-field">
+            <label class="create-label" for="esBuyCustomizePrice">Buy customize price</label>
+            <input id="esBuyCustomizePrice" type="number" min="0" step="0.01" class="create-input"/>
           </div>
         </div>
-        <div class="modal-grid-2">
-          <div>
-            <label class="fm-label" for="esBuyPackagePrice">Buy package price (MMK)</label>
-            <input id="esBuyPackagePrice" type="number" min="0" step="0.01" class="fm-input"/>
-          </div>
-          <div>
-            <label class="fm-label" for="esBuyCustomizePrice">Buy customize price (MMK)</label>
-            <input id="esBuyCustomizePrice" type="number" min="0" step="0.01" class="fm-input"/>
-          </div>
+        <div class="create-field">
+          <label class="create-label" for="esReturnDays">Return within (days)</label>
+          <input id="esReturnDays" type="number" min="1" step="1" class="create-input" style="max-width:160px"/>
         </div>
-        <div class="modal-grid-2">
-          <div>
-            <label class="fm-label" for="esReturnDays">Return within (days)</label>
-            <input id="esReturnDays" type="number" min="1" step="1" class="fm-input"/>
-          </div>
-        </div>
-        <div style="font-size:12px;color:#888">Fill in one or both. Leave blank to hide that option from customers.</div>
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--fm-border)">
-          <div class="flex items-center justify-between" style="margin-bottom:12px">
-            <span class="fm-label" style="margin-bottom:0">Individual items</span>
-            <button type="button" onclick="addAttireItem('es')" class="room-add">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
-              Add item
-            </button>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--create-border)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <label class="create-label" style="margin-bottom:0">Individual items</label>
+            <button type="button" onclick="addAttireItem('es')" class="room-add">+ Add item</button>
           </div>
           <div id="esAttireItemsList" class="space-y-3"></div>
         </div>
       </div>
+
+      <!-- Booking settings -->
+      <div class="create-card" style="margin-bottom:0">
+        <div class="create-card-title">Booking Settings</div>
+        <div class="create-two-col">
+          <div class="create-field">
+            <label class="create-label" for="esMinLeadDays">Minimum booking notice (days)</label>
+            <input id="esMinLeadDays" type="number" min="0" max="365" class="create-input" style="max-width:160px"/>
+            <p class="create-hint">How many days in advance must customers book?</p>
+          </div>
+          <div class="create-field" id="esDefaultTimeRow">
+            <label class="create-label">Default event time <span style="font-weight:400;color:var(--create-muted)">optional</span></label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input id="esDefaultStartTime" type="time" class="create-input" style="max-width:150px"/>
+              <span style="color:var(--create-muted);font-size:12px">to</span>
+              <input id="esDefaultEndTime" type="time" class="create-input" style="max-width:150px"/>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="modal-f">
-      <button onclick="deleteCurrentService()" class="btn-del">Delete</button>
-      <button onclick="closeAll()" class="btn-dull">Cancel</button>
-      <button onclick="updateService()" class="btn-save">Update</button>
+    <div class="create-modal-footer">
+      <button onclick="deleteCurrentService()" class="create-btn-del">Delete</button>
+      <button onclick="closeAll()" class="create-btn-ghost">Cancel</button>
+      <button onclick="updateService()" class="create-btn-primary">Update</button>
     </div>
   </div>
 </div>

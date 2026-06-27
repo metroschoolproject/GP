@@ -28,6 +28,8 @@ $categoryKey = str_replace(['-', '_'], ' ', trim($categorySlug . ' ' . $category
 $isVenue = ($detailPageType ?? '') === 'venue'
     || strpos($categoryKey, 'venue') !== false
     || strpos($categoryKey, 'hall') !== false;
+$isRentalCategory = strpos($categoryKey, 'attire') !== false;
+$attireItems = is_array($service['attire_items'] ?? null) ? $service['attire_items'] : [];
 $bookingType = $service['booking_type'] ?? 'fullday';
 $isSlotBooking = $bookingType === 'slot';
 $reviews = $service['reviews'] ?? [];
@@ -54,7 +56,7 @@ $availableVenueRooms = array_values(array_filter($venueRooms, function ($room) u
 $firstVenueRoom = $availableVenueRooms[0] ?? null;
 $hasInitialBookOption = $isVenue
     ? $firstVenueRoom !== null
-    : ($isSlotBooking ? $firstSlot !== null : $firstAvailable !== null);
+    : ($isRentalCategory ? !empty($attireItems) : ($isSlotBooking ? $firstSlot !== null : $firstAvailable !== null));
 $selectedDateHasBookOption = $hasInitialBookOption;
 if ($selectedDate !== '') {
     if ($isVenue) {
@@ -109,7 +111,13 @@ $capacityMetricValue = $pluralizeMetric($metricCount, 'booking') . ' per day';
 $summaryCapacityMetricLabel = $capacityMetricLabel;
 $summaryCapacityMetricValue = $capacityMetricValue;
 $capacityCategoryKey = $categoryKey;
-if ($isVenue) {
+if ($isRentalCategory) {
+    $itemCount = count($attireItems);
+    $capacityMetricLabel = 'Items';
+    $capacityMetricValue = $itemCount . ' item' . ($itemCount !== 1 ? 's' : '') . ' available';
+    $summaryCapacityMetricLabel = 'Items';
+    $summaryCapacityMetricValue = $itemCount . ' item' . ($itemCount !== 1 ? 's' : '');
+} elseif ($isVenue) {
     $capacityMetricLabel = 'Guest Capacity';
     $capacityMetricValue = (int)$venueCapacity . ' guests';
     $summaryCapacityMetricLabel = 'Capacity';
@@ -182,36 +190,72 @@ $serviceLocation = function ($service) {
     $location = trim((string)($service['venue_location'] ?? $service['service_location'] ?? $service['location'] ?? ''));
     return $location !== '' ? $location : 'Location available after booking';
 };
-$isRentalCategory = in_array(strtolower(trim((string)($service['category_slug'] ?? ''))), ['attire'], true)
-    || in_array(strtolower(trim((string)($service['category'] ?? ''))), ['attire'], true);
 $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
 $isDecorationCategory = strtolower(trim((string)($service['category_slug'] ?? ''))) === 'decoration'
     || strtolower(trim((string)($service['category'] ?? ''))) === 'decoration';
+$foodItems = is_array($service['food_items'] ?? null) ? $service['food_items'] : [];
+$isFoodCategory = strtolower(trim((string)($service['category_slug'] ?? ''))) === 'food'
+    || strtolower(trim((string)($service['category'] ?? ''))) === 'food';
 $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 $rentalOptions = [];
 if ($isRentalCategory) {
-    $borrowPackagePrice = (float)($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0);
-    $borrowCustomizePrice = (float)($rentalPricing['borrow_customize_price'] ?? $rentalPricing['borrow_price'] ?? $borrowPackagePrice);
-    $buyPackagePrice = (float)($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0);
-    $buyCustomizePrice = (float)($rentalPricing['buy_customize_price'] ?? $rentalPricing['buy_price'] ?? $buyPackagePrice);
-    if ($borrowPackagePrice > 0 || $borrowCustomizePrice > 0) {
-        $returnDays = (int)($rentalPricing['return_days'] ?? 0);
-        $rentalOptions[] = [
-            'label' => 'Borrow',
-            'package' => $borrowPackagePrice > 0 ? $money($borrowPackagePrice) : '—',
-            'customize' => $borrowCustomizePrice > 0 ? $money(max($borrowPackagePrice, $borrowCustomizePrice)) : '—',
-            'meta' => $returnDays > 0 ? $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . ' return' : 'Rental option',
-            'icon' => 'refresh-cw',
-        ];
-    }
-    if ($buyPackagePrice > 0 || $buyCustomizePrice > 0) {
-        $rentalOptions[] = [
-            'label' => 'Buy',
-            'package' => $buyPackagePrice > 0 ? $money($buyPackagePrice) : '—',
-            'customize' => $buyCustomizePrice > 0 ? $money(max($buyPackagePrice, $buyCustomizePrice)) : '—',
-            'meta' => 'Purchase option',
-            'icon' => 'shopping-bag',
-        ];
+    // Prefer building from attire_items if available
+    if (!empty($attireItems) && !empty($attireItems[0]['rental_options'])) {
+        $firstItem = $attireItems[0];
+        $opts = $firstItem['rental_options'] ?? [];
+        // Pick cheapest borrow option for display
+        $cheapest = null;
+        foreach ($opts as $opt) {
+            $p = (float)($opt['price'] ?? 0);
+            if ($p > 0 && ($cheapest === null || $p < (float)($cheapest['price'] ?? 0))) {
+                $cheapest = $opt;
+            }
+        }
+        if ($cheapest) {
+            $rentalOptions[] = [
+                'label' => 'Borrow',
+                'package' => $money((float)$cheapest['price']),
+                'customize' => $money((float)$cheapest['price']),
+                'meta' => ((int)($cheapest['days'] ?? 0)) > 0 ? (int)$cheapest['days'] . ' ' . ((int)$cheapest['days'] === 1 ? 'day' : 'days') . ' return' : 'Rental option',
+                'icon' => 'refresh-cw',
+            ];
+        }
+        // Buy price from attire item
+        $buyPrice = (float)($firstItem['buy_package_price'] ?? 0);
+        if ($buyPrice > 0) {
+            $rentalOptions[] = [
+                'label' => 'Buy',
+                'package' => $money($buyPrice),
+                'customize' => $money($buyPrice),
+                'meta' => 'Purchase option',
+                'icon' => 'shopping-bag',
+            ];
+        }
+    } else {
+        // Fallback to rental_pricing
+        $borrowPackagePrice = (float)($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0);
+        $borrowCustomizePrice = (float)($rentalPricing['borrow_customize_price'] ?? $rentalPricing['borrow_price'] ?? $borrowPackagePrice);
+        $buyPackagePrice = (float)($rentalPricing['buy_package_price'] ?? $rentalPricing['buy_price'] ?? 0);
+        $buyCustomizePrice = (float)($rentalPricing['buy_customize_price'] ?? $rentalPricing['buy_price'] ?? $buyPackagePrice);
+        if ($borrowPackagePrice > 0 || $borrowCustomizePrice > 0) {
+            $returnDays = (int)($rentalPricing['return_days'] ?? 0);
+            $rentalOptions[] = [
+                'label' => 'Borrow',
+                'package' => $borrowPackagePrice > 0 ? $money($borrowPackagePrice) : '—',
+                'customize' => $borrowCustomizePrice > 0 ? $money(max($borrowPackagePrice, $borrowCustomizePrice)) : '—',
+                'meta' => $returnDays > 0 ? $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . ' return' : 'Rental option',
+                'icon' => 'refresh-cw',
+            ];
+        }
+        if ($buyPackagePrice > 0 || $buyCustomizePrice > 0) {
+            $rentalOptions[] = [
+                'label' => 'Buy',
+                'package' => $buyPackagePrice > 0 ? $money($buyPackagePrice) : '—',
+                'customize' => $buyCustomizePrice > 0 ? $money(max($buyPackagePrice, $buyCustomizePrice)) : '—',
+                'meta' => 'Purchase option',
+                'icon' => 'shopping-bag',
+            ];
+        }
     }
 }
 $activeServicePrice = (float)($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
@@ -259,6 +303,10 @@ $timeRange = function ($from, $to) {
 $durationText = function ($service) {
     $bookingType = $service['booking_type'] ?? 'fullday';
     $minutes = (int)($service['duration_minutes'] ?? 0);
+    $cat = strtolower(trim((string)($service['category_slug'] ?? $service['category'] ?? '')));
+    if ($cat === 'attire') {
+        return 'Day-based rental';
+    }
     if ($bookingType === 'slot' && $minutes > 0) {
         $hours = $minutes / 60;
         return $hours >= 1 ? rtrim(rtrim(number_format($hours, 1), '0'), '.') . ' hour reservation' : $minutes . ' minute reservation';
@@ -3368,6 +3416,18 @@ body:has(.gp-package-notice) .booking-grid {
     <i data-lucide="arrow-left" size="16"></i>
     View Package
   </a>
+<?php elseif ($isRentalCategory && !empty($attireItems)): ?>
+  <a class="product-action-primary" id="bookNowBtn" href="#attire-gallery">
+    Choose an item
+  </a>
+<?php elseif ($isDecorationCategory && !empty($decorationStyles)): ?>
+  <a class="product-action-primary" id="bookNowBtn" href="#availability">
+    Choose a style
+  </a>
+<?php elseif ($isFoodCategory && !empty($foodItems)): ?>
+  <a class="product-action-primary" id="bookNowBtn" href="#availability">
+    Choose a menu item
+  </a>
 <?php else: ?>
   <a class="product-action-primary" id="bookNowBtn" href="<?= URLROOT ?>/cart">
     <?= $isAddonContext ? 'Add to package' : 'Book now' ?>
@@ -3378,11 +3438,127 @@ body:has(.gp-package-notice) .booking-grid {
     </div>
   </section>
 
+  <?php if ($isRentalCategory && !empty($attireItems)): ?>
+  <!-- SECTION: ATTIRE GALLERY -->
+  <section class="attire-gallery-section" id="attire-gallery" data-aos="fade-up" data-aos-duration="800">
+    <h2 class="section-title">Choose Your Dress &amp; Accessories</h2>
+    <p class="section-sub">Select an item to view rental options and availability</p>
+    <?php if (!empty($_SESSION['cart_attire_error'])): ?>
+      <div style="background:#fef2f2;color:#b91c1c;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px">
+        <?= $h($_SESSION['cart_attire_error']) ?>
+      </div>
+      <?php unset($_SESSION['cart_attire_error']); ?>
+    <?php endif; ?>
+    <div class="attire-grid">
+      <?php $lockedAttireIds = is_array($service['locked_items']['attire_item_ids'] ?? null) ? $service['locked_items']['attire_item_ids'] : []; ?>
+      <?php foreach ($attireItems as $idx => $ai): ?>
+        <?php
+          $isLockedAttire = in_array((int)$ai['id'], $lockedAttireIds, true);
+          $aiPhoto = trim((string)($ai['photo_url'] ?? ''));
+          $aiBorrowPrice = null;
+          foreach (($ai['rental_options'] ?? []) as $opt) {
+              $p = (float)($opt['price'] ?? 0);
+              if ($p > 0 && ($aiBorrowPrice === null || $p < $aiBorrowPrice)) { $aiBorrowPrice = $p; }
+          }
+          $aiBuyPrice = (float)($ai['buy_package_price'] ?? 0);
+        ?>
+        <div class="attire-card <?= $isLockedAttire ? 'is-locked' : '' ?>" data-attire-card data-attire-idx="<?= $idx ?>" data-attire-id="<?= (int)$ai['id'] ?>" data-locked="<?= $isLockedAttire ? '1' : '0' ?>">
+          <div class="attire-card-media">
+            <?php if ($aiPhoto): ?>
+              <img src="<?= $h($aiPhoto) ?>" alt="<?= $h($ai['name']) ?>">
+            <?php else: ?>
+              <div class="attire-card-placeholder"><i data-lucide="shirt" size="32"></i></div>
+            <?php endif; ?>
+            <?php if ($isLockedAttire): ?>
+              <span class="attire-card-badge">Package only</span>
+            <?php endif; ?>
+          </div>
+          <div class="attire-card-body">
+            <h3 class="attire-card-name"><?= $h($ai['name']) ?></h3>
+            <?php if (!empty($ai['description'])): ?>
+              <p class="attire-card-desc"><?= $h(mb_strimwidth($ai['description'], 0, 100, '...')) ?></p>
+            <?php endif; ?>
+            <div class="attire-card-prices">
+              <?php if ($aiBorrowPrice !== null && $aiBorrowPrice > 0): ?>
+                <span class="attire-price-tag is-borrow"><i data-lucide="refresh-cw" size="12"></i> From <?= $money($aiBorrowPrice) ?></span>
+              <?php endif; ?>
+              <?php if ($aiBuyPrice > 0): ?>
+                <span class="attire-price-tag is-buy"><i data-lucide="shopping-bag" size="12"></i> <?= $money($aiBuyPrice) ?></span>
+              <?php endif; ?>
+            </div>
+            <?php if (!$isLockedAttire): ?>
+              <span class="attire-card-select-hint">Click to select</span>
+            <?php endif; ?>
+          </div>
+          <div class="attire-card-check" aria-hidden="true"><i data-lucide="check-circle" size="20"></i></div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
   <!-- SECTION: AVAILABILITY / BOOKING -->
   <section class="booking-section <?= $isVenue ? 'is-venue-booking' : '' ?>" id="<?= $isVenue ? 'available-halls' : 'availability' ?>" data-aos="fade-up" data-aos-duration="800">
     <div class="booking-grid <?= ($isVenue && $selectedDate === '') || (!$isVenue && $selectedDate === $todayDate && !$selectedDateHasBookOption) ? 'is-date-pending' : '' ?>">
       <div class="availability-list">
-        <?php if (!$isVenue): ?>
+        <?php if (($isVenue || $isFoodCategory) && !$isRentalCategory): ?>
+          <div class="guest-count-bar" id="guestCountBar">
+            <label for="guestCountInput" class="guest-count-label">
+              <i data-lucide="users" size="16"></i>
+              Guest Count
+            </label>
+            <input type="number" id="guestCountInput" min="1" max="9999" value="" placeholder="Enter guest count" class="guest-count-input">
+            <input type="hidden" name="guest_count" id="cartGuestCount" form="serviceCartForm" value="">
+          </div>
+        <?php endif; ?>
+        <?php if ($isRentalCategory && !empty($attireItems)): ?>
+          <!-- Attire rental controls (shown when item is selected) -->
+          <div id="attireBookingPanel">
+            <div id="attireNotSelected" class="attire-prompt-state">
+              <div class="attire-prompt-icon"><i data-lucide="mouse-pointer-click" size="28"></i></div>
+              <h3>Select a dress or accessory above</h3>
+              <p>Choose an item from the gallery to see rental options and availability.</p>
+            </div>
+            <div id="attireSelectedPanel" style="display:none">
+              <div class="attire-selected-header">
+                <img id="attireSelectedPhoto" src="" alt="" class="attire-selected-thumb">
+                <div>
+                  <h3 id="attireSelectedName" class="attire-selected-name"></h3>
+                  <p id="attireSelectedDesc" class="attire-selected-desc"></p>
+                </div>
+              </div>
+              <div class="rental-type-section">
+                <div class="rental-section-label">Rental type</div>
+                <div class="rental-type-toggle" id="rentalTypeToggleMain">
+                  <button type="button" class="rental-type-btn-main" data-rental-type="borrow" id="rentalBorrowBtn">
+                    <i data-lucide="refresh-cw" size="16"></i>
+                    <span>Borrow</span>
+                  </button>
+                  <button type="button" class="rental-type-btn-main" data-rental-type="buy" id="rentalBuyBtn">
+                    <i data-lucide="shopping-bag" size="16"></i>
+                    <span>Buy</span>
+                  </button>
+                </div>
+              </div>
+              <div id="borrowSection" style="display:none">
+                <div class="rental-section-label">Rental duration</div>
+                <div id="durationOptionsMain" class="duration-options-grid"></div>
+                <div id="borrowDateSection" style="display:none">
+                  <div class="rental-section-label">Pick-up date</div>
+                  <input type="date" id="borrowDateMain" class="rental-date-input">
+                  <div id="borrowDateErrorMain" class="rental-date-error" style="display:none"></div>
+                  <div id="rentalDateSummaryMain" class="rental-date-summary" style="display:none"></div>
+                </div>
+              </div>
+              <div id="buySection" style="display:none">
+                <div class="buy-price-card">
+                  <span>Purchase price</span>
+                  <strong id="buyPriceMain"></strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        <?php elseif (!$isVenue): ?>
           <div class="venue-halls-heading">
             <h2 class="section-title"><?= $isSlotBooking ? 'Available Dates &amp; Times' : 'Available Dates' ?></h2>
             <form class="venue-date-form venue-date-change" method="GET" action="<?= $h($datePickerAction) ?>#availability">
@@ -3405,6 +3581,7 @@ body:has(.gp-package-notice) .booking-grid {
             </div>
           <?php endif; ?>
         <?php endif; ?>
+        <?php if (!$isRentalCategory || empty($attireItems)): ?>
         <?php if ($isVenue): ?>
           <div class="venue-halls-heading">
             <h2 class="section-title">Available Halls</h2>
@@ -3446,20 +3623,24 @@ body:has(.gp-package-notice) .booking-grid {
             <div class="empty-state"><i data-lucide="door-open" size="22"></i>No halls have been published for this venue yet.</div>
           <?php else: ?>
             <?php $hasSelectedRoom = false; ?>
+            <?php $lockedRoomIds = is_array($service['locked_items']['venue_room_ids'] ?? null) ? $service['locked_items']['venue_room_ids'] : []; ?>
             <?php foreach ($venueRooms as $index => $room): ?>
               <?php
                 $isPackageHallRow = $isPackageContext && (int)($packageContext['venue_room_id'] ?? 0) > 0 && (int)($room['id'] ?? 0) === (int)($packageContext['venue_room_id'] ?? 0);
+                $isLockedRoom = !$isPackageContext && in_array((int)$room['id'], $lockedRoomIds, true);
                 $roomDisplayPrice = $isPackageContext ? $packageServicePrice : (float)($room['price'] ?? 0);
                 $roomPhotoUrl = trim((string)($room['photo_url'] ?? ''));
-                $roomAvailable = $selectedDate !== '' && (!array_key_exists('is_available_on_date', $room) || !empty($room['is_available_on_date']));
+                $roomAvailable = $selectedDate !== '' && (!array_key_exists('is_available_on_date', $room) || !empty($room['is_available_on_date'])) && !$isLockedRoom;
                 $roomEarliestDate = trim((string)($room['earliest_booking_date'] ?? ''));
-                $roomStatus = $roomAvailable
-                  ? $money($roomDisplayPrice)
-                  : ($selectedDate === ''
-                    ? 'Choose date'
-                    : (!empty($room['lead_time_blocked']) && $roomEarliestDate !== ''
-                      ? 'Too soon'
-                      : (!empty($room['service_closed_on_date']) || !empty($room['room_closed_on_date']) ? 'Closed' : 'Booked')));
+                $roomStatus = $isLockedRoom
+                  ? 'Package only'
+                  : ($roomAvailable
+                    ? $money($roomDisplayPrice)
+                    : ($selectedDate === ''
+                      ? 'Choose date'
+                      : (!empty($room['lead_time_blocked']) && $roomEarliestDate !== ''
+                        ? 'Too soon'
+                        : (!empty($room['service_closed_on_date']) || !empty($room['room_closed_on_date']) ? 'Closed' : 'Booked'))));
                 $checked = !$hasSelectedRoom && $roomAvailable;
                 if ($checked) { $hasSelectedRoom = true; }
               ?>
@@ -3489,12 +3670,15 @@ body:has(.gp-package-notice) .booking-grid {
                     <?php if ($isPackageHallRow): ?>
                       <span class="package-hall-badge"><i data-lucide="badge-check" size="13"></i>Selected for your package</span>
                     <?php endif; ?>
+                    <?php if ($isLockedRoom): ?>
+                      <span class="package-hall-badge"><i data-lucide="lock" size="13"></i>Package only</span>
+                    <?php endif; ?>
                     <?php if (!empty($room['lead_time_blocked']) && $roomEarliestDate !== ''): ?>
                       <span class="package-hall-badge"><i data-lucide="calendar-clock" size="13"></i>Earliest: <?= $h(date('M j, Y', strtotime($roomEarliestDate))) ?></span>
                     <?php endif; ?>
-                    <?php if ($roomAvailable): ?>
+                    <?php if ($roomAvailable || $isLockedRoom): ?>
                       <div class="slot-options">
-                        <label class="slot-chip <?= $isPackageHallRow ? 'is-locked' : '' ?>" <?= $isPackageHallRow ? 'title="Included in your package"' : '' ?>>
+                        <label class="slot-chip <?= ($isPackageHallRow || $isLockedRoom) ? 'is-locked' : '' ?>" <?= $isPackageHallRow ? 'title="Included in your package"' : ($isLockedRoom ? 'title="Available in package only"' : '') ?>>
                           <input type="radio" name="service_slot"
                             value="room|<?= (int)$room['id'] ?>"
                             data-room-id="<?= (int)$room['id'] ?>"
@@ -3510,11 +3694,143 @@ body:has(.gp-package-notice) .booking-grid {
                             data-start-time="<?= $h($room['start_time'] ?? '') ?>"
                             data-end-time="<?= $h($room['end_time'] ?? '') ?>"
                             <?= $checked ? 'checked' : '' ?>
-                            <?= $isPackageHallRow ? 'disabled' : '' ?>>
-                          <?= $isPackageHallRow ? 'Included in your package' : (int)($room['capacity'] ?? 1) . ' guests' ?>
+                            <?= ($isPackageHallRow || $isLockedRoom) ? 'disabled' : '' ?>>
+                          <?= $isPackageHallRow ? 'Included in your package' : ($isLockedRoom ? 'Package only' : (int)($room['capacity'] ?? 1) . ' guests') ?>
                         </label>
                       </div>
                     <?php endif; ?>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        <?php elseif ($isDecorationCategory && !empty($decorationStyles)): ?>
+          <div class="venue-halls-heading">
+            <h2 class="section-title">Decoration Styles</h2>
+          </div>
+          <?php if ($selectedDate === ''): ?>
+            <div class="empty-state venue-date-prompt">
+              <span>Choose a wedding date above to see which styles are available.</span>
+            </div>
+          <?php elseif (!$selectedDateHasBookOption): ?>
+            <div class="empty-state"><i data-lucide="calendar-x" size="22"></i>Not available on your selected date. Please choose a different date.</div>
+          <?php else: ?>
+            <?php $lockedStyleIds = is_array($service['locked_items']['decoration_style_ids'] ?? null) ? $service['locked_items']['decoration_style_ids'] : []; ?>
+            <?php $hasSelectedStyle = false; ?>
+            <?php foreach ($decorationStyles as $styleIdx => $ds): ?>
+              <?php
+                $styleId = (int)$ds['id'];
+                $isLockedStyle = in_array($styleId, $lockedStyleIds, true);
+                $stylePhoto = trim((string)($ds['photo_url'] ?? ''));
+                $stylePrice = (float)($ds['package_price'] ?? $ds['price'] ?? 0);
+                $styleCustomizePrice = (float)($ds['customize_price'] ?? $ds['price'] ?? 0);
+                $checked = !$hasSelectedStyle && !$isLockedStyle;
+                if ($checked) { $hasSelectedStyle = true; }
+              ?>
+              <div class="availability-row is-fullday is-available <?= $checked ? 'is-selected' : '' ?> <?= $isLockedStyle ? 'is-unavailable' : '' ?>" data-deco-row data-deco-id="<?= $styleId ?>" data-deco-name="<?= $h($ds['name']) ?>" data-deco-price="<?= $h($stylePrice) ?>" data-deco-photo="<?= $h($stylePhoto) ?>" data-aos="fade-up" data-aos-delay="<?= min($styleIdx * 80, 300) ?>">
+                <span class="radio-dot"></span>
+                <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+                  <?php if ($stylePhoto): ?>
+                    <img src="<?= $h($stylePhoto) ?>" alt="" style="width:52px;height:52px;border-radius:var(--radius-lg);object-fit:cover;flex-shrink:0">
+                  <?php else: ?>
+                    <div style="width:52px;height:52px;border-radius:var(--radius-lg);background:var(--cream);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="palette" size="20" style="color:var(--muted-light)"></i></div>
+                  <?php endif; ?>
+                  <div style="flex:1;min-width:0">
+                    <div class="availability-head">
+                      <span class="availability-name">
+                        <?= $h($ds['name']) ?>
+                        <?php if ($isLockedStyle): ?>
+                          <span>Package only</span>
+                        <?php endif; ?>
+                      </span>
+                      <span class="availability-status <?= $isLockedStyle ? 'is-closed' : '' ?>"><?= $isLockedStyle ? 'Package only' : $money($stylePrice) ?></span>
+                    </div>
+                    <?php if (!$isLockedStyle && $styleCustomizePrice > 0 && $styleCustomizePrice !== $stylePrice): ?>
+                      <span class="availability-range"><i data-lucide="paintbrush" size="14"></i>Customize: <?= $money($styleCustomizePrice) ?></span>
+                    <?php endif; ?>
+                  </div>
+                  <div style="flex-shrink:0">
+                    <label class="slot-chip" style="margin:0">
+                      <input type="radio" name="decoration_style"
+                        value="<?= $styleId ?>"
+                        data-deco-id="<?= $styleId ?>"
+                        data-deco-name="<?= $h($ds['name']) ?>"
+                        data-deco-price="<?= $h($stylePrice) ?>"
+                        data-deco-photo="<?= $h($stylePhoto) ?>"
+                        <?= $checked ? 'checked' : '' ?>
+                        <?= $isLockedStyle ? 'disabled' : '' ?>>
+                      <?= $isLockedStyle ? 'Locked' : 'Select' ?>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        <?php elseif ($isFoodCategory && !empty($foodItems)): ?>
+          <div class="venue-halls-heading">
+            <h2 class="section-title">Menu Items</h2>
+          </div>
+          <?php if ($selectedDate === ''): ?>
+            <div class="empty-state venue-date-prompt">
+              <span>Choose a wedding date above to see which menu items are available.</span>
+            </div>
+          <?php elseif (!$selectedDateHasBookOption): ?>
+            <div class="empty-state"><i data-lucide="calendar-x" size="22"></i>Not available on your selected date. Please choose a different date.</div>
+          <?php else: ?>
+            <?php $lockedFoodIds = is_array($service['locked_items']['food_item_ids'] ?? null) ? $service['locked_items']['food_item_ids'] : []; ?>
+            <?php $hasSelectedFood = false; ?>
+            <?php foreach ($foodItems as $foodIdx => $fi): ?>
+              <?php
+                $foodId = (int)$fi['id'];
+                $isLockedFood = in_array($foodId, $lockedFoodIds, true);
+                $foodPhoto = trim((string)($fi['photo_url'] ?? ''));
+                $foodPrice = (float)($fi['package_price'] ?? $fi['price'] ?? 0);
+                $foodCustomizePrice = (float)($fi['customize_price'] ?? $fi['price'] ?? 0);
+                $foodDesc = trim((string)($fi['description'] ?? ''));
+                $foodPricingModel = $fi['pricing_model'] ?? 'flat';
+                $isPerPerson = $foodPricingModel === 'per_person';
+                $checked = !$hasSelectedFood && !$isLockedFood;
+                if ($checked) { $hasSelectedFood = true; }
+              ?>
+              <div class="availability-row is-fullday is-available <?= $checked ? 'is-selected' : '' ?> <?= $isLockedFood ? 'is-unavailable' : '' ?>" data-food-row data-food-id="<?= $foodId ?>" data-food-name="<?= $h($fi['name']) ?>" data-food-price="<?= $h($foodPrice) ?>" data-food-photo="<?= $h($foodPhoto) ?>" data-aos="fade-up" data-aos-delay="<?= min($foodIdx * 80, 300) ?>">
+                <span class="radio-dot"></span>
+                <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+                  <?php if ($foodPhoto): ?>
+                    <img src="<?= $h($foodPhoto) ?>" alt="" style="width:52px;height:52px;border-radius:var(--radius-lg);object-fit:cover;flex-shrink:0">
+                  <?php else: ?>
+                    <div style="width:52px;height:52px;border-radius:var(--radius-lg);background:var(--cream);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="utensils" size="20" style="color:var(--muted-light)"></i></div>
+                  <?php endif; ?>
+                  <div style="flex:1;min-width:0">
+                    <div class="availability-head">
+                      <span class="availability-name">
+                        <?= $h($fi['name']) ?>
+                        <?php if ($isLockedFood): ?>
+                          <span>Package only</span>
+                        <?php elseif ($foodDesc): ?>
+                          <span><?= $h(mb_strimwidth($foodDesc, 0, 60, '...')) ?></span>
+                        <?php endif; ?>
+                      </span>
+                      <span class="availability-status <?= $isLockedFood ? 'is-closed' : '' ?>" data-food-total-id="<?= $foodId ?>"><?= $isLockedFood ? 'Package only' : ($isPerPerson ? $money($foodPrice) . '/person' : $money($foodPrice)) ?></span>
+                    </div>
+                    <?php if (!$isLockedFood && $isPerPerson): ?>
+                      <span class="availability-range food-total-display" data-food-total-id="<?= $foodId ?>" style="display:none"><i data-lucide="calculator" size="14"></i>Total: <strong class="food-total-value"></strong></span>
+                    <?php elseif (!$isLockedFood && $foodCustomizePrice > 0 && $foodCustomizePrice !== $foodPrice): ?>
+                      <span class="availability-range"><i data-lucide="chef-hat" size="14"></i>Customize: <?= $money($foodCustomizePrice) ?></span>
+                    <?php endif; ?>
+                  </div>
+                  <div style="flex-shrink:0">
+                    <label class="slot-chip" style="margin:0">
+                      <input type="radio" name="food_item"
+                        value="<?= $foodId ?>"
+                        data-food-id="<?= $foodId ?>"
+                        data-food-name="<?= $h($fi['name']) ?>"
+                        data-food-price="<?= $h($foodPrice) ?>"
+                        data-food-photo="<?= $h($foodPhoto) ?>"
+                        data-pricing-model="<?= $h($foodPricingModel) ?>"
+                        <?= $checked ? 'checked' : '' ?>
+                        <?= $isLockedFood ? 'disabled' : '' ?>>
+                      <?= $isLockedFood ? 'Locked' : 'Select' ?>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -3637,19 +3953,32 @@ body:has(.gp-package-notice) .booking-grid {
             <?php endif; ?>
           <?php endforeach; ?>
         <?php endif; ?>
+        <?php endif; // end !isRentalCategory guard ?>
       </div>
 
       <!-- Sticky booking summary (desktop) -->
       <aside class="sticky-summary <?= !$selectedDateHasBookOption ? 'is-unavailable' : '' ?>" id="desktopSummary">
         <div class="summary-fields">
           <div class="summary-line">
-            <?= $isVenue ? 'Wedding date' : 'Wedding date' ?>
-            <span id="selectedDate"><?= $h($selectedDateLabel ?: ($isVenue ? 'Choose a wedding date' : ($firstAvailable['day_label'] ?? 'Choose an available date'))) ?></span>
+            <?= $isRentalCategory ? 'Pick-up date' : ($isVenue ? 'Wedding date' : 'Wedding date') ?>
+            <span id="selectedDate"><?= $h($selectedDateLabel ?: ($isVenue ? 'Choose a wedding date' : ($isRentalCategory ? 'Select an item first' : ($firstAvailable['day_label'] ?? 'Choose an available date')))) ?></span>
           </div>
           <?php if ($isVenue): ?>
             <div class="summary-line">
               Selected hall
               <span id="selectedHall"><?= $h($firstVenueRoom['name'] ?? 'Select after date') ?></span>
+            </div>
+          <?php endif; ?>
+          <?php if ($isDecorationCategory && !empty($decorationStyles)): ?>
+            <div class="summary-line">
+              Selected style
+              <span id="selectedDecoStyle">Choose a date first</span>
+            </div>
+          <?php endif; ?>
+          <?php if ($isFoodCategory && !empty($foodItems)): ?>
+            <div class="summary-line">
+              Selected item
+              <span id="selectedFoodItem">Choose a date first</span>
             </div>
           <?php endif; ?>
           <div class="summary-line">
@@ -3683,8 +4012,8 @@ body:has(.gp-package-notice) .booking-grid {
           <?php endif; ?>
         </div>
         <div class="estimated-row">
-          <span><?= $isPackageContext ? 'Package service price' : 'Estimated total' ?></span>
-          <strong><?= $isPackageContext ? $money($packageServicePrice) : ($isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service)) ?></strong>
+          <span><?= $isPackageContext ? 'Package service price' : ($isRentalCategory ? 'Estimated total' : 'Estimated total') ?></span>
+          <strong id="sidebarEstimatedTotal"><?= $isPackageContext ? $money($packageServicePrice) : ($isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service)) ?></strong>
         </div>
         <?php if (!empty($rentalOptions)): ?>
           <div class="package-price-panel" aria-label="Dress and accessory pricing">
@@ -3718,6 +4047,17 @@ body:has(.gp-package-notice) .booking-grid {
             <?php endif; ?>
           </div>
         <?php endif; ?>
+        <?php if ($isRentalCategory && !empty($attireItems)): ?>
+          <div id="sidebarAttireSummary" class="sidebar-attire-summary" style="display:none">
+            <div class="sidebar-attire-item">
+              <img id="sidebarAttirePhoto" src="" alt="" class="sidebar-attire-thumb">
+              <div class="sidebar-attire-info">
+                <strong id="sidebarAttireName"></strong>
+                <small id="sidebarAttireRental"></small>
+              </div>
+            </div>
+          </div>
+        <?php endif; ?>
         <div class="summary-actions">
           <?php if ($isPackageContext): ?>
           <div class="gp-package-notice">
@@ -3745,8 +4085,20 @@ body:has(.gp-package-notice) .booking-grid {
             <?php if ($isAddonContext): ?>
               <input type="hidden" name="addon_package_id" value="<?= (int)$addonContext['package_id'] ?>">
             <?php endif; ?>
+            <?php if ($isRentalCategory && !empty($attireItems)): ?>
+              <input type="hidden" name="attire_item_id" id="cartAttireItemId" value="">
+              <input type="hidden" name="rental_type" id="cartRentalType" value="">
+              <input type="hidden" name="borrow_date" id="cartBorrowDate" value="">
+              <input type="hidden" name="rental_option_id" id="cartRentalOptionId" value="">
+            <?php endif; ?>
+            <?php if ($isDecorationCategory && !empty($decorationStyles)): ?>
+              <input type="hidden" name="decoration_style_id" id="cartDecorationStyleId" value="">
+            <?php endif; ?>
+            <?php if ($isFoodCategory && !empty($foodItems)): ?>
+              <input type="hidden" name="cake_design_id" id="cartCakeDesignId" value="">
+            <?php endif; ?>
             <button class="btn-cart" id="addCartLink" type="submit">
-              <?= $isAddonContext ? 'Add to package' : 'Book now' ?>
+              <?= $isAddonContext ? 'Add to package' : ($isRentalCategory ? 'Add to Cart' : 'Book now') ?>
             </button>
           </form>
           <?php else: ?>
@@ -4004,6 +4356,14 @@ body:has(.gp-package-notice) .booking-grid {
       <i data-lucide="arrow-left" size="16"></i>
       View Package
     </a>
+    <?php elseif ($isRentalCategory && !empty($attireItems)): ?>
+    <div>
+      <div class="mobile-book-price" id="mobileBookPrice"><?= $moneyRange($service) ?></div>
+      <div class="mobile-book-label" id="mobileBookLabel">Select an item to continue</div>
+    </div>
+    <button class="mobile-book-btn is-guidance" id="mobileBookBtn" type="button" onclick="document.getElementById('attire-gallery')?.scrollIntoView({behavior:'smooth'})">
+      Choose item
+    </button>
     <?php else: ?>
     <div>
       <div class="mobile-book-price"><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></div>
@@ -4270,6 +4630,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const numeric = input.dataset.priceValue || (input.dataset.priceLabel || '').replace(/[^0-9.]/g, '');
       if (numeric) cartPrice.value = numeric;
     }
+
+    // Sync guest count from venue hall capacity
+    var maxBooking = parseInt(input.dataset.maxBooking || '0', 10);
+    var guestInput = document.getElementById('guestCountInput');
+    var guestHidden = document.getElementById('cartGuestCount');
+    if (maxBooking > 0 && guestInput) {
+      guestInput.value = maxBooking;
+      if (guestHidden) guestHidden.value = maxBooking;
+      window.dispatchEvent(new CustomEvent('gp:guestCountChanged', { detail: { guestCount: maxBooking } }));
+    }
   }
 
   function updateSelectedFulldayRow(row) {
@@ -4304,6 +4674,82 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const activeFulldayRow = document.querySelector('[data-fullday-row].is-selected');
   if (activeFulldayRow) updateSelectedFulldayRow(activeFulldayRow);
+
+  // ── Restore guest booking state after login redirect ──
+  (function restoreGuestBookingState() {
+    var raw = null;
+    try { raw = sessionStorage.getItem('gpGuestBookingState'); } catch(e) {}
+    if (!raw) return;
+    try {
+      var state = JSON.parse(raw);
+      sessionStorage.removeItem('gpGuestBookingState');
+    } catch(e) { return; }
+    if (!state || Number(state.serviceId) !== serviceId) return;
+    // Expire after 30 minutes
+    if (Date.now() - (state.savedAt || 0) > 30 * 60 * 1000) return;
+
+    // Restore venue room / slot selection
+    if (state.venueRoomId) {
+      var hallRadio = document.querySelector('input[name="service_slot"][data-venue-room-id="' + state.venueRoomId + '"]');
+      if (hallRadio && !hallRadio.disabled) {
+        hallRadio.checked = true;
+        hallRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        var hallRow = hallRadio.closest('[data-slot-row]');
+        if (hallRow) updateSelectedSlot(hallRadio);
+      }
+    } else if (state.slotId) {
+      var slotInput = document.querySelector('input[name="service_slot"][data-slot-id="' + state.slotId + '"]');
+      if (slotInput) {
+        slotInput.checked = true;
+        updateSelectedSlot(slotInput);
+      }
+    } else if (state.date) {
+      var fulldayRow = document.querySelector('[data-fullday-row][data-date="' + state.date + '"]');
+      if (fulldayRow) updateSelectedFulldayRow(fulldayRow);
+    }
+
+    // Restore hidden form fields that might not be set by row clicks
+    if (state.price && cartPrice && !cartPrice.value) cartPrice.value = state.price;
+    if (state.startTime && cartStartTime && !cartStartTime.value) cartStartTime.value = state.startTime;
+    if (state.endTime && cartEndTime && !cartEndTime.value) cartEndTime.value = state.endTime;
+
+    // Restore guest count
+    if (state.guest_count) {
+      var gc = Number(state.guest_count);
+      var guestInput = document.getElementById('guestCountInput');
+      var guestHidden = document.getElementById('cartGuestCount');
+      if (guestInput && gc > 0) {
+        guestInput.value = gc;
+        if (guestHidden) guestHidden.value = gc;
+        window.dispatchEvent(new CustomEvent('gp:guestCountChanged', { detail: { guestCount: gc } }));
+      }
+    }
+
+    // Restore decoration style selection
+    if (state.decorationStyleId) {
+      var decoRadio = document.querySelector('input[name="decoration_style"][data-deco-id="' + state.decorationStyleId + '"]');
+      if (decoRadio && !decoRadio.disabled) {
+        decoRadio.checked = true;
+        decoRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    // Restore food item selection
+    var foodId = state.cake_design_id || state.foodItemId;
+    if (foodId) {
+      var foodRadio = document.querySelector('input[name="food_item"][data-food-id="' + foodId + '"]');
+      if (foodRadio && !foodRadio.disabled) {
+        foodRadio.checked = true;
+        foodRadio.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    // Scroll to availability section
+    var availSection = document.getElementById('availability') || document.getElementById('available-halls');
+    if (availSection) {
+      setTimeout(function() { availSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
+    }
+  })();
 
   if (mobileBookBtn && addCartLink) {
     var isLoggedInMobile = <?= $isLoggedIn ? 'true' : 'false' ?>;
@@ -4396,7 +4842,18 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     Object.values(modalFields).forEach(field => {
       field?.addEventListener('input', () => {
-        if (field === modalFields.guests) clampModalGuestLimit(true);
+        if (field === modalFields.guests) {
+          clampModalGuestLimit(true);
+          // Sync back to shared guest count input
+          var guestInput = document.getElementById('guestCountInput');
+          var guestHidden = document.getElementById('cartGuestCount');
+          var gc = parseInt(field.value, 10) || 0;
+          if (guestInput && gc > 0) {
+            guestInput.value = gc;
+            if (guestHidden) guestHidden.value = gc;
+            window.dispatchEvent(new CustomEvent('gp:guestCountChanged', { detail: { guestCount: gc } }));
+          }
+        }
         field.closest('.gp-booking-modal-field')?.classList.remove('is-missing');
         if (!fieldWraps.some(wrap => wrap.classList.contains('is-missing'))) {
           modalError?.classList.remove('is-visible');
@@ -4440,6 +4897,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const openBookingDetailsModal = () => {
+      // Pre-fill guests from shared guest count input
+      var guestCountBar = document.getElementById('guestCountInput');
+      if (guestCountBar && modalFields.guests && !modalFields.guests.value) {
+        var gc = parseInt(guestCountBar.value, 10);
+        if (gc > 0) modalFields.guests.value = gc;
+      }
       updateModalGuestMax();
       clampModalGuestLimit(false);
       clearModalErrors();
@@ -4488,6 +4951,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     serviceCartForm.addEventListener('submit', (event) => {
       if (serviceCartForm.dataset.bookingModalBypass === '1') {
+        return;
+      }
+      // Skip booking details modal for attire (handled by attire-specific flow)
+      if (document.getElementById('cartAttireItemId')) {
+        serviceCartForm.dataset.bookingModalBypass = '1';
+        return;
+      }
+      // Validate food/decoration item selection before opening modal
+      var foodInput = document.getElementById('cartCakeDesignId');
+      if (foodInput && !foodInput.value) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var section = document.querySelector('.booking-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      var decoInput = document.getElementById('cartDecorationStyleId');
+      if (decoInput && !decoInput.value) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        var section = document.querySelector('.booking-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
         return;
       }
       const currentSelection = document.querySelector("input[name='service_slot']:checked");
@@ -4812,7 +5297,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <h2 style="font-family:'Playfair Display',serif;font-size:24px;color:#211d1a;margin:0 0 8px;">Sign in to Book</h2>
     <p style="color:#7a6255;font-size:14px;margin:0 0 24px;line-height:1.5;">Create an account or sign in to add this service to your cart and complete your booking.</p>
     <a href="<?= URLROOT ?>/users/auth" id="modalLoginBtn" style="display:block;width:100%;padding:14px;background:linear-gradient(135deg,#b8860b,#d4a574);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;margin-bottom:10px;font-family:'Poppins',sans-serif;">Sign In</a>
-    <a href="<?= URLROOT ?>/users/register" style="display:block;width:100%;padding:14px;background:transparent;color:#7a6255;border:1.5px solid #d4a574;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;font-family:'Poppins',sans-serif;">Create Account</a>
+    <a href="<?= URLROOT ?>/users/register" id="modalRegisterBtn" style="display:block;width:100%;padding:14px;background:transparent;color:#7a6255;border:1.5px solid #d4a574;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:center;font-family:'Poppins',sans-serif;">Create Account</a>
   </div>
 </div>
 <style>
@@ -4820,9 +5305,444 @@ document.addEventListener('DOMContentLoaded', () => {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+/* ── Attire Gallery Section ── */
+.attire-gallery-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px clamp(20px, 4vw, 48px) 0;
+}
+.attire-gallery-section .section-title {
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 3vw, 30px);
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.attire-gallery-section .section-sub {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 28px;
+}
+.attire-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.attire-card {
+  background: var(--panel);
+  border: 2px solid var(--line-soft);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  position: relative;
+}
+.attire-card:hover {
+  border-color: var(--wine);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+.attire-card.is-selected {
+  border-color: var(--wine);
+  box-shadow: 0 0 0 3px var(--wine-glow), var(--shadow-sm);
+}
+.attire-card.is-locked {
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
+}
+.attire-card-media {
+  aspect-ratio: 3/4;
+  background: var(--cream);
+  position: relative;
+  overflow: hidden;
+}
+.attire-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s var(--ease-out-expo);
+}
+.attire-card:hover .attire-card-media img {
+  transform: scale(1.04);
+}
+.attire-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-light);
+}
+.attire-card-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(146, 64, 14, 0.9);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+.attire-card-body {
+  padding: 16px;
+}
+.attire-card-name {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.attire-card-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.attire-card-prices {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.attire-price-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+.attire-price-tag.is-borrow {
+  background: rgba(118, 90, 70, 0.08);
+  color: var(--sage);
+}
+.attire-price-tag.is-buy {
+  background: rgba(212, 180, 106, 0.15);
+  color: var(--gold);
+}
+.attire-card-select-hint {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wine);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.attire-card:hover .attire-card-select-hint {
+  opacity: 1;
+}
+.attire-card.is-selected .attire-card-select-hint {
+  opacity: 0;
+}
+.attire-card-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--wine);
+  background: #fff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.2s, transform 0.2s var(--ease-spring);
+  box-shadow: var(--shadow-sm);
+}
+.attire-card.is-selected .attire-card-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ── Guest Count Bar ── */
+.guest-count-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: var(--cream);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--line-soft);
+}
+.guest-count-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.guest-count-input {
+  flex: 1;
+  max-width: 160px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--panel);
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.guest-count-input:focus {
+  border-color: var(--wine);
+  outline: none;
+}
+
+/* ── Attire Booking Panel (availability section replacement) ── */
+#attireBookingPanel {
+  padding: 20px;
+}
+.attire-prompt-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--muted);
+}
+.attire-prompt-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  background: var(--cream);
+  border-radius: 50%;
+  color: var(--wine);
+}
+.attire-prompt-state h3 {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.attire-prompt-state p {
+  font-size: 13px;
+}
+.attire-selected-header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.attire-selected-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.attire-selected-name {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.attire-selected-desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+.rental-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rental-type-section {
+  margin-bottom: 20px;
+}
+.rental-type-toggle {
+  display: flex;
+  gap: 10px;
+}
+.rental-type-btn-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.rental-type-btn-main:hover {
+  border-color: var(--wine);
+}
+.rental-type-btn-main.is-active {
+  border-color: var(--wine);
+  background: var(--wine-glow);
+  color: var(--wine);
+}
+.duration-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.duration-option-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  cursor: pointer;
+  font-size: 14px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.duration-option-btn:hover {
+  border-color: var(--wine);
+}
+.duration-option-btn.is-active {
+  border-color: var(--wine);
+  background: var(--wine-glow);
+}
+.duration-option-btn .dur-days {
+  font-weight: 600;
+  color: var(--ink);
+}
+.duration-option-btn .dur-price {
+  font-weight: 700;
+  color: var(--wine);
+}
+.rental-date-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  background: var(--panel);
+  transition: border-color 0.2s;
+}
+.rental-date-input:focus {
+  border-color: var(--wine);
+  outline: none;
+}
+.rental-date-error {
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-radius: var(--radius);
+}
+.rental-date-summary {
+  font-size: 12px;
+  color: var(--sage);
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(118, 90, 70, 0.06);
+  border-radius: var(--radius);
+}
+.rental-date-summary strong {
+  color: var(--ink);
+}
+.buy-price-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(212, 180, 106, 0.08);
+  border: 1.5px solid rgba(212, 180, 106, 0.25);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+}
+.buy-price-card span {
+  font-size: 14px;
+  color: var(--muted);
+}
+.buy-price-card strong {
+  font-size: 20px;
+  color: var(--ink);
+}
+
+/* ── Sidebar Attire Summary ── */
+.sidebar-attire-summary {
+  margin-bottom: 12px;
+}
+.sidebar-attire-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background: var(--cream);
+  border-radius: var(--radius-lg);
+}
+.sidebar-attire-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.sidebar-attire-info strong {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.sidebar-attire-info small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .attire-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .attire-card-body {
+    padding: 10px;
+  }
+  .attire-card-name { font-size: 14px; }
+  .attire-card-desc { display: none; }
+  .attire-card-select-hint { display: none; }
+}
 </style>
 <script>
+function saveGuestBookingState() {
+  var state = {
+    serviceId: <?= (int)($service['id'] ?? 0) ?>,
+    date: (document.getElementById('cartDate') || {}).value || '',
+    slotId: (document.getElementById('cartSlotId') || {}).value || '',
+    venueRoomId: (document.getElementById('cartVenueRoomId') || {}).value || '',
+    startTime: (document.getElementById('cartStartTime') || {}).value || '',
+    endTime: (document.getElementById('cartEndTime') || {}).value || '',
+    price: (document.getElementById('cartPrice') || {}).value || '',
+    attireItemId: (document.getElementById('cartAttireItemId') || {}).value || '',
+    rentalType: (document.getElementById('cartRentalType') || {}).value || '',
+    borrowDate: (document.getElementById('cartBorrowDate') || {}).value || '',
+    rentalOptionId: (document.getElementById('cartRentalOptionId') || {}).value || '',
+    decorationStyleId: (document.getElementById('cartDecorationStyleId') || {}).value || '',
+    cake_design_id: (document.getElementById('cartCakeDesignId') || {}).value || '',
+    guest_count: (document.getElementById('cartGuestCount') || {}).value || '',
+    // Booking details modal draft
+    modalDraft: null,
+    savedAt: Date.now()
+  };
+  try { sessionStorage.setItem('gpGuestBookingState', JSON.stringify(state)); } catch(e) {}
+}
 function showAuthModal() {
+  saveGuestBookingState();
   var modal = document.getElementById('authRequiredModal');
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -4836,7 +5756,7 @@ function closeAuthModal() {
   if (btn) {
     btn.classList.remove('is-submitting');
     btn.disabled = false;
-    btn.innerHTML = '<i data-lucide="shopping-cart" size="16"></i> <?= $isAddonContext ? 'Add to package' : 'Book now' ?>';
+    btn.innerHTML = '<i data-lucide="shopping-cart" size="16"></i> <?= $isAddonContext ? 'Add to package' : ($isRentalCategory ? 'Add to Cart' : 'Book now') ?>';
     lucide.createIcons();
   }
   var mobileBtn = document.getElementById('mobileBookBtn');
@@ -4849,9 +5769,558 @@ document.getElementById('authRequiredModal').addEventListener('click', function(
 // Set redirect URL for after login
 var loginBtn = document.getElementById('modalLoginBtn');
 if (loginBtn) {
-  loginBtn.href = '<?= URLROOT ?>/users/auth?redirect=' + encodeURIComponent(window.location.pathname);
+  loginBtn.href = '<?= URLROOT ?>/users/auth?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+}
+// Also update register link
+var registerBtn = document.getElementById('modalRegisterBtn');
+if (registerBtn) {
+  registerBtn.href = '<?= URLROOT ?>/users/register?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
 }
 </script>
+
+<?php if ($isRentalCategory && !empty($attireItems)): ?>
+<script>
+(function() {
+  const attireItems = <?= json_encode($attireItems, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  const minLeadDays = <?= (int)($service['min_lead_days'] ?? 0) ?>;
+  const serviceId = <?= (int)($service['id'] ?? 0) ?>;
+  const URLROOT = '<?= URLROOT ?>';
+  const money = (v) => Number(v).toLocaleString() + ' MMK';
+
+  let selectedAttireIdx = null;
+  let selectedRentalType = null;
+  let selectedRentalOptionId = null;
+  let blockedDates = [];
+
+  // ── DOM refs: Gallery ──
+  const galleryCards = document.querySelectorAll('[data-attire-card]');
+
+  // ── DOM refs: Booking panel (availability section) ──
+  const attireNotSelected = document.getElementById('attireNotSelected');
+  const attireSelectedPanel = document.getElementById('attireSelectedPanel');
+  const attireSelectedPhoto = document.getElementById('attireSelectedPhoto');
+  const attireSelectedName = document.getElementById('attireSelectedName');
+  const attireSelectedDesc = document.getElementById('attireSelectedDesc');
+  const rentalBorrowBtn = document.getElementById('rentalBorrowBtn');
+  const rentalBuyBtn = document.getElementById('rentalBuyBtn');
+  const borrowSection = document.getElementById('borrowSection');
+  const buySection = document.getElementById('buySection');
+  const durationOptionsMain = document.getElementById('durationOptionsMain');
+  const borrowDateSection = document.getElementById('borrowDateSection');
+  const borrowDateMain = document.getElementById('borrowDateMain');
+  const borrowDateErrorMain = document.getElementById('borrowDateErrorMain');
+  const rentalDateSummaryMain = document.getElementById('rentalDateSummaryMain');
+  const buyPriceMain = document.getElementById('buyPriceMain');
+
+  // ── DOM refs: Sidebar ──
+  const sidebarAttireSummary = document.getElementById('sidebarAttireSummary');
+  const sidebarAttirePhoto = document.getElementById('sidebarAttirePhoto');
+  const sidebarAttireName = document.getElementById('sidebarAttireName');
+  const sidebarAttireRental = document.getElementById('sidebarAttireRental');
+  const sidebarEstimatedTotal = document.getElementById('sidebarEstimatedTotal');
+
+  // ── DOM refs: Cart form ──
+  const cartAttireItemId = document.getElementById('cartAttireItemId');
+  const cartRentalType = document.getElementById('cartRentalType');
+  const cartBorrowDate = document.getElementById('cartBorrowDate');
+  const cartRentalOptionId = document.getElementById('cartRentalOptionId');
+  const cartPrice = document.getElementById('cartPrice');
+  const cartDate = document.getElementById('cartDate');
+
+  // ── DOM refs: Mobile book bar ──
+  const mobileBookPrice = document.getElementById('mobileBookPrice');
+  const mobileBookLabel = document.getElementById('mobileBookLabel');
+  const mobileBookBtn = document.getElementById('mobileBookBtn');
+
+  function clearRentalState() {
+    selectedRentalType = null;
+    selectedRentalOptionId = null;
+    blockedDates = [];
+    if (borrowSection) borrowSection.style.display = 'none';
+    if (buySection) buySection.style.display = 'none';
+    if (borrowDateSection) borrowDateSection.style.display = 'none';
+    if (borrowDateErrorMain) borrowDateErrorMain.style.display = 'none';
+    if (rentalDateSummaryMain) rentalDateSummaryMain.style.display = 'none';
+    if (durationOptionsMain) durationOptionsMain.innerHTML = '';
+    if (rentalBorrowBtn) rentalBorrowBtn.classList.remove('is-active');
+    if (rentalBuyBtn) rentalBuyBtn.classList.remove('is-active');
+    if (cartRentalType) cartRentalType.value = '';
+    if (cartBorrowDate) cartBorrowDate.value = '';
+    if (cartRentalOptionId) cartRentalOptionId.value = '';
+  }
+
+  function selectItem(idx) {
+    if (idx < 0 || idx >= attireItems.length) return;
+    const item = attireItems[idx];
+    selectedAttireIdx = idx;
+
+    // Update gallery cards
+    galleryCards.forEach(c => c.classList.remove('is-selected'));
+    const activeCard = document.querySelector(`[data-attire-card][data-attire-idx="${idx}"]`);
+    if (activeCard) activeCard.classList.add('is-selected');
+
+    // Show booking panel
+    if (attireNotSelected) attireNotSelected.style.display = 'none';
+    if (attireSelectedPanel) attireSelectedPanel.style.display = 'block';
+
+    // Update booking panel header
+    if (attireSelectedPhoto) {
+      attireSelectedPhoto.src = item.photo_url || '';
+      attireSelectedPhoto.alt = item.name;
+      attireSelectedPhoto.style.display = item.photo_url ? '' : 'none';
+    }
+    if (attireSelectedName) attireSelectedName.textContent = item.name;
+    if (attireSelectedDesc) attireSelectedDesc.textContent = item.description || '';
+
+    // Update sidebar summary
+    if (sidebarAttireSummary) {
+      sidebarAttireSummary.style.display = 'block';
+      if (sidebarAttirePhoto) {
+        sidebarAttirePhoto.src = item.photo_url || '';
+        sidebarAttirePhoto.alt = item.name;
+        sidebarAttirePhoto.style.display = item.photo_url ? '' : 'none';
+      }
+      if (sidebarAttireName) sidebarAttireName.textContent = item.name;
+      if (sidebarAttireRental) sidebarAttireRental.textContent = 'Select rental type below';
+    }
+
+    // Update cart hidden field
+    if (cartAttireItemId) cartAttireItemId.value = item.id;
+
+    // Show/hide rental type buttons
+    const hasRentalOptions = (item.rental_options || []).length > 0;
+    const hasBuyPrice = Number(item.buy_package_price) > 0;
+    if (rentalBorrowBtn) rentalBorrowBtn.style.display = hasRentalOptions ? '' : 'none';
+    if (rentalBuyBtn) rentalBuyBtn.style.display = hasBuyPrice ? '' : 'none';
+
+    clearRentalState();
+
+    // Scroll to availability section on mobile
+    if (window.innerWidth < 900) {
+      const availSection = document.getElementById('availability');
+      if (availSection) setTimeout(() => availSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+    }
+  }
+
+  // ── Gallery card clicks ──
+  galleryCards.forEach(card => {
+    card.addEventListener('click', function() {
+      if (this.dataset.locked === '1') return;
+      selectItem(Number(this.dataset.attireIdx));
+    });
+  });
+
+  // ── Rental type buttons ──
+  function bindRentalTypeBtn(btn, type) {
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+      const item = attireItems[selectedAttireIdx];
+      if (!item) return;
+
+      selectedRentalType = type;
+      selectedRentalOptionId = null;
+      if (cartRentalType) cartRentalType.value = type;
+      if (cartBorrowDate) cartBorrowDate.value = '';
+      if (cartRentalOptionId) cartRentalOptionId.value = '';
+      if (cartPrice) cartPrice.value = '';
+
+      rentalBorrowBtn.classList.remove('is-active');
+      rentalBuyBtn.classList.remove('is-active');
+      this.classList.add('is-active');
+
+      borrowSection.style.display = 'none';
+      buySection.style.display = 'none';
+      borrowDateSection.style.display = 'none';
+      borrowDateErrorMain.style.display = 'none';
+      rentalDateSummaryMain.style.display = 'none';
+      durationOptionsMain.innerHTML = '';
+
+      if (type === 'borrow') {
+        borrowSection.style.display = 'block';
+        const options = item.rental_options || [];
+        options.forEach((opt, i) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'duration-option-btn';
+          b.dataset.optionIdx = i;
+          b.dataset.optionId = opt.id;
+          b.innerHTML = `<span class="dur-days">${opt.days} day${opt.days > 1 ? 's' : ''}</span><span class="dur-price">${money(opt.price)}</span>`;
+          b.addEventListener('click', function() {
+            selectedRentalOptionId = Number(opt.id);
+            if (cartRentalOptionId) cartRentalOptionId.value = opt.id;
+            if (cartPrice) cartPrice.value = opt.price;
+            if (sidebarEstimatedTotal) sidebarEstimatedTotal.textContent = money(opt.price);
+
+            durationOptionsMain.querySelectorAll('.duration-option-btn').forEach(x => x.classList.remove('is-active'));
+            this.classList.add('is-active');
+
+            borrowDateSection.style.display = 'block';
+            const today = new Date();
+            today.setDate(today.getDate() + minLeadDays);
+            borrowDateMain.min = today.toISOString().split('T')[0];
+            borrowDateMain.value = '';
+            rentalDateSummaryMain.style.display = 'none';
+            borrowDateErrorMain.style.display = 'none';
+
+            if (sidebarAttireRental) sidebarAttireRental.textContent = `${opt.days}-day borrow · ${money(opt.price)}`;
+
+            fetch(`${URLROOT}/customerServices/attireAvailability/${serviceId}?attire_item_id=${item.id}`)
+              .then(r => r.json())
+              .then(data => { blockedDates = data.blocked || []; })
+              .catch(() => { blockedDates = []; });
+          });
+          durationOptionsMain.appendChild(b);
+        });
+      } else if (type === 'buy') {
+        buySection.style.display = 'block';
+        buyPriceMain.textContent = money(item.buy_package_price);
+        if (cartPrice) cartPrice.value = item.buy_package_price;
+        if (sidebarEstimatedTotal) sidebarEstimatedTotal.textContent = money(item.buy_package_price);
+        if (sidebarAttireRental) sidebarAttireRental.textContent = `Purchase · ${money(item.buy_package_price)}`;
+        if (cartDate) cartDate.value = '';
+      }
+    });
+  }
+  bindRentalTypeBtn(rentalBorrowBtn, 'borrow');
+  bindRentalTypeBtn(rentalBuyBtn, 'buy');
+
+  // ── Borrow date change ──
+  if (borrowDateMain) {
+    borrowDateMain.addEventListener('change', function() {
+      const date = this.value;
+      borrowDateErrorMain.style.display = 'none';
+      rentalDateSummaryMain.style.display = 'none';
+      if (cartBorrowDate) cartBorrowDate.value = '';
+      if (cartDate) cartDate.value = '';
+
+      if (!date || selectedAttireIdx === null || !selectedRentalOptionId) return;
+
+      const item = attireItems[selectedAttireIdx];
+      const opt = (item.rental_options || []).find(o => Number(o.id) === selectedRentalOptionId);
+      if (!opt) return;
+
+      const rentalDays = Number(opt.days);
+      const bufferDays = Number(item.buffer_days || 1);
+      const borrowTs = new Date(date).getTime();
+      let conflict = false;
+      for (let d = 0; d < rentalDays + bufferDays; d++) {
+        const checkDate = new Date(borrowTs + d * 86400000).toISOString().split('T')[0];
+        if (blockedDates.includes(checkDate)) { conflict = true; break; }
+      }
+
+      if (conflict) {
+        borrowDateErrorMain.textContent = 'This item is not available for the selected dates. Please choose a different date.';
+        borrowDateErrorMain.style.display = 'block';
+        return;
+      }
+
+      const returnDate = new Date(borrowTs + (rentalDays - 1) * 86400000);
+      const bufferUntil = new Date(borrowTs + (rentalDays + bufferDays - 1) * 86400000);
+      rentalDateSummaryMain.innerHTML = `Return by: <strong>${returnDate.toLocaleDateString()}</strong> · Buffer until: ${bufferUntil.toLocaleDateString()}`;
+      rentalDateSummaryMain.style.display = 'block';
+
+      if (cartBorrowDate) cartBorrowDate.value = date;
+      if (cartDate) cartDate.value = date;
+
+      // Update sidebar date
+      const selectedDateEl = document.getElementById('selectedDate');
+      if (selectedDateEl) selectedDateEl.textContent = new Date(borrowTs).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    });
+  }
+
+  // ── Cart form validation for attire ──
+  const serviceCartForm = document.getElementById('serviceCartForm');
+  if (serviceCartForm) {
+    serviceCartForm.addEventListener('submit', function(e) {
+      if (selectedAttireIdx === null) {
+        e.preventDefault();
+        document.getElementById('attire-gallery')?.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      if (!cartAttireItemId.value) {
+        e.preventDefault();
+        return;
+      }
+      if (selectedRentalType === 'borrow' && (!cartBorrowDate.value || !cartRentalOptionId.value)) {
+        e.preventDefault();
+        const availSection = document.getElementById('availability');
+        if (availSection) availSection.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      if (selectedRentalType === 'buy' && !cartPrice.value) {
+        e.preventDefault();
+        return;
+      }
+      // Check auth for attire
+      var isLogged = <?= !empty($_SESSION['session_uid']) ? 'true' : 'false' ?>;
+      if (!isLogged) {
+        e.preventDefault();
+        showAuthModal();
+        return;
+      }
+      // Bypass the booking details modal for attire (not relevant for dress rental)
+      serviceCartForm.dataset.bookingModalBypass = '1';
+    });
+  }
+
+  // ── Update mobile book bar on item selection ──
+  const origMobileClick = mobileBookBtn?.onclick;
+  function updateMobileBar(item, rentalLabel) {
+    if (mobileBookPrice) {
+      const price = rentalLabel || money(item.buy_package_price || item.borrow_package_price || 0);
+      mobileBookPrice.textContent = price;
+    }
+    if (mobileBookLabel) mobileBookLabel.textContent = item.name;
+    if (mobileBookBtn) {
+      mobileBookBtn.classList.remove('is-guidance');
+      mobileBookBtn.textContent = 'Add to Cart';
+      mobileBookBtn.onclick = function(e) {
+        if (serviceCartForm) {
+          serviceCartForm.requestSubmit ? serviceCartForm.requestSubmit() : serviceCartForm.submit();
+        }
+      };
+    }
+  }
+
+  // ── Restore guest booking state for attire ──
+  var savedState = null;
+  try { var raw = sessionStorage.getItem('gpGuestBookingState'); if (raw) savedState = JSON.parse(raw); } catch(e) {}
+  if (savedState && Number(savedState.serviceId) === serviceId && Date.now() - (savedState.savedAt || 0) < 30 * 60 * 1000) {
+    // Don't remove here - the main restore function will remove it
+    if (savedState.attireItemId) {
+      var itemIdx = attireItems.findIndex(function(it) { return String(it.id) === String(savedState.attireItemId); });
+      if (itemIdx >= 0) {
+        selectItem(itemIdx);
+        // Restore rental type
+        if (savedState.rentalType) {
+          var typeBtn = savedState.rentalType === 'borrow' ? rentalBorrowBtn : rentalBuyBtn;
+          if (typeBtn) typeBtn.click();
+          // Restore rental option (for borrow)
+          if (savedState.rentalType === 'borrow' && savedState.rentalOptionId) {
+            setTimeout(function() {
+              var optBtn = document.querySelector('.duration-option-btn[data-option-id="' + savedState.rentalOptionId + '"]');
+              if (optBtn) optBtn.click();
+              // Restore borrow date
+              if (savedState.borrowDate && borrowDateMain) {
+                setTimeout(function() {
+                  borrowDateMain.value = savedState.borrowDate;
+                  borrowDateMain.dispatchEvent(new Event('change'));
+                }, 100);
+              }
+            }, 100);
+          }
+        }
+      }
+    }
+  } else if (attireItems.length === 1) {
+    // Auto-select if only one item (no saved state)
+    selectItem(0);
+  }
+})();
+</script>
+<?php endif; ?>
+
+<?php if ($isDecorationCategory && !empty($decorationStyles)): ?>
+<script>
+(function() {
+  const decoStyles = <?= json_encode($decorationStyles, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  const cartDecorationStyleId = document.getElementById('cartDecorationStyleId');
+  const selectedDecoStyleEl = document.getElementById('selectedDecoStyle');
+  const sidebarEstimatedTotal = document.getElementById('sidebarEstimatedTotal');
+  const serviceCartForm = document.getElementById('serviceCartForm');
+  const money = (v) => Number(v).toLocaleString() + ' MMK';
+
+  let selectedStyleId = null;
+
+  // Handle decoration style radio selection
+  document.querySelectorAll('input[name="decoration_style"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.disabled) return;
+      const styleId = Number(this.dataset.decoId);
+      const styleName = this.dataset.decoName;
+      const stylePrice = this.dataset.decoPrice;
+
+      selectedStyleId = styleId;
+      if (cartDecorationStyleId) cartDecorationStyleId.value = styleId;
+
+      // Update row visual state
+      document.querySelectorAll('[data-deco-row]').forEach(row => {
+        row.classList.remove('is-selected');
+      });
+      const activeRow = document.querySelector(`[data-deco-row][data-deco-id="${styleId}"]`);
+      if (activeRow) activeRow.classList.add('is-selected');
+
+      // Update sidebar
+      if (selectedDecoStyleEl) selectedDecoStyleEl.textContent = styleName;
+      if (sidebarEstimatedTotal) sidebarEstimatedTotal.textContent = money(stylePrice);
+    });
+  });
+
+  // Auto-select first available style
+  const firstRadio = document.querySelector('input[name="decoration_style"]:not(:disabled)');
+  if (firstRadio) {
+    firstRadio.checked = true;
+    firstRadio.dispatchEvent(new Event('change'));
+  }
+
+  // Cart form validation
+  if (serviceCartForm) {
+    serviceCartForm.addEventListener('submit', function(e) {
+      if (!cartDecorationStyleId || !cartDecorationStyleId.value) {
+        e.preventDefault();
+        // Scroll to availability section
+        const section = document.querySelector('.booking-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  }
+})();
+</script>
+<?php endif; ?>
+
+<?php if ($isFoodCategory && !empty($foodItems)): ?>
+<script>
+(function() {
+  const foodItems = <?= json_encode($foodItems, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+  const cartCakeDesignId = document.getElementById('cartCakeDesignId');
+  const selectedFoodItemEl = document.getElementById('selectedFoodItem');
+  const sidebarEstimatedTotal = document.getElementById('sidebarEstimatedTotal');
+  const serviceCartForm = document.getElementById('serviceCartForm');
+  const guestCountInput = document.getElementById('guestCountInput');
+  const cartGuestCount = document.getElementById('cartGuestCount');
+  const money = (v) => Number(v).toLocaleString() + ' MMK';
+
+  let selectedFoodId = null;
+  let currentGuestCount = 0;
+
+  function getGuestCount() {
+    return currentGuestCount > 0 ? currentGuestCount : 0;
+  }
+
+  function updateFoodTotals() {
+    const gc = getGuestCount();
+    foodItems.forEach(item => {
+      const totalDisplays = document.querySelectorAll(`.food-total-display[data-food-total-id="${item.id}"]`);
+      const totalValueEls = document.querySelectorAll(`.food-total-value`);
+      const priceStatusEl = document.querySelector(`[data-food-total-id="${item.id}"].availability-status`);
+      if (item.pricing_model === 'per_person' && gc > 0) {
+        const total = Number(item.price) * gc;
+        totalDisplays.forEach(el => el.style.display = '');
+        document.querySelectorAll(`.food-total-display[data-food-total-id="${item.id}"] .food-total-value`).forEach(el => {
+          el.textContent = money(total);
+        });
+      } else {
+        totalDisplays.forEach(el => el.style.display = 'none');
+      }
+    });
+    // Update sidebar total for selected item
+    updateSidebarTotal();
+  }
+
+  function updateSidebarTotal() {
+    const checked = document.querySelector('input[name="food_item"]:checked:not(:disabled)');
+    if (!checked) return;
+    const gc = getGuestCount();
+    const pricingModel = checked.dataset.pricingModel;
+    const basePrice = Number(checked.dataset.foodPrice);
+    const displayPrice = (pricingModel === 'per_person' && gc > 0) ? basePrice * gc : basePrice;
+    if (sidebarEstimatedTotal) sidebarEstimatedTotal.textContent = money(displayPrice);
+    if (selectedFoodItemEl) {
+      const name = checked.dataset.foodName;
+      selectedFoodItemEl.textContent = gc > 0 && pricingModel === 'per_person'
+        ? name + ' (' + gc + ' guests)'
+        : name;
+    }
+  }
+
+  // Handle guest count input
+  if (guestCountInput) {
+    guestCountInput.addEventListener('input', function() {
+      currentGuestCount = parseInt(this.value) || 0;
+      if (cartGuestCount) cartGuestCount.value = currentGuestCount > 0 ? currentGuestCount : '';
+      updateFoodTotals();
+    });
+  }
+
+  // Handle food item radio selection
+  document.querySelectorAll('input[name="food_item"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.disabled) return;
+      const foodId = Number(this.dataset.foodId);
+      const foodName = this.dataset.foodName;
+      const foodPrice = Number(this.dataset.foodPrice);
+      const pricingModel = this.dataset.pricingModel;
+
+      selectedFoodId = foodId;
+      if (cartCakeDesignId) cartCakeDesignId.value = foodId;
+
+      // Update row visual state
+      document.querySelectorAll('[data-food-row]').forEach(row => {
+        row.classList.remove('is-selected');
+      });
+      const activeRow = document.querySelector(`[data-food-row][data-food-id="${foodId}"]`);
+      if (activeRow) activeRow.classList.add('is-selected');
+
+      // Update sidebar
+      const gc = getGuestCount();
+      const displayPrice = (pricingModel === 'per_person' && gc > 0) ? foodPrice * gc : foodPrice;
+      if (selectedFoodItemEl) {
+        selectedFoodItemEl.textContent = gc > 0 && pricingModel === 'per_person'
+          ? foodName + ' (' + gc + ' guests)'
+          : foodName;
+      }
+      if (sidebarEstimatedTotal) sidebarEstimatedTotal.textContent = money(displayPrice);
+    });
+  });
+
+  // Auto-select first available food item
+  const firstRadio = document.querySelector('input[name="food_item"]:not(:disabled)');
+  if (firstRadio) {
+    firstRadio.checked = true;
+    firstRadio.dispatchEvent(new Event('change'));
+  }
+
+  // ── Listen for guest count changes from venue hall selection ──
+  window.addEventListener('gp:guestCountChanged', function(e) {
+    currentGuestCount = e.detail.guestCount || 0;
+    if (guestCountInput) guestCountInput.value = currentGuestCount > 0 ? currentGuestCount : '';
+    if (cartGuestCount) cartGuestCount.value = currentGuestCount > 0 ? currentGuestCount : '';
+    updateFoodTotals();
+  });
+
+  // ── Restore guest booking state for food ──
+  var savedState = null;
+  try { var raw = sessionStorage.getItem('gpGuestBookingState'); if (raw) savedState = JSON.parse(raw); } catch(e) {}
+  if (savedState && Number(savedState.serviceId) === <?= (int)($service['id'] ?? 0) ?> && Date.now() - (savedState.savedAt || 0) < 30 * 60 * 1000) {
+    if (savedState.guest_count) {
+      currentGuestCount = Number(savedState.guest_count) || 0;
+      if (guestCountInput) guestCountInput.value = currentGuestCount > 0 ? currentGuestCount : '';
+      if (cartGuestCount) cartGuestCount.value = currentGuestCount > 0 ? currentGuestCount : '';
+    }
+    if (savedState.cake_design_id || savedState.foodItemId) {
+      var foodId = savedState.cake_design_id || savedState.foodItemId;
+      var foodRadio = document.querySelector('input[name="food_item"][data-food-id="' + foodId + '"]');
+      if (foodRadio && !foodRadio.disabled) {
+        foodRadio.checked = true;
+        foodRadio.dispatchEvent(new Event('change'));
+      }
+    }
+    updateFoodTotals();
+  }
+
+  // Cart form validation
+  if (serviceCartForm) {
+    serviceCartForm.addEventListener('submit', function(e) {
+      if (!cartCakeDesignId || !cartCakeDesignId.value) {
+        e.preventDefault();
+        var section = document.querySelector('.booking-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  }
+})();
+</script>
+<?php endif; ?>
 
 <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>

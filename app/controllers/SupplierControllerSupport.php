@@ -134,6 +134,19 @@ abstract class SupplierControllerSupport extends Controller
             }
             unset($item);
         }
+        if (!empty($payload['food_items']) && is_array($payload['food_items'])) {
+            foreach ($payload['food_items'] as &$item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $item['photo_url'] = $this->uploadService->storeServiceImageFromPayload(
+                    $item['photo_url'] ?? '',
+                    $supplierId,
+                    'food-item'
+                );
+            }
+            unset($item);
+        }
 
         if (isset($payload['categories']) && is_array($payload['categories'])) {
             $payload['categories'] = array_values(array_filter(array_map(function ($category) {

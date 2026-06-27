@@ -135,7 +135,42 @@ class Cart extends Controller
             'start_time' => trim($_POST['start_time'] ?? '') ?: null,
             'end_time' => trim($_POST['end_time'] ?? '') ?: null,
             'addon_package_id' => !empty($_POST['addon_package_id']) ? (int)$_POST['addon_package_id'] : null,
+            // Attire rental fields
+            'attire_item_id' => !empty($_POST['attire_item_id']) ? (int)$_POST['attire_item_id'] : null,
+            'rental_type' => in_array($_POST['rental_type'] ?? '', ['borrow', 'buy'], true) ? $_POST['rental_type'] : null,
+            'borrow_date' => !empty($_POST['borrow_date']) ? trim($_POST['borrow_date']) : null,
+            'rental_option_id' => !empty($_POST['rental_option_id']) ? (int)$_POST['rental_option_id'] : null,
+            // Decoration style selection
+            'decoration_style_id' => !empty($_POST['decoration_style_id']) ? (int)$_POST['decoration_style_id'] : null,
+            // Food item selection
+            'cake_design_id' => !empty($_POST['cake_design_id']) ? (int)$_POST['cake_design_id'] : null,
+            // Guest count (shared across venue + food)
+            'guest_count' => !empty($_POST['guest_count']) ? max(1, (int)$_POST['guest_count']) : null,
         ];
+
+        // Block locked items (items in active packages can't be booked standalone)
+        $packageModel = $this->model('PlatformPackage');
+        $lockedItems = $packageModel->getLockedItemIds();
+        if (!empty($itemData['venue_room_id']) && in_array((int)$itemData['venue_room_id'], $lockedItems['venue_room_ids'], true)) {
+            $_SESSION['cart_attire_error'] = 'This venue room is only available through a package. Please browse available packages.';
+            redirect('customerServices/detail/' . $serviceId);
+            return;
+        }
+        if (!empty($itemData['attire_item_id']) && in_array((int)$itemData['attire_item_id'], $lockedItems['attire_item_ids'], true)) {
+            $_SESSION['cart_attire_error'] = 'This attire item is only available through a package. Please browse available packages.';
+            redirect('customerServices/detail/' . $serviceId);
+            return;
+        }
+        if (!empty($itemData['decoration_style_id']) && in_array((int)$itemData['decoration_style_id'], $lockedItems['decoration_style_ids'], true)) {
+            $_SESSION['cart_attire_error'] = 'This decoration style is only available through a package. Please browse available packages.';
+            redirect('customerServices/detail/' . $serviceId);
+            return;
+        }
+        if (!empty($itemData['cake_design_id']) && in_array((int)$itemData['cake_design_id'], $lockedItems['food_item_ids'], true)) {
+            $_SESSION['cart_attire_error'] = 'This food item is only available through a package. Please browse available packages.';
+            redirect('customerServices/detail/' . $serviceId);
+            return;
+        }
 
         if (
             !empty($itemData['selected_date'])
@@ -143,6 +178,35 @@ class Cart extends Controller
         ) {
             redirect('customerServices/detail/' . $serviceId);
             return;
+        }
+
+        // Validate attire rental availability
+        if (!empty($itemData['attire_item_id']) && $itemData['rental_type'] === 'borrow' && !empty($itemData['borrow_date']) && !empty($itemData['rental_option_id'])) {
+            $rentalOption = $this->cartModel->getRentalOption((int)$itemData['rental_option_id']);
+            if ($rentalOption) {
+                $borrowDate = $itemData['borrow_date'];
+                $rentalDays = (int)$rentalOption['days'];
+                $bufferDays = (int)($rentalOption['buffer_days'] ?? 1);
+                $returnDate = date('Y-m-d', strtotime($borrowDate . " + " . ($rentalDays - 1) . " days"));
+                $bufferUntil = date('Y-m-d', strtotime($returnDate . " + " . $bufferDays . " days"));
+
+                if (!$this->cartModel->isAttireItemAvailable((int)$itemData['attire_item_id'], $borrowDate, $bufferUntil)) {
+                    $_SESSION['cart_attire_error'] = 'This item is not available for the selected dates. Please choose different dates.';
+                    redirect('customerServices/detail/' . $serviceId);
+                    return;
+                }
+
+                // Set selected_date to borrow_date for display
+                $itemData['selected_date'] = $borrowDate;
+            }
+        }
+
+        // Per-person food pricing: multiply base price by guest count
+        if (!empty($itemData['cake_design_id']) && !empty($itemData['guest_count']) && $itemData['guest_count'] > 0) {
+            $foodItem = $this->cartModel->getFoodItem((int)$itemData['cake_design_id']);
+            if ($foodItem && ($foodItem['pricing_model'] ?? 'flat') === 'per_person') {
+                $itemData['price'] = (float)($foodItem['price'] ?? 0) * (int)$itemData['guest_count'];
+            }
         }
 
         if (!$this->userId) {

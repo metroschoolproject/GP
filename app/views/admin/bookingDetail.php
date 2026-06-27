@@ -38,9 +38,15 @@ $expectedPayment = round($expectedDeposit + $expectedPlatformFee, 2);
 $balanceDue = max(0, $totalAmount - $paidAmount);
 $paidPercent = $totalAmount > 0 ? round(($paidAmount / $totalAmount) * 100) : 0;
 
-$depositPayments = array_values(array_filter($payments, static fn($p) => ($p['type'] ?? '') === 'deposit'));
-$pendingDeposits = array_values(array_filter($depositPayments, static fn($p) => ($p['status'] ?? '') === 'pending'));
-$reviewPayment = $pendingDeposits[count($pendingDeposits) - 1] ?? ($depositPayments[count($depositPayments) - 1] ?? ($payments[count($payments) - 1] ?? []));
+$bookingStatusForPayment = (string)($booking['status'] ?? '');
+// Check if there's a pending remaining payment — handles legacy bookings
+// where status wasn't updated to 'pending_final_payment'.
+$hasPendingRemainingPayment = !empty(array_filter($payments, static fn($p) => ($p['type'] ?? '') === 'remaining' && ($p['status'] ?? '') === 'pending'));
+$isRemainingPaymentStage = $bookingStatusForPayment === 'pending_final_payment' || $hasPendingRemainingPayment;
+$relevantType = $isRemainingPaymentStage ? 'remaining' : 'deposit';
+$typePayments = array_values(array_filter($payments, static fn($p) => ($p['type'] ?? '') === $relevantType));
+$pendingOfType = array_values(array_filter($typePayments, static fn($p) => ($p['status'] ?? '') === 'pending'));
+$reviewPayment = $pendingOfType[count($pendingOfType) - 1] ?? ($typePayments[count($typePayments) - 1] ?? ($payments[count($payments) - 1] ?? []));
 
 $paymentStatus = (string)($reviewPayment['status'] ?? ($booking['payment_status'] ?? 'unpaid'));
 $paymentMethod = (string)($reviewPayment['bank_name'] ?? $reviewPayment['method'] ?? '-');
@@ -49,7 +55,7 @@ $sentAmount = (float)($reviewPayment['paid_amount'] ?? $reviewPayment['amount'] 
 $slipPath = trim((string)($reviewPayment['payment_slip_path'] ?? ''));
 $slipExt = strtolower(pathinfo($slipPath, PATHINFO_EXTENSION));
 $isImageSlip = $slipPath !== '' && in_array($slipExt, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
-$isAwaitingReview = in_array(($booking['status'] ?? ''), ['payment_submitted'], true) || $paymentStatus === 'pending';
+$isAwaitingReview = $hasPendingRemainingPayment || in_array($bookingStatusForPayment, ['payment_submitted', 'pending_final_payment'], true) || $paymentStatus === 'pending';
 
 $firstEvent = $eventDetails[0] ?? [];
 $eventDetailsByItem = [];
@@ -230,6 +236,10 @@ $visibleLogs = $showAllLogs ? array_slice(array_reverse($logs), 0, 5) : array_re
 
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = $bookingRef ?: 'Booking detail';
+$dashboardBreadcrumbs = [
+    ['label' => 'Bookings', 'url' => URLROOT . '/admin/bookings'],
+    ['label' => $bookingRef ?: 'Booking detail', 'url' => null],
+];
 $dashboardContentClass = 'admin-booking-detail-outlet';
 $dashboardContent = function () use (
     $booking,
@@ -278,7 +288,8 @@ $dashboardContent = function () use (
     $showAllLogs,
     $visibleLogs,
     $refund,
-    $refundEstimate
+    $refundEstimate,
+    $isRemainingPaymentStage
 ) {
     $bookingId = (int)($booking['id'] ?? 0);
     $createdAt = $dateOnly($booking['created_at'] ?? null);
@@ -287,14 +298,12 @@ $dashboardContent = function () use (
     $canMarkCompleted = in_array(($booking['status'] ?? ''), ['finalized', 'in_progress'], true);
 ?>
 <style>
-  /* ── Booking Detail — Admin Redesign ── */
+  /* ── Booking Detail — Option B: Priority-First ── */
   .admin-booking-detail-outlet {
     min-height: 100%;
     background: #F4F1EE;
-    padding: 32px 36px;
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-    color: #6d4c5b;
-    font-size: 13px;
+    padding: 24px 28px;
+    font-size: 13.5px;
     overflow-y: auto;
     -webkit-font-smoothing: antialiased;
   }
@@ -323,1269 +332,442 @@ $dashboardContent = function () use (
     --bkd-info-text: #4f46a5;
     --bkd-neutral-bg: #F5F5F4;
     --bkd-neutral-text: #78716C;
-    max-width: 1600px;
+    max-width: 1200px;
     margin: 0 auto;
   }
   .bkd-page * { box-sizing: border-box; }
 
-  /* ── Header ── */
-  .bkd-header {
+  /* ── Compact Header ── */
+  .bkd-top {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 20px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
   }
-  .bkd-header-left { min-width: 0; }
-  .bkd-eyebrow {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--bkd-muted);
-    margin: 0 0 4px;
+  .bkd-top-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .bkd-top-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
   }
   .bkd-ref {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--bkd-text);
-    letter-spacing: -.02em;
-    line-height: 1.2;
-    margin: 0;
-    overflow-wrap: anywhere;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
   }
-  .bkd-ref em {
-    font-style: normal;
-    color: var(--bkd-muted);
-    font-weight: 400;
-  }
-  .bkd-subtitle {
-    margin-top: 6px;
-    color: var(--bkd-body);
+  .bkd-ref em { font-style: normal; color: var(--bkd-muted); font-weight: 400; }
+  .bkd-top-meta {
     font-size: 12px;
+    color: var(--bkd-body);
     font-weight: 600;
   }
-  .bkd-header-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    flex-shrink: 0;
-    align-items: center;
-  }
 
-  /* ── Buttons ── */
-  .bkd-btn {
-    display: inline-flex;
+  /* ── Summary Strip ── */
+  .bkd-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bkd-surface);
+    border: 1px solid var(--bkd-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    box-shadow: 0 1px 3px rgba(52,35,43,.04);
+  }
+  .bkd-strip-item {
+    display: flex;
     align-items: center;
     gap: 6px;
-    padding: 0 15px;
-    height: 36px;
-    border-radius: .75rem;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background .15s, border-color .15s, box-shadow .15s;
-    text-decoration: none;
-    white-space: nowrap;
+    padding: 0 14px;
+    border-right: 1px solid var(--bkd-border-light);
   }
-  .bkd-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-  .bkd-btn--ghost {
-    border: 1px solid var(--bkd-border);
-    background: var(--bkd-surface);
-    color: var(--bkd-primary);
-  }
-  .bkd-btn--ghost:hover {
-    background: var(--bkd-primary-soft);
-    border-color: var(--bkd-primary);
-  }
-  .bkd-btn--primary {
-    border: 1px solid var(--bkd-primary);
-    background: var(--bkd-primary);
-    color: #FFFFFF;
-    font-weight: 800;
-  }
-  .bkd-btn--primary:hover {
-    background: var(--bkd-primary-hover);
-    box-shadow: 0 2px 8px rgba(109, 76, 91, .25);
-  }
-  .bkd-btn--success {
-    border: 1px solid var(--bkd-success-border);
-    background: var(--bkd-success-text);
-    color: #FFFFFF;
-    font-weight: 800;
-  }
-  .bkd-btn--success:hover {
-    background: #047857;
-    box-shadow: 0 2px 8px rgba(5, 150, 105, .3);
-  }
-  .bkd-btn--danger {
-    border: 1px solid var(--bkd-danger-border);
-    background: var(--bkd-danger-text);
-    color: #FFFFFF;
-    font-weight: 800;
-  }
-  .bkd-btn--danger:hover {
-    background: #7f1d1d;
-    box-shadow: 0 2px 8px rgba(153, 27, 27, .25);
-  }
-
-  /* ── Stats band ── */
-  .bkd-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-  .bkd-stat {
-    background: var(--bkd-surface);
-    border: 1px solid var(--bkd-border);
-    border-left-width: 3px;
-    border-radius: .75rem;
-    padding: 16px 18px;
-    transition: box-shadow .15s;
-  }
-  .bkd-stat:hover { box-shadow: 0 2px 8px rgba(28, 25, 23, .06); }
-  .bkd-stat--primary { border-left-color: var(--bkd-primary); }
-  .bkd-stat--neutral { border-left-color: #A8A29E; }
-  .bkd-stat--success { border-left-color: var(--bkd-success-border); }
-  .bkd-stat--danger { border-left-color: var(--bkd-danger-border); }
-  .bkd-stat-label {
+  .bkd-strip-item:last-child { border-right: 0; }
+  .bkd-strip-label {
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: .1em;
     text-transform: uppercase;
+    letter-spacing: .08em;
     color: var(--bkd-muted);
-    margin-bottom: 6px;
   }
-  .bkd-stat-value {
-    font-size: 24px;
+  .bkd-strip-value {
+    font-size: 14px;
     font-weight: 700;
-    line-height: 1.1;
     color: var(--bkd-text);
-    letter-spacing: -.02em;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .bkd-stat-value.is-success { color: var(--bkd-success-text); }
-  .bkd-stat-value.is-danger  { color: var(--bkd-danger-text); }
-  .bkd-stat-value.is-primary { color: var(--bkd-primary); }
-  .bkd-stat-sub {
-    font-size: 11px;
-    color: var(--bkd-muted);
-    margin-top: 4px;
-  }
+  .bkd-strip-value.is-success { color: var(--bkd-success-text); }
+  .bkd-strip-value.is-danger { color: var(--bkd-danger-text); }
 
-  /* ── 2-column body ── */
-  .bkd-body {
+  /* ── Step Progress ── */
+  .bkd-steps {
+    display: flex;
+    background: var(--bkd-surface);
+    border: 1px solid var(--bkd-border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(52,35,43,.04);
+  }
+  .bkd-step {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-right: 1px solid var(--bkd-border-light);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--bkd-muted);
+    background: var(--bkd-soft);
+  }
+  .bkd-step:last-child { border-right: 0; }
+  .bkd-step.is-done { color: var(--bkd-success-text); background: #f0fdf4; }
+  .bkd-step.is-current {
+    color: var(--bkd-primary);
+    background: #fdf9f5;
+    box-shadow: inset 0 -3px 0 var(--bkd-primary);
+  }
+  .bkd-step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+    background: var(--bkd-border-light);
+    color: var(--bkd-muted);
+    flex-shrink: 0;
+  }
+  .bkd-step.is-done .bkd-step-num { background: var(--bkd-success-text); color: #fff; }
+  .bkd-step.is-current .bkd-step-num { background: var(--bkd-primary); color: #fff; }
+  .bkd-step-sub { font-size: 9px; font-weight: 600; opacity: .7; }
+
+  /* ── Priority Action Card ── */
+  .bkd-action {
+    background: var(--bkd-surface);
+    border: 1px solid var(--bkd-border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(52,35,43,.06);
+  }
+  .bkd-action--urgent { border-top: 4px solid var(--bkd-warn-border); }
+  .bkd-action--success { border-top: 4px solid var(--bkd-success-border); }
+  .bkd-action--danger { border-top: 4px solid var(--bkd-danger-border); }
+  .bkd-action-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--bkd-border-light);
+  }
+  .bkd-action-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .bkd-action-icon svg { width: 18px; height: 18px; }
+  .bkd-action-icon--warn { background: var(--bkd-warn-bg); color: var(--bkd-warn-text); }
+  .bkd-action-icon--success { background: var(--bkd-success-bg); color: var(--bkd-success-text); }
+  .bkd-action-icon--danger { background: var(--bkd-danger-bg); color: var(--bkd-danger-text); }
+  .bkd-action-icon--neutral { background: var(--bkd-neutral-bg); color: var(--bkd-neutral-text); }
+  .bkd-action-title { font-size: 14px; font-weight: 700; color: var(--bkd-text); }
+  .bkd-action-sub { font-size: 11px; color: var(--bkd-muted); font-weight: 600; margin-top: 1px; }
+  .bkd-action-body { padding: 20px; }
+
+  /* ── Payment proof layout ── */
+  .bkd-pay-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-columns: minmax(0, 1fr) 320px;
     gap: 20px;
     align-items: start;
   }
-  .bkd-main, .bkd-side { display: grid; gap: 20px; }
-
-  /* ── Cards ── */
-  .bkd-card {
-    background: var(--bkd-surface);
-    border: 1px solid var(--bkd-border);
-    border-radius: .75rem;
+  .bkd-proof-link {
+    display: block;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(28, 25, 23, .04);
+    border: 1px solid var(--bkd-border);
+    border-radius: 10px;
+    background: var(--bkd-surface);
+    text-decoration: none;
+    transition: box-shadow .12s;
   }
-  .bkd-card--highlight {
-    border-left: 3px solid var(--bkd-warn-border);
+  .bkd-proof-link:hover { box-shadow: 0 2px 8px rgba(28,25,23,.08); }
+  .bkd-proof-link img {
+    width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    background: #FFFFFF;
   }
-  .bkd-card-head {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--bkd-border-light);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+  .bkd-proof-file {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 120px; color: var(--bkd-primary); font-size: 12px; font-weight: 700; gap: 6px;
   }
-  .bkd-card-head-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .bkd-proof-file svg { width: 28px; height: 28px; }
+
+  /* ── KV grid ── */
+  .bkd-kv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .bkd-kv {
+    border: 1px solid var(--bkd-border-light);
+    border-radius: 10px;
+    background: var(--bkd-soft);
+    padding: 12px;
   }
-  .bkd-card-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: .75rem;
-    background: var(--bkd-primary-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--bkd-primary);
-    flex-shrink: 0;
+  .bkd-kv-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--bkd-muted); margin-bottom: 4px;
   }
-  .bkd-card-icon svg { width: 15px; height: 15px; }
-  .bkd-card-icon--warn {
+  .bkd-kv-value { color: var(--bkd-text); font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+  .bkd-kv-sub { margin-top: 2px; color: var(--bkd-body); font-size: 11px; font-weight: 600; }
+
+  /* ── Progress bar ── */
+  .bkd-progress { height: 6px; border-radius: 999px; background: var(--bkd-soft); overflow: hidden; margin-top: 12px; }
+  .bkd-progress span { display: block; height: 100%; border-radius: 999px; background: var(--bkd-primary); transition: width .4s ease; }
+
+  /* ── Review form ── */
+  .bkd-review-form {
+    border: 1px solid var(--bkd-warn-border);
+    border-radius: 10px;
     background: var(--bkd-warn-bg);
-    color: var(--bkd-warn-text);
+    padding: 14px;
+    margin-top: 16px;
   }
-  .bkd-card-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--bkd-text);
+  .bkd-review-form textarea {
+    width: 100%; min-height: 60px;
+    border: 1px solid var(--bkd-border); border-radius: 10px;
+    background: var(--bkd-surface); padding: 10px 12px;
+    color: var(--bkd-text); font: inherit; font-size: 12px; outline: none; resize: vertical;
   }
-  .bkd-card-meta {
-    font-size: 11px;
-    color: var(--bkd-muted);
-    font-weight: 600;
-    white-space: nowrap;
+  .bkd-review-form textarea:focus { border-color: var(--bkd-primary); }
+  .bkd-review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+
+  /* ── Buttons ── */
+  .bkd-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 15px; height: 38px; border-radius: 10px;
+    font-size: 12px; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s;
+    text-decoration: none; white-space: nowrap;
   }
-  .bkd-card-body { padding: 16px 20px; }
+  .bkd-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .bkd-btn--ghost { border: 1px solid var(--bkd-border); background: var(--bkd-surface); color: var(--bkd-primary); }
+  .bkd-btn--ghost:hover { background: var(--bkd-primary-soft); border-color: var(--bkd-primary); }
+  .bkd-btn--primary { border: 1px solid var(--bkd-primary); background: var(--bkd-primary); color: #FFFFFF; font-weight: 800; }
+  .bkd-btn--primary:hover { background: var(--bkd-primary-hover); box-shadow: 0 2px 8px rgba(109,76,91,.25); }
+  .bkd-btn--success { border: 1px solid var(--bkd-success-border); background: var(--bkd-success-text); color: #FFFFFF; font-weight: 800; }
+  .bkd-btn--success:hover { background: #047857; }
+  .bkd-btn--danger { border: 1px solid var(--bkd-danger-border); background: var(--bkd-danger-text); color: #FFFFFF; font-weight: 800; }
+  .bkd-btn--danger:hover { background: #7f1d1d; }
 
   /* ── Badges ── */
   .bkd-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 20px; padding: 3px 10px;
+    font-size: 10px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; white-space: nowrap;
   }
-  .bkd-badge::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: currentColor;
-    flex-shrink: 0;
-  }
+  .bkd-badge::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex-shrink: 0; }
   .bkd-badge--success { background: var(--bkd-success-bg); color: var(--bkd-success-text); }
   .bkd-badge--warn    { background: var(--bkd-warn-bg);    color: var(--bkd-warn-text); }
   .bkd-badge--danger  { background: var(--bkd-danger-bg);  color: var(--bkd-danger-text); }
   .bkd-badge--info    { background: var(--bkd-info-bg);    color: var(--bkd-info-text); }
   .bkd-badge--neutral { background: var(--bkd-neutral-bg); color: var(--bkd-neutral-text); }
 
-  /* ── KV grid ── */
-  .bkd-kv-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-  .bkd-kv {
-    border: 1px solid var(--bkd-border-light);
-    border-radius: .75rem;
-    background: var(--bkd-soft);
-    padding: 12px;
-  }
-  .bkd-kv-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--bkd-muted);
-    margin-bottom: 4px;
-  }
-  .bkd-kv-value {
-    color: var(--bkd-text);
-    font-size: 13px;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  }
-  .bkd-kv-sub {
-    margin-top: 2px;
-    color: var(--bkd-body);
-    font-size: 11px;
-    font-weight: 600;
-  }
-
-  /* ── Payment progress ── */
-  .bkd-progress {
-    height: 6px;
-    border-radius: 999px;
-    background: var(--bkd-soft);
+  /* ── Collapsible Sections ── */
+  .bkd-sections { display: grid; gap: 10px; margin-bottom: 16px; }
+  .bkd-section {
+    background: var(--bkd-surface);
+    border: 1px solid var(--bkd-border);
+    border-radius: 12px;
     overflow: hidden;
-    margin-top: 12px;
+    box-shadow: 0 1px 3px rgba(52,35,43,.04);
   }
-  .bkd-progress span {
-    display: block;
-    height: 100%;
-    border-radius: 999px;
-    background: var(--bkd-primary);
-    transition: width .4s ease;
+  .bkd-section summary {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px;
+    font-size: 13px; font-weight: 700; color: var(--bkd-text);
+    cursor: pointer; list-style: none; user-select: none;
+    transition: background .12s;
   }
+  .bkd-section summary::-webkit-details-marker { display: none; }
+  .bkd-section summary::after {
+    content: '';
+    margin-left: auto;
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid var(--bkd-muted);
+    transition: transform .2s;
+  }
+  .bkd-section[open] summary::after { transform: rotate(180deg); }
+  .bkd-section summary:hover { background: #fdf9f5; }
+  .bkd-section-count {
+    font-size: 11px; font-weight: 600; color: var(--bkd-muted);
+    background: var(--bkd-neutral-bg); padding: 2px 8px; border-radius: 999px;
+  }
+  .bkd-section-body { padding: 0 18px 18px; }
 
   /* ── Table ── */
   .bkd-table-wrap { overflow-x: auto; }
   .bkd-table { width: 100%; border-collapse: collapse; }
   .bkd-table thead tr { background: var(--bkd-soft); }
   .bkd-table th {
-    padding: 10px 20px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--bkd-muted);
-    text-align: left;
-    white-space: nowrap;
+    padding: 9px 14px; font-size: 10px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--bkd-muted); text-align: left; white-space: nowrap;
   }
-  .bkd-table th:last-child,
-  .bkd-table th.is-right { text-align: right; }
-  .bkd-table tbody tr {
-    border-top: 1px solid var(--bkd-border-light);
-    transition: background .1s;
-  }
-  .bkd-table tbody tr:hover { background: var(--bkd-soft); }
-  .bkd-table td {
-    padding: 14px 20px;
-    vertical-align: middle;
-  }
-  .bkd-table td:last-child,
-  .bkd-table td.is-right { text-align: right; }
-  .bkd-table-name {
-    font-weight: 700;
-    color: var(--bkd-text);
-    font-size: 13px;
-  }
-  .bkd-table-sub {
-    font-size: 11px;
-    color: var(--bkd-muted);
-    margin-top: 2px;
-  }
-  .bkd-table-amount {
-    font-weight: 700;
-    color: var(--bkd-text);
-    white-space: nowrap;
-  }
-
-  /* ── Add-on chip ── */
+  .bkd-table th:last-child, .bkd-table th.is-right { text-align: right; }
+  .bkd-table tbody tr { border-top: 1px solid var(--bkd-border-light); transition: background .1s; }
+  .bkd-table tbody tr:hover { background: #fdf9f5; }
+  .bkd-table td { padding: 12px 14px; vertical-align: middle; }
+  .bkd-table td:last-child, .bkd-table td.is-right { text-align: right; }
+  .bkd-table-name { font-weight: 700; color: var(--bkd-text); font-size: 13px; }
+  .bkd-table-sub { font-size: 11px; color: var(--bkd-muted); margin-top: 2px; }
+  .bkd-table-amount { font-weight: 700; color: var(--bkd-text); white-space: nowrap; }
   .bkd-addon-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 1px 7px;
-    border-radius: 999px;
-    background: var(--bkd-info-bg);
-    color: var(--bkd-info-text);
-    margin-top: 3px;
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 600; padding: 1px 7px;
+    border-radius: 999px; background: var(--bkd-info-bg); color: var(--bkd-info-text); margin-top: 3px;
   }
 
-  /* ── Payment proof ── */
-  .bkd-proof-link {
-    display: block;
-    overflow: hidden;
-    border: 1px solid var(--bkd-border);
-    border-radius: .75rem;
-    background: var(--bkd-surface);
-    text-decoration: none;
-    transition: box-shadow .12s;
-  }
-  .bkd-proof-link:hover { box-shadow: 0 2px 8px rgba(28, 25, 23, .08); }
-  .bkd-proof-link img {
-    width: 100%;
-    max-height: 220px;
-    object-fit: contain;
-    background: #FFFFFF;
-  }
-  .bkd-proof-file {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 120px;
-    color: var(--bkd-primary);
-    font-size: 12px;
-    font-weight: 700;
-    gap: 6px;
-  }
-  .bkd-proof-file svg { width: 28px; height: 28px; }
-
-  /* ── Review form ── */
-  .bkd-review-form {
-    border: 1px solid var(--bkd-warn-border);
-    border-radius: .75rem;
-    background: var(--bkd-warn-bg);
-    padding: 14px;
-    margin-top: 12px;
-  }
-  .bkd-review-form textarea {
-    width: 100%;
-    min-height: 70px;
-    border: 1px solid var(--bkd-border);
-    border-radius: .75rem;
-    background: var(--bkd-surface);
+  /* ── Supplier list ── */
+  .bkd-sup-list { display: grid; gap: 6px; }
+  .bkd-sup-row {
+    display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
-    color: var(--bkd-text);
-    font: inherit;
-    font-size: 12px;
-    outline: none;
-    resize: vertical;
+    border: 1px solid var(--bkd-border-light); border-radius: 10px; background: var(--bkd-soft);
   }
-  .bkd-review-form textarea:focus { border-color: var(--bkd-primary); }
-  .bkd-review-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-top: 8px;
-  }
-  .bkd-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: rgba(17, 24, 39, .48);
-    backdrop-filter: blur(3px);
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-  }
-  .bkd-modal-backdrop.is-open { display: flex; }
-  .bkd-modal {
-    width: min(100%, 440px);
-    border: 1px solid var(--bkd-border);
-    border-radius: 1rem;
-    background: #fff;
-    box-shadow: 0 24px 70px rgba(17, 24, 39, .22);
-    overflow: hidden;
-    animation: bkd-modal-in .18s ease-out;
-  }
-  @keyframes bkd-modal-in {
-    from { opacity: 0; transform: translateY(8px) scale(.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .bkd-modal-head {
-    display: block;
-    padding: 26px 26px 0;
-  }
-  .bkd-modal-icon {
-    display: grid;
-    place-items: center;
-    width: 46px;
-    height: 46px;
-    margin-bottom: 16px;
-    border-radius: .75rem;
-    background: #FEF2F2;
-    color: #991B1B;
-  }
-  .bkd-modal-icon svg { width: 22px; height: 22px; }
-  .bkd-modal-title {
-    margin: 0;
-    color: var(--bkd-text);
-    font-size: 18px;
-    font-weight: 800;
-    line-height: 1.3;
-  }
-  .bkd-modal-copy {
-    margin: 8px 0 0;
-    color: var(--bkd-body);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.55;
-  }
-  .bkd-modal-body { padding: 18px 26px 0; }
-  .bkd-modal-label {
-    display: block;
-    margin-bottom: 7px;
-    color: var(--bkd-muted);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-  }
-  .bkd-modal textarea {
-    width: 100%;
-    min-height: 108px;
-    border: 1px solid var(--bkd-border);
-    border-radius: .75rem;
-    background: var(--bkd-surface);
-    padding: 11px 12px;
-    color: var(--bkd-text);
-    font: inherit;
-    font-size: 13px;
-    outline: none;
-    resize: vertical;
-  }
-  .bkd-modal textarea:focus {
-    border-color: var(--bkd-primary);
-    box-shadow: 0 0 0 3px rgba(109, 76, 91, .12);
-  }
-  .bkd-modal-error {
-    display: none;
-    margin-top: 7px;
-    color: #991B1B;
-    font-size: 11px;
-    font-weight: 700;
-  }
-  .bkd-modal-error.show { display: block; }
-  .bkd-modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 9px;
-    padding: 16px 0 22px;
-  }
-  .bkd-modal-actions .bkd-btn {
-    width: auto;
-    min-width: 112px;
-    padding: 0 16px;
-  }
+  .bkd-sup-info { flex: 1; min-width: 0; }
+  .bkd-sup-name { font-size: 12px; font-weight: 700; color: var(--bkd-text); overflow-wrap: anywhere; }
+  .bkd-sup-sub { font-size: 10px; color: var(--bkd-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .bkd-sup-svc { margin-top: 3px; color: var(--bkd-body); font-size: 11px; font-weight: 600; }
 
-  /* ── Sidebar elements ── */
-  .bkd-side-list { display: grid; gap: 6px; }
-  .bkd-side-person {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  /* ── Customer card ── */
+  .bkd-cust {
+    display: flex; align-items: center; gap: 12px;
     padding: 10px 12px;
-    border: 1px solid var(--bkd-border-light);
-    border-radius: .75rem;
-    background: var(--bkd-soft);
+    border: 1px solid var(--bkd-border-light); border-radius: 10px; background: var(--bkd-soft);
   }
   .bkd-avatar {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 999px;
-    background: var(--bkd-primary-soft);
-    color: var(--bkd-primary);
-    font-size: 13px;
-    font-weight: 800;
-    flex-shrink: 0;
+    display: grid; place-items: center;
+    width: 36px; height: 36px; border-radius: 999px;
+    background: var(--bkd-primary-soft); color: var(--bkd-primary);
+    font-size: 13px; font-weight: 800; flex-shrink: 0;
   }
-  .bkd-side-row {
-    display: grid;
-    grid-template-columns: 8px minmax(0, 1fr);
-    align-items: start;
-    gap: 10px;
-    border: 1px solid var(--bkd-border-light);
-    border-radius: .75rem;
-    background: var(--bkd-soft);
-    padding: 11px 12px;
-  }
-  .bkd-side-row > .bkd-dot { margin-top: 5px; }
-  .bkd-side-row--attention {
-    border-color: #e8b66f;
-    background: #fff8ed;
-  }
-  .bkd-side-row--replacement {
-    border-color: #b9d8ce;
-    background: #f4fbf8;
-  }
-  .bkd-side-row--replaced {
-    background: #f8f6f4;
-  }
-  .bkd-side-row-main { flex: 1; min-width: 0; }
-  .bkd-side-row-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--bkd-text);
-    overflow-wrap: anywhere;
-  }
-  .bkd-side-row-sub {
-    font-size: 10px;
-    color: var(--bkd-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-  }
-  .bkd-side-service {
-    margin-top: 4px;
-    color: var(--bkd-body);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.35;
-  }
-  .bkd-side-service-label {
-    color: var(--bkd-muted);
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-  }
-  .bkd-replacement-flow {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr);
-    align-items: center;
-    gap: 5px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px dashed var(--bkd-border);
-  }
-  .bkd-replacement-party {
-    min-width: 0;
-    font-size: 10px;
-    line-height: 1.3;
-  }
-  .bkd-replacement-party strong {
-    display: block;
-    color: var(--bkd-text);
-    font-size: 10px;
-    overflow-wrap: anywhere;
-  }
-  .bkd-replacement-party span {
-    color: var(--bkd-muted);
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .bkd-replacement-arrow {
-    display: grid;
-    place-items: center;
-    color: var(--bkd-primary);
-  }
-  .bkd-replacement-arrow svg { width: 13px; height: 13px; }
-  .bkd-side-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 9px;
-    color: var(--bkd-warn-text);
-    font-size: 10px;
-    font-weight: 800;
-    text-decoration: none;
-  }
-  .bkd-side-action:hover { text-decoration: underline; }
-  .bkd-side-action svg { width: 12px; height: 12px; }
+  .bkd-cust-name { font-size: 13px; font-weight: 700; color: var(--bkd-text); }
+  .bkd-cust-detail { font-size: 11px; color: var(--bkd-muted); margin-top: 2px; }
+
+  /* ── Timeline ── */
+  .bkd-timeline { display: grid; }
+  .bkd-timeline-item { display: grid; grid-template-columns: 16px 1fr; gap: 8px; }
+  .bkd-timeline-dot { display: flex; flex-direction: column; align-items: center; }
+  .bkd-timeline-dot::after { content: ''; width: 1px; flex: 1; background: var(--bkd-border-light); margin-top: 5px; }
+  .bkd-timeline-item:last-child .bkd-timeline-dot::after { display: none; }
+  .bkd-timeline-body { padding-bottom: 12px; }
+  .bkd-timeline-title { font-weight: 700; color: var(--bkd-text); font-size: 12px; }
+  .bkd-timeline-time { font-size: 11px; color: var(--bkd-muted); margin-top: 1px; }
 
   /* ── Status dots ── */
-  .bkd-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 999px;
-    flex-shrink: 0;
-  }
+  .bkd-dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; }
   .bkd-dot--success { background: #059669; }
   .bkd-dot--warn    { background: #d97706; }
   .bkd-dot--danger  { background: #dc2626; }
   .bkd-dot--neutral { background: #A8A29E; }
 
-  /* ── Timeline ── */
-  .bkd-timeline { display: grid; }
-  .bkd-timeline-item {
-    display: grid;
-    grid-template-columns: 16px 1fr;
-    gap: 8px;
+  /* ── Toggle more ── */
+  .bkd-toggle-more {
+    display: block; width: 100%; margin-top: 8px; padding: 6px 0;
+    border: 0; background: none; color: var(--bkd-primary);
+    font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; text-align: center;
   }
-  .bkd-timeline-dot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .bkd-timeline-dot::after {
-    content: '';
-    width: 1px;
-    flex: 1;
-    background: var(--bkd-border-light);
-    margin-top: 5px;
-  }
-  .bkd-timeline-item:last-child .bkd-timeline-dot::after { display: none; }
-  .bkd-timeline-body { padding-bottom: 12px; }
-  .bkd-timeline-title {
-    font-weight: 700;
-    color: var(--bkd-text);
-    font-size: 12px;
-  }
-  .bkd-timeline-time {
-    font-size: 11px;
-    color: var(--bkd-muted);
-    margin-top: 1px;
-  }
+  .bkd-toggle-more:hover { text-decoration: underline; }
 
   /* ── Cancel form ── */
   .bkd-cancel-form { display: grid; gap: 10px; }
   .bkd-cancel-form textarea {
-    width: 100%;
-    min-height: 70px;
-    border: 1px solid var(--bkd-danger-border);
-    border-radius: .75rem;
-    background: var(--bkd-surface);
-    padding: 10px 12px;
-    color: var(--bkd-text);
-    font: inherit;
-    font-size: 12px;
-    outline: none;
-    resize: vertical;
+    width: 100%; min-height: 60px;
+    border: 1px solid var(--bkd-danger-border); border-radius: 10px;
+    background: var(--bkd-surface); padding: 10px 12px;
+    color: var(--bkd-text); font: inherit; font-size: 12px; outline: none; resize: vertical;
   }
-  .bkd-cancel-form textarea:focus { border-color: var(--bkd-danger-text); }
   .bkd-cancel-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--bkd-body);
-    font-size: 12px;
-    font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+    color: var(--bkd-body); font-size: 12px; font-weight: 600;
   }
 
   /* ── Empty state ── */
-  .bkd-empty {
-    padding: 32px 24px;
-    text-align: center;
-    color: var(--bkd-muted);
-    font-size: 12px;
-    font-weight: 600;
-  }
+  .bkd-empty { padding: 24px; text-align: center; color: var(--bkd-muted); font-size: 12px; font-weight: 600; }
 
-  /* ── Show more toggle ── */
-  .bkd-toggle-more {
-    display: block;
-    width: 100%;
-    margin-top: 8px;
-    padding: 6px 0;
-    border: 0;
-    background: none;
-    color: var(--bkd-primary);
-    font-size: 11px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    text-align: center;
+  /* ── Bottom actions ── */
+  .bkd-bottom {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap;
   }
-  .bkd-toggle-more:hover { text-decoration: underline; }
+  .bkd-bottom-left, .bkd-bottom-right { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  /* ── Note area ── */
-  .bkd-result-note {
-    margin-top: 10px;
-    font-size: 11px;
-    color: var(--bkd-muted);
-    font-weight: 600;
+  /* ── Modal ── */
+  .bkd-modal-backdrop {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none; align-items: center; justify-content: center;
+    padding: 20px; background: rgba(17,24,39,.48); backdrop-filter: blur(3px);
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   }
+  .bkd-modal-backdrop.is-open { display: flex; }
+  .bkd-modal {
+    width: min(100%, 440px);
+    border: 1px solid var(--bkd-border); border-radius: 1rem;
+    background: #fff; box-shadow: 0 24px 70px rgba(17,24,39,.22);
+    overflow: hidden; animation: bkd-modal-in .18s ease-out;
+  }
+  @keyframes bkd-modal-in { from { opacity:0; transform:translateY(8px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+  .bkd-modal-head { display: block; padding: 26px 26px 0; }
+  .bkd-modal-icon {
+    display: grid; place-items: center; width: 46px; height: 46px;
+    margin-bottom: 16px; border-radius: .75rem; background: #FEF2F2; color: #991B1B;
+  }
+  .bkd-modal-icon svg { width: 22px; height: 22px; }
+  .bkd-modal-title { margin: 0; color: var(--bkd-text); font-size: 18px; font-weight: 800; line-height: 1.3; }
+  .bkd-modal-copy { margin: 8px 0 0; color: var(--bkd-body); font-size: 13px; font-weight: 500; line-height: 1.55; }
+  .bkd-modal-body { padding: 18px 26px 0; }
+  .bkd-modal-label {
+    display: block; margin-bottom: 7px; color: var(--bkd-muted);
+    font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  }
+  .bkd-modal textarea {
+    width: 100%; min-height: 108px;
+    border: 1px solid var(--bkd-border); border-radius: .75rem;
+    background: var(--bkd-surface); padding: 11px 12px;
+    color: var(--bkd-text); font: inherit; font-size: 13px; outline: none; resize: vertical;
+  }
+  .bkd-modal textarea:focus { border-color: var(--bkd-primary); box-shadow: 0 0 0 3px rgba(109,76,91,.12); }
+  .bkd-modal-error { display: none; margin-top: 7px; color: #991B1B; font-size: 11px; font-weight: 700; }
+  .bkd-modal-error.show { display: block; }
+  .bkd-modal-actions { display: flex; justify-content: flex-end; gap: 9px; padding: 16px 0 22px; }
+  .bkd-modal-actions .bkd-btn { min-width: 112px; padding: 0 16px; }
 
   /* ── Responsive ── */
-  @media (max-width: 1180px) {
-    .bkd-body { grid-template-columns: 1fr; }
-    .bkd-stats { grid-template-columns: repeat(2, 1fr); }
-    .bkd-kv-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 760px) {
-    .admin-booking-detail-outlet { padding: 20px 16px; }
-    .bkd-header { flex-direction: column; }
-    .bkd-stats { grid-template-columns: 1fr; }
+  @media (max-width: 900px) {
+    .admin-booking-detail-outlet { padding: 16px; }
+    .bkd-pay-grid { grid-template-columns: 1fr; }
+    .bkd-strip { flex-direction: column; align-items: flex-start; }
+    .bkd-strip-item { border-right: 0; padding: 4px 0; }
+    .bkd-steps { flex-direction: column; }
+    .bkd-step { border-right: 0; border-bottom: 1px solid var(--bkd-border-light); }
+    .bkd-step:last-child { border-bottom: 0; }
     .bkd-kv-grid { grid-template-columns: 1fr; }
-    .bkd-review-actions { grid-template-columns: 1fr; }
-  }
-
-  /* ── Booking Command Center ── */
-  .admin-booking-detail-outlet {
-    padding: 30px;
-  }
-  .bkd-page {
-    --bkd-text: #6d4c5b;
-    --bkd-body: #7b5c69;
-    --bkd-muted: #a58b96;
-    max-width: 1450px;
-  }
-  .bkd-header {
-    align-items: flex-end;
-    margin-bottom: 20px;
-  }
-  .bkd-eyebrow {
-    margin-bottom: 7px;
-    letter-spacing: .18em;
-    font-weight: 800;
-  }
-  .bkd-ref {
-    font-family: "Playfair Display", serif;
-    font-size: clamp(31px, 3vw, 43px);
-    font-weight: 650;
-    line-height: 1;
-    color: #6d4c5b;
-  }
-  .bkd-ref em {
-    color: #7b5c69;
-    font-weight: 500;
-  }
-  .bkd-subtitle {
-    margin-top: 10px;
-    line-height: 1.6;
-  }
-  .bkd-header-status {
-    display: inline-flex;
-    min-height: 38px;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid var(--bkd-border);
-    border-radius: 999px;
-    padding: 0 13px;
-    background: #FFFFFF;
-    color: var(--bkd-primary);
-    font-size: 10px;
-    font-weight: 800;
-    white-space: nowrap;
-    box-shadow: 0 10px 28px rgba(52,35,43,.06);
-  }
-  .bkd-header-status::before {
-    content: "";
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: currentColor;
-    box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 10%, transparent);
-  }
-  .bkd-btn {
-    min-height: 40px;
-    height: 40px;
-    border-radius: 10px;
-    padding-inline: 14px;
-    font-size: 11px;
-  }
-  .bkd-stats {
-    gap: 0;
-    overflow: hidden;
-    margin-bottom: 14px;
-    border: 1px solid var(--bkd-border);
-    border-radius: 15px;
-    background: #FFFFFF;
-    box-shadow: 0 18px 45px rgba(52,35,43,.055);
-  }
-  .bkd-stat {
-    min-height: 105px;
-    border: 0;
-    border-right: 1px solid var(--bkd-border);
-    border-radius: 0;
-    padding: 21px 23px;
-  }
-  .bkd-stat:last-child { border-right: 0; }
-  .bkd-stat-value {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 25px;
-    font-weight: 750;
-    color: #6d4c5b;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -.025em;
-  }
-  .bkd-stat-label {
-    letter-spacing: .13em;
-    font-weight: 800;
-  }
-  .bkd-command-nav {
-    display: flex;
-    gap: 4px;
-    overflow-x: auto;
-    margin-bottom: 18px;
-    border: 1px solid var(--bkd-border);
-    border-radius: 13px;
-    padding: 8px;
-    background: #FFFFFF;
-  }
-  .bkd-command-nav a {
-    display: inline-flex;
-    min-height: 34px;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 7px;
-    border-radius: 8px;
-    padding: 0 11px;
-    color: #8e727e;
-    font-size: 10px;
-    font-weight: 800;
-    text-decoration: none;
-    transition: background .15s ease, color .15s ease;
-  }
-  .bkd-command-nav a:hover,
-  .bkd-command-nav a:focus-visible {
-    background: #FFFFFF;
-    color: var(--bkd-primary);
-    outline: none;
-  }
-  .bkd-command-nav svg { width: 13px; height: 13px; }
-  .bkd-body {
-    grid-template-columns: minmax(0,1fr) 370px;
-    gap: 20px;
-  }
-  .bkd-main { gap: 18px; min-width: 0; }
-  .bkd-side {
-    gap: 14px;
-  }
-  .bkd-card {
-    scroll-margin-top: 100px;
-    border-radius: 15px;
-    box-shadow: 0 16px 40px rgba(52,35,43,.05);
-  }
-  .bkd-card--highlight {
-    border-left: 1px solid var(--bkd-border);
-    border-top: 4px solid var(--bkd-warn-border);
-  }
-  .bkd-card-head {
-    min-height: 61px;
-    padding: 14px 18px;
-  }
-  .bkd-card-title {
-    color: #6d4c5b;
-    font-size: 12px;
-    font-weight: 800;
-  }
-  .bkd-card-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-  }
-  .bkd-card-body { padding: 18px; }
-  .bkd-kv {
-    border-radius: 10px;
-    padding: 13px;
-  }
-  .bkd-kv-label { font-size: 9px; font-weight: 800; }
-  .bkd-table th { font-size: 9px; font-weight: 800; }
-  .bkd-table tbody tr:hover { background: #fdf9f5; }
-  .bkd-action-center {
-    position: sticky;
-    top: 100px;
-    z-index: 2;
-    border-color: #d8c1b1;
-    box-shadow: 0 20px 52px rgba(52,35,43,.09);
-  }
-  .bkd-action-center .bkd-card-head {
-    border-bottom-color: rgba(252,248,245,.12);
-    background: linear-gradient(145deg,#6d4c5b,#7b5c69);
-  }
-  .bkd-action-center .bkd-card-title,
-  .bkd-action-center .bkd-card-meta { color: #FFFFFF; }
-  .bkd-action-center .bkd-card-icon {
-    background: rgba(252,248,245,.13);
-    color: #FFFFFF;
-  }
-  .bkd-proof-link {
-    border-radius: 11px;
-    background: #FFFFFF;
-  }
-  .bkd-proof-link img { max-height: 260px; }
-  .bkd-review-form {
-    border-color: #e1c69b;
-    border-radius: 11px;
-    background: #fff9ef;
-  }
-  .bkd-review-actions .bkd-btn {
-    width: 100%;
-    justify-content: center;
-  }
-  .bkd-side-person,
-  .bkd-side-row {
-    border-radius: 10px;
-  }
-  .bkd-danger-zone {
-    border-color: #efcaca;
-    box-shadow: none;
-  }
-  .bkd-danger-zone .bkd-card-head { background: #fff7f7; }
-
-  /* ── Event Day Run Sheet ── */
-  .bkd-run-sheet-card {
-    overflow: visible;
-  }
-  .bkd-run-sheet-card > .bkd-card-head {
-    overflow: hidden;
-    border-radius: 15px 15px 0 0;
-  }
-  .bkd-run-sheet {
-    padding: 0;
-  }
-  .bkd-run-day {
-    border-bottom: 1px solid var(--bkd-border);
-  }
-  .bkd-run-day:last-child { border-bottom: 0; }
-  .bkd-run-day-head {
-    display: grid;
-    grid-template-columns: 96px minmax(0,1fr);
-    gap: 18px;
-    align-items: stretch;
-    border-bottom: 1px solid var(--bkd-border-light);
-    background: linear-gradient(120deg,#f2e5d8,#FFFFFF 55%,#FFFFFF);
-  }
-  .bkd-run-date {
-    display: flex;
-    min-height: 112px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border-right: 1px solid #dcc5b4;
-    color: var(--bkd-primary);
-  }
-  .bkd-run-date-day {
-    font-family: "Playfair Display", serif;
-    font-size: 37px;
-    font-weight: 650;
-    line-height: 1;
-  }
-  .bkd-run-date-month {
-    margin-top: 5px;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-  }
-  .bkd-run-date-year {
-    margin-top: 2px;
-    color: #a58b96;
-    font-size: 9px;
-    font-weight: 700;
-  }
-  .bkd-run-summary {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    justify-content: center;
-    padding: 18px 20px 18px 0;
-  }
-  .bkd-run-summary-kicker {
-    color: #9b7d89;
-    font-size: 8px;
-    font-weight: 800;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-  }
-  .bkd-run-summary-title {
-    margin: 5px 0 0;
-    color: #6d4c5b;
-    font-family: "Playfair Display", serif;
-    font-size: 20px;
-    font-weight: 650;
-  }
-  .bkd-run-summary-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px 15px;
-    margin-top: 10px;
-    color: #7b5c69;
-    font-size: 10px;
-    font-weight: 650;
-  }
-  .bkd-run-summary-meta span {
-    display: inline-flex;
-    min-width: 0;
-    align-items: center;
-    gap: 6px;
-  }
-  .bkd-run-summary-meta svg {
-    width: 12px;
-    height: 12px;
-    flex: 0 0 12px;
-    color: #9b7d89;
-  }
-  .bkd-run-events {
-    padding: 20px 22px 22px;
-  }
-  .bkd-run-event {
-    display: grid;
-    grid-template-columns: 74px 20px minmax(0,1fr);
-    gap: 12px;
-    min-height: 78px;
-  }
-  .bkd-run-time {
-    padding-top: 2px;
-    color: #6d4c5b;
-    font-family: ui-monospace,SFMono-Regular,Menlo,monospace;
-    font-size: 11px;
-    font-weight: 800;
-    text-align: right;
-  }
-  .bkd-run-time-end {
-    display: block;
-    margin-top: 3px;
-    color: #b79c8b;
-    font-size: 9px;
-    font-weight: 600;
-  }
-  .bkd-run-track {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .bkd-run-track::after {
-    content: "";
-    width: 1px;
-    flex: 1;
-    margin-top: 5px;
-    background: #ddcabb;
-  }
-  .bkd-run-event:last-child .bkd-run-track::after { display: none; }
-  .bkd-run-node {
-    width: 11px;
-    height: 11px;
-    flex: 0 0 11px;
-    border: 3px solid #FFFFFF;
-    border-radius: 50%;
-    background: var(--bkd-primary);
-    box-shadow: 0 0 0 2px #ceb4a3;
-  }
-  .bkd-run-event.has-overlap .bkd-run-node {
-    background: #b7792f;
-    box-shadow: 0 0 0 2px #e5c38f;
-  }
-  .bkd-run-event-body {
-    padding: 0 0 20px 2px;
-  }
-  .bkd-run-service {
-    color: #6d4c5b;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1.4;
-  }
-  .bkd-run-category {
-    display: inline-flex;
-    min-height: 19px;
-    align-items: center;
-    margin-left: 7px;
-    border-radius: 999px;
-    padding: 0 7px;
-    background: #FFFFFF;
-    color: #9b7d89;
-    font-size: 7px;
-    font-weight: 800;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    vertical-align: 1px;
-  }
-  .bkd-run-state {
-    display: inline-flex;
-    min-height: 19px;
-    align-items: center;
-    gap: 4px;
-    margin-left: 5px;
-    border-radius: 999px;
-    padding: 0 7px;
-    font-size: 7px;
-    font-weight: 850;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    vertical-align: 1px;
-  }
-  .bkd-run-state svg { width: 9px; height: 9px; }
-  .bkd-run-state--replacement {
-    background: #e7f6f0;
-    color: #08715a;
-  }
-  .bkd-run-state--attention {
-    background: #fff0d8;
-    color: #9a5c12;
-  }
-  .bkd-run-detail {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 14px;
-    margin-top: 6px;
-    color: #7b5c69;
-    font-size: 10px;
-    font-weight: 600;
-  }
-  .bkd-run-detail span {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .bkd-run-detail svg {
-    width: 11px;
-    height: 11px;
-    color: #b79c8b;
-  }
-  .bkd-run-overlap {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 8px;
-    border-radius: 7px;
-    padding: 5px 8px;
-    background: #fff5e6;
-    color: #9a6527;
-    font-size: 8px;
-    font-weight: 800;
-  }
-  .bkd-run-overlap svg { width: 11px; height: 11px; }
-  .bkd-run-empty {
-    padding: 52px 22px;
-    text-align: center;
-    color: #9b7d89;
-    font-size: 11px;
-    font-weight: 700;
-  }
-  @media (max-width: 1180px) {
-    .bkd-action-center { position: static; }
-    .bkd-stat:nth-child(2) { border-right: 0; }
-    .bkd-stat:nth-child(-n+2) { border-bottom: 1px solid var(--bkd-border); }
-  }
-  @media (max-width: 760px) {
-    .admin-booking-detail-outlet { padding: 20px 16px; }
-    .bkd-header { align-items: flex-start; }
-    .bkd-header-actions { width: 100%; }
-    .bkd-header-actions .bkd-btn { flex: 1; justify-content: center; }
-    .bkd-stats { grid-template-columns: 1fr; }
-    .bkd-stat,
-    .bkd-stat:nth-child(2) { border-right: 0; border-bottom: 1px solid var(--bkd-border); }
-    .bkd-stat:last-child { border-bottom: 0; }
-    .bkd-run-day-head { grid-template-columns: 78px minmax(0,1fr); }
-    .bkd-run-date-day { font-size: 31px; }
-    .bkd-run-event { grid-template-columns: 62px 18px minmax(0,1fr); gap: 9px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .bkd-command-nav a { transition: none; }
+    .bkd-top { flex-direction: column; align-items: flex-start; }
   }
 </style>
-
 <div class="bkd-page">
-  <!-- ── Header ── -->
-  <header class="bkd-header">
-    <div class="bkd-header-left">
-      <p class="bkd-eyebrow">Booking detail</p>
-      <h1 class="bkd-ref">
-        <?php
-          $refParts = $bookingRef ? explode('-', $bookingRef, 2) : ['Booking #' . $bookingId, ''];
-          echo $h($refParts[0]);
-          if (!empty($refParts[1])) echo '-<em>' . $h($refParts[1]) . '</em>';
-        ?>
-      </h1>
-      <p class="bkd-subtitle">
-        <?= $h($custName) ?> · <?= $h($booking['customer_email'] ?? '-') ?> · Created <?= $h($createdAt) ?>
-      </p>
-    </div>
-    <div class="bkd-header-actions">
-      <span class="bkd-header-status" id="booking-status-value"><?= $h($statusLabel) ?></span>
-      <a href="<?= URLROOT ?>/admin/bookings" class="bkd-btn bkd-btn--ghost">
-        <i data-lucide="chevron-left"></i> Back
-      </a>
-      <button type="button" id="copy-ref-btn" class="bkd-btn bkd-btn--ghost" data-ref="<?= $h($bookingRef) ?>">
-        <i data-lucide="copy"></i> Copy ref
-      </button>
-      <a href="<?= URLROOT ?>/admin/paymentVerification" class="bkd-btn bkd-btn--ghost">
-        <i data-lucide="receipt-text"></i> Payment review
-      </a>
-    </div>
-  </header>
-
-  <!-- ── Stats band ── -->
-  <div class="bkd-stats">
-    <div class="bkd-stat bkd-stat--primary">
-      <div class="bkd-stat-label">Event date</div>
-      <div class="bkd-stat-value is-primary"><?= $h($dateOnly($firstEvent['event_date'] ?? null)) ?></div>
-      <div class="bkd-stat-sub"><?= $h($timeOnly($displayEventStart)) ?> – <?= $h($timeOnly($displayEventEnd)) ?></div>
-    </div>
-    <div class="bkd-stat bkd-stat--neutral">
-      <div class="bkd-stat-label">Total amount</div>
-      <div class="bkd-stat-value"><?= $money($totalAmount) ?></div>
-      <div class="bkd-stat-sub"><?= count($items) ?> booked item<?= count($items) === 1 ? '' : 's' ?></div>
-    </div>
-    <div class="bkd-stat bkd-stat--success">
-      <div class="bkd-stat-label">Paid</div>
-      <div class="bkd-stat-value is-success" id="booking-paid-value"><?= $money($paidAmount) ?></div>
-      <div class="bkd-stat-sub" id="booking-paid-percent"><?= $paidPercent ?>% collected</div>
-    </div>
-    <div class="bkd-stat <?= $balanceDue > 0 ? 'bkd-stat--danger' : 'bkd-stat--success' ?>">
-      <div class="bkd-stat-label">Balance due</div>
-      <div class="bkd-stat-value <?= $balanceDue > 0 ? 'is-danger' : 'is-success' ?>" id="booking-balance-value"><?= $money($balanceDue) ?></div>
-      <div class="bkd-stat-sub">Remaining payment</div>
-    </div>
-  </div>
-
-  <nav class="bkd-command-nav" aria-label="Booking detail sections">
-    <a href="#booking-payment"><i data-lucide="wallet-cards"></i>Payment</a>
-    <a href="#booking-services"><i data-lucide="calendar-check"></i>Services</a>
-    <a href="#booking-event"><i data-lucide="map-pin"></i>Event</a>
-    <a href="#booking-suppliers"><i data-lucide="store"></i>Suppliers</a>
-    <a href="#booking-activity"><i data-lucide="history"></i>Activity</a>
-  </nav>
-
   <?php
     $bookingStatus = $booking['status'] ?? '';
     $isPendingSupplier = $bookingStatus === 'pending_supplier_response';
@@ -1593,237 +775,249 @@ $dashboardContent = function () use (
     $isPaymentSubmitted = $bookingStatus === 'payment_submitted' || $paymentStatus === 'pending';
     $isConfirmed = in_array($bookingStatus, ['confirmed', 'paid', 'finalized', 'completed'], true);
     $isCancelled = in_array($bookingStatus, ['cancelled', 'cancellation_requested'], true);
+    $canCancel = !in_array($bookingStatus, ['cancelled', 'completed'], true);
+    $canMarkCompleted = in_array($bookingStatus, ['finalized', 'in_progress'], true);
 
-    // Step progress: 1=Created, 2=Suppliers, 3=Payment, 4=Confirmed
+    // Step progress
     $currentStep = 1;
-    $stepLabel = 'Booking Created';
-    $stepColor = '#6d4c5b';
-    $stepBg = '#f3f0ed';
-    $stepIcon = 'clipboard-list';
+    if ($isPendingSupplier) $currentStep = 2;
+    elseif ($isPendingPayment || $isPaymentSubmitted) $currentStep = 3;
+    elseif ($isConfirmed) $currentStep = 4;
+    elseif ($isCancelled) $currentStep = 0;
 
-    if ($isPendingSupplier) {
-        $currentStep = 2;
-        $stepLabel = 'Waiting for Supplier Response';
-        $stepColor = '#92400E';
-        $stepBg = '#FFFBEB';
-        $stepIcon = 'clock';
-    } elseif ($isPendingPayment) {
-        $currentStep = 3;
-        $stepLabel = 'Waiting for Customer Payment';
-        $stepColor = '#3730a3';
-        $stepBg = '#e0e7ff';
-        $stepIcon = 'wallet';
-    } elseif ($isPaymentSubmitted) {
-        $currentStep = 3;
-        $stepLabel = 'Payment Submitted — Needs Review';
-        $stepColor = '#b45309';
-        $stepBg = '#FFFBEB';
-        $stepIcon = 'alert-circle';
-    } elseif ($isConfirmed) {
-        $currentStep = 4;
-        $stepLabel = 'Booking Confirmed';
-        $stepColor = '#065F46';
-        $stepBg = '#ECFDF5';
-        $stepIcon = 'check-circle';
-    } elseif ($isCancelled) {
-        $currentStep = 0;
-        $stepLabel = 'Booking Cancelled';
-        $stepColor = '#991B1B';
-        $stepBg = '#FEF2F2';
-        $stepIcon = 'x-circle';
+    $steps = [
+        1 => ['label' => 'Created', 'icon' => 'clipboard-list'],
+        2 => ['label' => 'Suppliers', 'icon' => 'users'],
+        3 => ['label' => 'Payment', 'icon' => 'wallet'],
+        4 => ['label' => 'Confirmed', 'icon' => 'check-circle'],
+    ];
+
+    $refParts = $bookingRef ? explode('-', $bookingRef, 2) : ['Booking #' . $bookingId, ''];
+    $refDisplay = $h($refParts[0]) . (!empty($refParts[1]) ? '-<em>' . $h($refParts[1]) . '</em>' : '');
+    $eventDate = $dateOnly($firstEvent['event_date'] ?? null, 'Not scheduled');
+    $createdAt = $dateOnly($booking['created_at'] ?? null);
+
+    // Non-addon items for event schedule
+    $nonAddonItemIds = [];
+    foreach ($items as $item) {
+        if (empty($item['package_booking_item_id'])) $nonAddonItemIds[] = (int)$item['id'];
+    }
+    $eventDetailsByItem = [];
+    foreach ($eventDetails as $ed) {
+        $bid = (int)($ed['booking_item_id'] ?? 0);
+        if ($bid > 0) $eventDetailsByItem[$bid] = $ed;
+    }
+    foreach ($items as $item) {
+        $iid = (int)($item['id'] ?? 0);
+        if (!isset($eventDetailsByItem[$iid])) {
+            $pid = (int)($item['package_booking_item_id'] ?? 0);
+            if ($pid > 0 && isset($eventDetailsByItem[$pid])) $eventDetailsByItem[$iid] = $eventDetailsByItem[$pid];
+        }
     }
   ?>
 
-  <!-- ── BOOKING STATUS BANNER ── -->
-  <div style="margin-bottom:24px;border-radius:16px;border:2px solid <?= $stepColor ?>;background:<?= $stepBg ?>;overflow:hidden">
-    <!-- Top banner -->
-    <div style="display:flex;align-items:center;gap:16px;padding:20px 24px">
-      <div style="width:56px;height:56px;border-radius:14px;background:<?= $stepColor ?>;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0">
-        <i data-lucide="<?= $stepIcon ?>" style="width:28px;height:28px"></i>
-      </div>
-      <div style="flex:1">
-        <div style="font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:<?= $stepColor ?>;opacity:.7;margin-bottom:4px">Current Stage</div>
-        <div style="font-size:20px;font-weight:800;color:<?= $stepColor ?>"><?= $stepLabel ?></div>
-      </div>
-      <?php if ($isPendingSupplier || $isPendingPayment || $isPaymentSubmitted): ?>
-      <div style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;background:white;font-size:12px;font-weight:700;color:<?= $stepColor ?>">
-        <i data-lucide="clock" style="width:14px;height:14px"></i>
-        Action needed
-      </div>
-      <?php endif; ?>
+  <!-- ── Compact Header ── -->
+  <div class="bkd-top">
+    <div class="bkd-top-left">
+      <a href="<?= URLROOT ?>/admin/bookings" class="bkd-btn bkd-btn--ghost" style="height:32px;padding:0 10px;font-size:11px">
+        <i data-lucide="chevron-left" style="width:14px;height:14px"></i> Back
+      </a>
+      <span class="bkd-ref"><?= $refDisplay ?></span>
+      <span class="bkd-top-meta"><?= $h($custName) ?> · Event <?= $h($eventDate) ?></span>
     </div>
+    <div class="bkd-top-right">
+      <span class="bkd-badge <?= $badgeClass($bookingStatus) ?>" id="booking-status-value"><?= $h(ucwords(str_replace('_', ' ', $bookingStatus))) ?></span>
+      <button type="button" id="copy-ref-btn" class="bkd-btn bkd-btn--ghost" style="height:32px;padding:0 10px;font-size:11px" data-ref="<?= $h($bookingRef) ?>">
+        <i data-lucide="copy" style="width:13px;height:13px"></i> Copy ref
+      </button>
+    </div>
+  </div>
 
-    <!-- Step progress bar -->
-    <div style="display:flex;background:white;border-top:1px solid <?= $stepColor ?>20">
+  <!-- ── Summary Strip ── -->
+  <div class="bkd-strip">
+    <div class="bkd-strip-item">
+      <span class="bkd-strip-label">Total</span>
+      <span class="bkd-strip-value"><?= $money($totalAmount) ?></span>
+    </div>
+    <div class="bkd-strip-item">
+      <span class="bkd-strip-label">Paid</span>
+      <span class="bkd-strip-value is-success" id="booking-paid-value"><?= $money($paidAmount) ?></span>
+    </div>
+    <div class="bkd-strip-item">
+      <span class="bkd-strip-label">Balance</span>
+      <span class="bkd-strip-value <?= $balanceDue > 0 ? 'is-danger' : 'is-success' ?>" id="booking-balance-value"><?= $money($balanceDue) ?></span>
+    </div>
+    <div class="bkd-strip-item">
+      <span class="bkd-strip-label">Items</span>
+      <span class="bkd-strip-value"><?= count($items) ?></span>
+    </div>
+    <div class="bkd-strip-item">
+      <span class="bkd-strip-label">Created</span>
+      <span class="bkd-strip-value" style="font-size:12px"><?= $h($createdAt) ?></span>
+    </div>
+  </div>
+
+  <!-- ── Step Progress ── -->
+  <div class="bkd-steps">
+    <?php foreach ($steps as $num => $step): ?>
       <?php
-        $steps = [
-            1 => ['label' => 'Created', 'icon' => 'clipboard-list'],
-            2 => ['label' => 'Suppliers', 'icon' => 'users'],
-            3 => ['label' => 'Payment', 'icon' => 'wallet'],
-            4 => ['label' => 'Confirmed', 'icon' => 'check-circle'],
-        ];
+        $isDone = $num < $currentStep || ($num === $currentStep && $currentStep === 4);
+        $isCur = $num === $currentStep && $currentStep < 4;
+        $stepClass = $isDone ? 'is-done' : ($isCur ? 'is-current' : '');
       ?>
-      <?php foreach ($steps as $num => $step): ?>
-        <?php
-          $isComplete = $num < $currentStep || ($num === $currentStep && $currentStep === 4);
-          $isCurrent = $num === $currentStep && $currentStep < 4;
-          $isFuture = $num > $currentStep;
-          $stepBorderColor = $isComplete ? '#065F46' : ($isCurrent ? $stepColor : '#e5e7eb');
-          $stepTextColor = $isComplete ? '#065F46' : ($isCurrent ? $stepColor : '#9ca3af');
-          $stepBgColor = $isComplete ? '#ECFDF5' : ($isCurrent ? $stepBg : '#f9fafb');
-        ?>
-        <div style="flex:1;display:flex;align-items:center;gap:10px;padding:14px 16px;border-right:1px solid #F5F5F4;background:<?= $stepBgColor ?><?= $isCurrent ? ';box-shadow:inset 0 -3px 0 ' . $stepColor : '' ?>">
-          <div style="width:32px;height:32px;border-radius:50%;background:<?= $isComplete ? '#065F46' : ($isCurrent ? $stepColor : '#e5e7eb') ?>;display:flex;align-items:center;justify-content:center;color:white;font-size:13px;font-weight:800;flex-shrink:0">
-            <?php if ($isComplete): ?>
-              <i data-lucide="check" style="width:16px;height:16px"></i>
-            <?php else: ?>
-              <?= $num ?>
-            <?php endif; ?>
+      <div class="bkd-step <?= $stepClass ?>">
+        <span class="bkd-step-num"><?= $isDone ? '✓' : $num ?></span>
+        <span><?= $step['label'] ?><?= $isCur ? '<br><span class="bkd-step-sub">Current</span>' : '' ?></span>
+      </div>
+    <?php endforeach; ?>
+  </div>
+
+  <!-- ── Priority Action Area ── -->
+  <?php if ($isPaymentSubmitted): ?>
+  <!-- Payment submitted — needs review -->
+  <div class="bkd-action bkd-action--urgent">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--warn"><i data-lucide="alert-circle"></i></div>
+      <div>
+        <div class="bkd-action-title"><?= $isRemainingPaymentStage ? 'Remaining Payment Submitted' : 'Payment Proof Submitted' ?> — Needs Review</div>
+        <div class="bkd-action-sub">Review the payment proof and verify or reject</div>
+      </div>
+    </div>
+    <div class="bkd-action-body">
+      <div class="bkd-pay-grid">
+        <div>
+          <?php if ($slipPath !== ''): ?>
+            <a href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" class="bkd-proof-link">
+              <?php if ($isImageSlip): ?>
+                <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip">
+              <?php else: ?>
+                <span class="bkd-proof-file"><i data-lucide="file-text"></i> Open uploaded document</span>
+              <?php endif; ?>
+            </a>
+          <?php else: ?>
+            <div class="bkd-empty">No payment proof uploaded.</div>
+          <?php endif; ?>
+        </div>
+        <div>
+          <div class="bkd-kv-grid" style="grid-template-columns:1fr 1fr">
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Sent</div>
+              <div class="bkd-kv-value"><?= $money($sentAmount) ?></div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Expected</div>
+              <div class="bkd-kv-value"><?= $money($expectedPayment) ?></div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Method</div>
+              <div class="bkd-kv-value"><?= $h($paymentMethod ?: '-') ?></div>
+            </div>
+            <div class="bkd-kv">
+              <div class="bkd-kv-label">Reference</div>
+              <div class="bkd-kv-value" style="font-size:11px"><?= $h($transactionRef ?: '-') ?></div>
+            </div>
           </div>
-          <div>
-            <div style="font-size:11px;font-weight:800;color:<?= $stepTextColor ?>"><?= $step['label'] ?></div>
-            <?php if ($isCurrent): ?>
-              <div style="font-size:10px;color:<?= $stepColor ?>;font-weight:600;margin-top:1px">Current</div>
-            <?php elseif ($isComplete): ?>
-              <div style="font-size:10px;color:#065F46;font-weight:600;margin-top:1px">Done</div>
-            <?php endif; ?>
+          <div class="bkd-progress">
+            <span id="payment-progress-bar" style="width:<?= min(100, max(0, $paidPercent)) ?>%"></span>
           </div>
         </div>
-      <?php endforeach; ?>
+      </div>
+      <form id="payment-review-form" class="bkd-review-form" data-booking-id="<?= $bookingId ?>">
+        <textarea name="note" placeholder="Admin note (optional)"></textarea>
+        <div class="bkd-review-actions">
+          <button class="bkd-btn bkd-btn--danger reject-payment-btn" type="button" style="width:100%;justify-content:center">
+            <i data-lucide="x-circle"></i> Reject
+          </button>
+          <button class="bkd-btn bkd-btn--success verify-payment-btn" type="button" style="width:100%;justify-content:center">
+            <i data-lucide="circle-check"></i> Verify
+          </button>
+        </div>
+      </form>
+      <div id="payment-email-result" style="margin-top:8px;font-size:11px;color:var(--bkd-muted);font-weight:600"></div>
     </div>
+  </div>
 
-    <?php if ($isPendingSupplier): ?>
-    <div style="padding:14px 24px;border-top:1px solid <?= $stepColor ?>20;display:flex;align-items:center;gap:10px;font-size:13px;color:<?= $stepColor ?>">
-      <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0"></i>
-      <span><strong>Next:</strong> Suppliers have 48 hours to accept or decline. Once accepted, customer will be notified to pay the deposit.</span>
+  <?php elseif ($isPendingSupplier): ?>
+  <div class="bkd-action">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--neutral"><i data-lucide="clock"></i></div>
+      <div>
+        <div class="bkd-action-title">Waiting for Supplier Response</div>
+        <div class="bkd-action-sub">Suppliers have 48 hours to accept or decline</div>
+      </div>
     </div>
-    <?php elseif ($isPendingPayment): ?>
-    <div style="padding:14px 24px;border-top:1px solid <?= $stepColor ?>20;display:flex;align-items:center;gap:10px;font-size:13px;color:<?= $stepColor ?>">
-      <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0"></i>
-      <span><strong>Next:</strong> Customer will submit payment proof (<?= $money($expectedPayment) ?> expected). Check <a href="<?= URLROOT ?>/admin/paymentVerification" style="font-weight:800;text-decoration:underline">Payment Verification</a> queue.</span>
+  </div>
+
+  <?php elseif ($isPendingPayment): ?>
+  <div class="bkd-action">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--neutral"><i data-lucide="wallet"></i></div>
+      <div>
+        <div class="bkd-action-title">Waiting for Customer Payment</div>
+        <div class="bkd-action-sub">Expected: <?= $money($expectedPayment) ?> (<?= (int)$depositPercent ?>% deposit + <?= (int)$platformFeePercent ?>% fee)</div>
+      </div>
     </div>
-    <?php elseif ($isPaymentSubmitted): ?>
-    <div style="padding:14px 24px;border-top:1px solid <?= $stepColor ?>20;display:flex;align-items:center;gap:10px;font-size:13px;color:<?= $stepColor ?>">
-      <i data-lucide="alert-triangle" style="width:16px;height:16px;flex-shrink:0"></i>
-      <span><strong>Action required:</strong> Review the payment proof below and approve or reject. <a href="<?= URLROOT ?>/admin/paymentVerification" style="font-weight:800;text-decoration:underline">Go to verification queue →</a></span>
+  </div>
+
+  <?php elseif ($isConfirmed && !$isRemainingPaymentStage): ?>
+  <div class="bkd-action bkd-action--success">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--success"><i data-lucide="check-circle"></i></div>
+      <div>
+        <div class="bkd-action-title">Booking Confirmed</div>
+        <div class="bkd-action-sub">Payment verified · Suppliers notified · Balance: <?= $money($balanceDue) ?></div>
+      </div>
+    </div>
+    <?php if (!empty($slipPath)): ?>
+    <div class="bkd-action-body" style="padding-top:0">
+      <details style="margin-top:8px">
+        <summary style="cursor:pointer;font-size:11px;font-weight:700;color:var(--bkd-primary)">View deposit slip</summary>
+        <a href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" class="bkd-proof-link" style="margin-top:8px;display:block">
+          <?php if ($isImageSlip): ?>
+            <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip" style="max-height:200px">
+          <?php else: ?>
+            <span class="bkd-proof-file"><i data-lucide="file-text"></i> Open document</span>
+          <?php endif; ?>
+        </a>
+      </details>
     </div>
     <?php endif; ?>
   </div>
 
-  <!-- ── 2-column body ── -->
-  <div class="bkd-body">
-    <main class="bkd-main">
-      <?php if ($isPaymentSubmitted): ?>
-      <!-- Payment submitted — needs review -->
-      <div class="bkd-card bkd-card--highlight" id="booking-payment">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon bkd-card-icon--warn">
-              <i data-lucide="alert-circle"></i>
-            </div>
-            <span class="bkd-card-title">Payment Proof Submitted</span>
-          </div>
-          <span class="bkd-badge <?= $badgeClass($paymentStatus) ?>" id="payment-status-badge">
-            <?= $h(ucwords(str_replace('_', ' ', $paymentStatus))) ?>
-          </span>
-        </div>
-        <div class="bkd-card-body">
-          <div class="bkd-kv-grid">
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Amount sent</div>
-              <div class="bkd-kv-value"><?= $money($sentAmount) ?></div>
-              <div class="bkd-kv-sub">Submitted by customer</div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Expected payment</div>
-              <div class="bkd-kv-value"><?= $money($expectedPayment) ?></div>
-              <div class="bkd-kv-sub"><?= (int)$depositPercent ?>% deposit + <?= (int)$platformFeePercent ?>% fee</div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Method</div>
-              <div class="bkd-kv-value"><?= $h($paymentMethod ?: '-') ?></div>
-              <div class="bkd-kv-sub"><?= $h($dateTime($reviewPayment['paid_at'] ?? null)) ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Payment reference</div>
-              <div class="bkd-kv-value"><?= $h($transactionRef ?: '-') ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Sender account</div>
-              <div class="bkd-kv-value"><?= $h($reviewPayment['account_name'] ?? '-') ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Sender phone</div>
-              <div class="bkd-kv-value"><?= $h($reviewPayment['mobile_number'] ?? '-') ?></div>
-            </div>
-          </div>
-          <div class="bkd-progress">
-            <span id="payment-progress-bar" style="width:<?= min(100, max(0, $paidPercent)) ?>%"></span>
-          </div>
-        </div>
+  <?php elseif ($isCancelled): ?>
+  <div class="bkd-action bkd-action--danger">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--danger"><i data-lucide="x-circle"></i></div>
+      <div>
+        <div class="bkd-action-title">Booking Cancelled</div>
+        <div class="bkd-action-sub">This booking has been cancelled</div>
       </div>
-      <?php else: ?>
-      <!-- Non-urgent: Payment summary -->
-      <div class="bkd-card" id="booking-payment">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon">
-              <i data-lucide="receipt"></i>
-            </div>
-            <span class="bkd-card-title">Deposit payment</span>
-          </div>
-          <span class="bkd-badge <?= $badgeClass($paymentStatus) ?>" id="payment-status-badge">
-            <?= $h(ucwords(str_replace('_', ' ', $paymentStatus))) ?>
-          </span>
-        </div>
-        <div class="bkd-card-body">
-          <div class="bkd-kv-grid">
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Amount sent</div>
-              <div class="bkd-kv-value"><?= $money($sentAmount) ?></div>
-              <div class="bkd-kv-sub">Submitted by customer</div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Expected payment</div>
-              <div class="bkd-kv-value"><?= $money($expectedPayment) ?></div>
-              <div class="bkd-kv-sub"><?= (int)$depositPercent ?>% deposit + <?= (int)$platformFeePercent ?>% fee</div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Method</div>
-              <div class="bkd-kv-value"><?= $h($paymentMethod ?: '-') ?></div>
-              <div class="bkd-kv-sub"><?= $h($dateTime($reviewPayment['paid_at'] ?? null)) ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Payment reference</div>
-              <div class="bkd-kv-value"><?= $h($transactionRef ?: '-') ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Sender account</div>
-              <div class="bkd-kv-value"><?= $h($reviewPayment['account_name'] ?? '-') ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Sender phone</div>
-              <div class="bkd-kv-value"><?= $h($reviewPayment['mobile_number'] ?? '-') ?></div>
-            </div>
-          </div>
-          <div class="bkd-progress">
-            <span id="payment-progress-bar" style="width:<?= min(100, max(0, $paidPercent)) ?>%"></span>
-          </div>
-        </div>
-      </div>
-      <?php endif; ?>
+    </div>
+  </div>
 
-      <!-- Services table -->
-      <div class="bkd-card" id="booking-services">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon">
-              <i data-lucide="calendar-check"></i>
-            </div>
-            <span class="bkd-card-title">Booked services</span>
-          </div>
-          <span class="bkd-card-meta"><?= count($items) ?> record<?= count($items) === 1 ? '' : 's' ?></span>
-        </div>
+  <?php else: ?>
+  <div class="bkd-action bkd-action--success">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--success"><i data-lucide="check-circle"></i></div>
+      <div>
+        <div class="bkd-action-title">Booking <?= ucwords(str_replace('_', ' ', $bookingStatus)) ?></div>
+        <div class="bkd-action-sub">Balance: <?= $money($balanceDue) ?></div>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <!-- ── Collapsible Sections ── -->
+  <div class="bkd-sections">
+
+    <!-- Booked Services -->
+    <details class="bkd-section" open>
+      <summary>
+        <i data-lucide="calendar-check" style="width:16px;height:16px;color:var(--bkd-primary)"></i>
+        Booked Services
+        <span class="bkd-section-count"><?= count($items) ?></span>
+      </summary>
+      <div class="bkd-section-body">
         <div class="bkd-table-wrap">
           <table class="bkd-table">
             <thead>
@@ -1837,7 +1031,7 @@ $dashboardContent = function () use (
             </thead>
             <tbody>
               <?php if (empty($items)): ?>
-                <tr><td colspan="5"><div class="bkd-empty">No services found for this booking.</div></td></tr>
+                <tr><td colspan="5"><div class="bkd-empty">No services found.</div></td></tr>
               <?php endif; ?>
               <?php foreach ($items as $item): ?>
                 <?php
@@ -1845,6 +1039,10 @@ $dashboardContent = function () use (
                   $venueName = trim((string)($item['venue_name'] ?? ''));
                   $date = $dateOnly($item['booking_date'] ?? null);
                   $time = trim($timeOnly($item['start_time'] ?? null) . ' - ' . $timeOnly($item['end_time'] ?? null), ' -');
+                  $rentalType = $item['rental_type'] ?? null;
+                  $borrowDate = $item['borrow_date'] ?? null;
+                  $returnDate = $item['return_date'] ?? null;
+                  $isAttireRental = $rentalType !== null;
                   $itemEvent = $eventDetailsByItem[(int)($item['id'] ?? 0)] ?? [];
                   $isAddon = !empty($item['package_booking_item_id']);
                 ?>
@@ -1852,10 +1050,7 @@ $dashboardContent = function () use (
                   <td>
                     <div class="bkd-table-name"><?= $h($item['service_name'] ?? 'Service') ?></div>
                     <?php if ($isAddon && !empty($item['addon_package_name'])): ?>
-                      <span class="bkd-addon-chip">
-                        <i data-lucide="link" style="width:10px;height:10px"></i>
-                        Add-on for <?= $h($item['addon_package_name']) ?>
-                      </span>
+                      <span class="bkd-addon-chip"><i data-lucide="link" style="width:10px;height:10px"></i> Add-on for <?= $h($item['addon_package_name']) ?></span>
                     <?php endif; ?>
                     <?php if ($hallName !== '' || $venueName !== ''): ?>
                       <div class="bkd-table-sub"><?= $h(trim($hallName . ($venueName !== '' ? ' · ' . $venueName : ''))) ?></div>
@@ -1863,8 +1058,16 @@ $dashboardContent = function () use (
                   </td>
                   <td><span class="bkd-table-name"><?= $h($item['supplier_name'] ?? 'Supplier') ?></span></td>
                   <td>
-                    <div class="bkd-table-name"><?= $h($date) ?></div>
-                    <div class="bkd-table-sub"><?= $h($time !== '' ? $time : '—') ?></div>
+                    <?php if ($isAttireRental && $rentalType === 'borrow' && $borrowDate): ?>
+                      <div class="bkd-table-name"><?= $h($dateOnly($borrowDate)) ?> – <?= $h($dateOnly($returnDate)) ?></div>
+                      <div class="bkd-table-sub">Borrow · <?= (int)round((strtotime($returnDate) - strtotime($borrowDate)) / 86400) + 1 ?> days</div>
+                    <?php elseif ($isAttireRental && $rentalType === 'buy'): ?>
+                      <div class="bkd-table-name"><?= $h($date) ?></div>
+                      <div class="bkd-table-sub">Purchase</div>
+                    <?php else: ?>
+                      <div class="bkd-table-name"><?= $h($date) ?></div>
+                      <div class="bkd-table-sub"><?= $h($time !== '' ? $time : '—') ?></div>
+                    <?php endif; ?>
                   </td>
                   <td><span class="bkd-table-name"><?= $h($itemEvent['guest_count'] ?? '—') ?></span></td>
                   <td class="is-right"><span class="bkd-table-amount"><?= $money($item['price'] ?? 0) ?></span></td>
@@ -1874,480 +1077,258 @@ $dashboardContent = function () use (
           </table>
         </div>
       </div>
+    </details>
 
-      <!-- Event information -->
-      <div class="bkd-card bkd-run-sheet-card" id="booking-event">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon">
-              <i data-lucide="route"></i>
-            </div>
-            <span class="bkd-card-title">Event day run sheet</span>
+    <!-- Suppliers -->
+    <details class="bkd-section">
+      <summary>
+        <i data-lucide="store" style="width:16px;height:16px;color:var(--bkd-primary)"></i>
+        Suppliers
+        <span class="bkd-section-count"><?= count($suppliers) ?></span>
+      </summary>
+      <div class="bkd-section-body">
+        <?php if (empty($suppliers)): ?>
+          <div class="bkd-empty">No suppliers assigned.</div>
+        <?php else: ?>
+          <div class="bkd-sup-list">
+            <?php foreach ($suppliers as $supplier): ?>
+              <?php
+                $sName = (string)($supplier['shop_name'] ?? 'Supplier');
+                $sStatus = (string)($supplier['status'] ?? 'pending');
+                $serviceName = (string)($supplier['service_name'] ?? $supplier['category_name'] ?? 'Unspecified');
+                $replacementTarget = $suppliersById[(int)($supplier['replaced_by_id'] ?? 0)] ?? null;
+                $isNeedsReplacement = $sStatus === 'needs_replacement';
+                $isReplaced = $sStatus === 'replaced';
+                $isReplacement = ($replacementSourceById[(int)($supplier['id'] ?? 0)] ?? null) !== null;
+                $replacementRequestId = (int)($supplier['originated_replacement_request_id'] ?? $supplier['replacement_request_id'] ?? 0);
+                $stateLabel = $isNeedsReplacement ? 'Needs replacement'
+                    : ($isReplaced ? 'Replaced'
+                    : ($isReplacement ? 'Replacement assigned'
+                    : ucwords(str_replace('_', ' ', $sStatus))));
+              ?>
+              <div class="bkd-sup-row" style="<?= $isNeedsReplacement ? 'border-color:#e8b66f;background:#fff8ed' : ($isReplaced ? 'opacity:.6' : '') ?>">
+                <span class="bkd-dot <?= $supplierStatusDot($sStatus) ?>"></span>
+                <div class="bkd-sup-info">
+                  <div class="bkd-sup-name"><?= $h($sName) ?></div>
+                  <div class="bkd-sup-sub"><?= $h($stateLabel) ?></div>
+                  <div class="bkd-sup-svc"><?= $h($serviceName) ?></div>
+                  <?php if ($isNeedsReplacement && $replacementRequestId > 0): ?>
+                    <a href="<?= URLROOT ?>/admin/replacementPicker/<?= $replacementRequestId ?>" style="display:inline-block;margin-top:6px;font-size:10px;font-weight:800;color:var(--bkd-warn-text);text-decoration:underline">
+                      Choose replacement →
+                    </a>
+                  <?php endif; ?>
+                  <?php if ($isReplaced && $replacementTarget): ?>
+                    <div class="bkd-sup-svc" style="color:var(--bkd-muted)">Replaced by: <?= $h($replacementTarget['shop_name'] ?? 'Replacement') ?></div>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
           </div>
-          <span class="bkd-card-meta"><?= count($runSheetGroups) ?> event <?= count($runSheetGroups) === 1 ? 'date' : 'dates' ?></span>
-        </div>
-        <div class="bkd-run-sheet">
-          <?php if (empty($runSheetGroups)): ?>
-            <div class="bkd-run-empty">No event schedule has been recorded for this booking.</div>
-          <?php endif; ?>
+        <?php endif; ?>
+      </div>
+    </details>
 
-          <?php foreach ($runSheetGroups as $dateKey => $events): ?>
-            <?php
-              $scheduledDate = $dateKey !== 'unscheduled' ? strtotime($dateKey) : false;
-              $dayLocation = '';
-              $dayGuests = null;
-              $dayContact = '';
-              $dayPhone = '';
-              foreach ($events as $event) {
-                  if ($dayLocation === '' && !empty($event['location'])) $dayLocation = (string)$event['location'];
-                  if ($dayGuests === null && isset($event['guests'])) $dayGuests = $event['guests'];
-                  if ($dayContact === '' && !empty($event['contact_name'])) $dayContact = (string)$event['contact_name'];
-                  if ($dayPhone === '' && !empty($event['contact_phone'])) $dayPhone = (string)$event['contact_phone'];
+    <!-- Event Schedule -->
+    <details class="bkd-section">
+      <summary>
+        <i data-lucide="route" style="width:16px;height:16px;color:var(--bkd-primary)"></i>
+        Event Schedule
+      </summary>
+      <div class="bkd-section-body">
+        <?php
+          $runSheetEvents = [];
+          foreach ($items as $item) {
+              $itemId = (int)($item['id'] ?? 0);
+              if (!in_array($itemId, $nonAddonItemIds, true)) continue;
+              $parentEvent = $eventDetailsByItem[$itemId] ?? [];
+              $schedule = $packageSchedules[$itemId] ?? [];
+              if (!empty($schedule)) {
+                  foreach ($schedule as $event) {
+                      $runSheetEvents[] = [
+                          'date' => $event['event_date'] ?? ($parentEvent['event_date'] ?? null),
+                          'start' => $event['start_time'] ?? null,
+                          'end' => $event['end_time'] ?? null,
+                          'service' => $event['service_name'] ?? ($item['service_name'] ?? 'Service'),
+                          'supplier' => $event['supplier_name'] ?? ($item['supplier_name'] ?? ''),
+                          'category' => $event['category_name'] ?? '',
+                      ];
+                  }
+              } elseif (!empty($parentEvent)) {
+                  $runSheetEvents[] = [
+                      'date' => $parentEvent['event_date'] ?? null,
+                      'start' => $parentEvent['start_time'] ?? ($item['start_time'] ?? null),
+                      'end' => $parentEvent['end_time'] ?? ($item['end_time'] ?? null),
+                      'service' => $item['service_name'] ?? 'Service',
+                      'supplier' => $item['supplier_name'] ?? '',
+                      'category' => $item['category_name'] ?? '',
+                  ];
               }
-              $dayStart = $events[0]['start'] ?? null;
-              $dayEndValues = array_values(array_filter(array_column($events, 'end')));
-              sort($dayEndValues);
-              $dayEnd = $dayEndValues ? end($dayEndValues) : null;
-            ?>
-            <section class="bkd-run-day">
-              <header class="bkd-run-day-head">
-                <div class="bkd-run-date">
-                  <span class="bkd-run-date-day"><?= $scheduledDate ? date('d', $scheduledDate) : '—' ?></span>
-                  <span class="bkd-run-date-month"><?= $scheduledDate ? date('M', $scheduledDate) : 'TBD' ?></span>
-                  <span class="bkd-run-date-year"><?= $scheduledDate ? date('Y', $scheduledDate) : '' ?></span>
-                </div>
-                <div class="bkd-run-summary">
-                  <span class="bkd-run-summary-kicker"><?= $scheduledDate ? date('l', $scheduledDate) : 'Schedule pending' ?></span>
-                  <h3 class="bkd-run-summary-title"><?= count($events) ?> scheduled <?= count($events) === 1 ? 'service' : 'services' ?></h3>
-                  <div class="bkd-run-summary-meta">
-                    <span><i data-lucide="clock-3"></i><?= $h($timeOnly($dayStart)) ?> – <?= $h($timeOnly($dayEnd)) ?></span>
-                    <?php if ($dayGuests !== null): ?><span><i data-lucide="users"></i><?= $h($dayGuests) ?> guests</span><?php endif; ?>
-                    <?php if ($dayLocation !== ''): ?><span><i data-lucide="map-pin"></i><?= $h($dayLocation) ?></span><?php endif; ?>
-                    <?php if ($dayContact !== ''): ?><span><i data-lucide="phone"></i><?= $h($dayContact) ?><?= $dayPhone !== '' ? ' · ' . $h($dayPhone) : '' ?></span><?php endif; ?>
-                  </div>
-                </div>
-              </header>
-
-              <div class="bkd-run-events">
-                <?php foreach ($events as $event): ?>
-                  <article class="bkd-run-event <?= !empty($event['overlap']) ? 'has-overlap' : '' ?>">
-                    <time class="bkd-run-time">
-                      <?= $h($timeOnly($event['start'])) ?>
-                      <span class="bkd-run-time-end"><?= $h($timeOnly($event['end'])) ?></span>
-                    </time>
-                    <div class="bkd-run-track"><span class="bkd-run-node"></span></div>
-                    <div class="bkd-run-event-body">
-                      <div class="bkd-run-service">
-                        <?= $h($event['service'] ?? 'Service') ?>
-                        <span class="bkd-run-category"><?= $h($event['category'] ?? 'Event') ?></span>
-                        <?php if (($event['supplier_status'] ?? '') === 'needs_replacement'): ?>
-                          <span class="bkd-run-state bkd-run-state--attention">
-                            <i data-lucide="triangle-alert"></i> Needs replacement
-                          </span>
-                        <?php elseif (!empty($event['is_replacement'])): ?>
-                          <span class="bkd-run-state bkd-run-state--replacement">
-                            <i data-lucide="refresh-cw"></i> Replacement service
-                          </span>
-                        <?php endif; ?>
-                      </div>
-                      <div class="bkd-run-detail">
-                        <span><i data-lucide="store"></i><?= $h($event['supplier'] ?? 'Supplier') ?></span>
-                        <?php if (!empty($event['location'])): ?><span><i data-lucide="map-pin"></i><?= $h($event['location']) ?></span><?php endif; ?>
-                      </div>
-                      <?php if (!empty($event['overlap'])): ?>
-                        <span class="bkd-run-overlap"><i data-lucide="triangle-alert"></i>Overlaps another scheduled service</span>
-                      <?php endif; ?>
-                    </div>
-                  </article>
-                <?php endforeach; ?>
-              </div>
-            </section>
-          <?php endforeach; ?>
-        </div>
-      </div>
-    </main>
-
-    <!-- ── Sidebar ── -->
-    <aside class="bkd-side">
-      <!-- Payment proof -->
-      <div class="bkd-card bkd-action-center">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon">
-              <i data-lucide="image"></i>
-            </div>
-            <span class="bkd-card-title"><?= $isAwaitingReview ? 'Action center · Payment review' : 'Payment proof' ?></span>
-          </div>
-        </div>
-        <div class="bkd-card-body">
-          <?php if ($slipPath !== ''): ?>
-            <a href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" class="bkd-proof-link">
-              <?php if ($isImageSlip): ?>
-                <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip">
-              <?php else: ?>
-                <span class="bkd-proof-file">
-                  <i data-lucide="file-text"></i>
-                  Open uploaded document
-                </span>
-              <?php endif; ?>
-            </a>
-          <?php else: ?>
-            <div class="bkd-empty">No payment proof uploaded.</div>
-          <?php endif; ?>
-
-          <?php if ($isAwaitingReview): ?>
-            <form id="payment-review-form" class="bkd-review-form" data-booking-id="<?= $bookingId ?>">
-              <textarea name="note" placeholder="Admin note (optional)"></textarea>
-              <div class="bkd-review-actions">
-                <button class="bkd-btn bkd-btn--danger reject-payment-btn" type="button">
-                  <i data-lucide="x-circle"></i> Reject
-                </button>
-                <button class="bkd-btn bkd-btn--success verify-payment-btn" type="button">
-                  <i data-lucide="circle-check"></i> Verify
-                </button>
-              </div>
-            </form>
-          <?php endif; ?>
-          <div id="payment-email-result" class="bkd-result-note"></div>
-        </div>
-      </div>
-
-      <!-- Customer card -->
-      <div class="bkd-card">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon">
-              <i data-lucide="user-circle"></i>
-            </div>
-            <span class="bkd-card-title">Customer</span>
-          </div>
-        </div>
-        <div class="bkd-card-body">
-          <div class="bkd-side-person">
-            <div class="bkd-avatar"><?= $h($custInitials) ?></div>
-            <div>
-              <div class="bkd-table-name"><?= $h($custName) ?></div>
-              <div class="bkd-table-sub"><?= $h($booking['customer_email'] ?? '—') ?></div>
-            </div>
-          </div>
-          <div class="bkd-kv" style="margin-top:10px">
-            <div class="bkd-kv-label">Phone</div>
-            <div class="bkd-kv-value"><?= $h($booking['customer_phone'] ?? '—') ?></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Suppliers list -->
-      <div class="bkd-card" id="booking-suppliers">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon">
-              <i data-lucide="store"></i>
-            </div>
-            <span class="bkd-card-title">Suppliers</span>
-          </div>
-          <span class="bkd-card-meta"><?= count($suppliers) ?></span>
-        </div>
-        <div class="bkd-card-body">
-          <?php if (empty($suppliers)): ?>
-            <div class="bkd-empty">No suppliers assigned.</div>
-          <?php else: ?>
-            <div class="bkd-side-list">
-              <?php foreach ($suppliers as $supplier): ?>
-                <?php
-                  $sName = (string)($supplier['shop_name'] ?? 'Supplier');
-                  $sStatus = (string)($supplier['status'] ?? 'pending');
-                  $serviceName = (string)($supplier['service_name'] ?? $supplier['category_name'] ?? 'Unspecified service');
-                  $replacementTarget = $suppliersById[(int)($supplier['replaced_by_id'] ?? 0)] ?? null;
-                  $replacementSource = $replacementSourceById[(int)($supplier['id'] ?? 0)] ?? null;
-                  $isNeedsReplacement = $sStatus === 'needs_replacement';
-                  $isReplaced = $sStatus === 'replaced';
-                  $isReplacement = $replacementSource !== null;
-                  $replacementStatus = (string)($supplier['replacement_status'] ?? '');
-                  $replacementRequestId = (int)(
-                      $supplier['originated_replacement_request_id']
-                      ?? $supplier['replacement_request_id']
-                      ?? 0
-                  );
-                  $rowClass = $isNeedsReplacement
-                      ? 'bkd-side-row--attention'
-                      : ($isReplacement ? 'bkd-side-row--replacement' : ($isReplaced ? 'bkd-side-row--replaced' : ''));
-                  $stateLabel = $isNeedsReplacement
-                      ? 'Needs replacement'
-                      : ($isReplacement
-                          ? ($replacementStatus === 'accepted'
-                              ? 'Replacement accepted'
-                              : 'Replacement assigned · Awaiting supplier response')
-                          : ($isReplaced ? 'Original service replaced' : ucwords(str_replace('_', ' ', $sStatus))));
-                ?>
-                <div class="bkd-side-row <?= $rowClass ?>">
-                  <span class="bkd-dot <?= $supplierStatusDot($sStatus) ?>"></span>
-                  <div class="bkd-side-row-main">
-                    <div class="bkd-side-row-title"><?= $h($sName) ?></div>
-                    <div class="bkd-side-row-sub"><?= $h($stateLabel) ?></div>
-                    <div class="bkd-side-service">
-                      <span class="bkd-side-service-label"><?= $isReplacement ? 'Replacement for' : 'Service' ?></span><br>
-                      <?= $h($isReplacement
-                          ? ($replacementSource['service_name'] ?? $replacementSource['category_name'] ?? $serviceName)
-                          : $serviceName) ?>
-                    </div>
-
-                    <?php if ($isNeedsReplacement): ?>
-                      <div class="bkd-replacement-flow">
-                        <div class="bkd-replacement-party">
-                          <span>Unavailable</span>
-                          <strong><?= $h($sName) ?></strong>
-                        </div>
-                        <span class="bkd-replacement-arrow"><i data-lucide="arrow-right"></i></span>
-                        <div class="bkd-replacement-party">
-                          <span>Next</span>
-                          <strong>Choose supplier</strong>
-                        </div>
-                      </div>
-                      <?php if ($replacementRequestId > 0): ?>
-                        <a class="bkd-side-action" href="<?= URLROOT ?>/admin/replacementPicker/<?= $replacementRequestId ?>">
-                          Choose replacement <i data-lucide="arrow-up-right"></i>
-                        </a>
-                      <?php endif; ?>
-                    <?php elseif ($isReplaced): ?>
-                      <div class="bkd-replacement-flow">
-                        <div class="bkd-replacement-party">
-                          <span>Original</span>
-                          <strong><?= $h($sName) ?></strong>
-                        </div>
-                        <span class="bkd-replacement-arrow"><i data-lucide="arrow-right"></i></span>
-                        <div class="bkd-replacement-party">
-                          <span>Replaced by</span>
-                          <strong><?= $h($replacementTarget['shop_name'] ?? 'Replacement pending') ?></strong>
-                        </div>
-                      </div>
-                    <?php elseif ($isReplacement): ?>
-                      <div class="bkd-replacement-flow">
-                        <div class="bkd-replacement-party">
-                          <span>Replaces</span>
-                          <strong><?= $h($replacementSource['shop_name'] ?? 'Original supplier') ?></strong>
-                        </div>
-                        <span class="bkd-replacement-arrow"><i data-lucide="arrow-right"></i></span>
-                        <div class="bkd-replacement-party">
-                          <span>Now assigned</span>
-                          <strong><?= $h($sName) ?></strong>
-                        </div>
-                      </div>
-                    <?php endif; ?>
-                  </div>
-                </div>
-              <?php endforeach; ?>
-            </div>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <!-- Audit trail -->
-      <div class="bkd-card bkd-danger-zone" id="booking-activity">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon">
-              <i data-lucide="scroll-text"></i>
-            </div>
-            <span class="bkd-card-title">Audit trail</span>
-          </div>
-          <span class="bkd-card-meta"><?= count($logs) ?> events</span>
-        </div>
-        <div class="bkd-card-body">
-          <?php if (empty($logs)): ?>
-            <div class="bkd-empty">No status history yet.</div>
-          <?php else: ?>
-            <div class="bkd-timeline" id="audit-timeline">
-              <?php foreach ($visibleLogs as $log): ?>
-                <?php
-                  $logStatus = (string)($log['new_status'] ?? '');
-                  $logNote = trim((string)($log['note'] ?? ''));
-                ?>
-                <div class="bkd-timeline-item">
-                  <div class="bkd-timeline-dot">
-                    <span class="bkd-dot <?= $logDot($logStatus) ?>"></span>
-                  </div>
-                  <div class="bkd-timeline-body">
-                    <div class="bkd-timeline-title"><?= $h(ucwords(str_replace('_', ' ', $logStatus))) ?></div>
-                    <div class="bkd-timeline-time"><?= $h($dateTime($log['created_at'] ?? null)) ?></div>
-                    <?php if ($logNote !== ''): ?>
-                      <div class="bkd-timeline-time" style="color:var(--bkd-body)"><?= $h($logNote) ?></div>
-                    <?php endif; ?>
-                  </div>
-                </div>
-              <?php endforeach; ?>
-            </div>
-            <?php if ($showAllLogs): ?>
-              <button type="button" id="show-all-logs" class="bkd-toggle-more">
-                Show all <?= count($logs) ?> entries ↓
-              </button>
-            <?php endif; ?>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <!-- Mark as Completed -->
-      <?php if ($canMarkCompleted): ?>
-      <div class="bkd-card">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon" style="background:var(--bkd-success-bg,#ECFDF5);color:var(--bkd-success-text,#065F46)">
-              <i data-lucide="check-circle"></i>
-            </div>
-            <span class="bkd-card-title">Complete Booking</span>
-          </div>
-        </div>
-        <div class="bkd-card-body">
-          <p style="font-size:12px;color:var(--bkd-muted,#7b5c69);margin:0 0 14px">
-            Mark this booking as completed. This will create supplier payout records so suppliers can request their earnings.
-          </p>
-          <button id="mark-completed-btn" class="bkd-btn bkd-btn--success" type="button" style="width:100%;justify-content:center">
-            <i data-lucide="check-circle"></i> Mark as Completed
-          </button>
-        </div>
-      </div>
-
-      <div id="complete-confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;align-items:center;justify-content:center;padding:16px">
-        <div style="background:#FFF;border-radius:16px;max-width:400px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.15)">
-          <h3 style="font-size:16px;font-weight:700;color:#111827;margin:0 0 8px">Confirm Completion</h3>
-          <p style="font-size:13px;color:#7b5c69;margin:0 0 20px">This will mark the booking as completed and create payout records for all suppliers. Are you sure?</p>
-          <div style="display:flex;gap:10px">
-            <button onclick="document.getElementById('complete-confirm-overlay').style.display='none'" style="flex:1;min-height:40px;border-radius:10px;border:1px solid #ead8c7;background:transparent;color:#6d4c5b;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Cancel</button>
-            <button id="confirm-complete-btn" style="flex:1;min-height:40px;border-radius:10px;border:0;background:#065F46;color:#FFF;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Yes, Complete</button>
-          </div>
-        </div>
-      </div>
-
-      <script>
-      document.getElementById('mark-completed-btn')?.addEventListener('click', () => {
-        document.getElementById('complete-confirm-overlay').style.display = 'flex';
-      });
-      document.getElementById('confirm-complete-btn')?.addEventListener('click', async () => {
-        const btn = document.getElementById('confirm-complete-btn');
-        btn.disabled = true;
-        btn.textContent = 'Processing…';
-        try {
-          const fd = new FormData();
-          fd.append('booking_id', '<?= $bookingId ?>');
-          fd.append('csrf_token', '<?= csrf_token() ?>');
-          const resp = await fetch('<?= URLROOT ?>/admin/markBookingCompleted', { method: 'POST', body: fd });
-          const data = await resp.json();
-          if (data.success) {
-            alert('✓ ' + data.message);
-            location.reload();
-          } else {
-            alert('✕ ' + (data.error || 'Failed'));
-            btn.disabled = false;
-            btn.textContent = 'Yes, Complete';
           }
-        } catch (e) {
-          alert('✕ Network error');
-          btn.disabled = false;
-          btn.textContent = 'Yes, Complete';
-        }
-      });
-      </script>
-      <?php endif; ?>
+          usort($runSheetEvents, fn($a, $b) => strcmp(
+              (string)($a['date'] ?? '') . ' ' . (string)($a['start'] ?? ''),
+              (string)($b['date'] ?? '') . ' ' . (string)($b['start'] ?? '')
+          ));
+        ?>
+        <?php if (empty($runSheetEvents)): ?>
+          <div class="bkd-empty">No event schedule recorded.</div>
+        <?php else: ?>
+          <div class="bkd-table-wrap">
+            <table class="bkd-table">
+              <thead><tr><th>Date</th><th>Time</th><th>Service</th><th>Supplier</th></tr></thead>
+              <tbody>
+                <?php foreach ($runSheetEvents as $ev): ?>
+                  <tr>
+                    <td><span class="bkd-table-name"><?= $h($dateOnly($ev['date'] ?? null, 'TBD')) ?></span></td>
+                    <td><span class="bkd-table-name"><?= $h($timeOnly($ev['start'])) ?><?= $ev['end'] ? ' – ' . $h($timeOnly($ev['end'])) : '' ?></span></td>
+                    <td>
+                      <div class="bkd-table-name"><?= $h($ev['service']) ?></div>
+                      <?php if (!empty($ev['category'])): ?><div class="bkd-table-sub"><?= $h($ev['category']) ?></div><?php endif; ?>
+                    </td>
+                    <td><span class="bkd-table-sub"><?= $h($ev['supplier'] ?: '—') ?></span></td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
+      </div>
+    </details>
 
-      <!-- Cancel booking -->
-      <?php if ($canCancel): ?>
-      <div class="bkd-card">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon" style="background:var(--bkd-danger-bg);color:var(--bkd-danger-text)">
-              <i data-lucide="alert-triangle"></i>
-            </div>
-            <span class="bkd-card-title">Cancel booking</span>
+    <!-- Customer -->
+    <details class="bkd-section">
+      <summary>
+        <i data-lucide="user-circle" style="width:16px;height:16px;color:var(--bkd-primary)"></i>
+        Customer
+      </summary>
+      <div class="bkd-section-body">
+        <div class="bkd-cust">
+          <div class="bkd-avatar"><?= $h($custInitials) ?></div>
+          <div>
+            <div class="bkd-cust-name"><?= $h($custName) ?></div>
+            <div class="bkd-cust-detail"><?= $h($booking['customer_email'] ?? '—') ?></div>
+            <div class="bkd-cust-detail"><?= $h($booking['customer_phone'] ?? '—') ?></div>
           </div>
         </div>
-        <div class="bkd-card-body">
-          <form id="admin-cancel-form" class="bkd-cancel-form">
-            <input type="hidden" name="booking_id" value="<?= $bookingId ?>">
-            <textarea name="reason" required placeholder="Cancellation reason…"></textarea>
+      </div>
+    </details>
+
+    <!-- Activity Log -->
+    <details class="bkd-section">
+      <summary>
+        <i data-lucide="history" style="width:16px;height:16px;color:var(--bkd-primary)"></i>
+        Activity Log
+        <span class="bkd-section-count"><?= count($logs) ?></span>
+      </summary>
+      <div class="bkd-section-body">
+        <?php if (empty($logs)): ?>
+          <div class="bkd-empty">No activity yet.</div>
+        <?php else: ?>
+          <div class="bkd-timeline" id="audit-timeline">
+            <?php foreach ($visibleLogs as $log): ?>
+              <?php
+                $logStatus = (string)($log['new_status'] ?? '');
+                $logNote = trim((string)($log['note'] ?? ''));
+              ?>
+              <div class="bkd-timeline-item">
+                <div class="bkd-timeline-dot"><span class="bkd-dot <?= $logDot($logStatus) ?>"></span></div>
+                <div class="bkd-timeline-body">
+                  <div class="bkd-timeline-title"><?= $h(ucwords(str_replace('_', ' ', $logStatus))) ?></div>
+                  <div class="bkd-timeline-time"><?= $h($dateTime($log['created_at'] ?? null)) ?></div>
+                  <?php if ($logNote !== ''): ?>
+                    <div class="bkd-timeline-time" style="color:var(--bkd-body)"><?= $h($logNote) ?></div>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <?php if ($showAllLogs): ?>
+            <button type="button" id="show-all-logs" class="bkd-toggle-more">Show all <?= count($logs) ?> entries ↓</button>
+          <?php endif; ?>
+        <?php endif; ?>
+      </div>
+    </details>
+
+  </div>
+
+  <!-- ── Bottom Actions ── -->
+  <div class="bkd-bottom">
+    <div class="bkd-bottom-left">
+      <?php if ($canCancel): ?>
+        <form id="admin-cancel-form" class="bkd-cancel-form" style="display:contents">
+          <input type="hidden" name="booking_id" value="<?= $bookingId ?>">
+          <button class="bkd-btn bkd-btn--danger" type="button" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.style.display='none'">
+            <i data-lucide="ban"></i> Cancel booking
+          </button>
+          <div style="display:none">
+            <textarea name="reason" required placeholder="Cancellation reason…" style="width:100%;min-height:50px;padding:8px;border:1px solid var(--bkd-danger-border);border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;margin-bottom:8px"></textarea>
             <label class="bkd-cancel-check">
               <input type="checkbox" name="refund_deposit" value="1" id="refund-deposit-cb">
               Queue refund for processing
-              <?php if ($refundEstimate): ?>
-                <span id="refund-estimate-hint" style="display:block;margin-top:4px;font-size:11px;font-weight:400;color:var(--bkd-muted,#7b5c69)">
-                  <?= $money($refundEstimate[0]) ?> — <?= $h($refundEstimate[1]) ?>
-                </span>
-              <?php endif; ?>
             </label>
-            <button class="bkd-btn bkd-btn--danger" type="submit" style="width:100%;justify-content:center">
-              <i data-lucide="ban"></i> Cancel booking
+            <button class="bkd-btn bkd-btn--danger" type="submit" style="margin-top:8px;width:100%;justify-content:center">
+              <i data-lucide="ban"></i> Confirm cancellation
             </button>
-          </form>
-        </div>
-      </div>
-      <?php endif; ?>
-
-      <!-- Refund Status -->
-      <?php if ($refund): ?>
-      <div class="bkd-card">
-        <div class="bkd-card-head">
-          <div class="bkd-card-head-left">
-            <div class="bkd-card-icon" style="background:var(--bkd-info-bg,#EEF2FF);color:var(--bkd-info-text,#3730A3)">
-              <i data-lucide="undo-2"></i>
-            </div>
-            <span class="bkd-card-title">Refund</span>
-            <?php
-              $refundStatus = (string)($refund['status'] ?? 'pending');
-              $refundBadgeMap = ['pending' => 'bkd-badge--warn', 'processing' => 'bkd-badge--info', 'completed' => 'bkd-badge--success', 'rejected' => 'bkd-badge--danger'];
-              $refundLabelMap = ['pending' => 'Pending', 'processing' => 'Processing', 'completed' => 'Completed', 'rejected' => 'Rejected'];
-            ?>
-            <span class="bkd-badge <?= $refundBadgeMap[$refundStatus] ?? '' ?>"><?= $refundLabelMap[$refundStatus] ?? ucfirst($refundStatus) ?></span>
           </div>
-        </div>
-        <div class="bkd-card-body">
-          <div class="bkd-kv-grid" style="grid-template-columns:1fr 1fr">
-            <div class="bkd-kv-cell">
-              <span class="bkd-kv-label">Amount</span>
-              <span class="bkd-kv-value" style="font-weight:700"><?= $money($refund['amount'] ?? 0) ?></span>
-            </div>
-            <div class="bkd-kv-cell">
-              <span class="bkd-kv-label">Requested</span>
-              <span class="bkd-kv-value"><?= $dateTime($refund['requested_at'] ?? '') ?></span>
-            </div>
-          </div>
-          <?php if (!empty($refund['policy_reason'])): ?>
-            <p style="margin-top:8px;font-size:11px;color:var(--bkd-muted,#7b5c69);line-height:1.4"><?= $h($refund['policy_reason']) ?></p>
-          <?php endif; ?>
-          <?php if (in_array($refundStatus, ['processing', 'completed'], true) && !empty($refund['refund_slip_path'])): ?>
-            <div style="margin-top:10px">
-              <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--bkd-muted,#b79c8b)">Proof of Transfer</span>
-              <?php if (preg_match('/\.(jpe?g|png|webp)$/i', $refund['refund_slip_path'])): ?>
-                <a href="<?= URLROOT . '/' . $h($refund['refund_slip_path']) ?>" target="_blank" class="bkd-proof-link" style="display:block;margin-top:6px">
-                  <img src="<?= URLROOT . '/' . $h($refund['refund_slip_path']) ?>" alt="Refund proof" style="max-width:100%;max-height:160px;border-radius:8px;border:1px solid var(--bkd-border,#ead8c7)">
-                </a>
-              <?php else: ?>
-                <a href="<?= URLROOT . '/' . $h($refund['refund_slip_path']) ?>" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;color:var(--bkd-primary,#6d4c5b);font-weight:600;text-decoration:underline;font-size:12px">
-                  <i data-lucide="file-text"></i> View document
-                </a>
-              <?php endif; ?>
-              <?php if (!empty($refund['refund_transaction_ref'])): ?>
-                <p style="margin-top:6px;font-size:11px;color:var(--bkd-muted,#7b5c69)">Ref: <?= $h($refund['refund_transaction_ref']) ?> via <?= $h($refund['refund_bank_name'] ?? '') ?></p>
-              <?php endif; ?>
-            </div>
-          <?php endif; ?>
-          <?php if ($refundStatus === 'completed'): ?>
-            <p style="margin-top:8px;font-size:11px;color:#15803d;font-weight:600">
-              <i data-lucide="check-circle" style="display:inline;width:14px;height:14px;vertical-align:-2px"></i>
-              Refund completed on <?= $dateTime($refund['completed_at'] ?? '') ?>
-            </p>
-          <?php endif; ?>
-          <?php if (in_array($refundStatus, ['pending', 'processing'], true)): ?>
-            <button type="button" class="bkd-btn bkd-btn--primary" style="width:100%;justify-content:center;margin-top:12px" onclick="openRefundProcessModal()">
-              <i data-lucide="upload"></i> <?= $refundStatus === 'pending' ? 'Process Refund' : 'Update Proof' ?>
-            </button>
-          <?php endif; ?>
-          <a href="<?= URLROOT ?>/admin/refundQueue" style="display:block;text-align:center;margin-top:8px;font-size:11px;color:var(--bkd-primary,#6d4c5b);font-weight:600;text-decoration:underline">
-            View all refunds →
-          </a>
-        </div>
-      </div>
+        </form>
       <?php endif; ?>
-    </aside>
+    </div>
+    <div class="bkd-bottom-right">
+      <?php if ($canMarkCompleted): ?>
+        <button id="mark-completed-btn" class="bkd-btn bkd-btn--success" type="button">
+          <i data-lucide="check-circle"></i> Mark as Completed
+        </button>
+      <?php endif; ?>
+      <a href="<?= URLROOT ?>/admin/paymentVerification" class="bkd-btn bkd-btn--ghost">
+        <i data-lucide="receipt-text"></i> Payment queue
+      </a>
+    </div>
   </div>
+
+  <!-- Mark Completed confirmation -->
+  <?php if ($canMarkCompleted): ?>
+  <div id="complete-confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#FFF;border-radius:16px;max-width:400px;width:100%;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.15)">
+      <h3 style="font-size:16px;font-weight:700;color:#111827;margin:0 0 8px">Confirm Completion</h3>
+      <p style="font-size:13px;color:#7b5c69;margin:0 0 20px">This will mark the booking as completed and create payout records for all suppliers.</p>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('complete-confirm-overlay').style.display='none'" style="flex:1;min-height:40px;border-radius:10px;border:1px solid #ead8c7;background:transparent;color:#6d4c5b;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Cancel</button>
+        <button id="confirm-complete-btn" style="flex:1;min-height:40px;border-radius:10px;border:0;background:#065F46;color:#FFF;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Yes, Complete</button>
+      </div>
+    </div>
+  </div>
+  <script>
+  document.getElementById('mark-completed-btn')?.addEventListener('click', () => {
+    document.getElementById('complete-confirm-overlay').style.display = 'flex';
+  });
+  document.getElementById('confirm-complete-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('confirm-complete-btn');
+    btn.disabled = true; btn.textContent = 'Processing…';
+    try {
+      const fd = new FormData();
+      fd.append('booking_id', '<?= $bookingId ?>');
+      fd.append('csrf_token', '<?= csrf_token() ?>');
+      const resp = await fetch('<?= URLROOT ?>/admin/markBookingCompleted', { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (data.success) { alert('✓ ' + data.message); location.reload(); }
+      else { alert('✕ ' + (data.error || 'Failed')); btn.disabled = false; btn.textContent = 'Yes, Complete'; }
+    } catch (e) { alert('✕ Network error'); btn.disabled = false; btn.textContent = 'Yes, Complete'; }
+  });
+  </script>
+  <?php endif; ?>
+
+  <!-- Refund Status -->
+  <?php if ($refund && ($bookingStatus === 'cancelled')): ?>
+  <div style="margin-top:16px;padding:14px 18px;background:var(--bkd-info-bg);border:1px solid #c7d2fe;border-radius:12px;font-size:12px;color:var(--bkd-info-text)">
+    <strong>Refund:</strong>
+    <?= ucfirst((string)($refund['status'] ?? 'pending')) ?> · <?= $money($refund['amount'] ?? 0) ?>
+    <?php if (in_array((string)($refund['status'] ?? ''), ['pending', 'processing'], true)): ?>
+      <button type="button" class="bkd-btn bkd-btn--primary" style="margin-left:12px;height:28px;font-size:10px;padding:0 10px" onclick="openRefundProcessModal()">
+        <i data-lucide="upload"></i> Process
+      </button>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
 </div>
 
 <!-- Process Refund Modal -->

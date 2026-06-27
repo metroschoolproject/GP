@@ -11,6 +11,10 @@ $dateOnly = static function ($value, string $fallback = '-') {
 
 $dashboardTitle = 'Supplier Replacements';
 $dashboardCrumb = 'Replacements';
+$dashboardBreadcrumbs = [
+    ['label' => 'Bookings', 'url' => URLROOT . '/admin/bookings'],
+    ['label' => 'Replacements', 'url' => URLROOT . '/admin/replacementQueue'],
+];
 $dashboardContentClass = 'admin-booking-outlet';
 
 $statusLabels = [

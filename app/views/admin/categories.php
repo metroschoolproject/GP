@@ -15,7 +15,7 @@ $dashboardContentClass = 'admin-cat-outlet';
 $dashboardContent = function () use ($categories, $stats, $search, $message) {
 ?>
 <style>
-  .admin-cat-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
+  .admin-cat-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-size:13.5px;overflow-y:auto}
   .admin-cat-page *{box-sizing:border-box}
   .admin-cat-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--danger:#991B1B;--danger-bg:#FEF2F2;--success:#065F46;--success-bg:#ECFDF5;max-width:1600px;margin:0 auto}
 
@@ -44,8 +44,8 @@ $dashboardContent = function () use ($categories, $stats, $search, $message) {
   .cat-toast-close:hover{color:#fff}
 
   .cat-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden}
-  .cat-table th{padding:12px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--soft);border-bottom:1px solid var(--border)}
-  .cat-table td{padding:12px 14px;border-bottom:1px solid var(--border-light);font-size:13px;color:var(--text);vertical-align:middle}
+  .cat-table th{padding:9px 20px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--soft);border-bottom:1px solid var(--border)}
+  .cat-table td{padding:13px 20px;border-bottom:1px solid var(--border-light);font-size:13px;color:var(--text);vertical-align:middle}
   .cat-table tr:last-child td{border-bottom:none}
   .cat-table tr:hover td{background:var(--soft)}
 

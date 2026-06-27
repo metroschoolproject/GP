@@ -10,7 +10,8 @@ function localMonthValue(date = new Date()) {
 const state = {
   month: localMonthValue(),
   calendar: null,
-  selectedDay: null
+  selectedDay: null,
+  selectedRoomId: null
 };
 
 function escapeHtml(value) {
@@ -52,7 +53,60 @@ async function loadCalendar(month = state.month) {
   const result = await calendarJson(url);
   state.calendar = result.calendar;
   state.month = result.calendar.month;
+  renderRoomFilter();
   renderCalendar();
+}
+
+// ── Room filter ──────────────────────────────────────────────────────────
+
+function renderRoomFilter() {
+  const bar = document.getElementById('roomFilterBar');
+  if (!bar) return;
+
+  const rooms = state.calendar?.venue_rooms;
+  if (!rooms || !rooms.length) {
+    bar.hidden = true;
+    bar.innerHTML = '';
+    return;
+  }
+
+  bar.hidden = false;
+  bar.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'room-filter-btn' + (state.selectedRoomId === null ? ' is-active' : '');
+  allBtn.textContent = 'All rooms';
+  allBtn.addEventListener('click', () => selectRoom(null));
+  bar.appendChild(allBtn);
+
+  rooms.forEach(room => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'room-filter-btn' + (state.selectedRoomId === room.id ? ' is-active' : '');
+    btn.textContent = room.name || `Room ${room.id}`;
+    btn.dataset.roomId = room.id;
+    btn.addEventListener('click', () => selectRoom(room.id));
+    bar.appendChild(btn);
+  });
+}
+
+function selectRoom(roomId) {
+  state.selectedRoomId = roomId;
+  renderRoomFilter();
+  renderCalendar();
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+function roomStatusLabel(status) {
+  return {
+    open: 'Open',
+    booked: 'Booked',
+    unavailable: 'Away',
+    lead_blocked: 'Too soon',
+    closed: 'Closed'
+  }[status] || 'Closed';
 }
 
 function statusLabel(status) {
@@ -61,6 +115,7 @@ function statusLabel(status) {
     custom_hours: 'Custom',
     booked: 'Booked',
     unavailable: 'Away',
+    lead_blocked: 'Too soon',
     closed: 'Closed'
   }[status] || 'Closed';
 }
@@ -69,6 +124,27 @@ function timeText(day) {
   if (!day.open_time || !day.close_time) return 'No bookable hours';
   return `${day.open_time.slice(0, 5)} - ${day.close_time.slice(0, 5)}`;
 }
+
+function roomTimeText(room) {
+  if (!room.start_time || !room.end_time) return 'Closed';
+  return `${room.start_time.slice(0, 5)} - ${room.end_time.slice(0, 5)}`;
+}
+
+function getDayForRoom(day) {
+  if (state.selectedRoomId === null || !day.rooms) return day;
+  const room = day.rooms.find(r => r.room_id === state.selectedRoomId);
+  if (!room) return day;
+  return {
+    ...day,
+    status: room.status === 'lead_blocked' ? 'closed' : room.status,
+    source: room.source === 'override' ? 'override' : day.source,
+    open_time: room.start_time || day.open_time,
+    close_time: room.end_time || day.close_time,
+    booking_count: room.booking_count,
+  };
+}
+
+// ── Calendar grid ────────────────────────────────────────────────────────
 
 function renderCalendar() {
   const grid = document.getElementById('calendarGrid');
@@ -79,6 +155,7 @@ function renderCalendar() {
   grid.innerHTML = '';
 
   state.calendar.days.forEach(day => {
+    const display = getDayForRoom(day);
     const button = document.createElement('button');
     button.type = 'button';
     const selected = state.selectedDay?.date === day.date;
@@ -86,19 +163,19 @@ function renderCalendar() {
       'calendar-day',
       day.in_month ? '' : 'outside',
       day.is_today ? 'today' : '',
-      day.booking_count > 0 ? 'has-bookings' : '',
-      day.source === 'override' ? 'has-override' : '',
+      display.booking_count > 0 ? 'has-bookings' : '',
+      display.source === 'override' ? 'has-override' : '',
       selected ? 'is-selected' : ''
     ].filter(Boolean).join(' ');
     button.dataset.date = day.date;
     button.innerHTML = `
       <div class="day-head">
         <span class="day-number">${day.day}</span>
-        <span class="status-pill status-${day.status}">${statusLabel(day.status)}</span>
+        <span class="status-pill status-${display.status}">${statusLabel(display.status)}</span>
       </div>
-      <div class="day-time">${timeText(day)}</div>
-      <div class="day-source">${day.source === 'override' ? 'Date override' : 'Weekly schedule'}</div>
-      ${day.booking_count > 0 ? `<span class="booking-chip">${day.booking_count} booking${day.booking_count === 1 ? '' : 's'}</span>` : ''}
+      <div class="day-time">${timeText(display)}</div>
+      <div class="day-source">${display.source === 'override' ? 'Date override' : 'Weekly schedule'}</div>
+      ${display.booking_count > 0 ? `<span class="booking-chip">${display.booking_count} booking${display.booking_count === 1 ? '' : 's'}</span>` : ''}
     `;
     button.addEventListener('click', () => {
       setFocusDay(day);
@@ -112,16 +189,74 @@ function renderCalendar() {
   renderAgenda();
 }
 
+// ── Focus sidebar ────────────────────────────────────────────────────────
+
 function formatDateLabel(dateValue) {
   const date = new Date(`${dateValue}T00:00:00`);
   return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 }
+
+function setFocusDay(day, rerender = true) {
+  if (!day) return;
+  state.selectedDay = day;
+
+  const dateEl = document.getElementById('calendarFocusDate');
+  const statusEl = document.getElementById('calendarFocusStatus');
+  const metaEl = document.getElementById('calendarFocusMeta');
+  const roomsEl = document.getElementById('calendarFocusRooms');
+
+  if (dateEl) dateEl.textContent = formatDateLabel(day.date);
+
+  const display = getDayForRoom(day);
+
+  if (statusEl) {
+    const source = display.source === 'override' ? 'Custom date rule' : 'Weekly schedule';
+    statusEl.textContent = `${statusLabel(display.status)} · ${source}`;
+  }
+
+  if (metaEl) {
+    metaEl.innerHTML = `
+      <span>Hours <strong>${escapeHtml(timeText(display))}</strong></span>
+      <span>Bookings <strong>${Number(display.booking_count || 0)}</strong></span>
+      <span>Rule <strong>${display.source === 'override' ? 'Date override' : 'Default week'}</strong></span>
+    `;
+  }
+
+  // Per-room breakdown in sidebar
+  if (roomsEl) {
+    const rooms = state.calendar?.venue_rooms;
+    if (rooms && rooms.length && day.rooms && state.selectedRoomId === null) {
+      roomsEl.hidden = false;
+      roomsEl.innerHTML = '<div class="focus-rooms-title">Room availability</div>' +
+        rooms.map(room => {
+          const rd = day.rooms.find(r => r.room_id === room.id);
+          if (!rd) return '';
+          const minLead = room.min_lead_days != null ? room.min_lead_days : '';
+          return `<div class="focus-room-row">
+            <span class="focus-room-name">${escapeHtml(room.name)}</span>
+            <span class="status-pill status-${rd.status} room-pill">${roomStatusLabel(rd.status)}</span>
+            <span class="focus-room-time">${roomTimeText(rd)}</span>
+            ${rd.booking_count > 0 ? `<span class="focus-room-bookings">${rd.booking_count} booking${rd.booking_count === 1 ? '' : 's'}</span>` : ''}
+            ${minLead !== '' ? `<span class="focus-room-lead">${minLead}d notice</span>` : ''}
+          </div>`;
+        }).join('');
+    } else {
+      roomsEl.hidden = true;
+      roomsEl.innerHTML = '';
+    }
+  }
+
+  if (rerender) renderCalendar();
+}
+
+// ── Day modal ────────────────────────────────────────────────────────────
 
 function openDayModal(day) {
   setFocusDay(day, false);
   const modal = document.getElementById('calendarModal');
   const override = day.override || {};
   const type = override.type || (day.status === 'closed' ? 'available' : 'unavailable');
+  const isVenue = !!(state.calendar?.venue_rooms?.length);
 
   document.getElementById('modalDateLabel').textContent = formatDateLabel(day.date);
   document.getElementById('overrideDate').value = day.date;
@@ -132,11 +267,55 @@ function openDayModal(day) {
   document.getElementById('overrideReason').value = override.reason || '';
   document.getElementById('clearOverrideBtn').style.display = override.id ? 'inline-flex' : 'none';
 
-  renderModalBookings(day.bookings || []);
+  // Room scope fields
+  const scopeFields = document.getElementById('overrideScopeFields');
+  const scopeSelect = document.getElementById('overrideScope');
+  const roomField = document.getElementById('overrideRoomField');
+  const roomSelect = document.getElementById('overrideRoomId');
+
+  if (scopeFields && isVenue) {
+    scopeFields.hidden = false;
+    scopeSelect.value = state.selectedRoomId ? 'room' : 'service';
+    updateOverrideScopeVisibility();
+
+    if (roomSelect) {
+      roomSelect.innerHTML = '';
+      (state.calendar.venue_rooms || []).forEach(room => {
+        const opt = document.createElement('option');
+        opt.value = room.id;
+        opt.textContent = room.name || `Room ${room.id}`;
+        if (room.id === state.selectedRoomId) opt.selected = true;
+        roomSelect.appendChild(opt);
+      });
+    }
+  } else if (scopeFields) {
+    scopeFields.hidden = true;
+  }
+
+  // Check if the day has a room-specific override when a room is selected
+  if (state.selectedRoomId && day.rooms) {
+    const roomData = day.rooms.find(r => r.room_id === state.selectedRoomId);
+    if (roomData && roomData.source === 'override') {
+      // Show that this room has an override (clear button)
+      document.getElementById('clearOverrideBtn').style.display = 'inline-flex';
+    }
+  }
+
+  renderModalBookings((day.bookings || []).filter(b =>
+    state.selectedRoomId ? b.venue_room_id === state.selectedRoomId : true
+  ));
   loadDayCapacity(day.date, day.status);
   updateCustomHoursVisibility();
   modal.hidden = false;
 }
+
+function updateOverrideScopeVisibility() {
+  const scope = document.getElementById('overrideScope')?.value;
+  const roomField = document.getElementById('overrideRoomField');
+  if (roomField) roomField.hidden = scope !== 'room';
+}
+
+// ── Capacity preview ─────────────────────────────────────────────────────
 
 async function loadDayCapacity(date, status) {
   const box = document.getElementById('modalCapacity');
@@ -201,29 +380,7 @@ function renderModalBookings(bookings) {
   }).join('')}`;
 }
 
-function setFocusDay(day, rerender = true) {
-  if (!day) return;
-  state.selectedDay = day;
-
-  const dateEl = document.getElementById('calendarFocusDate');
-  const statusEl = document.getElementById('calendarFocusStatus');
-  const metaEl = document.getElementById('calendarFocusMeta');
-
-  if (dateEl) dateEl.textContent = formatDateLabel(day.date);
-  if (statusEl) {
-    const source = day.source === 'override' ? 'Custom date rule' : 'Weekly schedule';
-    statusEl.textContent = `${statusLabel(day.status)} · ${source}`;
-  }
-  if (metaEl) {
-    metaEl.innerHTML = `
-      <span>Hours <strong>${escapeHtml(timeText(day))}</strong></span>
-      <span>Bookings <strong>${Number(day.booking_count || 0)}</strong></span>
-      <span>Rule <strong>${day.source === 'override' ? 'Date override' : 'Default week'}</strong></span>
-    `;
-  }
-
-  if (rerender) renderCalendar();
-}
+// ── Agenda ───────────────────────────────────────────────────────────────
 
 function renderAgenda() {
   const agenda = document.getElementById('calendarAgenda');
@@ -231,7 +388,11 @@ function renderAgenda() {
   if (!agenda || !state.calendar) return;
 
   const items = state.calendar.days
-    .filter(day => day.in_month && (day.booking_count > 0 || day.source === 'override' || ['booked', 'custom_hours', 'unavailable'].includes(day.status)))
+    .filter(day => {
+      if (!day.in_month) return false;
+      const display = getDayForRoom(day);
+      return display.booking_count > 0 || display.source === 'override' || ['booked', 'custom_hours', 'unavailable'].includes(display.status);
+    })
     .slice(0, 8);
 
   if (count) count.textContent = String(items.length);
@@ -241,13 +402,16 @@ function renderAgenda() {
     return;
   }
 
-  agenda.innerHTML = items.map(day => `
-    <button type="button" class="agenda-item" data-agenda-date="${escapeHtml(day.date)}">
-      <span>${escapeHtml(formatDateLabel(day.date))}</span>
-      <strong>${day.booking_count > 0 ? `${day.booking_count} booking${day.booking_count === 1 ? '' : 's'}` : escapeHtml(statusLabel(day.status))}</strong>
-      <span class="agenda-status ${escapeHtml(day.status)}">${escapeHtml(statusLabel(day.status))}</span>
-    </button>
-  `).join('');
+  agenda.innerHTML = items.map(day => {
+    const display = getDayForRoom(day);
+    return `
+      <button type="button" class="agenda-item" data-agenda-date="${escapeHtml(day.date)}">
+        <span>${escapeHtml(formatDateLabel(day.date))}</span>
+        <strong>${display.booking_count > 0 ? `${display.booking_count} booking${display.booking_count === 1 ? '' : 's'}` : escapeHtml(statusLabel(display.status))}</strong>
+        <span class="agenda-status ${escapeHtml(display.status)}">${escapeHtml(statusLabel(display.status))}</span>
+      </button>
+    `;
+  }).join('');
 
   agenda.querySelectorAll('[data-agenda-date]').forEach(button => {
     button.addEventListener('click', () => {
@@ -259,6 +423,8 @@ function renderAgenda() {
     });
   });
 }
+
+// ── Save / clear overrides ───────────────────────────────────────────────
 
 function closeModal() {
   const modal = document.getElementById('calendarModal');
@@ -275,18 +441,32 @@ async function saveOverride(event) {
   event.preventDefault();
   calendarMessage('');
 
+  const scope = document.getElementById('overrideScope')?.value;
+  const isRoomScope = scope === 'room' && calendarUrls.roomOverrideSave;
+
+  const payload = {
+    date: document.getElementById('overrideDate').value,
+    type: document.getElementById('overrideType').value,
+    open_time: document.getElementById('overrideOpenTime').value,
+    close_time: document.getElementById('overrideCloseTime').value,
+    reason: document.getElementById('overrideReason').value
+  };
+
   try {
-    await calendarJson(calendarUrls.overrideSave, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        date: document.getElementById('overrideDate').value,
-        type: document.getElementById('overrideType').value,
-        open_time: document.getElementById('overrideOpenTime').value,
-        close_time: document.getElementById('overrideCloseTime').value,
-        reason: document.getElementById('overrideReason').value
-      })
-    });
+    if (isRoomScope) {
+      payload.room_id = parseInt(document.getElementById('overrideRoomId')?.value, 10);
+      await calendarJson(calendarUrls.roomOverrideSave, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      await calendarJson(calendarUrls.overrideSave, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
     closeModal();
     await loadCalendar(state.month);
     calendarMessage('Date override saved.', true);
@@ -296,9 +476,30 @@ async function saveOverride(event) {
 }
 
 async function clearOverride() {
+  calendarMessage('');
+
+  const scope = document.getElementById('overrideScope')?.value;
+  const isRoomScope = scope === 'room';
+
+  // For room-scoped overrides, find the room override ID from the current day data
+  if (isRoomScope && state.selectedRoomId && state.selectedDay?.rooms && calendarUrls.roomOverrideDelete) {
+    const roomData = state.selectedDay.rooms.find(r => r.room_id === state.selectedRoomId);
+    if (roomData && roomData.override_id) {
+      try {
+        await calendarJson(calendarUrls.roomOverrideDelete + encodeURIComponent(roomData.override_id), { method: 'POST' });
+        closeModal();
+        await loadCalendar(state.month);
+        calendarMessage('Room override cleared.', true);
+      } catch (error) {
+        calendarMessage(error.message);
+      }
+      return;
+    }
+  }
+
+  // Service-level override
   const overrideId = document.getElementById('overrideId')?.value;
   if (!overrideId) return;
-  calendarMessage('');
 
   try {
     await calendarJson(calendarUrls.overrideDelete + encodeURIComponent(overrideId), { method: 'POST' });
@@ -309,6 +510,8 @@ async function clearOverride() {
     calendarMessage(error.message);
   }
 }
+
+// ── Event listeners ──────────────────────────────────────────────────────
 
 document.getElementById('prevMonthBtn')?.addEventListener('click', () => {
   if (state.calendar?.prev_month) loadCalendar(state.calendar.prev_month).catch(error => calendarMessage(error.message));
@@ -323,6 +526,7 @@ document.getElementById('todayCalendarBtn')?.addEventListener('click', () => {
 });
 
 document.getElementById('overrideType')?.addEventListener('change', updateCustomHoursVisibility);
+document.getElementById('overrideScope')?.addEventListener('change', updateOverrideScopeVisibility);
 document.getElementById('calendarOverrideForm')?.addEventListener('submit', saveOverride);
 document.getElementById('clearOverrideBtn')?.addEventListener('click', clearOverride);
 document.querySelectorAll('[data-close-calendar-modal]').forEach(element => {

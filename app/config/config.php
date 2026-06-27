@@ -23,6 +23,7 @@ define('APPROOT', dirname(dirname(__FILE__)));
 define('MAX_REPLACEMENT_UPCHARGE_PCT', 25);
 define('BOOKING_DEPOSIT_PERCENT', 20);
 define('PLATFORM_FEE_PERCENT', 5);
+define('MIN_REMAINING_PAYMENT', 1000); // Minimum amount per partial remaining payment (MMK)
 
 define('DB_HOST', 'localhost;port=3307');
 define('DB_USER', 'root');

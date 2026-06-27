@@ -16,6 +16,7 @@ $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/')
 $calendarPathActive = strpos($currentPath, 'supplier/calendar') !== false || strpos($currentPath, 'supplier/serviceCalendar') !== false;
 $bookingsPathActive = strpos($currentPath, 'supplier/bookings') !== false
     || strpos($currentPath, 'supplier/bookingDetail') !== false;
+$assignmentsPathActive = strpos($currentPath, 'supplier/assignments') !== false;
 $notificationsPathActive = strpos($currentPath, 'supplier/notifications') !== false
     || strpos($currentPath, 'supplier/notification') !== false;
 $reviewsPathActive = strpos($currentPath, 'supplier/reviews') !== false;
@@ -366,6 +367,10 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                     <span class="supplier-sidebar-badge rounded-full bg-app-surface px-2 py-0.5 text-[10px] font-semibold text-app-warning"><?= $pendingBookings ?></span>
                 <?php endif; ?>
             </a>
+            <a href="<?= URLROOT ?>/supplier/assignments" title="My Assignments" class="<?= $assignmentsPathActive ? 'flex items-center gap-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 text-app-text transition hover:bg-app-input' ?>">
+                <i data-lucide="clipboard-check" class="h-4 w-4 <?= $assignmentsPathActive ? '' : 'text-app-header-muted' ?>"></i>
+                <span class="supplier-sidebar-label flex-1">My Assignments</span>
+            </a>
             <a href="<?= URLROOT ?>/supplier/notifications" title="Notifications" class="<?= $notificationsPathActive ? 'flex items-center gap-3 transition bg-app-primary text-app-white shadow-sm' : 'flex items-center gap-3 text-app-text transition hover:bg-app-input' ?>">
                 <i data-lucide="bell" class="h-4 w-4 <?= $notificationsPathActive ? '' : 'text-app-header-muted' ?>"></i>
                 <span class="supplier-sidebar-label flex-1">Notifications</span>
@@ -409,10 +414,6 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         </div>
 
         <nav class="supplier-sidebar-nav">
-            <a href="<?= URLROOT ?>/supplier/dashboard#payment-status" title="Payments" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
-                <i data-lucide="receipt-text" class="h-4 w-4 text-app-header-muted"></i>
-                <span class="supplier-sidebar-label flex-1">Payments</span>
-            </a>
             <a href="<?= URLROOT ?>/supplier/earnings" title="Earnings and withdrawals" class="flex items-center gap-3 text-app-text transition hover:bg-app-input">
                 <i data-lucide="banknote" class="h-4 w-4 text-app-header-muted"></i>
                 <span class="supplier-sidebar-label flex-1">Earnings</span>
@@ -542,6 +543,35 @@ if (!function_exists('dashboard_supplier_path_matches')) {
     </script>
 
     <?php if (isset($dashboardContent) && is_callable($dashboardContent)): ?>
+        <?php
+        // ── Supplier warning banner ──
+        $supplierWarningLevel = (int)($supplier['warning_level'] ?? 0);
+        $missedResponseCount = (int)($supplier['missed_response_count'] ?? 0);
+        ?>
+        <?php if ($supplierWarningLevel > 0): ?>
+        <div id="supplier-warning-banner" style="margin:0;padding:12px 24px;display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:600;line-height:1.5;
+            <?= $supplierWarningLevel >= 2
+                ? 'background:#FEF2F2;border-bottom:1px solid #fca5a5;color:#991b1b;'
+                : 'background:#FFFBEB;border-bottom:1px solid #fde68a;color:#92400e;' ?>">
+            <svg style="width:18px;height:18px;flex-shrink:0;margin-top:2px" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/>
+            </svg>
+            <div style="flex:1;min-width:0">
+                <?php if ($supplierWarningLevel >= 2): ?>
+                    <strong>Final Warning:</strong> You have <?= $missedResponseCount ?> bookings auto-cancelled due to non-response.
+                    Your account may be restricted. Please respond to all booking requests within 24 hours.
+                <?php else: ?>
+                    <strong>Warning:</strong> You have <?= $missedResponseCount ?> bookings auto-cancelled due to non-response.
+                    Please respond to all booking requests within 24 hours to avoid account restrictions.
+                <?php endif; ?>
+            </div>
+            <button type="button" onclick="document.getElementById('supplier-warning-banner').style.display='none'"
+                    style="background:none;border:none;cursor:pointer;color:inherit;opacity:.6;padding:2px;flex-shrink:0"
+                    aria-label="Dismiss warning">
+                <svg style="width:16px;height:16px" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+            </button>
+        </div>
+        <?php endif; ?>
         <div class="<?= htmlspecialchars($dashboardContentClass ?? 'px-6 py-6', ENT_QUOTES, 'UTF-8') ?>">
             <?php $dashboardContent(); ?>
         </div>

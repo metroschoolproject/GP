@@ -142,6 +142,20 @@ class Booking extends Controller
         );
     }
 
+    private function notifyAdminsOfRemainingSubmission(int $bookingId, float $amount = 0): void
+    {
+        $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        $amountText = $amount > 0 ? ' for ' . $this->money($amount) : '';
+
+        $this->notificationModel->notifyAdmins(
+            'Remaining Payment Submitted',
+            'A customer submitted remaining balance payment proof' . $amountText . ' for booking ' . $bookingRef . '. Please verify it.',
+            'payment',
+            'booking',
+            $bookingId
+        );
+    }
+
     /* ─── Step 1: Confirm Booking (GET + POST) ──────────────────── */
 
     public function create(): void
@@ -435,6 +449,9 @@ class Booking extends Controller
         if (!$this->bookingModel->reserveBookingItemSlots($bookingId)) {
             throw new RuntimeException('One of the selected service slots is no longer available.');
         }
+        if (!$this->bookingModel->reserveBookingAttireItems($bookingId)) {
+            throw new RuntimeException('One of the selected attire items is no longer available for the chosen dates.');
+        }
         
         // INSERT EVENT DETAILS — only for non-addon items.
         // Add-ons inherit event details from their parent package.
@@ -527,14 +544,14 @@ class Booking extends Controller
         } else {
             $this->bookingModel->updateStatus($bookingId, 'pending_supplier_response');
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_supplier_response', $this->userId);
-            $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
+            $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
             $this->bookingModel->commit();
             $transactionStarted = false;
 
             $this->notificationModel->notifyBookingSuppliers(
                 $bookingId,
                 'New Booking Request',
-                $customerName . ' is requesting: ' . $serviceNames . '. Please accept or decline within 48 hours.',
+                $customerName . ' is requesting: ' . $serviceNames . '. Please accept or decline within 24 hours.',
                 'booking'
             );
             $this->notificationModel->notifyAdmins(
@@ -892,18 +909,19 @@ class Booking extends Controller
 
         $total = (float)$booking['total_amount'];
         $paid = (float)$booking['paid_amount'];
-        $balance = max(0, $total - $paid);
+        // Use true remaining balance — bookings.paid_amount includes the platform
+        // fee from the deposit, so we subtract it to get the real service balance.
+        $balance = $this->bookingModel->getTrueRemainingBalance($bookingId);
 
         if ($balance <= 0) {
             redirect('booking/detail/' . $bookingId);
             return;
         }
 
-        // Check if there's already a pending remaining payment
-        if ($this->bookingModel->hasPendingRemainingPayment($bookingId)) {
-            redirect('booking/detail/' . $bookingId);
-            return;
-        }
+        // Get event date as due date and remaining payment history
+        $eventDate = $this->bookingModel->getFirstEventDate($bookingId);
+        $remainingPayments = $this->bookingModel->getRemainingPayments($bookingId);
+        $hasPendingRemaining = $this->bookingModel->hasPendingRemainingPayment($bookingId);
 
         $this->view('booking/payRemaining', [
             'booking' => $booking,
@@ -911,6 +929,10 @@ class Booking extends Controller
             'paid' => $paid,
             'balance' => $balance,
             'bookingRef' => $this->bookingModel->generateBookingRef($bookingId),
+            'eventDate' => $eventDate,
+            'remainingPayments' => $remainingPayments,
+            'hasPendingRemaining' => $hasPendingRemaining,
+            'minPayment' => defined('MIN_REMAINING_PAYMENT') ? (float)MIN_REMAINING_PAYMENT : 1000,
         ]);
     }
 
@@ -950,7 +972,8 @@ class Booking extends Controller
 
         $total = (float)$booking['total_amount'];
         $paid = (float)$booking['paid_amount'];
-        $expectedBalance = max(0, $total - $paid);
+        // Use true remaining balance (excluding platform fee from paid_amount)
+        $expectedBalance = $this->bookingModel->getTrueRemainingBalance($bookingId);
 
         if ($expectedBalance <= 0) {
             $_SESSION['remaining_payment_flash'] = 'This booking is already fully paid.';
@@ -958,8 +981,16 @@ class Booking extends Controller
             return;
         }
 
-        if (abs($paidAmount - $expectedBalance) > 0.01) {
-            $_SESSION['remaining_payment_flash'] = 'The payment amount must equal the remaining balance (' . number_format($expectedBalance, 0) . ' MMK).';
+        $minPayment = defined('MIN_REMAINING_PAYMENT') ? (float)MIN_REMAINING_PAYMENT : 1000;
+
+        if ($paidAmount < $minPayment - 0.01) {
+            $_SESSION['remaining_payment_flash'] = 'The minimum payment amount is ' . number_format($minPayment, 0) . ' MMK.';
+            redirect('booking/payRemaining/' . $bookingId);
+            return;
+        }
+
+        if ($paidAmount > $expectedBalance + 0.01) {
+            $_SESSION['remaining_payment_flash'] = 'The payment amount cannot exceed the remaining balance (' . number_format($expectedBalance, 0) . ' MMK).';
             redirect('booking/payRemaining/' . $bookingId);
             return;
         }
@@ -1003,7 +1034,7 @@ class Booking extends Controller
         );
 
         // Notify admins
-        $this->notifyAdminsOfDepositSubmission($bookingId, $paidAmount);
+        $this->notifyAdminsOfRemainingSubmission($bookingId, $paidAmount);
 
         $_SESSION['booking_payment_flash'] = 'Your remaining payment proof has been submitted. We will verify shortly.';
         redirect('booking/detail/' . $bookingId);
@@ -1349,6 +1380,10 @@ class Booking extends Controller
         // Check if there's a pending remaining balance payment
         $hasPendingRemaining = $this->bookingModel->hasPendingRemainingPayment($bookingId);
 
+        // Get event date as due date and remaining payment history
+        $eventDate = $this->bookingModel->getFirstEventDate($bookingId);
+        $remainingPayments = $this->bookingModel->getRemainingPayments($bookingId);
+
         $this->view('booking/detail', [
             'booking' => $booking,
             'items' => $items,
@@ -1368,6 +1403,8 @@ class Booking extends Controller
             'refund' => $refund ?: null,
             'platformFeePercent' => get_platform_fee_percent(),
             'hasPendingRemaining' => $hasPendingRemaining,
+            'eventDate' => $eventDate,
+            'remainingPayments' => $remainingPayments,
         ]);
     }
 
@@ -1612,6 +1649,41 @@ class Booking extends Controller
     }
 
     /**
+     * Supplier assignments — confirmed/active bookings.
+     */
+    public function supplierAssignments(): void
+    {
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            redirect('supplier/dashboard');
+            return;
+        }
+
+        $assignments = $this->bookingModel->getSupplierAssignments($supplierId);
+
+        // Enrich with booking refs and split into pending vs confirmed
+        $pendingAssignments = [];
+        $activeAssignments = [];
+        foreach ($assignments as &$a) {
+            $a['booking_ref'] = $this->bookingModel->generateBookingRef((int)$a['booking_id']);
+            if (($a['supplier_status'] ?? '') === 'pending') {
+                $pendingAssignments[] = $a;
+            } else {
+                $activeAssignments[] = $a;
+            }
+        }
+        unset($a);
+
+        require_once APPROOT . '/controllers/SupplierControllerSupport.php';
+        $this->view('supplier/assignments', [
+            'pendingAssignments' => $pendingAssignments,
+            'activeAssignments' => $activeAssignments,
+            'assignments' => $assignments,
+            'supplierId' => $supplierId,
+        ]);
+    }
+
+    /**
      * Supplier booking detail.
      */
     public function supplierBookingDetail(int $bookingId): void
@@ -1657,6 +1729,15 @@ class Booking extends Controller
                 && !in_array((string)($s['status'] ?? ''), ['replaced', 'rejected', 'cancelled'], true)
         ));
 
+        // Fetch active replacement (if this supplier was assigned as a replacement)
+        $activeReplacement = $this->bookingModel->getActiveReplacementForSupplier($bookingId, $supplierId);
+        if ($activeReplacement) {
+            $replFull = $this->bookingModel->getReplacement((int)$activeReplacement['id']);
+            if ($replFull) {
+                $activeReplacement = $replFull;
+            }
+        }
+
         $items = $this->bookingModel->getBookingItemsForSupplier($bookingId, $supplierId);
         $booking['supplier_total_amount'] = array_sum(array_map(static function ($item) {
             return (float)($item['price'] ?? 0);
@@ -1675,6 +1756,9 @@ class Booking extends Controller
             $cancellationReason = $this->bookingModel->getCancellationReason($bookingId);
         }
 
+        // Fetch payment history for the confidence strip timeline
+        $paymentHistory = $this->bookingModel->getBookingPayments($bookingId);
+
         $this->view('supplier/bookingDetail', [
             'booking' => $booking,
             'items' => $items,
@@ -1689,7 +1773,9 @@ class Booking extends Controller
             'isPackage' => $this->bookingModel->isPackageBooking($bookingId),
             'declineCutoffDays' => self::PACKAGE_DECLINE_CUTOFF_DAYS,
             'myServiceRows' => $myServiceRows,
+            'paymentHistory' => $paymentHistory,
             'cancellationReason' => $cancellationReason,
+            'activeReplacement' => $activeReplacement,
         ]);
     }
 
@@ -1817,7 +1903,7 @@ class Booking extends Controller
             $newStatus = $action === 'accept' ? 'confirmed' : 'rejected';
             $itemStatus = $action === 'accept' ? 'accepted' : 'cancelled';
 
-            $allowedSupplierStates = ['pending'];
+            $allowedSupplierStates = $action === 'decline' ? ['pending', 'confirmed'] : ['pending'];
             if (!$this->bookingModel->updateSupplierStatus($rowId, $newStatus, $allowedSupplierStates)) {
                 $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
             }
@@ -1857,6 +1943,7 @@ class Booking extends Controller
                 $this->bookingModel->updateStatus($bookingId, 'cancelled');
                 $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'cancelled', null, 'Supplier declined');
                 $this->bookingModel->releaseBookingSlots($bookingId);
+                $this->bookingModel->releaseAttireItems($bookingId);
                 $this->bookingModel->cancelAllSuppliers($bookingId);
                 $this->notificationModel->notifyBookingCustomer(
                     $bookingId,
@@ -2184,11 +2271,15 @@ class Booking extends Controller
         );
         $stats = $this->bookingModel->getAdminStats();
 
+        $bookingIds = array_map(static fn($b) => (int)$b['id'], $bookings);
+        $bookingTypes = $this->bookingModel->getBookingTypes($bookingIds);
+
         $enriched = [];
         foreach ($bookings as $b) {
             $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
             $b['total_amount'] = (float)$b['total_amount'];
             $b['paid_amount'] = (float)$b['paid_amount'];
+            $b['booking_type'] = $bookingTypes[(int)$b['id']] ?? 'Booking';
             $enriched[] = $b;
         }
 
@@ -2345,13 +2436,13 @@ class Booking extends Controller
             if (!$this->bookingModel->performReplacementSwap($replacementId, false)) {
                 $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
             }
-            $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
+            $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
             $newSupplierUserId = $this->bookingModel->getSupplierUserId((int)$chosen['supplier_id']);
             if ($newSupplierUserId > 0) {
                 $this->notificationModel->notifyUser(
                     $newSupplierUserId,
                     'New Package Booking — Please Respond',
-                    'You have been assigned to a package booking as a replacement. Please accept or decline within 48 hours.',
+                    'You have been assigned to a package booking as a replacement. Please accept or decline within 24 hours.',
                     'booking',
                     'booking',
                     $bookingId
@@ -2427,13 +2518,13 @@ class Booking extends Controller
         if (!$this->bookingModel->markPaymentSuccess((int)$payment['id'], $adminId)) {
             $this->jsonResponse(['error' => 'Payment was already reviewed.'], 409);
         }
-        $this->bookingModel->setSupplierResponseDeadline($bookingId, '+48 hours');
+        $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
         $newSupplierUserId = $this->bookingModel->getSupplierUserId((int)($replacement['new_supplier_id'] ?? 0));
         if ($newSupplierUserId > 0) {
             $this->notificationModel->notifyUser(
                 $newSupplierUserId,
                 'New Package Booking — Please Respond',
-                'You have been assigned to a package booking as a replacement. Please accept or decline within 48 hours.',
+                'You have been assigned to a package booking as a replacement. Please accept or decline within 24 hours.',
                 'booking',
                 'booking',
                 $bookingId

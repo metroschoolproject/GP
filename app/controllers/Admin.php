@@ -570,42 +570,74 @@ class Admin extends Controller
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->requireCsrf(false);
+
+            // --- Agent fee (per-booking percentage) ---
             $feePercent = trim((string)($_POST['platform_fee_percent'] ?? ''));
 
             if ($feePercent === '' || !is_numeric($feePercent)) {
-                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Platform fee must be a number.'];
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Agent fee must be a number.'];
                 redirect('admin/settings');
                 return;
             }
 
             $feePercent = (float)$feePercent;
             if ($feePercent < 0 || $feePercent > 100) {
-                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Platform fee must be between 0 and 100.'];
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Agent fee must be between 0 and 100.'];
                 redirect('admin/settings');
                 return;
             }
 
+            // --- Supplier membership fee (fixed amount) ---
+            $supplierFee = trim((string)($_POST['supplier_membership_fee'] ?? ''));
+
+            if ($supplierFee === '' || !is_numeric($supplierFee)) {
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Supplier membership fee must be a number.'];
+                redirect('admin/settings');
+                return;
+            }
+
+            $supplierFee = (float)$supplierFee;
+            if ($supplierFee < 0) {
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Supplier membership fee cannot be negative.'];
+                redirect('admin/settings');
+                return;
+            }
+
+            // Save both settings
             $db = new Database();
+
+            $formattedFee = number_format($feePercent, 2, '.', '');
             $db->dbquery(
                 "INSERT INTO platform_settings (setting_key, setting_value, updated_at)
                  VALUES ('platform_fee_percent', :val, NOW())
                  ON DUPLICATE KEY UPDATE setting_value = :val2, updated_at = NOW()"
             );
-            $formatted = number_format($feePercent, 2, '.', '');
-            $db->dbbind(':val', $formatted, PDO::PARAM_STR);
-            $db->dbbind(':val2', $formatted, PDO::PARAM_STR);
+            $db->dbbind(':val', $formattedFee, PDO::PARAM_STR);
+            $db->dbbind(':val2', $formattedFee, PDO::PARAM_STR);
             $db->dbexecute();
 
-            $_SESSION['platform_flash'] = ['type' => 'success', 'message' => 'Platform fee updated to ' . rtrim(rtrim($formatted, '0'), '.') . '%.'];
+            $formattedSupplier = number_format($supplierFee, 2, '.', '');
+            $db->dbquery(
+                "INSERT INTO platform_settings (setting_key, setting_value, updated_at)
+                 VALUES ('supplier_membership_fee', :val, NOW())
+                 ON DUPLICATE KEY UPDATE setting_value = :val2, updated_at = NOW()"
+            );
+            $db->dbbind(':val', $formattedSupplier, PDO::PARAM_STR);
+            $db->dbbind(':val2', $formattedSupplier, PDO::PARAM_STR);
+            $db->dbexecute();
+
+            $_SESSION['platform_flash'] = ['type' => 'success', 'message' => 'Platform fees updated successfully.'];
             redirect('admin/settings');
             return;
         }
 
-        // GET — load current value
+        // GET — load current values
         $currentFee = get_platform_fee_percent();
+        $supplierFee = (float)get_platform_setting('supplier_membership_fee', '50000');
 
         $this->view('admin/setting/platform', [
             'currentFee' => $currentFee,
+            'supplierFee' => $supplierFee,
         ]);
     }
 
@@ -680,6 +712,36 @@ class Admin extends Controller
     {
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminRefundQueue'], func_get_args());
+    }
+
+    /**
+     * Process a refund (upload proof, mark as processing).
+     * Delegates to Booking::adminProcessRefund.
+     */
+    public function processRefundPost()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminProcessRefund'], func_get_args());
+    }
+
+    /**
+     * Mark a refund as completed (money sent to customer).
+     * Delegates to Booking::adminCompleteRefund.
+     */
+    public function completeRefundPost()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminCompleteRefund'], func_get_args());
+    }
+
+    /**
+     * Reject a refund request.
+     * Delegates to Booking::adminRejectRefund.
+     */
+    public function rejectRefundPost()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminRejectRefund'], func_get_args());
     }
 
     public function replacementQueue()
@@ -818,7 +880,7 @@ class Admin extends Controller
         }
 
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = 15;
+        $perPage = 10;
         $offset = ($page - 1) * $perPage;
         $search = trim((string)($_GET['search'] ?? ''));
         $categoryId = max(0, (int)($_GET['category'] ?? 0));
@@ -883,6 +945,10 @@ class Admin extends Controller
             'message' => $_SESSION['admin_flash'] ?? '',
             'performance' => $this->supplierProfileModel->getSupplierPerformance((int)$supplierId),
             'supplierFeePayment' => $supplierFeePayment,
+            'supplierServices' => $this->supplierProfileModel->getSupplierServices((int)$supplierId),
+            'recentBookings' => $this->supplierProfileModel->getSupplierRecentBookings((int)$supplierId, 5),
+            'supplierReviews' => $this->supplierProfileModel->getSupplierReviews((int)$supplierId, 5),
+            'supplierWarnings' => $this->supplierProfileModel->getSupplierWarnings((int)$supplierId),
         ]);
         unset($_SESSION['admin_flash']);
     }
@@ -947,6 +1013,19 @@ class Admin extends Controller
         }
 
         $_SESSION['admin_flash'] = 'Supplier application rejected.';
+        redirect('admin/supplier/' . (int)$supplierId);
+    }
+
+    public function supplierNote($supplierId = null)
+    {
+        if (!$supplierId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/suppliers');
+        }
+
+        $note = trim((string)($_POST['admin_note'] ?? ''));
+        $this->supplierProfileModel->updateAdminNote((int)$supplierId, $note);
+
+        $_SESSION['admin_flash'] = 'Admin notes saved.';
         redirect('admin/supplier/' . (int)$supplierId);
     }
 
@@ -1322,7 +1401,6 @@ class Admin extends Controller
             redirect('admin/packages');
         }
 
-        $categories = $packageModel->getAllCategories();
         $serviceOptions = $packageModel->getAdminServiceOptions();
         $hallOptionsByService = [];
         $attireOptionsByService = [];
@@ -1340,7 +1418,6 @@ class Admin extends Controller
 
         $this->view('admin/packages/detail', [
             'package' => $package,
-            'categories' => $categories,
             'serviceOptions' => $serviceOptions,
             'hallOptionsByService' => $hallOptionsByService,
             'attireOptionsByService' => $attireOptionsByService,
@@ -1355,30 +1432,28 @@ class Admin extends Controller
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             $packageModel = $this->model('PlatformPackage');
             $this->view('admin/packages/create', [
-                'categories' => $packageModel->getAllCategories(),
-                'serviceOptions' => $packageModel->getAdminServiceOptions(),
                 'message' => $_SESSION['admin_flash'] ?? '',
+                'old' => $_SESSION['pkg_old'] ?? [],
+                'errors' => $_SESSION['pkg_errors'] ?? [],
             ]);
-            unset($_SESSION['admin_flash']);
+            unset($_SESSION['admin_flash'], $_SESSION['pkg_old'], $_SESSION['pkg_errors']);
             return;
         }
 
         $packageModel = $this->model('PlatformPackage');
         $slug = trim($_POST['slug'] ?? '');
         $name = trim($_POST['name'] ?? '');
+        $errors = [];
 
         if ($name === '') {
-            $_SESSION['admin_flash'] = 'Package name is required.';
-            redirect('admin/packageCreate');
+            $errors['name'] = 'Package name is required.';
         }
 
-        $imageUrl = '';
-        if ($this->uploadService->hasUploaded('package_image')) {
-            $imageUrl = $this->uploadService->storePackageImage($_FILES['package_image']);
-            if ($imageUrl === '') {
-                $_SESSION['admin_flash'] = 'Package image must be JPG, PNG, or WebP and no larger than 6MB.';
-                redirect('admin/packageCreate');
-            }
+        if (!empty($errors)) {
+            $_SESSION['pkg_old'] = $_POST;
+            $_SESSION['pkg_errors'] = $errors;
+            $_SESSION['admin_flash'] = 'Please fix the errors below.';
+            redirect('admin/packageCreate');
         }
 
         $data = [
@@ -1388,45 +1463,37 @@ class Admin extends Controller
             'tagline' => trim($_POST['tagline'] ?? ''),
             'base_price' => (float)($_POST['base_price'] ?? 0),
             'max_concurrent' => (int)($_POST['max_concurrent'] ?? 0),
-            'image_url' => $imageUrl,
+            'image_url' => '',
             'is_active' => !empty($_POST['is_active']),
             'sort_order' => (int)($_POST['sort_order'] ?? 0),
-            'category_id' => (int)($_POST['category_id'] ?? 0),
         ];
 
         $packageId = $packageModel->createPackageType($data);
 
         if (!$packageId) {
+            $_SESSION['pkg_old'] = $_POST;
+            $_SESSION['pkg_errors'] = ['general' => 'Failed to create package. Please try again.'];
             $_SESSION['admin_flash'] = 'Failed to create package type.';
             redirect('admin/packageCreate');
         }
 
-        $serviceIds = $_POST['service_ids'] ?? [];
-        $selectedServiceCount = 0;
-        $addedServiceCount = 0;
-        if (is_array($serviceIds)) {
-            foreach ($serviceIds as $serviceId) {
-                $serviceId = (int)$serviceId;
-                if ($serviceId <= 0) {
-                    continue;
-                }
-                $selectedServiceCount++;
-                if ($packageModel->addPackageService($packageId, $serviceId, (int)($_POST['guest_count'] ?? 100))) {
-                    $addedServiceCount++;
+        // Handle image upload after creation (non-blocking — image is optional)
+        $imageFlash = '';
+        if ($this->uploadService->hasUploaded('package_image')) {
+            $imageError = $this->uploadService->validatePackageImage($_FILES['package_image']);
+            if ($imageError !== '') {
+                $imageFlash = ' Package image skipped: ' . $imageError;
+            } else {
+                $imageUrl = $this->uploadService->storePackageImage($_FILES['package_image']);
+                if ($imageUrl !== '') {
+                    $packageModel->updatePackageType((int)$packageId, ['image_url' => $imageUrl]);
+                } else {
+                    $imageFlash = ' Package image could not be saved. You can re-upload from the package detail page.';
                 }
             }
         }
 
-        $createdPackage = $packageModel->getPackageById($packageId);
-        if ($createdPackage) {
-            $packageModel->updatePackageType($packageId, [
-                'base_price' => (float)($createdPackage['included_total'] ?? 0),
-            ]);
-        }
-
-        $_SESSION['admin_flash'] = $selectedServiceCount > 0
-            ? 'Package type created successfully. Added ' . $addedServiceCount . ' of ' . $selectedServiceCount . ' selected services.'
-            : 'Package type created successfully.';
+        $_SESSION['admin_flash'] = 'Package type created successfully.' . $imageFlash . ' You can now add services from the package detail page.';
         redirect('admin/packageDetail/' . $packageId);
     }
 
@@ -1482,9 +1549,6 @@ class Admin extends Controller
         if (isset($_POST['sort_order'])) {
             $data['sort_order'] = (int)$_POST['sort_order'];
         }
-        if (isset($_POST['category_id'])) {
-            $data['category_id'] = (int)$_POST['category_id'];
-        }
 
         $updated = $packageModel->updatePackageType((int)$packageId, $data);
 
@@ -1503,18 +1567,35 @@ class Admin extends Controller
         $packageModel = $this->model('PlatformPackage');
         $package = $packageModel->getPackageById((int)$packageId);
 
-        // Deletion of published packages is handled via publish flow (soft-delete on replace)
-        if ($package && ($package['status'] ?? '') === 'published') {
-            $_SESSION['admin_flash'] = 'Published packages cannot be deleted directly. Use the archive flow.';
-            redirect('admin/packageDetail/' . (int)$packageId);
+        if (!$package) {
+            $_SESSION['admin_flash'] = 'Package not found.';
+            redirect('admin/packages');
         }
 
+        $hasBookings = $packageModel->hasPackageBookings((int)$packageId);
         $deleted = $packageModel->deletePackageType((int)$packageId);
 
         $_SESSION['admin_flash'] = $deleted
-            ? 'Package deleted from database.'
+            ? ($hasBookings
+                ? 'Package archived — booking history is preserved. It is now hidden from all listings.'
+                : 'Package permanently deleted.')
             : 'Package could not be deleted.';
         redirect('admin/packages');
+    }
+
+    public function packageRestore($packageId = null)
+    {
+        if (!$packageId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/packages');
+        }
+
+        $packageModel = $this->model('PlatformPackage');
+        $restored = $packageModel->restorePackageType((int)$packageId);
+
+        $_SESSION['admin_flash'] = $restored
+            ? 'Package restored and reactivated.'
+            : 'Package could not be restored (it may not be archived).';
+        redirect('admin/packageDetail/' . (int)$packageId);
     }
 
     public function packageApplySuggestedPrice($packageId = null)
@@ -1946,8 +2027,9 @@ class Admin extends Controller
             $db->dbquery(
                 "SELECT COUNT(*) AS total
                  FROM bookings b
-                 WHERE b.status = 'payment_submitted'
-                    OR (b.status = 'pending_final_payment'
+                 WHERE (b.status = 'payment_submitted'
+                        AND EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = b.id AND p.type = 'deposit' AND p.status = 'pending'))
+                    OR (b.status IN ('pending_final_payment', 'paid', 'payment_verified')
                         AND EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = b.id AND p.type = 'remaining' AND p.status = 'pending'))"
             );
             $totalCount = (int)($db->getsingledata()['total'] ?? 0);
@@ -1955,6 +2037,7 @@ class Admin extends Controller
             // Get bookings with pending deposit OR pending remaining payments
             $db->dbquery(
                 "SELECT b.*, u.name, u.email, u.phone,
+                        b.total_amount as booking_total_amount,
                         p.id as payment_id, p.amount as payment_amount, p.transaction_ref, p.method,
                         " . implode(', ', $manualPaymentSelects) . ",
                         p.created_at as payment_created_at,
@@ -1964,9 +2047,10 @@ class Admin extends Controller
                  LEFT JOIN users u ON b.user_id = u.user_id
                  LEFT JOIN payments p ON b.id = p.booking_id
                     AND ((p.type = 'deposit' AND p.status = 'pending' AND b.status = 'payment_submitted')
-                      OR (p.type = 'remaining' AND p.status = 'pending' AND b.status = 'pending_final_payment'))
-                 WHERE b.status IN ('payment_submitted', 'pending_final_payment')
-                   AND p.id IS NOT NULL
+                      OR (p.type = 'remaining' AND p.status = 'pending' AND b.status IN ('pending_final_payment', 'paid', 'payment_verified')))
+                 WHERE p.id IS NOT NULL
+                   AND ((b.status = 'payment_submitted' AND p.type = 'deposit')
+                     OR (b.status IN ('pending_final_payment', 'paid', 'payment_verified') AND p.type = 'remaining'))
                  ORDER BY b.created_at DESC
                  LIMIT :limit OFFSET :offset"
             );
@@ -2021,8 +2105,12 @@ class Admin extends Controller
         $beforeVerification = $bookingModel->getBookingById($bookingId);
         $beforeStatus = (string)($beforeVerification['status'] ?? '');
 
-        // Determine if this is a deposit or remaining payment verification
-        $isRemaining = ($beforeStatus === 'pending_final_payment');
+        // Determine if this is a deposit or remaining payment verification.
+        // Check both the booking status AND whether a pending remaining payment
+        // exists — handles legacy bookings where status wasn't updated to
+        // 'pending_final_payment' due to a previous bug.
+        $isRemaining = ($beforeStatus === 'pending_final_payment')
+            || $bookingModel->hasPendingRemainingPayment($bookingId);
 
         // Verify payment and update booking status
         if ($isRemaining) {
@@ -2038,10 +2126,16 @@ class Admin extends Controller
         // Notify customer
         $notificationModel = $this->model('Notification');
         if ($isRemaining) {
+            // Check if booking is now fully paid after this verification
+            $afterBooking = $bookingModel->getBookingById($bookingId);
+            $isFullyPaid = ($afterBooking['payment_status'] ?? '') === 'full';
+            $notifMessage = $isFullyPaid
+                ? 'Your remaining balance payment has been verified! Your booking is now fully paid and finalized.'
+                : 'Your remaining balance payment has been verified! You can continue making payments toward your remaining balance.';
             $notificationModel->notifyBookingCustomer(
                 $bookingId,
                 'Remaining Payment Verified',
-                'Your remaining balance payment has been verified! Your booking is now fully paid and finalized.',
+                $notifMessage,
                 'payment'
             );
         } else {
@@ -2066,6 +2160,7 @@ class Admin extends Controller
         $eventDetails = $bookingModel->getEventDetails($bookingId);
         $customer  = $bookingModel->getCustomerForBooking($bookingId);
         $emailSent = false;
+        $verifiedPayment = [];
         if (!$isRemaining) {
             $suppliers = $bookingModel->getSupplierEmailsForBooking($bookingId);
             $verifiedPayment = $bookingModel->getDepositPayment($bookingId) ?: [];
@@ -2079,6 +2174,25 @@ class Admin extends Controller
                     $eventDetails
                 );
                 $emailService->sendPaymentVerifiedEvent($customer, $suppliers, [], $booking, $items, false);
+            }
+        } else {
+            // For remaining payments, get the payment record for logging
+            $payments = $bookingModel->getBookingPayments($bookingId);
+            foreach (array_reverse($payments) as $p) {
+                if (($p['type'] ?? '') === 'remaining' && ($p['status'] ?? '') === 'success') {
+                    $verifiedPayment = $p;
+                    break;
+                }
+            }
+            if ($customer && $booking) {
+                $emailService = new EmailService();
+                $emailSent = $emailService->sendRemainingPaymentVerifiedToCustomer(
+                    $customer,
+                    $booking,
+                    $verifiedPayment,
+                    $items,
+                    $eventDetails
+                );
             }
         }
 
@@ -2134,8 +2248,14 @@ class Admin extends Controller
 
         $bookingModel = $this->model('BookingModel');
 
-        // Reset booking to pending_payment
-        $this->db->dbquery("UPDATE bookings SET status = 'pending_payment' WHERE id = :id LIMIT 1");
+        // Determine if this is a remaining payment rejection
+        $currentBooking = $bookingModel->getBookingById($bookingId);
+        $isRemainingReject = ($currentBooking['status'] ?? '') === 'pending_final_payment';
+
+        // Reset booking status: remaining → confirmed, deposit → pending_payment
+        $resetStatus = $isRemainingReject ? 'confirmed' : 'pending_payment';
+        $this->db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");
+        $this->db->dbbind(':status', $resetStatus);
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
 
         if (!$this->db->dbexecute()) {
@@ -2151,15 +2271,17 @@ class Admin extends Controller
             $setParts[] = 'verified_note = :reason';
         }
 
+        $paymentType = $isRemainingReject ? 'remaining' : 'deposit';
         $this->db->dbquery(
             "UPDATE payments SET " . implode(', ', $setParts) . "
-             WHERE booking_id = :bid AND type = 'deposit' AND status = 'pending' LIMIT 1"
+             WHERE booking_id = :bid AND type = :payment_type AND status = 'pending' LIMIT 1"
         );
         $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
         if ($hasVerifiedNote) {
             $this->db->dbbind(':reason', $reason, PDO::PARAM_STR);
         }
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':payment_type', $paymentType);
         $this->db->dbexecute();
 
         // Notify customer

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jun 22, 2026 at 12:41 PM
+-- Generation Time: Jun 26, 2026 at 09:49 AM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -38,6 +38,14 @@ CREATE TABLE `account_lockout_logs` (
   `ip_address` varchar(50) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `account_lockout_logs`
+--
+
+INSERT INTO `account_lockout_logs` (`id`, `user_id`, `event`, `reason`, `attempt_count`, `unlocked_by`, `locked_until`, `ip_address`, `created_at`) VALUES
+(1, 109, 'locked', 'otp_attempts', 3, NULL, '2026-06-23 13:19:36', '::1', '2026-06-23 13:04:36'),
+(2, 109, 'unlocked', 'password_attempts', 0, NULL, NULL, '::1', '2026-06-23 13:39:39');
 
 -- --------------------------------------------------------
 
@@ -91,7 +99,9 @@ INSERT INTO `attire_items` (`id`, `service_id`, `name`, `description`, `photo_ur
 (28, 70, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 600000.00, 800000.00, 1700000.00, 2000000.00, 5, 2, '2026-06-20 13:57:16'),
 (29, 71, 'Bridal Gown', 'Bridal Gown — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero2.png', 480000.00, 624000.00, 1440000.00, 1728000.00, 3, 0, '2026-06-20 13:57:16'),
 (30, 71, 'Groom\'s Suit / Taik-pon', 'Groom\'s Suit / Taik-pon — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero3.png', 264000.00, 384000.00, 960000.00, 1152000.00, 3, 1, '2026-06-20 13:57:16'),
-(31, 71, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 576000.00, 768000.00, 1632000.00, 1920000.00, 5, 2, '2026-06-20 13:57:16');
+(31, 71, 'Traditional Htaing-ma-theim Set', 'Traditional Htaing-ma-theim Set — rental and purchase available.', 'http://localhost/GP/public/uploads/serviceHero1.png', 576000.00, 768000.00, 1632000.00, 1920000.00, 5, 2, '2026-06-20 13:57:16'),
+(34, 166, 'Western Wedding Dress', '', NULL, 250000.00, 350000.00, 850000.00, 120000.00, 3, 0, '2026-06-24 02:48:34'),
+(35, 167, 'Dress', '', 'https://4b2b50ea8de75a5e-204-157-173-127.serveousercontent.com/GP/public/uploads/suppliers/134/service-management/attire-item/20260626100614-e8c5b682.png', 2500000.00, 23000.00, 450000.00, 12000.00, 22, 0, '2026-06-26 03:36:14');
 
 -- --------------------------------------------------------
 
@@ -310,7 +320,27 @@ INSERT INTO `bookings` (`id`, `user_id`, `cart_id`, `total_amount`, `paid_amount
 (313, 30, 3, 1000000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-23 23:03:34', NULL, NULL, '2026-06-22 03:33:34'),
 (314, 30, 3, 150000.00, 0.00, 'unpaid', 'cancelled', '2026-06-23 23:15:48', NULL, NULL, '2026-06-22 03:45:48'),
 (315, 30, 3, 15000000.00, 0.00, 'unpaid', 'payment_submitted', '2026-06-24 03:07:58', NULL, NULL, '2026-06-22 07:37:58'),
-(316, 30, 3, 4150650.00, 0.00, 'unpaid', 'pending_payment', NULL, NULL, NULL, '2026-06-22 09:49:24');
+(316, 30, 3, 4150650.00, 0.00, 'unpaid', 'pending_payment', NULL, NULL, NULL, '2026-06-22 09:49:24'),
+(317, 112, 8, 3953000.00, 0.00, 'unpaid', 'pending_payment', NULL, NULL, NULL, '2026-06-23 05:07:04'),
+(318, 113, 9, 3953000.00, 0.00, 'unpaid', 'pending_payment', NULL, NULL, NULL, '2026-06-23 05:15:13'),
+(319, 113, 9, 2100000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-25 05:17:31', NULL, NULL, '2026-06-23 05:17:31'),
+(320, 109, 10, 18000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-25 15:37:50', NULL, NULL, '2026-06-23 15:37:50'),
+(321, 109, 10, 1400000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-26 02:45:33', NULL, NULL, '2026-06-24 02:45:33'),
+(322, 109, 10, 4600000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-26 02:50:09', NULL, NULL, '2026-06-24 02:50:09'),
+(323, 112, 8, 3953000.00, 0.00, 'unpaid', 'pending_payment', NULL, NULL, NULL, '2026-06-24 02:53:58'),
+(324, 109, 10, 18000.00, 0.00, 'unpaid', 'cancellation_requested', '2026-06-26 02:55:00', NULL, NULL, '2026-06-24 02:55:00'),
+(325, 109, 10, 70000.00, 0.00, 'unpaid', 'payment_submitted', NULL, NULL, NULL, '2026-06-24 03:09:11'),
+(326, 123, 11, 200000.00, 0.00, 'unpaid', 'cancellation_requested', '2026-06-26 03:37:59', NULL, NULL, '2026-06-24 03:37:59'),
+(327, 123, 11, 300000.00, 0.00, 'unpaid', 'cancellation_requested', '2026-06-26 04:18:13', NULL, NULL, '2026-06-24 04:18:13'),
+(328, 113, 9, 300000.00, 0.00, 'unpaid', 'cancellation_requested', '2026-06-26 04:22:13', NULL, NULL, '2026-06-24 04:22:13'),
+(329, 124, 12, 200000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-26 04:53:07', NULL, NULL, '2026-06-24 04:53:07'),
+(330, 109, 10, 300000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-27 02:48:29', NULL, NULL, '2026-06-25 02:48:29'),
+(331, 131, 13, 50000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-27 03:27:09', NULL, NULL, '2026-06-25 03:27:09'),
+(332, 131, 13, 135000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-27 04:57:50', NULL, NULL, '2026-06-25 04:57:50'),
+(333, 132, 15, 845000.00, 0.00, 'unpaid', 'cancellation_requested', '2026-06-27 05:01:14', NULL, NULL, '2026-06-25 05:01:14'),
+(334, 29, 6, 900000.00, 0.00, 'unpaid', 'payment_submitted', '2026-06-27 13:10:35', NULL, NULL, '2026-06-25 13:10:35'),
+(335, 29, 6, 500000.00, 0.00, 'unpaid', 'pending_supplier_response', '2026-06-28 03:33:41', NULL, NULL, '2026-06-26 03:33:41'),
+(336, 126, 14, 2500000.00, 0.00, 'unpaid', 'pending_payment', '2026-06-28 04:40:29', NULL, NULL, '2026-06-26 04:40:29');
 
 -- --------------------------------------------------------
 
@@ -540,7 +570,31 @@ INSERT INTO `booking_items` (`id`, `booking_id`, `item_type`, `source`, `item_id
 (366, 313, 'service', 'custom', 110, '2026-06-22 00:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
 (367, 314, 'service', 'custom', 56, '2026-06-22 13:00:00', 150000.00, 'Lin Lin', 'Wyndham Grand Yangon Hotel', 'Make Up & Hair', 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620065739-732ff480.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, '13:00:00', '16:00:00', 'slot', NULL),
 (368, 315, 'service', 'custom', 164, '2026-06-24 00:00:00', 15000000.00, 'Makeup Non Thit San - Makeup & Hair', 'Makeup Non Thit San', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero2.png', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
-(369, 316, 'package', 'package', 30, NULL, 4150650.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL);
+(369, 316, 'package', 'package', 30, NULL, 4150650.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(370, 317, 'package', 'package', 30, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(371, 318, 'package', 'package', 30, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(372, 319, 'service', 'custom', 48, '2026-06-26 09:00:00', 2100000.00, 'H&amp;H Floral and Wedding Service', 'JV', 'Decoration', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618210245-d5b57c03.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, '09:00:00', '13:00:00', 'slot', NULL),
+(373, 320, 'service', 'custom', 124, '2026-06-24 00:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(374, 321, 'service', 'custom', 105, '2026-07-01 00:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(375, 321, 'service', 'custom', 110, '2026-06-24 00:00:00', 1000000.00, 'U Hton - Jewelry', 'U Hton', 'Jewelry', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(377, 322, 'service', 'custom', 137, '2026-06-30 00:00:00', 4300000.00, 'His & Hers Events and Wedding Studio - Decoration', 'His & Hers Events and Wedding Studio', 'Decoration', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(378, 322, 'service', 'custom', 69, '2026-06-30 00:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(380, 323, 'package', 'package', 31, NULL, 3953000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(381, 324, 'service', 'custom', 124, '2026-06-25 00:00:00', 18000.00, 'Shan Yoe Yar Restaurant - Catering', 'Shan Yoe Yar Restaurant', 'Food', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(382, 325, 'package', 'package', 20, NULL, 70000.00, 'Standard Wedding Package', 'Golden Promise', NULL, 'http://localhost/GP/public/uploads/admin/packages/20260618152115-7d249ee0.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(383, 326, 'service', 'custom', 67, '2026-06-28 10:00:00', 200000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire', 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Attire', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, '10:00:00', '18:00:00', 'fullday', NULL),
+(384, 327, 'service', 'custom', 69, '2026-06-25 00:00:00', 300000.00, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire', 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'Attire', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(385, 328, 'service', 'custom', 163, '2026-06-25 00:00:00', 300000.00, 'Makeup Hazel - Makeup & Hair', 'Makeup Hazel', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(386, 329, 'service', 'custom', 119, '2026-06-25 00:00:00', 200000.00, 'Season - Cake', 'Season', 'Food', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(387, 330, 'service', 'custom', 156, '2026-06-30 00:00:00', 300000.00, 'SORA - Makeup & Hair', 'SORA', 'Make Up & Hair', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(388, 331, 'service', 'custom', 154, '2026-06-28 00:00:00', 50000.00, 'THIRI Handmade Invatation - Invitation & Gifts', 'THIRI Handmade Invatation', 'Invitation & Gifts', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(389, 332, 'service', 'custom', 144, '2026-06-26 00:00:00', 135000.00, 'Myanmar Car Rental - Car Rental', 'Myanmar Car Rental', 'Car', 'http://localhost/GP/public/uploads/serviceHero3.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(390, 333, 'service', 'custom', 105, '2026-06-26 00:00:00', 400000.00, 'Venus Wedding Studio - Studio', 'Venus Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero1.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(391, 333, 'service', 'custom', 103, '2026-06-26 00:00:00', 445000.00, 'Forever One Stop Wedding Studio - Studio', 'Forever One Stop Wedding Studio', 'Studio', 'http://localhost/GP/public/uploads/serviceHero2.png', 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'fullday', NULL),
+(393, 334, 'service', 'custom', 49, '2026-07-26 09:00:00', 900000.00, 'Zephyr Sein Lann So pyay', 'JV', 'Venue', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 'accepted', 22, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL);
+INSERT INTO `booking_items` (`id`, `booking_id`, `item_type`, `source`, `item_id`, `booking_date`, `price`, `item_name`, `supplier_name`, `category_name`, `thumbnail_url`, `status`, `venue_room_id`, `attire_item_id`, `decoration_style_id`, `cake_design_id`, `slot_id`, `start_time`, `end_time`, `booking_type`, `package_booking_item_id`) VALUES
+(394, 335, 'service', 'custom', 55, '2026-06-29 10:00:00', 500000.00, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Wyndham Grand Yangon Hotel', 'Attire', 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260619054309-45b53c74.jpg', 'pending', NULL, NULL, NULL, NULL, NULL, '10:00:00', '11:00:00', 'slot', NULL),
+(395, 336, 'service', 'custom', 167, '2026-07-08 09:00:00', 2500000.00, 'Grand', 'Shwe Phoo Sar', 'Attire', '', 'accepted', NULL, NULL, NULL, NULL, NULL, '09:00:00', '10:00:00', 'slot', NULL);
 
 -- --------------------------------------------------------
 
@@ -575,7 +629,45 @@ INSERT INTO `booking_slot_reservations` (`id`, `booking_id`, `booking_item_id`, 
 (28, 316, NULL, 110, 47, 103, 'package', '2026-06-22 09:49:24', NULL),
 (29, 316, NULL, 113, 55, 104, 'package', '2026-06-22 09:49:24', NULL),
 (30, 316, NULL, 111, 48, 105, 'package', '2026-06-22 09:49:24', NULL),
-(31, 316, NULL, 112, 50, 106, 'package', '2026-06-22 09:49:24', NULL);
+(31, 316, NULL, 112, 50, 106, 'package', '2026-06-22 09:49:24', NULL),
+(32, 317, NULL, 117, 56, 108, 'package', '2026-06-23 05:07:04', NULL),
+(33, 317, NULL, 117, 56, 109, 'package', '2026-06-23 05:07:04', NULL),
+(34, 317, NULL, 110, 47, 110, 'package', '2026-06-23 05:07:04', NULL),
+(35, 317, NULL, 113, 55, 111, 'package', '2026-06-23 05:07:04', NULL),
+(36, 317, NULL, 111, 48, 112, 'package', '2026-06-23 05:07:04', NULL),
+(37, 317, NULL, 112, 50, 113, 'package', '2026-06-23 05:07:04', NULL),
+(38, 317, NULL, 117, 56, 114, 'package', '2026-06-23 05:07:04', NULL),
+(39, 317, NULL, 110, 47, 115, 'package', '2026-06-23 05:07:04', NULL),
+(40, 317, NULL, 113, 55, 116, 'package', '2026-06-23 05:07:04', NULL),
+(41, 317, NULL, 111, 48, 117, 'package', '2026-06-23 05:07:04', NULL),
+(42, 317, NULL, 112, 50, 118, 'package', '2026-06-23 05:07:04', NULL),
+(43, 317, NULL, 117, 56, 119, 'package', '2026-06-23 05:07:04', NULL),
+(44, 318, NULL, 117, 56, 120, 'package', '2026-06-23 05:15:13', NULL),
+(45, 318, NULL, 117, 56, 121, 'package', '2026-06-23 05:15:13', NULL),
+(46, 318, NULL, 110, 47, 122, 'package', '2026-06-23 05:15:13', NULL),
+(47, 318, NULL, 113, 55, 123, 'package', '2026-06-23 05:15:13', NULL),
+(48, 318, NULL, 111, 48, 124, 'package', '2026-06-23 05:15:13', NULL),
+(49, 318, NULL, 112, 50, 125, 'package', '2026-06-23 05:15:13', NULL),
+(50, 318, NULL, 117, 56, 126, 'package', '2026-06-23 05:15:13', NULL),
+(51, 318, NULL, 110, 47, 127, 'package', '2026-06-23 05:15:13', NULL),
+(52, 318, NULL, 113, 55, 128, 'package', '2026-06-23 05:15:13', NULL),
+(53, 318, NULL, 111, 48, 129, 'package', '2026-06-23 05:15:13', NULL),
+(54, 318, NULL, 112, 50, 130, 'package', '2026-06-23 05:15:13', NULL),
+(55, 318, NULL, 117, 56, 131, 'package', '2026-06-23 05:15:13', NULL),
+(56, 323, NULL, 122, 56, 132, 'package', '2026-06-24 02:53:58', NULL),
+(57, 323, NULL, 122, 56, 133, 'package', '2026-06-24 02:53:58', NULL),
+(58, 323, NULL, 118, 47, 134, 'package', '2026-06-24 02:53:58', NULL),
+(59, 323, NULL, 121, 55, 135, 'package', '2026-06-24 02:53:58', NULL),
+(60, 323, NULL, 119, 48, 136, 'package', '2026-06-24 02:53:58', NULL),
+(61, 323, NULL, 120, 50, 137, 'package', '2026-06-24 02:53:58', NULL),
+(62, 323, NULL, 122, 56, 138, 'package', '2026-06-24 02:53:58', NULL),
+(63, 323, NULL, 118, 47, 139, 'package', '2026-06-24 02:53:58', NULL),
+(64, 323, NULL, 121, 55, 140, 'package', '2026-06-24 02:53:58', NULL),
+(65, 323, NULL, 119, 48, 141, 'package', '2026-06-24 02:53:58', NULL),
+(66, 323, NULL, 120, 50, 142, 'package', '2026-06-24 02:53:58', NULL),
+(67, 323, NULL, 122, 56, 143, 'package', '2026-06-24 02:53:58', NULL),
+(68, 325, NULL, 65, 42, 144, 'package', '2026-06-24 03:09:11', NULL),
+(69, 325, NULL, 65, 42, 145, 'package', '2026-06-24 03:09:11', NULL);
 
 -- --------------------------------------------------------
 
@@ -668,7 +760,56 @@ INSERT INTO `booking_status_logs` (`id`, `booking_id`, `old_status`, `new_status
 (146, 53, 'cancelled', 'cancelled', 1, 'Deposit marked as refunded by admin (manual): 1,014,800 MMK', '2026-06-22 09:39:43'),
 (147, 53, NULL, 'cancelled', 1, 'Cancelled by admin: cancle booking', '2026-06-22 09:39:43'),
 (148, 316, NULL, 'draft', 30, NULL, '2026-06-22 09:49:24'),
-(149, 316, 'draft', 'pending_payment', 30, NULL, '2026-06-22 09:49:24');
+(149, 316, 'draft', 'pending_payment', 30, NULL, '2026-06-22 09:49:24'),
+(150, 317, NULL, 'draft', 112, NULL, '2026-06-23 05:07:04'),
+(151, 317, 'draft', 'pending_payment', 112, NULL, '2026-06-23 05:07:04'),
+(152, 318, NULL, 'draft', 113, NULL, '2026-06-23 05:15:13'),
+(153, 318, 'draft', 'pending_payment', 113, NULL, '2026-06-23 05:15:13'),
+(154, 319, NULL, 'draft', 113, NULL, '2026-06-23 05:17:31'),
+(155, 319, 'draft', 'pending_supplier_response', 113, NULL, '2026-06-23 05:17:31'),
+(156, 320, NULL, 'draft', 109, NULL, '2026-06-23 15:37:50'),
+(157, 320, 'draft', 'pending_supplier_response', 109, NULL, '2026-06-23 15:37:50'),
+(158, 321, NULL, 'draft', 109, NULL, '2026-06-24 02:45:33'),
+(159, 321, 'draft', 'pending_supplier_response', 109, NULL, '2026-06-24 02:45:33'),
+(160, 322, NULL, 'draft', 109, NULL, '2026-06-24 02:50:09'),
+(161, 322, 'draft', 'pending_supplier_response', 109, NULL, '2026-06-24 02:50:09'),
+(162, 323, NULL, 'draft', 112, NULL, '2026-06-24 02:53:58'),
+(163, 323, 'draft', 'pending_payment', 112, NULL, '2026-06-24 02:53:58'),
+(164, 324, NULL, 'draft', 109, NULL, '2026-06-24 02:55:00'),
+(165, 324, 'draft', 'pending_supplier_response', 109, NULL, '2026-06-24 02:55:00'),
+(166, 325, NULL, 'draft', 109, NULL, '2026-06-24 03:09:11'),
+(167, 325, 'draft', 'pending_payment', 109, NULL, '2026-06-24 03:09:11'),
+(168, 324, 'pending_supplier_response', 'cancellation_requested', NULL, 'Cancellation requested: bjm,jnhbgfghjkl;l,mnbvc', '2026-06-24 03:14:24'),
+(169, 326, NULL, 'draft', 123, NULL, '2026-06-24 03:37:59'),
+(170, 326, 'draft', 'pending_supplier_response', 123, NULL, '2026-06-24 03:37:59'),
+(171, 326, 'pending_supplier_response', 'cancellation_requested', NULL, 'Cancellation requested: အလျင်လိုနေလို့ပါ', '2026-06-24 03:39:10'),
+(172, 327, NULL, 'draft', 123, NULL, '2026-06-24 04:18:13'),
+(173, 327, 'draft', 'pending_supplier_response', 123, NULL, '2026-06-24 04:18:13'),
+(174, 328, NULL, 'draft', 113, NULL, '2026-06-24 04:22:13'),
+(175, 328, 'draft', 'pending_supplier_response', 113, NULL, '2026-06-24 04:22:13'),
+(176, 327, 'pending_supplier_response', 'cancellation_requested', NULL, 'Cancellation requested: အချိန်မမှီတော့လို့ပါ', '2026-06-24 04:22:52'),
+(177, 328, 'pending_supplier_response', 'cancellation_requested', NULL, 'Cancellation requested: gu gu gar gar', '2026-06-24 04:23:43'),
+(178, 329, NULL, 'draft', 124, NULL, '2026-06-24 04:53:07'),
+(179, 329, 'draft', 'pending_supplier_response', 124, NULL, '2026-06-24 04:53:07'),
+(180, 330, NULL, 'draft', 109, NULL, '2026-06-25 02:48:29'),
+(181, 330, 'draft', 'pending_supplier_response', 109, NULL, '2026-06-25 02:48:29'),
+(182, 331, NULL, 'draft', 131, NULL, '2026-06-25 03:27:09'),
+(183, 331, 'draft', 'pending_supplier_response', 131, NULL, '2026-06-25 03:27:09'),
+(184, 332, NULL, 'draft', 131, NULL, '2026-06-25 04:57:50'),
+(185, 332, 'draft', 'pending_supplier_response', 131, NULL, '2026-06-25 04:57:50'),
+(186, 333, NULL, 'draft', 132, NULL, '2026-06-25 05:01:14'),
+(187, 333, 'draft', 'pending_supplier_response', 132, NULL, '2026-06-25 05:01:14'),
+(188, 333, 'pending_supplier_response', 'cancellation_requested', NULL, 'Cancellation requested: I don\'t have money', '2026-06-25 05:04:43'),
+(189, 334, NULL, 'draft', 29, NULL, '2026-06-25 13:10:35'),
+(190, 334, 'draft', 'pending_supplier_response', 29, NULL, '2026-06-25 13:10:35'),
+(191, 334, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-25 16:17:16'),
+(192, 334, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-25 16:17:16'),
+(193, 335, NULL, 'draft', 29, NULL, '2026-06-26 03:33:41'),
+(194, 335, 'draft', 'pending_supplier_response', 29, NULL, '2026-06-26 03:33:41'),
+(195, 336, NULL, 'draft', 126, NULL, '2026-06-26 04:40:29'),
+(196, 336, 'draft', 'pending_supplier_response', 126, NULL, '2026-06-26 04:40:29'),
+(197, 336, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-26 04:41:05'),
+(198, 336, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-26 04:41:05');
 
 -- --------------------------------------------------------
 
@@ -913,7 +1054,46 @@ INSERT INTO `booking_suppliers` (`id`, `booking_id`, `supplier_id`, `service_id`
 (270, 316, 20, 48, 12, 111, 2100000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
 (271, 316, 20, 50, 5, 112, 200000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
 (272, 316, 21, 55, 2, 113, 40000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
-(273, 316, 21, 56, 10, 117, 73000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24');
+(273, 316, 21, 56, 10, 117, 73000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 09:49:24', '2026-06-22 09:49:24'),
+(276, 317, 20, 47, 2, 110, 750000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:07:04', '2026-06-23 05:07:04'),
+(277, 317, 20, 48, 12, 111, 2100000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:07:04', '2026-06-23 05:07:04'),
+(278, 317, 20, 50, 5, 112, 200000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:07:04', '2026-06-23 05:07:04'),
+(279, 317, 21, 55, 2, 113, 40000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:07:04', '2026-06-23 05:07:04'),
+(280, 317, 21, 56, 10, 117, 73000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:07:04', '2026-06-23 05:07:04'),
+(283, 318, 20, 47, 2, 110, 750000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:15:13', '2026-06-23 05:15:13'),
+(284, 318, 20, 48, 12, 111, 2100000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:15:13', '2026-06-23 05:15:13'),
+(285, 318, 20, 50, 5, 112, 200000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:15:13', '2026-06-23 05:15:13'),
+(286, 318, 21, 55, 2, 113, 40000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:15:13', '2026-06-23 05:15:13'),
+(287, 318, 21, 56, 10, 117, 73000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:15:13', '2026-06-23 05:15:13'),
+(290, 319, 20, 48, 12, NULL, 2100000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 05:17:31', '2026-06-23 05:17:31'),
+(291, 320, 89, 124, 3, NULL, 18000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-23 15:37:50', '2026-06-23 15:37:50'),
+(292, 321, 70, 105, 5, NULL, 400000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:45:33', '2026-06-24 02:45:33'),
+(293, 321, 75, 110, 9, NULL, 1000000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:45:33', '2026-06-24 02:45:33'),
+(295, 322, 102, 137, 12, NULL, 4300000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:50:09', '2026-06-24 02:50:09'),
+(296, 322, 33, 69, 2, NULL, 300000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:50:09', '2026-06-24 02:50:09'),
+(298, 323, 20, 47, 2, 118, 750000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:53:58', '2026-06-24 02:53:58'),
+(299, 323, 20, 48, 12, 119, 2100000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:53:58', '2026-06-24 02:53:58'),
+(300, 323, 20, 50, 5, 120, 200000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:53:58', '2026-06-24 02:53:58'),
+(301, 323, 21, 55, 2, 121, 40000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:53:58', '2026-06-24 02:53:58'),
+(302, 323, 21, 56, 10, 122, 73000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:53:58', '2026-06-24 02:53:58'),
+(305, 324, 89, 124, 3, NULL, 18000.00, 'cancellation_pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 02:55:00', '2026-06-24 03:14:24'),
+(306, 325, 21, 42, 6, 65, 70000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 03:09:11', '2026-06-24 03:09:11'),
+(307, 326, 31, 67, 2, NULL, 200000.00, 'cancellation_pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 03:37:59', '2026-06-24 03:39:10'),
+(308, 327, 33, 69, 2, NULL, 300000.00, 'cancellation_pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 04:18:13', '2026-06-24 04:22:52'),
+(309, 328, 128, 163, 10, NULL, 300000.00, 'cancellation_pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 04:22:13', '2026-06-24 04:23:43'),
+(310, 329, 84, 119, 3, NULL, 200000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-24 04:53:07', '2026-06-24 04:53:07'),
+(311, 330, 121, 156, 10, NULL, 300000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-25 02:48:29', '2026-06-25 02:48:29'),
+(312, 331, 119, 154, 8, NULL, 50000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-25 03:27:09', '2026-06-25 03:27:09'),
+(313, 332, 109, 144, 11, NULL, 135000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-25 04:57:50', '2026-06-25 04:57:50'),
+(314, 333, 70, 105, 5, NULL, 400000.00, 'cancellation_pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-25 05:01:14', '2026-06-25 05:04:43'),
+(315, 333, 68, 103, 5, NULL, 445000.00, 'cancellation_pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-25 05:01:14', '2026-06-25 05:04:43'),
+(317, 303, 134, NULL, NULL, NULL, NULL, 'completed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-10 03:30:00', '2026-06-25 07:33:59'),
+(318, 304, 134, NULL, NULL, NULL, NULL, 'completed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-15 07:30:00', '2026-06-25 07:33:59'),
+(319, 305, 134, NULL, NULL, NULL, NULL, 'completed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-20 02:30:00', '2026-06-25 07:33:59'),
+(320, 310, 134, NULL, NULL, NULL, NULL, 'confirmed', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-22 04:30:00', '2026-06-25 07:33:59'),
+(321, 334, 20, 49, 6, NULL, 900000.00, 'confirmed', '2026-06-25 16:17:16', NULL, NULL, 'unpaid', NULL, '2026-06-25 13:10:35', '2026-06-25 16:17:16'),
+(322, 335, 21, 55, 2, NULL, 500000.00, 'pending', NULL, NULL, NULL, 'unpaid', NULL, '2026-06-26 03:33:41', '2026-06-26 03:33:41'),
+(323, 336, 134, 167, 2, NULL, 2500000.00, 'confirmed', '2026-06-26 04:41:05', NULL, NULL, 'unpaid', NULL, '2026-06-26 04:40:29', '2026-06-26 04:41:05');
 
 -- --------------------------------------------------------
 
@@ -1029,7 +1209,15 @@ INSERT INTO `carts` (`id`, `user_id`, `created_at`) VALUES
 (3, 30, '2026-06-18 09:56:57'),
 (4, 1, '2026-06-20 14:13:50'),
 (5, 24, '2026-06-20 14:13:50'),
-(6, 29, '2026-06-20 14:13:50');
+(6, 29, '2026-06-20 14:13:50'),
+(8, 112, '2026-06-23 05:01:56'),
+(9, 113, '2026-06-23 05:08:42'),
+(10, 109, '2026-06-23 05:09:20'),
+(11, 123, '2026-06-24 03:37:17'),
+(12, 124, '2026-06-24 04:50:55'),
+(13, 131, '2026-06-25 03:26:35'),
+(14, 126, '2026-06-25 04:49:05'),
+(15, 132, '2026-06-25 04:55:42');
 
 -- --------------------------------------------------------
 
@@ -1055,6 +1243,15 @@ CREATE TABLE `cart_items` (
   `cake_design_id` bigint(20) DEFAULT NULL,
   `package_cart_item_id` bigint(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `cart_items`
+--
+
+INSERT INTO `cart_items` (`id`, `cart_id`, `user_id`, `item_type`, `item_id`, `selected_date`, `price`, `source`, `slot_id`, `start_time`, `end_time`, `venue_room_id`, `attire_item_id`, `decoration_style_id`, `cake_design_id`, `package_cart_item_id`) VALUES
+(95, 3, 30, 'service', 67, '2026-06-23', 240000.00, 'custom', NULL, NULL, NULL, NULL, 19, NULL, NULL, NULL),
+(96, 4, 1, 'package', 30, NULL, 4150650.00, 'package', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(110, 3, 30, 'package', 31, NULL, 4150650.00, 'package', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1174,7 +1371,83 @@ CREATE TABLE `email_verifications` (
 --
 
 INSERT INTO `email_verifications` (`id`, `user_id`, `token_hash`, `expires_at`, `used`, `created_at`) VALUES
-(6, 27, 'c9af74c98a6f1759d78a1c2143dd000b8e88e7f8533cac9ce74e69d25b25c6fb', '2026-06-11 02:39:48', 1, '2026-06-11 02:32:31');
+(6, 27, 'c9af74c98a6f1759d78a1c2143dd000b8e88e7f8533cac9ce74e69d25b25c6fb', '2026-06-11 02:39:48', 1, '2026-06-11 02:32:31'),
+(8, 105, '104b76c4d9e0711cd8a6464682408e3c9d944f26e7568f229dfef4e914da0e6f', '2026-06-23 03:16:48', 1, '2026-06-23 03:15:16'),
+(9, 106, 'c999baaefed2158db24b7eb3faa2056da2644b8c66f0bcc182c78b5acd58ceb5', '2026-06-25 02:51:13', 1, '2026-06-23 03:20:07'),
+(10, 107, '9ad4ce83486c232502ede7a15efae9194c8179bf2d9e09b53aa3683350961a45', '2026-06-24 04:07:45', 0, '2026-06-23 04:07:45'),
+(12, 109, '0272618cc89d63fc5ec333d8a751217dfdde2601c018637819d24ac9b98827dc', '2026-06-23 04:24:57', 1, '2026-06-23 04:23:00'),
+(14, 111, 'c41717e168fea4b52b1aaf3cd1721c1ded4094a1632db4a1793e6a5686df0187', '2026-06-24 04:39:31', 1, '2026-06-23 04:54:27'),
+(15, 112, '384742ddc3dcd39ce1dba8d46bcc7fa7ecf5f14ce5aa7eea451ac1ac604d6caf', '2026-06-23 05:00:11', 1, '2026-06-23 04:58:22'),
+(16, 113, '0c0507ef638cca184a41aced85f8c4ff55d2508b04a7887375ae11325747cabd', '2026-06-23 05:03:11', 1, '2026-06-23 05:02:36'),
+(17, 114, '9adaef21a950e1f39eefe343e2c64b4878a78bf60b264eec8b86cc1440057556', '2026-06-23 05:30:11', 1, '2026-06-23 05:27:33'),
+(18, 115, '303f8f1d61816b9ac9c7b4cf3889322a5dd7b11acd0992d2d33c8e2e1aa8c2c0', '2026-06-23 13:17:50', 1, '2026-06-23 13:15:22'),
+(19, 116, '10c33569e09e5504e29199a5e49b906dd1f6c5bb48a28d3d46032bddf17122b1', '2026-06-24 14:25:48', 0, '2026-06-23 14:25:48'),
+(20, 117, 'c3dae0e6ed9aafb9d3eb0bbb2756eacab6deaac5a557da4ec71d875ba1ce29dd', '2026-06-24 14:26:03', 0, '2026-06-23 14:26:03'),
+(21, 118, '0cf60708c754d8575367e69f21611a9446caa549456451c2939429c7591709a4', '2026-06-25 02:23:58', 0, '2026-06-24 02:23:58'),
+(22, 119, '460e8595ca620b76b5e5ad5c0343c72b06d538d937b6b61f19571ea762b91225', '2026-06-25 03:07:57', 0, '2026-06-24 03:07:57'),
+(23, 120, 'd01f3683712d80672450e412d6293938c32d744afaeb3f2c57e09b94fff1a81a', '2026-06-25 03:12:13', 0, '2026-06-24 03:12:13'),
+(24, 121, '4e566998e6cb5e30ad055abd7bd45a5ca4289c5c700ae3d5ab1442f24cfc494e', '2026-06-24 03:18:58', 1, '2026-06-24 03:15:03'),
+(25, 122, '010544c35eae68717d1a24ae67ce1fa4f135c62e1d9a88038d9094335558f4c6', '2026-06-24 03:19:59', 1, '2026-06-24 03:17:26'),
+(26, 123, '11412135ff97775ffc1011887c7f73b56cdaaf3307e0af1348b5991816f69ba3', '2026-06-24 03:29:09', 1, '2026-06-24 03:24:38'),
+(27, 124, '528039c5302a3de4bd8f827390701ac9f4b700137cbab901e04a7fe603b35e68', '2026-06-24 03:51:13', 1, '2026-06-24 03:28:35'),
+(28, 124, '2b4b2cb8af638fbcefa25ff139f5e72b0fc948717b3f41d2a327ae67898838b5', '2026-06-24 03:51:36', 1, '2026-06-24 03:51:13'),
+(29, 125, '2295ef309b1373109fb9e40119fc4f63463356f2d96e196af6c2c2924c49b21c', '2026-06-25 03:55:30', 0, '2026-06-24 03:55:30'),
+(30, 126, 'f1e02e0af300f0b51e6fc7d25f9b2d1e1c5ed35e8a0c936b6c5ab93bd2b77d93', '2026-06-24 03:58:47', 1, '2026-06-24 03:58:34'),
+(31, 126, '3be5ccc94db6030a46e0c79c99cb9d5cf7474795723e972006a0f457b0a26cac', '2026-06-24 03:59:23', 1, '2026-06-24 03:58:47'),
+(32, 126, '786794d1cb8acc61ddb1d9fec09209d7104d1ef3918c2d34e1cc56acdd95fd2b', '2026-06-24 04:00:00', 1, '2026-06-24 03:59:23'),
+(33, 126, 'dc37be254f43d8db9248d4a1d9bbfeba994f694cb76e3783efa83dd84ec0cd9c', '2026-06-24 04:01:28', 1, '2026-06-24 04:00:00'),
+(34, 126, '02a285d50f963c38983b2cdc76f2592c8ddb79e315ff6101b195c145bc71d381', '2026-06-24 04:01:41', 1, '2026-06-24 04:01:28'),
+(35, 126, 'ca9e7d75ebdbc12a90516fa6a8e141f0f00d727b1bcf97f63e8979ab0272a8f0', '2026-06-24 04:06:06', 1, '2026-06-24 04:01:41'),
+(36, 126, '090c76219d11e9979ec0a95a3f7a8be22c5874d8a6ef55a0638d8c408e8fd08a', '2026-06-24 04:06:17', 1, '2026-06-24 04:06:06'),
+(37, 126, 'b15a97895ac57737c45011c935566e386c80d9793b3c41f944e1fadd9a0b95e7', '2026-06-24 04:07:11', 1, '2026-06-24 04:06:17'),
+(38, 126, '164f92996a37d975d0d89a6e4c3848f1830e489aa0be2779da085486c76ffd21', '2026-06-24 04:07:22', 1, '2026-06-24 04:07:11'),
+(39, 126, '83cdd0b4736fef320078ef3f8a62fccc1a6a3cbc0ff56416bbd2216be459fe47', '2026-06-25 02:22:39', 1, '2026-06-24 04:07:22'),
+(40, 127, '11c55df6772f2325c3ab1f3692e85a075c6f93ab2de02c41048fe98a0b186ef0', '2026-06-24 04:35:11', 1, '2026-06-24 04:34:08'),
+(41, 127, '4a803741e7c25267719e99d4c6efff373d3742dd48dac782a090d0ff26fa2b12', '2026-06-25 04:35:11', 0, '2026-06-24 04:35:11'),
+(42, 111, 'b8a98e1caa4b3d3ab261a095b29a004b32b53ba7830e8c6927a66ea8e548f52e', '2026-06-24 04:40:53', 1, '2026-06-24 04:39:31'),
+(43, 111, '56b7ef795fd46bd04ffc68477aa2559d69f43f73cd3e3204d3d7cc35e62dc594', '2026-06-24 04:41:32', 1, '2026-06-24 04:40:53'),
+(44, 111, 'bae65465e9155d3c9ca253fb2ae8b357c8341fc95a9b9f65082614d5eca14484', '2026-06-24 04:41:50', 1, '2026-06-24 04:41:32'),
+(45, 126, '25689d40313c6c219f80fc0021acf1ea6904e3ddd0bdc37232ad3bf08e419634', '2026-06-25 02:22:51', 1, '2026-06-25 02:22:39'),
+(46, 126, 'b949530ed370c866c1a29eeb9e57c1268ef0134c4ddf10c3e041263a336bb9ad', '2026-06-25 02:24:25', 1, '2026-06-25 02:22:51'),
+(47, 126, '211f68fd0def38f35bb31d837ecc662b5bbb70e6c2cf45833c9d428ee9a1b70f', '2026-06-25 02:24:32', 1, '2026-06-25 02:24:25'),
+(48, 126, 'af98dd76062703ae5f190e55510ebfc8c5c5e554f753f46adf281e95cac4916f', '2026-06-25 02:25:26', 1, '2026-06-25 02:24:32'),
+(49, 126, 'bdb226e46ec8f41f75b85aa19aedfb8e777842c95b2c53eef6a1429ec332435a', '2026-06-25 02:25:32', 1, '2026-06-25 02:25:26'),
+(50, 126, '13a4b6d263742a31b067d089ea64852c409ad06255833128fc95de9221db4b65', '2026-06-25 02:26:14', 1, '2026-06-25 02:25:32'),
+(51, 126, '9e719808338d4cbf874b3c28f2fe673e96e4f12135a9994e1cf94ecc08b28e94', '2026-06-25 02:26:22', 1, '2026-06-25 02:26:14'),
+(52, 126, '753390b15a9906160c841bc2f314fdaae3f7292cf2dbe79aedb1b20051aa94ef', '2026-06-25 02:27:08', 1, '2026-06-25 02:26:22'),
+(53, 128, '3e3c4936e798004ba736a88848dc2120a12cf2bb042387f91faf61d3823b1656', '2026-06-25 02:48:51', 1, '2026-06-25 02:48:38'),
+(54, 128, '58d67923b212a858174f9eba2586a07ff0354a2e87ec565078196de827587d5c', '2026-06-26 02:48:51', 0, '2026-06-25 02:48:51'),
+(55, 106, '802cd949417008cacb590e526ccd9f3b0bc52728b3af17847b7768fc8ea39b0f', '2026-06-26 02:51:13', 0, '2026-06-25 02:51:13'),
+(56, 129, 'bf806cb13fdb9775ebae0187d693728cc68ef21811e8ec026483aad0cb27e604', '2026-06-25 02:53:03', 1, '2026-06-25 02:52:21'),
+(57, 129, '4c4af58bbc8feae8d25a3e1a6c113a4b7aad190226f6d9f949a475cc714d012b', '2026-06-25 02:55:00', 1, '2026-06-25 02:53:03'),
+(58, 129, '7abe9003a6f6f58a19e19d91ca38059834dc8a5a449540d0d154bea3c35bc9b8', '2026-06-25 02:55:10', 1, '2026-06-25 02:55:00'),
+(59, 129, '9ee5532999ecba73e74e637427f8f0280309b9765614235edf29c9a1bf8b6e68', '2026-06-25 02:56:39', 1, '2026-06-25 02:55:10'),
+(60, 129, 'c86842b07af1e35e90dcd04c28e79fa2e98a1d420fa0a16ae54b8c80984dc2b0', '2026-06-25 02:56:59', 1, '2026-06-25 02:56:39'),
+(61, 129, 'dbfdd061ce9b7e9f94b14261b6d5417816f1e7fcd81fad432ca1e09d3cfbfe53', '2026-06-26 02:56:59', 0, '2026-06-25 02:56:59'),
+(62, 130, '00974f644df7e3a0ecb6d77fdc46017ceb8ae5e216a0f006ea683adff1e02215', '2026-06-25 03:03:12', 1, '2026-06-25 03:03:02'),
+(63, 130, '74a6d416b5250e721d6c77c8d3f3b392b2660765bd819b230f68a7b888e4d594', '2026-06-26 03:03:12', 0, '2026-06-25 03:03:12'),
+(64, 131, '204ba631981b5b58b3794239229873cfe27476218b5148c181aeec254d040b8e', '2026-06-25 03:14:46', 1, '2026-06-25 03:13:18'),
+(65, 131, '0dadac9feb09df2cfba0564519baab506fc03e6d34a7f7004645e689aba01d36', '2026-06-25 03:14:58', 1, '2026-06-25 03:14:46'),
+(66, 131, '966d79da9ccc302346683b6e9b981179d9e4940718d766f2337d78f0880e4b58', '2026-06-25 03:16:02', 1, '2026-06-25 03:14:58'),
+(67, 131, '4b4a63f029fc6da24a9d99bdc34ebd3c691181d398eb28b44adb447d80808cb2', '2026-06-25 03:19:56', 1, '2026-06-25 03:16:02'),
+(68, 131, 'cbaae11b4844fe7899c7ae41c99873be3d270233c8906f6e63c4dab620cd5cf0', '2026-06-25 03:20:10', 1, '2026-06-25 03:19:56'),
+(69, 131, '3bd3a80811cccbb84760f06ccdc46a71676331ece87eaaa134867c23c4734ffc', '2026-06-25 03:21:10', 1, '2026-06-25 03:20:10'),
+(70, 131, 'fb3b891a1c3cd1be7a3c1839dc5ea3fe36748ceeb8c487521c4a181ccc92dae6', '2026-06-25 03:21:27', 1, '2026-06-25 03:21:10'),
+(71, 131, 'f5b4e33a5ac945cecd73b94e5ba7017736d54c8942935a46fa666aebb7cf57d4', '2026-06-25 03:21:40', 1, '2026-06-25 03:21:27'),
+(72, 132, '5437772731a716e73ac2bf25e0515920da2aa04ebb6b8b806557f903414fea4b', '2026-06-25 04:44:46', 1, '2026-06-25 04:43:53'),
+(73, 132, '1a07835c8eae4ddd8057429e8a698721502094d8c5587746536aafce8b01fe46', '2026-06-25 04:44:58', 1, '2026-06-25 04:44:46'),
+(74, 132, 'b18e875c07e16a979bded155985415495d169cb6334ddbdcf797ae79410c219d', '2026-06-25 04:46:13', 1, '2026-06-25 04:44:58'),
+(75, 132, '5d273981fe6e7c09eda619307708b29e55a8eb6f941a00528d4eb815ceb76485', '2026-06-25 04:46:21', 1, '2026-06-25 04:46:13'),
+(76, 132, 'ce7aadfa3b63e909c789fe7ddfcbcebda0bd5ca966f0526718a80baa6e432e36', '2026-06-25 04:46:41', 1, '2026-06-25 04:46:21'),
+(77, 133, 'c7eca90fa5b2914868184d72e16ca9456afcfca2928203906d041c61254e0aa6', '2026-06-26 02:25:18', 1, '2026-06-26 02:25:10'),
+(78, 133, '9b23fd410ba7ea2f9cd211d62bd06b9a6822f9802d0951ebdea3beaa91f9ec2c', '2026-06-26 02:25:48', 1, '2026-06-26 02:25:18'),
+(79, 133, 'afac4ab53ef436100394a3e34879f466c399e91f98fecab43cf26cb6c11bb467', '2026-06-26 02:25:59', 1, '2026-06-26 02:25:48'),
+(80, 133, '7836c637277a87beee4ec59caa0a576a91f0401b29497d810d4300265c93c22a', '2026-06-26 02:26:18', 1, '2026-06-26 02:25:59'),
+(81, 133, '75a60f7238fa9609c13bfaea8892a17ae0e52a24c8237630bf5cf0b76781c0b3', '2026-06-26 02:26:34', 1, '2026-06-26 02:26:18'),
+(82, 133, '3f0cb476848429ec0afe9ee731579fcaa0eaa884f4b4824455d4dde0db7ef315', '2026-06-26 02:27:16', 1, '2026-06-26 02:26:34'),
+(83, 133, 'a5e33e8ce7d8d05c7020f28d08cf8a54c8190c9425b60ac85b14dde22d2cf595', '2026-06-26 02:27:50', 1, '2026-06-26 02:27:16'),
+(84, 133, '817d44a422a068814b85fef5d2b2983a118aa9adf7f86909d0cb4e345ded2af2', '2026-06-26 02:28:08', 1, '2026-06-26 02:27:50'),
+(85, 133, '9a45688235ce1b8a933d88af7b4938e9455d783bc52890edb8bb6f0b348f8400', '2026-06-26 02:28:29', 1, '2026-06-26 02:28:08');
 
 -- --------------------------------------------------------
 
@@ -1399,7 +1672,30 @@ INSERT INTO `event_details` (`id`, `booking_id`, `booking_item_id`, `event_date`
 (265, 313, 366, '2026-06-22', '09:00:00', '18:00:00', 2, NULL, 'No 39. Hnin Si Street', NULL, NULL, 'zaw moe', '09123456789', '', NULL, '2026-06-22 03:33:34'),
 (266, 314, 367, '2026-06-22', '07:00:00', '16:00:00', 2, NULL, 'No 39. Hnin Si Street', NULL, NULL, 'zaw moe', '09123456789', '', NULL, '2026-06-22 03:45:48'),
 (267, 315, 368, '2026-06-24', '09:00:00', '18:00:00', 100, NULL, 'အမှတ်(91/93)၊ ပြည်လမ်းနှင့် ကမ္ဘာအေးဘုရားလမ်းထောင့်၊ ၈မိုင်လမ်းဆုံ၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။', NULL, NULL, 'zaw moe', '09123456789', 'thanks', NULL, '2026-06-22 07:37:58'),
-(268, 316, 369, '2026-06-29', '04:00:00', '17:00:00', 1, NULL, 'No 39. Hnin Si Street', NULL, NULL, 'zaw moe', '09123456789', '', NULL, '2026-06-22 09:49:24');
+(268, 316, 369, '2026-06-29', '04:00:00', '17:00:00', 1, NULL, 'No 39. Hnin Si Street', NULL, NULL, 'zaw moe', '09123456789', '', NULL, '2026-06-22 09:49:24'),
+(269, 317, 370, '2026-07-01', '04:00:00', '16:00:00', 7, NULL, 'Novotel', NULL, NULL, 'Kaung Min Khant', '0978134486111', '', NULL, '2026-06-23 05:07:04'),
+(270, 318, 371, '2027-08-04', '04:00:00', '16:00:00', 400, NULL, 'thingangyum', NULL, NULL, 'AmKiio', '09676992431', 'pu', NULL, '2026-06-23 05:15:13'),
+(271, 319, 372, '2026-06-26', '09:00:00', '17:00:00', 200, NULL, 'thingangyum', NULL, NULL, 'AmKiio', '09676992431`', 'dtd5yhfdsdyudfftyfuigi7rfyuvrsdfgcddteazsxuiuredtyvye3qagyhpioytdfgdvkivcetwashji87tfgdsxcryjugfcxwqasfguufdhjipoytdr5dcthjisar4wgydsauy8', NULL, '2026-06-23 05:17:31'),
+(272, 320, 373, '2026-06-24', '09:00:00', '18:00:00', 50, NULL, 'Novotel', NULL, NULL, 'Yadanar', '09455658079', '', NULL, '2026-06-23 15:37:50'),
+(273, 321, 374, '2026-07-01', '09:00:00', '18:00:00', 1, NULL, 'Novotel', NULL, NULL, 'Naw Pan', '09455658079', 'sjdkjdhiooekjgmcnkcnknviklklejflwkele', NULL, '2026-06-24 02:45:33'),
+(274, 321, 375, '2026-07-01', '09:00:00', '18:00:00', 2, NULL, 'Novotel', NULL, NULL, 'Yadanar', '09455658079', 'jsdskrhjwkekirjfkdsjhhdsscsdsbcbkwerjkjs', NULL, '2026-06-24 02:45:33'),
+(275, 322, 377, '2026-06-30', '09:00:00', '18:00:00', 1, NULL, 'Metro', NULL, NULL, 'Yadanar', '09455658079', 'fjkdddfknmmcslkdkld', NULL, '2026-06-24 02:50:09'),
+(276, 322, 378, '2026-06-30', '10:00:00', '18:00:00', 1, NULL, 'Metro', NULL, NULL, 'Yadanar', '09455658079', 'oijfkkgtldks;ipwirHPLKDCNV,MDNJKSAJEHAHI', NULL, '2026-06-24 02:50:09'),
+(277, 323, 380, '2026-07-02', '04:00:00', '16:00:00', 51, NULL, 'NOVOTEL', NULL, NULL, 'Kaung Min Khant', '09781344861', 'Very Good', NULL, '2026-06-24 02:53:58'),
+(278, 324, 381, '2026-06-25', '09:00:00', '18:00:00', 1, NULL, 'Metro', NULL, NULL, 'Yadanar', '09455658079', 'ghjsjkdkjflkgljk', NULL, '2026-06-24 02:55:00'),
+(279, 325, 382, '2026-07-24', '09:00:00', '15:00:00', 100, NULL, 'Metro', NULL, NULL, 'Yadanar', '09455658079', 'ffgdsfdgfhgjhjkjhg', NULL, '2026-06-24 03:09:11'),
+(280, 326, 383, '2026-06-28', '10:00:00', '18:00:00', 1, NULL, 'Wedding room', NULL, NULL, 'Lae Yati Htun', '09676992431', 'မြန်မြန်လေးလုပ်ပေးပါ', NULL, '2026-06-24 03:37:59'),
+(281, 327, 384, '2026-06-25', '10:00:00', '18:00:00', 2, NULL, 'Ballroom2', NULL, NULL, 'Lae Yati Htun', '09676992431', 'Faster', NULL, '2026-06-24 04:18:13'),
+(282, 328, 385, '2026-06-25', '09:00:00', '18:00:00', 2, NULL, 'Capital,Thaketa', NULL, NULL, 'Zaw MIn Thein', '0966776677', 'gu gu gar gar', NULL, '2026-06-24 04:22:13'),
+(283, 329, 386, '2026-06-25', '09:00:00', '18:00:00', 2, NULL, 'Metro', NULL, NULL, 'Yadanar', '09455658079', '', NULL, '2026-06-24 04:53:07'),
+(284, 330, 387, '2026-06-30', '09:00:00', '18:00:00', 2, NULL, 'Home', NULL, NULL, 'Yadanar', '09455658079', '', NULL, '2026-06-25 02:48:29'),
+(285, 331, 388, '2026-06-28', '09:00:00', '18:00:00', 1, NULL, 'THINGANGYUN', NULL, NULL, 'hans', '09989915314', 'ryghvryhifkfyvrk48i5u8ri', NULL, '2026-06-25 03:27:09'),
+(286, 332, 389, '2026-06-26', '09:00:00', '18:00:00', 2, NULL, 'THINGANGYUN', NULL, NULL, 'Hans', '09989915314', '7hgvcv vfv', NULL, '2026-06-25 04:57:50'),
+(287, 333, 390, '2026-06-26', '09:00:00', '18:00:00', 2, NULL, 'Ballroom A', NULL, NULL, 'Tina', '09252208158', 'Please make it pretty', NULL, '2026-06-25 05:01:14'),
+(288, 333, 391, '2026-06-26', '09:00:00', '18:00:00', 2, NULL, 'Ballroom A', NULL, NULL, 'Tina', '09252208158', 'make it pretty too', NULL, '2026-06-25 05:01:14'),
+(289, 334, 393, '2026-07-27', '09:00:00', '17:00:00', 200, NULL, 'Ballon A', NULL, NULL, 'Saen', '09123456789', '', NULL, '2026-06-25 13:10:35'),
+(290, 335, 394, '2026-06-29', '10:00:00', '17:00:00', 1, NULL, 'Ballon A', NULL, NULL, 'Saen', '09451777705', 'special request', NULL, '2026-06-26 03:33:41'),
+(291, 336, 395, '2026-07-08', '09:00:00', '17:00:00', 1, NULL, 'Yangon', NULL, NULL, 'dfnsdjfb', '09781344861', 'make more beautiful', NULL, '2026-06-26 04:40:29');
 
 -- --------------------------------------------------------
 
@@ -1558,7 +1854,7 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `refer
 (90, 27, 'Supplier Accepted — Please Pay', 'Wyndham Grand Yangon Hotel accepted your booking request. Please complete your 10% deposit to confirm.', 'booking', 'booking', 48, 1, '2026-06-18 09:33:50'),
 (91, 27, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 48, 0, '2026-06-18 09:34:51'),
 (92, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 120,000 MMK for booking BK-20260618-048. Please verify it.', 'payment', 'booking', 48, 1, '2026-06-18 09:34:51'),
-(93, 27, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 48, 0, '2026-06-18 09:35:07'),
+(93, 27, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 48, 1, '2026-06-18 09:35:07'),
 (94, 29, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 48, 1, '2026-06-18 09:35:07'),
 (95, 1, 'Service publish request', 'JV requested publishing for \"Dear Brides\".', 'approval', 'service', 45, 1, '2026-06-18 10:32:35'),
 (96, 24, 'Publish request sent', 'Your request to publish \"Dear Brides\" was sent to admin.', 'approval', 'service', 45, 1, '2026-06-18 10:32:35'),
@@ -1641,7 +1937,7 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `refer
 (173, 30, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 311, 1, '2026-06-21 07:24:24'),
 (174, 37, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 311, 1, '2026-06-21 07:24:24'),
 (175, 29, 'New Booking Request', 'zaw moe is requesting: Lin Lin. Please accept or decline within 48 hours.', 'booking', 'booking', 312, 1, '2026-06-21 07:39:00'),
-(176, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: Lin Lin. Supplier responses are pending.', 'booking', 'booking', 312, 0, '2026-06-21 07:39:00'),
+(176, 1, 'New Custom Booking Request', 'zaw moe created a custom or mixed booking for: Lin Lin. Supplier responses are pending.', 'booking', 'booking', 312, 1, '2026-06-21 07:39:00'),
 (177, 30, 'Supplier Accepted — Please Pay', 'Wyndham Grand Yangon Hotel accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 312, 0, '2026-06-21 07:39:55'),
 (178, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 312, 0, '2026-06-21 07:44:58'),
 (179, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 30,000 MMK for booking BK-20260621-312. Please verify it.', 'payment', 'booking', 312, 1, '2026-06-21 07:44:58'),
@@ -1665,12 +1961,84 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `refer
 (197, 30, 'Supplier Accepted — Please Pay', 'Makeup Non Thit San accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 315, 1, '2026-06-22 07:48:12'),
 (198, 30, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 315, 0, '2026-06-22 08:23:21'),
 (199, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 3,750,000 MMK for booking BK-20260622-315. Please verify it.', 'payment', 'booking', 315, 1, '2026-06-22 08:23:21'),
-(200, 30, 'Booking Cancelled by Admin', 'Your booking has been cancelled by the administrator. Reason: cancle booking Your deposit will be refunded.', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
+(200, 30, 'Booking Cancelled by Admin', 'Your booking has been cancelled by the administrator. Reason: cancle booking Your deposit will be refunded.', 'booking', 'booking', 53, 1, '2026-06-22 09:39:43'),
 (201, 24, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
 (202, 40, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
 (203, 32, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
 (204, 47, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43'),
-(205, 29, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 0, '2026-06-22 09:39:43');
+(205, 29, 'Booking Cancelled', 'A booking has been cancelled by the administrator. Reason: cancle booking', 'booking', 'booking', 53, 1, '2026-06-22 09:39:43'),
+(206, 1, 'New supplier application', 'Chanel submitted a supplier application.', 'approval', 'supplier', 131, 1, '2026-06-23 04:23:48'),
+(207, 1, 'New Supplier Fee Submitted', 'Chanel has submitted a supplier membership fee payment. Please review.', 'payment', 'supplier', 131, 1, '2026-06-23 05:10:01'),
+(208, 24, 'New Booking Request', 'AmKiio is requesting: H&amp;H Floral and Wedding Service. Please accept or decline within 48 hours.', 'booking', 'booking', 319, 1, '2026-06-23 05:17:31'),
+(209, 1, 'New Custom Booking Request', 'AmKiio created a custom or mixed booking for: H&amp;H Floral and Wedding Service. Supplier responses are pending.', 'booking', 'booking', 319, 1, '2026-06-23 05:17:31'),
+(210, 1, 'New supplier application', 'Forever Wedding Studio submitted a supplier application.', 'approval', 'supplier', 132, 1, '2026-06-23 05:50:02'),
+(211, 62, 'New Booking Request', 'Yadanar is requesting: Shan Yoe Yar Restaurant - Catering. Please accept or decline within 48 hours.', 'booking', 'booking', 320, 0, '2026-06-23 15:37:50'),
+(212, 1, 'New Custom Booking Request', 'Yadanar created a custom or mixed booking for: Shan Yoe Yar Restaurant - Catering. Supplier responses are pending.', 'booking', 'booking', 320, 1, '2026-06-23 15:37:50'),
+(213, 47, 'New Booking Request', 'Yadanar is requesting: Venus Wedding Studio - Studio, U Hton - Jewelry. Please accept or decline within 48 hours.', 'booking', 'booking', 321, 0, '2026-06-24 02:45:33'),
+(214, 52, 'New Booking Request', 'Yadanar is requesting: Venus Wedding Studio - Studio, U Hton - Jewelry. Please accept or decline within 48 hours.', 'booking', 'booking', 321, 0, '2026-06-24 02:45:33'),
+(215, 1, 'New Custom Booking Request', 'Yadanar created a custom or mixed booking for: Venus Wedding Studio - Studio, U Hton - Jewelry. Supplier responses are pending.', 'booking', 'booking', 321, 0, '2026-06-24 02:45:33'),
+(216, 75, 'New Booking Request', 'Yadanar is requesting: His & Hers Events and Wedding Studio - Decoration, ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire. Please accept or decline within 48 hours.', 'booking', 'booking', 322, 0, '2026-06-24 02:50:09'),
+(217, 42, 'New Booking Request', 'Yadanar is requesting: His & Hers Events and Wedding Studio - Decoration, ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire. Please accept or decline within 48 hours.', 'booking', 'booking', 322, 0, '2026-06-24 02:50:09'),
+(218, 1, 'New Custom Booking Request', 'Yadanar created a custom or mixed booking for: His & Hers Events and Wedding Studio - Decoration, ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire. Supplier responses are pending.', 'booking', 'booking', 322, 1, '2026-06-24 02:50:09'),
+(219, 62, 'New Booking Request', 'Yadanar is requesting: Shan Yoe Yar Restaurant - Catering. Please accept or decline within 48 hours.', 'booking', 'booking', 324, 0, '2026-06-24 02:55:00'),
+(220, 1, 'New Custom Booking Request', 'Yadanar created a custom or mixed booking for: Shan Yoe Yar Restaurant - Catering. Supplier responses are pending.', 'booking', 'booking', 324, 1, '2026-06-24 02:55:00'),
+(221, 109, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 325, 1, '2026-06-24 03:11:43'),
+(222, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 17,500 MMK for booking BK-20260624-325. Please verify it.', 'payment', 'booking', 325, 1, '2026-06-24 03:11:43'),
+(223, 62, 'Cancellation Request — BK-20260624-324', 'Yadanar has requested cancellation of booking BK-20260624-324. Reason: bjm,jnhbgfghjkl;l,mnbvc. Please review and approve or decline this request.', 'booking', 'booking', 324, 0, '2026-06-24 03:14:24'),
+(224, 1, 'Cancellation Request (Pending Supplier Review) — BK-20260624-324', 'Yadanar has requested cancellation of customize booking BK-20260624-324. The supplier has been asked to review first.', 'booking', 'booking', 324, 0, '2026-06-24 03:14:24'),
+(225, 40, 'New Booking Request', 'Lae Yati Htun is requesting: ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire. Please accept or decline within 48 hours.', 'booking', 'booking', 326, 0, '2026-06-24 03:37:59'),
+(226, 1, 'New Custom Booking Request', 'Lae Yati Htun created a custom or mixed booking for: ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN - Wedding Attire. Supplier responses are pending.', 'booking', 'booking', 326, 0, '2026-06-24 03:37:59'),
+(227, 40, 'Cancellation Request — BK-20260624-326', 'Lae Yati Htun has requested cancellation of booking BK-20260624-326. Reason: အလျင်လိုနေလို့ပါ. Please review and approve or decline this request.', 'booking', 'booking', 326, 0, '2026-06-24 03:39:10'),
+(228, 1, 'Cancellation Request (Pending Supplier Review) — BK-20260624-326', 'Lae Yati Htun has requested cancellation of customize booking BK-20260624-326. The supplier has been asked to review first.', 'booking', 'booking', 326, 0, '2026-06-24 03:39:10'),
+(229, 42, 'New Booking Request', 'Lae Yati Htun is requesting: ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire. Please accept or decline within 48 hours.', 'booking', 'booking', 327, 0, '2026-06-24 04:18:13'),
+(230, 1, 'New Custom Booking Request', 'Lae Yati Htun created a custom or mixed booking for: ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး - Wedding Attire. Supplier responses are pending.', 'booking', 'booking', 327, 1, '2026-06-24 04:18:13'),
+(231, 1, 'New supplier application', 'Yadanar submitted a supplier application.', 'approval', 'supplier', 133, 1, '2026-06-24 04:20:55'),
+(232, 101, 'New Booking Request', 'AmKiio is requesting: Makeup Hazel - Makeup & Hair. Please accept or decline within 48 hours.', 'booking', 'booking', 328, 0, '2026-06-24 04:22:13'),
+(233, 1, 'New Custom Booking Request', 'AmKiio created a custom or mixed booking for: Makeup Hazel - Makeup & Hair. Supplier responses are pending.', 'booking', 'booking', 328, 0, '2026-06-24 04:22:13'),
+(234, 42, 'Cancellation Request — BK-20260624-327', 'Lae Yati Htun has requested cancellation of booking BK-20260624-327. Reason: အချိန်မမှီတော့လို့ပါ. Please review and approve or decline this request.', 'booking', 'booking', 327, 0, '2026-06-24 04:22:52'),
+(235, 1, 'Cancellation Request (Pending Supplier Review) — BK-20260624-327', 'Lae Yati Htun has requested cancellation of customize booking BK-20260624-327. The supplier has been asked to review first.', 'booking', 'booking', 327, 1, '2026-06-24 04:22:52'),
+(236, 101, 'Cancellation Request — BK-20260624-328', 'AmKiio has requested cancellation of booking BK-20260624-328. Reason: gu gu gar gar. Please review and approve or decline this request.', 'booking', 'booking', 328, 0, '2026-06-24 04:23:43'),
+(237, 1, 'Cancellation Request (Pending Supplier Review) — BK-20260624-328', 'AmKiio has requested cancellation of customize booking BK-20260624-328. The supplier has been asked to review first.', 'booking', 'booking', 328, 0, '2026-06-24 04:23:43'),
+(238, 114, 'Application Approved', 'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.', 'approval', 'supplier', 132, 1, '2026-06-24 04:35:08'),
+(239, 1, 'Service publish request', 'Chanel requested publishing for \"Y\'s dress\".', 'approval', 'service', 166, 1, '2026-06-24 04:38:59'),
+(240, 105, 'Publish request sent', 'Your request to publish \"Y\'s dress\" was sent to admin.', 'approval', 'service', 166, 1, '2026-06-24 04:38:59'),
+(241, 1, 'New Supplier Fee Submitted', 'Forever Wedding Studio has submitted a supplier membership fee payment. Please review.', 'payment', 'supplier', 132, 1, '2026-06-24 04:52:36'),
+(242, 57, 'New Booking Request', 'Yadanar is requesting: Season - Cake. Please accept or decline within 48 hours.', 'booking', 'booking', 329, 0, '2026-06-24 04:53:07'),
+(243, 1, 'New Custom Booking Request', 'Yadanar created a custom or mixed booking for: Season - Cake. Supplier responses are pending.', 'booking', 'booking', 329, 0, '2026-06-24 04:53:07'),
+(244, 94, 'New Booking Request', 'Yadanar is requesting: SORA - Makeup & Hair. Please accept or decline within 48 hours.', 'booking', 'booking', 330, 0, '2026-06-25 02:48:29'),
+(245, 1, 'New Custom Booking Request', 'Yadanar created a custom or mixed booking for: SORA - Makeup & Hair. Supplier responses are pending.', 'booking', 'booking', 330, 0, '2026-06-25 02:48:29'),
+(246, 124, 'Application Approved', 'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.', 'approval', 'supplier', 133, 0, '2026-06-25 03:11:12'),
+(247, 124, 'Application Approved', 'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.', 'approval', 'supplier', 133, 0, '2026-06-25 03:13:12'),
+(248, 92, 'New Booking Request', 'Hans is requesting: THIRI Handmade Invatation - Invitation & Gifts. Please accept or decline within 48 hours.', 'booking', 'booking', 331, 0, '2026-06-25 03:27:09'),
+(249, 1, 'New Custom Booking Request', 'Hans created a custom or mixed booking for: THIRI Handmade Invatation - Invitation & Gifts. Supplier responses are pending.', 'booking', 'booking', 331, 1, '2026-06-25 03:27:09'),
+(250, 1, 'New supplier application', 'Shwe Phoo Sar submitted a supplier application.', 'approval', 'supplier', 134, 1, '2026-06-25 04:43:57'),
+(251, 82, 'New Booking Request', 'Hans is requesting: Myanmar Car Rental - Car Rental. Please accept or decline within 48 hours.', 'booking', 'booking', 332, 0, '2026-06-25 04:57:50'),
+(252, 1, 'New Custom Booking Request', 'Hans created a custom or mixed booking for: Myanmar Car Rental - Car Rental. Supplier responses are pending.', 'booking', 'booking', 332, 1, '2026-06-25 04:57:50'),
+(253, 47, 'New Booking Request', 'Tina is requesting: Venus Wedding Studio - Studio, Forever One Stop Wedding Studio - Studio. Please accept or decline within 48 hours.', 'booking', 'booking', 333, 0, '2026-06-25 05:01:14'),
+(254, 45, 'New Booking Request', 'Tina is requesting: Venus Wedding Studio - Studio, Forever One Stop Wedding Studio - Studio. Please accept or decline within 48 hours.', 'booking', 'booking', 333, 0, '2026-06-25 05:01:14'),
+(255, 1, 'New Custom Booking Request', 'Tina created a custom or mixed booking for: Venus Wedding Studio - Studio, Forever One Stop Wedding Studio - Studio. Supplier responses are pending.', 'booking', 'booking', 333, 1, '2026-06-25 05:01:14'),
+(256, 47, 'Cancellation Request — BK-20260625-333', 'Tina has requested cancellation of booking BK-20260625-333. Reason: I don\'t have money. Please review and approve or decline this request.', 'booking', 'booking', 333, 0, '2026-06-25 05:04:43'),
+(257, 45, 'Cancellation Request — BK-20260625-333', 'Tina has requested cancellation of booking BK-20260625-333. Reason: I don\'t have money. Please review and approve or decline this request.', 'booking', 'booking', 333, 0, '2026-06-25 05:04:43'),
+(258, 1, 'Cancellation Request (Pending Supplier Review) — BK-20260625-333', 'Tina has requested cancellation of customize booking BK-20260625-333. The supplier has been asked to review first.', 'booking', 'booking', 333, 0, '2026-06-25 05:04:43'),
+(259, 27, 'Application Approved', 'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.', 'approval', 'supplier', 134, 0, '2026-06-25 05:12:13'),
+(260, 1, 'New Supplier Fee Submitted', 'Shwe Phoo Sar has submitted a supplier membership fee payment. Please review.', 'payment', 'supplier', 134, 1, '2026-06-25 05:13:40'),
+(261, 27, 'Application Approved', 'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.', 'approval', 'supplier', 134, 1, '2026-06-25 05:13:55'),
+(262, 24, 'New Booking Request', 'Saen is requesting: Zephyr Sein Lann So pyay. Please accept or decline within 48 hours.', 'booking', 'booking', 334, 1, '2026-06-25 13:10:35'),
+(263, 1, 'New Custom Booking Request', 'Saen created a custom or mixed booking for: Zephyr Sein Lann So pyay. Supplier responses are pending.', 'booking', 'booking', 334, 1, '2026-06-25 13:10:35'),
+(264, 29, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 334, 0, '2026-06-25 16:17:16'),
+(265, 29, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 334, 0, '2026-06-25 16:56:57'),
+(266, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 225,000 MMK for booking BK-20260625-334. Please verify it.', 'payment', 'booking', 334, 1, '2026-06-25 16:56:57'),
+(267, 1, 'New supplier application', 'Cake submitted a supplier application.', 'approval', 'supplier', 135, 1, '2026-06-26 02:36:13'),
+(268, 133, 'Application Approved', 'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.', 'approval', 'supplier', 135, 0, '2026-06-26 02:53:11'),
+(269, 1, 'New Supplier Fee Submitted', 'Cake has submitted a supplier membership fee payment. Please review.', 'payment', 'supplier', 135, 0, '2026-06-26 02:59:22'),
+(270, 29, 'New Booking Request', 'Saen is requesting: ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN. Please accept or decline within 48 hours.', 'booking', 'booking', 335, 0, '2026-06-26 03:33:41'),
+(271, 1, 'New Custom Booking Request', 'Saen created a custom or mixed booking for: ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN. Supplier responses are pending.', 'booking', 'booking', 335, 0, '2026-06-26 03:33:41'),
+(272, 1, 'Service publish request', 'Shwe Phoo Sar requested publishing for \"Grand\".', 'approval', 'service', 167, 1, '2026-06-26 04:13:08'),
+(273, 27, 'Publish request sent', 'Your request to publish \"Grand\" was sent to admin.', 'approval', 'service', 167, 0, '2026-06-26 04:13:08'),
+(274, 27, 'New Booking Request', 'Avary is requesting: Grand. Please accept or decline within 48 hours.', 'booking', 'booking', 336, 1, '2026-06-26 04:40:29');
+INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `reference_type`, `reference_id`, `is_read`, `created_at`) VALUES
+(275, 1, 'New Custom Booking Request', 'Avary created a custom or mixed booking for: Grand. Supplier responses are pending.', 'booking', 'booking', 336, 0, '2026-06-26 04:40:29'),
+(276, 126, 'Supplier Accepted — Please Pay', 'Shwe Phoo Sar accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 336, 1, '2026-06-26 04:41:05');
 
 -- --------------------------------------------------------
 
@@ -1709,7 +2077,132 @@ INSERT INTO `otps` (`id`, `user_id`, `code`, `type`, `expires_at`, `is_used`, `a
 (20, 37, '392114', 'login', '2026-06-21 06:30:34', 1, 0, 3, '2026-06-21 06:29:56'),
 (21, 37, '982130', 'login', '2026-06-21 07:21:11', 1, 0, 3, '2026-06-21 07:18:31'),
 (22, 37, '777326', 'login', '2026-06-21 07:21:31', 1, 0, 3, '2026-06-21 07:21:11'),
-(23, 102, '250452', 'login', '2026-06-22 07:46:46', 1, 0, 3, '2026-06-22 07:46:01');
+(23, 102, '250452', 'login', '2026-06-22 07:46:46', 1, 0, 3, '2026-06-22 07:46:01'),
+(24, 1, '847431', 'login', '2026-06-23 03:15:28', 1, 0, 3, '2026-06-23 03:15:09'),
+(25, 1, '250047', 'login', '2026-06-23 04:02:22', 1, 0, 3, '2026-06-23 04:01:52'),
+(26, 105, '228256', 'login', '2026-06-23 04:21:18', 1, 1, 3, '2026-06-23 04:20:42'),
+(27, 105, '787794', 'login', '2026-06-23 04:22:14', 1, 0, 3, '2026-06-23 04:21:43'),
+(28, 1, '996073', 'login', '2026-06-23 04:25:37', 1, 0, 3, '2026-06-23 04:25:20'),
+(29, 1, '333373', 'login', '2026-06-23 04:30:29', 1, 0, 3, '2026-06-23 04:30:11'),
+(30, 109, '775224', 'login', '2026-06-23 04:32:21', 1, 0, 3, '2026-06-23 04:30:59'),
+(31, 109, '658745', 'login', '2026-06-23 04:33:02', 1, 0, 3, '2026-06-23 04:32:24'),
+(38, 112, '137426', 'login', '2026-06-23 05:01:18', 1, 0, 3, '2026-06-23 05:00:59'),
+(39, 113, '707168', 'login', '2026-06-23 05:04:47', 1, 0, 3, '2026-06-23 05:04:29'),
+(40, 112, '699290', 'login', '2026-06-23 05:09:23', 1, 0, 3, '2026-06-23 05:09:01'),
+(41, 1, '155361', 'login', '2026-06-23 05:17:25', 1, 0, 3, '2026-06-23 05:16:45'),
+(42, 24, '148692', 'login', '2026-06-23 05:20:47', 1, 0, 3, '2026-06-23 05:20:28'),
+(43, 114, '442018', 'login', '2026-06-23 05:31:17', 1, 0, 3, '2026-06-23 05:30:40'),
+(44, 109, '235390', 'login', '2026-06-23 12:58:55', 1, 0, 3, '2026-06-23 12:58:33'),
+(45, 109, '561529', 'login', '2026-06-23 12:59:01', 1, 0, 3, '2026-06-23 12:58:55'),
+(46, 109, '258056', 'login', '2026-06-23 13:00:16', 1, 0, 3, '2026-06-23 12:59:01'),
+(47, 109, '355460', 'login', '2026-06-23 13:01:27', 1, 0, 3, '2026-06-23 13:00:16'),
+(48, 109, '875943', 'login', '2026-06-23 13:02:38', 1, 1, 3, '2026-06-23 13:01:27'),
+(49, 109, '591850', 'login', '2026-06-23 13:03:59', 1, 1, 3, '2026-06-23 13:02:38'),
+(50, 109, '192915', 'login', '2026-06-23 13:06:16', 1, 1, 3, '2026-06-23 13:03:59'),
+(51, 109, '800927', 'login', '2026-06-23 13:06:40', 1, 0, 3, '2026-06-23 13:06:16'),
+(52, 109, '837330', 'login', '2026-06-23 13:44:40', 1, 1, 3, '2026-06-23 13:43:22'),
+(53, 109, '397304', 'login', '2026-06-23 13:45:18', 1, 0, 3, '2026-06-23 13:44:40'),
+(54, 109, '682294', 'login', '2026-06-23 14:58:11', 1, 0, 3, '2026-06-23 14:57:44'),
+(55, 109, '581777', 'login', '2026-06-23 14:59:57', 1, 0, 3, '2026-06-23 14:59:45'),
+(56, 109, '305689', 'login', '2026-06-23 15:00:34', 1, 0, 3, '2026-06-23 14:59:57'),
+(57, 109, '295942', 'login', '2026-06-23 15:01:30', 1, 0, 3, '2026-06-23 15:00:34'),
+(58, 109, '953371', 'login', '2026-06-23 15:02:56', 1, 0, 3, '2026-06-23 15:01:30'),
+(59, 109, '475175', 'login', '2026-06-23 15:04:10', 1, 1, 3, '2026-06-23 15:02:56'),
+(60, 109, '221155', 'login', '2026-06-23 15:04:34', 1, 0, 3, '2026-06-23 15:04:10'),
+(61, 114, '290089', 'login', '2026-06-23 15:13:45', 1, 0, 3, '2026-06-23 15:13:30'),
+(62, 114, '684160', 'login', '2026-06-23 15:14:50', 1, 1, 3, '2026-06-23 15:13:45'),
+(63, 114, '408376', 'login', '2026-06-23 15:16:11', 1, 0, 3, '2026-06-23 15:14:56'),
+(64, 114, '418548', 'login', '2026-06-24 04:28:35', 1, 0, 3, '2026-06-23 15:16:11'),
+(65, 109, '916289', 'login', '2026-06-23 15:24:48', 1, 0, 3, '2026-06-23 15:24:21'),
+(66, 105, '385949', 'login', '2026-06-24 02:05:39', 1, 0, 3, '2026-06-24 02:04:34'),
+(67, 105, '793589', 'login', '2026-06-24 02:06:18', 1, 0, 3, '2026-06-24 02:05:39'),
+(68, 1, '420231', 'login', '2026-06-24 02:08:30', 1, 0, 3, '2026-06-24 02:07:53'),
+(69, 109, '423319', 'login', '2026-06-24 02:09:06', 1, 0, 3, '2026-06-24 02:08:45'),
+(70, 112, '504137', 'login', '2026-06-24 02:19:38', 1, 0, 3, '2026-06-24 02:19:19'),
+(71, 112, '923177', 'login', '2026-06-24 03:18:23', 1, 0, 3, '2026-06-24 03:18:06'),
+(72, 112, '520321', 'login', '2026-06-24 03:19:54', 1, 1, 3, '2026-06-24 03:19:23'),
+(73, 112, '663134', 'login', '2026-06-24 03:20:13', 1, 0, 3, '2026-06-24 03:19:54'),
+(74, 122, '884214', 'login', '2026-06-24 03:21:47', 1, 0, 3, '2026-06-24 03:21:24'),
+(75, 109, '447116', 'login', '2026-06-24 03:22:08', 1, 0, 3, '2026-06-24 03:21:42'),
+(76, 109, '214932', 'login', '2026-06-24 03:22:17', 1, 0, 3, '2026-06-24 03:22:08'),
+(77, 109, '470026', 'login', '2026-06-24 03:22:37', 1, 0, 3, '2026-06-24 03:22:17'),
+(78, 109, '688266', 'login', '2026-06-24 03:22:59', 1, 0, 3, '2026-06-24 03:22:37'),
+(79, 112, '696627', 'login', '2026-06-24 03:23:06', 1, 0, 3, '2026-06-24 03:22:42'),
+(80, 109, '894815', 'login', '2026-06-24 03:23:23', 1, 0, 3, '2026-06-24 03:22:59'),
+(81, 121, '963995', 'login', '2026-06-24 03:23:33', 1, 0, 3, '2026-06-24 03:23:08'),
+(82, 124, '295751', 'login', '2026-06-24 03:53:32', 1, 0, 3, '2026-06-24 03:53:02'),
+(83, 124, '400410', 'login', '2026-06-24 03:53:55', 1, 0, 3, '2026-06-24 03:53:32'),
+(84, 124, '563573', 'login', '2026-06-24 03:59:50', 1, 0, 3, '2026-06-24 03:57:24'),
+(85, 123, '540966', 'login', '2026-06-24 03:59:17', 1, 0, 3, '2026-06-24 03:58:55'),
+(86, 124, '427995', 'login', '2026-06-24 04:00:16', 1, 0, 3, '2026-06-24 03:59:50'),
+(87, 123, '562280', 'login', '2026-06-24 04:00:58', 1, 0, 3, '2026-06-24 04:00:32'),
+(88, 124, '854787', 'login', '2026-06-24 04:05:44', 1, 0, 3, '2026-06-24 04:04:26'),
+(89, 124, '822258', 'login', '2026-06-24 04:06:15', 1, 0, 3, '2026-06-24 04:05:44'),
+(90, 105, '608772', 'login', '2026-06-24 04:08:35', 1, 0, 3, '2026-06-24 04:06:37'),
+(91, 113, '903774', 'login', '2026-06-24 04:07:51', 1, 0, 3, '2026-06-24 04:07:22'),
+(92, 105, '268283', 'login', '2026-06-24 04:08:58', 1, 0, 3, '2026-06-24 04:08:35'),
+(93, 124, '633989', 'login', '2026-06-24 04:18:07', 1, 1, 3, '2026-06-24 04:17:32'),
+(94, 112, '333932', 'login', '2026-06-24 04:18:37', 1, 0, 3, '2026-06-24 04:18:15'),
+(95, 124, '271904', 'login', '2026-06-24 04:19:18', 1, 0, 3, '2026-06-24 04:18:50'),
+(96, 24, '835396', 'login', '2026-06-24 04:21:16', 1, 0, 3, '2026-06-24 04:20:15'),
+(97, 24, '834918', 'login', '2026-06-24 04:22:06', 1, 0, 3, '2026-06-24 04:21:39'),
+(98, 121, '772357', 'login', '2026-06-24 04:22:09', 1, 0, 3, '2026-06-24 04:21:43'),
+(99, 114, '605657', 'login', '2026-06-24 04:29:31', 1, 0, 3, '2026-06-24 04:28:35'),
+(100, 124, '511605', 'login', '2026-06-24 04:30:00', 1, 0, 3, '2026-06-24 04:29:42'),
+(101, 114, '947640', 'login', '2026-06-24 04:37:03', 1, 0, 3, '2026-06-24 04:35:54'),
+(102, 114, '619113', 'login', '2026-06-24 04:37:51', 1, 1, 3, '2026-06-24 04:37:03'),
+(103, 114, '190225', 'login', '2026-06-24 04:38:54', 1, 0, 3, '2026-06-24 04:38:30'),
+(104, 111, '264256', 'login', '2026-06-24 04:49:35', 1, 0, 3, '2026-06-24 04:49:06'),
+(105, 109, '601373', 'login', '2026-06-24 05:04:17', 1, 0, 3, '2026-06-24 05:03:55'),
+(106, 114, '978086', 'login', '2026-06-24 05:28:25', 1, 0, 3, '2026-06-24 05:26:48'),
+(107, 114, '368560', 'login', '2026-06-24 05:28:47', 1, 0, 3, '2026-06-24 05:28:25'),
+(108, 29, '406516', 'login', '2026-06-24 05:35:45', 1, 0, 3, '2026-06-24 05:34:10'),
+(109, 29, '390961', 'login', '2026-06-24 05:36:04', 1, 0, 3, '2026-06-24 05:35:45'),
+(110, 114, '119691', 'login', '2026-06-24 05:41:59', 1, 0, 3, '2026-06-24 05:41:34'),
+(111, 27, '217326', 'login', '2026-06-24 13:15:33', 1, 0, 3, '2026-06-24 13:15:13'),
+(112, 27, '199093', 'login', '2026-06-24 13:16:05', 1, 0, 3, '2026-06-24 13:15:45'),
+(113, 27, '509939', 'login', '2026-06-24 13:17:20', 1, 0, 3, '2026-06-24 13:16:05'),
+(114, 27, '861668', 'login', '2026-06-24 13:17:46', 1, 0, 3, '2026-06-24 13:17:23'),
+(115, 27, '511599', 'login', '2026-06-24 13:19:09', 1, 0, 3, '2026-06-24 13:18:45'),
+(116, 109, '823810', 'login', '2026-06-25 02:31:48', 1, 0, 3, '2026-06-25 02:31:26'),
+(117, 126, '604062', 'login', '2026-06-25 02:34:09', 1, 0, 3, '2026-06-25 02:33:20'),
+(118, 105, '394627', 'login', '2026-06-25 02:34:49', 1, 0, 3, '2026-06-25 02:34:13'),
+(119, 105, '657889', 'login', '2026-06-25 02:43:17', 1, 1, 3, '2026-06-25 02:41:38'),
+(120, 126, '360166', 'login', '2026-06-25 02:43:54', 1, 0, 3, '2026-06-25 02:43:04'),
+(121, 109, '210748', 'login', '2026-06-25 02:44:51', 1, 0, 3, '2026-06-25 02:43:22'),
+(122, 105, '202141', 'login', '2026-06-25 02:45:11', 1, 0, 3, '2026-06-25 02:44:38'),
+(123, 109, '943089', 'login', '2026-06-25 02:45:06', 1, 0, 3, '2026-06-25 02:44:51'),
+(124, 124, '285738', 'login', '2026-06-25 03:00:30', 1, 0, 3, '2026-06-25 03:00:02'),
+(125, 1, '129803', 'login', '2026-06-25 03:02:39', 1, 0, 3, '2026-06-25 03:02:21'),
+(126, 124, '558652', 'login', '2026-06-25 03:14:30', 1, 0, 3, '2026-06-25 03:14:08'),
+(127, 1, '509509', 'login', '2026-06-25 03:16:41', 1, 0, 3, '2026-06-25 03:16:09'),
+(128, 1, '489639', 'login', '2026-06-25 03:24:46', 1, 0, 3, '2026-06-25 03:24:32'),
+(129, 1, '149706', 'login', '2026-06-25 03:29:12', 1, 0, 3, '2026-06-25 03:28:58'),
+(130, 27, '891267', 'login', '2026-06-25 03:31:23', 1, 0, 3, '2026-06-25 03:30:46'),
+(131, 1, '884254', 'login', '2026-06-25 03:35:49', 1, 0, 3, '2026-06-25 03:33:41'),
+(132, 1, '447404', 'login', '2026-06-25 03:41:12', 1, 0, 3, '2026-06-25 03:35:49'),
+(133, 1, '796857', 'login', '2026-06-25 03:41:29', 1, 0, 3, '2026-06-25 03:41:12'),
+(134, 1, '279462', 'login', '2026-06-25 03:46:32', 1, 0, 3, '2026-06-25 03:46:07'),
+(135, 131, '722308', 'login', '2026-06-25 03:47:58', 1, 0, 3, '2026-06-25 03:47:30'),
+(136, 1, '910950', 'login', '2026-06-25 03:50:37', 1, 0, 3, '2026-06-25 03:50:14'),
+(137, 105, '328514', 'login', '2026-06-25 04:26:43', 1, 0, 3, '2026-06-25 04:26:27'),
+(138, 126, '995935', 'login', '2026-06-25 04:32:32', 1, 0, 3, '2026-06-25 04:30:56'),
+(139, 126, '359600', 'login', '2026-06-26 04:24:19', 1, 0, 3, '2026-06-25 04:32:32'),
+(140, 27, '384388', 'login', '2026-06-25 04:33:54', 1, 0, 3, '2026-06-25 04:33:13'),
+(141, 131, '103854', 'login', '2026-06-25 04:40:38', 1, 0, 3, '2026-06-25 04:40:17'),
+(142, 131, '375129', 'login', '2026-06-25 04:45:23', 1, 0, 3, '2026-06-25 04:44:53'),
+(143, 27, '229567', 'login', '2026-06-25 04:48:46', 1, 0, 3, '2026-06-25 04:48:09'),
+(144, 132, '463839', 'login', '2026-06-25 05:17:45', 0, 0, 3, '2026-06-25 05:16:45'),
+(145, 27, '220026', 'login', '2026-06-25 06:45:46', 1, 0, 3, '2026-06-25 06:45:20'),
+(146, 133, '964780', 'login', '2026-06-26 02:30:22', 1, 1, 3, '2026-06-26 02:29:48'),
+(147, 133, '434523', 'login', '2026-06-26 02:31:22', 1, 0, 3, '2026-06-26 02:31:05'),
+(148, 1, '556725', 'login', '2026-06-26 02:44:21', 1, 0, 3, '2026-06-26 02:44:02'),
+(149, 27, '333972', 'login', '2026-06-26 03:11:15', 1, 0, 3, '2026-06-26 03:10:29'),
+(150, 1, '795263', 'login', '2026-06-26 03:21:20', 1, 0, 3, '2026-06-26 03:21:03'),
+(151, 27, '938329', 'login', '2026-06-26 04:10:47', 1, 0, 3, '2026-06-26 04:09:30'),
+(152, 27, '951586', 'login', '2026-06-26 04:11:06', 1, 0, 3, '2026-06-26 04:10:47'),
+(153, 126, '278803', 'login', '2026-06-26 04:24:37', 1, 0, 3, '2026-06-26 04:24:19'),
+(154, 1, '435152', 'login', '2026-06-26 05:00:51', 1, 0, 3, '2026-06-26 05:00:34');
 
 -- --------------------------------------------------------
 
@@ -1746,8 +2239,10 @@ INSERT INTO `packages` (`package_id`, `name`, `category_id`, `slug`, `type`, `de
 (23, 'Standard Wedding Package', 4, 'standard-wedding-package-3', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 4700000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-18 19:16:38', '2026-06-20 01:31:27'),
 (26, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3880000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-20 01:29:58', '2026-06-20 05:32:03'),
 (29, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2-2', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3953000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-20 05:19:32', '2026-06-20 05:49:06'),
-(30, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2-2-2', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3953000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-20 05:45:31', NULL),
-(31, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2-2-2-draft-1781944337', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3953000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 0, 'draft', 30, 0, '2026-06-20 08:32:17', NULL);
+(30, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2-2-2', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3953000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-20 05:45:31', '2026-06-23 05:14:57'),
+(31, 'Standard Wedding Package', 4, 'standard-wedding-package-3-2-2-2-2', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 3953000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618115529-0e427d26.jpg', 1, 'published', NULL, 0, '2026-06-20 08:32:17', NULL),
+(32, 'Standard Wedding Package', 4, 'standard-wedding-package-2-draft-1782267656', 'curated', 'ရိုးရှင်းလှပပြီး အမှတ်တရပြည့်ဝသော မင်္ဂလာပွဲတစ်ခုကို သင့်တင့်သော Budget ဖြင့် ကျင်းပလိုသော စုံတွဲများအတွက် အထူးသင့်လျော်သော Package ဖြစ်ပါသည်။ မင်္ဂလာပွဲအတွက် လိုအပ်သော အခြေခံဝန်ဆောင်မှုများကို Professional အဖွဲ့မှ စနစ်တကျ စီစဉ်ဆောင်ရွက်ပေးကာ သင့်၏ အရေးကြီးဆုံးနေ့ရက်ကို စိတ်အေးချမ်းသာစွာ ဖြတ်သန်းနိုင်စေရန် အကောင်းဆုံး ပံ့ပိုးပေးပါသည်။', 'Every detail, every moment, perfectly planned', 70000.00, 0, 'http://localhost/GP/public/uploads/admin/packages/20260618152115-7d249ee0.png', 0, 'draft', 20, 0, '2026-06-24 02:20:56', NULL),
+(35, 'Luxury Package', 2, 'luxury-package', 'curated', 'အဆင့်မြင့်၊ သီးသန့်ဆန်ပြီး အထူးခမ်းနားထည်ဝါသော မင်္ဂလာပွဲကို ရည်ရွယ်သော စုံတွဲများအတွက် အကောင်းဆုံး Package ဖြစ်ပါသည်။ အစီအစဉ်ရေးဆွဲခြင်းမှ စ၍ ပွဲပြီးဆုံးသည်အထိ Premium Service များဖြင့် အသေးစိတ် ဂရုစိုက်ဆောင်ရွက်ပေးကာ ဇိမ်ခံဆန်သော အလှဆင်ဒီဇိုင်းများ၊ သီးသန့်ဝန်ဆောင်မှုများနှင့် အကောင်းဆုံးအတွေ့အကြုံများကို ပေးအပ်ပါသည်။ သင့်၏ ချစ်ခြင်းမေတ္တာဇာတ်လမ်းကို အထူးခမ်းနားစွာ ဖော်ဆောင်ပေးမည့် Luxury Wedding Experience ကို ရရှိစေပါသည်။', 'Enjoy your journey with us', 0.00, 10, '', 1, 'published', NULL, 0, '2026-06-26 04:21:34', NULL);
 
 -- --------------------------------------------------------
 
@@ -1801,7 +2296,14 @@ INSERT INTO `package_items` (`id`, `package_id`, `category_id`, `service_id`, `v
 (119, 31, 12, 48, NULL, NULL, NULL, 20, 2100000.00, NULL, NULL, 'guests', 1, NULL),
 (120, 31, 5, 50, NULL, NULL, NULL, 20, 200000.00, 2100000.00, NULL, 'guests', 1, NULL),
 (121, 31, 2, 55, NULL, NULL, NULL, 21, 40000.00, 500000.00, 1, 'guests', 2, NULL),
-(122, 31, 10, 56, NULL, NULL, NULL, 21, 73000.00, 75000.00, 2, 'guests', 1, NULL);
+(122, 31, 10, 56, NULL, NULL, NULL, 21, 73000.00, 75000.00, 2, 'guests', 1, NULL),
+(123, 32, 6, 42, 21, NULL, NULL, 21, 70000.00, NULL, NULL, 'fixed', 1, NULL),
+(140, 35, 11, 148, NULL, NULL, NULL, 113, 55000.00, NULL, NULL, 'fixed', 1, NULL),
+(141, 35, 12, 135, NULL, NULL, NULL, 100, 3000000.00, NULL, NULL, 'guests', 100, NULL),
+(142, 35, 3, 130, NULL, NULL, NULL, 95, 12000.00, NULL, NULL, 'guests', 100, NULL),
+(143, 35, 8, 44, NULL, NULL, NULL, 20, 3200.00, 4000.00, NULL, 'fixed', 1, NULL),
+(144, 35, 10, 159, NULL, NULL, NULL, 124, 150000.00, NULL, NULL, 'guests', 100, NULL),
+(145, 35, 6, 138, NULL, NULL, NULL, 103, 800000.00, NULL, NULL, 'fixed', 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -1817,6 +2319,16 @@ CREATE TABLE `password_resets` (
   `used` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `password_resets`
+--
+
+INSERT INTO `password_resets` (`id`, `user_id`, `token_hash`, `expires_at`, `used`, `created_at`) VALUES
+(1, 120, '42234bfb810017c065469ddbfb9fe0ebaa04e7cf1e1ad7c54a6512ee36a9ab5f', '2026-06-24 10:51:08', 0, '2026-06-24 03:21:08'),
+(2, 123, '954654ad8dda5058069ff225abfb2bdec06428a023df57b8135e8c0b2e4fe40d', '2026-06-24 10:55:41', 0, '2026-06-24 03:25:41'),
+(3, 126, '985d9367d01bdb52c7db5cae2413582508e144b752a7825ed27f760f2f6e7bbc', '2026-06-25 10:00:55', 1, '2026-06-25 02:30:55'),
+(4, 126, 'ee6749efa8ca1f8fadc04473328582e5798d383ccd474b1ca6f5d3f9214d906e', '2026-06-25 10:02:08', 1, '2026-06-25 02:32:08');
 
 -- --------------------------------------------------------
 
@@ -1840,12 +2352,15 @@ CREATE TABLE `payments` (
   `mobile_number` varchar(20) DEFAULT NULL,
   `paid_amount` decimal(10,2) DEFAULT NULL,
   `paid_at` datetime DEFAULT NULL,
-  `status` enum('pending','processing','success','failed') DEFAULT NULL,
+  `status` enum('pending','processing','success','failed') DEFAULT 'pending',
+  `remark` text DEFAULT NULL,
   `transaction_ref` varchar(255) DEFAULT NULL,
   `payment_slip_path` varchar(255) DEFAULT NULL,
   `verified_by` bigint(20) DEFAULT NULL,
   `verified_at` timestamp NULL DEFAULT NULL,
   `verified_note` text DEFAULT NULL,
+  `payout_batch_id` varchar(100) DEFAULT NULL,
+  `payout_requested_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -1853,18 +2368,31 @@ CREATE TABLE `payments` (
 -- Dumping data for table `payments`
 --
 
-INSERT INTO `payments` (`id`, `booking_id`, `supplier_id`, `amount`, `platform_fee`, `supplier_amount`, `escrow_status`, `refund_id`, `type`, `method`, `bank_name`, `account_name`, `mobile_number`, `paid_amount`, `paid_at`, `status`, `transaction_ref`, `payment_slip_path`, `verified_by`, `verified_at`, `verified_note`, `created_at`) VALUES
-(47, 48, NULL, 120000.00, NULL, NULL, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 120000.00, '2026-06-18 11:34:51', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618113451-2fe925b3.jpg', 1, '2026-06-18 09:35:07', '', '2026-06-18 09:34:51'),
-(48, 49, NULL, 294671.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 294671.00, '2026-06-18 13:10:53', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618131053-55929485.jpg', 1, '2026-06-18 11:11:38', '', '2026-06-18 11:10:53'),
-(49, 50, NULL, 15372.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'U Kyaw Kyaw', '09123456789', 15372.00, '2026-06-18 16:37:10', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618163710-6140d9cb.jpg', 1, '2026-06-19 10:52:23', '', '2026-06-18 14:37:10'),
-(50, 52, NULL, 814800.00, NULL, NULL, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'U Zaw Zaw', '09123456789', 814800.00, '2026-06-20 03:34:23', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620033423-1013b3f3.jpg', 1, '2026-06-20 01:36:28', '', '2026-06-20 01:34:23'),
-(51, 53, NULL, 814800.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 814800.00, '2026-06-20 04:31:46', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620043146-a61b0104.jpg', 1, '2026-06-20 02:33:51', '', '2026-06-20 02:31:46'),
-(52, 53, NULL, 800000.00, NULL, NULL, NULL, NULL, 'replacement_delta', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:31:01'),
-(53, 53, NULL, 200000.00, NULL, NULL, 'refunded', NULL, 'replacement_delta', 'AYA Pay', 'AYA Pay', 'U Zaw Moe', '09123456789', 200000.00, '2026-06-20 20:31:17', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620160117-7d2a74be.jpg', 1, '2026-06-20 14:30:35', NULL, '2026-06-20 09:25:14'),
-(55, 310, NULL, 830130.00, NULL, NULL, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 830130.00, '2026-06-21 08:25:29', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260621082529-6d65c0ed.jpg', 1, '2026-06-21 06:25:46', '', '2026-06-21 06:25:29'),
-(56, 311, NULL, 150000.00, NULL, NULL, NULL, NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 150000.00, '2026-06-21 09:23:44', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260621092344-b6af1b2b.jpg', 1, '2026-06-21 07:24:24', '', '2026-06-21 07:23:44'),
-(57, 312, NULL, 30000.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 30000.00, '2026-06-21 09:44:57', 'success', 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260621094457-430edc68.jpg', 1, '2026-06-21 07:45:19', '', '2026-06-21 07:44:58'),
-(59, 315, NULL, 3750000.00, 750000.00, 3000000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 3750000.00, '2026-06-22 10:23:21', 'pending', 'transction-id-222222222', 'public/uploads/payment-slips/2026/06/slip-20260622102321-12bdb90d.jpg', NULL, NULL, NULL, '2026-06-22 08:23:21');
+INSERT INTO `payments` (`id`, `booking_id`, `supplier_id`, `amount`, `platform_fee`, `supplier_amount`, `escrow_status`, `refund_id`, `type`, `method`, `bank_name`, `account_name`, `mobile_number`, `paid_amount`, `paid_at`, `status`, `remark`, `transaction_ref`, `payment_slip_path`, `verified_by`, `verified_at`, `verified_note`, `payout_batch_id`, `payout_requested_at`, `created_at`) VALUES
+(47, 48, NULL, 120000.00, NULL, NULL, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 120000.00, '2026-06-18 11:34:51', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618113451-2fe925b3.jpg', 1, '2026-06-18 09:35:07', '', NULL, NULL, '2026-06-18 09:34:51'),
+(48, 49, NULL, 294671.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 294671.00, '2026-06-18 13:10:53', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618131053-55929485.jpg', 1, '2026-06-18 11:11:38', '', NULL, NULL, '2026-06-18 11:10:53'),
+(49, 50, NULL, 15372.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'U Kyaw Kyaw', '09123456789', 15372.00, '2026-06-18 16:37:10', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260618163710-6140d9cb.jpg', 1, '2026-06-19 10:52:23', '', NULL, NULL, '2026-06-18 14:37:10'),
+(50, 52, NULL, 814800.00, NULL, NULL, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'U Zaw Zaw', '09123456789', 814800.00, '2026-06-20 03:34:23', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620033423-1013b3f3.jpg', 1, '2026-06-20 01:36:28', '', NULL, NULL, '2026-06-20 01:34:23'),
+(51, 53, NULL, 814800.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 814800.00, '2026-06-20 04:31:46', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620043146-a61b0104.jpg', 1, '2026-06-20 02:33:51', '', NULL, NULL, '2026-06-20 02:31:46'),
+(52, 53, NULL, 800000.00, NULL, NULL, NULL, NULL, 'replacement_delta', NULL, NULL, NULL, NULL, NULL, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:31:01'),
+(53, 53, NULL, 200000.00, NULL, NULL, 'refunded', NULL, 'replacement_delta', 'AYA Pay', 'AYA Pay', 'U Zaw Moe', '09123456789', 200000.00, '2026-06-20 20:31:17', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260620160117-7d2a74be.jpg', 1, '2026-06-20 14:30:35', NULL, NULL, NULL, '2026-06-20 09:25:14'),
+(55, 310, NULL, 830130.00, NULL, NULL, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 830130.00, '2026-06-21 08:25:29', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260621082529-6d65c0ed.jpg', 1, '2026-06-21 06:25:46', '', NULL, NULL, '2026-06-21 06:25:29'),
+(56, 311, NULL, 150000.00, NULL, NULL, NULL, NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 150000.00, '2026-06-21 09:23:44', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260621092344-b6af1b2b.jpg', 1, '2026-06-21 07:24:24', '', NULL, NULL, '2026-06-21 07:23:44'),
+(57, 312, NULL, 30000.00, NULL, NULL, 'refunded', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 30000.00, '2026-06-21 09:44:57', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260621094457-430edc68.jpg', 1, '2026-06-21 07:45:19', '', NULL, NULL, '2026-06-21 07:44:58'),
+(59, 315, NULL, 3750000.00, 750000.00, 3000000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Ko Kyaw Zin', '09123456789', 3750000.00, '2026-06-22 10:23:21', 'pending', NULL, 'transction-id-222222222', 'public/uploads/payment-slips/2026/06/slip-20260622102321-12bdb90d.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-22 08:23:21'),
+(60, NULL, 131, 50000.00, 50000.00, 0.00, NULL, NULL, 'supplier_fee', 'KBZ Pay', 'KBZ Pay', 'Hnin Yu Yu Hlaing Tun', '09252208158', 52000.00, '2026-06-23 11:39:00', 'success', 'for member fee', 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260623114001-11b5fa22.jpg', 1, '2026-06-24 02:10:08', NULL, NULL, NULL, '2026-06-23 05:10:01'),
+(61, 325, NULL, 17500.00, 3500.00, 14000.00, 'held', NULL, 'deposit', 'KBZ Pay', 'KBZ Pay', 'Yadanar', '09455658079', 17500.00, '2026-06-24 09:41:43', 'pending', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260624094143-54015a3a.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-24 03:11:43'),
+(62, NULL, 132, 50000.00, 50000.00, 0.00, NULL, NULL, 'supplier_fee', 'Wave Money', 'Wave Money', 'Dana Htun', '09750625628', 60000.00, '2026-06-24 11:21:00', 'success', 'Member Fees', 'TXN-123456', NULL, 1, '2026-06-24 05:38:41', NULL, NULL, NULL, '2026-06-24 04:52:36'),
+(63, NULL, 134, 50000.00, 50000.00, 0.00, NULL, NULL, 'supplier_fee', 'Wave Money', 'Wave Money', 'Dana Htun', '09750625628', 50000.00, '2026-06-25 11:43:00', 'success', 'Member Fees', 'TXN-123456', 'public/uploads/payment-slips/2026/06/slip-20260625114340-63d1cc21.png', 1, '2026-06-25 05:14:08', NULL, NULL, NULL, '2026-06-25 05:13:40'),
+(64, 303, 134, 150000.00, 7500.00, 142500.00, NULL, NULL, 'full', 'AYA Pay', NULL, NULL, NULL, NULL, '2026-06-10 11:00:00', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-10 04:00:00'),
+(65, 304, 134, 150000.00, 7500.00, 142500.00, NULL, NULL, 'deposit', 'KBZ Pay', NULL, NULL, NULL, NULL, '2026-06-15 15:00:00', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-15 08:00:00'),
+(66, 305, 134, 150000.00, 7500.00, 142500.00, NULL, NULL, 'full', 'Wave Money', NULL, NULL, NULL, NULL, '2026-06-20 10:00:00', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-20 03:00:00'),
+(67, 310, 134, 500000.00, 25000.00, 475000.00, NULL, NULL, 'deposit', 'AYA Pay', NULL, NULL, NULL, NULL, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-22 05:00:00'),
+(68, 303, 134, 142500.00, NULL, NULL, NULL, NULL, 'payout', 'Bank Transfer', 'AYA Bank', 'Shwe Phoo Sar', NULL, NULL, '2026-06-14 10:00:00', 'success', NULL, 'PO-20260612-AUTO', NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-12 02:30:00'),
+(69, 304, 134, 142500.00, NULL, NULL, NULL, NULL, 'payout', 'Bank Transfer', 'KBZ Bank', 'Shwe Phoo Sar', NULL, NULL, NULL, 'success', NULL, 'PO-20260617-AUTO', NULL, 1, '2026-06-25 14:51:34', 'Transfer via 1234', NULL, NULL, '2026-06-17 02:30:00'),
+(70, 305, 134, 142500.00, NULL, NULL, NULL, NULL, 'payout', 'Bank Transfer', NULL, NULL, NULL, NULL, NULL, 'pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-22 02:30:00'),
+(71, 334, NULL, 225000.00, 45000.00, 180000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'ko kyaw zin', '09123456789', 225000.00, '2026-06-25 23:26:57', 'pending', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260625232657-cad931b9.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-25 16:56:57'),
+(72, NULL, 135, 50000.00, 50000.00, 0.00, NULL, NULL, 'supplier_fee', 'Wave Money', 'Wave Money', 'Kaung Min Khant', '09781344861', 50000.00, '2026-06-26 09:28:00', 'success', 'payment', '123456', NULL, 1, '2026-06-26 03:24:53', NULL, NULL, NULL, '2026-06-26 02:59:22');
 
 -- --------------------------------------------------------
 
@@ -1876,6 +2404,25 @@ CREATE TABLE `permissions` (
   `id` bigint(20) NOT NULL,
   `name` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `platform_settings`
+--
+
+CREATE TABLE `platform_settings` (
+  `setting_key` varchar(100) NOT NULL,
+  `setting_value` varchar(255) NOT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `platform_settings`
+--
+
+INSERT INTO `platform_settings` (`setting_key`, `setting_value`, `updated_at`) VALUES
+('platform_fee_percent', '5.00', '2026-06-22 12:32:08');
 
 -- --------------------------------------------------------
 
@@ -2181,18 +2728,18 @@ CREATE TABLE `services` (
 
 INSERT INTO `services` (`id`, `supplier_id`, `category_id`, `name`, `description`, `price`, `price_min`, `price_max`, `thumbnail_url`, `is_active`, `booking_type`, `duration_minutes`, `pricing_unit`, `buffer_minutes`, `max_concurrent`, `max_concurrent_package`, `max_concurrent_customize`, `created_at`, `min_lead_days`, `default_start_time`, `default_end_time`) VALUES
 (42, 21, 6, 'Governor\'s Residence', 'ရန်ကုန်မြိုမှာ ကိုလိုနီခေတ်က တည်ရှိခဲ့တဲ့ အဆောက်အအုံများစွာအနက် Governor’s Residence ကို ၁၉၂၀ ပြည့်လွန် နှစ်များက တန်ဖိုးကြီး မြန်မာ့ ကျွန်းသစ်၊ မြန်မာ့ လက်မှုပညာတွေနဲ့ ပေါင်းစပ် တည်ဆောက်ခဲ့တဲ့ အဆောက်အအုံတစ်ခုဖြစ်သည်။\n\nသံရုံးများတည်ရှိရာ ရန်ကုန်မြိုရဲ့ အေးဆေးတိတ်ဆိတ်တဲ့ နေရာ၊ သမိုင်းဝင်အဆောက်အအုံများရဲ့ အလှတရားနှင့် ခေတ်မှီဇိမ်ခံပစ္စည်းများနဲ့ ပြန်လည်ပေါင်းစပ် တည်ဆောက်ထားတာ ဖြစ်ပါတယ်။ ကျယ်ဝန်းတဲ့ အိပ်ခန်းဆောင်များတွင် သစ်သား၊ ပိုးသားချည်မျှင်များနဲ့ အလှဆင်ထားတဲ့အပြင် စိမ်းလန်းစိုပြေပြီး ဝေဆာပွင့်လန်းနေတဲ့ ဥယျာဉ်ရဲ့ အလှကိုလည်း မြင်တွေ့ရဦးမှာ ဖြစ်ပါတယ်။ ဒါ့ပြင် ရေကူးကန်ကိုလည်း စပိန်မှ တင်သွင်းထားတဲ့ ကြွေပြားများနဲ့ ပြန်လည် အလှဆင် တည်ဆောက် ထားပါသေးတယ်။\n\nGovernor’s Residence ရဲ့ The Monkey Bar၊ The State Room နှင့် The Peacock Portico တိုမှာလည်း ခမ်းနားတဲ့ ညစာစားပွဲများကို တည်ခင်းရောင်းချပေးတာဖြစ်ပြီး Outlets တစ်ခုချင်းစီတိုင်းမှ မတူကွဲပြားတဲ့ ပရိဘောဂများရဲ့ အလှတွေကလည်း လာရောက်တဲ့ ဧည့်သည်တိုင်းအတွက် အမှတ်တရ ဖြစ်စေမှာပဲ ဖြစ်ပါတယ်။\nကိုလိုခေတ် မြန်မာ့ လက်မှုပညာရဲ့ ခန့်ညားထည်ဝါမှုအပြင် ရှေးခေတ် အငွေ့အသက်တွေကို အပြည့်အဝ ခံစားနိုင်ဖို Governor’s Residence သို ဖိတ်ခေါ်လိုက်ပါတယ်။', 70000.00, 70000.00, 600000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260618102917-41aebacc.jpg', 1, 'slot', 720, 'per_session', 0, 300, 0, 300, '2026-06-18 08:29:17', 90, NULL, NULL),
-(43, 21, 12, 'Aphrodite Wedding Planning &amp; Decoration', 'မိမိတိုရဲ့ အလှပဆုံး မင်္ဂလာအချိန်လေးကို လစ်ဟာမှုတွေ၊ လိုအပ်ချက်တွေမရှိဘဲ အချိုမြိန်ဆုံးအခိုက်အတန့်တွေကိုသာ အမှတ်တရဖြစ် နေစေဖို ကျွမ်းကျင်တဲ့ Wedding Professional တွေနဲ့အတူ မိမိတိုရဲ့ မင်္ဂလာနေ့ရက်လေးကို အပြည့်အစုံဆုံး ပုံဖော်လိုက်ပါ။\nမိမိတိုရဲ့ တစ်သက်မှတစ်ခါ ရင်အခုန်ရဆုံးနဲ့ အလှပဆုံး နေ့ရက် လေးအတွက် အကောင်းဆုံး Service အကောင်းဆုံး Quality တွေအပြင် ကျွမ်းကျင် Professional Wedding Planner တွေနဲ့ မိမိတိုရဲ့ ပွဲ ကို စိတ်အေးရချင်တယ်ဆိုရင်တော့ Aphrodite Wedding Planning and Decoration ကို အခုပဲရွေးချယ်လိုက်ပါ။', 3400000.00, 3400000.00, 3400000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260618104902-604f0759.jpg', 1, 'fullday', 60, 'per_session', 0, 1, 0, 1, '2026-06-18 08:49:02', 3, NULL, NULL),
-(44, 20, 8, 'Elegance Star', 'မင်္ဂလာပါရှင့် 𝗘𝗹𝗲𝗴𝗮𝗻𝘁 𝗦𝘁𝗮𝗿 𝗪𝗲𝗱𝗱𝗶𝗻𝗴 𝗦𝘁𝗮𝘁𝗶𝗼𝗻𝗲𝗿𝘆 𝗦𝗲𝗿𝘃𝗶𝗰𝗲 မှ ကြိုဆိုပါတယ်။\nMarriage Certificates ၊လက်ထပ်စာချုပ် ၊\nInvitation cards ဖိတ်စာ ၊\nWedding Gift Box ငွေသား ၊  လက်ဖွဲ့ပုံး ၊\nမင်္ဂလာပြန်ကမ်း ၊\nWedding Guest Book ၊\nVows Books ၊\nSigning pens၊ \nCanvas Fingerprint Tree ၊(Customization avaliable) ၊\nAcrylic Photobooth &amp; Welcomeboard Services များကို Customized အပ်နှံနိုင်ပါတယ်။ \nOpening hours 9:00 AM - 5:30 PM', 3200.00, 3200.00, 4000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618112551-21cc8a57.jpg', 1, 'slot', 720, 'per_session', 0, 2, 0, 1, '2026-06-18 09:25:51', 4, NULL, NULL),
-(45, 20, 2, 'Dear Brides', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel &amp; Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 800000.00, 800000.00, 1200000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618120107-9e4d4636.jpg', 1, 'fullday', NULL, 'per_session', 0, 1, 0, 1, '2026-06-18 10:01:07', 90, NULL, NULL),
-(46, 20, 12, 'Aphrodite Wedding Planning &amp; Decoration', 'မိမိတိုရဲ့ အလှပဆုံး မင်္ဂလာအချိန်လေးကို လစ်ဟာမှုတွေ၊ လိုအပ်ချက်တွေမရှိဘဲ အချိုမြိန်ဆုံးအခိုက်အတန့်တွေကိုသာ အမှတ်တရဖြစ် နေစေဖို ကျွမ်းကျင်တဲ့ Wedding Professional တွေနဲ့အတူ မိမိတိုရဲ့ မင်္ဂလာနေ့ရက်လေးကို အပြည့်အစုံဆုံး ပုံဖော်လိုက်ပါ။\nမိမိတိုရဲ့ တစ်သက်မှတစ်ခါ ရင်အခုန်ရဆုံးနဲ့ အလှပဆုံး နေ့ရက် လေးအတွက် အကောင်းဆုံး Service အကောင်းဆုံး Quality တွေအပြင် ကျွမ်းကျင် Professional Wedding Planner တွေနဲ့ မိမိတိုရဲ့ ပွဲ ကို စိတ်အေးရချင်တယ်ဆိုရင်တော့ Aphrodite Wedding Planning and Decoration ကို အခုပဲရွေးချယ်လိုက်ပါ။', 750000.00, 750000.00, 1000000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618123229-3fd3faea.jpg', 0, 'fullday', 60, 'per_session', 0, 1, 0, 1, '2026-06-18 10:32:29', 3, NULL, NULL),
+(43, 21, 12, 'Aphrodite Wedding Planning & Decoration', 'မိမိတိုရဲ့ အလှပဆုံး မင်္ဂလာအချိန်လေးကို လစ်ဟာမှုတွေ၊ လိုအပ်ချက်တွေမရှိဘဲ အချိုမြိန်ဆုံးအခိုက်အတန့်တွေကိုသာ အမှတ်တရဖြစ် နေစေဖို ကျွမ်းကျင်တဲ့ Wedding Professional တွေနဲ့အတူ မိမိတိုရဲ့ မင်္ဂလာနေ့ရက်လေးကို အပြည့်အစုံဆုံး ပုံဖော်လိုက်ပါ။\nမိမိတိုရဲ့ တစ်သက်မှတစ်ခါ ရင်အခုန်ရဆုံးနဲ့ အလှပဆုံး နေ့ရက် လေးအတွက် အကောင်းဆုံး Service အကောင်းဆုံး Quality တွေအပြင် ကျွမ်းကျင် Professional Wedding Planner တွေနဲ့ မိမိတိုရဲ့ ပွဲ ကို စိတ်အေးရချင်တယ်ဆိုရင်တော့ Aphrodite Wedding Planning and Decoration ကို အခုပဲရွေးချယ်လိုက်ပါ။', 3400000.00, 3400000.00, 3400000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260618104902-604f0759.jpg', 1, 'fullday', 60, 'per_session', 0, 1, 0, 1, '2026-06-18 08:49:02', 3, NULL, NULL),
+(44, 20, 8, 'Elegance Star', 'မင်္ဂလာပါရှင့် 𝗘𝗹𝗲𝗴𝗮𝗻𝘁 𝗦𝘁𝗮𝗿 𝗪𝗲𝗱𝗱𝗶𝗻𝗴 𝗦𝘁𝗮𝘁𝗶𝗼𝗻𝗲𝗿𝘆 𝗦𝗲𝗿𝘃𝗶𝗰𝗲 မှ ကြိုဆိုပါတယ်။\nMarriage Certificates ၊လက်ထပ်စာချုပ် ၊\nInvitation cards ဖိတ်စာ ၊\nWedding Gift Box ငွေသား ၊  လက်ဖွဲ့ပုံး ၊\nမင်္ဂလာပြန်ကမ်း ၊\nWedding Guest Book ၊\nVows Books ၊\nSigning pens၊ \nCanvas Fingerprint Tree ၊(Customization avaliable) ၊\nAcrylic Photobooth & Welcomeboard Services များကို Customized အပ်နှံနိုင်ပါတယ်။ \nOpening hours 9:00 AM - 5:30 PM', 3200.00, 3200.00, 4000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618112551-21cc8a57.jpg', 1, 'slot', 720, 'per_session', 0, 2, 0, 1, '2026-06-18 09:25:51', 4, NULL, NULL),
+(45, 20, 2, 'Dear Brides', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel & Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 800000.00, 800000.00, 1200000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618120107-9e4d4636.jpg', 1, 'fullday', NULL, 'per_session', 0, 1, 0, 1, '2026-06-18 10:01:07', 90, NULL, NULL),
+(46, 20, 12, 'Aphrodite Wedding Planning & Decoration', 'မိမိတိုရဲ့ အလှပဆုံး မင်္ဂလာအချိန်လေးကို လစ်ဟာမှုတွေ၊ လိုအပ်ချက်တွေမရှိဘဲ အချိုမြိန်ဆုံးအခိုက်အတန့်တွေကိုသာ အမှတ်တရဖြစ် နေစေဖို ကျွမ်းကျင်တဲ့ Wedding Professional တွေနဲ့အတူ မိမိတိုရဲ့ မင်္ဂလာနေ့ရက်လေးကို အပြည့်အစုံဆုံး ပုံဖော်လိုက်ပါ။\nမိမိတိုရဲ့ တစ်သက်မှတစ်ခါ ရင်အခုန်ရဆုံးနဲ့ အလှပဆုံး နေ့ရက် လေးအတွက် အကောင်းဆုံး Service အကောင်းဆုံး Quality တွေအပြင် ကျွမ်းကျင် Professional Wedding Planner တွေနဲ့ မိမိတိုရဲ့ ပွဲ ကို စိတ်အေးရချင်တယ်ဆိုရင်တော့ Aphrodite Wedding Planning and Decoration ကို အခုပဲရွေးချယ်လိုက်ပါ။', 750000.00, 750000.00, 1000000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618123229-3fd3faea.jpg', 0, 'fullday', 60, 'per_session', 0, 1, 0, 1, '2026-06-18 10:32:29', 3, NULL, NULL),
 (47, 20, 2, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'ကျွန်မတို့ဆီမှာ မင်္ဂလာမောင်နှံအတွက် ထိုင်မသိမ်း၊ ဆွမ်းကပ်/လက်မှတ်ထိုးဝတ်စုံ၊ တိုက်ပုံ၊ တောင်ရှည် တို့အပြင် မိဘဝတ်စုံများကိုပါ ထိုင်းပိုးချိတ်၊ စီးကရက်ပိုးချိတ်၊ ဘရိုကိတ်ပိုးချိတ် စသည့် ပိုးထည်အမျိုးမျိုးဖြင့် စုံလင်စွာ ရရှိနိုင်ပါတယ်။ ထို့အပြင် အရံ၊ ပန်းကြဲ နှင့် ဗန်းကိုင်များအတွက်လည်း အသင့်ငှားရမ်းနိုင်သလို စိတ်ကြိုက်ဒီဇိုင်းများလည်း ဖန်တီးချုပ်လုပ်ပေးပါတယ်ရှင်။\n\nအသစ်ချုပ်အငှားနှင့် စိတ်ကြိုက်ဖန်တီးမှုဝတ်စုံများကို အငှားရော အရောင်းပါ ရရှိနိုင်ပြီး အသစ်ချုပ်အငှား (Custom-made Rental) ဝန်ဆောင်မှုလည်း ရှိပါတယ်ရှင်။ သတို့သမီးရဲ့ အသားအရောင်၊ ခန္ဓာကိုယ်အချိုးအစားတို့နှင့် လိုက်ဖက်မည့် အရောင်နှင့် စီးကွင့်ဒီဇိုင်းများကို သီးသန့်ဆွဲပေးတာကြောင့် ပွဲနေ့မှာ အထူးခြားဆုံး ဖြစ်နေစေမှာပါ။ (အသစ်ချုပ်အငှားအတွက် ၃ လမှ ၆ လကြိုတင် အပ်နှံပေးရန် လိုအပ်ပါတယ်ရှင်)\n\n💰 ဈေးနှုန်းနှင့် အထူးဝန်ဆောင်မှုများဈေးနှုန်း: ထိုင်မသိမ်း (မောင်နှံစုံ) အငှားကို ၃ သိန်းခွဲမှ သိန်း ၂၀ ဝန်းကျင် အထိလည်းကောင်း၊ ဆွမ်းကပ်ဝတ်စုံ (မောင်နှံစုံ) ကို ၂ သိန်းဝန်းကျင် မှ စတင်၍လည်းကောင်း စိတ်ကြိုက် ရွေးချယ်နိုင်ပါတယ်။\n\nFitting: အငှားထည်များကိုလည်း သတို့သား/သတို့သမီး ကိုယ်တိုင်းယူကာ Fitting ကွက်တိ ဖြစ်အောင် ပြင်ဆင်ပေးပြီး၊ ပွဲမတိုင်ခင် ၄ ရက်အလိုမှာ Final Fitting ပြန်လည် စစ်ဆေးပေးပါတယ်။\n\nPackage ဝန်ဆောင်မှု: Package ယူထားသော ရန်ကုန်နှင့် မန္တလေးမြို့တွင်း ပွဲများအတွက် Charges ပေးစရာမလိုဘဲ လူကိုယ်တိုင် လိုက်လံဝတ်ဆင်ပေးပါတယ်ရှင်။နယ်ဝေးဝန်ဆောင်မှု: နယ်မှ ငှားရမ်းသူများအတွက် နယ်ကြေးထပ်ပေးစရာမလိုဘဲ ၄ ရက် အချိန်ပေးထားပါတယ်ရှင်။', 750000.00, 750000.00, 1000000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618152953-60c74c06.jpg', 1, 'slot', 480, 'per_session', 0, 3, 0, 0, '2026-06-18 13:29:53', 7, NULL, NULL),
-(48, 20, 12, 'H&amp;H Floral and Wedding Service', 'H&amp;H floral မှာဈေးနှုန်း ချိုချိုသာသာလေးတွေနဲ့\nအလှဆုံးတွေပြင်ဆင်ပေးမှာပါနော်\nလိုချင်တဲ့ရက်လေးရဖို booking လေးတွေ\nကြိုယူထားဖိုလိုပါမယ်ရှင်', 1800000.00, 1800000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618210245-d5b57c03.jpg', 1, 'slot', 240, 'per_session', 0, 1, 0, 1, '2026-06-18 19:02:22', 3, NULL, NULL),
-(49, 20, 6, 'Zephyr Sein Lann So pyay', 'Zephyr (Sein Lann So Pyay Garden)ကရန်ကုန်မြို့အတွင်းတည်ရှိတဲ့အေးချမ်းပြီးသဘာဝပတ်ဝန်းကျင်နဲ့ကိုက်ညီတဲ့ fine dining &amp; event venue တစ်ခုဖြစ်ပါတယ်။Sein Lann So Pyay Gardenအနားမှာရှိလို့ မိသားစုစားသောက်မှု၊ မင်္ဂလာပွဲ၊ အခမ်းအနားများအတွက်လူကြိုက်များပါတယ်။သဘာဝအလှနဲ့ လှပနဲ့background ကြောင့်pre-weeding/ event-photo ရိုက်ရအဆင်ပြေစေပါတယ်။outdoor garden weeding နဲ့ အေးချမ်းတဲ့weeding လုပ်ချင်သူများ Decoration+ food+ Serviceကိုတစ်နေရာထဲမှာpackageလိုချင်သူများအတွက်အဆင်ပြေပြီး ရွေးချယ်ဖို့သင့်တော်တဲ့နေရာတစ်ခုဖြစ်ပါတယ်။', 900000.00, 900000.00, 910000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 1, 'slot', 480, 'per_session', 0, 1, 0, 1, '2026-06-18 19:26:54', 8, NULL, NULL),
-(50, 20, 5, 'H &amp; H Wedding Studio', 'Capturing your the most meaningful moments with elegance &amp; style             H&amp;H Photo Studio ကို ယုံကြည်ပြီးအရေးကြီးတဲ့ အမှတ်တရနေ့ရက်တွေကို အပ်နှံပေးတဲ့ client တိုင်းကို အထူးကျေးဇူးတင်ရှိပါတယ် 💛ရိုက်ကူးမှုတိုင်းမှာcomfortable experience, clear communication, pose guidance နဲ့quality result ကို အရေးထားပြီး detail ကျကျ ဂရုစိုက်ဆောင်ရွက်ပေးနေပါတယ် ✨', 200000.00, 200000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260619040841-541df810.jpg', 1, 'slot', 480, 'per_session', 0, 3, 0, 3, '2026-06-19 02:08:41', 7, NULL, NULL),
+(48, 20, 12, 'H&H Floral and Wedding Service', 'H&H floral မှာဈေးနှုန်း ချိုချိုသာသာလေးတွေနဲ့\nအလှဆုံးတွေပြင်ဆင်ပေးမှာပါနော်\nလိုချင်တဲ့ရက်လေးရဖို booking လေးတွေ\nကြိုယူထားဖိုလိုပါမယ်ရှင်', 1800000.00, 1800000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618210245-d5b57c03.jpg', 1, 'slot', 240, 'per_session', 0, 1, 0, 1, '2026-06-18 19:02:22', 3, NULL, NULL),
+(49, 20, 6, 'Zephyr Sein Lann So pyay', 'Zephyr (Sein Lann So Pyay Garden)ကရန်ကုန်မြို့အတွင်းတည်ရှိတဲ့အေးချမ်းပြီးသဘာဝပတ်ဝန်းကျင်နဲ့ကိုက်ညီတဲ့ fine dining & event venue တစ်ခုဖြစ်ပါတယ်။Sein Lann So Pyay Gardenအနားမှာရှိလို့ မိသားစုစားသောက်မှု၊ မင်္ဂလာပွဲ၊ အခမ်းအနားများအတွက်လူကြိုက်များပါတယ်။သဘာဝအလှနဲ့ လှပနဲ့background ကြောင့်pre-weeding/ event-photo ရိုက်ရအဆင်ပြေစေပါတယ်။outdoor garden weeding နဲ့ အေးချမ်းတဲ့weeding လုပ်ချင်သူများ Decoration+ food+ Serviceကိုတစ်နေရာထဲမှာpackageလိုချင်သူများအတွက်အဆင်ပြေပြီး ရွေးချယ်ဖို့သင့်တော်တဲ့နေရာတစ်ခုဖြစ်ပါတယ်။', 900000.00, 900000.00, 910000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 1, 'slot', 480, 'per_session', 0, 1, 0, 1, '2026-06-18 19:26:54', 8, NULL, NULL),
+(50, 20, 5, 'H & H Wedding Studio', 'Capturing your the most meaningful moments with elegance & style             H&H Photo Studio ကို ယုံကြည်ပြီးအရေးကြီးတဲ့ အမှတ်တရနေ့ရက်တွေကို အပ်နှံပေးတဲ့ client တိုင်းကို အထူးကျေးဇူးတင်ရှိပါတယ် 💛ရိုက်ကူးမှုတိုင်းမှာcomfortable experience, clear communication, pose guidance နဲ့quality result ကို အရေးထားပြီး detail ကျကျ ဂရုစိုက်ဆောင်ရွက်ပေးနေပါတယ် ✨', 200000.00, 200000.00, 2100000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260619040841-541df810.jpg', 1, 'slot', 480, 'per_session', 0, 3, 0, 3, '2026-06-19 02:08:41', 7, NULL, NULL),
 (54, 20, 6, 'Western Park Ruby – People’s Park', 'မြို့အလယ်မှာရှိပေမဲ့ပန်းခြံဖြစ်လို့ ရှုပ်ထွေးမှုမရှိ၊မြက်ခင်းပြင်ကျယ် သဘာဝစိမ်းလန်းမှူများ၊နေရာကျယ်ဝန်းလို့ weeding, event venue အဖြစ်လူကြိုက်များပြီးဧည့်သည်အရေအတွက်များတဲ့eventများတွက်အဆင်   ပြေအောင်ဆောင်ရွက်ပေးနေပြီဖြစ်ပါတယ်။', 500000.00, 500000.00, 500000.00, 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260619051941-7b6ccd02.jpg', 0, 'slot', 480, 'per_session', 0, 1, 0, 0, '2026-06-19 03:18:58', 3, NULL, NULL),
-(55, 21, 2, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel &amp; Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 40000.00, 40000.00, 500000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260619054309-45b53c74.jpg', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-19 03:42:00', 3, NULL, NULL),
-(56, 21, 10, 'Lin Lin', 'မိတ်ကပ်ပညာကို စနစ်တကျ သင်ယူချင်သူများအတွက် Lin Lin Makeup Academy ရှိသလို၊ ထူးခြားဆန်းသစ်တဲ့ Look တွေကို ပိုင်ဆိုင်ချင်တဲ့ ပွဲတက်သတို့သမီးများအတွက်လည်း Lin Lin က အနီးကပ် ရှိနေမှာပါ။ Color Theory နှင့် Face Anatomy အခြေခံကာ လူတစ်ဦးချင်းစီနဲ့ အလိုက်ဖက်ဆုံး အလှတရားတွေကို ဖန်တီးပေးနေသည့် သူမ၏ လက်ရာများကို Lin Lin Facebook Page တွင် လေ့လာနိုင်ပါသည်။', 73000.00, 73000.00, 75000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620065739-732ff480.jpg', 1, 'slot', 180, 'per_session', 0, 2, 0, 0, '2026-06-20 04:57:39', 0, '04:00:00', '17:00:00'),
-(57, 21, 2, 'Dear Brides Wedding Dress Studio', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel &amp; Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 750000.00, 750000.00, 1000000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620090310-439efa63.jpg', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-20 07:02:52', 7, NULL, NULL),
+(55, 21, 2, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel & Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 40000.00, 40000.00, 500000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260619054309-45b53c74.jpg', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-19 03:42:00', 3, NULL, NULL),
+(56, 21, 10, 'Lin Lin', 'မိတ်ကပ်ပညာကို စနစ်တကျ သင်ယူချင်သူများအတွက် Lin Lin Makeup Academy ရှိသလို၊ ထူးခြားဆန်းသစ်တဲ့ Look တွေကို ပိုင်ဆိုင်ချင်တဲ့ ပွဲတက်သတို့သမီးများအတွက်လည်း Lin Lin က အနီးကပ် ရှိနေမှာပါ။ Color Theory နှင့် Face Anatomy အခြေခံကာ လူတစ်ဦးချင်းစီနဲ့ အလိုက်ဖက်ဆုံး အလှတရားတွေကို ဖန်တီးပေးနေသည့် သူမ၏ လက်ရာများကို Lin Lin Facebook Page တွင် လေ့လာနိုင်ပါသည်။', 73000.00, 73000.00, 75000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620065739-732ff480.jpg', 1, 'slot', 180, 'per_session', 0, 2, 0, 0, '2026-06-20 04:57:39', 3, '04:00:00', '17:00:00'),
+(57, 21, 2, 'Dear Brides Wedding Dress Studio', 'ဝတ်စုံနှင့် ဝန်ဆောင်မှုများစုံလင်သော ဝတ်စုံဒီဇိုင်းများ: Wedding Gowns, Mermaid Dresses, Evening Dresses နဲ့ Pre-Wedding အတွက် ဝတ်စုံလှလှလေးများကို စိတ်ကြိုက်ငှားရမ်းနိုင်ပါတယ်။\n\nနောက်ဆုံးပေါ် ဒီဇိုင်းသစ်များ: နိုင်ငံခြား Wedding Dress Industry ရှိ စက်ရုံကြီးများမှ နောက်ဆုံးပေါ် Dress များကို မိမိကိုယ်တိုင်း၊ မိမိစိတ်ကြိုက် ရွေးချယ်ပြီး အငှား/အဝယ် မှာယူနိုင်ပါတယ်။\n\nအမှတ်တရ သိမ်းဆည်းလိုသူများအတွက်: အသစ်စက်စက် Dress များကို Studio မှာ ကိုယ်တိုင်ဝတ်ကြည့်ပြီး ဝယ်ယူနိုင်သလို၊ Bridal Veil (သတို့သမီးခေါင်းခြုံပုဝါ) များကိုလည်း မိမိစိတ်ကြိုက် Customized မှာယူနိုင်ပါတယ်ရှင်။\n\n🌸 မြန်မာ့ရိုးရာ ဝတ်စုံဝန်ဆောင်မှုခေတ်မီဝတ်စုံများသာမက ရိုးရာထိုင်မသိမ်း၊ တောင်ရှည်ဝတ်စုံများကိုလည်း အငှား/အရောင်းအပြင် အသစ်ချုပ်အငှား ဝန်ဆောင်မှုပါ ရရှိနိုင်ပါတယ်။ (အသားအရောင်နှင့် ကိုယ်လုံးအချိုးအစားပေါ်မူတည်၍ ဒီဇိုင်းသီးသန့် ဆွဲပေးပါတယ်ရှင်)\n\n💐 ပြီးပြည့်စုံသော Wedding Packagesဝတ်စုံများအပြင် Floral Decoration၊ လက်ကိုင်ပန်း၊ Hotel & Makeup Booking နှင့် မင်္ဂလာကားအလှဆင်ခြင်းအထိ အစုံအလင် ဝန်ဆောင်မှုပေးနေတာကြောင့် Dear Brides ကို ယုံကြည်စွာ လှမ်းလာခဲ့ဖို့ ဖိတ်ခေါ်လိုက်ပါတယ်ရှင်။', 750000.00, 750000.00, 1000000.00, 'http://localhost/GP/public/uploads/suppliers/21/service-management/service/20260620090310-439efa63.jpg', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-20 07:02:52', 7, NULL, NULL),
 (59, 23, 12, 'Excel Jade Hall — Grand Wedding Decoration', 'Stage decoration, floral arrangement, table & chair setup and theme colour design. Premium package.', 2900000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero1.png', 1, 'fullday', NULL, 'per_session', 0, 5, 3, 0, '2026-06-20 07:13:56', 0, NULL, NULL),
 (60, 24, 6, 'Golden Inya - Lakeside Wedding Venue', 'Indoor/outdoor lakeside venue (outdoor up to 700-800 guests). Grass-lawn usage, buffet lunch/dinner 22,000-35,000 per head.', 2000000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero2.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:22:45', 0, NULL, NULL),
 (61, 25, 6, 'Western Park Ruby - Garden Wedding Venue', 'Upper lawn usage 500,000 / lower lawn 200,000. Set menus 400,000-500,000 per table (10 pax), 10-pax table from 190,000.', 500000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:22:45', 0, NULL, NULL),
@@ -2265,7 +2812,9 @@ INSERT INTO `services` (`id`, `supplier_id`, `category_id`, `name`, `description
 (162, 127, 10, 'Chi Chi’s Touch - Makeup & Hair', 'Pricing: 13', 150000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (163, 128, 10, 'Makeup Hazel - Makeup & Hair', 'Pricing: 10', 150000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero1.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
 (164, 129, 10, 'Makeup Non Thit San - Makeup & Hair', 'Pricing: 10', 150000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero2.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
-(165, 130, 10, 'Sweet Hair& Make up - Makeup & Hair', 'Pricing: 15', 150000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL);
+(165, 130, 10, 'Sweet Hair& Make up - Makeup & Hair', 'Pricing: 15', 150000.00, NULL, NULL, 'http://localhost/GP/public/uploads/serviceHero3.png', 1, 'fullday', NULL, 'per_session', 0, 2, 1, 0, '2026-06-20 07:52:35', 0, NULL, NULL),
+(166, 131, 2, 'Y\'s dress', 'We provide accessories', 250000.00, 250000.00, 850000.00, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/131/service-management/service/20260624085706-a41e8881.jpg', 1, 'slot', 240, 'per_session', 0, 3, 2, 2, '2026-06-24 02:27:06', 3, NULL, NULL),
+(167, 134, 2, 'Grand', 'Hello', 450000.00, 450000.00, 2500000.00, '', 1, 'slot', 60, 'per_session', 0, 1, 0, 0, '2026-06-26 03:36:14', 12, '10:05:00', '13:05:00');
 
 -- --------------------------------------------------------
 
@@ -2290,7 +2839,8 @@ CREATE TABLE `service_availability` (
 
 INSERT INTO `service_availability` (`id`, `service_id`, `date`, `type`, `open_time`, `close_time`, `reason`, `created_at`) VALUES
 (9, 54, '2026-06-30', 'unavailable', NULL, NULL, NULL, '2026-06-20 02:56:21'),
-(11, 56, '2026-06-21', 'unavailable', NULL, NULL, NULL, '2026-06-21 07:46:22');
+(11, 56, '2026-06-21', 'unavailable', NULL, NULL, NULL, '2026-06-21 07:46:22'),
+(12, 166, '2026-07-01', 'unavailable', NULL, NULL, 'owner\'s birthday', '2026-06-24 02:49:57');
 
 -- --------------------------------------------------------
 
@@ -2373,7 +2923,11 @@ INSERT INTO `service_media` (`id`, `service_id`, `file_url`, `type`) VALUES
 (136, 105, 'http://localhost/GP/public/uploads/suppliers/70/service-management/media/20260620170538-7efe2c09.png', 'image'),
 (137, 105, 'http://localhost/GP/public/uploads/suppliers/70/service-management/media/20260620170542-56bad5ef.png', 'image'),
 (138, 105, 'http://localhost/GP/public/uploads/suppliers/70/service-management/media/20260620170548-2cb0c732.png', 'image'),
-(139, 105, 'http://localhost/GP/public/uploads/suppliers/70/service-management/media/20260620170552-de2f6d92.png', 'image');
+(139, 105, 'http://localhost/GP/public/uploads/suppliers/70/service-management/media/20260620170552-de2f6d92.png', 'image'),
+(141, 166, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/131/service-management/media/20260624110739-5c1b9ea5.jpg', 'image'),
+(142, 166, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/131/service-management/media/20260624110752-f37bb4b2.jpg', 'image'),
+(143, 166, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/131/service-management/media/20260624110830-3bd7de88.jpg', 'image'),
+(144, 167, 'https://4b2b50ea8de75a5e-204-157-173-127.serveousercontent.com/GP/public/uploads/suppliers/134/service-management/media/20260626104300-56c10968.png', 'image');
 
 -- --------------------------------------------------------
 
@@ -2402,7 +2956,9 @@ INSERT INTO `service_rental_pricing` (`id`, `service_id`, `borrow_package_price`
 (4, 45, 800000.00, 830000.00, 800000.00, 1, 1000000.00, 1200000.00, 1000000.00, '2026-06-18 10:01:07'),
 (5, 47, 750000.00, 800000.00, 750000.00, 3, 989999.85, 1000000.00, 989999.85, '2026-06-18 13:29:53'),
 (9, 55, 400000.00, 410000.00, 400000.00, 1, 500000.00, 500000.00, 500000.00, '2026-06-19 03:42:00'),
-(10, 57, 750000.00, 790000.00, 750000.00, 3, 1000000.00, 1000000.00, 1000000.00, '2026-06-20 07:02:52');
+(10, 57, 750000.00, 790000.00, 750000.00, 3, 1000000.00, 1000000.00, 1000000.00, '2026-06-20 07:02:52'),
+(11, 166, 150000.00, 220000.00, 150000.00, 3, 850000.00, 1200000.00, 850000.00, '2026-06-24 02:27:06'),
+(12, 167, 150000.00, 220000.00, 150000.00, 2, 230000.00, 230000.00, 230000.00, '2026-06-26 03:36:14');
 
 -- --------------------------------------------------------
 
@@ -2991,13 +3547,27 @@ INSERT INTO `service_schedules` (`id`, `service_id`, `day_of_week`, `open_time`,
 (1288, 64, 5, '10:00:00', '18:00:00', 1, '2026-06-21 07:27:47'),
 (1289, 64, 6, '10:00:00', '18:00:00', 1, '2026-06-21 07:27:47'),
 (1290, 64, 7, '10:00:00', '18:00:00', 1, '2026-06-21 07:27:47'),
-(1305, 56, 1, '04:00:00', '17:00:00', 1, '2026-06-21 07:37:35'),
-(1306, 56, 2, '04:00:00', '17:00:00', 1, '2026-06-21 07:37:35'),
-(1307, 56, 3, '04:00:00', '17:00:00', 1, '2026-06-21 07:37:35'),
-(1308, 56, 4, '04:00:00', '17:00:00', 1, '2026-06-21 07:37:35'),
-(1309, 56, 5, '04:00:00', '17:00:00', 1, '2026-06-21 07:37:35'),
-(1310, 56, 6, '09:00:00', '17:00:00', 1, '2026-06-21 07:37:35'),
-(1311, 56, 7, '11:00:00', '17:00:00', 1, '2026-06-21 07:37:35');
+(1312, 56, 1, '04:00:00', '17:00:00', 1, '2026-06-24 02:25:15'),
+(1313, 56, 2, '04:00:00', '17:00:00', 1, '2026-06-24 02:25:15'),
+(1314, 56, 3, '04:00:00', '17:00:00', 1, '2026-06-24 02:25:15'),
+(1315, 56, 4, '04:00:00', '17:00:00', 1, '2026-06-24 02:25:15'),
+(1316, 56, 5, '04:00:00', '17:00:00', 1, '2026-06-24 02:25:15'),
+(1317, 56, 6, '09:00:00', '17:00:00', 1, '2026-06-24 02:25:15'),
+(1318, 56, 7, '11:00:00', '17:00:00', 1, '2026-06-24 02:25:15'),
+(1382, 166, 1, '10:00:00', '17:00:00', 1, '2026-06-24 05:16:39'),
+(1383, 166, 2, '10:00:00', '17:00:00', 1, '2026-06-24 05:16:39'),
+(1384, 166, 3, '10:00:00', '17:00:00', 1, '2026-06-24 05:16:39'),
+(1385, 166, 4, '10:00:00', '17:00:00', 1, '2026-06-24 05:16:39'),
+(1386, 166, 5, '10:00:00', '17:00:00', 1, '2026-06-24 05:16:39'),
+(1387, 166, 6, '09:00:00', '17:00:00', 0, '2026-06-24 05:16:39'),
+(1388, 166, 7, '09:00:00', '17:00:00', 0, '2026-06-24 05:16:39'),
+(1396, 167, 1, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
+(1397, 167, 2, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
+(1398, 167, 3, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
+(1399, 167, 4, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
+(1400, 167, 5, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
+(1401, 167, 6, '09:00:00', '17:00:00', 1, '2026-06-26 04:35:28'),
+(1402, 167, 7, '09:00:00', '17:00:00', 0, '2026-06-26 04:35:28');
 
 -- --------------------------------------------------------
 
@@ -3095,7 +3665,46 @@ INSERT INTO `service_time_slots` (`id`, `service_id`, `date`, `start_time`, `end
 (103, 47, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-22 09:49:24'),
 (104, 55, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-22 09:49:24'),
 (105, 48, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-22 09:49:24'),
-(106, 50, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-22 09:49:24');
+(106, 50, '2026-06-29', '09:00:00', '17:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-22 09:49:24'),
+(108, 56, '2026-07-01', '04:00:00', '07:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:07:04'),
+(109, 56, '2026-07-01', '07:00:00', '10:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:07:04'),
+(110, 47, '2026-07-01', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-23 05:07:04'),
+(111, 55, '2026-07-01', '09:00:00', '12:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-23 05:07:04'),
+(112, 48, '2026-07-01', '09:00:00', '12:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-23 05:07:04'),
+(113, 50, '2026-07-01', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-23 05:07:04'),
+(114, 56, '2026-07-01', '10:00:00', '13:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:07:04'),
+(115, 47, '2026-07-01', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-23 05:07:04'),
+(116, 55, '2026-07-01', '12:00:00', '15:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-23 05:07:04'),
+(117, 48, '2026-07-01', '12:00:00', '15:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-23 05:07:04'),
+(118, 50, '2026-07-01', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-23 05:07:04'),
+(119, 56, '2026-07-01', '13:00:00', '16:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:07:04'),
+(120, 56, '2027-08-04', '04:00:00', '07:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:15:13'),
+(121, 56, '2027-08-04', '07:00:00', '10:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:15:13'),
+(122, 47, '2027-08-04', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-23 05:15:13'),
+(123, 55, '2027-08-04', '09:00:00', '12:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-23 05:15:13'),
+(124, 48, '2027-08-04', '09:00:00', '12:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-23 05:15:13'),
+(125, 50, '2027-08-04', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-23 05:15:13'),
+(126, 56, '2027-08-04', '10:00:00', '13:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:15:13'),
+(127, 47, '2027-08-04', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-23 05:15:13'),
+(128, 55, '2027-08-04', '12:00:00', '15:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-23 05:15:13'),
+(129, 48, '2027-08-04', '12:00:00', '15:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-23 05:15:13'),
+(130, 50, '2027-08-04', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-23 05:15:13'),
+(131, 56, '2027-08-04', '13:00:00', '16:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-23 05:15:13'),
+(132, 56, '2026-07-02', '04:00:00', '07:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-24 02:53:58'),
+(133, 56, '2026-07-02', '07:00:00', '10:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-24 02:53:58'),
+(134, 47, '2026-07-02', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-24 02:53:58'),
+(135, 55, '2026-07-02', '09:00:00', '12:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-24 02:53:58'),
+(136, 48, '2026-07-02', '09:00:00', '12:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-24 02:53:58'),
+(137, 50, '2026-07-02', '09:00:00', '12:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-24 02:53:58'),
+(138, 56, '2026-07-02', '10:00:00', '13:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-24 02:53:58'),
+(139, 47, '2026-07-02', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 0, 'available', '2026-06-24 02:53:58'),
+(140, 55, '2026-07-02', '12:00:00', '15:00:00', 1, 1, 0, 1, 1, 0, 'full', '2026-06-24 02:53:58'),
+(141, 48, '2026-07-02', '12:00:00', '15:00:00', 1, 1, 0, 1, 0, 1, 'full', '2026-06-24 02:53:58'),
+(142, 50, '2026-07-02', '12:00:00', '15:00:00', 1, 1, 0, 3, 0, 3, 'available', '2026-06-24 02:53:58'),
+(143, 56, '2026-07-02', '13:00:00', '16:00:00', 1, 1, 0, 2, 2, 0, 'full', '2026-06-24 02:53:58'),
+(144, 42, '2026-07-24', '09:00:00', '12:00:00', 1, 1, 0, 300, 0, 300, 'available', '2026-06-24 03:09:11'),
+(145, 42, '2026-07-24', '12:00:00', '15:00:00', 1, 1, 0, 300, 0, 300, 'available', '2026-06-24 03:09:11'),
+(146, 50, '2026-06-26', '09:00:00', '17:00:00', 0, 0, 0, 3, 0, 0, 'available', '2026-06-26 06:33:05');
 
 -- --------------------------------------------------------
 
@@ -3117,8 +3726,14 @@ CREATE TABLE `suppliers` (
   `agreement_version` varchar(50) DEFAULT NULL,
   `payment_status` enum('unpaid','paid') DEFAULT NULL,
   `is_available` tinyint(1) NOT NULL DEFAULT 0,
+  `auto_accept_bookings` tinyint(1) NOT NULL DEFAULT 0,
+  `min_advance_days` int(11) NOT NULL DEFAULT 0,
+  `cancellation_policy` text DEFAULT NULL,
   `warning_level` tinyint(4) NOT NULL DEFAULT 0 COMMENT '0=none, 1=warning, 2=final_warning',
   `admin_note` text DEFAULT NULL,
+  `bank_code` varchar(50) DEFAULT NULL,
+  `notification_prefs` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`notification_prefs`)),
+  `bank_account` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -3127,81 +3742,86 @@ CREATE TABLE `suppliers` (
 -- Dumping data for table `suppliers`
 --
 
-INSERT INTO `suppliers` (`supplier_id`, `user_id`, `shop_name`, `description`, `status`, `verified_by`, `approved_by`, `verify_url`, `agreement_accepted`, `agreement_accepted_at`, `agreement_version`, `payment_status`, `is_available`, `warning_level`, `admin_note`, `created_at`, `deleted_at`) VALUES
-(20, 24, 'JV', 'we sell dress', 'verified', NULL, 1, 'https://www.facebook.com/jv230', 1, '2026-06-10 02:08:51', 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-10 06:38:51', NULL),
-(21, 29, 'Wyndham Grand Yangon Hotel', 'ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Tea Package များကို US$ 7 တောင် လျော့ပေးမယ့်အပြင် မိမိရွေး ချယ်တဲ့ Package ပေါ် မူတည်၍ Walkway နဲ့ LED အသုံးပြုခွင့်များပါ ရရှိနိုင်မှာပဲဖြစ်ပါတယ်...\r\n\r\nဒါ့အပြင် Wedding Dinner Packages ဝယ်ယူသူတိုင်းအတွက် အခမဲ့ Complimentary Table များ (သိုမဟုတ်) Walkway အသုံးပြုခွင့် (သိုမဟုတ်)  LED အသုံးပြုခွင့်ဆိုပြီး မိမိ နှစ်သက်ရာ အကျိုးခံစားခွင့်ကို ရွေးချယ်ရယူနိုင်မှာပါ...\r\n\r\n သင့်စိတ်ကူးထဲကအတိုင်း ကြီးကျယ်ခမ်းနားလှပတဲ့ Wedding ပွဲကြီးကို စိတ်တိုင်းကျဖန်တီးနိုင်ဖိုအတွက် ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Venue Area များက အသင့်တော်ဆုံးရွေးချယ်မှုဖြစ်စေမှာပါ...Wedding Period ကိုလည်း ၂၀၂၇ ခုနှစ် နှစ်ကုန်အထိ ပေးထားတာမို တအားတန်တဲ့ ဒီအခွင့်အရေးကို လက်မလွတ်ရလေအောင် အမိအရဖမ်းဆုပ်လိုက်တော့နော်...🤍', 'verified', 1, 1, 'htpps://www.wyndhamgrandyangon.com', 1, '2026-06-11 00:31:15', 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-11 05:01:15', NULL),
-(23, 32, 'Excel River View Hotel & Resort', 'Riverside hotel on the Bago River offering stage decoration, table & chair arrangement, floral decoration and theme colour design for weddings.', 'approved', NULL, NULL, 'excelriverview@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:13:56', NULL),
-(24, 33, 'Golden Inya Restaurant', 'Lakeside fine-dining restaurant on Inya Lake with indoor and outdoor space (outdoor seats 700-800). Popular for weddings, engagements and receptions, buffet and set/custom menus available.', 'approved', NULL, NULL, 'golden-inya-restaurant.business.site', 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:22:45', NULL),
-(25, 34, 'Western Park Ruby - People\'s Park', 'Garden venue inside People\'s Park, Dagon Township. Indoor (100-200) and outdoor (200-800) wedding space, guests skip the park entrance fee. Reception buffet on request.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:22:45', NULL),
-(26, 35, 'Zephyr (Sein Lann So Pyay Garden)', 'Calm garden fine-dining and event venue beside Inya Lake. Outdoor lawn seats up to 400. Offers stage decoration, floral arrangement and theme-based decoration, Asian & Western set/buffet menus.', 'approved', NULL, NULL, 'zephyrcafe2018@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:22:45', NULL),
-(27, 36, 'The White Cottage Restaurant & Lounge', 'European cottage-style restaurant and lounge in Shwe Taung Kyar, Bahan. Romantic indoor space and green garden (outdoor 100-150), suited to Western-style civil weddings. Decor/planner/MC not included.', 'approved', NULL, NULL, 'thewhitecottageyangon.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:22:45', NULL),
-(28, 37, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'No.991, Thu Mingalar Road, Thingangyun Township, Yangon. Tel 09 250 500 809\n\nTraditional Myanmar bridal wear — htaing-ma-theim, offering/registration outfits, taik-pon and taung-shay for the couple and parents, in various silk weaves. Rental and sale, plus custom-made rental (book 3-6 months ahead). Htaing-ma-theim rental approx 350,000 to 2,000,000, offering outfits from approx 200,000. Add-ons: floral decoration, hand bouquets, hotel/makeup booking and wedding car decoration.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:44:16', NULL),
-(29, 38, 'Dear Brides Wedding Dress Studio', 'Karaweik Garden, near Myaw Sin Kyun entry, Mingalar Taung Nyunt, Yangon. Tel 09 771471462. Open 10:00-18:00 daily\n\nWestern and traditional bridal wear — wedding gowns, mermaid dresses, evening dresses and pre-wedding outfits. Latest imported designs for rent or sale, customised bridal veils, and custom-made rental. Spacious studio with parking, in-house photo studio and experienced stylists. Range approx 800,000 to 3,000,000 depending on dress.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:44:16', NULL),
-(30, 39, 'The Vow Wedding Studio Myanmar', 'No.789, 47 ward, Bohmu Ba Htoo Road, North Dagon, Yangon. Tel 09 451355553, 09 791580503. Open 09:00-17:00\n\nWomen\'s bridal studio with finely tailored gowns, quality fabrics and detailed finishing for each bride. Rental and sale; crowns and bridal shoes also available. Event-day rental approx 1,500,000 to 6,000,000+.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:44:16', NULL),
-(31, 40, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Thu Mingalar main road (between Sa Taik and Inn Wa bus stops), South Okkalapa, Yangon — above Khit Pyaing toy shop, next to CB Bank. Tel 09 777775512\n\nWedding suits and dresses for men and women. Reliable remote/line ordering with good fit. Price approx 200,000 to 500,000+. Booking required.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:44:16', NULL),
-(32, 41, 'T&T Bridal Collection', 'No.666, Thudamar Road (near Eaindra bus stop), North Okkalapa, Yangon. Tel 09 799515633, 09 799515622. Open 10:00-17:30, closed Wednesdays\n\nWestern wedding dresses with hundreds of new pieces. Rental approx 400,000 to 1,500,000; wholesale purchase from 230,000. 10+ years wedding-industry founder advises on current trends, body-fit styling, matching makeup look and accessories. New stock monthly plus resale of older pieces.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:44:16', NULL),
-(33, 42, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'No.293, Brahmaso 4/6 Street, South Okkalapa Township, Yangon. Tel 09 422999929, 09 985808800\n\nMen\'s ceremony wear — \"Gon\" taik-pon (M/L/XL/XXL) at 300,000 and pasoe (longyi) from 43,000 to 420,000. Detailed sizing help and sharp cutting for a smart, dignified look.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:44:16', NULL),
-(34, 43, 'Peter\'s Bridal Garden - Studio', 'No.542, Ou Zanar Street, ward 11, Mya Thidar Housing, South Okkalapa, Yangon. Tel 09 777 595010\n\nPre-wedding outfit and photography studio. Indoor and outdoor pre-wedding packages (e.g. 3-outfit indoor package), traditional looks, makeup and full-team support with raw photos provided. Highly recommended for pre-wedding shoots.', 'approved', NULL, NULL, 'peterbridalgarden@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:44:16', NULL),
-(35, 44, 'My Everything Wedding Dresses', 'No.1253, 13 ward, Ratana main road, South Okkalapa Township, Yangon. Tel 09 776040862, 09 760396053. Open 09:00-17:00\n\nBridal dress rental for brides. Rental price range approx 480,000 to 1,860,000. Rental only.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:44:16', NULL),
-(68, 45, 'Forever One Stop Wedding Studio', 'No. 108, Phone Gyi Road, Lanmadaw Township, Yangon, Myanmar. +95 9 777 299 466 , +95 9 776 275 302 foreverstudio.mm@gmail.com              Garden Studio;\nNo.619, Padagyi - Thilawa Rd,\nShwe Pyout, Kyauktan, Yangon.\nPh : 09-777299477', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(69, 46, 'H & H Photo Studio', '🏨 - No.968, Thiri Zayar 18 A Street, 7 Ward, South Oakkalapa, Yangon.                 09770837838', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(70, 47, 'Venus Wedding Studio', 'Yangon Add：အမှတ်(A+B), မေဥယျာဥ်အိမ်ယာ၊ ရတနာလမ်းမပေါ်၊ သင်္ဃန်းကျွန်းမြို့နယ်၊ ရန်ကုန်မြို့။️Hotline：09957373666 /09957373999', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(71, 48, 'PNA’S Wedding Studio', 'Main Branch Address   No.93, သရက်တောလမ်း၊ ကမ်းနားလမ်းမပေါ် ၊ ကြည့်မြင်တိုင်မြိုနယ် ၊ ရန်ကုန်မြို ။\nNorth Dagon Branch Address ( Opening Soon )\nအမှတ် ၉၀၄ ၊ ဒဂုံသီရိလမ်း ၊ ၄၃ ရပ်ကွက် ၊ မြောက်ဒဂုံမြိုနယ် (ဗိုလ်ဗထူး အိမ်ရာ အနီး) ။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(72, 49, 'Together Wedding Studio', 'YANGON\nAdd : No.1242, ရတနာလမ်းမလိခအိမ်ရာအရှေ့ / တောင်ဥက္ကလာပမြိုနယ် / ရန်ကုန်မြို။\nHotline : 09 787 888 818 , 09 7679 10070, 09 967 888 818, 09 778 617 797, 09 974 468 884, 09 766 208 568, 09 785 255 890, 09 420 003 031', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(73, 50, 'Western Park Ruby – People’s Park', 'ပြည်သူ့ရင်ပြင်ဝန်းအတွင်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။                                                                                                      09-444437223,09-444437226,09-444437225', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(74, 51, 'MG & J Jewelry', 'No(80/A), Kanbawza Lane(2), Bahan, Yangon.(closed on Wednesday)\n\nTel : +95 9 762510251, Viber : +95 9 762510251, Whatsapp: +95 9 762510251 Email:info@mgjmyanmar.com\n\n**Facebook**: @MG&J Jewelry International, **Instagram:** @mgjjewelryco, **Youtube**:@mgjmyanmar, **Tiktok**: @mgjmyanmar', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(75, 52, 'U Hton', 'အခန်း (B) 01-05 (မြေညီထပ်)၊ လမ်းမတော်ပလာဇာ (သံစျေးအနီး)၊ လမ်းမတော်လမ်း၊လသာမြို့နယ်၊ ရန်ကုန်မြို့။\n\n01-701390, 09-790609656\nViber Number: +959 965152335\n\nတနင်္ဂနွေနေ့တိုင်းဆိုင်ပိတ်သည်။ဆိုင်ဖွင့်ချိန် မနက် ၉ နာရီ မှ ည ၅ နာရီခွဲ အထိဖွင့်လှစ်ပါသည်။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(76, 53, 'Myat Pan Tha Zin Diamond and Jewelry', '**Located in:** Salween Institute for Public Policy office**Address:** Times City, A 313, Level 3, Jewellery Mall, Kyun Taw Rd, Yangon 11041\n\n**Phone:** 09 890 006320', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(77, 54, 'Vivian Diamond Jewellery', 'No.22 Pyi Thu Kwat Thit 1st Street, Yangon 11111\n\n09 44313 6572+wedding+rings&oq=vivian&gs_lcrp=EgZjaHJvbWUqCAgAEEUYJxg7MggIABBFGCcYOzIHCAEQLhiABDIHCAIQLhiABDIGCAMQRRg7MgYIBBBFGDsyBwgFEC4YgAQyBwgGEAAYgAQyBwgHEC4YgAQyBwgIEC4YgAQyBwgJEC4YgATSAQgyMjAwajBqN6gCALACAA&sourceid=chrome&ie=UTF-8#)', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(78, 55, 'Theingi Moe Jewelry', 'No5 Mahar, Myint Mo St, Yangon 11201\n\n09 42009 7809', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(83, 56, 'Parisian Cake&Cafe', 'Yangon. **Parisian Cake & Coffee**\n📍 446 Lower Kyeemyindaing Rd, Yangon\n📞 +95 1 230 1512\n➡️ Classic large branch where you can order custom cakes (including wedding cakes).', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(84, 57, 'Season', '**Seasons Bakery**\n📍 City Mart, Pyay Rd, Yangon, Myanmar\n☎️ +95 1 650 771\n✅ Popular bakery & cake shop — good for daily cakes and custom orders.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(85, 58, 'Kudo’s', '**Kudos Bakery** – Anawrahta Rd, Yangon\n📞 **+95 9 422 886 667**\nOne of the main bakery locations with a wide selection of baked goods', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(86, 59, 'Shwe Pu Zun', '**Main Bakery & Cafe – Dawbon BranchShwe Pu Zun Cafeteria & Bakery House**\n📌 Address: No.14/A Min Nandar Rd, Dawbon Township, Yangon, Myanmar (Burma)\n📞 Phone: +95 1 553062', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(87, 60, '77 Cake', '**77 Cakes – Kyauk Kone, Tamwe** 🎂\n📍 Address: No. 1 သမ္မာဓိလမ်း, ကျောက်ကုန်း, Yangon\n📞 Phone: +95 9 799558070\n🕒 Hours: ~08:00 AM – 05:00 PM', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(88, 61, 'El Dorado', '**El Dorado**\n📌 Address: No. 4 Wai Za Yan Tar Rd, Yangon, Myanmar (Thingangyun)\n📞 Phone: +95 9 9788 46073\n⭐ Rating: ~4.1 ★ (300+ reviews)\n💰 Price: $$\n🕒 Hours: 07:30 AM – 09:00 PM (daily)', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(89, 62, 'Shan Yoe Yar Restaurant', 'Event sales-09255166608မနော်ဟရီဆိုင်ခွဲ\n\n 📌အမှတ် ၅၄၊ မနော်ဟရီလမ်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။ (ခရေပင်လမ်းနှင့် တော်ဝင်လမ်းကြား) 09-250566695, 09-255166655opening hour - 6am to 10pmရန်ကင်းဆိုင်ခွဲ \n\n📌အမှတ်7 အောင်ဇေယျလမ်း နှင့် မင်းရဲကျော်စွာလမ်းထောင့် ရန်ကင်းမြို့နယ်09 255 166 604, 09 255 166 605opening hour - 7:00 am to 10pmဆူးလေဆိုင်ခွဲ \n\n📌Sule Square Mall ပထမထပ် ကျောက်တံတားမြို့နယ်09 258 777 070', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(90, 63, 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'ရုံးချုပ်📍 အမှတ် (၁၃၃)(C)/၀၆ မြို့တော်လမ်း သာကေတမြို့နယ် ရန်ကုန်မြို့📞 09 4222 333 35, 09 45 453 5858\n\nမင်္ဂလာတောင်ညွန့်📍 တိုက် (၃) အခန်း (၁၀၀) ကန်လမ်း မင်္ဂလာတောင်ညွန့်မြို့နယ် ရန်ကုန်မြို့📞 09 88 335 4411, 09 4222 333 35 (Manager)\n\nပုဇွန်တောင် (၆)လမ်းမ)📍 အမှတ် (၂၅) ၆လမ်းမ ပုဇွန်တောင်မြို့နယ် ရန်ကုန်မြို့📞 09 88 335 4400, 09 4222 333 36 (Manager)\n\nလှိုင်📍 တိုက် (၂) အခန်း (၀၆) အင်းစိန်လမ်းမကြီး လှိုင်မြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 33\n\nစမ်းချောင်း (ပြည်လမ်း)📍 အမှတ် (၁၁) (C-1) ပြည်လမ်း စမ်းချောင်းမြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 66\n\nလမ်းမတော်📍 အမှတ် (၇၄/၇၆) အနော်ရထာလမ်း လမ်းမတော်မြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 11\n\nကျောက်တံတား📍 အမှတ် (၆၁) ပန်းဆိုးတန်းလမ်း ကျောက်တံတားမြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 99\n\nအင်းစိန်📍 အမှတ် (၁၉၆) ကမ်းနားလမ်း အင်းစိန်မြို့နယ် ရန်ကုန်မြို့📞 09 89 244 0044\n\nပန်းဆိုးတန်း (ဗိုလ်ချုပ်အောင်ဆန်း)📍 အမှတ် (၇၀/၇၂) ဗိုလ်ချုပ်အောင်ဆန်းလမ်း ပန်းဆိုးတန်းမြို့နယ် ရန်ကုန်မြို့📞 09 8833 544 33', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(91, 64, 'ထူး ရေခဲမုန့်', 'အမှတ်(၂၂)၊ အထက်ပုဇွန်တောင်လမ်းမကြီး၊ ပုဇွန်တောင်မြို့နယ်။အမှတ်(၁၂၇)၊ လူညီတန်း - အင်းစိန်လမ်းမကြီး၊ ကမာရွတ်မြို့နယ် (၁)ရပ်ကွက်၊ ဆင်ရေတွင်းမှတ်တိုင်၊ ဂမုန်းပွင့်စံရိပ်ငြိမ်အနီး။\n\n0969598333809975285954', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(92, 65, 'The Hundred -Grilled Chicken', 'စံရိပ်ငြိမ် ဂမုန်းပွင့် Shopping Mall(ရှေ့မျက်နှာစာ)စံရိပ်ငြိမ်မှတ်တိုင်၊ အင်းစိန်လမ်းမ၊ ကမာရွတ်မြို့နယ်။‌\n\n0995444520009753628843', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(93, 66, 'Royal Chef', 'No. 15/17, Nantha Phyu Street,Pazundaung Township, Yangon,Myanmar, 11171\n\n09762225667', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(94, 67, 'Rice Box', 'No. 668, 4/6 Byamaso Street, 4th Ward, South Okkalapa, Yangon\n\n09-765-2030-17\n09-7933-7472-6', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(95, 68, 'Boke & Bee', 'အမှတ်(၄၀)၊ အောင်သိဒ္ဓိလမ်း (၁) ၊ (၃)ရပ်ကွက် ၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်။\n\n📞 09 791992746 , 09 404916066', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(96, 69, 'နှင်းသီရိ', 'ရန်ကုန်၊ မြောက်ဥက္ကလာပ၊ သုနန္ဒာ (၁၂) လမ်း၊ (ဆ) ရပ်ကွက်။ \n📞 မှာယူရန် ဖုန်း: 09-456666422', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(97, 70, 'H&H Floral and Wedding Service', 'Add 1 - 35B, 69-70 Maharaungmyay Township.\nAdd 2 - Ta Kon Taing, Pyigyitagon\nTownship, Mandalay, Mandalay, Myanmar                                        09 977 819738\nhaymanoo3111995@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(98, 71, 'Eternal Flowers', 'အမှတ်(449-A)၊ တက္ကသိုလ်ရိပ်သာလမ်းသစ်၊ ဗဟန်းမြို့နယ်၊ ရန်ကုန်မြို့။ (The Link Hotel ဘေး)           **Phone:** 01 9541217, 01 9559011, 09 404014512,  09 421017797 eternalflowers99@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(99, 72, 'Aphrodite Wedding Planning & Decoration', 'အမှတ် ၄၈၊ ၃ရပ်ကွက် ၄ လမ်း၊ ငွေကြာရံ၊ တောင်ဥက္ကလာပမြိုနယ်၊ Yangon, Myanmar,11091             09 975 288653\ninfo@aphroditeweddingplanning.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(100, 73, 'Elysian Floral Art & Events Planning', 'အမှတ်(352A/353B)၊ ကျန်စစ်သား(1)လမ်း၊ မြောက်ကြီးပွားရေးရပ်ကွက်၊ သင်္ဃန်းကျွန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 5086711, 09 775086711,  09 965085711  elysian.floral.art.mm@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(101, 74, 'S&S Events and Floral', 'အမှတ် 5/46(A2)၊ အောင်ဇေယျလမ်း၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 254886898, 09 779922703', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(102, 75, 'His & Hers Events and Wedding Studio', 'အမှတ်(560)၊ မစိုးရိမ်လမ်းသွယ်(3)၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 250188137, 09 256795792 hnhbridal@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(103, 76, 'Governor’s Residence', 'Governor’s Residence', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(104, 77, 'Novotel Yangon Max', '**Novotel Yangon Max**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(105, 78, 'Sedona Hotel Yangon', '**Sedona Hotel Yangon**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(106, 79, 'Inya Lake Hotel', '**Inya Lake Hotel**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(107, 80, 'Meliá Yangon', '**Meliá Yangon**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(108, 81, 'Hotel Yangon', 'Hotel Yangon', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(109, 82, 'Myanmar Car Rental', 'No. 741, Ground Floor, 3rd Street, 1st Ward,Mayangone Township,Yangon, Myanmar.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(110, 83, 'The Experience Rent A Car', 'No.1 , Kaba Aye Pagoda Road , Sedona Hotel , Yankin Township , Yangon , Myanmar +95 9880034504', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(111, 84, 'AVIS MYANMAR', '+959977875099       Unit 15, M Tower, No.527 Pyay Road, 04 15th Floor, 11041, မြန်မာ', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(112, 85, 'inoventure', 'No. 631, Pyay Road, Kamayut Township, Yangon, Myanmar.+959897308080', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(113, 86, 'Concierge Business Limousine', 'Room (302) Tower A, Shwe Zabu Deik Condo, Strand Road, Ahlone Township, Yangon, Myanmar +959 450061110 , +959 960760732', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(114, 87, 'Elegant Star (Recommended)', '3C, Shwe Kinnari Estate, Nar Nat Taw Street, Kamayut, Yangon, Myanmar    \n\n+95 9421736316,\n +95 9678884898', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(115, 88, 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'Hlaing, Kamayut, Myanmar\n\n09740016907 or 095501302 for Viber', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(116, 89, 'Moe Kaung Kin', '62(A)29x30ကြား', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(117, 90, 'Y Collection', '၁၀၆၊ ၄၉ လမ်း (အနော်ရထာလမ်း နှင့် မဟာဗန္ဓုလလမ်းကြား)၊ ပုဇွန်တောင်မြို့နယ်၊ ရန်ကုန်။\n\n099 8484 8787, 09 78 666 2998', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(118, 91, 'Paperie Tale (Recommended)', '09-251158839', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(119, 92, 'THIRI Handmade Invatation', '+95 9 772 244608\n\nအမှတ် 122(2)လွှာ အောင်ဇေယျလမ်း  လွတ်လပ်ရေးရပ်ကွက်  အလုံမြို့နယ်\nရန်ကုန်မြို့။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(120, 93, 'Pyan Kann', '၁၄၂၊၂ ကျိုက်ဝိုင်းဘုရားလမ်း၊ မရမ်းကုန်း၊ ရဲရန်အောင်မှတ်တိုင်အနီး နေဝင်းမျက်မှန် အပေါ်(ပ)ထပ်\n\n09783945706,09446986613', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(121, 94, 'SORA', 'အမှတ် ၆၉၄၊ ဘုရင့်နောင်လမ်း၊ ၃၂ ရပ်ကွက်၊ မြောက်ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့ (Kaung Htue စားသောက်ဆိုင် မျက်နှာချင်းဆိုင်)Yangon,Myanmar\n09882233765', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(122, 95, 'ကိုသာဂိ', 'အမှတ်(၂၈)၊၆ရက်ကွက်၊တောင်ဉက္ကလာပမြို့နယ်၊သစ္စာလမ်း၊ရန်ကုန်\n09894881122', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(123, 96, 'Ma Htet-pop soul', 'No.3\nMa Har Myint Mo street (u chit mg rood )\nSayarsan ( south)Quartar\nBahan township, Yangon, Myanmar,\n095166069\n09765166069', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(124, 97, 'Lin Lin', 'Yangon\n095163167\n0973132666', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(125, 98, 'make up Kin San Win', 'အမှတ် (၂၅၉)၊ ပထမထပ်၊ ၃၅ လမ်း (အထက်ဘလောက်)၊ သွင်ရုပ်ရှင်ရုံအနီး၊ ကျောက်တံတားမြို့နယ်၊ ရန်ကုန်မြို့။\n095101144\n095012581', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(126, 99, 'Magic Touch Beauty Boutique', 'Mandaly\n09444700382', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(127, 100, 'Chi Chi’s Touch', '77/34-35Mandalay\n09758646836', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(128, 101, 'Makeup Hazel', 'No.14, Yandanar streets , Kamayut\nYangon\n09779922564', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(129, 102, 'Makeup Non Thit San', 'Yangon,Myanmar\n09796217995', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL),
-(130, 103, 'Sweet Hair& Make up', 'No.52, First Floor, 157 Road 9, Tamwe, Yangon.\n09791157650', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, NULL, '2026-06-20 07:52:35', NULL);
+INSERT INTO `suppliers` (`supplier_id`, `user_id`, `shop_name`, `description`, `status`, `verified_by`, `approved_by`, `verify_url`, `agreement_accepted`, `agreement_accepted_at`, `agreement_version`, `payment_status`, `is_available`, `auto_accept_bookings`, `min_advance_days`, `cancellation_policy`, `warning_level`, `admin_note`, `bank_code`, `notification_prefs`, `bank_account`, `created_at`, `deleted_at`) VALUES
+(20, 24, 'JV', 'we sell dress', 'verified', NULL, 1, 'https://www.facebook.com/jv230', 1, '2026-06-10 02:08:51', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-10 06:38:51', NULL),
+(21, 29, 'Wyndham Grand Yangon Hotel', 'ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Tea Package များကို US$ 7 တောင် လျော့ပေးမယ့်အပြင် မိမိရွေး ချယ်တဲ့ Package ပေါ် မူတည်၍ Walkway နဲ့ LED အသုံးပြုခွင့်များပါ ရရှိနိုင်မှာပဲဖြစ်ပါတယ်...\r\n\r\nဒါ့အပြင် Wedding Dinner Packages ဝယ်ယူသူတိုင်းအတွက် အခမဲ့ Complimentary Table များ (သိုမဟုတ်) Walkway အသုံးပြုခွင့် (သိုမဟုတ်)  LED အသုံးပြုခွင့်ဆိုပြီး မိမိ နှစ်သက်ရာ အကျိုးခံစားခွင့်ကို ရွေးချယ်ရယူနိုင်မှာပါ...\r\n\r\n သင့်စိတ်ကူးထဲကအတိုင်း ကြီးကျယ်ခမ်းနားလှပတဲ့ Wedding ပွဲကြီးကို စိတ်တိုင်းကျဖန်တီးနိုင်ဖိုအတွက် ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Venue Area များက အသင့်တော်ဆုံးရွေးချယ်မှုဖြစ်စေမှာပါ...Wedding Period ကိုလည်း ၂၀၂၇ ခုနှစ် နှစ်ကုန်အထိ ပေးထားတာမို တအားတန်တဲ့ ဒီအခွင့်အရေးကို လက်မလွတ်ရလေအောင် အမိအရဖမ်းဆုပ်လိုက်တော့နော်...🤍', 'verified', 1, 1, 'htpps://www.wyndhamgrandyangon.com', 1, '2026-06-11 00:31:15', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-11 05:01:15', NULL),
+(23, 32, 'Excel River View Hotel & Resort', 'Riverside hotel on the Bago River offering stage decoration, table & chair arrangement, floral decoration and theme colour design for weddings.', 'approved', NULL, NULL, 'excelriverview@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:13:56', NULL),
+(24, 33, 'Golden Inya Restaurant', 'Lakeside fine-dining restaurant on Inya Lake with indoor and outdoor space (outdoor seats 700-800). Popular for weddings, engagements and receptions, buffet and set/custom menus available.', 'approved', NULL, NULL, 'golden-inya-restaurant.business.site', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
+(25, 34, 'Western Park Ruby - People\'s Park', 'Garden venue inside People\'s Park, Dagon Township. Indoor (100-200) and outdoor (200-800) wedding space, guests skip the park entrance fee. Reception buffet on request.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
+(26, 35, 'Zephyr (Sein Lann So Pyay Garden)', 'Calm garden fine-dining and event venue beside Inya Lake. Outdoor lawn seats up to 400. Offers stage decoration, floral arrangement and theme-based decoration, Asian & Western set/buffet menus.', 'approved', NULL, NULL, 'zephyrcafe2018@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
+(27, 36, 'The White Cottage Restaurant & Lounge', 'European cottage-style restaurant and lounge in Shwe Taung Kyar, Bahan. Romantic indoor space and green garden (outdoor 100-150), suited to Western-style civil weddings. Decor/planner/MC not included.', 'approved', NULL, NULL, 'thewhitecottageyangon.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
+(28, 37, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'No.991, Thu Mingalar Road, Thingangyun Township, Yangon. Tel 09 250 500 809\n\nTraditional Myanmar bridal wear — htaing-ma-theim, offering/registration outfits, taik-pon and taung-shay for the couple and parents, in various silk weaves. Rental and sale, plus custom-made rental (book 3-6 months ahead). Htaing-ma-theim rental approx 350,000 to 2,000,000, offering outfits from approx 200,000. Add-ons: floral decoration, hand bouquets, hotel/makeup booking and wedding car decoration.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(29, 38, 'Dear Brides Wedding Dress Studio', 'Karaweik Garden, near Myaw Sin Kyun entry, Mingalar Taung Nyunt, Yangon. Tel 09 771471462. Open 10:00-18:00 daily\n\nWestern and traditional bridal wear — wedding gowns, mermaid dresses, evening dresses and pre-wedding outfits. Latest imported designs for rent or sale, customised bridal veils, and custom-made rental. Spacious studio with parking, in-house photo studio and experienced stylists. Range approx 800,000 to 3,000,000 depending on dress.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(30, 39, 'The Vow Wedding Studio Myanmar', 'No.789, 47 ward, Bohmu Ba Htoo Road, North Dagon, Yangon. Tel 09 451355553, 09 791580503. Open 09:00-17:00\n\nWomen\'s bridal studio with finely tailored gowns, quality fabrics and detailed finishing for each bride. Rental and sale; crowns and bridal shoes also available. Event-day rental approx 1,500,000 to 6,000,000+.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(31, 40, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'Thu Mingalar main road (between Sa Taik and Inn Wa bus stops), South Okkalapa, Yangon — above Khit Pyaing toy shop, next to CB Bank. Tel 09 777775512\n\nWedding suits and dresses for men and women. Reliable remote/line ordering with good fit. Price approx 200,000 to 500,000+. Booking required.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(32, 41, 'T&T Bridal Collection', 'No.666, Thudamar Road (near Eaindra bus stop), North Okkalapa, Yangon. Tel 09 799515633, 09 799515622. Open 10:00-17:30, closed Wednesdays\n\nWestern wedding dresses with hundreds of new pieces. Rental approx 400,000 to 1,500,000; wholesale purchase from 230,000. 10+ years wedding-industry founder advises on current trends, body-fit styling, matching makeup look and accessories. New stock monthly plus resale of older pieces.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(33, 42, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'No.293, Brahmaso 4/6 Street, South Okkalapa Township, Yangon. Tel 09 422999929, 09 985808800\n\nMen\'s ceremony wear — \"Gon\" taik-pon (M/L/XL/XXL) at 300,000 and pasoe (longyi) from 43,000 to 420,000. Detailed sizing help and sharp cutting for a smart, dignified look.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(34, 43, 'Peter\'s Bridal Garden - Studio', 'No.542, Ou Zanar Street, ward 11, Mya Thidar Housing, South Okkalapa, Yangon. Tel 09 777 595010\n\nPre-wedding outfit and photography studio. Indoor and outdoor pre-wedding packages (e.g. 3-outfit indoor package), traditional looks, makeup and full-team support with raw photos provided. Highly recommended for pre-wedding shoots.', 'approved', NULL, NULL, 'peterbridalgarden@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(35, 44, 'My Everything Wedding Dresses', 'No.1253, 13 ward, Ratana main road, South Okkalapa Township, Yangon. Tel 09 776040862, 09 760396053. Open 09:00-17:00\n\nBridal dress rental for brides. Rental price range approx 480,000 to 1,860,000. Rental only.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:44:16', NULL),
+(68, 45, 'Forever One Stop Wedding Studio', 'No. 108, Phone Gyi Road, Lanmadaw Township, Yangon, Myanmar. +95 9 777 299 466 , +95 9 776 275 302 foreverstudio.mm@gmail.com              Garden Studio;\nNo.619, Padagyi - Thilawa Rd,\nShwe Pyout, Kyauktan, Yangon.\nPh : 09-777299477', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(69, 46, 'H & H Photo Studio', '🏨 - No.968, Thiri Zayar 18 A Street, 7 Ward, South Oakkalapa, Yangon.                 09770837838', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(70, 47, 'Venus Wedding Studio', 'Yangon Add：အမှတ်(A+B), မေဥယျာဥ်အိမ်ယာ၊ ရတနာလမ်းမပေါ်၊ သင်္ဃန်းကျွန်းမြို့နယ်၊ ရန်ကုန်မြို့။️Hotline：09957373666 /09957373999', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(71, 48, 'PNA’S Wedding Studio', 'Main Branch Address   No.93, သရက်တောလမ်း၊ ကမ်းနားလမ်းမပေါ် ၊ ကြည့်မြင်တိုင်မြိုနယ် ၊ ရန်ကုန်မြို ။\nNorth Dagon Branch Address ( Opening Soon )\nအမှတ် ၉၀၄ ၊ ဒဂုံသီရိလမ်း ၊ ၄၃ ရပ်ကွက် ၊ မြောက်ဒဂုံမြိုနယ် (ဗိုလ်ဗထူး အိမ်ရာ အနီး) ။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(72, 49, 'Together Wedding Studio', 'YANGON\nAdd : No.1242, ရတနာလမ်းမလိခအိမ်ရာအရှေ့ / တောင်ဥက္ကလာပမြိုနယ် / ရန်ကုန်မြို။\nHotline : 09 787 888 818 , 09 7679 10070, 09 967 888 818, 09 778 617 797, 09 974 468 884, 09 766 208 568, 09 785 255 890, 09 420 003 031', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(73, 50, 'Western Park Ruby – People’s Park', 'ပြည်သူ့ရင်ပြင်ဝန်းအတွင်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။                                                                                                      09-444437223,09-444437226,09-444437225', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(74, 51, 'MG & J Jewelry', 'No(80/A), Kanbawza Lane(2), Bahan, Yangon.(closed on Wednesday)\n\nTel : +95 9 762510251, Viber : +95 9 762510251, Whatsapp: +95 9 762510251 Email:info@mgjmyanmar.com\n\n**Facebook**: @MG&J Jewelry International, **Instagram:** @mgjjewelryco, **Youtube**:@mgjmyanmar, **Tiktok**: @mgjmyanmar', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(75, 52, 'U Hton', 'အခန်း (B) 01-05 (မြေညီထပ်)၊ လမ်းမတော်ပလာဇာ (သံစျေးအနီး)၊ လမ်းမတော်လမ်း၊လသာမြို့နယ်၊ ရန်ကုန်မြို့။\n\n01-701390, 09-790609656\nViber Number: +959 965152335\n\nတနင်္ဂနွေနေ့တိုင်းဆိုင်ပိတ်သည်။ဆိုင်ဖွင့်ချိန် မနက် ၉ နာရီ မှ ည ၅ နာရီခွဲ အထိဖွင့်လှစ်ပါသည်။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(76, 53, 'Myat Pan Tha Zin Diamond and Jewelry', '**Located in:** Salween Institute for Public Policy office**Address:** Times City, A 313, Level 3, Jewellery Mall, Kyun Taw Rd, Yangon 11041\n\n**Phone:** 09 890 006320', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(77, 54, 'Vivian Diamond Jewellery', 'No.22 Pyi Thu Kwat Thit 1st Street, Yangon 11111\n\n09 44313 6572+wedding+rings&oq=vivian&gs_lcrp=EgZjaHJvbWUqCAgAEEUYJxg7MggIABBFGCcYOzIHCAEQLhiABDIHCAIQLhiABDIGCAMQRRg7MgYIBBBFGDsyBwgFEC4YgAQyBwgGEAAYgAQyBwgHEC4YgAQyBwgIEC4YgAQyBwgJEC4YgATSAQgyMjAwajBqN6gCALACAA&sourceid=chrome&ie=UTF-8#)', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(78, 55, 'Theingi Moe Jewelry', 'No5 Mahar, Myint Mo St, Yangon 11201\n\n09 42009 7809', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(83, 56, 'Parisian Cake&Cafe', 'Yangon. **Parisian Cake & Coffee**\n📍 446 Lower Kyeemyindaing Rd, Yangon\n📞 +95 1 230 1512\n➡️ Classic large branch where you can order custom cakes (including wedding cakes).', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(84, 57, 'Season', '**Seasons Bakery**\n📍 City Mart, Pyay Rd, Yangon, Myanmar\n☎️ +95 1 650 771\n✅ Popular bakery & cake shop — good for daily cakes and custom orders.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(85, 58, 'Kudo’s', '**Kudos Bakery** – Anawrahta Rd, Yangon\n📞 **+95 9 422 886 667**\nOne of the main bakery locations with a wide selection of baked goods', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(86, 59, 'Shwe Pu Zun', '**Main Bakery & Cafe – Dawbon BranchShwe Pu Zun Cafeteria & Bakery House**\n📌 Address: No.14/A Min Nandar Rd, Dawbon Township, Yangon, Myanmar (Burma)\n📞 Phone: +95 1 553062', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(87, 60, '77 Cake', '**77 Cakes – Kyauk Kone, Tamwe** 🎂\n📍 Address: No. 1 သမ္မာဓိလမ်း, ကျောက်ကုန်း, Yangon\n📞 Phone: +95 9 799558070\n🕒 Hours: ~08:00 AM – 05:00 PM', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(88, 61, 'El Dorado', '**El Dorado**\n📌 Address: No. 4 Wai Za Yan Tar Rd, Yangon, Myanmar (Thingangyun)\n📞 Phone: +95 9 9788 46073\n⭐ Rating: ~4.1 ★ (300+ reviews)\n💰 Price: $$\n🕒 Hours: 07:30 AM – 09:00 PM (daily)', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(89, 62, 'Shan Yoe Yar Restaurant', 'Event sales-09255166608မနော်ဟရီဆိုင်ခွဲ\n\n 📌အမှတ် ၅၄၊ မနော်ဟရီလမ်း၊ ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့။ (ခရေပင်လမ်းနှင့် တော်ဝင်လမ်းကြား) 09-250566695, 09-255166655opening hour - 6am to 10pmရန်ကင်းဆိုင်ခွဲ \n\n📌အမှတ်7 အောင်ဇေယျလမ်း နှင့် မင်းရဲကျော်စွာလမ်းထောင့် ရန်ကင်းမြို့နယ်09 255 166 604, 09 255 166 605opening hour - 7:00 am to 10pmဆူးလေဆိုင်ခွဲ \n\n📌Sule Square Mall ပထမထပ် ကျောက်တံတားမြို့နယ်09 258 777 070', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(90, 63, 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'ရုံးချုပ်📍 အမှတ် (၁၃၃)(C)/၀၆ မြို့တော်လမ်း သာကေတမြို့နယ် ရန်ကုန်မြို့📞 09 4222 333 35, 09 45 453 5858\n\nမင်္ဂလာတောင်ညွန့်📍 တိုက် (၃) အခန်း (၁၀၀) ကန်လမ်း မင်္ဂလာတောင်ညွန့်မြို့နယ် ရန်ကုန်မြို့📞 09 88 335 4411, 09 4222 333 35 (Manager)\n\nပုဇွန်တောင် (၆)လမ်းမ)📍 အမှတ် (၂၅) ၆လမ်းမ ပုဇွန်တောင်မြို့နယ် ရန်ကုန်မြို့📞 09 88 335 4400, 09 4222 333 36 (Manager)\n\nလှိုင်📍 တိုက် (၂) အခန်း (၀၆) အင်းစိန်လမ်းမကြီး လှိုင်မြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 33\n\nစမ်းချောင်း (ပြည်လမ်း)📍 အမှတ် (၁၁) (C-1) ပြည်လမ်း စမ်းချောင်းမြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 66\n\nလမ်းမတော်📍 အမှတ် (၇၄/၇၆) အနော်ရထာလမ်း လမ်းမတော်မြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 11\n\nကျောက်တံတား📍 အမှတ် (၆၁) ပန်းဆိုးတန်းလမ်း ကျောက်တံတားမြို့နယ် ရန်ကုန်မြို့📞 09 420 4477 99\n\nအင်းစိန်📍 အမှတ် (၁၉၆) ကမ်းနားလမ်း အင်းစိန်မြို့နယ် ရန်ကုန်မြို့📞 09 89 244 0044\n\nပန်းဆိုးတန်း (ဗိုလ်ချုပ်အောင်ဆန်း)📍 အမှတ် (၇၀/၇၂) ဗိုလ်ချုပ်အောင်ဆန်းလမ်း ပန်းဆိုးတန်းမြို့နယ် ရန်ကုန်မြို့📞 09 8833 544 33', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(91, 64, 'ထူး ရေခဲမုန့်', 'အမှတ်(၂၂)၊ အထက်ပုဇွန်တောင်လမ်းမကြီး၊ ပုဇွန်တောင်မြို့နယ်။အမှတ်(၁၂၇)၊ လူညီတန်း - အင်းစိန်လမ်းမကြီး၊ ကမာရွတ်မြို့နယ် (၁)ရပ်ကွက်၊ ဆင်ရေတွင်းမှတ်တိုင်၊ ဂမုန်းပွင့်စံရိပ်ငြိမ်အနီး။\n\n0969598333809975285954', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(92, 65, 'The Hundred -Grilled Chicken', 'စံရိပ်ငြိမ် ဂမုန်းပွင့် Shopping Mall(ရှေ့မျက်နှာစာ)စံရိပ်ငြိမ်မှတ်တိုင်၊ အင်းစိန်လမ်းမ၊ ကမာရွတ်မြို့နယ်။‌\n\n0995444520009753628843', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(93, 66, 'Royal Chef', 'No. 15/17, Nantha Phyu Street,Pazundaung Township, Yangon,Myanmar, 11171\n\n09762225667', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(94, 67, 'Rice Box', 'No. 668, 4/6 Byamaso Street, 4th Ward, South Okkalapa, Yangon\n\n09-765-2030-17\n09-7933-7472-6', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(95, 68, 'Boke & Bee', 'အမှတ်(၄၀)၊ အောင်သိဒ္ဓိလမ်း (၁) ၊ (၃)ရပ်ကွက် ၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်။\n\n📞 09 791992746 , 09 404916066', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(96, 69, 'နှင်းသီရိ', 'ရန်ကုန်၊ မြောက်ဥက္ကလာပ၊ သုနန္ဒာ (၁၂) လမ်း၊ (ဆ) ရပ်ကွက်။ \n📞 မှာယူရန် ဖုန်း: 09-456666422', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(97, 70, 'H&H Floral and Wedding Service', 'Add 1 - 35B, 69-70 Maharaungmyay Township.\nAdd 2 - Ta Kon Taing, Pyigyitagon\nTownship, Mandalay, Mandalay, Myanmar                                        09 977 819738\nhaymanoo3111995@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(98, 71, 'Eternal Flowers', 'အမှတ်(449-A)၊ တက္ကသိုလ်ရိပ်သာလမ်းသစ်၊ ဗဟန်းမြို့နယ်၊ ရန်ကုန်မြို့။ (The Link Hotel ဘေး)           **Phone:** 01 9541217, 01 9559011, 09 404014512,  09 421017797 eternalflowers99@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(99, 72, 'Aphrodite Wedding Planning & Decoration', 'အမှတ် ၄၈၊ ၃ရပ်ကွက် ၄ လမ်း၊ ငွေကြာရံ၊ တောင်ဥက္ကလာပမြိုနယ်၊ Yangon, Myanmar,11091             09 975 288653\ninfo@aphroditeweddingplanning.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(100, 73, 'Elysian Floral Art & Events Planning', 'အမှတ်(352A/353B)၊ ကျန်စစ်သား(1)လမ်း၊ မြောက်ကြီးပွားရေးရပ်ကွက်၊ သင်္ဃန်းကျွန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 5086711, 09 775086711,  09 965085711  elysian.floral.art.mm@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(101, 74, 'S&S Events and Floral', 'အမှတ် 5/46(A2)၊ အောင်ဇေယျလမ်း၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 254886898, 09 779922703', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(102, 75, 'His & Hers Events and Wedding Studio', 'အမှတ်(560)၊ မစိုးရိမ်လမ်းသွယ်(3)၊ မရမ်းကုန်းမြို့နယ်၊ ရန်ကုန်မြို့။ 09 250188137, 09 256795792 hnhbridal@gmail.com', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(103, 76, 'Governor’s Residence', 'Governor’s Residence', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(104, 77, 'Novotel Yangon Max', '**Novotel Yangon Max**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(105, 78, 'Sedona Hotel Yangon', '**Sedona Hotel Yangon**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(106, 79, 'Inya Lake Hotel', '**Inya Lake Hotel**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(107, 80, 'Meliá Yangon', '**Meliá Yangon**', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(108, 81, 'Hotel Yangon', 'Hotel Yangon', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(109, 82, 'Myanmar Car Rental', 'No. 741, Ground Floor, 3rd Street, 1st Ward,Mayangone Township,Yangon, Myanmar.', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(110, 83, 'The Experience Rent A Car', 'No.1 , Kaba Aye Pagoda Road , Sedona Hotel , Yankin Township , Yangon , Myanmar +95 9880034504', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(111, 84, 'AVIS MYANMAR', '+959977875099       Unit 15, M Tower, No.527 Pyay Road, 04 15th Floor, 11041, မြန်မာ', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(112, 85, 'inoventure', 'No. 631, Pyay Road, Kamayut Township, Yangon, Myanmar.+959897308080', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(113, 86, 'Concierge Business Limousine', 'Room (302) Tower A, Shwe Zabu Deik Condo, Strand Road, Ahlone Township, Yangon, Myanmar +959 450061110 , +959 960760732', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(114, 87, 'Elegant Star (Recommended)', '3C, Shwe Kinnari Estate, Nar Nat Taw Street, Kamayut, Yangon, Myanmar    \n\n+95 9421736316,\n +95 9678884898', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(115, 88, 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'Hlaing, Kamayut, Myanmar\n\n09740016907 or 095501302 for Viber', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(116, 89, 'Moe Kaung Kin', '62(A)29x30ကြား', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(117, 90, 'Y Collection', '၁၀၆၊ ၄၉ လမ်း (အနော်ရထာလမ်း နှင့် မဟာဗန္ဓုလလမ်းကြား)၊ ပုဇွန်တောင်မြို့နယ်၊ ရန်ကုန်။\n\n099 8484 8787, 09 78 666 2998', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(118, 91, 'Paperie Tale (Recommended)', '09-251158839', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(119, 92, 'THIRI Handmade Invatation', '+95 9 772 244608\n\nအမှတ် 122(2)လွှာ အောင်ဇေယျလမ်း  လွတ်လပ်ရေးရပ်ကွက်  အလုံမြို့နယ်\nရန်ကုန်မြို့။', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(120, 93, 'Pyan Kann', '၁၄၂၊၂ ကျိုက်ဝိုင်းဘုရားလမ်း၊ မရမ်းကုန်း၊ ရဲရန်အောင်မှတ်တိုင်အနီး နေဝင်းမျက်မှန် အပေါ်(ပ)ထပ်\n\n09783945706,09446986613', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(121, 94, 'SORA', 'အမှတ် ၆၉၄၊ ဘုရင့်နောင်လမ်း၊ ၃၂ ရပ်ကွက်၊ မြောက်ဒဂုံမြို့နယ်၊ ရန်ကုန်မြို့ (Kaung Htue စားသောက်ဆိုင် မျက်နှာချင်းဆိုင်)Yangon,Myanmar\n09882233765', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(122, 95, 'ကိုသာဂိ', 'အမှတ်(၂၈)၊၆ရက်ကွက်၊တောင်ဉက္ကလာပမြို့နယ်၊သစ္စာလမ်း၊ရန်ကုန်\n09894881122', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(123, 96, 'Ma Htet-pop soul', 'No.3\nMa Har Myint Mo street (u chit mg rood )\nSayarsan ( south)Quartar\nBahan township, Yangon, Myanmar,\n095166069\n09765166069', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(124, 97, 'Lin Lin', 'Yangon\n095163167\n0973132666', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(125, 98, 'make up Kin San Win', 'အမှတ် (၂၅၉)၊ ပထမထပ်၊ ၃၅ လမ်း (အထက်ဘလောက်)၊ သွင်ရုပ်ရှင်ရုံအနီး၊ ကျောက်တံတားမြို့နယ်၊ ရန်ကုန်မြို့။\n095101144\n095012581', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(126, 99, 'Magic Touch Beauty Boutique', 'Mandaly\n09444700382', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(127, 100, 'Chi Chi’s Touch', '77/34-35Mandalay\n09758646836', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(128, 101, 'Makeup Hazel', 'No.14, Yandanar streets , Kamayut\nYangon\n09779922564', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(129, 102, 'Makeup Non Thit San', 'Yangon,Myanmar\n09796217995', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(130, 103, 'Sweet Hair& Make up', 'No.52, First Floor, 157 Road 9, Tamwe, Yangon.\n09791157650', 'approved', NULL, NULL, NULL, 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-20 07:52:35', NULL),
+(131, 105, 'Chanel', 'we provide accessories', 'verified', 1, 1, 'https://dribble.com', 1, '2026-06-23 04:23:48', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-23 04:23:48', NULL),
+(132, 114, 'Forever Wedding Studio', 'Forever One Stop Wedding Service & Planning was established in 2006 and has earned a name in bridal industries for wedding photography and wedding gowns collection. Our motto is to capture your most precious memories while still maintain customer satisfaction, innovation leadership and continuing operation, leaving customers happy dreams and memories.', 'verified', 1, 1, 'https://www.foreverweddingstudio.com/', 1, '2026-06-23 05:50:02', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-23 05:50:02', NULL),
+(133, 124, 'Yadanar', 'We rent bridal dresses, accessories, and provide pre-wedding studio photos.', 'approved', NULL, 1, 'https://t.me/nawpanydn', 1, '2026-06-24 04:20:55', 'supplier-v1', 'unpaid', 0, 0, 0, NULL, 0, NULL, NULL, NULL, NULL, '2026-06-24 04:20:55', NULL),
+(134, 27, 'Shwe Phoo Sar', 'မင်္ဂလာရက်အထူးစိတ်တက်ကြွစေမယ့် ရွှေဖူးစာ (shwephoosar) ပါဝင်သော wedding dress အကြောင်းဖြစ်သည်။ သာမာန်ဝတ်စုံမဟုတ်ပါ၊ ဂါဝန် (dress) ကိုဘက်တစ်ဖက်စီလှည့်ပြီး လှုပ်လိုက်ခြင်း၊ လက်နှစ်ဖက်ချထားသည့် စတိုင်ဖြင့် မင်္ဂလာနေ့မှာ အထင်ကရ ပေါ်လာစေနိုင်သည်။', 'verified', 1, 1, 'https://www.tiktok.com/@shwephoosar22', 1, '2026-06-25 04:43:57', 'supplier-v1', 'paid', 1, 0, 0, NULL, 1, '\nWARN L1 (admin #1): Do the work properly — 2026-06-26 11:18:17', NULL, NULL, NULL, '2026-06-25 04:43:57', NULL),
+(135, 133, 'Cake', 'Hi', 'banned', 1, 1, 'https://kudosmm.com/', 1, '2026-06-26 02:36:13', 'supplier-v1', 'paid', 1, 0, 0, NULL, 1, 'BANNED: I want to ban', NULL, NULL, NULL, '2026-06-26 02:36:13', NULL);
 
 -- --------------------------------------------------------
 
@@ -3245,7 +3865,13 @@ INSERT INTO `supplier_categories` (`id`, `supplier_id`, `category_id`, `source`,
 (4, 20, 2, 'manual', NULL, '2026-06-10 06:38:51'),
 (5, 21, 3, 'manual', NULL, '2026-06-11 05:01:15'),
 (6, 21, 4, 'manual', NULL, '2026-06-11 05:01:15'),
-(7, 21, 6, 'manual', NULL, '2026-06-11 05:01:15');
+(7, 21, 6, 'manual', NULL, '2026-06-11 05:01:15'),
+(8, 131, 2, 'manual', NULL, '2026-06-23 04:23:48'),
+(9, 132, 5, 'manual', NULL, '2026-06-23 05:50:02'),
+(10, 133, 2, 'manual', NULL, '2026-06-24 04:20:55'),
+(11, 133, 5, 'manual', NULL, '2026-06-24 04:20:55'),
+(12, 134, 2, 'manual', NULL, '2026-06-25 04:43:57'),
+(13, 135, 3, 'manual', NULL, '2026-06-26 02:36:13');
 
 -- --------------------------------------------------------
 
@@ -3269,7 +3895,17 @@ INSERT INTO `supplier_documents` (`id`, `supplier_id`, `file_url`, `type`, `crea
 (8, 20, 'http://localhost/GP/public/uploads/suppliers/20-jv/documents/cover-photo-20260610083851-a953579d.jpg', 'cover_photo', '2026-06-10 06:38:51'),
 (9, 20, 'http://localhost/GP/public/uploads/suppliers/20-jv/documents/business-license-20260610083851-8ff92fb4.jpg', 'business_license', '2026-06-10 06:38:51'),
 (10, 21, 'http://localhost/GP/public/uploads/suppliers/21-wyndham-grand-yangon-hotel/documents/cover-photo-20260611070115-9e2abb41.jpg', 'cover_photo', '2026-06-11 05:01:15'),
-(11, 21, 'http://localhost/GP/public/uploads/suppliers/21-wyndham-grand-yangon-hotel/documents/business-license-20260611070115-21f65a81.pdf', 'business_license', '2026-06-11 05:01:15');
+(11, 21, 'http://localhost/GP/public/uploads/suppliers/21-wyndham-grand-yangon-hotel/documents/business-license-20260611070115-21f65a81.pdf', 'business_license', '2026-06-11 05:01:15'),
+(12, 131, 'https://7234de2136702a21-204-157-173-242.serveousercontent.com/GP/public/uploads/suppliers/131-chanel/documents/cover-photo-20260623105348-13d2f1a5.webp', 'cover_photo', '2026-06-23 04:23:48'),
+(13, 131, 'https://7234de2136702a21-204-157-173-242.serveousercontent.com/GP/public/uploads/suppliers/131-chanel/documents/business-license-20260623105348-5237b5cd.jpg', 'business_license', '2026-06-23 04:23:48'),
+(14, 132, 'https://7234de2136702a21-204-157-173-242.serveousercontent.com/GP/public/uploads/suppliers/132-forever-wedding-studio/documents/cover-photo-20260623122002-5bfdf9ed.png', 'cover_photo', '2026-06-23 05:50:02'),
+(15, 132, 'https://7234de2136702a21-204-157-173-242.serveousercontent.com/GP/public/uploads/suppliers/132-forever-wedding-studio/documents/business-license-20260623122002-891fd2fc.jpg', 'business_license', '2026-06-23 05:50:02'),
+(16, 133, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/133-yadanar/documents/cover-photo-20260624105055-df889d83.jpg', 'cover_photo', '2026-06-24 04:20:55'),
+(17, 133, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/suppliers/133-yadanar/documents/business-license-20260624105055-d7543d79.jpg', 'business_license', '2026-06-24 04:20:55'),
+(18, 134, 'https://9b5bcca332b0e95c-136-228-172-224.serveousercontent.com/GP/public/uploads/suppliers/134-shwe-phoo-sar/documents/cover-photo-20260625111357-94b6cc23.jpg', 'cover_photo', '2026-06-25 04:43:57'),
+(19, 134, 'https://9b5bcca332b0e95c-136-228-172-224.serveousercontent.com/GP/public/uploads/suppliers/134-shwe-phoo-sar/documents/business-license-20260625111357-2a026943.jpg', 'business_license', '2026-06-25 04:43:57'),
+(20, 135, 'https://4b2b50ea8de75a5e-204-157-173-127.serveousercontent.com/GP/public/uploads/suppliers/135-cake/documents/cover-photo-20260626090613-457f4545.jpg', 'cover_photo', '2026-06-26 02:36:13'),
+(21, 135, 'https://4b2b50ea8de75a5e-204-157-173-127.serveousercontent.com/GP/public/uploads/suppliers/135-cake/documents/business-license-20260626090613-65bfbf9f.png', 'business_license', '2026-06-26 02:36:13');
 
 -- --------------------------------------------------------
 
@@ -3387,7 +4023,428 @@ INSERT INTO `system_logs` (`id`, `user_id`, `action`, `ip_address`, `user_agent`
 (113, 30, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-22 07:31:17', '2026-06-22 07:31:17', '2026-06-22 07:31:17', '2026-06-22 07:31:17'),
 (114, 102, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-22 07:45:59', '2026-06-22 07:45:59', NULL, '2026-06-22 07:45:59'),
 (115, 102, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-22 07:46:04', '2026-06-22 07:46:04', NULL, '2026-06-22 07:46:04'),
-(116, 102, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-22 07:46:46', '2026-06-22 07:46:46', NULL, '2026-06-22 07:46:46');
+(116, 102, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-22 07:46:46', '2026-06-22 07:46:46', NULL, '2026-06-22 07:46:46'),
+(117, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 03:14:11', '2026-06-23 03:14:11', NULL, '2026-06-23 03:14:11'),
+(118, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 03:15:13', '2026-06-23 03:15:13', NULL, '2026-06-23 03:15:13'),
+(119, 105, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 03:15:16', '2026-06-23 03:15:16', NULL, '2026-06-23 03:15:16'),
+(120, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 03:15:28', '2026-06-23 03:15:28', NULL, '2026-06-23 03:15:28'),
+(121, 106, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 03:20:07', '2026-06-23 03:20:07', NULL, '2026-06-23 03:20:07'),
+(122, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:01:48', '2026-06-23 04:01:48', NULL, '2026-06-23 04:01:48'),
+(123, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:01:57', '2026-06-23 04:01:57', NULL, '2026-06-23 04:01:57'),
+(124, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:02:22', '2026-06-23 04:02:22', NULL, '2026-06-23 04:02:22'),
+(125, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:03:28', '2026-06-23 04:03:28', NULL, '2026-06-23 04:03:28'),
+(126, 107, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:07:45', '2026-06-23 04:07:45', NULL, '2026-06-23 04:07:45'),
+(128, 1, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:15:39', '2026-06-23 04:15:39', '2026-06-23 04:15:39', '2026-06-23 04:15:39'),
+(129, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:20:38', '2026-06-23 04:20:38', NULL, '2026-06-23 04:20:38'),
+(130, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:20:48', '2026-06-23 04:20:48', NULL, '2026-06-23 04:20:48'),
+(131, 105, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:21:13', '2026-06-23 04:21:13', NULL, '2026-06-23 04:21:13'),
+(132, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:21:47', '2026-06-23 04:21:47', NULL, '2026-06-23 04:21:47'),
+(133, 105, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:22:14', '2026-06-23 04:22:14', NULL, '2026-06-23 04:22:14'),
+(134, 109, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:23:00', '2026-06-23 04:23:00', NULL, '2026-06-23 04:23:00'),
+(135, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:24:47', '2026-06-23 04:24:47', NULL, '2026-06-23 04:24:47'),
+(136, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:25:09', '2026-06-23 04:25:09', NULL, '2026-06-23 04:25:09'),
+(137, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:25:24', '2026-06-23 04:25:24', NULL, '2026-06-23 04:25:24'),
+(138, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:25:37', '2026-06-23 04:25:37', NULL, '2026-06-23 04:25:37'),
+(139, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:29:05', '2026-06-23 04:29:05', NULL, '2026-06-23 04:29:05'),
+(140, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:30:07', '2026-06-23 04:30:07', NULL, '2026-06-23 04:30:07'),
+(141, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:30:16', '2026-06-23 04:30:16', NULL, '2026-06-23 04:30:16'),
+(142, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:30:29', '2026-06-23 04:30:29', NULL, '2026-06-23 04:30:29'),
+(143, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:31:03', '2026-06-23 04:31:03', NULL, '2026-06-23 04:31:03'),
+(145, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:32:28', '2026-06-23 04:32:28', NULL, '2026-06-23 04:32:28'),
+(146, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:33:02', '2026-06-23 04:33:02', NULL, '2026-06-23 04:33:02'),
+(147, 105, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:34:16', '2026-06-23 04:34:16', '2026-06-23 04:34:16', '2026-06-23 04:34:16'),
+(148, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:38:13', '2026-06-23 04:38:13', NULL, '2026-06-23 04:38:13'),
+(150, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:38:22', '2026-06-23 04:38:22', NULL, '2026-06-23 04:38:22'),
+(151, 105, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:38:46', '2026-06-23 04:38:46', NULL, '2026-06-23 04:38:46'),
+(161, 111, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 04:54:27', '2026-06-23 04:54:27', NULL, '2026-06-23 04:54:27'),
+(165, 112, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 04:58:22', '2026-06-23 04:58:22', NULL, '2026-06-23 04:58:22'),
+(166, 112, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:00:21', '2026-06-23 05:00:21', NULL, '2026-06-23 05:00:21'),
+(167, 112, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:01:03', '2026-06-23 05:01:03', NULL, '2026-06-23 05:01:03'),
+(168, 112, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:01:18', '2026-06-23 05:01:18', NULL, '2026-06-23 05:01:18'),
+(169, 113, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:02:36', '2026-06-23 05:02:36', NULL, '2026-06-23 05:02:36'),
+(170, 113, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:04:24', '2026-06-23 05:04:24', NULL, '2026-06-23 05:04:24'),
+(171, 113, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:04:34', '2026-06-23 05:04:34', NULL, '2026-06-23 05:04:34'),
+(172, 113, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:04:47', '2026-06-23 05:04:47', NULL, '2026-06-23 05:04:47'),
+(173, 112, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:08:58', '2026-06-23 05:08:58', NULL, '2026-06-23 05:08:58'),
+(174, 112, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:09:05', '2026-06-23 05:09:05', NULL, '2026-06-23 05:09:05'),
+(175, 112, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:09:23', '2026-06-23 05:09:23', NULL, '2026-06-23 05:09:23'),
+(176, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:16:41', '2026-06-23 05:16:41', NULL, '2026-06-23 05:16:41'),
+(177, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:16:49', '2026-06-23 05:16:49', NULL, '2026-06-23 05:16:49'),
+(178, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:17:25', '2026-06-23 05:17:25', NULL, '2026-06-23 05:17:25'),
+(179, 24, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:20:27', '2026-06-23 05:20:27', NULL, '2026-06-23 05:20:27'),
+(180, 24, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:20:32', '2026-06-23 05:20:32', NULL, '2026-06-23 05:20:32'),
+(181, 24, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 05:20:47', '2026-06-23 05:20:47', NULL, '2026-06-23 05:20:47'),
+(182, 114, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:27:33', '2026-06-23 05:27:33', NULL, '2026-06-23 05:27:33'),
+(183, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:30:36', '2026-06-23 05:30:36', NULL, '2026-06-23 05:30:36'),
+(184, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:30:44', '2026-06-23 05:30:44', NULL, '2026-06-23 05:30:44'),
+(185, 114, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 05:31:17', '2026-06-23 05:31:17', NULL, '2026-06-23 05:31:17'),
+(186, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 12:58:11', '2026-06-23 12:58:11', NULL, '2026-06-23 12:58:11'),
+(187, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 12:58:55', '2026-06-23 12:58:55', NULL, '2026-06-23 12:58:55'),
+(188, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 12:58:59', '2026-06-23 12:58:59', NULL, '2026-06-23 12:58:59'),
+(189, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:00:16', '2026-06-23 13:00:16', NULL, '2026-06-23 13:00:16'),
+(190, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:00:21', '2026-06-23 13:00:21', NULL, '2026-06-23 13:00:21'),
+(191, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:01:32', '2026-06-23 13:01:32', NULL, '2026-06-23 13:01:32'),
+(192, 109, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:02:16', '2026-06-23 13:02:16', NULL, '2026-06-23 13:02:16'),
+(193, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:02:42', '2026-06-23 13:02:42', NULL, '2026-06-23 13:02:42'),
+(194, 109, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:03:24', '2026-06-23 13:03:24', NULL, '2026-06-23 13:03:24'),
+(195, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:04:03', '2026-06-23 13:04:03', NULL, '2026-06-23 13:04:03'),
+(196, 109, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:04:32', '2026-06-23 13:04:32', NULL, '2026-06-23 13:04:32'),
+(197, 109, 'lock_account', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:04:36', '2026-06-23 13:04:36', NULL, '2026-06-23 13:04:36'),
+(198, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 13:05:41', '2026-06-23 13:05:41', NULL, '2026-06-23 13:05:41'),
+(199, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:06:20', '2026-06-23 13:06:20', NULL, '2026-06-23 13:06:20'),
+(200, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:06:40', '2026-06-23 13:06:40', NULL, '2026-06-23 13:06:40'),
+(201, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 13:09:53', '2026-06-23 13:09:53', NULL, '2026-06-23 13:09:53'),
+(202, 29, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:10:51', '2026-06-23 13:10:51', NULL, '2026-06-23 13:10:51'),
+(203, 29, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:11:49', '2026-06-23 13:11:49', '2026-06-23 13:11:49', '2026-06-23 13:11:49'),
+(204, 115, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 13:15:22', '2026-06-23 13:15:22', NULL, '2026-06-23 13:15:22'),
+(205, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:39:40', '2026-06-23 13:39:40', NULL, '2026-06-23 13:39:40'),
+(206, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:40:29', '2026-06-23 13:40:29', NULL, '2026-06-23 13:40:29'),
+(207, 109, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:41:16', '2026-06-23 13:41:16', NULL, '2026-06-23 13:41:16'),
+(208, 109, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:41:54', '2026-06-23 13:41:54', NULL, '2026-06-23 13:41:54'),
+(209, 109, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:42:13', '2026-06-23 13:42:13', NULL, '2026-06-23 13:42:13'),
+(210, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:43:09', '2026-06-23 13:43:09', NULL, '2026-06-23 13:43:09'),
+(211, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:43:26', '2026-06-23 13:43:26', NULL, '2026-06-23 13:43:26'),
+(212, 109, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:43:41', '2026-06-23 13:43:41', NULL, '2026-06-23 13:43:41'),
+(213, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:44:44', '2026-06-23 13:44:44', NULL, '2026-06-23 13:44:44'),
+(214, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 13:45:18', '2026-06-23 13:45:18', NULL, '2026-06-23 13:45:18'),
+(215, 116, 'register_success', '::1', 'curl/8.7.1', '2026-06-23 14:25:48', '2026-06-23 14:25:48', NULL, '2026-06-23 14:25:48'),
+(216, 117, 'register_success', '::1', 'curl/8.7.1', '2026-06-23 14:26:03', '2026-06-23 14:26:03', NULL, '2026-06-23 14:26:03'),
+(217, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 14:57:17', '2026-06-23 14:57:17', NULL, '2026-06-23 14:57:17'),
+(218, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 14:57:48', '2026-06-23 14:57:48', NULL, '2026-06-23 14:57:48'),
+(219, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 14:58:11', '2026-06-23 14:58:11', NULL, '2026-06-23 14:58:11'),
+(220, 109, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 14:59:09', '2026-06-23 14:59:09', '2026-06-23 14:59:09', '2026-06-23 14:59:09'),
+(221, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 14:59:39', '2026-06-23 14:59:39', NULL, '2026-06-23 14:59:39'),
+(222, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 14:59:48', '2026-06-23 14:59:48', NULL, '2026-06-23 14:59:48'),
+(223, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:00:02', '2026-06-23 15:00:02', NULL, '2026-06-23 15:00:02'),
+(224, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:00:37', '2026-06-23 15:00:37', NULL, '2026-06-23 15:00:37'),
+(225, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:02:45', '2026-06-23 15:02:45', NULL, '2026-06-23 15:02:45'),
+(226, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:03:00', '2026-06-23 15:03:00', NULL, '2026-06-23 15:03:00'),
+(227, 109, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:03:26', '2026-06-23 15:03:26', NULL, '2026-06-23 15:03:26'),
+(228, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:04:14', '2026-06-23 15:04:14', NULL, '2026-06-23 15:04:14'),
+(229, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:04:34', '2026-06-23 15:04:34', NULL, '2026-06-23 15:04:34'),
+(230, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:12:17', '2026-06-23 15:12:17', NULL, '2026-06-23 15:12:17'),
+(231, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:13:34', '2026-06-23 15:13:34', NULL, '2026-06-23 15:13:34'),
+(232, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:13:48', '2026-06-23 15:13:48', NULL, '2026-06-23 15:13:48'),
+(233, 114, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:14:15', '2026-06-23 15:14:15', NULL, '2026-06-23 15:14:15'),
+(234, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:16:11', '2026-06-23 15:16:11', NULL, '2026-06-23 15:16:11'),
+(235, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:16:30', '2026-06-23 15:16:30', NULL, '2026-06-23 15:16:30'),
+(236, 109, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:23:47', '2026-06-23 15:23:47', '2026-06-23 15:23:47', '2026-06-23 15:23:47'),
+(237, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:24:17', '2026-06-23 15:24:17', NULL, '2026-06-23 15:24:17'),
+(238, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:24:25', '2026-06-23 15:24:25', NULL, '2026-06-23 15:24:25'),
+(239, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:24:48', '2026-06-23 15:24:48', NULL, '2026-06-23 15:24:48'),
+(240, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-23 15:28:32', '2026-06-23 15:28:32', NULL, '2026-06-23 15:28:32'),
+(241, 29, 'login_information_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 18:35:11', '2026-06-23 18:35:11', NULL, '2026-06-23 18:35:11'),
+(242, 29, 'login_information_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 18:37:49', '2026-06-23 18:37:49', NULL, '2026-06-23 18:37:49'),
+(243, 29, 'login_information_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 18:38:47', '2026-06-23 18:38:47', NULL, '2026-06-23 18:38:47'),
+(244, 29, 'login_information_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 18:40:35', '2026-06-23 18:40:35', NULL, '2026-06-23 18:40:35'),
+(245, 29, 'login_information_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 18:41:33', '2026-06-23 18:41:33', NULL, '2026-06-23 18:41:33'),
+(246, 29, 'login_information_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 18:41:37', '2026-06-23 18:41:37', NULL, '2026-06-23 18:41:37'),
+(247, 29, 'login_information_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 18:46:39', '2026-06-23 18:46:39', NULL, '2026-06-23 18:46:39'),
+(248, 29, 'login_information_fail', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-23 18:48:46', '2026-06-23 18:48:46', NULL, '2026-06-23 18:48:46'),
+(249, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:04:13', '2026-06-24 02:04:13', NULL, '2026-06-24 02:04:13'),
+(250, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:04:29', '2026-06-24 02:04:29', NULL, '2026-06-24 02:04:29'),
+(251, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:04:38', '2026-06-24 02:04:38', NULL, '2026-06-24 02:04:38'),
+(252, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:05:43', '2026-06-24 02:05:43', NULL, '2026-06-24 02:05:43'),
+(253, 105, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:06:18', '2026-06-24 02:06:18', NULL, '2026-06-24 02:06:18'),
+(254, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:07:43', '2026-06-24 02:07:43', NULL, '2026-06-24 02:07:43'),
+(255, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:07:50', '2026-06-24 02:07:50', NULL, '2026-06-24 02:07:50'),
+(256, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:07:58', '2026-06-24 02:07:58', NULL, '2026-06-24 02:07:58'),
+(257, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:08:21', '2026-06-24 02:08:21', NULL, '2026-06-24 02:08:21'),
+(258, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:08:30', '2026-06-24 02:08:30', NULL, '2026-06-24 02:08:30'),
+(259, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:08:48', '2026-06-24 02:08:48', NULL, '2026-06-24 02:08:48'),
+(260, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:09:06', '2026-06-24 02:09:06', NULL, '2026-06-24 02:09:06'),
+(261, 112, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:19:11', '2026-06-24 02:19:11', NULL, '2026-06-24 02:19:11'),
+(262, 112, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:19:23', '2026-06-24 02:19:23', NULL, '2026-06-24 02:19:23'),
+(263, 112, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:19:38', '2026-06-24 02:19:38', NULL, '2026-06-24 02:19:38'),
+(264, 118, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 02:23:58', '2026-06-24 02:23:58', NULL, '2026-06-24 02:23:58'),
+(265, 119, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:07:57', '2026-06-24 03:07:57', NULL, '2026-06-24 03:07:57'),
+(266, 105, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:11:13', '2026-06-24 03:11:13', '2026-06-24 03:11:13', '2026-06-24 03:11:13'),
+(267, 120, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:12:13', '2026-06-24 03:12:13', NULL, '2026-06-24 03:12:13');
+INSERT INTO `system_logs` (`id`, `user_id`, `action`, `ip_address`, `user_agent`, `login_time`, `last_active`, `logout_time`, `created_at`) VALUES
+(268, 121, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:15:03', '2026-06-24 03:15:03', NULL, '2026-06-24 03:15:03'),
+(269, 112, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:16:26', '2026-06-24 03:16:26', '2026-06-24 03:16:26', '2026-06-24 03:16:26'),
+(270, 122, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:17:26', '2026-06-24 03:17:26', NULL, '2026-06-24 03:17:26'),
+(271, 112, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:18:02', '2026-06-24 03:18:02', NULL, '2026-06-24 03:18:02'),
+(272, 112, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:18:09', '2026-06-24 03:18:09', NULL, '2026-06-24 03:18:09'),
+(273, 112, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:18:23', '2026-06-24 03:18:23', NULL, '2026-06-24 03:18:23'),
+(274, 112, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:19:19', '2026-06-24 03:19:19', NULL, '2026-06-24 03:19:19'),
+(275, 112, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:19:27', '2026-06-24 03:19:27', NULL, '2026-06-24 03:19:27'),
+(276, 112, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:19:45', '2026-06-24 03:19:45', NULL, '2026-06-24 03:19:45'),
+(277, 112, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:19:59', '2026-06-24 03:19:59', NULL, '2026-06-24 03:19:59'),
+(278, 109, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:20:03', '2026-06-24 03:20:03', NULL, '2026-06-24 03:20:03'),
+(279, 112, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:20:13', '2026-06-24 03:20:13', NULL, '2026-06-24 03:20:13'),
+(280, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:20:34', '2026-06-24 03:20:34', NULL, '2026-06-24 03:20:34'),
+(281, 122, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:20:50', '2026-06-24 03:20:50', NULL, '2026-06-24 03:20:50'),
+(282, 120, 'ResetToken_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:21:12', '2026-06-24 03:21:12', NULL, '2026-06-24 03:21:12'),
+(283, 122, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:21:28', '2026-06-24 03:21:28', NULL, '2026-06-24 03:21:28'),
+(284, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:21:47', '2026-06-24 03:21:47', NULL, '2026-06-24 03:21:47'),
+(285, 122, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:21:47', '2026-06-24 03:21:47', NULL, '2026-06-24 03:21:47'),
+(286, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:22:12', '2026-06-24 03:22:12', NULL, '2026-06-24 03:22:12'),
+(287, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:22:21', '2026-06-24 03:22:21', NULL, '2026-06-24 03:22:21'),
+(288, 112, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:22:38', '2026-06-24 03:22:38', NULL, '2026-06-24 03:22:38'),
+(289, 121, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:22:40', '2026-06-24 03:22:40', NULL, '2026-06-24 03:22:40'),
+(290, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:22:41', '2026-06-24 03:22:41', NULL, '2026-06-24 03:22:41'),
+(291, 112, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:22:46', '2026-06-24 03:22:46', NULL, '2026-06-24 03:22:46'),
+(292, 121, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:22:55', '2026-06-24 03:22:55', NULL, '2026-06-24 03:22:55'),
+(293, 121, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:23:02', '2026-06-24 03:23:02', NULL, '2026-06-24 03:23:02'),
+(294, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:23:02', '2026-06-24 03:23:02', NULL, '2026-06-24 03:23:02'),
+(295, 112, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:23:06', '2026-06-24 03:23:06', NULL, '2026-06-24 03:23:06'),
+(296, 121, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:23:12', '2026-06-24 03:23:12', NULL, '2026-06-24 03:23:12'),
+(297, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:23:23', '2026-06-24 03:23:23', NULL, '2026-06-24 03:23:23'),
+(298, 121, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:23:33', '2026-06-24 03:23:33', NULL, '2026-06-24 03:23:33'),
+(299, 123, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:24:38', '2026-06-24 03:24:38', NULL, '2026-06-24 03:24:38'),
+(300, 123, 'ResetToken_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:25:44', '2026-06-24 03:25:44', NULL, '2026-06-24 03:25:44'),
+(301, 124, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:28:35', '2026-06-24 03:28:35', NULL, '2026-06-24 03:28:35'),
+(302, 121, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:31:27', '2026-06-24 03:31:27', '2026-06-24 03:31:27', '2026-06-24 03:31:27'),
+(303, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:31:53', '2026-06-24 03:31:53', NULL, '2026-06-24 03:31:53'),
+(304, 124, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:52:46', '2026-06-24 03:52:46', NULL, '2026-06-24 03:52:46'),
+(305, 122, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:53:14', '2026-06-24 03:53:14', '2026-06-24 03:53:14', '2026-06-24 03:53:14'),
+(306, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:53:14', '2026-06-24 03:53:14', NULL, '2026-06-24 03:53:14'),
+(307, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:53:35', '2026-06-24 03:53:35', NULL, '2026-06-24 03:53:35'),
+(308, 124, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:53:55', '2026-06-24 03:53:55', NULL, '2026-06-24 03:53:55'),
+(309, 125, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:55:30', '2026-06-24 03:55:30', NULL, '2026-06-24 03:55:30'),
+(310, 123, 'login_information_correct', '::1', 'Mozilla/5.0 (Linux; U; Android 16; en-us; 2312DRA50C Build/BP2A.250605.031.A3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.7049.79 Mobile Safari/537.36 XiaoMi/MiuiBrowser/20.21.1050617', '2026-06-24 03:57:18', '2026-06-24 03:57:18', NULL, '2026-06-24 03:57:18'),
+(311, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:57:29', '2026-06-24 03:57:29', NULL, '2026-06-24 03:57:29'),
+(312, 126, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 03:58:34', '2026-06-24 03:58:34', NULL, '2026-06-24 03:58:34'),
+(313, 123, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Linux; U; Android 16; en-us; 2312DRA50C Build/BP2A.250605.031.A3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.7049.79 Mobile Safari/537.36 XiaoMi/MiuiBrowser/20.21.1050617', '2026-06-24 03:58:58', '2026-06-24 03:58:58', NULL, '2026-06-24 03:58:58'),
+(314, 123, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Linux; U; Android 16; en-us; 2312DRA50C Build/BP2A.250605.031.A3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.7049.79 Mobile Safari/537.36 XiaoMi/MiuiBrowser/20.21.1050617', '2026-06-24 03:59:17', '2026-06-24 03:59:17', NULL, '2026-06-24 03:59:17'),
+(315, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 03:59:54', '2026-06-24 03:59:54', NULL, '2026-06-24 03:59:54'),
+(316, 124, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:00:16', '2026-06-24 04:00:16', NULL, '2026-06-24 04:00:16'),
+(317, 123, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Linux; U; Android 16; en-us; 2312DRA50C Build/BP2A.250605.031.A3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.7049.79 Mobile Safari/537.36 XiaoMi/MiuiBrowser/20.21.1050617', '2026-06-24 04:00:35', '2026-06-24 04:00:35', NULL, '2026-06-24 04:00:35'),
+(318, 123, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Linux; U; Android 16; en-us; 2312DRA50C Build/BP2A.250605.031.A3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.7049.79 Mobile Safari/537.36 XiaoMi/MiuiBrowser/20.21.1050617', '2026-06-24 04:00:58', '2026-06-24 04:00:58', NULL, '2026-06-24 04:00:58'),
+(319, 124, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:04:17', '2026-06-24 04:04:17', NULL, '2026-06-24 04:04:17'),
+(320, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:04:31', '2026-06-24 04:04:31', NULL, '2026-06-24 04:04:31'),
+(321, 113, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:05:29', '2026-06-24 04:05:29', NULL, '2026-06-24 04:05:29'),
+(322, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:05:48', '2026-06-24 04:05:48', NULL, '2026-06-24 04:05:48'),
+(323, 124, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:06:15', '2026-06-24 04:06:15', NULL, '2026-06-24 04:06:15'),
+(324, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:06:42', '2026-06-24 04:06:42', NULL, '2026-06-24 04:06:42'),
+(325, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:07:03', '2026-06-24 04:07:03', NULL, '2026-06-24 04:07:03'),
+(326, 113, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:07:25', '2026-06-24 04:07:25', NULL, '2026-06-24 04:07:25'),
+(327, 113, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:07:51', '2026-06-24 04:07:51', NULL, '2026-06-24 04:07:51'),
+(328, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:08:39', '2026-06-24 04:08:39', NULL, '2026-06-24 04:08:39'),
+(329, 105, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:08:58', '2026-06-24 04:08:58', NULL, '2026-06-24 04:08:58'),
+(330, 124, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:15:35', '2026-06-24 04:15:35', '2026-06-24 04:15:35', '2026-06-24 04:15:35'),
+(331, 124, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:16:35', '2026-06-24 04:16:35', NULL, '2026-06-24 04:16:35'),
+(332, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:17:36', '2026-06-24 04:17:36', NULL, '2026-06-24 04:17:36'),
+(333, 124, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:17:49', '2026-06-24 04:17:49', NULL, '2026-06-24 04:17:49'),
+(334, 112, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:17:59', '2026-06-24 04:17:59', '2026-06-24 04:17:59', '2026-06-24 04:17:59'),
+(335, 112, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:18:11', '2026-06-24 04:18:11', NULL, '2026-06-24 04:18:11'),
+(336, 112, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:18:18', '2026-06-24 04:18:18', NULL, '2026-06-24 04:18:18'),
+(337, 112, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:18:37', '2026-06-24 04:18:37', NULL, '2026-06-24 04:18:37'),
+(338, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:18:53', '2026-06-24 04:18:53', NULL, '2026-06-24 04:18:53'),
+(339, 124, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:19:18', '2026-06-24 04:19:18', NULL, '2026-06-24 04:19:18'),
+(340, 24, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:19:46', '2026-06-24 04:19:46', NULL, '2026-06-24 04:19:46'),
+(341, 24, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:20:18', '2026-06-24 04:20:18', NULL, '2026-06-24 04:20:18'),
+(342, 121, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:21:33', '2026-06-24 04:21:33', NULL, '2026-06-24 04:21:33'),
+(343, 24, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:21:43', '2026-06-24 04:21:43', NULL, '2026-06-24 04:21:43'),
+(344, 121, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:21:47', '2026-06-24 04:21:47', NULL, '2026-06-24 04:21:47'),
+(345, 24, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:22:06', '2026-06-24 04:22:06', NULL, '2026-06-24 04:22:06'),
+(346, 121, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:22:09', '2026-06-24 04:22:09', NULL, '2026-06-24 04:22:09'),
+(347, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:28:32', '2026-06-24 04:28:32', NULL, '2026-06-24 04:28:32'),
+(348, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:28:40', '2026-06-24 04:28:40', NULL, '2026-06-24 04:28:40'),
+(349, 114, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:29:31', '2026-06-24 04:29:31', NULL, '2026-06-24 04:29:31'),
+(350, 124, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:29:38', '2026-06-24 04:29:38', NULL, '2026-06-24 04:29:38'),
+(351, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:29:46', '2026-06-24 04:29:46', NULL, '2026-06-24 04:29:46'),
+(352, 124, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:30:00', '2026-06-24 04:30:00', NULL, '2026-06-24 04:30:00'),
+(353, 127, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:34:08', '2026-06-24 04:34:08', NULL, '2026-06-24 04:34:08'),
+(354, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:35:01', '2026-06-24 04:35:01', NULL, '2026-06-24 04:35:01'),
+(355, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:35:58', '2026-06-24 04:35:58', NULL, '2026-06-24 04:35:58'),
+(356, 114, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:36:43', '2026-06-24 04:36:43', '2026-06-24 04:36:43', '2026-06-24 04:36:43'),
+(357, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:36:59', '2026-06-24 04:36:59', NULL, '2026-06-24 04:36:59'),
+(358, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:37:07', '2026-06-24 04:37:07', NULL, '2026-06-24 04:37:07'),
+(359, 114, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:37:27', '2026-06-24 04:37:27', NULL, '2026-06-24 04:37:27'),
+(360, 113, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:37:52', '2026-06-24 04:37:52', '2026-06-24 04:37:52', '2026-06-24 04:37:52'),
+(361, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:38:33', '2026-06-24 04:38:33', NULL, '2026-06-24 04:38:33'),
+(362, 114, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:38:54', '2026-06-24 04:38:54', NULL, '2026-06-24 04:38:54'),
+(363, 111, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:49:02', '2026-06-24 04:49:02', NULL, '2026-06-24 04:49:02'),
+(364, 111, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:49:10', '2026-06-24 04:49:10', NULL, '2026-06-24 04:49:10'),
+(365, 111, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 04:49:35', '2026-06-24 04:49:35', NULL, '2026-06-24 04:49:35'),
+(366, 124, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 04:57:00', '2026-06-24 04:57:00', '2026-06-24 04:57:00', '2026-06-24 04:57:00'),
+(367, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:03:38', '2026-06-24 05:03:38', NULL, '2026-06-24 05:03:38'),
+(368, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:03:59', '2026-06-24 05:03:59', NULL, '2026-06-24 05:03:59'),
+(369, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:04:17', '2026-06-24 05:04:17', NULL, '2026-06-24 05:04:17'),
+(370, 114, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:26:11', '2026-06-24 05:26:11', '2026-06-24 05:26:11', '2026-06-24 05:26:11'),
+(371, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:26:38', '2026-06-24 05:26:38', NULL, '2026-06-24 05:26:38'),
+(372, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:26:53', '2026-06-24 05:26:53', NULL, '2026-06-24 05:26:53'),
+(373, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:28:21', '2026-06-24 05:28:21', NULL, '2026-06-24 05:28:21'),
+(374, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:28:28', '2026-06-24 05:28:28', NULL, '2026-06-24 05:28:28'),
+(375, 114, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:28:47', '2026-06-24 05:28:47', NULL, '2026-06-24 05:28:47'),
+(376, 114, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:31:51', '2026-06-24 05:31:51', '2026-06-24 05:31:51', '2026-06-24 05:31:51'),
+(377, 29, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:32:47', '2026-06-24 05:32:47', NULL, '2026-06-24 05:32:47'),
+(378, 29, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:34:14', '2026-06-24 05:34:14', NULL, '2026-06-24 05:34:14'),
+(379, 29, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:35:49', '2026-06-24 05:35:49', NULL, '2026-06-24 05:35:49'),
+(380, 29, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:36:04', '2026-06-24 05:36:04', NULL, '2026-06-24 05:36:04'),
+(381, 114, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:41:09', '2026-06-24 05:41:09', NULL, '2026-06-24 05:41:09'),
+(382, 114, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:41:37', '2026-06-24 05:41:37', NULL, '2026-06-24 05:41:37'),
+(383, 114, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-24 05:41:59', '2026-06-24 05:41:59', NULL, '2026-06-24 05:41:59'),
+(384, 27, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 11:09:10', '2026-06-24 11:09:10', '2026-06-24 11:09:10', '2026-06-24 11:09:10'),
+(385, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:14:36', '2026-06-24 13:14:36', NULL, '2026-06-24 13:14:36'),
+(386, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:15:17', '2026-06-24 13:15:17', NULL, '2026-06-24 13:15:17'),
+(387, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:15:33', '2026-06-24 13:15:33', NULL, '2026-06-24 13:15:33'),
+(388, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:15:49', '2026-06-24 13:15:49', NULL, '2026-06-24 13:15:49'),
+(389, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:17:20', '2026-06-24 13:17:20', NULL, '2026-06-24 13:17:20'),
+(390, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:17:27', '2026-06-24 13:17:27', NULL, '2026-06-24 13:17:27'),
+(391, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:17:46', '2026-06-24 13:17:46', NULL, '2026-06-24 13:17:46'),
+(392, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:18:42', '2026-06-24 13:18:42', NULL, '2026-06-24 13:18:42'),
+(393, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:18:49', '2026-06-24 13:18:49', NULL, '2026-06-24 13:18:49'),
+(394, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-24 13:19:09', '2026-06-24 13:19:09', NULL, '2026-06-24 13:19:09'),
+(395, 126, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:27:58', '2026-06-25 02:27:58', '2026-06-25 02:27:58', '2026-06-25 02:27:58'),
+(396, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:28:05', '2026-06-25 02:28:05', NULL, '2026-06-25 02:28:05'),
+(397, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:28:15', '2026-06-25 02:28:15', NULL, '2026-06-25 02:28:15'),
+(398, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:30:16', '2026-06-25 02:30:16', NULL, '2026-06-25 02:30:16'),
+(399, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:30:36', '2026-06-25 02:30:36', NULL, '2026-06-25 02:30:36'),
+(400, 126, 'ResetToken_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:30:59', '2026-06-25 02:30:59', NULL, '2026-06-25 02:30:59'),
+(401, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:31:06', '2026-06-25 02:31:06', NULL, '2026-06-25 02:31:06'),
+(402, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:31:30', '2026-06-25 02:31:30', NULL, '2026-06-25 02:31:30'),
+(403, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:31:48', '2026-06-25 02:31:48', NULL, '2026-06-25 02:31:48'),
+(404, 126, 'ResetToken_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:32:12', '2026-06-25 02:32:12', NULL, '2026-06-25 02:32:12'),
+(405, NULL, 'ResetPw_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:32:34', '2026-06-25 02:32:34', NULL, '2026-06-25 02:32:34'),
+(406, 126, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:33:09', '2026-06-25 02:33:09', NULL, '2026-06-25 02:33:09'),
+(407, 126, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:33:23', '2026-06-25 02:33:23', NULL, '2026-06-25 02:33:23'),
+(408, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:33:53', '2026-06-25 02:33:53', NULL, '2026-06-25 02:33:53'),
+(409, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:34:05', '2026-06-25 02:34:05', NULL, '2026-06-25 02:34:05'),
+(410, 126, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:34:09', '2026-06-25 02:34:09', NULL, '2026-06-25 02:34:09'),
+(411, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:34:19', '2026-06-25 02:34:19', NULL, '2026-06-25 02:34:19'),
+(412, 105, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:34:49', '2026-06-25 02:34:49', NULL, '2026-06-25 02:34:49'),
+(413, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:41:33', '2026-06-25 02:41:33', NULL, '2026-06-25 02:41:33'),
+(414, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:41:42', '2026-06-25 02:41:42', NULL, '2026-06-25 02:41:42'),
+(415, 105, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:42:00', '2026-06-25 02:42:00', NULL, '2026-06-25 02:42:00'),
+(416, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:42:15', '2026-06-25 02:42:15', NULL, '2026-06-25 02:42:15'),
+(417, 126, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:42:31', '2026-06-25 02:42:31', NULL, '2026-06-25 02:42:31'),
+(418, 126, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:43:08', '2026-06-25 02:43:08', NULL, '2026-06-25 02:43:08'),
+(419, 109, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:43:18', '2026-06-25 02:43:18', NULL, '2026-06-25 02:43:18'),
+(420, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:43:26', '2026-06-25 02:43:26', NULL, '2026-06-25 02:43:26'),
+(421, 126, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:43:54', '2026-06-25 02:43:54', NULL, '2026-06-25 02:43:54'),
+(422, 105, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:44:08', '2026-06-25 02:44:08', '2026-06-25 02:44:08', '2026-06-25 02:44:08'),
+(423, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:44:35', '2026-06-25 02:44:35', NULL, '2026-06-25 02:44:35'),
+(424, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:44:42', '2026-06-25 02:44:42', NULL, '2026-06-25 02:44:42'),
+(425, 109, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:44:54', '2026-06-25 02:44:54', NULL, '2026-06-25 02:44:54'),
+(426, 109, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:45:06', '2026-06-25 02:45:06', NULL, '2026-06-25 02:45:06'),
+(427, 105, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:45:11', '2026-06-25 02:45:11', NULL, '2026-06-25 02:45:11'),
+(428, 111, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:45:31', '2026-06-25 02:45:31', NULL, '2026-06-25 02:45:31'),
+(429, 128, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:48:38', '2026-06-25 02:48:38', NULL, '2026-06-25 02:48:38'),
+(430, 109, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:50:38', '2026-06-25 02:50:38', '2026-06-25 02:50:38', '2026-06-25 02:50:38'),
+(431, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:51:55', '2026-06-25 02:51:55', NULL, '2026-06-25 02:51:55'),
+(432, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:51:58', '2026-06-25 02:51:58', NULL, '2026-06-25 02:51:58'),
+(433, 129, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 02:52:21', '2026-06-25 02:52:21', NULL, '2026-06-25 02:52:21'),
+(434, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:52:59', '2026-06-25 02:52:59', NULL, '2026-06-25 02:52:59'),
+(435, 124, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 02:59:57', '2026-06-25 02:59:57', NULL, '2026-06-25 02:59:57'),
+(436, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:00:06', '2026-06-25 03:00:06', NULL, '2026-06-25 03:00:06'),
+(437, 124, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:00:30', '2026-06-25 03:00:30', NULL, '2026-06-25 03:00:30'),
+(438, 111, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:01:24', '2026-06-25 03:01:24', '2026-06-25 03:01:24', '2026-06-25 03:01:24'),
+(439, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:02:10', '2026-06-25 03:02:10', NULL, '2026-06-25 03:02:10'),
+(440, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:02:25', '2026-06-25 03:02:25', NULL, '2026-06-25 03:02:25'),
+(441, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:02:39', '2026-06-25 03:02:39', NULL, '2026-06-25 03:02:39'),
+(442, 130, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:03:02', '2026-06-25 03:03:02', NULL, '2026-06-25 03:03:02'),
+(443, 124, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:04:15', '2026-06-25 03:04:15', NULL, '2026-06-25 03:04:15'),
+(444, 1, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:09:23', '2026-06-25 03:09:23', '2026-06-25 03:09:23', '2026-06-25 03:09:23'),
+(445, 131, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:13:18', '2026-06-25 03:13:18', NULL, '2026-06-25 03:13:18'),
+(446, 124, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:13:25', '2026-06-25 03:13:25', NULL, '2026-06-25 03:13:25'),
+(447, 124, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:13:36', '2026-06-25 03:13:36', NULL, '2026-06-25 03:13:36'),
+(448, 124, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:13:42', '2026-06-25 03:13:42', NULL, '2026-06-25 03:13:42'),
+(449, 124, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:14:04', '2026-06-25 03:14:04', NULL, '2026-06-25 03:14:04'),
+(450, 124, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:14:11', '2026-06-25 03:14:11', NULL, '2026-06-25 03:14:11'),
+(451, 124, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:14:30', '2026-06-25 03:14:30', NULL, '2026-06-25 03:14:30'),
+(452, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:15:54', '2026-06-25 03:15:54', NULL, '2026-06-25 03:15:54'),
+(453, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:16:12', '2026-06-25 03:16:12', NULL, '2026-06-25 03:16:12'),
+(454, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:16:41', '2026-06-25 03:16:41', NULL, '2026-06-25 03:16:41'),
+(455, 1, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:22:47', '2026-06-25 03:22:47', '2026-06-25 03:22:47', '2026-06-25 03:22:47'),
+(456, 105, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:23:06', '2026-06-25 03:23:06', '2026-06-25 03:23:06', '2026-06-25 03:23:06'),
+(457, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:24:21', '2026-06-25 03:24:21', NULL, '2026-06-25 03:24:21'),
+(458, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:24:35', '2026-06-25 03:24:35', NULL, '2026-06-25 03:24:35'),
+(459, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:24:46', '2026-06-25 03:24:46', NULL, '2026-06-25 03:24:46'),
+(460, 1, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:25:38', '2026-06-25 03:25:38', '2026-06-25 03:25:38', '2026-06-25 03:25:38'),
+(461, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:28:53', '2026-06-25 03:28:53', NULL, '2026-06-25 03:28:53'),
+(462, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:29:01', '2026-06-25 03:29:01', NULL, '2026-06-25 03:29:01'),
+(463, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:29:12', '2026-06-25 03:29:12', NULL, '2026-06-25 03:29:12'),
+(464, 1, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:29:45', '2026-06-25 03:29:45', '2026-06-25 03:29:45', '2026-06-25 03:29:45'),
+(465, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:30:38', '2026-06-25 03:30:38', NULL, '2026-06-25 03:30:38'),
+(466, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:30:50', '2026-06-25 03:30:50', NULL, '2026-06-25 03:30:50'),
+(467, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 03:31:23', '2026-06-25 03:31:23', NULL, '2026-06-25 03:31:23'),
+(468, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:32:36', '2026-06-25 03:32:36', NULL, '2026-06-25 03:32:36'),
+(469, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:33:45', '2026-06-25 03:33:45', NULL, '2026-06-25 03:33:45'),
+(470, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:34:35', '2026-06-25 03:34:35', NULL, '2026-06-25 03:34:35'),
+(471, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:35:53', '2026-06-25 03:35:53', NULL, '2026-06-25 03:35:53'),
+(472, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:41:09', '2026-06-25 03:41:09', NULL, '2026-06-25 03:41:09'),
+(473, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:41:17', '2026-06-25 03:41:17', NULL, '2026-06-25 03:41:17');
+INSERT INTO `system_logs` (`id`, `user_id`, `action`, `ip_address`, `user_agent`, `login_time`, `last_active`, `logout_time`, `created_at`) VALUES
+(474, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:41:29', '2026-06-25 03:41:29', NULL, '2026-06-25 03:41:29'),
+(475, 1, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:44:52', '2026-06-25 03:44:52', '2026-06-25 03:44:52', '2026-06-25 03:44:52'),
+(476, 1, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:45:09', '2026-06-25 03:45:09', '2026-06-25 03:45:09', '2026-06-25 03:45:09'),
+(477, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:45:42', '2026-06-25 03:45:42', NULL, '2026-06-25 03:45:42'),
+(478, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:46:22', '2026-06-25 03:46:22', NULL, '2026-06-25 03:46:22'),
+(479, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:46:32', '2026-06-25 03:46:32', NULL, '2026-06-25 03:46:32'),
+(480, 131, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:47:06', '2026-06-25 03:47:06', NULL, '2026-06-25 03:47:06'),
+(481, 131, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:47:37', '2026-06-25 03:47:37', NULL, '2026-06-25 03:47:37'),
+(482, 131, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:47:58', '2026-06-25 03:47:58', NULL, '2026-06-25 03:47:58'),
+(483, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:50:12', '2026-06-25 03:50:12', NULL, '2026-06-25 03:50:12'),
+(484, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:50:19', '2026-06-25 03:50:19', NULL, '2026-06-25 03:50:19'),
+(485, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 03:50:37', '2026-06-25 03:50:37', NULL, '2026-06-25 03:50:37'),
+(486, 105, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:26:23', '2026-06-25 04:26:23', NULL, '2026-06-25 04:26:23'),
+(487, 105, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:26:31', '2026-06-25 04:26:31', NULL, '2026-06-25 04:26:31'),
+(488, 105, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:26:43', '2026-06-25 04:26:43', NULL, '2026-06-25 04:26:43'),
+(489, 126, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:30:33', '2026-06-25 04:30:33', NULL, '2026-06-25 04:30:33'),
+(490, 126, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:31:01', '2026-06-25 04:31:01', NULL, '2026-06-25 04:31:01'),
+(491, 126, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:32:20', '2026-06-25 04:32:20', NULL, '2026-06-25 04:32:20'),
+(492, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:32:25', '2026-06-25 04:32:25', NULL, '2026-06-25 04:32:25'),
+(493, 126, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:32:37', '2026-06-25 04:32:37', NULL, '2026-06-25 04:32:37'),
+(494, 27, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:32:44', '2026-06-25 04:32:44', NULL, '2026-06-25 04:32:44'),
+(495, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:33:07', '2026-06-25 04:33:07', NULL, '2026-06-25 04:33:07'),
+(496, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:33:18', '2026-06-25 04:33:18', NULL, '2026-06-25 04:33:18'),
+(497, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:33:54', '2026-06-25 04:33:54', NULL, '2026-06-25 04:33:54'),
+(498, 131, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:39:37', '2026-06-25 04:39:37', NULL, '2026-06-25 04:39:37'),
+(499, 131, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:40:22', '2026-06-25 04:40:22', NULL, '2026-06-25 04:40:22'),
+(500, 131, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:40:38', '2026-06-25 04:40:38', NULL, '2026-06-25 04:40:38'),
+(501, 131, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:41:49', '2026-06-25 04:41:49', '2026-06-25 04:41:49', '2026-06-25 04:41:49'),
+(502, 105, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:42:04', '2026-06-25 04:42:04', '2026-06-25 04:42:04', '2026-06-25 04:42:04'),
+(503, 132, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:43:53', '2026-06-25 04:43:53', NULL, '2026-06-25 04:43:53'),
+(504, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:44:30', '2026-06-25 04:44:30', NULL, '2026-06-25 04:44:30'),
+(505, 131, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:44:44', '2026-06-25 04:44:44', NULL, '2026-06-25 04:44:44'),
+(506, 131, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:44:57', '2026-06-25 04:44:57', NULL, '2026-06-25 04:44:57'),
+(507, 131, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 04:45:23', '2026-06-25 04:45:23', NULL, '2026-06-25 04:45:23'),
+(508, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:48:04', '2026-06-25 04:48:04', NULL, '2026-06-25 04:48:04'),
+(509, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:48:15', '2026-06-25 04:48:15', NULL, '2026-06-25 04:48:15'),
+(510, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 04:48:46', '2026-06-25 04:48:46', NULL, '2026-06-25 04:48:46'),
+(511, 126, 'logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 05:05:38', '2026-06-25 05:05:38', '2026-06-25 05:05:38', '2026-06-25 05:05:38'),
+(512, 132, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 05:16:41', '2026-06-25 05:16:41', NULL, '2026-06-25 05:16:41'),
+(513, 132, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-25 05:16:50', '2026-06-25 05:16:50', NULL, '2026-06-25 05:16:50'),
+(514, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 06:45:18', '2026-06-25 06:45:18', NULL, '2026-06-25 06:45:18'),
+(515, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 06:45:25', '2026-06-25 06:45:25', NULL, '2026-06-25 06:45:25'),
+(516, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 06:45:46', '2026-06-25 06:45:46', NULL, '2026-06-25 06:45:46'),
+(517, 27, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-25 13:11:02', '2026-06-25 13:11:02', '2026-06-25 13:11:02', '2026-06-25 13:11:02'),
+(518, 133, 'register_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:25:10', '2026-06-26 02:25:10', NULL, '2026-06-26 02:25:10'),
+(519, 133, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:28:47', '2026-06-26 02:28:47', NULL, '2026-06-26 02:28:47'),
+(520, 133, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:29:44', '2026-06-26 02:29:44', NULL, '2026-06-26 02:29:44'),
+(521, 133, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:29:51', '2026-06-26 02:29:51', NULL, '2026-06-26 02:29:51'),
+(522, 133, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:30:03', '2026-06-26 02:30:03', NULL, '2026-06-26 02:30:03'),
+(523, 133, 'verifyOTP_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:30:39', '2026-06-26 02:30:39', NULL, '2026-06-26 02:30:39'),
+(524, 133, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:31:09', '2026-06-26 02:31:09', NULL, '2026-06-26 02:31:09'),
+(525, 133, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:31:22', '2026-06-26 02:31:22', NULL, '2026-06-26 02:31:22'),
+(526, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:43:59', '2026-06-26 02:43:59', NULL, '2026-06-26 02:43:59'),
+(527, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:44:05', '2026-06-26 02:44:05', NULL, '2026-06-26 02:44:05'),
+(528, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 02:44:21', '2026-06-26 02:44:21', NULL, '2026-06-26 02:44:21'),
+(529, 1, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 02:54:46', '2026-06-26 02:54:46', '2026-06-26 02:54:46', '2026-06-26 02:54:46'),
+(530, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 03:09:55', '2026-06-26 03:09:55', NULL, '2026-06-26 03:09:55'),
+(531, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 03:10:11', '2026-06-26 03:10:11', NULL, '2026-06-26 03:10:11'),
+(532, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 03:10:33', '2026-06-26 03:10:33', NULL, '2026-06-26 03:10:33'),
+(533, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 03:11:15', '2026-06-26 03:11:15', NULL, '2026-06-26 03:11:15'),
+(534, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 03:21:01', '2026-06-26 03:21:01', NULL, '2026-06-26 03:21:01'),
+(535, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 03:21:07', '2026-06-26 03:21:07', NULL, '2026-06-26 03:21:07'),
+(536, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 03:21:20', '2026-06-26 03:21:20', NULL, '2026-06-26 03:21:20'),
+(537, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 04:08:52', '2026-06-26 04:08:52', NULL, '2026-06-26 04:08:52'),
+(538, NULL, 'login_information_fail', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 04:09:05', '2026-06-26 04:09:05', NULL, '2026-06-26 04:09:05'),
+(539, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 04:09:23', '2026-06-26 04:09:23', NULL, '2026-06-26 04:09:23'),
+(540, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 04:09:33', '2026-06-26 04:09:33', NULL, '2026-06-26 04:09:33'),
+(541, 27, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 04:10:42', '2026-06-26 04:10:42', NULL, '2026-06-26 04:10:42'),
+(542, 27, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 04:10:51', '2026-06-26 04:10:51', NULL, '2026-06-26 04:10:51'),
+(543, 27, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 04:11:06', '2026-06-26 04:11:06', NULL, '2026-06-26 04:11:06'),
+(544, 126, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 04:23:13', '2026-06-26 04:23:13', NULL, '2026-06-26 04:23:13'),
+(545, 126, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 04:24:23', '2026-06-26 04:24:23', NULL, '2026-06-26 04:24:23'),
+(546, 126, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 04:24:37', '2026-06-26 04:24:37', NULL, '2026-06-26 04:24:37'),
+(547, 1, 'login_information_correct', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 05:00:29', '2026-06-26 05:00:29', NULL, '2026-06-26 05:00:29'),
+(548, 1, 'sendingOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 05:00:38', '2026-06-26 05:00:38', NULL, '2026-06-26 05:00:38'),
+(549, 1, 'verifyOTP_success', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0', '2026-06-26 05:00:51', '2026-06-26 05:00:51', NULL, '2026-06-26 05:00:51'),
+(550, 29, 'logout', '::1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-26 06:52:59', '2026-06-26 06:52:59', '2026-06-26 06:52:59', '2026-06-26 06:52:59');
 
 -- --------------------------------------------------------
 
@@ -3417,92 +4474,120 @@ CREATE TABLE `users` (
   `facebook_id` varchar(255) DEFAULT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `email_verified_at` timestamp NULL DEFAULT NULL,
-  `remember_token` varchar(255) DEFAULT NULL
+  `remember_token` varchar(255) DEFAULT NULL,
+  `notification_prefs` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`notification_prefs`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `name`, `email`, `password`, `phone`, `address`, `status`, `lock_reason`, `locked_until`, `failed_password_attempts`, `failed_otp_attempts`, `last_failed_at`, `last_login`, `is_online`, `created_at`, `deleted_at`, `google_id`, `avatar`, `facebook_id`, `updated_at`, `email_verified_at`, `remember_token`) VALUES
-(1, 'Hsu Myat Moe', 'hsumyatm7308@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-17 04:17:34', 0, '2026-05-21 17:36:05', NULL, '108175427434445055275', 'https://lh3.googleusercontent.com/a/ACg8ocJe2tVcu-OZRevJWFdEJzRQYM7rUvS-PP7VTfvv54W2K70gmX2v=s96-c', NULL, '2026-06-22 07:40:18', '2026-06-22 07:40:18', NULL),
-(24, 'J V', 'mhsu537@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09771471462', 'ကန်တော်ကြီး ကရဝိတ်၊ မျှော်စင်ကျွန်းဝင်ပေါက်အနီး၊ မင်္ဂလာတောင်ညွန့်မြို့နယ်၊ ရန်ကုန်မြို့။ ', 'active', NULL, NULL, 3, 0, '2026-06-13 05:50:22', NULL, 0, '2026-06-10 06:38:38', NULL, '112808788643014027786', 'https://lh3.googleusercontent.com/a/ACg8ocIXClMfEn5duPuil8ov2K8LCsnUDcK7DYKGSo2DuULXo1tqaHi2=s96-c', NULL, '2026-06-20 14:08:13', '2026-06-19 18:11:28', NULL),
-(27, 'HsuHive', 'hsuhive38@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-11 12:40:57', 0, '2026-06-11 02:32:31', NULL, '106937788818804252855', 'https://lh3.googleusercontent.com/a/ACg8ocJSYHRoiZxk9x5f8qT8EPb8deKr6ae5wTdn7NyvRyuab_iEpg=s96-c', NULL, '2026-06-20 15:04:27', '2026-06-14 14:33:04', NULL),
-(29, 'Saen', 'saenintiktok@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09451777705', 'no.11, corner of Kan Yeik Thar Road &amp; U Aung Myat Road, Mingalar Taung township', 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-11 04:43:46', NULL, '113883451541620508706', 'https://lh3.googleusercontent.com/a/ACg8ocKa0OVagjb-Z034lNGR1feDM9cWYi9krO4byxaDck2Fzyjv1w=s96-c', NULL, '2026-06-21 07:35:44', '2026-06-21 07:35:44', NULL),
-(30, 'zaw moe', '7zawzawmoe8@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-18 09:44:03', NULL, '105962240867007474645', 'https://lh3.googleusercontent.com/a/ACg8ocJ3JrvFxn1cRzuotErkuS0lsXh9eb2rdG8kLIL3S3pQEJYCGg=s96-c', NULL, '2026-06-22 07:32:16', '2026-06-22 07:32:16', NULL),
-(31, 'Naw Paw', 'nawpawtarmalar20@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-19 15:07:43', NULL, '114585182535071373461', 'https://lh3.googleusercontent.com/a/ACg8ocLxtArBhTcl9Vsk7CgrCP2_uGTcD2ejVrBVEajJWmYxSaaTdg=s96-c', NULL, '2026-06-20 14:08:13', '2026-06-19 15:07:43', NULL),
-(32, 'Excel River View Hotel & Resort', 'supplier23@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(33, 'Golden Inya Restaurant', 'supplier24@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(34, 'Western Park Ruby - People\'s Park', 'supplier25@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(35, 'Zephyr (Sein Lann So Pyay Garden)', 'supplier26@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(36, 'The White Cottage Restaurant & Lounge', 'supplier27@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(37, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'supplier129@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-21 07:18:28', 1, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-22 07:44:31', '2026-06-20 08:05:08', NULL),
-(38, 'Dear Brides Wedding Dress Studio', 'supplier29@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(39, 'The Vow Wedding Studio Myanmar', 'supplier30@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(40, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'sixfriendseightjune@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-20 15:23:25', 1, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 15:23:25', '2026-06-20 08:05:08', NULL),
-(41, 'T&T Bridal Collection', 'supplier32@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(42, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'supplier33@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(43, 'Peter\'s Bridal Garden - Studio', 'supplier34@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(44, 'My Everything Wedding Dresses', 'supplier35@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(45, 'Forever One Stop Wedding Studio', 'foreverstudio.mm@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(46, 'H & H Photo Studio', 'supplier69@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(47, 'Venus Wedding Studio', 'supplier47@goldenpromise.test\r\n', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-20 14:57:38', 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 15:21:07', '2026-06-20 08:05:08', NULL),
-(48, 'PNA’S Wedding Studio', 'supplier71@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(49, 'Together Wedding Studio', 'supplier72@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(50, 'Western Park Ruby – People’s Park', 'supplier73@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(51, 'MG & J Jewelry', 'info@mgjmyanmar.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(52, 'U Hton', 'supplier75@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(53, 'Myat Pan Tha Zin Diamond and Jewelry', 'supplier76@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(54, 'Vivian Diamond Jewellery', 'supplier77@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(55, 'Theingi Moe Jewelry', 'supplier78@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(56, 'Parisian Cake&Cafe', 'supplier83@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(57, 'Season', 'supplier84@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(58, 'Kudo’s', 'supplier85@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(59, 'Shwe Pu Zun', 'supplier86@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(60, '77 Cake', 'supplier87@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(61, 'El Dorado', 'supplier88@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(62, 'Shan Yoe Yar Restaurant', 'supplier89@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(63, 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'supplier90@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(64, 'ထူး ရေခဲမုန့်', 'supplier91@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(65, 'The Hundred -Grilled Chicken', 'supplier92@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(66, 'Royal Chef', 'supplier93@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(67, 'Rice Box', 'supplier94@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(68, 'Boke & Bee', 'supplier95@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(69, 'နှင်းသီရိ', 'supplier96@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(70, 'H&H Floral and Wedding Service', 'haymanoo3111995@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(71, 'Eternal Flowers', 'eternalflowers99@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(72, 'Aphrodite Wedding Planning & Decoration', 'info@aphroditeweddingplanning.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(73, 'Elysian Floral Art & Events Planning', 'elysian.floral.art.mm@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(74, 'S&S Events and Floral', 'supplier101@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(75, 'His & Hers Events and Wedding Studio', 'hnhbridal@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(76, 'Governor’s Residence', 'supplier103@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(77, 'Novotel Yangon Max', 'supplier104@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(78, 'Sedona Hotel Yangon', 'supplier105@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(79, 'Inya Lake Hotel', 'supplier106@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(80, 'Meliá Yangon', 'supplier107@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(81, 'Hotel Yangon', 'supplier108@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(82, 'Myanmar Car Rental', 'supplier109@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(83, 'The Experience Rent A Car', 'supplier110@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(84, 'AVIS MYANMAR', 'supplier111@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(85, 'inoventure', 'supplier112@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(86, 'Concierge Business Limousine', 'supplier113@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(87, 'Elegant Star (Recommended)', 'supplier114@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(88, 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'supplier115@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(89, 'Moe Kaung Kin', 'supplier116@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(90, 'Y Collection', 'supplier117@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(91, 'Paperie Tale (Recommended)', 'supplier118@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(92, 'THIRI Handmade Invatation', 'supplier119@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(93, 'Pyan Kann', 'supplier120@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(94, 'SORA', 'supplier121@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(95, 'ကိုသာဂိ', 'supplier122@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(96, 'Ma Htet-pop soul', 'supplier123@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(97, 'Lin Lin', 'supplier124@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(98, 'make up Kin San Win', 'supplier125@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(99, 'Magic Touch Beauty Boutique', 'supplier126@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(100, 'Chi Chi’s Touch', 'supplier127@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(101, 'Makeup Hazel', 'supplier128@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL),
-(102, 'Makeup Non Thit San', 'hsumyatrain@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-22 07:45:59', 1, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-22 07:45:59', '2026-06-20 08:05:08', NULL),
-(103, 'Sweet Hair& Make up', 'supplier130@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL);
+INSERT INTO `users` (`user_id`, `name`, `email`, `password`, `phone`, `address`, `status`, `lock_reason`, `locked_until`, `failed_password_attempts`, `failed_otp_attempts`, `last_failed_at`, `last_login`, `is_online`, `created_at`, `deleted_at`, `google_id`, `avatar`, `facebook_id`, `updated_at`, `email_verified_at`, `remember_token`, `notification_prefs`) VALUES
+(1, 'Hsu Myat Moe', 'hsumyatm7308@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-26 05:00:29', 1, '2026-05-21 17:36:05', NULL, '108175427434445055275', 'https://lh3.googleusercontent.com/a/ACg8ocJe2tVcu-OZRevJWFdEJzRQYM7rUvS-PP7VTfvv54W2K70gmX2v=s96-c', NULL, '2026-06-26 05:00:29', '2026-06-23 19:18:53', NULL, NULL),
+(24, 'J V', 'mhsu537@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09771471462', 'ကန်တော်ကြီး ကရဝိတ်၊ မျှော်စင်ကျွန်းဝင်ပေါက်အနီး၊ မင်္ဂလာတောင်ညွန့်မြို့နယ်၊ ရန်ကုန်မြို့။ ', 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 04:19:46', 1, '2026-06-10 06:38:38', NULL, '112808788643014027786', 'https://lh3.googleusercontent.com/a/ACg8ocIXClMfEn5duPuil8ov2K8LCsnUDcK7DYKGSo2DuULXo1tqaHi2=s96-c', NULL, '2026-06-26 04:58:51', '2026-06-26 04:58:51', NULL, NULL),
+(27, 'HsuHive', 'hsuhive38@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09750625628', 'Yangon', 'active', NULL, NULL, 0, 0, NULL, '2026-06-26 04:10:42', 1, '2026-06-11 02:32:31', NULL, '106937788818804252855', 'http://localhost/GP/public/uploads/supplier/avatars/avatar-27-20260625181338-db6c9db2.jpg', NULL, '2026-06-26 04:10:42', '2026-06-24 14:08:40', NULL, NULL),
+(29, 'Saen', 'saenintiktok@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', '09451777705', 'no.11, corner of Kan Yeik Thar Road &amp; U Aung Myat Road, Mingalar Taung township', 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 05:32:47', 0, '2026-06-11 04:43:46', NULL, '113883451541620508706', 'https://lh3.googleusercontent.com/a/ACg8ocKa0OVagjb-Z034lNGR1feDM9cWYi9krO4byxaDck2Fzyjv1w=s96-c', NULL, '2026-06-26 06:52:59', '2026-06-25 12:35:34', NULL, NULL),
+(30, 'zaw moe', '7zawzawmoe8@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 2, 0, '2026-06-23 13:09:53', NULL, 0, '2026-06-18 09:44:03', NULL, '105962240867007474645', 'https://lh3.googleusercontent.com/a/ACg8ocJ3JrvFxn1cRzuotErkuS0lsXh9eb2rdG8kLIL3S3pQEJYCGg=s96-c', NULL, '2026-06-26 06:53:20', '2026-06-26 06:53:20', NULL, NULL),
+(31, 'Naw Paw', 'nawpawtarmalar20@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 1, 0, '2026-06-23 04:03:28', NULL, 0, '2026-06-19 15:07:43', NULL, '114585182535071373461', 'https://lh3.googleusercontent.com/a/ACg8ocLxtArBhTcl9Vsk7CgrCP2_uGTcD2ejVrBVEajJWmYxSaaTdg=s96-c', NULL, '2026-06-23 04:03:28', '2026-06-19 15:07:43', NULL, NULL),
+(32, 'Excel River View Hotel & Resort', 'supplier23@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(33, 'Golden Inya Restaurant', 'supplier24@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(34, 'Western Park Ruby - People\'s Park', 'supplier25@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(35, 'Zephyr (Sein Lann So Pyay Garden)', 'supplier26@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(36, 'The White Cottage Restaurant & Lounge', 'supplier27@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(37, 'မင်္ဂလာဦး သတို့သား၊သတို့သမီး ဝတ်စုံနှင့်လက်ဝတ်ရတနာ', 'supplier129@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-21 07:18:28', 1, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-22 07:44:31', '2026-06-20 08:05:08', NULL, NULL),
+(38, 'Dear Brides Wedding Dress Studio', 'supplier29@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(39, 'The Vow Wedding Studio Myanmar', 'supplier30@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(40, 'ရွှေဖူးစာ မင်္ဂလာဝတ်စုံ YGN', 'sixfriendseightjune@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-20 15:23:25', 1, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 15:23:25', '2026-06-20 08:05:08', NULL, NULL),
+(41, 'T&T Bridal Collection', 'supplier32@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(42, 'ဂုဏ် တိုက်ပုံ နှင့် ပုဆိုး', 'supplier33@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(43, 'Peter\'s Bridal Garden - Studio', 'supplier34@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(44, 'My Everything Wedding Dresses', 'supplier35@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(45, 'Forever One Stop Wedding Studio', 'foreverstudio.mm@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(46, 'H & H Photo Studio', 'supplier69@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(47, 'Venus Wedding Studio', 'supplier47@goldenpromise.test\r\n', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-20 14:57:38', 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 15:21:07', '2026-06-20 08:05:08', NULL, NULL),
+(48, 'PNA’S Wedding Studio', 'supplier71@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(49, 'Together Wedding Studio', 'supplier72@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(50, 'Western Park Ruby – People’s Park', 'supplier73@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(51, 'MG & J Jewelry', 'info@mgjmyanmar.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(52, 'U Hton', 'supplier75@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(53, 'Myat Pan Tha Zin Diamond and Jewelry', 'supplier76@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(54, 'Vivian Diamond Jewellery', 'supplier77@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(55, 'Theingi Moe Jewelry', 'supplier78@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(56, 'Parisian Cake&Cafe', 'supplier83@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(57, 'Season', 'supplier84@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(58, 'Kudo’s', 'supplier85@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(59, 'Shwe Pu Zun', 'supplier86@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(60, '77 Cake', 'supplier87@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(61, 'El Dorado', 'supplier88@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(62, 'Shan Yoe Yar Restaurant', 'supplier89@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(63, 'KSS နတ်သုဒ္ဓါဒံပေါက်', 'supplier90@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(64, 'ထူး ရေခဲမုန့်', 'supplier91@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(65, 'The Hundred -Grilled Chicken', 'supplier92@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(66, 'Royal Chef', 'supplier93@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(67, 'Rice Box', 'supplier94@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(68, 'Boke & Bee', 'supplier95@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(69, 'နှင်းသီရိ', 'supplier96@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(70, 'H&H Floral and Wedding Service', 'haymanoo3111995@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(71, 'Eternal Flowers', 'eternalflowers99@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(72, 'Aphrodite Wedding Planning & Decoration', 'info@aphroditeweddingplanning.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(73, 'Elysian Floral Art & Events Planning', 'elysian.floral.art.mm@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(74, 'S&S Events and Floral', 'supplier101@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(75, 'His & Hers Events and Wedding Studio', 'hnhbridal@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(76, 'Governor’s Residence', 'supplier103@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(77, 'Novotel Yangon Max', 'supplier104@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(78, 'Sedona Hotel Yangon', 'supplier105@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(79, 'Inya Lake Hotel', 'supplier106@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(80, 'Meliá Yangon', 'supplier107@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(81, 'Hotel Yangon', 'supplier108@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(82, 'Myanmar Car Rental', 'supplier109@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(83, 'The Experience Rent A Car', 'supplier110@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(84, 'AVIS MYANMAR', 'supplier111@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(85, 'inoventure', 'supplier112@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(86, 'Concierge Business Limousine', 'supplier113@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(87, 'Elegant Star (Recommended)', 'supplier114@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(88, 'Memory Memory Handmade invitation cards and gifts (Recommended)', 'supplier115@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(89, 'Moe Kaung Kin', 'supplier116@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(90, 'Y Collection', 'supplier117@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(91, 'Paperie Tale (Recommended)', 'supplier118@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(92, 'THIRI Handmade Invatation', 'supplier119@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(93, 'Pyan Kann', 'supplier120@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(94, 'SORA', 'supplier121@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(95, 'ကိုသာဂိ', 'supplier122@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(96, 'Ma Htet-pop soul', 'supplier123@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(97, 'Lin Lin', 'supplier124@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(98, 'make up Kin San Win', 'supplier125@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(99, 'Magic Touch Beauty Boutique', 'supplier126@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(100, 'Chi Chi’s Touch', 'supplier127@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(101, 'Makeup Hazel', 'supplier128@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(102, 'Makeup Non Thit San', 'hsumyatrain@gmail.com', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-22 07:45:59', 1, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-22 07:45:59', '2026-06-20 08:05:08', NULL, NULL),
+(103, 'Sweet Hair& Make up', 'supplier130@goldenpromise.test', '$2y$10$ZzdxXJsCIAmN53Emla3zCOhHkQhckxDhQ0KNrM42PHEi6/jR7H3rm', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-20 08:05:08', NULL, NULL, NULL, NULL, '2026-06-20 14:08:13', '2026-06-20 08:05:08', NULL, NULL),
+(105, 'Hnin Yu Yu Hlaing Tun', 'hyuyuhlaingtun@gmail.com', '$2y$10$NvZiWjoTWwCsiKs/cG2KguqWlCXQJjgqvIqHB.iszZkE3O98xpxSG', '09252208158', 'Yangon', 'active', NULL, NULL, 0, 0, NULL, '2026-06-25 04:26:23', 0, '2026-06-23 03:15:16', NULL, NULL, 'https://ecb606aaa67580a9-204-157-173-163.serveousercontent.com/GP/public/uploads/supplier/avatars/avatar-105-20260624084025-7ebc9717.jpg', NULL, '2026-06-25 04:42:04', '2026-06-23 03:16:48', NULL, NULL),
+(106, 'Naw Pan', 'ydn5157@gmail.com', '$2y$10$8Lx7Y4rW0ARRdokkMJhshO5LYuqrFEpEkpIUQr21pG1PqgL7x8IFG', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-23 03:20:07', NULL, NULL, NULL, NULL, '2026-06-23 03:20:07', NULL, NULL, NULL),
+(107, 'Zaw Min Thein', 'ookinkin6@gmai.com', '$2y$10$mVJIiRwvE3I0mIAIlCx6MehDIaxGYypsEqASTRK9ToWP.la6WXJ3a', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-23 04:07:45', NULL, NULL, NULL, NULL, '2026-06-23 04:07:45', NULL, NULL, NULL),
+(109, 'Yadanar', 'nawpan321@gmail.com', '$2y$10$8e0zuhDtA8uhxEPxOUA9d.tBgtudK1WNKUp9zlgBQDPUIIMVR1FAq', '09455658079', NULL, 'active', NULL, NULL, 3, 0, '2026-06-25 02:52:59', '2026-06-25 02:43:18', 0, '2026-06-23 04:23:00', NULL, NULL, NULL, NULL, '2026-06-25 02:52:59', '2026-06-23 04:24:57', NULL, NULL),
+(111, 'NuNu', 'shihiroamedio@gmail.com', '$2y$10$eHyWQ7uEHUDAkvwRsvnAPeUwKGFp8B6rjxFFZIEX6CszlacLzsWpy', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-25 02:45:31', 0, '2026-06-23 04:54:27', NULL, NULL, NULL, NULL, '2026-06-25 03:01:24', '2026-06-24 04:41:50', NULL, NULL),
+(112, 'Deleted User', 'deleted_112_1782278603@deleted.invalid', '', '', '', 'banned', NULL, NULL, 0, 0, NULL, '2026-06-24 04:18:11', 1, '2026-06-23 04:58:22', '2026-06-24 05:23:23', NULL, NULL, NULL, '2026-06-24 05:23:23', '2026-06-23 05:00:11', NULL, NULL),
+(113, 'AmKiio', 'amediochihiro@gmail.com', '$2y$10$Eb8gkzRP3vTWUHFVnk9XduP/MH0uy/Ndl7Q5Z6yCMajXwlY/pe0UC', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 04:05:29', 0, '2026-06-23 05:02:36', NULL, NULL, NULL, NULL, '2026-06-24 04:37:52', '2026-06-23 05:03:11', NULL, NULL),
+(114, 'Dana Htun', 'danahtun220@gmail.com', '$2y$10$ll2/WEjEXN9YKb9wk1M.AO9RfUpyYl.PbdoqAERvgb1V4tGpKV6kO', '09750625628', 'Yangon', 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 05:41:09', 1, '2026-06-23 05:27:33', NULL, NULL, NULL, NULL, '2026-06-24 05:41:09', '2026-06-23 05:30:11', NULL, NULL),
+(115, 'Zaw Moe', '7zawmoe7@gmail.com', '$2y$10$vCMdMow58hXLbiGtjiIqGujxVk3n2AwRzab93Qg0hRtvsJxi1PHBO', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-23 13:15:22', NULL, NULL, NULL, NULL, '2026-06-23 13:17:50', '2026-06-23 13:17:50', NULL, NULL),
+(116, 'Test User', 'test-strong@example.com', '$2y$10$LwIXIWTfxSKJ8/BZg5R1NOSEKjAL2NJPwuGsSBbErztLBwUYcRQGq', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-23 14:25:48', NULL, NULL, NULL, NULL, '2026-06-23 14:25:48', NULL, NULL, NULL),
+(117, 'Test User2', 'test-fair@example.com', '$2y$10$nPjta7APkjUC90RhnnDvm.RMKpFB.zn3aAtreYTQguBkrUBSvi3hG', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-23 14:26:03', NULL, NULL, NULL, NULL, '2026-06-23 14:26:03', NULL, NULL, NULL),
+(118, 'Lae Yati Htun', 'nw97346@gmail.com', '$2y$10$/JUCZENmPtJmztTjx70vQuoa7Wq1VuBk2JTkhTSjpXo.z.W8zJO0G', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-24 02:23:58', NULL, NULL, NULL, NULL, '2026-06-24 02:23:58', NULL, NULL, NULL),
+(119, 'Lae Yati Htun', 'laeyatihtun1@gmail.com', '$2y$10$4ELuvsJtRwSjvmEeIP5Nte1.1W6hTb3KOCsL4A5yBG/DJVVsQhkCi', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-24 03:07:57', NULL, NULL, NULL, NULL, '2026-06-24 03:07:57', NULL, NULL, NULL),
+(120, 'Lae Yati Htun', 'laeyatihtun11@gmail.com', '$2y$10$lnp.6ft0DWo3tSuAlmVepOcOcMzNpaWIC5V7FYAPAVyJOMBv/8Eju', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-24 03:12:13', NULL, NULL, NULL, NULL, '2026-06-24 03:12:13', NULL, NULL, NULL),
+(121, 'Deleted User', 'deleted_121_1782278577@deleted.invalid', '', '', '', 'banned', NULL, NULL, 0, 0, NULL, '2026-06-24 04:21:33', 1, '2026-06-24 03:15:03', '2026-06-24 05:22:57', NULL, NULL, NULL, '2026-06-24 05:22:57', '2026-06-24 03:18:58', NULL, NULL),
+(122, 'Avary', 'ava07940500@gmail.com', '$2y$10$qFF8Hg9klkFV0QbbwHoDq.NQ9S9xnAaoGT/4Zk0pRlUi/9EJFJ1si', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 03:20:50', 0, '2026-06-24 03:17:26', NULL, NULL, NULL, NULL, '2026-06-24 03:53:14', '2026-06-24 03:19:59', NULL, NULL),
+(123, 'Lae Yati Htun', 'laeyatihtun313@gmail.com', '$2y$10$hNC9v/D/75BAL.s0zbqet.71V5MewxGl3dDBpi6ngqRVSO8c.45gy', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-24 03:57:18', 1, '2026-06-24 03:24:38', NULL, NULL, NULL, NULL, '2026-06-24 03:57:18', '2026-06-24 03:29:09', NULL, NULL),
+(124, 'Yadanar', 'panyadanar210@gmail.com', '$2y$10$4dUdJ8TmKlPH30DkfL2wLeXCGLZ1kymM64LtPNrJ9xP9c7pHXVEDe', '09455658079', 'Tharkayta', 'active', NULL, NULL, 0, 0, NULL, '2026-06-25 03:14:04', 1, '2026-06-24 03:28:35', NULL, NULL, NULL, NULL, '2026-06-25 03:14:04', '2026-06-24 03:51:36', NULL, NULL),
+(125, 'Shin Thant', 'shinthant38292@gmail.com', '$2y$10$14Zcx./JK9AQyBOk2Pmaoem3dRLfI6wNtVuzCzgDAyM6K6z1.q6YW', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-24 03:55:30', NULL, NULL, NULL, NULL, '2026-06-24 03:55:30', NULL, NULL, NULL),
+(126, 'Avary', 'ayethuzarnwe80@gmail.com', '$2y$10$1HRKDxQ5PyCvD8os.9bs0.5TBES7DNijLEk7vpSWsbXqgUK/bccZK', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-26 04:23:13', 1, '2026-06-24 03:58:34', NULL, NULL, NULL, NULL, '2026-06-26 04:23:13', '2026-06-25 02:27:08', NULL, NULL),
+(127, 'Zaw MIn Thein', 'amediochihiro@gmsil.com', '$2y$10$ArLJFNspPeZv.nDWPYDqReuZWBUIiLDkw.Q.WyvMBzkW7Qa7cysgq', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-24 04:34:08', NULL, NULL, NULL, NULL, '2026-06-24 04:34:08', NULL, NULL, NULL),
+(128, 'Hans', 'zawminthein5314@gmail.com', '$2y$10$cFbKun3whLOCUUSLxrP/O.z6KLq6XtAqvgmSwpcwAr6n88c9hntRK', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-25 02:48:38', NULL, NULL, NULL, NULL, '2026-06-25 02:48:38', NULL, NULL, NULL),
+(129, 'Hans', 'undeadmonstes2006@gmail.com', '$2y$10$eriEZbmAsaetOzGAs8QFHurX5Rjlg.l5bmFlzx8prtsCuwEBHdlVe', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-25 02:52:21', NULL, NULL, NULL, NULL, '2026-06-25 02:52:21', NULL, NULL, NULL),
+(130, 'hans', 'undeadmonster2006@gmail.com', '$2y$10$GVqFOT.XA5r6InNDo7cY9eDSkGAJ.72Qp.8JGvlq4T9ztE3cKmtya', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, NULL, 0, '2026-06-25 03:03:02', NULL, NULL, NULL, NULL, '2026-06-25 03:03:02', NULL, NULL, NULL),
+(131, 'Hans', 'hkoke56@gmail.com', '$2y$10$MRQCSKQUt3J6vv8O/faZ5e8bnme.CrGt2teI8XQOL/RJOso9py/HW', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-25 04:44:44', 1, '2026-06-25 03:13:18', NULL, NULL, NULL, NULL, '2026-06-25 04:44:44', '2026-06-25 03:21:40', NULL, NULL),
+(132, 'Tina', 'tinaforger3@gmail.com', '$2y$10$cIht5d1CVdRQGEYTLj1GuODQlJaBJsvy5Ci6ScjRxhlDsjE1tt/cC', NULL, NULL, 'active', NULL, NULL, 0, 0, NULL, '2026-06-25 05:16:41', 1, '2026-06-25 04:43:53', NULL, NULL, NULL, NULL, '2026-06-25 05:16:41', '2026-06-25 04:46:41', NULL, NULL),
+(133, 'Kaung Min Khant', 'kk8264483@gmail.com', '$2y$10$KxmkzU9h9ES64e1ikdJ1eOBur.PyYlGz4iAcTzp79MpuprZyUN96W', '09781344861', 'Yangon', 'active', NULL, NULL, 0, 0, NULL, '2026-06-26 02:29:44', 1, '2026-06-26 02:25:10', NULL, NULL, NULL, NULL, '2026-06-26 02:36:13', '2026-06-26 02:28:29', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -3603,7 +4688,33 @@ INSERT INTO `user_roles` (`id`, `user_id`, `role_id`, `created_at`) VALUES
 (102, 100, 2, '2026-06-20 08:05:08'),
 (103, 101, 2, '2026-06-20 08:05:08'),
 (104, 102, 2, '2026-06-20 08:05:08'),
-(105, 103, 2, '2026-06-20 08:05:08');
+(105, 103, 2, '2026-06-20 08:05:08'),
+(107, 105, 2, '2026-06-23 03:15:16'),
+(108, 106, 1, '2026-06-23 03:20:07'),
+(109, 107, 1, '2026-06-23 04:07:45'),
+(111, 109, 1, '2026-06-23 04:23:00'),
+(113, 111, 1, '2026-06-23 04:54:27'),
+(115, 113, 1, '2026-06-23 05:02:36'),
+(116, 114, 2, '2026-06-23 05:27:33'),
+(117, 115, 1, '2026-06-23 13:15:22'),
+(118, 116, 1, '2026-06-23 14:25:48'),
+(119, 117, 1, '2026-06-23 14:26:03'),
+(120, 118, 1, '2026-06-24 02:23:58'),
+(121, 119, 1, '2026-06-24 03:07:57'),
+(122, 120, 1, '2026-06-24 03:12:13'),
+(124, 122, 1, '2026-06-24 03:17:26'),
+(125, 123, 1, '2026-06-24 03:24:38'),
+(126, 124, 2, '2026-06-24 03:28:35'),
+(127, 125, 1, '2026-06-24 03:55:30'),
+(128, 126, 1, '2026-06-24 03:58:34'),
+(129, 127, 2, '2026-06-24 04:34:08'),
+(130, 27, 2, '2026-06-24 14:08:40'),
+(131, 128, 1, '2026-06-25 02:48:38'),
+(132, 129, 1, '2026-06-25 02:52:21'),
+(133, 130, 1, '2026-06-25 03:03:02'),
+(134, 131, 1, '2026-06-25 03:13:18'),
+(135, 132, 1, '2026-06-25 04:43:53'),
+(136, 133, 2, '2026-06-26 02:25:10');
 
 -- --------------------------------------------------------
 
@@ -3986,13 +5097,20 @@ ALTER TABLE `payments`
   ADD UNIQUE KEY `uq_booking_supplier_payout` (`booking_id`,`supplier_id`,`type`),
   ADD KEY `booking_id` (`booking_id`),
   ADD KEY `supplier_id` (`supplier_id`),
-  ADD KEY `verified_by` (`verified_by`);
+  ADD KEY `verified_by` (`verified_by`),
+  ADD KEY `idx_payments_payout_batch` (`payout_batch_id`);
 
 --
 -- Indexes for table `permissions`
 --
 ALTER TABLE `permissions`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `platform_settings`
+--
+ALTER TABLE `platform_settings`
+  ADD PRIMARY KEY (`setting_key`);
 
 --
 -- Indexes for table `refunds`
@@ -4193,43 +5311,43 @@ ALTER TABLE `wishlist_collections`
 -- AUTO_INCREMENT for table `account_lockout_logs`
 --
 ALTER TABLE `account_lockout_logs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `attire_items`
 --
 ALTER TABLE `attire_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=317;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=337;
 
 --
 -- AUTO_INCREMENT for table `booking_items`
 --
 ALTER TABLE `booking_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=370;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=396;
 
 --
 -- AUTO_INCREMENT for table `booking_slot_reservations`
 --
 ALTER TABLE `booking_slot_reservations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
 
 --
 -- AUTO_INCREMENT for table `booking_status_logs`
 --
 ALTER TABLE `booking_status_logs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=150;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=199;
 
 --
 -- AUTO_INCREMENT for table `booking_suppliers`
 --
 ALTER TABLE `booking_suppliers`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=276;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=324;
 
 --
 -- AUTO_INCREMENT for table `booking_supplier_replacements`
@@ -4253,19 +5371,19 @@ ALTER TABLE `cake_designs`
 -- AUTO_INCREMENT for table `carts`
 --
 ALTER TABLE `carts`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=135;
 
 --
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `customer_status_logs`
@@ -4283,19 +5401,19 @@ ALTER TABLE `decoration_styles`
 -- AUTO_INCREMENT for table `email_verifications`
 --
 ALTER TABLE `email_verifications`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=86;
 
 --
 -- AUTO_INCREMENT for table `event_details`
 --
 ALTER TABLE `event_details`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=269;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=292;
 
 --
 -- AUTO_INCREMENT for table `favorites`
 --
 ALTER TABLE `favorites`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `login_attempts`
@@ -4307,37 +5425,37 @@ ALTER TABLE `login_attempts`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=206;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=277;
 
 --
 -- AUTO_INCREMENT for table `otps`
 --
 ALTER TABLE `otps`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=155;
 
 --
 -- AUTO_INCREMENT for table `packages`
 --
 ALTER TABLE `packages`
-  MODIFY `package_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `package_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `package_items`
 --
 ALTER TABLE `package_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=123;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=146;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- AUTO_INCREMENT for table `permissions`
@@ -4373,43 +5491,43 @@ ALTER TABLE `role_permissions`
 -- AUTO_INCREMENT for table `services`
 --
 ALTER TABLE `services`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=166;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=168;
 
 --
 -- AUTO_INCREMENT for table `service_availability`
 --
 ALTER TABLE `service_availability`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `service_media`
 --
 ALTER TABLE `service_media`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=140;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=145;
 
 --
 -- AUTO_INCREMENT for table `service_rental_pricing`
 --
 ALTER TABLE `service_rental_pricing`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `service_schedules`
 --
 ALTER TABLE `service_schedules`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1312;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1403;
 
 --
 -- AUTO_INCREMENT for table `service_time_slots`
 --
 ALTER TABLE `service_time_slots`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=147;
 
 --
 -- AUTO_INCREMENT for table `suppliers`
 --
 ALTER TABLE `suppliers`
-  MODIFY `supplier_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=131;
+  MODIFY `supplier_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=136;
 
 --
 -- AUTO_INCREMENT for table `supplier_bans`
@@ -4421,13 +5539,13 @@ ALTER TABLE `supplier_bans`
 -- AUTO_INCREMENT for table `supplier_categories`
 --
 ALTER TABLE `supplier_categories`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `supplier_documents`
 --
 ALTER TABLE `supplier_documents`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `supplier_warnings`
@@ -4439,19 +5557,19 @@ ALTER TABLE `supplier_warnings`
 -- AUTO_INCREMENT for table `system_logs`
 --
 ALTER TABLE `system_logs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=551;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
+  MODIFY `user_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=134;
 
 --
 -- AUTO_INCREMENT for table `user_roles`
 --
 ALTER TABLE `user_roles`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=137;
 
 --
 -- AUTO_INCREMENT for table `venues`
@@ -4481,7 +5599,7 @@ ALTER TABLE `wallets`
 -- AUTO_INCREMENT for table `wishlist_collections`
 --
 ALTER TABLE `wishlist_collections`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Constraints for dumped tables
