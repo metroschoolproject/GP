@@ -2999,16 +2999,19 @@ class Booking extends Controller
             return;
         }
 
-        // Get supplier earnings summary
+        // Get supplier earnings summary (pending/processing/paid from payout records)
         $earnings = $this->bookingModel->getSupplierEarnings($supplierId);
 
-        // Get payout history with pagination
+        // Get gross earnings from all successful payouts (for fee transparency)
+        $grossEarnings = $this->bookingModel->getSupplierGrossEarnings($supplierId);
+
+        // Get earnings breakdown with pagination
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
         $offset = ($page - 1) * $perPage;
-        $payouts = $this->bookingModel->getSupplierPayouts($supplierId, $perPage, $offset);
+        $earningsBreakdown = $this->bookingModel->getSupplierEarningsBreakdown($supplierId, $perPage, $offset);
 
-        // Count total payouts
+        // Count total payout records
         $this->db = new Database();
         $this->db->dbquery(
             "SELECT COUNT(*) as total FROM payments
@@ -3022,15 +3025,42 @@ class Booking extends Controller
         // Get supplier info for bank account details
         $supplier = $this->supplierProfileModel->getById($supplierId);
 
+        // Latest paid payout (for the "Paid Out" card)
+        $this->db->dbquery(
+            "SELECT p.*, b.created_at AS booking_date
+             FROM payments p
+             LEFT JOIN bookings b ON p.booking_id = b.id
+             WHERE p.supplier_id = :sid AND p.type = 'payout' AND p.status = 'success'
+             ORDER BY p.verified_at DESC, p.created_at DESC
+             LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $latestPaidPayout = $this->db->getsingledata() ?: null;
+
+        // Latest processing payout (for the "In Progress" card)
+        $this->db->dbquery(
+            "SELECT p.*, b.created_at AS booking_date
+             FROM payments p
+             LEFT JOIN bookings b ON p.booking_id = b.id
+             WHERE p.supplier_id = :sid AND p.type = 'payout' AND p.status = 'processing'
+             ORDER BY p.created_at DESC
+             LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $latestProcessingPayout = $this->db->getsingledata() ?: null;
+
         require_once APPROOT . '/controllers/SupplierControllerSupport.php';
         $this->view('supplier/earnings', [
             'earnings' => $earnings,
-            'payouts' => $payouts,
+            'grossEarnings' => $grossEarnings,
+            'earningsBreakdown' => $earningsBreakdown,
             'supplier' => $supplier,
             'supplierId' => $supplierId,
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalPayouts' => $totalPayouts,
+            'latestPaidPayout' => $latestPaidPayout,
+            'latestProcessingPayout' => $latestProcessingPayout,
         ]);
     }
 

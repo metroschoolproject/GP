@@ -4907,6 +4907,77 @@ class BookingModel
     }
 
     /**
+     * Get supplier earnings breakdown by booking with service names.
+     * Used on the earnings page to show per-booking detail.
+     *
+     * Each row represents one payout record joined to its booking and service.
+     * Uses GROUP_CONCAT for service names since a payout is per-supplier-per-booking,
+     * and a supplier can have multiple services in one booking.
+     */
+    public function getSupplierEarningsBreakdown(int $supplierId, int $limit = 20, int $offset = 0): array
+    {
+        $this->db->dbquery(
+            "SELECT
+                p.id AS payment_id,
+                p.booking_id,
+                p.amount AS net_amount,
+                p.status,
+                p.created_at,
+                p.verified_at,
+                p.verified_note,
+                p.payout_batch_id,
+                b.created_at AS booking_date,
+                GROUP_CONCAT(DISTINCT s.name SEPARATOR ', ') AS service_names,
+                GROUP_CONCAT(DISTINCT bs.item_price) AS item_prices
+             FROM payments p
+             JOIN bookings b ON b.id = p.booking_id
+             JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = p.supplier_id
+             LEFT JOIN services s ON s.id = bs.service_id
+             WHERE p.supplier_id = :sid AND p.type = 'payout'
+             GROUP BY p.id
+             ORDER BY p.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Get supplier's gross earnings from all successful booking payments
+     * associated with the supplier. Returns gross amount, platform fees,
+     * net earnings, and the count of completed bookings that generated payouts.
+     */
+    public function getSupplierGrossEarnings(int $supplierId): array
+    {
+        // Sum from payout records (type='payout') which already represent
+        // the supplier's share per booking.
+        $this->db->dbquery(
+            "SELECT
+                COALESCE(SUM(CASE WHEN p.status = 'success' THEN p.amount ELSE 0 END), 0) AS paid_gross,
+                COALESCE(SUM(CASE WHEN p.status = 'success' THEN COALESCE(p.platform_fee, 0) ELSE 0 END), 0) AS paid_fees,
+                COUNT(CASE WHEN p.status = 'success' THEN 1 END) AS completed_booking_count
+             FROM payments p
+             WHERE p.supplier_id = :sid AND p.type = 'payout'"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata() ?: [];
+
+        $paidGross = (float)($result['paid_gross'] ?? 0);
+        $paidFees = (float)($result['paid_fees'] ?? 0);
+        $completedBookingCount = (int)($result['completed_booking_count'] ?? 0);
+
+        return [
+            'gross_earnings' => $paidGross,
+            'platform_fees' => $paidFees,
+            'net_earnings' => $paidGross - $paidFees,
+            'completed_booking_count' => $completedBookingCount,
+        ];
+    }
+
+    /**
      * Get all payment transactions related to a supplier's bookings (deposits, remaining, full).
      * This is the supplier's payment history — what customers paid toward their services.
      */
