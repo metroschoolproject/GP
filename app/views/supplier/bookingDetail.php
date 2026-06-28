@@ -127,7 +127,7 @@ $dashboardContent = function () use (
     $bookingTotal, $paidTotal, $paidFraction, $paymentStatus, $daysUntil, $otherSuppliers, $bookingStatus, $bookingStatusLabel,
     $customerName, $customerEmail, $customerPhone, $customerInitial,
     $packageSchedules, $isPackage, $declineCutoffDays, $myServiceRows,
-    $cancellationReason, $paymentHistory, $activeReplacement
+    $cancellationReason, $paymentHistory, $activeReplacement, $refund
 ) {
     $eventTime = trim($formatTime($firstStart) . ($firstEnd ? ' – ' . $formatTime($firstEnd) : ''), ' –');
     $needsResponse = $supplierStatus === 'pending';
