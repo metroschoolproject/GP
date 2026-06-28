@@ -875,10 +875,12 @@ document.getElementById('saveAvailabilityBtn')?.addEventListener('click', async 
     const concurrentElement = document.getElementById('availabilityConcurrent');
     const concurrentPackageEl = document.getElementById('availabilityConcurrentPackage');
     const concurrentCustomizeEl = document.getElementById('availabilityConcurrentCustomize');
+    const durationEl = document.getElementById('availabilityDuration');
+    const bufferEl = document.getElementById('availabilityBuffer');
     const minLeadDays = currentServiceMinLeadDays();
     await jsonPost(urls.availabilitySave, {
-      duration_minutes: document.getElementById('availabilityDuration').value,
-      buffer_minutes: document.getElementById('availabilityBuffer').value,
+      duration_minutes: durationEl ? durationEl.value : 60,
+      buffer_minutes: bufferEl ? bufferEl.value : 0,
       max_concurrent: concurrentElement ? concurrentElement.value : 1,
       max_concurrent_package: concurrentPackageEl ? concurrentPackageEl.value : 0,
       max_concurrent_customize: concurrentCustomizeEl ? concurrentCustomizeEl.value : 0,

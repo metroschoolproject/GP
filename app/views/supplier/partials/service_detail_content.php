@@ -244,6 +244,7 @@ if (!empty($attentionItems[0]['label'])) {
 
           <!-- Controls row -->
           <div class="sd-avail-controls">
+            <?php if (!$isRental): ?>
             <div class="sd-avail-field">
               <label>Slot duration</label>
               <select id="availabilityDuration">
@@ -274,6 +275,7 @@ if (!empty($attentionItems[0]['label'])) {
                 <?php endforeach; ?>
               </select>
             </div>
+            <?php endif; // !isRental ?>
 	            <?php if (!$isVenue): ?>
 	            <div class="sd-avail-field">
 	              <label>Bookings per time slot</label>
