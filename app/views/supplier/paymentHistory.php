@@ -27,6 +27,7 @@ $dashboardContent = function () use (
     $totalReceived, $totalFees, $approvedCount, $pendingCount,
     $h, $money, $formatDate
 ) {
+$filters = $filters ?? [];
 ?>
 <style>
 .payhist-page { --ink:#6d4c5b; --muted:#A8A29E; --soft:#F4F1EE; --panel:#FFFFFF; --line:#ead8c7; --primary:#6d4c5b; --green:#166534; --amber:#92400e; --danger:#991b1b; color:var(--ink); }
@@ -67,6 +68,28 @@ $dashboardContent = function () use (
 
 @media(max-width:900px){ .payhist-summary{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:600px){ .payhist-summary{grid-template-columns:1fr} }
+
+.payhist-filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px; }
+.payhist-filter { position:relative; }
+.payhist-filter select {
+  appearance:none; min-height:34px; padding:0 32px 0 12px;
+  border:1px solid var(--line); border-radius:999px;
+  background:var(--panel); color:var(--ink);
+  font-size:12px; font-weight:600; cursor:pointer;
+  transition:border-color .15s, box-shadow .15s;
+}
+.payhist-filter select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(109,76,91,.12); }
+.payhist-filter::after {
+  content:''; position:absolute; right:11px; top:50%; transform:translateY(-50%);
+  border:4px solid transparent; border-top-color:var(--muted); pointer-events:none;
+}
+.payhist-filter-clear {
+  display:inline-flex; align-items:center; gap:4px; min-height:34px; padding:0 12px;
+  border:1px solid var(--line); border-radius:999px; background:transparent;
+  color:var(--muted); font-size:12px; font-weight:600; cursor:pointer;
+  transition:all .14s; text-decoration:none;
+}
+.payhist-filter-clear:hover { border-color:var(--danger); color:var(--danger); }
 </style>
 
 <section class="payhist-page">
@@ -101,9 +124,54 @@ $dashboardContent = function () use (
     </div>
   </div>
 
+  <?php
+    $hasActiveFilters = ($filters['status'] ?? '') !== '' || ($filters['type'] ?? '') !== '' || ($filters['escrow'] ?? '') !== '';
+    $filterBase = URLROOT . '/supplier/paymentHistory';
+    $filterUrl = function ($overrides = []) use ($filters, $filterBase) {
+        $params = array_merge($filters, $overrides);
+        $params = array_filter($params, fn($v) => $v !== '');
+        return $filterBase . ($params ? '?' . http_build_query($params) : '');
+    };
+  ?>
+  <div class="payhist-filters">
+    <div class="payhist-filter">
+      <select onchange="if(this.value)window.location.href=this.value;else window.location.href='<?= $filterBase ?>'">
+        <option value="">All Status</option>
+        <option value="<?= $h($filterUrl(['status' => 'success'])) ?>" <?= ($filters['status'] ?? '') === 'success' ? 'selected' : '' ?>>Verified</option>
+        <option value="<?= $h($filterUrl(['status' => 'pending'])) ?>" <?= ($filters['status'] ?? '') === 'pending' ? 'selected' : '' ?>>Pending</option>
+        <option value="<?= $h($filterUrl(['status' => 'failed'])) ?>" <?= ($filters['status'] ?? '') === 'failed' ? 'selected' : '' ?>>Failed</option>
+      </select>
+    </div>
+    <div class="payhist-filter">
+      <select onchange="if(this.value)window.location.href=this.value;else window.location.href='<?= $filterBase ?>'">
+        <option value="">All Types</option>
+        <option value="<?= $h($filterUrl(['type' => 'deposit'])) ?>" <?= ($filters['type'] ?? '') === 'deposit' ? 'selected' : '' ?>>Deposit</option>
+        <option value="<?= $h($filterUrl(['type' => 'remaining'])) ?>" <?= ($filters['type'] ?? '') === 'remaining' ? 'selected' : '' ?>>Balance</option>
+        <option value="<?= $h($filterUrl(['type' => 'full'])) ?>" <?= ($filters['type'] ?? '') === 'full' ? 'selected' : '' ?>>Full</option>
+      </select>
+    </div>
+    <div class="payhist-filter">
+      <select onchange="if(this.value)window.location.href=this.value;else window.location.href='<?= $filterBase ?>'">
+        <option value="">All Escrow</option>
+        <option value="<?= $h($filterUrl(['escrow' => 'held'])) ?>" <?= ($filters['escrow'] ?? '') === 'held' ? 'selected' : '' ?>>Held</option>
+        <option value="<?= $h($filterUrl(['escrow' => 'released'])) ?>" <?= ($filters['escrow'] ?? '') === 'released' ? 'selected' : '' ?>>Released</option>
+        <option value="<?= $h($filterUrl(['escrow' => 'refunded'])) ?>" <?= ($filters['escrow'] ?? '') === 'refunded' ? 'selected' : '' ?>>Refunded</option>
+      </select>
+    </div>
+    <?php if ($hasActiveFilters): ?>
+      <a href="<?= $filterBase ?>" class="payhist-filter-clear">✕ Clear filters</a>
+    <?php endif; ?>
+  </div>
+
   <div class="payhist-table-wrap">
     <?php if (empty($payments)): ?>
-      <div class="payhist-empty">No payment history yet. Once customers start booking your services, payments will appear here.</div>
+      <div class="payhist-empty">
+        <?php if ($hasActiveFilters): ?>
+          No payments match your filters. <a href="<?= $filterBase ?>" style="color:var(--primary);font-weight:700">Clear filters</a>
+        <?php else: ?>
+          No payment history yet. Once customers start booking your services, payments will appear here.
+        <?php endif; ?>
+      </div>
     <?php else: ?>
       <table class="payhist-table">
         <thead>
@@ -151,10 +219,10 @@ $dashboardContent = function () use (
       <div class="payhist-page-info">Page <?= $currentPage ?> of <?= $totalPages ?></div>
       <div class="payhist-page-btns">
         <?php if ($currentPage > 1): ?>
-          <a href="?page=<?= $currentPage - 1 ?>" class="payhist-btn">← Prev</a>
+          <a href="<?= $h($filterUrl(['page' => $currentPage - 1])) ?>" class="payhist-btn">← Prev</a>
         <?php endif; ?>
         <?php if ($currentPage < $totalPages): ?>
-          <a href="?page=<?= $currentPage + 1 ?>" class="payhist-btn">Next →</a>
+          <a href="<?= $h($filterUrl(['page' => $currentPage + 1])) ?>" class="payhist-btn">Next →</a>
         <?php endif; ?>
       </div>
     </div>

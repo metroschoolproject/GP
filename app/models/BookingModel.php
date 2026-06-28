@@ -5063,8 +5063,24 @@ class BookingModel
      * Get all payment transactions related to a supplier's bookings (deposits, remaining, full).
      * This is the supplier's payment history — what customers paid toward their services.
      */
-    public function getSupplierPaymentHistory(int $supplierId, int $limit = 20, int $offset = 0): array
+    public function getSupplierPaymentHistory(int $supplierId, int $limit = 20, int $offset = 0, array $filters = []): array
     {
+        $where = "p.type IN ('deposit','remaining','full')";
+        $params = [[':sid1', $supplierId, PDO::PARAM_INT]];
+
+        if (!empty($filters['status']) && in_array($filters['status'], ['success', 'pending', 'failed'], true)) {
+            $where .= ' AND p.status = :status';
+            $params[] = [':status', $filters['status'], PDO::PARAM_STR];
+        }
+        if (!empty($filters['type']) && in_array($filters['type'], ['deposit', 'remaining', 'full'], true)) {
+            $where .= ' AND p.type = :type';
+            $params[] = [':type', $filters['type'], PDO::PARAM_STR];
+        }
+        if (!empty($filters['escrow']) && in_array($filters['escrow'], ['held', 'released', 'refunded'], true)) {
+            $where .= ' AND p.escrow_status = :escrow';
+            $params[] = [':escrow', $filters['escrow'], PDO::PARAM_STR];
+        }
+
         $this->db->dbquery(
             "SELECT p.id, p.booking_id, p.amount, p.platform_fee, p.supplier_amount,
                     p.type, p.status, p.escrow_status, p.method, p.created_at, p.paid_at,
@@ -5073,25 +5089,41 @@ class BookingModel
              JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid1
              JOIN bookings b ON b.id = p.booking_id
              JOIN users u ON u.user_id = b.user_id
-             WHERE p.type IN ('deposit','remaining','full')
+             WHERE {$where}
              ORDER BY p.created_at DESC
              LIMIT :limit OFFSET :offset"
         );
-        $this->db->dbbind(':sid1', $supplierId, PDO::PARAM_INT);
+        foreach ($params as $pv) { $this->db->dbbind($pv[0], $pv[1], $pv[2]); }
         $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
         $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
         return $this->db->getmultidata();
     }
 
-    public function getSupplierPaymentHistoryCount(int $supplierId): int
+    public function getSupplierPaymentHistoryCount(int $supplierId, array $filters = []): int
     {
+        $where = "p.type IN ('deposit','remaining','full')";
+        $params = [[':sid', $supplierId, PDO::PARAM_INT]];
+
+        if (!empty($filters['status']) && in_array($filters['status'], ['success', 'pending', 'failed'], true)) {
+            $where .= ' AND p.status = :status';
+            $params[] = [':status', $filters['status'], PDO::PARAM_STR];
+        }
+        if (!empty($filters['type']) && in_array($filters['type'], ['deposit', 'remaining', 'full'], true)) {
+            $where .= ' AND p.type = :type';
+            $params[] = [':type', $filters['type'], PDO::PARAM_STR];
+        }
+        if (!empty($filters['escrow']) && in_array($filters['escrow'], ['held', 'released', 'refunded'], true)) {
+            $where .= ' AND p.escrow_status = :escrow';
+            $params[] = [':escrow', $filters['escrow'], PDO::PARAM_STR];
+        }
+
         $this->db->dbquery(
             "SELECT COUNT(DISTINCT p.id)
              FROM payments p
              JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid
-             WHERE p.type IN ('deposit','remaining','full')"
+             WHERE {$where}"
         );
-        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        foreach ($params as $pv) { $this->db->dbbind($pv[0], $pv[1], $pv[2]); }
         $row = $this->db->getsingledata();
         return (int)($row['COUNT(DISTINCT p.id)'] ?? 0);
     }

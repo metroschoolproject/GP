@@ -3142,8 +3142,14 @@ class Booking extends Controller
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
 
-        $payments = $this->bookingModel->getSupplierPaymentHistory($supplierId, $perPage, $offset);
-        $totalCount = $this->bookingModel->getSupplierPaymentHistoryCount($supplierId);
+        $filters = [
+            'status' => trim((string)($_GET['status'] ?? '')),
+            'type'   => trim((string)($_GET['type'] ?? '')),
+            'escrow' => trim((string)($_GET['escrow'] ?? '')),
+       ];
+
+        $payments = $this->bookingModel->getSupplierPaymentHistory($supplierId, $perPage, $offset, $filters);
+        $totalCount = $this->bookingModel->getSupplierPaymentHistoryCount($supplierId, $filters);
         $totalPages = (int)ceil($totalCount / $perPage);
 
         // Summary stats
@@ -3172,6 +3178,7 @@ class Booking extends Controller
             'totalFees' => $totalFees,
             'approvedCount' => $approvedCount,
             'pendingCount' => $pendingCount,
+            'filters' => $filters,
         ]);
     }
 
