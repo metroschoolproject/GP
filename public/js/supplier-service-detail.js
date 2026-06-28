@@ -153,7 +153,8 @@ document.getElementById('publishServiceBtn')?.addEventListener('click', async ev
       showMessage('publishMessage', result.message || 'Service unpublished.', true, 'Moved to draft');
     } else {
       const result = await jsonPost(urls.publishRequest);
-      window.location.href = urls.serviceManage;
+      showMessage('publishMessage', result.message || 'Publish request sent to admin.', true, 'Request sent');
+      setTimeout(() => { window.location.href = urls.serviceManage; }, 1500);
       return;
     }
   } catch (error) {
