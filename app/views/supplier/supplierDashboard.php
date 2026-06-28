@@ -469,28 +469,38 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                         <h3 class="supplier-admin-section-title text-sm">Payment status</h3>
                         <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Customer payments linked to your bookings</p>
                     </div>
-                    <div class="relative">
-                        <button id="paymentFilterBtn" type="button" aria-expanded="false"
-                            class="<?= $dashboardMenuButtonClass ?>">
-                            <svg class="h-3 w-3 text-app-muted"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            <span id="paymentFilterLabel">This week</span>
-                            <svg class="h-3 w-3 text-app-muted transition-transform" id="paymentFilterChevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                        </button>
-                        <div id="paymentFilterMenu" class="invisible absolute right-0 sm:right-0 left-auto sm:left-auto top-[calc(100%+6px)] z-30 w-36 origin-top scale-y-95 rounded-xl border border-app-border bg-app-input p-1.5 opacity-0 shadow-lg transition-all duration-150">
-                            <button type="button" data-payment-filter="today" class="<?= $dashboardMenuItemClass ?>">Today</button>
-                            <button type="button" data-payment-filter="week" class="<?= $dashboardMenuItemActiveClass ?>">This week</button>
-                            <button type="button" data-payment-filter="month" class="<?= $dashboardMenuItemClass ?>">This month</button>
-                            <button type="button" data-payment-filter="year" class="<?= $dashboardMenuItemClass ?>">This year</button>
+                    <div class="flex items-center gap-2">
+                        <!-- Status dropdown -->
+                        <div class="relative">
+                            <button id="paymentStatusBtn" type="button" aria-expanded="false"
+                                class="<?= $dashboardMenuButtonClass ?>">
+                                <span id="paymentStatusLabel">All</span>
+                                <svg class="h-3 w-3 text-app-muted transition-transform" id="paymentStatusChevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                            <div id="paymentStatusMenu" class="invisible absolute right-0 top-[calc(100%+6px)] z-30 w-36 origin-top scale-y-95 rounded-xl border border-app-border bg-app-input p-1.5 opacity-0 shadow-lg transition-all duration-150">
+                                <button type="button" data-payment-status="all" class="<?= $dashboardMenuItemActiveClass ?>">All</button>
+                                <button type="button" data-payment-status="pending" class="<?= $dashboardMenuItemClass ?>">Pending</button>
+                                <button type="button" data-payment-status="full paid" class="<?= $dashboardMenuItemClass ?>">Full Paid</button>
+                                <button type="button" data-payment-status="half paid" class="<?= $dashboardMenuItemClass ?>">Half Paid</button>
+                            </div>
                         </div>
+                        <!-- Date range dropdown -->
+                        <div class="relative">
+                            <button id="paymentFilterBtn" type="button" aria-expanded="false"
+                                class="<?= $dashboardMenuButtonClass ?>">
+                                <svg class="h-3 w-3 text-app-muted"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                <span id="paymentFilterLabel">This week</span>
+                                <svg class="h-3 w-3 text-app-muted transition-transform" id="paymentFilterChevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                            <div id="paymentFilterMenu" class="invisible absolute right-0 top-[calc(100%+6px)] z-30 w-36 origin-top scale-y-95 rounded-xl border border-app-border bg-app-input p-1.5 opacity-0 shadow-lg transition-all duration-150">
+                                <button type="button" data-payment-filter="today" class="<?= $dashboardMenuItemClass ?>">Today</button>
+                                <button type="button" data-payment-filter="week" class="<?= $dashboardMenuItemActiveClass ?>">This week</button>
+                                <button type="button" data-payment-filter="month" class="<?= $dashboardMenuItemClass ?>">This month</button>
+                                <button type="button" data-payment-filter="year" class="<?= $dashboardMenuItemClass ?>">This year</button>
+                            </div>
+                        </div>
+                        <button class="text-xs font-medium text-app-primary hover:text-app-accent">View all</button>
                     </div>
-                </div>
-
-                <!-- Status Filter Tabs -->
-                <div class="flex flex-wrap gap-2 mb-4 mt-3">
-                    <button onclick="filterPayments('all')" data-status="all" class="<?= $dashboardFilterTabClass ?> bg-app-primary text-app-white">All</button>
-                    <button onclick="filterPayments('pending')" data-status="pending" class="<?= $dashboardFilterTabClass ?> text-app-secondary bg-app-soft">Pending</button>
-                    <button onclick="filterPayments('full paid')" data-status="full paid" class="<?= $dashboardFilterTabClass ?> text-app-secondary bg-app-soft">Full Paid</button>
-                    <button onclick="filterPayments('half paid')" data-status="half paid" class="<?= $dashboardFilterTabClass ?> text-app-secondary bg-app-soft">Half Paid</button>
                 </div>
 
                 <!-- Table -->
@@ -707,15 +717,6 @@ window.supplierDashboardData = <?= json_encode([
 
   function filterPayments(status) {
     currentPaymentFilter = status;
-    // Update tab active states
-    var tabs = document.querySelectorAll('#payment-status [data-status]');
-    tabs.forEach(function(tab) {
-      if (tab.getAttribute('data-status') === status) {
-        tab.className = '<?= $dashboardFilterTabClass ?> bg-app-primary text-app-white';
-      } else {
-        tab.className = '<?= $dashboardFilterTabClass ?> text-app-secondary bg-app-soft';
-      }
-    });
     renderPaymentTable();
   }
 
@@ -1090,7 +1091,30 @@ window.supplierDashboardData = <?= json_encode([
       window.addEventListener("resize", check);
     });
 
-    /* ── Payment Status filter dropdown ── */
+    /* ── Payment Status dropdown ── */
+    const psBtn  = document.getElementById("paymentStatusBtn");
+    const psMenu = document.getElementById("paymentStatusMenu");
+    const psLbl  = document.getElementById("paymentStatusLabel");
+    const psChev = document.getElementById("paymentStatusChevron");
+    const statusLabels = { all:"All", pending:"Pending", "full paid":"Full Paid", "half paid":"Half Paid" };
+
+    function closePsMenu() { psMenu.classList.add("invisible","opacity-0"); psBtn.setAttribute("aria-expanded","false"); psChev.classList.remove("rotate-180"); }
+    function openPsMenu()  { psMenu.classList.remove("invisible","opacity-0"); psBtn.setAttribute("aria-expanded","true"); psChev.classList.add("rotate-180"); }
+    psBtn.addEventListener("click", e => { e.stopPropagation(); psBtn.getAttribute("aria-expanded")==="true" ? closePsMenu() : openPsMenu(); });
+    document.querySelectorAll("[data-payment-status]").forEach(opt => {
+      opt.addEventListener("click", () => {
+        var status = opt.dataset.paymentStatus;
+        currentPaymentFilter = status;
+        psLbl.innerText = statusLabels[status] || status;
+        document.querySelectorAll("[data-payment-status]").forEach(function(b) { b.className = '<?= $dashboardMenuItemClass ?>'; });
+        opt.className = '<?= $dashboardMenuItemActiveClass ?>';
+        closePsMenu();
+        renderPaymentTable();
+      });
+    });
+    document.addEventListener("click", e => { if (psBtn && !psBtn.contains(e.target) && !psMenu.contains(e.target)) closePsMenu(); });
+
+    /* ── Payment Date filter dropdown ── */
     const payBtn  = document.getElementById("paymentFilterBtn");
     const payMenu = document.getElementById("paymentFilterMenu");
     const payLbl  = document.getElementById("paymentFilterLabel");
