@@ -1332,9 +1332,6 @@
   .bg-app-danger-soft {
     background-color: #f9dede;
   }
-  .bg-app-danger\/10 {
-    background-color: color-mix(in oklab, #b94b4b 10%, transparent);
-  }
   .bg-app-gold-soft {
     background-color: rgba(216, 180, 106, 0.12);
   }
@@ -1377,9 +1374,6 @@
   .bg-app-success {
     background-color: #16a34a;
   }
-  .bg-app-success\/10 {
-    background-color: color-mix(in oklab, #16a34a 10%, transparent);
-  }
   .bg-app-surface {
     background-color: #eddecc;
   }
@@ -1388,9 +1382,6 @@
   }
   .bg-app-warning {
     background-color: #eab308;
-  }
-  .bg-app-warning\/10 {
-    background-color: color-mix(in oklab, #eab308 10%, transparent);
   }
   .bg-black {
     background-color: var(--color-black);

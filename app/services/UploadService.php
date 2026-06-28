@@ -333,6 +333,43 @@ class UploadService
     }
 
     /**
+     * Upload payout proof (admin bank transfer screenshot).
+     * Accepts JPEG / PNG / WebP / PDF, max 5 MB.
+     * Returns relative path from public/ or false on failure.
+     */
+    public function uploadPayoutProof($file, int $supplierId): string|false
+    {
+        $mimeType = $this->mimeType($file);
+        $extension = $this->extensionForMime($mimeType, true);
+
+        $validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!in_array($mimeType, $validTypes, true) || !$extension) {
+            return false;
+        }
+
+        if ($file['size'] > 5 * 1024 * 1024) {
+            return false;
+        }
+
+        $relativeDir = 'uploads/payouts/proofs/' . date('Y/m');
+        $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
+
+        if (!$this->ensureDirectory($absoluteDir)) {
+            return false;
+        }
+
+        $basename = 'payout-' . $supplierId . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename = $basename . '.' . $extension;
+        $absolutePath = $absoluteDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
+            return false;
+        }
+
+        return $relativeDir . '/' . $filename;
+    }
+
+    /**
      * Store a profile photo.
      * Accepts JPEG / PNG / WebP, max 5 MB.
      * $subDirectory: relative path from public/uploads/, e.g. 'admin/avatars' or 'supplier/avatars'.

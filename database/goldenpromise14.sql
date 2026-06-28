@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jun 27, 2026 at 01:41 PM
+-- Generation Time: Jun 27, 2026 at 04:28 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -422,7 +422,8 @@ INSERT INTO `bookings` (`id`, `user_id`, `cart_id`, `total_amount`, `paid_amount
 (342, 30, 3, 2100000.00, 546000.00, 'partial', 'pending_final_payment', '2026-06-28 10:53:32', NULL, NULL, '2026-06-27 10:53:32'),
 (343, 30, 3, 2100000.00, 546000.00, 'partial', 'pending_final_payment', '2026-06-28 11:04:29', NULL, NULL, '2026-06-27 11:04:29'),
 (344, 30, 3, 2100000.00, 546000.00, 'partial', 'cancelled', '2026-06-28 11:09:35', 1, '2026-06-27 11:36:37', '2026-06-27 11:09:35'),
-(345, 29, 6, 2100000.00, 546000.00, 'partial', 'pending_final_payment', '2026-06-28 11:39:58', NULL, NULL, '2026-06-27 11:39:58');
+(345, 29, 6, 2100000.00, 2100000.00, 'paid', 'completed', '2026-06-28 11:39:58', NULL, NULL, '2026-06-27 11:39:58'),
+(346, 29, 6, 3000000.00, 780000.00, 'partial', 'paid', '2026-06-28 12:01:48', NULL, NULL, '2026-06-27 12:01:48');
 
 -- --------------------------------------------------------
 
@@ -688,7 +689,8 @@ INSERT INTO `booking_items` (`id`, `booking_id`, `item_type`, `source`, `item_id
 (401, 342, 'service', 'custom', 50, '2026-06-29 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 106, '09:00:00', '17:00:00', 'slot', NULL),
 (402, 343, 'service', 'custom', 50, '2026-06-30 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
 (403, 344, 'service', 'custom', 50, '2026-06-30 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'cancelled', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
-(404, 345, 'service', 'custom', 50, '2026-06-30 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL);
+(404, 345, 'service', 'custom', 50, '2026-06-30 09:00:00', 2100000.00, 'H & H Wedding Studio', 'JV', 'Studio', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260626181009-90bb4ca5.jpg', 'accepted', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL),
+(405, 346, 'service', 'custom', 49, '2026-07-05 09:00:00', 3000000.00, 'Zephyr Sein Lann So pyay', 'JV', 'Venue', 'http://localhost/GP/public/uploads/suppliers/20/service-management/service/20260618212654-323d369a.jpg', 'accepted', 57, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '09:00:00', '17:00:00', 'slot', NULL);
 
 -- --------------------------------------------------------
 
@@ -969,7 +971,13 @@ INSERT INTO `booking_status_logs` (`id`, `booking_id`, `old_status`, `new_status
 (258, 345, 'draft', 'pending_supplier_response', 29, NULL, '2026-06-27 11:39:58'),
 (259, 345, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 11:40:10'),
 (260, 345, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 11:40:10'),
-(261, 345, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 11:40:52');
+(261, 345, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 11:40:52'),
+(262, 345, 'pending_final_payment', 'finalized', 1, 'Remaining payment verified by admin', '2026-06-27 11:56:40'),
+(263, 346, NULL, 'draft', 29, NULL, '2026-06-27 12:01:48'),
+(264, 346, 'draft', 'pending_supplier_response', 29, NULL, '2026-06-27 12:01:48'),
+(265, 346, NULL, 'supplier_confirmed', NULL, 'Supplier accepted booking', '2026-06-27 12:02:09'),
+(266, 346, 'pending_supplier_response', 'pending_payment', NULL, 'All suppliers accepted', '2026-06-27 12:02:09'),
+(267, 346, 'payment_submitted', 'paid', 1, 'Deposit verified by admin', '2026-06-27 12:03:14');
 
 -- --------------------------------------------------------
 
@@ -1262,7 +1270,8 @@ INSERT INTO `booking_suppliers` (`id`, `booking_id`, `supplier_id`, `service_id`
 (329, 342, 20, 50, 5, NULL, 2100000.00, 'confirmed', '2026-06-27 10:53:43', NULL, NULL, 'unpaid', NULL, '2026-06-27 10:53:32', '2026-06-27 10:53:43'),
 (330, 343, 20, 50, 5, NULL, 2100000.00, 'confirmed', '2026-06-27 11:04:45', NULL, NULL, 'unpaid', NULL, '2026-06-27 11:04:29', '2026-06-27 11:04:45'),
 (331, 344, 20, 50, 5, NULL, 2100000.00, 'cancelled', '2026-06-27 11:09:51', NULL, NULL, 'unpaid', NULL, '2026-06-27 11:09:35', '2026-06-27 11:36:37'),
-(332, 345, 20, 50, 5, NULL, 2100000.00, 'confirmed', '2026-06-27 11:40:10', NULL, NULL, 'unpaid', NULL, '2026-06-27 11:39:58', '2026-06-27 11:40:10');
+(332, 345, 20, 50, 5, NULL, 2100000.00, 'completed', '2026-06-27 11:40:10', NULL, '2026-06-27 11:58:14', 'unpaid', NULL, '2026-06-27 11:39:58', '2026-06-27 11:58:14'),
+(333, 346, 20, 49, 6, NULL, 3000000.00, 'confirmed', '2026-06-27 12:02:09', NULL, NULL, 'unpaid', NULL, '2026-06-27 12:01:48', '2026-06-27 12:02:09');
 
 -- --------------------------------------------------------
 
@@ -1857,7 +1866,8 @@ INSERT INTO `event_details` (`id`, `booking_id`, `booking_item_id`, `event_date`
 (297, 342, 401, '2026-06-29', '09:00:00', '17:00:00', 1, NULL, 'babylone', NULL, NULL, 'Kyaw Kyaw', '09123456789', '', NULL, '2026-06-27 10:53:32'),
 (298, 343, 402, '2026-06-30', '09:00:00', '17:00:00', 1, NULL, 'a naw mar', NULL, NULL, 'HH', '0912345678', '', NULL, '2026-06-27 11:04:29'),
 (299, 344, 403, '2026-06-30', '09:00:00', '17:00:00', 1, NULL, 'ballon', NULL, NULL, 'HH', '0912345678', '', NULL, '2026-06-27 11:09:35'),
-(300, 345, 404, '2026-06-30', '09:00:00', '17:00:00', 1, NULL, 'a naw mar', NULL, NULL, 'Saen', '0912345678', '', NULL, '2026-06-27 11:39:58');
+(300, 345, 404, '2026-06-30', '09:00:00', '17:00:00', 1, NULL, 'a naw mar', NULL, NULL, 'Saen', '0912345678', '', NULL, '2026-06-27 11:39:58'),
+(301, 346, 405, '2026-07-05', '09:00:00', '17:00:00', 700, NULL, 'boollon', NULL, NULL, 'Saen', '09123456789', '', NULL, '2026-06-27 12:01:48');
 
 -- --------------------------------------------------------
 
@@ -1939,7 +1949,7 @@ CREATE TABLE `notifications` (
   `user_id` bigint(20) DEFAULT NULL,
   `title` varchar(150) DEFAULT NULL,
   `message` text DEFAULT NULL,
-  `type` enum('booking','payment','approval','system') DEFAULT NULL,
+  `type` enum('booking','payment','approval','system','payout') DEFAULT NULL,
   `reference_type` varchar(50) DEFAULT NULL,
   `reference_id` bigint(20) DEFAULT NULL,
   `is_read` tinyint(1) DEFAULT 0,
@@ -2330,9 +2340,18 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `refer
 (376, 29, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 345, 0, '2026-06-27 11:40:40'),
 (377, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 546,000 MMK for booking BK-20260627-345. Please verify it.', 'payment', 'booking', 345, 0, '2026-06-27 11:40:40'),
 (378, 29, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 345, 0, '2026-06-27 11:40:45'),
-(379, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 345, 0, '2026-06-27 11:40:45'),
+(379, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 345, 1, '2026-06-27 11:40:45'),
 (380, 29, 'Remaining Payment Submitted', 'Your remaining balance payment proof has been received. Our team will verify and confirm shortly.', 'payment', 'booking', 345, 0, '2026-06-27 11:41:09'),
-(381, 1, 'Remaining Payment Submitted', 'A customer submitted remaining balance payment proof for 1,680,000 MMK for booking BK-20260627-345. Please verify it.', 'payment', 'booking', 345, 0, '2026-06-27 11:41:09');
+(381, 1, 'Remaining Payment Submitted', 'A customer submitted remaining balance payment proof for 1,680,000 MMK for booking BK-20260627-345. Please verify it.', 'payment', 'booking', 345, 0, '2026-06-27 11:41:09'),
+(382, 29, 'Remaining Payment Verified', 'Your remaining balance payment has been verified! Your booking is now fully paid and finalized.', 'payment', 'booking', 345, 0, '2026-06-27 11:56:37'),
+(383, 29, 'Booking Completed', 'Your booking has been marked as completed. Supplier payouts have been processed.', 'booking', 'booking', 345, 0, '2026-06-27 11:58:14'),
+(384, 24, 'New Booking Request', 'Saen is requesting: Zephyr Sein Lann So pyay. Please accept or decline within 24 hours.', 'booking', 'booking', 346, 1, '2026-06-27 12:01:48'),
+(385, 1, 'New Custom Booking Request', 'Saen created a custom or mixed booking for: Zephyr Sein Lann So pyay. Supplier responses are pending.', 'booking', 'booking', 346, 0, '2026-06-27 12:01:48'),
+(386, 29, 'Supplier Accepted — Please Pay', 'JV accepted your booking request. Please complete your 20% deposit to confirm.', 'booking', 'booking', 346, 0, '2026-06-27 12:02:09'),
+(387, 29, 'Payment Proof Submitted', 'Your bank transfer details have been received. Our team will verify and confirm shortly.', 'payment', 'booking', 346, 0, '2026-06-27 12:02:53'),
+(388, 1, 'Deposit Proof Submitted', 'A customer submitted deposit payment proof for 780,000 MMK for booking BK-20260627-346. Please verify it.', 'payment', 'booking', 346, 1, '2026-06-27 12:02:53'),
+(389, 29, 'Payment Verified', 'Your payment has been verified! Suppliers are now reviewing your booking.', 'payment', 'booking', 346, 0, '2026-06-27 12:03:08'),
+(390, 24, 'New Booking — Payment Verified', 'A new booking with confirmed payment is ready for your review.', 'booking', 'booking', 346, 1, '2026-06-27 12:03:08');
 
 -- --------------------------------------------------------
 
@@ -2714,7 +2733,9 @@ INSERT INTO `payments` (`id`, `booking_id`, `supplier_id`, `amount`, `platform_f
 (85, 343, NULL, 1680000.00, NULL, NULL, 'held', NULL, 'remaining', 'Wave Money', 'Wave Money', 'HH', '09123456789', 1680000.00, '2026-06-27 17:35:49', 'pending', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627173549-8f73ffa8.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 11:05:49'),
 (86, 344, NULL, 546000.00, 126000.00, 420000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'NN', '09123456789', 546000.00, '2026-06-27 17:41:04', 'success', NULL, 'transction-id-123456789', 'public/uploads/payment-slips/2026/06/slip-20260627174104-eba0db9d.jpg', 1, '2026-06-27 11:11:17', '', NULL, NULL, '2026-06-27 11:11:04'),
 (87, 345, NULL, 546000.00, 126000.00, 420000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'ko kyaw zin', '09123456789', 546000.00, '2026-06-27 18:10:40', 'success', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260627181040-b27de2fc.jpg', 1, '2026-06-27 11:40:45', '', NULL, NULL, '2026-06-27 11:40:40'),
-(88, 345, NULL, 1680000.00, NULL, NULL, 'held', NULL, 'remaining', 'AYA Pay', 'AYA Pay', 'ko kyaw zin', '09123456789', 1680000.00, '2026-06-27 18:11:09', 'pending', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260627181109-f5835473.jpg', NULL, NULL, NULL, NULL, NULL, '2026-06-27 11:41:09');
+(88, 345, NULL, 1680000.00, NULL, NULL, 'held', NULL, 'remaining', 'AYA Pay', 'AYA Pay', 'ko kyaw zin', '09123456789', 1680000.00, '2026-06-27 18:11:09', 'success', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260627181109-f5835473.jpg', 1, '2026-06-27 11:56:37', '', NULL, NULL, '2026-06-27 11:41:09'),
+(89, 345, 20, 1974000.00, NULL, NULL, 'released', NULL, 'payout', NULL, NULL, NULL, NULL, NULL, NULL, 'success', NULL, NULL, NULL, 1, '2026-06-27 14:17:29', 'Paid via manual bank transfer', 'MANUAL-20-20260627183759', '2026-06-27 12:07:59', '2026-06-27 11:58:14'),
+(90, 346, NULL, 780000.00, 180000.00, 600000.00, 'held', NULL, 'deposit', 'AYA Pay', 'AYA Pay', 'Mg Saen', '09123456789', 780000.00, '2026-06-27 18:32:53', 'success', NULL, 'TXN-12345678', 'public/uploads/payment-slips/2026/06/slip-20260627183253-c6ce3faa.jpg', 1, '2026-06-27 12:03:08', '', NULL, NULL, '2026-06-27 12:02:53');
 
 -- --------------------------------------------------------
 
@@ -2976,7 +2997,8 @@ INSERT INTO `reviews` (`id`, `booking_id`, `booking_item_id`, `service_id`, `cus
 (358, 302, 355, 164, 24, 129, 5, 'Beautiful work and very friendly service. Highly recommend!', '2026-06-20 14:19:11', NULL, NULL),
 (359, 303, 356, 165, 24, 130, 5, 'အရမ်းကျေနပ်ပါတယ်။ ဝန်ဆောင်မှုကောင်းပြီး ဝန်ထမ်းတွေ စိတ်ရှည်ပါတယ်။', '2026-06-20 14:19:11', NULL, NULL),
 (360, 304, 357, 165, 27, 130, 4, 'Everything was perfect on our wedding day. Thank you so much!', '2026-06-20 14:19:11', NULL, NULL),
-(361, 305, 358, 165, 29, 130, 5, 'Professional team, fair price, lovely result. ⭐⭐⭐⭐⭐', '2026-06-20 14:19:11', NULL, NULL);
+(361, 305, 358, 165, 29, 130, 5, 'Professional team, fair price, lovely result. ⭐⭐⭐⭐⭐', '2026-06-20 14:19:11', NULL, NULL),
+(362, 345, 404, 50, 29, 20, 5, 'yess this service is good', '2026-06-27 11:58:41', '2026-06-27 11:58:48', NULL);
 
 -- --------------------------------------------------------
 
@@ -4015,7 +4037,7 @@ CREATE TABLE `suppliers` (
 --
 
 INSERT INTO `suppliers` (`supplier_id`, `user_id`, `shop_name`, `description`, `status`, `verified_by`, `approved_by`, `verify_url`, `agreement_accepted`, `agreement_accepted_at`, `agreement_version`, `payment_status`, `is_available`, `auto_accept_bookings`, `min_advance_days`, `cancellation_policy`, `warning_level`, `missed_response_count`, `last_warning_at`, `admin_note`, `bank_code`, `notification_prefs`, `bank_account`, `created_at`, `deleted_at`) VALUES
-(20, 24, 'JV', 'we sell dress', 'verified', NULL, 1, 'https://www.facebook.com/jv230', 1, '2026-06-10 02:08:51', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-10 06:38:51', NULL),
+(20, 24, 'JV', 'we sell dress', 'verified', NULL, 1, 'https://www.facebook.com/jv230', 1, '2026-06-10 02:08:51', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, 'KBZ', NULL, '123456789', '2026-06-10 06:38:51', NULL),
 (21, 29, 'Wyndham Grand Yangon Hotel', 'ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Tea Package များကို US$ 7 တောင် လျော့ပေးမယ့်အပြင် မိမိရွေး ချယ်တဲ့ Package ပေါ် မူတည်၍ Walkway နဲ့ LED အသုံးပြုခွင့်များပါ ရရှိနိုင်မှာပဲဖြစ်ပါတယ်...\r\n\r\nဒါ့အပြင် Wedding Dinner Packages ဝယ်ယူသူတိုင်းအတွက် အခမဲ့ Complimentary Table များ (သိုမဟုတ်) Walkway အသုံးပြုခွင့် (သိုမဟုတ်)  LED အသုံးပြုခွင့်ဆိုပြီး မိမိ နှစ်သက်ရာ အကျိုးခံစားခွင့်ကို ရွေးချယ်ရယူနိုင်မှာပါ...\r\n\r\n သင့်စိတ်ကူးထဲကအတိုင်း ကြီးကျယ်ခမ်းနားလှပတဲ့ Wedding ပွဲကြီးကို စိတ်တိုင်းကျဖန်တီးနိုင်ဖိုအတွက် ဝင်ဒမ်ဂရန်းရန်ကုန်ဟိုတယ်ရဲ့ Wedding Venue Area များက အသင့်တော်ဆုံးရွေးချယ်မှုဖြစ်စေမှာပါ...Wedding Period ကိုလည်း ၂၀၂၇ ခုနှစ် နှစ်ကုန်အထိ ပေးထားတာမို တအားတန်တဲ့ ဒီအခွင့်အရေးကို လက်မလွတ်ရလေအောင် အမိအရဖမ်းဆုပ်လိုက်တော့နော်...🤍', 'verified', 1, 1, 'htpps://www.wyndhamgrandyangon.com', 1, '2026-06-11 00:31:15', 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-11 05:01:15', NULL),
 (23, 32, 'Excel River View Hotel & Resort', 'Riverside hotel on the Bago River offering stage decoration, table & chair arrangement, floral decoration and theme colour design for weddings.', 'approved', NULL, NULL, 'excelriverview@gmail.com', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:13:56', NULL),
 (24, 33, 'Golden Inya Restaurant', 'Lakeside fine-dining restaurant on Inya Lake with indoor and outdoor space (outdoor seats 700-800). Popular for weddings, engagements and receptions, buffet and set/custom menus available.', 'approved', NULL, NULL, 'golden-inya-restaurant.business.site', 1, NULL, 'supplier-v1', 'paid', 1, 0, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, '2026-06-20 07:22:45', NULL),
@@ -5638,13 +5660,13 @@ ALTER TABLE `attire_rental_options`
 -- AUTO_INCREMENT for table `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=346;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=347;
 
 --
 -- AUTO_INCREMENT for table `booking_items`
 --
 ALTER TABLE `booking_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=405;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=406;
 
 --
 -- AUTO_INCREMENT for table `booking_slot_reservations`
@@ -5656,13 +5678,13 @@ ALTER TABLE `booking_slot_reservations`
 -- AUTO_INCREMENT for table `booking_status_logs`
 --
 ALTER TABLE `booking_status_logs`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=262;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=268;
 
 --
 -- AUTO_INCREMENT for table `booking_suppliers`
 --
 ALTER TABLE `booking_suppliers`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=333;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=334;
 
 --
 -- AUTO_INCREMENT for table `booking_supplier_replacements`
@@ -5686,7 +5708,7 @@ ALTER TABLE `carts`
 -- AUTO_INCREMENT for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=147;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=148;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -5716,7 +5738,7 @@ ALTER TABLE `email_verifications`
 -- AUTO_INCREMENT for table `event_details`
 --
 ALTER TABLE `event_details`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=301;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
 
 --
 -- AUTO_INCREMENT for table `favorites`
@@ -5740,7 +5762,7 @@ ALTER TABLE `login_attempts`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=382;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=391;
 
 --
 -- AUTO_INCREMENT for table `otps`
@@ -5770,7 +5792,7 @@ ALTER TABLE `password_resets`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=91;
 
 --
 -- AUTO_INCREMENT for table `refunds`
@@ -5782,7 +5804,7 @@ ALTER TABLE `refunds`
 -- AUTO_INCREMENT for table `reviews`
 --
 ALTER TABLE `reviews`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=362;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=363;
 
 --
 -- AUTO_INCREMENT for table `roles`

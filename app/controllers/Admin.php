@@ -809,6 +809,10 @@ class Admin extends Controller
             redirect('admin/service/' . $referenceId);
         }
 
+        if ($referenceType === 'payout') {
+            redirect('admin/payouts');
+        }
+
         redirect('admin/dashboard');
     }
 
@@ -2419,16 +2423,28 @@ class Admin extends Controller
             return;
         }
 
+        // Handle optional payment proof upload
+        $proofPath = null;
+        if ($this->uploadService->hasUploaded('proof')) {
+            $proofPath = $this->uploadService->uploadPayoutProof($_FILES['proof'], $supplierId);
+            if ($proofPath === false) {
+                $this->jsonResponse(['error' => 'Invalid file. Accepted: JPG, PNG, WebP, PDF (max 5 MB).'], 400);
+                return;
+            }
+        }
+
         $db = new Database();
         $adminId = $this->currentUserId();
 
         // Mark all processing payouts for this supplier as 'success'
+        $setProof = $proofPath ? ', payment_slip_path = :proof' : '';
         $db->dbquery(
             "UPDATE payments
                 SET status = 'success',
                     verified_by = :admin,
                     verified_at = NOW(),
                     verified_note = :note
+                    {$setProof}
               WHERE supplier_id = :sid
                 AND type = 'payout'
                 AND status = 'processing'"
@@ -2436,6 +2452,9 @@ class Admin extends Controller
         $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
         $db->dbbind(':note', $note ?: 'Paid via manual bank transfer', PDO::PARAM_STR);
         $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        if ($proofPath) {
+            $db->dbbind(':proof', $proofPath, PDO::PARAM_STR);
+        }
         $db->dbexecute();
 
         // Get the total paid for notification

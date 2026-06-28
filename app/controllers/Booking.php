@@ -3175,14 +3175,18 @@ class Booking extends Controller
         $db->dbexecute();
 
         // Notify admins that a supplier is requesting payout
-        $notificationModel = $this->model('Notification');
-        $notificationModel->notifyAdmins(
-            'Payout Request',
-            "Supplier #$supplierId has requested a payout of {$amount} MMK to {$bankCode} account {$bankAccount}.",
-            'payout',
-            'payout',
-            $supplierId
-        );
+        try {
+            $notificationModel = $this->model('Notification');
+            $notificationModel->notifyAdmins(
+                'Payout Request',
+                "Supplier #$supplierId has requested a payout of {$amount} MMK to {$bankCode} account {$bankAccount}.",
+                'payment',
+                'payout',
+                $supplierId
+            );
+        } catch (\Throwable $e) {
+            error_log('Payout notification failed: ' . $e->getMessage());
+        }
 
         $this->jsonResponse([
             'success' => true,

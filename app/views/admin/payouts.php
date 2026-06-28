@@ -91,22 +91,38 @@ $dashboardContent = function () use ($payouts, $activeStatus, $currentPage, $tot
 .pg-page-btn:hover{border-color:var(--primary);background:var(--primary-soft)}
 .pg-page-btn:disabled{opacity:.4;cursor:default}
 
-/* Modal */
-.pg-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
-.pg-modal{background:var(--surface);border-radius:16px;max-width:480px;width:100%;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.15)}
-.pg-modal-header{padding:18px 22px;border-bottom:1px solid var(--border)}
-.pg-modal-header h2{font-size:16px;font-weight:700;color:var(--text);margin:0}
-.pg-modal-body{padding:22px}
-.pg-modal-body label{display:block;font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px}
-.pg-modal-body textarea{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;min-height:70px}
-.pg-modal-body textarea:focus{outline:none;border-color:var(--primary)}
-.pg-modal-info{background:#F4F1EE;border-radius:10px;padding:12px 16px;margin-top:14px;font-size:12px;color:var(--body)}
-.pg-modal-info strong{color:var(--text)}
-.pg-modal-footer{display:flex;gap:10px;padding:0 22px 22px}
-.pg-modal-footer button{flex:1;min-height:40px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
-.pg-modal-cancel{border:1px solid var(--border);background:transparent;color:var(--text)}
-.pg-modal-submit{border:0;background:var(--primary);color:#FFF}
+/* Modal — matches supplier payout modal style */
+.pg-modal-overlay{position:fixed;inset:0;background:rgba(34,24,19,.45);z-index:60;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.pg-modal{background:#FFFFFF;border:1px solid #ead8c7;border-radius:14px;max-width:460px;width:100%;overflow:hidden;box-shadow:0 18px 55px rgba(52,35,43,.16)}
+.pg-modal-head{padding:16px 20px;border-bottom:1px solid #eee4dc;display:flex;align-items:center;gap:12px}
+.pg-modal-head-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pg-modal-head-icon svg{width:16px;height:16px}
+.pg-modal-head h2{margin:0;font-size:14px;font-weight:750;color:#6d4c5b}
+.pg-modal-body{padding:18px 20px}
+.pg-modal-field{margin-bottom:14px}
+.pg-modal-field label{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a58b96;margin-bottom:5px}
+.pg-modal-body textarea{width:100%;padding:9px 12px;border:1px solid #ead8c7;border-radius:9px;font-size:13px;color:#6d4c5b;font-family:inherit;resize:vertical;min-height:70px;transition:border-color .2s;box-sizing:border-box}
+.pg-modal-body textarea:focus{outline:none;border-color:#6d4c5b;box-shadow:0 0 0 3px rgba(103,48,73,.08)}
+.pg-modal-summary{background:#FAFAF9;border-radius:9px;padding:14px 16px;margin-bottom:16px}
+.pg-modal-summary-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;color:#7b5c69}
+.pg-modal-summary-row:not(:last-child){border-bottom:1px solid #f0ebe5}
+.pg-modal-summary-label{font-weight:600;color:#a58b96;font-size:11px}
+.pg-modal-summary-value{font-weight:700;color:#6d4c5b}
+.pg-modal-summary-value.amount{font-size:15px;color:#111827}
+.pg-modal-info{background:#FAFAF9;border-radius:9px;padding:12px 14px;margin-bottom:16px}
+.pg-modal-info p{font-size:12px;color:#A8A29E;margin:0;line-height:1.6}
+.pg-modal-foot{padding:14px 20px;border-top:1px solid #eee4dc;display:flex;gap:8px;background:#faf7f3}
+.pg-modal-foot button{flex:1;min-height:38px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit}
+.pg-modal-cancel{border:1px solid #ead8c7;background:#fff;color:#6d4c5b}
+.pg-modal-cancel:hover{background:#f5f0ea}
+.pg-modal-submit{border:0;background:#6d4c5b;color:#fff}
+.pg-modal-submit:hover{opacity:.85}
 .pg-modal-submit.danger{background:#991B1B}
+.pg-modal-submit.danger:hover{opacity:.85}
+.pg-upload-area{border:1.5px dashed #ead8c7;border-radius:9px;padding:14px;cursor:pointer;transition:all .15s;text-align:center}
+.pg-upload-area:hover{border-color:#6d4c5b;background:#faf7f3}
+.pg-upload-placeholder{display:flex;flex-direction:column;align-items:center;gap:4px;color:#a58b96;font-size:12px;font-weight:600}
+.pg-upload-preview{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#6d4c5b}
 </style>
 
 <section class="admin-payouts-page">
@@ -187,7 +203,7 @@ $dashboardContent = function () use ($payouts, $activeStatus, $currentPage, $tot
                   <td>
                     <div class="pg-actions">
                       <button type="button" class="pg-btn primary"
-                              onclick="openMarkPaidModal(<?= (int)$p['supplier_id'] ?>, '<?= $h($p['shop_name'] ?: $p['owner_name']) ?>', <?= (float)$p['total_amount'] ?>)">
+                              onclick="openMarkPaidModal(<?= (int)$p['supplier_id'] ?>, '<?= $h($p['shop_name'] ?: $p['owner_name']) ?>', <?= (float)$p['total_amount'] ?>, '<?= $h($p['bank_code'] ?? '-') ?>', '<?= $h($p['bank_account'] ?? '-') ?>')">
                         Mark Paid
                       </button>
                       <button type="button" class="pg-btn danger"
@@ -221,20 +237,55 @@ $dashboardContent = function () use ($payouts, $activeStatus, $currentPage, $tot
 </section>
 
 <!-- Mark Paid Modal -->
-<div id="mark-paid-modal" class="pg-modal-overlay" style="display:none">
+<div id="mark-paid-modal" class="pg-modal-overlay">
   <div class="pg-modal">
-    <div class="pg-modal-header"><h2>Confirm Payout</h2></div>
+    <div class="pg-modal-head">
+      <div class="pg-modal-head-icon" style="background:#ecfdf5;color:#047857">
+        <i data-lucide="check-circle"></i>
+      </div>
+      <h2>Confirm Payout</h2>
+    </div>
     <form id="mark-paid-form" class="pg-modal-body">
       <?= csrf_field() ?>
       <input type="hidden" name="supplier_id" id="paid-supplier-id">
-      <div class="pg-modal-info" style="margin-top:0;margin-bottom:14px">
-        You are confirming a manual bank transfer of <strong id="paid-amount"></strong> to <strong id="paid-supplier-name"></strong>.
+      <div class="pg-modal-summary">
+        <div class="pg-modal-summary-row">
+          <span class="pg-modal-summary-label">Supplier</span>
+          <span class="pg-modal-summary-value" id="paid-supplier-name"></span>
+        </div>
+        <div class="pg-modal-summary-row">
+          <span class="pg-modal-summary-label">Bank</span>
+          <span class="pg-modal-summary-value" id="paid-bank-info"></span>
+        </div>
+        <div class="pg-modal-summary-row">
+          <span class="pg-modal-summary-label">Amount</span>
+          <span class="pg-modal-summary-value amount" id="paid-amount"></span>
+        </div>
       </div>
-      <div>
-        <label>Note (optional)</label>
+      <div class="pg-modal-field">
+        <label>Transfer Note (optional)</label>
         <textarea name="note" placeholder="e.g., Transferred via KBZ Pay on 2026-06-25, ref #12345"></textarea>
       </div>
-      <div class="pg-modal-footer">
+      <div class="pg-modal-field">
+        <label>Payment Proof (optional)</label>
+        <div class="pg-upload-area" id="upload-area" onclick="document.getElementById('proof-input').click()">
+          <input type="file" name="proof" id="proof-input" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none">
+          <div class="pg-upload-placeholder" id="upload-placeholder">
+            <i data-lucide="upload-cloud" style="width:24px;height:24px;color:#a58b96"></i>
+            <span>Click to upload transfer receipt</span>
+            <span style="font-size:10px;color:#A8A29E">JPG, PNG, WebP or PDF · Max 5 MB</span>
+          </div>
+          <div class="pg-upload-preview" id="upload-preview" style="display:none">
+            <i data-lucide="file-check" style="width:18px;height:18px;color:#047857"></i>
+            <span id="upload-filename"></span>
+            <button type="button" onclick="event.stopPropagation();clearProofUpload()" style="margin-left:auto;background:none;border:0;cursor:pointer;color:#991B1B;font-size:11px;font-weight:700">Remove</button>
+          </div>
+        </div>
+      </div>
+      <div class="pg-modal-info">
+        <p>Upload a screenshot or receipt of the bank transfer as proof of payment.</p>
+      </div>
+      <div class="pg-modal-foot">
         <button type="button" onclick="closeModal('mark-paid-modal')" class="pg-modal-cancel">Cancel</button>
         <button type="submit" class="pg-modal-submit">Confirm Paid</button>
       </div>
@@ -243,20 +294,31 @@ $dashboardContent = function () use ($payouts, $activeStatus, $currentPage, $tot
 </div>
 
 <!-- Reject Modal -->
-<div id="reject-modal" class="pg-modal-overlay" style="display:none">
+<div id="reject-modal" class="pg-modal-overlay">
   <div class="pg-modal">
-    <div class="pg-modal-header"><h2>Reject Payout</h2></div>
+    <div class="pg-modal-head">
+      <div class="pg-modal-head-icon" style="background:#FEF2F2;color:#991B1B">
+        <i data-lucide="x-circle"></i>
+      </div>
+      <h2>Reject Payout</h2>
+    </div>
     <form id="reject-form" class="pg-modal-body">
       <?= csrf_field() ?>
       <input type="hidden" name="supplier_id" id="reject-supplier-id">
-      <div class="pg-modal-info" style="margin-top:0;margin-bottom:14px">
-        Rejecting payout for <strong id="reject-supplier-name"></strong>. Funds will be returned to pending status.
+      <div class="pg-modal-summary">
+        <div class="pg-modal-summary-row">
+          <span class="pg-modal-summary-label">Supplier</span>
+          <span class="pg-modal-summary-value" id="reject-supplier-name"></span>
+        </div>
       </div>
-      <div>
-        <label>Reason</label>
+      <div class="pg-modal-field">
+        <label>Rejection Reason</label>
         <textarea name="reason" placeholder="e.g., Invalid bank account number" required></textarea>
       </div>
-      <div class="pg-modal-footer">
+      <div class="pg-modal-info">
+        <p>Funds will be returned to pending status. The supplier will be notified with your reason.</p>
+      </div>
+      <div class="pg-modal-foot">
         <button type="button" onclick="closeModal('reject-modal')" class="pg-modal-cancel">Cancel</button>
         <button type="submit" class="pg-modal-submit danger">Reject Payout</button>
       </div>
@@ -277,22 +339,46 @@ function showToast(msg, type = 'success') {
   t._timer = setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-function openMarkPaidModal(supplierId, name, amount) {
+function openMarkPaidModal(supplierId, name, amount, bankCode, bankAcct) {
   document.getElementById('paid-supplier-id').value = supplierId;
   document.getElementById('paid-supplier-name').textContent = name;
+  document.getElementById('paid-bank-info').textContent = (bankCode || '-') + ' · ' + (bankAcct || '-');
   document.getElementById('paid-amount').textContent = new Intl.NumberFormat().format(amount) + ' MMK';
   document.getElementById('mark-paid-modal').style.display = 'flex';
+  if (window.lucide) lucide.createIcons();
 }
 function openRejectModal(supplierId, name) {
   document.getElementById('reject-supplier-id').value = supplierId;
   document.getElementById('reject-supplier-name').textContent = name;
   document.getElementById('reject-modal').style.display = 'flex';
+  if (window.lucide) lucide.createIcons();
 }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+  clearProofUpload();
+}
 
 document.querySelectorAll('.pg-modal-overlay').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.style.display = 'none'; });
+  el.addEventListener('click', e => { if (e.target === el) { el.style.display = 'none'; clearProofUpload(); } });
 });
+
+// Proof upload preview
+document.getElementById('proof-input')?.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  document.getElementById('upload-placeholder').style.display = 'none';
+  document.getElementById('upload-preview').style.display = 'flex';
+  document.getElementById('upload-filename').textContent = file.name;
+  if (window.lucide) lucide.createIcons();
+});
+function clearProofUpload() {
+  const input = document.getElementById('proof-input');
+  if (input) input.value = '';
+  const ph = document.getElementById('upload-placeholder');
+  const pv = document.getElementById('upload-preview');
+  if (ph) ph.style.display = '';
+  if (pv) pv.style.display = 'none';
+}
 
 async function submitPayoutAction(formId, endpoint, successMsg) {
   const form = document.getElementById(formId);
