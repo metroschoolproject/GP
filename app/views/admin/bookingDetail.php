@@ -571,8 +571,8 @@ $dashboardContent = function () use (
   .bkd-btn--primary:hover { background: var(--bkd-primary-hover); box-shadow: 0 2px 8px rgba(109,76,91,.25); }
   .bkd-btn--success { border: 1px solid var(--bkd-success-border); background: var(--bkd-success-text); color: #FFFFFF; font-weight: 800; }
   .bkd-btn--success:hover { background: #2d5a3f; }
-  .bkd-btn--danger { border: 1px solid var(--bkd-danger-border); background: var(--bkd-danger-text); color: #FFFFFF; font-weight: 800; }
-  .bkd-btn--danger:hover { background: #732e3e; }
+  .bkd-btn--danger { border: 1px solid var(--bkd-danger-border); background: var(--bkd-danger-border); color: #FFFFFF; font-weight: 800; }
+  .bkd-btn--danger:hover { background: var(--bkd-danger-text); }
 
   /* ── Badges ── */
   .bkd-badge {
