@@ -224,10 +224,8 @@ $dashboardContent = function () use (
                 'booking' => ['Bookings', $stats['booking']],
                 'payment' => ['Payments', $stats['payment']],
                 'approval' => ['Approvals', $stats['approval']],
+                'system' => ['System', $stats['system']],
             ];
-            if ($notificationRole === 'admin') {
-                $tabs['system'] = ['System', $stats['system']];
-            }
             foreach ($tabs as $value => [$label, $count]):
             ?>
                 <a class="inbox-tab <?= $filters['type'] === $value ? 'active' : '' ?>" href="<?= $h($tabUrl($value)) ?>">
