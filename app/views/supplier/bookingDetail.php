@@ -462,23 +462,50 @@ $dashboardContent = function () use (
         <?php if ($hasMultipleServices): ?>
           <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= count($assignedServices) ?> services assigned</h2>
           <div class="sup-assignment-services-list">
-            <?php foreach ($assignedServices as $svc): ?>
-              <div class="sup-assignment-service-item">
-                <span class="sup-badge <?= $statusBadgeClass($svc['status']) ?>" style="font-size:9px;padding:3px 8px"><?= $h(ucfirst($svc['status'])) ?></span>
-                <strong><?= $h($svc['name']) ?></strong>
-                <?php if ($svc['category'] !== ''): ?><span class="sup-assignment-category"><?= $h($svc['category']) ?></span><?php endif; ?>
-                <?php if ($needsResponse && $svc['status'] === 'pending'): ?>
-                  <div class="sup-assignment-service-actions">
-                    <button type="button" class="sup-btn sup-btn--accept sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svc['booking_supplier_id'] ?>" data-action="accept">
-                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-                      Accept
-                    </button>
-                    <button type="button" class="sup-btn sup-btn--decline sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svc['booking_supplier_id'] ?>" data-action="decline">
-                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-                      Decline
-                    </button>
-                  </div>
-                <?php endif; ?>
+            <?php foreach ($assignedServices as $svc):
+              $svcBsid = $svc['booking_supplier_id'];
+              $svcDetail = null;
+              foreach ($myServiceRows as $sr) {
+                  if ((int)$sr['id'] === $svcBsid) { $svcDetail = $sr; break; }
+              }
+              $svcItem = null;
+              foreach ($items as $it) {
+                  if ((int)($it['service_id'] ?? 0) === (int)($svcDetail['service_id'] ?? 0) && empty($it['package_booking_item_id'])) {
+                      $svcItem = $it; break;
+                  }
+              }
+              $svcItemId = $svcItem ? (int)$svcItem['id'] : 0;
+              $svcD = $svcItemId > 0 ? ($detailByItem[$svcItemId] ?? []) : [];
+              $svcDate = (string)($svcD['event_date'] ?? $firstDate);
+              $svcStart = (string)($svcD['start_time'] ?? '');
+              $svcEnd = (string)($svcD['end_time'] ?? '');
+              $svcBookingType = $svcItem ? ($svcItem['booking_type'] ?? 'fullday') : ($svcDetail['booking_type'] ?? 'fullday');
+              $svcTimeDisplay = $svcBookingType === 'fullday' ? 'Full day' : $h(trim($formatTime($svcStart) . ($svcEnd !== '' ? ' – ' . $formatTime($svcEnd) : '')) ?: '');
+            ?>
+              <div class="sup-assignment-service-card">
+                <div class="sup-assignment-service-info">
+                  <strong><?= $h($svc['name']) ?></strong>
+                  <span class="sup-assignment-service-meta">
+                    <?= $h($svc['category'] !== '' ? $svc['category'] : 'Service') ?>
+                    <?php if ($svcDate !== ''): ?> · <?= $h($formatDate($svcDate)) ?><?php endif; ?>
+                    <?php if ($svcTimeDisplay !== ''): ?> · <?= $svcTimeDisplay ?><?php endif; ?>
+                  </span>
+                </div>
+                <div class="sup-assignment-service-right">
+                  <span class="sup-badge <?= $statusBadgeClass($svc['status']) ?>"><?= $h(ucfirst($svc['status'])) ?></span>
+                  <?php if ($needsResponse && $svc['status'] === 'pending'): ?>
+                    <div class="sup-assignment-service-actions">
+                      <button type="button" class="sup-btn sup-btn--accept sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svcBsid ?>" data-action="accept">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
+                        Accept
+                      </button>
+                      <button type="button" class="sup-btn sup-btn--decline sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svcBsid ?>" data-action="decline">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                        Decline
+                      </button>
+                    </div>
+                  <?php endif; ?>
+                </div>
               </div>
             <?php endforeach; ?>
           </div>

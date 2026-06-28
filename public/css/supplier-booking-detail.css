@@ -1214,33 +1214,60 @@
     font-weight: 700;
   }
   .sup-assignment-services-list {
-    margin-top: 8px;
+    margin-top: 10px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
-  .sup-assignment-service-item {
+  .sup-assignment-service-card {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: #4a3040;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #fffdfb;
+    border: 1px solid #eee0d5;
+    border-radius: 10px;
+    transition: border-color .15s;
   }
-  .sup-assignment-service-item strong {
-    font-weight: 600;
+  .sup-assignment-service-card:hover {
+    border-color: #d9c4b3;
   }
-  .sup-assignment-service-item .sup-assignment-category {
-    margin-top: 0;
+  .sup-assignment-service-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sup-assignment-service-info strong {
+    font-weight: 650;
+    font-size: 13.5px;
+    color: #3d2a33;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sup-assignment-service-meta {
+    font-size: 11px;
+    color: #a08070;
+    letter-spacing: .01em;
+  }
+  .sup-assignment-service-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
   }
   .sup-assignment-service-actions {
     display: flex;
     gap: 6px;
-    margin-left: auto;
   }
   .sup-btn--sm {
-    padding: 4px 10px;
+    padding: 5px 12px;
     font-size: 11px;
+    font-weight: 700;
     gap: 4px;
+    border-radius: 8px;
   }
   .sup-btn--sm svg {
     width: 12px;
@@ -1763,6 +1790,15 @@
     .sup-service-detail-list { grid-template-columns: 1fr; }
     .sup-service-detail:nth-child(even) { padding-left: 0; }
     .sup-field-row { grid-template-columns: 1fr; }
+    .sup-assignment-service-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .sup-assignment-service-right {
+      width: 100%;
+      justify-content: space-between;
+    }
   }
 
   /* ── Payment confidence strip ── */
