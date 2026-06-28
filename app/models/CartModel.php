@@ -1133,15 +1133,23 @@ class CartModel
                LEFT JOIN packages parent_package ON parent_package.package_id = parent_ci.item_id"
             : '';
 
+        $hasDesignColumns = $this->hasCartDesignColumns();
+        $decoJoin = $hasDesignColumns
+            ? 'LEFT JOIN decoration_styles ds ON ds.id = ci.decoration_style_id'
+            : '';
+        $decoPriceExpr = $hasDesignColumns
+            ? "COALESCE(ds.customize_price, ds.package_price, ds.price)"
+            : 'NULL';
+
         $this->db->dbquery(
-            "SELECT ci.id AS cart_item_id, 
-                    ci.item_type, 
-                    ci.item_id, 
+            "SELECT ci.id AS cart_item_id,
+                    ci.item_type,
+                    ci.item_id,
                     ci.selected_date,
                     CASE
                         WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price)
-                        ELSE ci.price
-                    END AS cart_price, 
+                        ELSE COALESCE(ci.price, {$decoPriceExpr})
+                    END AS cart_price,
                     ci.slot_id, 
                     ci.start_time, 
                     ci.end_time,
@@ -1193,6 +1201,7 @@ class CartModel
             LEFT JOIN categories cat ON s.category_id = cat.id
             LEFT JOIN attire_items ai ON ai.id = ci.attire_item_id
             LEFT JOIN attire_rental_options aro ON aro.id = ci.rental_option_id
+            {$decoJoin}
             LEFT JOIN categories package_cat ON package_cat.slug = 'package'
             WHERE ci.user_id = :uid
             ORDER BY ci.id DESC"
@@ -1279,16 +1288,25 @@ class CartModel
      */
     public function getCartTotal(int $userId): float
     {
+        $hasDesignColumns = $this->hasCartDesignColumns();
+        $decoJoin = $hasDesignColumns
+            ? 'LEFT JOIN decoration_styles ds ON ds.id = ci.decoration_style_id'
+            : '';
+        $decoPriceExpr = $hasDesignColumns
+            ? "COALESCE(ds.customize_price, ds.package_price, ds.price)"
+            : 'NULL';
+
         $this->db->dbquery(
             "SELECT COALESCE(SUM(
                 CASE
                     WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
-                    ELSE COALESCE(ci.price, s.price_min, s.price, 0)
+                    ELSE COALESCE(ci.price, {$decoPriceExpr}, s.price_min, s.price, 0)
                 END
              ), 0) AS total
              FROM cart_items ci
              LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
              LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
+             {$decoJoin}
               WHERE ci.user_id = :uid"
         );
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);

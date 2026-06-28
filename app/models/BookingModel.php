@@ -104,6 +104,13 @@ class BookingModel
                LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id"
             : '';
 
+        $decoJoin = $hasDesignColumns
+            ? 'LEFT JOIN decoration_styles ds ON ds.id = ci.decoration_style_id'
+            : '';
+        $decoPriceExpr = $hasDesignColumns
+            ? "COALESCE(ds.customize_price, ds.package_price, ds.price)"
+            : 'NULL';
+
         $this->db->dbquery(
             "INSERT INTO booking_items (booking_id, item_type{$sourceInsertColumn}, item_id, booking_date, price,
                     item_name, supplier_name, category_name, thumbnail_url,
@@ -112,7 +119,7 @@ class BookingModel
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
                         WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
-                        ELSE COALESCE(ci.price, s.price_min, s.price, {$supplierPackagePrice}, 0)
+                        ELSE COALESCE(ci.price, {$decoPriceExpr}, s.price_min, s.price, {$supplierPackagePrice}, 0)
                     END,
                     COALESCE(s.name, p.name, {$supplierPackageName}),
                     COALESCE(sup.shop_name, {$supplierPackageShop}, 'Golden Promise'),
@@ -125,6 +132,7 @@ class BookingModel
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
             {$supplierPackageJoin}
+            {$decoJoin}
             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
             LEFT JOIN categories cat ON s.category_id = cat.id
             LEFT JOIN attire_rental_options aro ON aro.id = ci.rental_option_id
