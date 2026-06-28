@@ -1701,6 +1701,14 @@ class Booking extends Controller
             return;
         }
 
+        // Lazy-expire: if this booking is overdue, auto-cancel now
+        if (($booking['status'] ?? '') === 'pending_supplier_response'
+            && !empty($booking['supplier_response_deadline'])
+            && strtotime($booking['supplier_response_deadline']) < time()) {
+            $this->bookingModel->expireOverdueBookingRequests();
+            $booking = $this->bookingModel->getBookingById($bookingId);
+        }
+
         // Verify this supplier is associated
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $isAssociated = false;
@@ -1806,6 +1814,14 @@ class Booking extends Controller
         $booking = $this->bookingModel->getBookingById($bookingId);
         if (!$booking) {
             $this->jsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        // Lazy-expire: if deadline passed, auto-cancel before supplier can respond
+        if (($booking['status'] ?? '') === 'pending_supplier_response'
+            && !empty($booking['supplier_response_deadline'])
+            && strtotime($booking['supplier_response_deadline']) < time()) {
+            $this->bookingModel->expireOverdueBookingRequests();
+            $this->jsonResponse(['error' => 'The response deadline has passed. This booking has been automatically cancelled.'], 410);
         }
 
         $isPendingSupplierResponse = in_array(($booking['status'] ?? ''), ['pending_supplier_response', 'suppliers_responding'], true);
@@ -2381,6 +2397,14 @@ class Booking extends Controller
         if (!$booking) {
             redirect('admin/bookings');
             return;
+        }
+
+        // Lazy-expire: if this booking is overdue, auto-cancel now
+        if (($booking['status'] ?? '') === 'pending_supplier_response'
+            && !empty($booking['supplier_response_deadline'])
+            && strtotime($booking['supplier_response_deadline']) < time()) {
+            $this->bookingModel->expireOverdueBookingRequests();
+            $booking = $this->bookingModel->getBookingById($bookingId);
         }
 
         $items = $this->bookingModel->getBookingItems($bookingId);
