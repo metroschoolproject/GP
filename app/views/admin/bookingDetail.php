@@ -35,8 +35,13 @@ $expectedDeposit = $totalAmount * ($depositPercent / 100);
 $platformFeePercent = get_platform_fee_percent();
 $expectedPlatformFee = round($totalAmount * ($platformFeePercent / 100), 2);
 $expectedPayment = round($expectedDeposit + $expectedPlatformFee, 2);
-$balanceDue = max(0, $totalAmount - $paidAmount);
-$paidPercent = $totalAmount > 0 ? round(($paidAmount / $totalAmount) * 100) : 0;
+
+// Balance = service total minus deposit portion only.
+// paidAmount includes the platform fee, so subtract it to get the
+// actual deposit applied to the service price.
+$depositPaid = max(0, $paidAmount - $expectedPlatformFee);
+$balanceDue = max(0, $totalAmount - $depositPaid);
+$paidPercent = $totalAmount > 0 ? round(($depositPaid / $totalAmount) * 100) : 0;
 
 $bookingStatusForPayment = (string)($booking['status'] ?? '');
 // Check if there's a pending remaining payment — handles legacy bookings
@@ -841,15 +846,23 @@ $dashboardContent = function () use (
   <!-- ── Summary Strip ── -->
   <div class="bkd-strip">
     <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Total</span>
+      <span class="bkd-strip-label">Service total</span>
       <span class="bkd-strip-value"><?= $money($totalAmount) ?></span>
     </div>
     <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Paid</span>
+      <span class="bkd-strip-label">Platform fee (<?= $platformFeePercent ?>%)</span>
+      <span class="bkd-strip-value"><?= $money($expectedPlatformFee) ?></span>
+    </div>
+    <div class="bkd-strip-item">
+      <span class="bkd-strip-label">Grand total</span>
+      <span class="bkd-strip-value"><?= $money($totalAmount + $expectedPlatformFee) ?></span>
+    </div>
+    <div class="bkd-strip-item">
+      <span class="bkd-strip-label">Customer paid</span>
       <span class="bkd-strip-value is-success" id="booking-paid-value"><?= $money($paidAmount) ?></span>
     </div>
     <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Balance</span>
+      <span class="bkd-strip-label">Balance due</span>
       <span class="bkd-strip-value <?= $balanceDue > 0 ? 'is-danger' : 'is-success' ?>" id="booking-balance-value"><?= $money($balanceDue) ?></span>
     </div>
     <div class="bkd-strip-item">
