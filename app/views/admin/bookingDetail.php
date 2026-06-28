@@ -943,10 +943,10 @@ $dashboardContent = function () use (
       <form id="payment-review-form" class="bkd-review-form" data-booking-id="<?= $bookingId ?>">
         <textarea name="note" placeholder="Admin note (optional)"></textarea>
         <div class="bkd-review-actions">
-          <button class="bkd-btn bkd-btn--danger reject-payment-btn" type="button" style="width:100%;justify-content:center">
+          <button class="bkd-btn reject-payment-btn" type="button" style="width:100%;justify-content:center;background:#c4677a;color:#fff;border:1px solid #c4677a;font-weight:800">
             <i data-lucide="x-circle"></i> Reject
           </button>
-          <button class="bkd-btn bkd-btn--success verify-payment-btn" type="button" style="width:100%;justify-content:center">
+          <button class="bkd-btn verify-payment-btn" type="button" style="width:100%;justify-content:center;background:#3d6b4f;color:#fff;border:1px solid #6b9e7e;font-weight:800">
             <i data-lucide="circle-check"></i> Verify
           </button>
         </div>
@@ -1415,7 +1415,7 @@ $dashboardContent = function () use (
       <div class="bkd-modal-error" id="rejectPaymentError">Please enter a rejection reason.</div>
       <div class="bkd-modal-actions">
         <button type="button" class="bkd-btn bkd-btn--ghost" id="rejectPaymentCancel">Cancel</button>
-        <button type="button" class="bkd-btn bkd-btn--danger" id="rejectPaymentConfirm">
+        <button type="button" class="bkd-btn" id="rejectPaymentConfirm" style="background:#c4677a;color:#fff;border:1px solid #c4677a;font-weight:800">
           <i data-lucide="x-circle"></i> Reject proof
         </button>
       </div>
