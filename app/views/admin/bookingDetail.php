@@ -1556,7 +1556,14 @@ $dashboardContent = function () use (
 
     try {
       var response = await fetch(endpoint, { method: 'POST', body: formData });
-      var data = await response.json();
+      var text = await response.text();
+      var data;
+      try { data = JSON.parse(text); } catch (parseErr) {
+        showToast('Server error (HTTP ' + response.status + '). Please refresh and try again.', 'error');
+        console.error('Non-JSON response:', text.substring(0, 500));
+        if (actionButton) { actionButton.disabled = false; actionButton.textContent = actionButton.dataset.originalText || 'Reject'; }
+        return;
+      }
       if (data.success) {
         showToast(data.message || 'Payment review saved.', data.email_sent === false ? 'error' : 'success');
         if (approve) {
@@ -1572,7 +1579,7 @@ $dashboardContent = function () use (
         }
       }
     } catch (e) {
-      showToast('Connection error. Please try again.', 'error');
+      showToast('Connection error: ' + (e.message || 'Unknown') + '. Please try again.', 'error');
       if (actionButton) {
         actionButton.disabled = false;
         actionButton.textContent = actionButton.dataset.originalText || (approve ? 'Approve payment + notify' : 'Reject');
