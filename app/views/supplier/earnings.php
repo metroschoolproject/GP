@@ -181,6 +181,13 @@ $dashboardContent = function () use (
     <?php endif; ?>
 
     <!-- ── Fee Breakdown ─────────────────────────────────────────── -->
+    <?php
+    // Pre-compute total refunds from breakdown data
+    $totalRefunded = 0;
+    foreach ($earningsBreakdown as $_row) {
+        $totalRefunded += (float)($_row['refund_amount'] ?? 0);
+    }
+    ?>
     <?php if ($grossTotal > 0): ?>
     <div class="er-section">
         <div class="er-section-head">
@@ -262,7 +269,6 @@ $dashboardContent = function () use (
                 </thead>
                 <tbody>
                 <?php
-                  $totalRefunded = 0;
                   foreach ($earningsBreakdown as $row):
                     $status   = $row['status'] ?? 'pending';
                     $net      = (float)($row['net_amount']   ?? 0);
