@@ -259,9 +259,10 @@ if (!empty($attentionItems[0]['label'])) {
                   <option value="<?= (int)$minutes ?>" <?= (int)$minutes === $slotDuration ? 'selected' : '' ?>><?= $h($durationLabel($minutes)) ?></option>
                 <?php endforeach; ?>
               </select>
+              <span class="sd-field-hint">How long each booking lasts</span>
             </div>
             <div class="sd-avail-field">
-              <label>Buffer between slots</label>
+              <label>Buffer time</label>
               <select id="availabilityBuffer">
                 <?php
                 $bufferOptions = [0, 5, 10, 15, 30, 45, 60];
@@ -274,28 +275,30 @@ if (!empty($attentionItems[0]['label'])) {
                   <option value="<?= (int)$minutes ?>" <?= (int)$minutes === $bufferMinutes ? 'selected' : '' ?>><?= (int)$minutes === 0 ? 'No buffer' : $h($durationLabel($minutes)) ?></option>
                 <?php endforeach; ?>
               </select>
+              <span class="sd-field-hint">Gap between back-to-back bookings</span>
             </div>
             <?php endif; // !isRental ?>
 	            <?php if (!$isVenue): ?>
 	            <div class="sd-avail-field">
-	              <label>Bookings per time slot</label>
+	              <label>Max bookings per slot</label>
 	              <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
-	              <span class="sd-field-hint">Total bookings this service can accept for the same date and time window.</span>
+	              <span class="sd-field-hint">How many customers can book the same time</span>
 	            </div>
 	            <div class="sd-avail-field">
-	              <label>Package bookings per slot</label>
+	              <label>Package limit per slot</label>
 	              <input id="availabilityConcurrentPackage" type="number" min="0" value="<?= (int)$maxConcurrentPackage ?>">
-	              <span class="sd-field-hint">Optional cap for admin package bookings in the same slot. 0 = use total capacity.</span>
+	              <span class="sd-field-hint">Max admin package bookings. 0 = no separate limit</span>
 	            </div>
 	            <div class="sd-avail-field">
-	              <label>Custom bookings per slot</label>
+	              <label>Custom limit per slot</label>
 	              <input id="availabilityConcurrentCustomize" type="number" min="0" value="<?= (int)$maxConcurrentCustomize ?>">
-	              <span class="sd-field-hint">Optional cap for direct/customized bookings in the same slot. 0 = use total capacity.</span>
+	              <span class="sd-field-hint">Max custom bookings. 0 = no separate limit</span>
 	            </div>
             <?php endif; ?>
             <div class="sd-avail-field">
               <label>Minimum notice</label>
               <input id="availabilityMinLeadDays" type="number" min="0" max="365" value="<?= (int)($service['min_lead_days'] ?? 0) ?>">
+              <span class="sd-field-hint">Days before the event a customer must book</span>
             </div>
           </div>
 
@@ -555,7 +558,7 @@ if (!empty($attentionItems[0]['label'])) {
             </div>
           <?php elseif (!$isRental): ?>
             <div class="sd-info-row">
-              <span class="sd-info-key">Concurrent bookings</span>
+              <span class="sd-info-key">Max bookings per slot</span>
               <span class="sd-info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>
             </div>
           <?php endif; ?>

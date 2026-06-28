@@ -1248,6 +1248,15 @@
   box-shadow: 0 0 0 3px rgba(107,58,74,0.1);
 }
 
+.sd-avail-field .sd-field-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-3);
+  opacity: 0.8;
+}
+
 /* Day cards row */
 .sd-days {
   display: grid;
