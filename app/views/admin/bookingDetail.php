@@ -571,8 +571,8 @@ $dashboardContent = function () use (
   .bkd-btn--primary:hover { background: var(--bkd-primary-hover); box-shadow: 0 2px 8px rgba(109,76,91,.25); }
   .bkd-btn--success { border: 1px solid var(--bkd-success-border); background: var(--bkd-success-text); color: #FFFFFF; font-weight: 800; }
   .bkd-btn--success:hover { background: #047857; }
-  .bkd-btn--danger { border: 1px solid var(--bkd-danger-border); background: var(--bkd-danger-text); color: #FFFFFF; font-weight: 800; }
-  .bkd-btn--danger:hover { background: #7f1d1d; }
+  .bkd-btn--danger { border: 1px solid var(--bkd-danger-border); background: #dc2626; color: #FFFFFF; font-weight: 800; }
+  .bkd-btn--danger:hover { background: #b91c1c; }
 
   /* ── Badges ── */
   .bkd-badge {
@@ -737,7 +737,7 @@ $dashboardContent = function () use (
   .bkd-modal-head { display: block; padding: 26px 26px 0; }
   .bkd-modal-icon {
     display: grid; place-items: center; width: 46px; height: 46px;
-    margin-bottom: 16px; border-radius: .75rem; background: #FEF2F2; color: #991B1B;
+    margin-bottom: 16px; border-radius: .75rem; background: #FEE2E2; color: #dc2626;
   }
   .bkd-modal-icon svg { width: 22px; height: 22px; }
   .bkd-modal-title { margin: 0; color: var(--bkd-text); font-size: 18px; font-weight: 800; line-height: 1.3; }
