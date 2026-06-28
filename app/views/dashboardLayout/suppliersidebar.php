@@ -24,7 +24,6 @@ $servicesPathActive = strpos($currentPath, 'supplier/services') !== false
     || strpos($currentPath, 'supplier/serviceDetail') !== false
     || strpos($currentPath, 'supplier/serviceCalendar') !== false;
 $profilePathActive = strpos($currentPath, 'supplier/profile') !== false;
-$servicesPackageTabActive = strpos($currentPath, 'supplier/services') !== false && ($_GET['tab'] ?? '') === 'packages';
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, services...';
 $dashboardSearchAction = $dashboardSearchAction ?? URLROOT . '/supplier/bookings';
 $notificationConfig = $notificationConfig ?? [
@@ -387,7 +386,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                 </button>
                 <div id="supplierServicesSubnav" class="supplier-sidebar-subnav supplier-sidebar-label">
                     <a href="<?= URLROOT ?>/supplier/services"
-                       class="<?= dashboard_supplier_path_matches('supplier/services', $currentPath, true) && !$servicesPackageTabActive ? 'is-active' : '' ?>">
+                       class="<?= dashboard_supplier_path_matches('supplier/services', $currentPath, true) ? 'is-active' : '' ?>">
                         <i data-lucide="list" class="h-3.5 w-3.5"></i>
                         Manage services
                     </a>
@@ -395,11 +394,6 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                        class="<?= strpos($currentPath, 'supplier/calendar') !== false ? 'is-active' : '' ?>">
                         <i data-lucide="calendar-days" class="h-3.5 w-3.5"></i>
                         Service calendar
-                    </a>
-                    <a href="<?= URLROOT ?>/supplier/services?tab=packages"
-                       class="<?= $servicesPackageTabActive ? 'is-active' : '' ?>">
-                        <i data-lucide="package" class="h-3.5 w-3.5"></i>
-                        Packages
                     </a>
                 </div>
             </div>
