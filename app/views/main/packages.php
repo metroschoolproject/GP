@@ -13,8 +13,9 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => 'MMK ' . number_format((float)$v, 0);
 
-$activeCategory = $filters['category'] ?? 'all';
-$activeSort     = $filters['sort'] ?? 'featured';
+$activeCategory = $_GET['category'] ?? ($filters['category'] ?? 'all');
+$activeSort     = $_GET['sort'] ?? ($filters['sort'] ?? 'featured');
+$showFilteredResults = ($activeCategory !== 'all' || $activeSort !== 'featured');
 $resetUrl = URLROOT . '/customerServices/packages';
 $packageHeroImages = [
     URLROOT . '/app/views/main/images/heroPackage1.png',
@@ -45,6 +46,31 @@ $inferPackageTier = static function (array $pkg): string {
 foreach ($packages as $pkg) {
     $tierKey = $inferPackageTier((array)$pkg);
     $packagesByTier[$tierKey][] = $pkg;
+}
+
+// Frontend-only filtering for this page. This does not change backend logic or validation.
+$filteredPackages = $packages;
+
+if ($activeCategory !== 'all') {
+    $filteredPackages = array_filter($filteredPackages, function ($pkg) use ($activeCategory, $inferPackageTier) {
+        return $inferPackageTier((array)$pkg) === $activeCategory;
+    });
+}
+
+if ($activeSort === 'price_low') {
+    usort($filteredPackages, function ($a, $b) {
+        $priceA = (float)($a['package_price'] ?? $a['base_price'] ?? 0);
+        $priceB = (float)($b['package_price'] ?? $b['base_price'] ?? 0);
+        return $priceA <=> $priceB;
+    });
+}
+
+if ($activeSort === 'price_high') {
+    usort($filteredPackages, function ($a, $b) {
+        $priceA = (float)($a['package_price'] ?? $a['base_price'] ?? 0);
+        $priceB = (float)($b['package_price'] ?? $b['base_price'] ?? 0);
+        return $priceB <=> $priceA;
+    });
 }
 ?>
 <!DOCTYPE html>
@@ -250,8 +276,8 @@ img { display: block; max-width: 100%; }
   color: #fffaf3;
   border-radius: 0;
   filter: drop-shadow(0 24px 22px rgba(65, 42, 53, 0.26));
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M0 0H1440V640C1320 688 1200 708 1080 684C960 660 840 590 720 626C600 662 480 708 360 684C240 660 120 590 0 632V0Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M0 0H1440V640C1320 688 1200 708 1080 684C960 660 840 590 720 626C600 662 480 708 360 684C240 660 120 590 0 632V0Z'/%3E%3C/svg%3E");
+ -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M0 0H1440V655C1320 672 1200 682 1080 674C960 666 840 640 720 652C600 664 480 682 360 674C240 666 120 640 0 654V0Z'/%3E%3C/svg%3E");
+mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M0 0H1440V655C1320 672 1200 682 1080 674C960 666 840 640 720 652C600 664 480 682 360 674C240 666 120 640 0 654V0Z'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
@@ -708,70 +734,61 @@ img { display: block; max-width: 100%; }
 }
 .gp-package-type-sections {
   display: grid;
-  gap: 42px;
-  max-width: 1280px;
+  gap: 18px;
+  max-width: 1440px;
   margin: 58px auto 0;
 }
 .gp-package-type-section {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(230px, 0.28fr) minmax(0, 1fr);
-  gap: 28px;
-  align-items: center;
-  min-height: 430px;
+  display: block;
+  min-height: auto;
   padding: 36px 0;
-  border: 0;
-  border-bottom: 1px solid transparent;
-  border-image: linear-gradient(90deg, transparent 0%, rgba(216,180,106,.24) 16%, rgba(216,180,106,.72) 50%, rgba(216,180,106,.24) 84%, transparent 100%) 1;
-  border-radius: 0;
-  background: transparent;
-  scroll-margin-top: 96px;
-  overflow: hidden;
-  isolation: isolate;
 }
-.gp-package-type-intro {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 320px;
+.gp-package-type-intro{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    width:100vw;
+    margin-left:calc(50% - 50vw);
+    margin-right:calc(50% - 50vw);
+    margin-bottom:32px;
+
+    height:70px;
+    padding:0;
+
+    background:#6D4C5B;
+
+    border:none;
+    border-radius:0;
 }
-.gp-package-type-section:last-child {
-  border-bottom: 0;
+
+.gp-package-type-title{
+    margin:0;
+
+    font-family:'Playfair Display', serif;
+    font-size:34px;
+    font-weight:500;
+    line-height:1;
+
+    color:#fdf9f5;   /* light text */
+    letter-spacing:.02em;
 }
-.gp-package-type-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #9A687F;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .12em;
-  text-transform: uppercase;
+.gp-package-type-label,
+.gp-package-type-copy,
+.gp-package-type-carousel-head{
+    display:none;
 }
-.gp-package-type-label::before {
-  content: '';
-  width: 32px;
-  height: 1px;
-  background: currentColor;
-  opacity: .45;
+
+.gp-package-type-copy{
+    margin-top:14px;
+    max-width:520px;
+
+    font-size:15px;
+    line-height:1.7;
+
+    color:#8c7668;
 }
-.gp-package-type-title {
-  margin-top: 10px;
-  color: #201a1d;
-  font-family: var(--font-display);
-  font-size: clamp(30px, 3vw, 46px);
-  line-height: 1;
-  font-weight: 700;
-}
-.gp-package-type-copy {
-  margin-top: 4px;
-  color: rgba(32,26,29,.66);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.55;
-}
+
 .gp-package-type-list {
   display: none;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -837,35 +854,107 @@ img { display: block; max-width: 100%; }
   overflow: hidden;
   min-width: 0;
   min-height: 470px;
-  padding: 28px 0 46px;
+  padding: 28px 0 0px;
   grid-row: 1;
 }
-.gp-package-type-track {
-  display: flex;
-  gap: 16px;
-  align-items: stretch;
-  will-change: transform;
-  transition: transform .48s var(--ease-out-expo);
+.gp-package-type-track{
+    display:flex;
+    justify-content:center;
+    gap:28px;
 }
-.gp-package-type-card {
-  display: grid;
-  gap: 14px;
-  padding: 14px;
-  min-height: 390px;
-  flex: 0 0 calc((100% - 32px) / 3);
-  max-width: none;
-  border: 1px solid rgba(216,180,106,.72);
-  border-radius: 18px;
-  background: #f5e8d9;
-  color: #201a1d;
-  box-shadow: 0 14px 32px rgba(63,36,26,.10);
-  transform: translateY(0);
-  transition: transform .34s var(--ease-out-expo), box-shadow .34s var(--ease-out-expo), border-color .34s var(--ease-out-expo);
+
+.gp-filtered-package-results {
+  padding-top: 42px;
 }
-.gp-package-type-card:hover {
-  transform: translateY(-8px);
-  border-color: rgba(216,180,106,.95);
-  box-shadow: 0 22px 48px rgba(63,36,26,.14);
+.gp-filtered-package-viewport {
+  max-width: 1280px;
+  margin: 0 auto;
+  min-height: 0;
+  overflow: visible;
+  padding: 0 0 46px;
+}
+.gp-filtered-package-track{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(360px,420px));
+    justify-content:center;
+    gap:30px;
+}
+.gp-filtered-package-track .gp-package-type-card {
+  flex: none;
+}
+.gp-package-type-card{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+
+    width:400px;
+    max-width:400px;
+    flex:0 0 400px;
+
+    min-height:470px;
+    padding:12px;
+    border-radius:24px;
+    background:#fff8ef;
+    border:1px solid rgba(201,193,187,.58);
+    box-shadow:0 18px 42px rgba(63,36,26,.13);
+}
+
+.gp-package-type-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 20px 42px rgba(63,36,26,.16);
+}
+
+
+
+
+
+.gp-package-type-card p{
+  margin-top:8px;
+  color:#6f625c;
+  font-size:13px;
+  line-height:1.55;
+  font-weight:400;
+}
+
+.gp-package-type-meta{
+  margin-top:auto;
+  padding-top:18px;
+  border-top:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.gp-package-type-price{
+  color:#7d3f3f;
+  font-size:18px;
+  font-weight:700;
+  white-space:nowrap;
+}
+
+.gp-card-book{
+    width:100%;          /* Change to 65%, 70%, or 75% as you prefer */
+    max-width:100%;
+
+    min-height:48px;
+    margin:0 auto;
+
+    padding:6px 8px 6px 20px;
+
+    border-radius:20px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    background:#6D4C5B;
+    color:#fff8ef;
+
+    font-size:15px;
+    font-weight:700;
 }
 .gp-package-type-card.is-jumping {
   animation: packageJumpUp .58s var(--ease-out-expo) both;
@@ -877,39 +966,172 @@ img { display: block; max-width: 100%; }
   line-height: 1.05;
   font-weight: 500;
 }
-.gp-package-type-image {
-  position: relative;
-  overflow: hidden;
-  min-height: 170px;
-  aspect-ratio: 16 / 10;
-  border: 1px solid rgba(117,75,35,.32);
-  border-radius: 20px;
-  background: rgba(255,255,255,.38);
+
+.gp-package-type-card{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+
+  min-height:470px;
+  padding:12px;
+  border-radius:24px;
+  background:#fff8ef;
+  border:1px solid rgba(201,193,187,.58);
+  box-shadow:0 18px 42px rgba(63,36,26,.13);
+  color:#211d1a;
+  overflow:hidden;
+  transition:.25s ease;
 }
-.gp-package-type-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+
+.gp-package-type-card:hover{
+  transform:translateY(-7px);
+  box-shadow:0 24px 52px rgba(63,36,26,.17);
 }
-.gp-package-type-card p {
-  color: rgba(32,26,29,.74);
-  font-size: 12px;
-  line-height: 1.5;
-  font-weight: 500;
+
+.gp-package-type-image{
+  position:relative;
+  width:100%;
+  height:250px;
+  border-radius:18px;
+  overflow:hidden;
+  border:0;
+  background:#f5e8d9;
+  
 }
-.gp-package-type-meta {
-  display: flex;
-  align-items: end;
-  justify-content: flex-start;
-  gap: 0;
-  padding-top: 10px;
-  border-top: 1px solid rgba(117,75,35,.22);
+
+.gp-package-type-image img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
-.gp-package-type-price {
-  color: #111827;
-  font-size: clamp(14px, 1.25vw, 18px);
-  line-height: 1;
-  font-weight: 800;
+.gp-package-type-image .gp-heart{
+  position:absolute;
+  top:14px;
+  right:14px;
+  z-index:10;
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:none;
+  background:rgba(255,248,239,.94);
+  color:#6D4C5B;
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(63,36,26,.14);
+}
+
+.gp-package-type-image .gp-heart:hover{
+  transform:translateY(-1px);
+  background:#fff8ef;
+}
+
+.gp-package-type-image .gp-heart.is-saved{
+  color:#e55b5b;
+  background:#fff8ef;
+}
+.gp-service-count-tag{
+  position:absolute;
+  left:14px;
+  bottom:14px;
+  z-index:3;
+  padding:6px 12px;
+  border-radius:8px;
+  background:#f0dfe7;
+  color:#7E4F65;
+  font-size:11px;
+  font-weight:800;
+}
+
+.gp-package-type-card h4{
+  margin:18px 0 8px;
+  text-align:center;
+  font-size:18px;
+  font-weight:800;
+  color:#211d1a;
+}
+
+.gp-package-type-card p{
+  max-width:300px;
+  margin:0 auto 12px;
+  text-align:center;
+  color:#6f625a;
+  font-size:13px;
+  line-height:1.6;
+  font-weight:500;
+}
+
+.gp-package-type-meta{
+  width:100%;
+  margin-top:auto;
+  padding-top:0;
+  border-top:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+}
+
+.gp-package-type-price{
+  text-align:center;
+  color:#7E4F65;
+  font-size:18px;
+  font-weight:800;
+}
+
+
+
+.gp-card-book-icon{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:#fff8ef;
+  color:#6D4C5B;
+
+  display:grid;
+  place-items:center;
+}
+
+.gp-card-book-icon svg{
+  width:18px;
+  height:18px;
+  stroke:currentColor;
+}
+
+/* same style as service card heart */
+.gp-heart{
+  position:absolute;
+  top:22px;
+  right:22px;
+  z-index:10;
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:none;
+  background:rgba(255,248,239,.94);
+  color:#6D4C5B;
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(63,36,26,.14);
+  transition:all .2s ease;
+}
+
+.gp-heart:hover{
+  transform:translateY(-1px);
+  background:#fff8ef;
+}
+
+.gp-heart.is-saved{
+  color:#e55b5b;
+  background:#fff8ef;
+}
+.gp-heart.is-loading{
+  pointer-events:none;
+  opacity:.62;
 }
 .gp-package-type-count {
   color: rgba(32,26,29,.54);
@@ -953,6 +1175,13 @@ img { display: block; max-width: 100%; }
   padding: 12px;
   display: flex;
   flex-direction: column;
+}
+.gp-tier-card .gp-tier-panel h2 {
+  transform: translateX(205px);
+  margin: 0 0 22px;
+  font-size: 25px;
+  line-height: 1.1;
+  font-weight: 400;
 }
 .gp-tier-card.is-switching {
   animation: packageJumpUp .58s var(--ease-out-expo) both;
@@ -1037,6 +1266,7 @@ img { display: block; max-width: 100%; }
   text-transform: uppercase;
 }
 .gp-tier-card h2 {
+  padding-left: 20px;
   margin: 0 0 22px;
   font-size: 30px;
   line-height: 1.1;
@@ -1069,7 +1299,7 @@ img { display: block; max-width: 100%; }
   text-align: left;
   color: #201a1d;
   font-size: clamp(30px, 3.4vw, 46px);
-  font-weight: 800;
+  font-weight: 500;
   line-height: .95;
 }
 .gp-tier-features {
@@ -1247,8 +1477,10 @@ img { display: block; max-width: 100%; }
 }
 .gp-pkg-price {
   font-family: var(--font-body);
-  font-size: 14px; font-weight: 800;
-  color: #6D4C5B; line-height: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6D4C5B;
+  line-height: 1;
 }
 .gp-pkg-price-label {
   display: block; margin-top: 1px;
@@ -1450,27 +1682,17 @@ img { display: block; max-width: 100%; }
         <form class="gp-search-panel" method="GET" action="<?= URLROOT ?>/customerServices/packages">
           <div class="gp-search-rows">
             <div class="gp-search-row-fields">
-              <div class="gp-search-field-boutique is-search">
-                <label for="q">Search</label>
-                <svg class="gp-search-leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input id="q" type="search" name="q" value="<?= $h($filters['search'] ?? '') ?>" placeholder="Wedding, photography, floral…">
-                <button class="gp-search-btn" type="submit" aria-label="Search packages">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                </button>
-              </div>
+              
               <div class="gp-search-filter-row">
                 <div class="gp-search-field-boutique">
-                  <label for="f-category">Category</label>
+                  <label for="f-category">Package Types</label>
                   <span class="gp-pkg-select-wrap">
                     <select id="f-category" class="gp-pkg-select" name="category">
-                      <option value="all" <?= $activeCategory === 'all' ? 'selected' : '' ?>>All categories</option>
-                      <?php foreach ($categories as $cat):
-                        $slug = $cat['slug'] ?? strtolower($cat['name'] ?? '');
-                      ?>
-                        <option value="<?= $h($slug) ?>" <?= ($activeCategory === $slug) ? 'selected' : '' ?>>
-                          <?= $h($cat['name'] ?? '') ?>
-                        </option>
-                      <?php endforeach; ?>
+                      <option value="all" <?= $activeCategory === 'all' ? 'selected' : '' ?>>All package types</option>
+<option value="standard" <?= $activeCategory === 'standard' ? 'selected' : '' ?>>Standard</option>
+<option value="premium" <?= $activeCategory === 'premium' ? 'selected' : '' ?>>Premium</option>
+<option value="luxury" <?= $activeCategory === 'luxury' ? 'selected' : '' ?>>Luxury</option>
+                      
                     </select>
                   </span>
                 </div>
@@ -1478,12 +1700,10 @@ img { display: block; max-width: 100%; }
                   <label for="f-sort">Sort by</label>
                   <span class="gp-pkg-select-wrap">
                     <select id="f-sort" class="gp-pkg-select gp-pkg-sort" name="sort">
-                      <option value="featured" <?= $activeSort === 'featured' ? 'selected' : '' ?>>Featured</option>
-                      <option value="price_low" <?= $activeSort === 'price_low' ? 'selected' : '' ?>>Price: low first</option>
-                      <option value="price_high" <?= $activeSort === 'price_high' ? 'selected' : '' ?>>Price: high first</option>
-                      <option value="name_az" <?= $activeSort === 'name_az' ? 'selected' : '' ?>>Name: A–Z</option>
-                      <option value="name_za" <?= $activeSort === 'name_za' ? 'selected' : '' ?>>Name: Z–A</option>
-                    </select>
+  <option value="featured" <?= $activeSort === 'featured' ? 'selected' : '' ?>>Price</option>
+  <option value="price_low" <?= $activeSort === 'price_low' ? 'selected' : '' ?>>Low to High</option>
+  <option value="price_high" <?= $activeSort === 'price_high' ? 'selected' : '' ?>>High to Low</option>
+</select>
                   </span>
                 </div>
               </div>
@@ -1520,8 +1740,39 @@ img { display: block; max-width: 100%; }
     <?php endif; ?>
   </div>
   <?php endif; ?>
+<?php if ($showFilteredResults): ?>
+<section class="gp-tier-showcase gp-filtered-package-results" aria-label="Package results">
+  <div class="gp-package-type-viewport gp-filtered-package-viewport">
+    <div class="gp-package-type-track gp-filtered-package-track">
+      <?php if (empty($filteredPackages)): ?>
+        <div class="gp-package-type-empty">No packages match your selected filter.</div>
+      <?php else: ?>
+        <?php foreach ($filteredPackages as $pkg): ?>
+          <?php $pkgImage = trim((string)($pkg['image_url'] ?? '')); ?>
+          <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>">
+  <span class="gp-package-type-image">
+    <?php if ($pkgImage !== ''): ?>
+      <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy">
+    <?php endif; ?>
 
+    <button 
+      class="gp-heart"
+      type="button"
+      aria-label="Add to wishlist"
+      data-item-type="package"
+      data-item-id="<?= (int)($pkg['id'] ?? $pkg['package_id'] ?? 0) ?>"
+      data-saved="0">
+      ♡
+    </button>
+  </span>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
   <!-- STATIC PACKAGE TIERS -->
+   <?php if (!$showFilteredResults): ?>
   <section class="gp-tier-showcase" aria-label="Package tiers">
     <div class="gp-tier-top">
       <h2 class="gp-tier-heading">Our <strong>Packages</strong></h2>
@@ -1589,21 +1840,22 @@ img { display: block; max-width: 100%; }
       <?php foreach ($typeOrder as $sectionIndex => $tierKey): ?>
       <?php $tierPackageCount = count($packagesByTier[$tierKey]); ?>
       <section class="gp-package-type-section gp-reveal gp-reveal-d<?= min($sectionIndex, 2) ?>" id="package-<?= $h($tierKey) ?>" aria-label="<?= $h($packageTierLabels[$tierKey]) ?> details" data-tier-section="<?= $h($tierKey) ?>">
-        <div class="gp-package-type-intro">
-          <span class="gp-package-type-label"><?= $h($packageTierLabels[$tierKey]) ?></span>
-          <h3 class="gp-package-type-title"><?= $h($typeSectionCopy[$tierKey][0]) ?></h3>
-          <p class="gp-package-type-copy"><?= $h($typeSectionCopy[$tierKey][1]) ?></p>
-          <div class="gp-package-type-carousel-head">
-            <div class="gp-package-type-nav" <?= $tierPackageCount > 3 ? '' : 'hidden' ?> aria-label="<?= $h($packageTierLabels[$tierKey]) ?> package navigation">
-              <button type="button" class="gp-package-type-prev" aria-label="Previous <?= $h($packageTierLabels[$tierKey]) ?> packages">
-                <i data-lucide="chevron-left" size="16"></i>
-              </button>
-              <button type="button" class="gp-package-type-next" aria-label="Next <?= $h($packageTierLabels[$tierKey]) ?> packages">
-                <i data-lucide="chevron-right" size="16"></i>
-              </button>
-            </div>
-          </div>
-        </div>
+       <div class="gp-package-type-intro">
+  <h3 class="gp-package-type-title">
+    <?= $h($packageTierLabels[$tierKey]) ?>
+  </h3>
+
+  <div class="gp-package-type-carousel-head">
+    <div class="gp-package-type-nav" <?= $tierPackageCount > 3 ? '' : 'hidden' ?> aria-label="<?= $h($packageTierLabels[$tierKey]) ?> package navigation">
+      <button type="button" class="gp-package-type-prev" aria-label="Previous <?= $h($packageTierLabels[$tierKey]) ?> packages">
+        <i data-lucide="chevron-left" size="16"></i>
+      </button>
+      <button type="button" class="gp-package-type-next" aria-label="Next <?= $h($packageTierLabels[$tierKey]) ?> packages">
+        <i data-lucide="chevron-right" size="16"></i>
+      </button>
+    </div>
+  </div>
+</div>
         <div class="gp-package-type-cards" data-package-type-carousel>
           <?php if (empty($packagesByTier[$tierKey])): ?>
             <div class="gp-package-type-empty">No <?= $h(strtolower($packageTierLabels[$tierKey])) ?> packages yet.</div>
@@ -1613,18 +1865,46 @@ img { display: block; max-width: 100%; }
                 <?php foreach ($packagesByTier[$tierKey] as $pkg): 
                   $pkgImage = trim((string)($pkg['image_url'] ?? ''));
                 ?>
-                  <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>" aria-label="View <?= $h($pkg['name'] ?? 'package') ?> details">
-                    <h4><?= $h($pkg['name'] ?? '') ?></h4>
-                    <span class="gp-package-type-image" aria-hidden="true">
-                      <?php if ($pkgImage !== ''): ?>
-                        <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy">
-                      <?php endif; ?>
-                    </span>
-                    <p><?= $h($pkg['tagline'] ?? $pkg['description'] ?? '') ?></p>
-                    <div class="gp-package-type-meta">
-                      <span class="gp-package-type-price"><?= $money($pkg['package_price'] ?? $pkg['base_price'] ?? 0) ?></span>
-                    </div>
-                  </a>
+                 <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>">
+
+  <span class="gp-package-type-image">
+    <?php if ($pkgImage !== ''): ?>
+      <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy">
+    <?php endif; ?>
+
+     <button 
+    class="gp-heart"
+    type="button"
+    aria-label="Add to wishlist"
+    data-item-type="package"
+    data-item-id="<?= (int)($pkg['id'] ?? $pkg['package_id'] ?? 0) ?>"
+    data-saved="0">
+    ♡
+  </button>
+
+    <span class="gp-service-count-tag">
+      <?= count($pkg['services'] ?? []) ?: 5 ?> Services
+    </span>
+  </span>
+
+  <h4><?= $h($pkg['name'] ?? '') ?></h4>
+
+  <p><?= $h($pkg['tagline'] ?? $pkg['description'] ?? '') ?></p>
+
+  <div class="gp-package-type-meta">
+    <span class="gp-package-type-price">
+      <?= $money($pkg['package_price'] ?? $pkg['base_price'] ?? 0) ?>
+    </span>
+
+    <span class="gp-card-book">
+      Book Now
+      <span class="gp-card-book-icon">
+        <i data-lucide="arrow-up-right"></i>
+      </span>
+    </span>
+  </div>
+
+</a>
                 <?php endforeach; ?>
               </div>
             </div>
@@ -1634,6 +1914,7 @@ img { display: block; max-width: 100%; }
       <?php endforeach; ?>
     </div>
   </section>
+  <?php endif; ?>
 
 </main>
 
@@ -1835,6 +2116,12 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => closePackageSelects());
   window.addEventListener('scroll', () => closePackageSelects(), { passive: true });
 
+  document.querySelectorAll('.gp-pkg-select').forEach(select => {
+    select.addEventListener('change', () => {
+      select.closest('form')?.submit();
+    });
+  });
+
   // Profile dropdown toggle
   const profileBtns = document.querySelectorAll('.gp-profile-btn');
   profileBtns.forEach(btn => {
@@ -1849,6 +2136,83 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.gp-profile-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
   });
 });
+
+(function(){
+  const isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
+  const authUrl = '<?= URLROOT ?>/users/auth';
+  const wishlistUrl = '<?= URLROOT ?>/main/toggleWishlist';
+  const storageKey = 'gpPackageWishlist';
+
+  function savedPackages(){
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) || '[]').map(Number).filter(Boolean);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function storePackages(ids){
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(Array.from(new Set(ids.map(Number).filter(Boolean)))));
+    } catch (error) {}
+  }
+
+  function paintHeart(btn, isSaved){
+    btn.classList.toggle('is-saved', isSaved);
+    btn.dataset.saved = isSaved ? '1' : '0';
+    btn.setAttribute('aria-label', isSaved ? 'Remove from wishlist' : 'Add to wishlist');
+    btn.textContent = isSaved ? '♥' : '♡';
+  }
+
+  const localSaved = savedPackages();
+  document.querySelectorAll('.gp-heart[data-item-type="package"]').forEach(function(btn){
+    const itemId = parseInt(btn.dataset.itemId, 10);
+    if (!itemId) return;
+
+    if (localSaved.includes(itemId)) {
+      paintHeart(btn, true);
+    }
+
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!isLoggedIn) {
+        window.location.href = authUrl + '?redirect=' + encodeURIComponent('customerServices/packages');
+        return;
+      }
+
+      const nextSaved = !(btn.dataset.saved === '1' || btn.classList.contains('is-saved'));
+      btn.classList.add('is-loading');
+
+      fetch(wishlistUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          item_type: 'package',
+          item_id: itemId,
+          collection_id: null
+        })
+      })
+      .then(function(response){ return response.json(); })
+      .then(function(data){
+        btn.classList.remove('is-loading');
+        if (!data.ok) return;
+
+        const isSaved = data.action === 'added';
+        paintHeart(btn, isSaved);
+
+        let ids = savedPackages();
+        ids = isSaved ? ids.concat(itemId) : ids.filter(function(id){ return id !== itemId; });
+        storePackages(ids);
+      })
+      .catch(function(){
+        btn.classList.remove('is-loading');
+        paintHeart(btn, !nextSaved);
+      });
+    });
+  });
+})();
 </script>
 </body>
 </html>
