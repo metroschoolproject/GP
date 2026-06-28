@@ -121,8 +121,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     gap: .75rem;
     align-items: stretch;
   }
-  .supplier-dashboard-overview .supplier-admin-primary,
-  .supplier-dashboard-overview .supplier-admin-side {
+  .supplier-dashboard-overview .supplier-admin-primary {
     display: contents;
   }
   .supplier-dashboard-overview .supplier-admin-kpis {
@@ -130,25 +129,73 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     grid-row: 1;
   }
   .supplier-dashboard-overview .supplier-admin-charts {
-    grid-column: 1 / span 8;
+    grid-column: 1 / -1;
     grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
   }
-  .supplier-dashboard-overview .supplier-admin-calendar {
-    grid-column: 9 / -1;
-    grid-row: 2;
-  }
-  .supplier-dashboard-overview .supplier-admin-upcoming {
+  .supplier-dashboard-overview .supplier-admin-bottom-row {
     grid-column: 1 / -1;
     grid-row: 3;
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    gap: .75rem;
+  }
+  .supplier-dashboard-overview .supplier-admin-calendar {
+    min-width: 0;
+  }
+  .supplier-dashboard-overview .supplier-admin-upcoming {
+    min-width: 0;
   }
   .supplier-dashboard-overview .supplier-admin-upcoming #weddingBookingsList {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .5rem;
     max-height: none;
   }
-  .supplier-dashboard-overview .supplier-admin-charts .chart-container {
-    min-height: 250px;
+  .supplier-dashboard-overview .chart-container-revenue {
+    min-height: 280px;
+  }
+  .supplier-dashboard-overview .chart-container-booking {
+    min-height: 280px;
+  }
+  /* Period dropdown */
+  .supplier-dashboard-overview .period-dropdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 2rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--supplier-admin-border);
+    background: #fff;
+    padding: 0 0.75rem;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--supplier-admin-accent);
+    cursor: pointer;
+    transition: all .15s ease;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(28,25,23,0.05);
+  }
+  .supplier-dashboard-overview .period-dropdown-btn:hover {
+    background: #f5f0ec;
+    border-color: #d4c4b8;
+  }
+  .supplier-dashboard-overview .period-dropdown-btn svg {
+    transition: transform .15s ease;
+  }
+  .supplier-dashboard-overview .period-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 30;
+    width: 180px;
+    border-radius: 0.75rem;
+    border: 1px solid var(--supplier-admin-border);
+    background: #fff;
+    padding: 0.375rem;
+    box-shadow: 0 4px 16px rgba(28,25,23,0.1);
   }
   @keyframes supplierAdminFadeUp {
     from { opacity: 0; transform: translateY(8px); }
@@ -160,11 +207,8 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   .scroll-hint { position: relative; }
   .scroll-hint.can-scroll::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 32px; background: linear-gradient(to right, transparent, rgba(252,248,245,0.9)); pointer-events: none; z-index: 2; }
   @media (max-width: 1100px) {
-    .supplier-dashboard-overview .supplier-admin-charts {
-      grid-column: 1 / span 7;
-    }
-    .supplier-dashboard-overview .supplier-admin-calendar {
-      grid-column: 8 / -1;
+    .supplier-dashboard-overview .supplier-admin-bottom-row {
+      grid-template-columns: 1fr;
     }
     .supplier-dashboard-overview .supplier-admin-upcoming #weddingBookingsList {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -176,10 +220,15 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     }
     .supplier-dashboard-overview .supplier-admin-kpis,
     .supplier-dashboard-overview .supplier-admin-charts,
-    .supplier-dashboard-overview .supplier-admin-calendar,
-    .supplier-dashboard-overview .supplier-admin-upcoming {
+    .supplier-dashboard-overview .supplier-admin-bottom-row {
       grid-column: 1;
       grid-row: auto;
+    }
+    .supplier-dashboard-overview .supplier-admin-charts {
+      grid-template-columns: 1fr;
+    }
+    .supplier-dashboard-overview .supplier-admin-bottom-row {
+      grid-template-columns: 1fr;
     }
   }
   @media (max-width: 640px) {
@@ -196,6 +245,8 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     .supplier-dashboard-overview .gap-4 { gap: 0.75rem !important; }
     .supplier-dashboard-overview .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
     .supplier-dashboard-overview .py-5 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+    .supplier-dashboard-overview .chart-container-revenue { min-height: 200px !important; }
+    .supplier-dashboard-overview .chart-container-booking { min-height: 200px !important; }
     .supplier-dashboard-overview .supplier-admin-upcoming #weddingBookingsList {
       grid-template-columns: 1fr;
     }
@@ -210,7 +261,20 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 <h1 class="supplier-admin-page-title">Business overview</h1>
                 <p class="supplier-admin-page-copy">Revenue, bookings, availability, and payments at a glance.</p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="relative">
+                    <button id="periodDropdownBtn" type="button" class="period-dropdown-btn" onclick="togglePeriodDropdown()">
+                        <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <span id="periodDropdownLabel">This Year</span>
+                        <svg id="periodDropdownChevron" class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div id="periodDropdownMenu" class="invisible opacity-0 period-dropdown-menu transition-all duration-150">
+                        <button type="button" data-range="month" class="<?= $dashboardMenuItemClass ?>" onclick="selectPeriod('month', 'This Month')">This Month</button>
+                        <button type="button" data-range="6months" class="<?= $dashboardMenuItemClass ?>" onclick="selectPeriod('6months', 'Last 6 Months')">Last 6 Months</button>
+                        <button type="button" data-range="year" class="<?= $dashboardMenuItemActiveClass ?>" onclick="selectPeriod('year', 'This Year')">This Year</button>
+                        <button type="button" data-range="all" class="<?= $dashboardMenuItemClass ?>" onclick="selectPeriod('all', 'All Time')">All Time</button>
+                    </div>
+                </div>
                 <a href="<?= URLROOT ?>/supplier/services"
                    class="supplier-admin-control inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold shadow-sm transition hover:bg-stone-50">
                     <i data-lucide="briefcase-business" class="h-3.5 w-3.5"></i>
@@ -288,66 +352,60 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
 
             </div><!-- end stat cards inner -->
 
-            <!-- CHARTS: two side by side inside left col -->
-            <div class="supplier-admin-charts grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <!-- CHARTS: two columns -->
+            <div class="supplier-admin-charts">
 
                 <!-- Revenue Chart -->
-                <div class="<?= $dashboardCompactCardClass ?> supplier-admin-animate flex flex-col" style="animation-delay:.28s">
-                    <div class="mb-2 flex items-start justify-between">
+                <div class="<?= $dashboardCardClass ?> supplier-admin-animate flex flex-col" style="animation-delay:.30s">
+                    <div class="mb-3 flex items-start justify-between">
                         <div>
                             <h3 class="supplier-admin-section-title">Revenue trend</h3>
-                            <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Monthly revenue performance</p>
+                            <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Revenue performance over time</p>
                         </div>
-                        <span class="self-start inline-flex items-center gap-1 bg-app-danger-soft text-app-danger font-bold text-[10px] px-2.5 py-1 rounded-full border border-app-border">PEAK: FEB</span>
+                        <span id="revenuePeakBadge" class="self-start inline-flex items-center gap-1 bg-app-danger-soft text-app-danger font-bold text-[10px] px-2.5 py-1 rounded-full border border-app-border">—</span>
                     </div>
-                    <div class="chart-container min-h-28 flex-1">
+                    <div class="chart-container-revenue flex-1">
                         <canvas id="revenueChart"></canvas>
                     </div>
-                    <div class="mt-2 flex flex-wrap items-center gap-3 border-t border-app-panel-border pt-2">
+                    <div class="mt-3 flex flex-wrap items-center gap-4 border-t border-app-panel-border pt-2">
                         <div class="flex items-center gap-1.5">
-                            <span class="inline-block h-2.5 w-2.5 rounded-full bg-app-primary"></span>
-                            <span class="text-[10px] font-medium text-app-secondary">Revenue</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="inline-block h-2.5 w-4 rounded-full bg-app-primary/10 ring-1 ring-app-panel-border"></span>
-                            <span class="text-[10px] font-medium text-app-secondary">Filled area</span>
+                            <span class="inline-block h-2.5 w-6 rounded-full bg-app-primary/15 ring-1 ring-app-primary/30"></span>
+                            <span class="text-[10px] font-medium text-app-secondary">Revenue (filled)</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="inline-block h-2.5 w-2.5 rounded-full bg-app-danger-soft ring-1 ring-app-primary"></span>
-                            <span class="text-[10px] font-medium text-app-secondary">Peak month</span>
+                            <span class="text-[10px] font-medium text-app-secondary">Peak</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Booking Trends -->
-                <div class="<?= $dashboardCompactCardClass ?> supplier-admin-animate flex flex-col" style="animation-delay:.35s">
-                    <div class="mb-2 flex items-start justify-between">
+                <div class="<?= $dashboardCardClass ?> supplier-admin-animate flex flex-col" style="animation-delay:.37s">
+                    <div class="mb-3 flex items-start justify-between">
                         <div>
                             <h3 class="supplier-admin-section-title">Booking trend</h3>
-                            <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Monthly booking volume</p>
+                            <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Booking volume over time</p>
                         </div>
-                        <span class="self-start inline-flex items-center gap-1 bg-app-danger-soft text-app-danger font-bold text-[10px] px-2.5 py-1 rounded-full border border-app-border">PEAK: FEB</span>
+                        <span id="bookingPeakBadge" class="self-start inline-flex items-center gap-1 bg-app-danger-soft text-app-danger font-bold text-[10px] px-2.5 py-1 rounded-full border border-app-border">—</span>
                     </div>
-                    <div class="chart-container min-h-28 flex-1">
+                    <div class="chart-container-booking flex-1">
                         <canvas id="bookingChart"></canvas>
                     </div>
-                    <div class="mt-2 flex flex-wrap items-center gap-3 border-t border-app-panel-border pt-2">
+                    <div class="mt-3 flex flex-wrap items-center gap-4 border-t border-app-panel-border pt-2">
                         <div class="flex items-center gap-1.5">
                             <span class="inline-block h-2.5 w-2.5 rounded-sm bg-app-ring ring-1 ring-app-panel-border"></span>
                             <span class="text-[10px] font-medium text-app-secondary">Bookings</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="inline-block h-2.5 w-2.5 rounded-sm bg-app-danger-soft"></span>
-                            <span class="text-[10px] font-medium text-app-secondary">Peak month</span>
+                            <span class="text-[10px] font-medium text-app-secondary">Peak</span>
                         </div>
                     </div>
                 </div>
             </div><!-- end charts -->
 
-        </div><!-- end left col -->
-
-            <!-- RIGHT: Calendar + Upcoming Events -->
-            <div class="supplier-admin-side">
+            <!-- BOTTOM ROW: Calendar + Upcoming Events side by side -->
+            <div class="supplier-admin-bottom-row">
 
                 <!-- Calendar -->
                 <div class="<?= $dashboardCardClass ?> supplier-admin-calendar supplier-admin-animate" style="animation-delay:.42s">
@@ -390,7 +448,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                     </div>
                 </div>
 
-                <!-- Upcoming Events (below calendar) -->
+                <!-- Upcoming Events -->
                 <div class="<?= $dashboardCardClass ?> supplier-admin-upcoming supplier-admin-animate flex flex-col" style="animation-delay:.49s">
                     <div class="mb-3 flex items-center justify-between">
                         <h3 class="supplier-admin-section-title">Upcoming events</h3>
@@ -400,7 +458,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                         <!-- rendered by JS -->
                     </div>
                 </div>
-            </div><!-- end right col -->
+            </div><!-- end bottom row -->
         </section>
 
         <!-- PAYMENT STATUS -->
@@ -644,93 +702,216 @@ window.supplierDashboardData = <?= json_encode([
   }
 
   /* ── charts ── */
-  function initCharts() {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    var ch = (window.supplierDashboardData || {}).chartData || {};
-    var revenueVals = ch.revenue || [0,0,0,0,0,0,0,0,0,0,0,0];
-    var bookingVals = ch.bookings || [0,0,0,0,0,0,0,0,0,0,0,0];
-    const primaryColor = "#6d4c5b";
-    const mutedColor = "#A8A29E";
-    const gridColor = "#ead8c7";
-    const barColor = "#d6d3d1";
-    const peakColor = "#fda4af";
-    const revenuePeakIndex = revenueVals.indexOf(Math.max(...revenueVals));
-    const bookingPeakIndex = bookingVals.indexOf(Math.max(...bookingVals));
+  var revenueChartInstance = null;
+  var bookingChartInstance = null;
+  var currentDashboardRange = 'year';
+  const PRIMARY_COLOR = "#6d4c5b";
+  const MUTED_COLOR = "#A8A29E";
+  const GRID_COLOR = "#f0eded";
+  const BAR_COLOR = "#e7e5e4";
+  const PEAK_COLOR = "#fda4af";
 
-    // Revenue: line chart
-    new Chart(document.getElementById("revenueChart"), {
+  function createRevenueChart(labels, data) {
+    var peakIdx = data.indexOf(Math.max(...data));
+    var ctx = document.getElementById("revenueChart");
+    revenueChartInstance = new Chart(ctx, {
       type: "line",
       data: {
-        labels: months,
+        labels: labels,
         datasets: [{
-          label: "Sales",
-          data: revenueVals,
-          borderColor: primaryColor,
-          backgroundColor: withAlpha(primaryColor, 0.08),
-          borderWidth: 2,
-          pointRadius: 3,
-          pointBackgroundColor: revenueVals.map((_, index) => index === revenuePeakIndex ? peakColor : primaryColor),
-          pointBorderColor: revenueVals.map((_, index) => index === revenuePeakIndex ? primaryColor : primaryColor),
-          pointBorderWidth: revenueVals.map((_, index) => index === revenuePeakIndex ? 2 : 0),
-          tension: 0.4,
+          label: "Revenue",
+          data: data,
+          borderColor: PRIMARY_COLOR,
+          backgroundColor: withAlpha(PRIMARY_COLOR, 0.06),
+          borderWidth: 2.5,
+          pointRadius: data.length > 31 ? 0 : 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: data.map((_, i) => i === peakIdx ? PEAK_COLOR : PRIMARY_COLOR),
+          pointBorderColor: data.map((_, i) => i === peakIdx ? PRIMARY_COLOR : 'transparent'),
+          pointBorderWidth: data.map((_, i) => i === peakIdx ? 2 : 0),
+          tension: 0.35,
           fill: true
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#fff',
+            titleColor: '#44403c',
+            bodyColor: '#6d4c5b',
+            borderColor: '#ead8c7',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 10,
+            titleFont: { size: 11, weight: '600' },
+            bodyFont: { size: 12, weight: '700' },
+            callbacks: {
+              label: function(ctx) { return 'MMK ' + Number(ctx.parsed.y).toLocaleString(); }
+            }
+          }
+        },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 10 }, color: mutedColor },
-            title: { display: true, text: "Month", color: mutedColor, font: { size: 10, weight: "600" } }
+            ticks: { font: { size: 11, weight: '500' }, color: MUTED_COLOR, maxRotation: 0 },
+            border: { display: false }
           },
           y: {
-            grid: { color: gridColor },
+            grid: { color: GRID_COLOR, drawBorder: false },
             ticks: {
-              font: { size: 10 },
-              color: mutedColor,
-              callback: (value) => 'MMK ' + Number(value).toLocaleString()
+              font: { size: 11 },
+              color: MUTED_COLOR,
+              callback: function(v) { return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v; },
+              padding: 8
             },
-            title: { display: true, text: "Revenue (MMK)", color: mutedColor, font: { size: 10, weight: "600" } }
+            border: { display: false }
           }
         }
       }
     });
+    // Update peak badge
+    var peakLabel = labels[peakIdx] || '—';
+    var badge = document.getElementById("revenuePeakBadge");
+    if (badge) badge.textContent = data[peakIdx] > 0 ? 'PEAK: ' + peakLabel.toUpperCase() : '—';
+  }
 
-    // Booking: bar chart (unchanged)
-    new Chart(document.getElementById("bookingChart"), {
+  function createBookingChart(labels, data) {
+    var peakIdx = data.indexOf(Math.max(...data));
+    var ctx = document.getElementById("bookingChart");
+    bookingChartInstance = new Chart(ctx, {
       type: "bar",
       data: {
-        labels: months,
+        labels: labels,
         datasets: [{
           label: "Bookings",
-          data: bookingVals,
-          backgroundColor: bookingVals.map((_, index) => index === bookingPeakIndex ? peakColor : barColor),
-          borderRadius: 4,
-          borderSkipped: false
+          data: data,
+          backgroundColor: data.map((_, i) => i === peakIdx ? PEAK_COLOR : BAR_COLOR),
+          hoverBackgroundColor: data.map((_, i) => i === peakIdx ? '#fb7185' : '#d6d3d1'),
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.6
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#fff',
+            titleColor: '#44403c',
+            bodyColor: '#6d4c5b',
+            borderColor: '#ead8c7',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 10,
+            titleFont: { size: 11, weight: '600' },
+            bodyFont: { size: 12, weight: '700' }
+          }
+        },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 10 }, color: mutedColor },
-            title: { display: true, text: "Month", color: mutedColor, font: { size: 10, weight: "600" } }
+            ticks: { font: { size: 11, weight: '500' }, color: MUTED_COLOR, maxRotation: 0 },
+            border: { display: false }
           },
           y: {
-            grid: { color: gridColor },
-            ticks: { font: { size: 10 }, color: mutedColor, precision: 0 },
-            title: { display: true, text: "Bookings", color: mutedColor, font: { size: 10, weight: "600" } }
+            grid: { color: GRID_COLOR, drawBorder: false },
+            ticks: { font: { size: 11 }, color: MUTED_COLOR, precision: 0, padding: 8 },
+            border: { display: false },
+            beginAtZero: true
           }
         }
       }
     });
+    // Update peak badge
+    var peakLabel = labels[peakIdx] || '—';
+    var badge = document.getElementById("bookingPeakBadge");
+    if (badge) badge.textContent = data[peakIdx] > 0 ? 'PEAK: ' + peakLabel.toUpperCase() : '—';
   }
+
+  function initCharts() {
+    var ch = (window.supplierDashboardData || {}).chartData || {};
+    var labels = ch.labels || ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    createRevenueChart(labels, ch.revenue || labels.map(() => 0));
+    createBookingChart(labels, ch.bookings || labels.map(() => 0));
+  }
+
+  /* ── Period dropdown ── */
+  function togglePeriodDropdown() {
+    var menu = document.getElementById('periodDropdownMenu');
+    var chevron = document.getElementById('periodDropdownChevron');
+    var isOpen = !menu.classList.contains('invisible');
+    if (isOpen) {
+      menu.classList.add('invisible', 'opacity-0');
+      chevron.style.transform = '';
+    } else {
+      menu.classList.remove('invisible', 'opacity-0');
+      chevron.style.transform = 'rotate(180deg)';
+    }
+  }
+
+  function closePeriodDropdown() {
+    var menu = document.getElementById('periodDropdownMenu');
+    var chevron = document.getElementById('periodDropdownChevron');
+    menu.classList.add('invisible', 'opacity-0');
+    chevron.style.transform = '';
+  }
+
+  function selectPeriod(range, label) {
+    if (range === currentDashboardRange) { closePeriodDropdown(); return; }
+    currentDashboardRange = range;
+
+    // Update label and active state
+    document.getElementById('periodDropdownLabel').textContent = label;
+    document.querySelectorAll('#periodDropdownMenu button').forEach(function(b) {
+      b.className = '<?= $dashboardMenuItemClass ?>';
+    });
+    var activeBtn = document.querySelector('#periodDropdownMenu button[data-range="' + range + '"]');
+    if (activeBtn) activeBtn.className = '<?= $dashboardMenuItemActiveClass ?>';
+    closePeriodDropdown();
+
+    // Fetch filtered data
+    var urlRoot = '<?= URLROOT ?>';
+    fetch(urlRoot + '/supplier/dashboardData?range=' + encodeURIComponent(range))
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.error) return;
+
+        // Update KPI stats
+        var s = data.stats || {};
+        var set = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
+        set("totalRevenue", currency(s.total_revenue || 0));
+        set("paidRevenue", currency(s.paid_revenue || 0));
+        set("pendingRevenue", currency(s.pending_revenue || 0));
+        set("totalBookings", (s.total_bookings || 0).toLocaleString());
+        set("confirmedBookings", (s.completed_bookings || 0).toLocaleString());
+        set("cancelledBookings", (s.cancelled_bookings || 0).toLocaleString());
+
+        // Rebuild charts
+        if (revenueChartInstance) { revenueChartInstance.destroy(); revenueChartInstance = null; }
+        if (bookingChartInstance) { bookingChartInstance.destroy(); bookingChartInstance = null; }
+        var ch = data.chartData || {};
+        var labels = ch.labels || ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        createRevenueChart(labels, ch.revenue || labels.map(() => 0));
+        createBookingChart(labels, ch.bookings || labels.map(() => 0));
+      })
+      .catch(function() { /* silent */ });
+  }
+
+  // Close dropdown on outside click
+  document.addEventListener('click', function(e) {
+    var btn = document.getElementById('periodDropdownBtn');
+    var menu = document.getElementById('periodDropdownMenu');
+    if (btn && !btn.contains(e.target) && menu && !menu.contains(e.target)) {
+      closePeriodDropdown();
+    }
+  });
 
   /* ── calendar ── */
   const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -820,7 +1001,7 @@ window.supplierDashboardData = <?= json_encode([
     return Promise.resolve({
       totalBookings: d.stats.total_bookings || 0,
       confirmedBookings: d.stats.completed_bookings || 0,
-      cancelledBookings: 0,
+      cancelledBookings: d.stats.cancelled_bookings || 0,
       totalRevenue: d.stats.total_revenue || 0,
       paidRevenue: d.stats.paid_revenue || 0,
       pendingRevenue: d.stats.pending_revenue || 0,

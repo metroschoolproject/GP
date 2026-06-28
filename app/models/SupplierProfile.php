@@ -581,15 +581,33 @@ class SupplierProfile
     public function getDashboardData($supplierId)
     {
         $supplierId = (int)$supplierId;
+        // Default to 'year' so KPI cards and charts are consistent on initial load
+        $defaultRange = 'year';
 
         return [
-            'stats' => $this->getDashboardStats($supplierId),
+            'stats' => $this->getDashboardStats($supplierId, $defaultRange),
             'services' => $this->getDashboardServices($supplierId),
             'upcomingBookings' => $this->getUpcomingSupplierBookings($supplierId),
             'recentReviews' => $this->getRecentSupplierReviews($supplierId),
 
             'payments' => $this->getDashboardPayments($supplierId),
-            'chartData' => $this->getDashboardChartData($supplierId),
+            'chartData' => $this->getDashboardChartData($supplierId, $defaultRange),
+        ];
+    }
+
+    /**
+     * AJAX endpoint: returns only stats + chartData for a given date range.
+     */
+    public function getFilteredDashboardData(int $supplierId, string $range): array
+    {
+        $validRanges = ['year', '6months', 'month', 'all'];
+        if (!in_array($range, $validRanges, true)) {
+            $range = 'year';
+        }
+
+        return [
+            'stats' => $this->getDashboardStats($supplierId, $range),
+            'chartData' => $this->getDashboardChartData($supplierId, $range),
         ];
     }
 
@@ -628,13 +646,155 @@ class SupplierProfile
         return 'BK-' . str_pad((string)$bookingId, 3, '0', STR_PAD_LEFT);
     }
 
-    private function getDashboardChartData(int $supplierId): array
+    private function getDashboardChartData(int $supplierId, string $range = 'year'): array
     {
-        $months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        $monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        if ($range === 'month') {
+            // Daily buckets for the current month
+            $daysInMonth = (int)date('t');
+            $labels = [];
+            for ($d = 1; $d <= $daysInMonth; $d++) { $labels[] = (string)$d; }
+            $revenue = array_fill(0, $daysInMonth, 0);
+            $bookings = array_fill(0, $daysInMonth, 0);
+
+            $this->db->dbquery(
+                "SELECT DAY(COALESCE(p.verified_at, p.created_at)) AS d,
+                        COALESCE(SUM(p.amount), 0) AS revenue
+                 FROM payments p
+                 WHERE p.supplier_id = :sid
+                   AND p.type = 'payout'
+                   AND p.status IN ('success', 'processing', 'pending')
+                   AND YEAR(COALESCE(p.verified_at, p.created_at)) = YEAR(CURDATE())
+                   AND MONTH(COALESCE(p.verified_at, p.created_at)) = MONTH(CURDATE())
+                 GROUP BY DAY(COALESCE(p.verified_at, p.created_at))"
+            );
+            $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+            foreach ($this->db->getmultidata() as $row) {
+                $idx = (int)($row['d'] ?? 0) - 1;
+                if ($idx >= 0 && $idx < $daysInMonth) {
+                    $revenue[$idx] = (float)($row['revenue'] ?? 0);
+                }
+            }
+
+            $this->db->dbquery(
+                "SELECT DAY(ed.event_date) AS d,
+                        COUNT(DISTINCT bs.booking_id) AS cnt
+                 FROM booking_suppliers bs
+                 INNER JOIN event_details ed ON ed.booking_id = bs.booking_id
+                 WHERE bs.supplier_id = :sid
+                   AND YEAR(ed.event_date) = YEAR(CURDATE())
+                   AND MONTH(ed.event_date) = MONTH(CURDATE())
+                   AND bs.status IN ('confirmed', 'completed', 'in_progress')
+                 GROUP BY DAY(ed.event_date)"
+            );
+            $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+            foreach ($this->db->getmultidata() as $row) {
+                $idx = (int)($row['d'] ?? 0) - 1;
+                if ($idx >= 0 && $idx < $daysInMonth) {
+                    $bookings[$idx] = (int)($row['cnt'] ?? 0);
+                }
+            }
+
+            return ['labels' => $labels, 'revenue' => $revenue, 'bookings' => $bookings, 'range' => $range];
+        }
+
+        if ($range === '6months') {
+            // Last 6 months rolling
+            $labels = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $labels[] = date('M', strtotime("-{$i} months"));
+            }
+            $revenue = array_fill(0, 6, 0);
+            $bookings = array_fill(0, 6, 0);
+
+            $this->db->dbquery(
+                "SELECT PERIOD_DIFF(DATE_FORMAT(CURDATE(), '%Y%m'), DATE_FORMAT(COALESCE(p.verified_at, p.created_at), '%Y%m')) AS months_ago,
+                        COALESCE(SUM(p.amount), 0) AS revenue
+                 FROM payments p
+                 WHERE p.supplier_id = :sid
+                   AND p.type = 'payout'
+                   AND p.status IN ('success', 'processing', 'pending')
+                   AND COALESCE(p.verified_at, p.created_at) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                 GROUP BY PERIOD_DIFF(DATE_FORMAT(CURDATE(), '%Y%m'), DATE_FORMAT(COALESCE(p.verified_at, p.created_at), '%Y%m'))"
+            );
+            $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+            foreach ($this->db->getmultidata() as $row) {
+                $ago = (int)($row['months_ago'] ?? 0);
+                $idx = 5 - $ago;
+                if ($idx >= 0 && $idx < 6) {
+                    $revenue[$idx] = (float)($row['revenue'] ?? 0);
+                }
+            }
+
+            $this->db->dbquery(
+                "SELECT PERIOD_DIFF(DATE_FORMAT(CURDATE(), '%Y%m'), DATE_FORMAT(ed.event_date, '%Y%m')) AS months_ago,
+                        COUNT(DISTINCT bs.booking_id) AS cnt
+                 FROM booking_suppliers bs
+                 INNER JOIN event_details ed ON ed.booking_id = bs.booking_id
+                 WHERE bs.supplier_id = :sid
+                   AND ed.event_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                   AND bs.status IN ('confirmed', 'completed', 'in_progress')
+                 GROUP BY PERIOD_DIFF(DATE_FORMAT(CURDATE(), '%Y%m'), DATE_FORMAT(ed.event_date, '%Y%m'))"
+            );
+            $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+            foreach ($this->db->getmultidata() as $row) {
+                $ago = (int)($row['months_ago'] ?? 0);
+                $idx = 5 - $ago;
+                if ($idx >= 0 && $idx < 6) {
+                    $bookings[$idx] = (int)($row['cnt'] ?? 0);
+                }
+            }
+
+            return ['labels' => $labels, 'revenue' => $revenue, 'bookings' => $bookings, 'range' => $range];
+        }
+
+        if ($range === 'all') {
+            // All-time aggregated by calendar month
+            $revenue = array_fill(0, 12, 0);
+            $bookings = array_fill(0, 12, 0);
+
+            $this->db->dbquery(
+                "SELECT MONTH(COALESCE(p.verified_at, p.created_at)) AS m,
+                        COALESCE(SUM(p.amount), 0) AS revenue
+                 FROM payments p
+                 WHERE p.supplier_id = :sid
+                   AND p.type = 'payout'
+                   AND p.status IN ('success', 'processing', 'pending')
+                 GROUP BY MONTH(COALESCE(p.verified_at, p.created_at))"
+            );
+            $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+            foreach ($this->db->getmultidata() as $row) {
+                $idx = (int)($row['m'] ?? 0) - 1;
+                if ($idx >= 0 && $idx < 12) {
+                    $revenue[$idx] = (float)($row['revenue'] ?? 0);
+                }
+            }
+
+            $this->db->dbquery(
+                "SELECT MONTH(ed.event_date) AS m,
+                        COUNT(DISTINCT bs.booking_id) AS cnt
+                 FROM booking_suppliers bs
+                 INNER JOIN event_details ed ON ed.booking_id = bs.booking_id
+                 WHERE bs.supplier_id = :sid
+                   AND bs.status IN ('confirmed', 'completed', 'in_progress')
+                 GROUP BY MONTH(ed.event_date)"
+            );
+            $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+            foreach ($this->db->getmultidata() as $row) {
+                $idx = (int)($row['m'] ?? 0) - 1;
+                if ($idx >= 0 && $idx < 12) {
+                    $bookings[$idx] = (int)($row['cnt'] ?? 0);
+                }
+            }
+
+            return ['labels' => $monthNames, 'revenue' => $revenue, 'bookings' => $bookings, 'range' => $range];
+        }
+
+        // Default: 'year' — current calendar year by month
         $revenue = array_fill(0, 12, 0);
         $bookings = array_fill(0, 12, 0);
 
-        // Revenue from payout records (net of platform fees), grouped by payout month
         $this->db->dbquery(
             "SELECT MONTH(COALESCE(p.verified_at, p.created_at)) AS m,
                     COALESCE(SUM(p.amount), 0) AS revenue
@@ -653,7 +813,6 @@ class SupplierProfile
             }
         }
 
-        // Bookings by event date (distinct bookings per month)
         $this->db->dbquery(
             "SELECT MONTH(ed.event_date) AS m,
                     COUNT(DISTINCT bs.booking_id) AS cnt
@@ -672,61 +831,84 @@ class SupplierProfile
             }
         }
 
-        return ['months' => $months, 'revenue' => $revenue, 'bookings' => $bookings];
+        return ['labels' => $monthNames, 'revenue' => $revenue, 'bookings' => $bookings, 'range' => $range];
     }
 
-    private function getDashboardStats($supplierId)
+    private function getDashboardStats($supplierId, string $range = 'all')
     {
+        // Services and ratings are not time-bound
         $this->db->dbquery(
             'SELECT
                 (SELECT COUNT(*) FROM services WHERE supplier_id = :services_supplier_id) AS total_services,
                 (SELECT COUNT(*) FROM services WHERE supplier_id = :active_services_supplier_id AND is_active = 1) AS active_services,
-                (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :bookings_supplier_id) AS total_bookings,
-                (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :pending_bookings_supplier_id AND status = \'pending\') AS pending_bookings,
-                (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :active_bookings_supplier_id AND status IN (\'confirmed\', \'in_progress\')) AS active_bookings,
-                (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :completed_bookings_supplier_id AND status = \'completed\') AS completed_bookings,
                 (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE supplier_id = :rating_supplier_id) AS average_rating,
                 (SELECT COUNT(*) FROM reviews WHERE supplier_id = :review_supplier_id) AS review_count'
         );
-        foreach ([
-            ':services_supplier_id',
-            ':active_services_supplier_id',
-            ':bookings_supplier_id',
-            ':pending_bookings_supplier_id',
-            ':active_bookings_supplier_id',
-            ':completed_bookings_supplier_id',
-            ':rating_supplier_id',
-            ':review_supplier_id',
-        ] as $param) {
+        foreach ([':services_supplier_id', ':active_services_supplier_id', ':rating_supplier_id', ':review_supplier_id'] as $param) {
             $this->db->dbbind($param, $supplierId);
         }
+        $portfolio = $this->db->getsingledata() ?: [];
 
-        $stats = $this->db->getsingledata() ?: [];
+        // Build date filter for bookings (by event date)
+        // Use 'ed' as alias — each subquery uses the same alias since they're independent scopes
+        $bookingDateFilter = '';
+        if ($range === 'month') {
+            $bookingDateFilter = ' AND YEAR(ed.event_date) = YEAR(CURDATE()) AND MONTH(ed.event_date) = MONTH(CURDATE())';
+        } elseif ($range === '6months') {
+            $bookingDateFilter = ' AND ed.event_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)';
+        } elseif ($range === 'year') {
+            $bookingDateFilter = ' AND YEAR(ed.event_date) = YEAR(CURDATE())';
+        }
+        // 'all' → no date filter
 
-        // Revenue from payout records (net of platform fees)
+        // Bookings with date filter
         $this->db->dbquery(
             "SELECT
-                COALESCE(SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END), 0) AS paid_revenue,
-                COALESCE(SUM(CASE WHEN status IN ('pending', 'processing') THEN amount ELSE 0 END), 0) AS pending_revenue,
-                COALESCE(SUM(amount), 0) AS total_revenue
-             FROM payments
-             WHERE supplier_id = :sid AND type = 'payout'"
+                (SELECT COUNT(DISTINCT bs.booking_id) FROM booking_suppliers bs INNER JOIN event_details ed ON ed.booking_id = bs.booking_id WHERE bs.supplier_id = :sid1 {$bookingDateFilter}) AS total_bookings,
+                (SELECT COUNT(DISTINCT bs.booking_id) FROM booking_suppliers bs INNER JOIN event_details ed ON ed.booking_id = bs.booking_id WHERE bs.supplier_id = :sid2 AND bs.status = 'pending' {$bookingDateFilter}) AS pending_bookings,
+                (SELECT COUNT(DISTINCT bs.booking_id) FROM booking_suppliers bs INNER JOIN event_details ed ON ed.booking_id = bs.booking_id WHERE bs.supplier_id = :sid3 AND bs.status IN ('confirmed', 'in_progress') {$bookingDateFilter}) AS active_bookings,
+                (SELECT COUNT(DISTINCT bs.booking_id) FROM booking_suppliers bs INNER JOIN event_details ed ON ed.booking_id = bs.booking_id WHERE bs.supplier_id = :sid4 AND bs.status = 'completed' {$bookingDateFilter}) AS completed_bookings,
+                (SELECT COUNT(DISTINCT bs.booking_id) FROM booking_suppliers bs INNER JOIN event_details ed ON ed.booking_id = bs.booking_id WHERE bs.supplier_id = :sid5 AND bs.status = 'cancelled' {$bookingDateFilter}) AS cancelled_bookings"
+        );
+        foreach ([':sid1', ':sid2', ':sid3', ':sid4', ':sid5'] as $param) {
+            $this->db->dbbind($param, $supplierId);
+        }
+        $bookings = $this->db->getsingledata() ?: [];
+
+        // Revenue with date filter
+        $revenueDateFilter = '';
+        if ($range === 'month') {
+            $revenueDateFilter = ' AND YEAR(COALESCE(p.verified_at, p.created_at)) = YEAR(CURDATE()) AND MONTH(COALESCE(p.verified_at, p.created_at)) = MONTH(CURDATE())';
+        } elseif ($range === '6months') {
+            $revenueDateFilter = ' AND COALESCE(p.verified_at, p.created_at) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)';
+        } elseif ($range === 'year') {
+            $revenueDateFilter = ' AND YEAR(COALESCE(p.verified_at, p.created_at)) = YEAR(CURDATE())';
+        }
+
+        $this->db->dbquery(
+            "SELECT
+                COALESCE(SUM(CASE WHEN p.status = 'success' THEN p.amount ELSE 0 END), 0) AS paid_revenue,
+                COALESCE(SUM(CASE WHEN p.status IN ('pending', 'processing') THEN p.amount ELSE 0 END), 0) AS pending_revenue,
+                COALESCE(SUM(p.amount), 0) AS total_revenue
+             FROM payments p
+             WHERE p.supplier_id = :sid AND p.type = 'payout' {$revenueDateFilter}"
         );
         $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
         $revenue = $this->db->getsingledata() ?: [];
 
         return [
-            'total_services' => (int)($stats['total_services'] ?? 0),
-            'active_services' => (int)($stats['active_services'] ?? 0),
-            'total_bookings' => (int)($stats['total_bookings'] ?? 0),
-            'pending_bookings' => (int)($stats['pending_bookings'] ?? 0),
-            'active_bookings' => (int)($stats['active_bookings'] ?? 0),
-            'completed_bookings' => (int)($stats['completed_bookings'] ?? 0),
+            'total_services' => (int)($portfolio['total_services'] ?? 0),
+            'active_services' => (int)($portfolio['active_services'] ?? 0),
+            'total_bookings' => (int)($bookings['total_bookings'] ?? 0),
+            'pending_bookings' => (int)($bookings['pending_bookings'] ?? 0),
+            'active_bookings' => (int)($bookings['active_bookings'] ?? 0),
+            'completed_bookings' => (int)($bookings['completed_bookings'] ?? 0),
+            'cancelled_bookings' => (int)($bookings['cancelled_bookings'] ?? 0),
             'total_revenue' => (float)($revenue['total_revenue'] ?? 0),
             'paid_revenue' => (float)($revenue['paid_revenue'] ?? 0),
             'pending_revenue' => (float)($revenue['pending_revenue'] ?? 0),
-            'average_rating' => (float)($stats['average_rating'] ?? 0),
-            'review_count' => (int)($stats['review_count'] ?? 0),
+            'average_rating' => (float)($portfolio['average_rating'] ?? 0),
+            'review_count' => (int)($portfolio['review_count'] ?? 0),
         ];
     }
 

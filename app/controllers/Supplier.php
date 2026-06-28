@@ -217,6 +217,33 @@ class Supplier extends SupplierControllerSupport
         ]);
     }
 
+    /**
+     * AJAX endpoint: returns filtered dashboard stats + chart data as JSON.
+     * GET supplier/dashboardData?range=year|6months|month|all
+     */
+    public function dashboardData()
+    {
+        header('Content-Type: application/json');
+
+        $userId = (int)($_SESSION['session_uid'] ?? 0);
+        if (!$userId) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            return;
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier || empty($supplier['supplier_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Not a supplier']);
+            return;
+        }
+
+        $range = $_GET['range'] ?? 'year';
+        $data = $this->supplierProfileModel->getFilteredDashboardData((int)$supplier['supplier_id'], $range);
+        echo json_encode($data);
+    }
+
     public function services()
     {
         return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
