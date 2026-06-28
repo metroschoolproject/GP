@@ -127,7 +127,8 @@ $dashboardContent = function () use (
     $bookingTotal, $paidTotal, $paidFraction, $paymentStatus, $daysUntil, $otherSuppliers, $bookingStatus, $bookingStatusLabel,
     $customerName, $customerEmail, $customerPhone, $customerInitial,
     $packageSchedules, $isPackage, $declineCutoffDays, $myServiceRows,
-    $cancellationReason, $paymentHistory, $activeReplacement, $refund
+    $cancellationReason, $paymentHistory, $activeReplacement, $refund,
+    $isCancelledOrReplaced
 ) {
     $eventTime = trim($formatTime($firstStart) . ($firstEnd ? ' – ' . $formatTime($firstEnd) : ''), ' –');
     $needsResponse = $supplierStatus === 'pending';
@@ -375,6 +376,33 @@ $dashboardContent = function () use (
     </div>
     <?php endif; ?>
 
+    <?php if (!empty($isCancelledOrReplaced)):
+        $cancelledLabel = match ($supplierStatus) {
+            'cancelled' => 'This booking has been cancelled',
+            'rejected' => 'You declined this booking',
+            'replaced' => 'This assignment was replaced',
+            default => 'This booking is no longer active',
+        };
+        $cancelledSub = match ($supplierStatus) {
+            'cancelled' => 'The booking was cancelled. You can still view the details below.',
+            'rejected' => 'You declined this booking request. Details are preserved for your records.',
+            'replaced' => 'A replacement supplier was assigned. Details are preserved for your records.',
+            default => 'Actions are disabled for this booking.',
+        };
+    ?>
+    <div class="sup-response-bar" style="background:#fef2f2;border-color:#fecaca">
+      <div class="sup-response-info">
+        <div class="sup-response-icon" style="color:#b94b4b">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M6 6l4 4M10 6l-4 4"/></svg>
+        </div>
+        <div>
+          <div class="sup-response-text"><?= $h($cancelledLabel) ?></div>
+          <div class="sup-response-sub"><?= $h($cancelledSub) ?></div>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
   </header>
 
   <section class="sup-assignment" aria-labelledby="supplier-assignment-title">
@@ -617,7 +645,7 @@ $dashboardContent = function () use (
     </div>
   <?php endif; ?>
 
-  <?php if (!empty($declinableRows) && !$needsResponse): ?>
+  <?php if (!empty($declinableRows) && !$needsResponse && empty($isCancelledOrReplaced)): ?>
   <details class="sup-secondary-action">
     <summary>Can’t fulfill this assignment?</summary>
     <div class="sup-selfdecline">
@@ -666,7 +694,7 @@ $dashboardContent = function () use (
   </div>
   <?php endif; ?>
 
-  <?php if ($canRequestCancellation): ?>
+  <?php if ($canRequestCancellation && empty($isCancelledOrReplaced)): ?>
   <details class="sup-secondary-action">
     <summary>Need to cancel this booking?</summary>
     <div class="sup-selfdecline">

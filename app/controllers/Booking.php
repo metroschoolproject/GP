@@ -1712,14 +1712,21 @@ class Booking extends Controller
         // Verify this supplier is associated
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $isAssociated = false;
+        $isCancelledOrReplaced = false;
         foreach ($suppliers as $s) {
-            if (
-                (int)$s['supplier_id'] === $supplierId
-                && !in_array((string)($s['status'] ?? ''), ['replaced', 'rejected', 'cancelled'], true)
-            ) {
-                $isAssociated = true;
-                $currentSupplierStatus = $s['status'];
-                $currentSupplierRowId = (int)$s['id'];
+            if ((int)$s['supplier_id'] === $supplierId) {
+                $supplierStatusValue = (string)($s['status'] ?? '');
+                if (in_array($supplierStatusValue, ['replaced', 'rejected', 'cancelled'], true)) {
+                    $isCancelledOrReplaced = true;
+                    // Allow viewing but mark as cancelled/replaced
+                    $currentSupplierStatus = $supplierStatusValue;
+                    $currentSupplierRowId = (int)$s['id'];
+                    $isAssociated = true;
+                } else {
+                    $isAssociated = true;
+                    $currentSupplierStatus = $supplierStatusValue;
+                    $currentSupplierRowId = (int)$s['id'];
+                }
                 break;
             }
         }
@@ -1731,11 +1738,10 @@ class Booking extends Controller
 
         // This supplier's own service rows (one per package service line) — used
         // for per-service decline / replacement display.
+        // Include cancelled/replaced rows so the detail page can show full history.
         $myServiceRows = array_values(array_filter(
             $suppliers,
-            static fn($s) =>
-                (int)($s['supplier_id'] ?? 0) === $supplierId
-                && !in_array((string)($s['status'] ?? ''), ['replaced', 'rejected', 'cancelled'], true)
+            static fn($s) => (int)($s['supplier_id'] ?? 0) === $supplierId
         ));
 
         // Fetch active replacement (if this supplier was assigned as a replacement)
@@ -1789,6 +1795,7 @@ class Booking extends Controller
             'cancellationReason' => $cancellationReason,
             'activeReplacement' => $activeReplacement,
             'refund' => $refund ?: null,
+            'isCancelledOrReplaced' => $isCancelledOrReplaced ?? false,
         ]);
     }
 
