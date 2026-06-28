@@ -1231,6 +1231,20 @@
   .sup-assignment-service-item .sup-assignment-category {
     margin-top: 0;
   }
+  .sup-assignment-service-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .sup-btn--sm {
+    padding: 4px 10px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .sup-btn--sm svg {
+    width: 12px;
+    height: 12px;
+  }
   .sup-assignment-status {
     display: inline-flex;
     align-items: center;

@@ -306,11 +306,27 @@ $dashboardContent = function () use (
       <div class="sup-response-actions">
         <button type="button" class="booking-action sup-btn sup-btn--accept" data-action="accept">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-          <?= $isReplacementAssignment ? 'Accept Assignment' : ($bookingStatus === 'pending_supplier_response' ? 'Accept Request' : 'Accept') ?>
+          <?php if ($isReplacementAssignment): ?>
+            Accept Assignment
+          <?php elseif ($hasMultipleServices && $hasPendingServices): ?>
+            Accept All Services
+          <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
+            Accept Request
+          <?php else: ?>
+            Accept
+          <?php endif; ?>
         </button>
         <button type="button" class="booking-action sup-btn sup-btn--decline" data-action="decline">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-          <?= $isReplacementAssignment ? 'Decline Assignment' : ($bookingStatus === 'pending_supplier_response' ? 'Decline Request' : 'Decline') ?>
+          <?php if ($isReplacementAssignment): ?>
+            Decline Assignment
+          <?php elseif ($hasMultipleServices && $hasPendingServices): ?>
+            Decline All Services
+          <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
+            Decline Request
+          <?php else: ?>
+            Decline
+          <?php endif; ?>
         </button>
         <?php if (!$isReplacementAssignment && $bookingStatus !== 'pending_supplier_response'): ?>
         <button type="button" id="reschedule-btn" class="sup-btn sup-btn--ghost">
@@ -406,29 +422,53 @@ $dashboardContent = function () use (
   </header>
 
   <?php
-    // Collect unique non-addon services assigned to this supplier
+    // Collect unique non-addon services assigned to this supplier from myServiceRows
     $assignedServices = [];
-    foreach ($items as $item) {
-        if (!empty($item['package_booking_item_id'])) continue;
-        $svcName = $item['service_name'] ?? 'Service';
-        $catName = $item['category_name'] ?? '';
+    $seenSvcKeys = [];
+    foreach ($myServiceRows as $row) {
+        $svcName = $row['service_name'] ?? 'Service';
+        $catName = $row['category_name'] ?? '';
         $key = $svcName . '|' . $catName;
-        if (!isset($assignedServices[$key])) {
-            $assignedServices[$key] = ['name' => $svcName, 'category' => $catName];
+        if (!isset($seenSvcKeys[$key])) {
+            $seenSvcKeys[$key] = true;
+            $assignedServices[] = [
+                'name' => $svcName,
+                'category' => $catName,
+                'status' => $row['status'] ?? 'pending',
+                'booking_supplier_id' => (int)$row['id'],
+            ];
         }
+    }
+    $hasMultipleServices = count($assignedServices) > 1;
+    $hasPendingServices = false;
+    foreach ($assignedServices as $svc) {
+        if ($svc['status'] === 'pending') { $hasPendingServices = true; break; }
     }
   ?>
   <section class="sup-assignment" aria-labelledby="supplier-assignment-title">
     <div class="sup-assignment-head">
       <div>
         <p class="sup-assignment-kicker">Your assignment</p>
-        <?php if (count($assignedServices) > 1): ?>
+        <?php if ($hasMultipleServices): ?>
           <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= count($assignedServices) ?> services assigned</h2>
           <div class="sup-assignment-services-list">
             <?php foreach ($assignedServices as $svc): ?>
               <div class="sup-assignment-service-item">
+                <span class="sup-badge <?= $statusBadgeClass($svc['status']) ?>" style="font-size:9px;padding:3px 8px"><?= $h(ucfirst($svc['status'])) ?></span>
                 <strong><?= $h($svc['name']) ?></strong>
                 <?php if ($svc['category'] !== ''): ?><span class="sup-assignment-category"><?= $h($svc['category']) ?></span><?php endif; ?>
+                <?php if ($needsResponse && $svc['status'] === 'pending'): ?>
+                  <div class="sup-assignment-service-actions">
+                    <button type="button" class="sup-btn sup-btn--accept sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svc['booking_supplier_id'] ?>" data-action="accept">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
+                      Accept
+                    </button>
+                    <button type="button" class="sup-btn sup-btn--decline sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svc['booking_supplier_id'] ?>" data-action="decline">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                      Decline
+                    </button>
+                  </div>
+                <?php endif; ?>
               </div>
             <?php endforeach; ?>
           </div>
@@ -1394,6 +1434,42 @@ $dashboardContent = function () use (
         supToastError('Network error. Please try again.');
       }
       button.disabled = false;
+      button.innerHTML = original;
+    });
+  });
+
+  /* ── Per-service accept/decline buttons (multi-service assignments) ── */
+  document.querySelectorAll('.service-accept-btn').forEach(function(button){
+    button.addEventListener('click', async function(){
+      var bsId = button.dataset.bookingSupplierId;
+      var action = button.dataset.action;
+      if (!bsId) return;
+
+      var row = button.closest('.sup-assignment-service-item');
+      var btns = row ? row.querySelectorAll('.service-accept-btn') : [];
+      btns.forEach(function(b){ b.disabled = true; });
+      var original = button.innerHTML;
+      button.innerHTML = 'Updating…';
+
+      var formData = new FormData();
+      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+      formData.append('booking_supplier_id', bsId);
+      formData.append('action', action);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+      try {
+        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (data.success) {
+          supToastSuccess(action === 'accept' ? 'Service accepted!' : 'Service declined.');
+          setTimeout(function() { window.location.reload(); }, 1200);
+          return;
+        }
+        supToastError(data.error || 'Could not update service.');
+      } catch (err) {
+        supToastError('Network error. Please try again.');
+      }
+      btns.forEach(function(b){ b.disabled = false; });
       button.innerHTML = original;
     });
   });
