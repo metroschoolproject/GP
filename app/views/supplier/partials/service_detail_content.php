@@ -65,9 +65,6 @@ if (!empty($attentionItems[0]['label'])) {
       </div>
     </div>
     <div class="sd-service-header-actions">
-      <a href="<?= URLROOT ?>/main/service/<?= (int)$serviceId ?>" target="_blank" class="btn btn-outline btn-sm">
-        <i class="ti ti-eye" style="font-size:13px"></i> Preview
-      </a>
       <button type="button" id="publishServiceBtn" class="btn <?= $serviceStatus === 'active' ? 'btn-outline sd-unpublish-btn' : 'btn-primary' ?> btn-sm">
         <i class="ti <?= $serviceStatus === 'active' ? 'ti-eye-off' : 'ti-send' ?>" style="font-size:13px"></i>
         <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Unpublish' : 'Request publish' ?></span>
