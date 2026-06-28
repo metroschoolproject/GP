@@ -1138,7 +1138,7 @@ class CartModel
             ? 'LEFT JOIN decoration_styles ds ON ds.id = ci.decoration_style_id'
             : '';
         $decoPriceExpr = $hasDesignColumns
-            ? "COALESCE(ds.customize_price, ds.package_price, ds.price)"
+            ? "CASE WHEN ci.decoration_style_id IS NOT NULL AND ds.id IS NOT NULL THEN COALESCE(ds.customize_price, ds.package_price, ds.price) END"
             : 'NULL';
 
         $this->db->dbquery(
@@ -1148,7 +1148,7 @@ class CartModel
                     ci.selected_date,
                     CASE
                         WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price)
-                        ELSE COALESCE(ci.price, {$decoPriceExpr})
+                        ELSE COALESCE({$decoPriceExpr}, ci.price)
                     END AS cart_price,
                     ci.slot_id, 
                     ci.start_time, 
@@ -1293,14 +1293,14 @@ class CartModel
             ? 'LEFT JOIN decoration_styles ds ON ds.id = ci.decoration_style_id'
             : '';
         $decoPriceExpr = $hasDesignColumns
-            ? "COALESCE(ds.customize_price, ds.package_price, ds.price)"
+            ? "CASE WHEN ci.decoration_style_id IS NOT NULL AND ds.id IS NOT NULL THEN COALESCE(ds.customize_price, ds.package_price, ds.price) END"
             : 'NULL';
 
         $this->db->dbquery(
             "SELECT COALESCE(SUM(
                 CASE
                     WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
-                    ELSE COALESCE(ci.price, {$decoPriceExpr}, s.price_min, s.price, 0)
+                    ELSE COALESCE({$decoPriceExpr}, ci.price, s.price_min, s.price, 0)
                 END
              ), 0) AS total
              FROM cart_items ci

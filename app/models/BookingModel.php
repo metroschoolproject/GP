@@ -108,7 +108,7 @@ class BookingModel
             ? 'LEFT JOIN decoration_styles ds ON ds.id = ci.decoration_style_id'
             : '';
         $decoPriceExpr = $hasDesignColumns
-            ? "COALESCE(ds.customize_price, ds.package_price, ds.price)"
+            ? "CASE WHEN ci.decoration_style_id IS NOT NULL AND ds.id IS NOT NULL THEN COALESCE(ds.customize_price, ds.package_price, ds.price) END"
             : 'NULL';
 
         $this->db->dbquery(
@@ -119,7 +119,7 @@ class BookingModel
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
                         WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
-                        ELSE COALESCE(ci.price, {$decoPriceExpr}, s.price_min, s.price, {$supplierPackagePrice}, 0)
+                        ELSE COALESCE({$decoPriceExpr}, ci.price, s.price_min, s.price, {$supplierPackagePrice}, 0)
                     END,
                     COALESCE(s.name, p.name, {$supplierPackageName}),
                     COALESCE(sup.shop_name, {$supplierPackageShop}, 'Golden Promise'),
