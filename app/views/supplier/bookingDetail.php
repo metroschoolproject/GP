@@ -155,6 +155,7 @@ $dashboardContent = function () use (
         && in_array($bookingStatus, ['confirmed', 'paid'], true)
         && in_array($supplierStatus, ['confirmed', 'in_progress'], true);
 
+
     // Services of this supplier already routed to replacement.
     $replacementRows = array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['needs_replacement', 'rejected'], true)));
     $acceptedReplacementRows = array_values(array_filter(
