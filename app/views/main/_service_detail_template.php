@@ -278,6 +278,11 @@ if ($isPackageContext && $isVenue && (float)($packageContext['venue_room_price']
     $standalonePrice = (float)$packageContext['venue_room_price'];
 }
 $packageSavings = max(0, $standalonePrice - $packageServicePrice);
+
+// Platform fee calculation for transparent pricing
+$platformFeePercent = get_platform_fee_percent();
+$platformFeeAmount = round($activeServicePrice * $platformFeePercent / 100, 0);
+$totalWithFee = $activeServicePrice + $platformFeeAmount;
 $packageQueryFields = $isPackageContext
     ? [
         'package_id' => (int)($packageContext['package_id'] ?? 0),
@@ -3383,6 +3388,7 @@ body:has(.gp-package-notice) .booking-grid {
         <span><?= number_format((float)$rating, 1) ?> (<?= (int)$reviewCount ?> reviews)</span>
       </div>
       <div class="product-price"><?= $moneyRange($service) ?></div>
+      <div class="product-fee-note" style="font-size:12px;color:#8e7680;margin-top:4px">+ <?= $money($platformFeeAmount) ?> platform service fee (<?= $platformFeePercent ?>%)</div>
 
       <hr class="product-divider">
 
@@ -4015,6 +4021,10 @@ body:has(.gp-package-notice) .booking-grid {
           <span><?= $isPackageContext ? 'Package service price' : ($isRentalCategory ? 'Estimated total' : 'Estimated total') ?></span>
           <strong id="sidebarEstimatedTotal"><?= $isPackageContext ? $money($packageServicePrice) : ($isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service)) ?></strong>
         </div>
+        <div class="estimated-row" style="font-size:12px;color:#8e7680">
+          <span>Platform service fee (<?= $platformFeePercent ?>%)</span>
+          <strong style="font-weight:600"><?= $money($platformFeeAmount) ?></strong>
+        </div>
         <?php if (!empty($rentalOptions)): ?>
           <div class="package-price-panel" aria-label="Dress and accessory pricing">
             <?php foreach ($rentalOptions as $option): ?>
@@ -4350,7 +4360,7 @@ body:has(.gp-package-notice) .booking-grid {
     <?php if ($isPackageContext): ?>
     <div>
       <div class="mobile-book-price"><?= $money($packageServicePrice) ?></div>
-      <div class="mobile-book-label">Package service price</div>
+      <div class="mobile-book-label">Package service price · +<?= $money($platformFeeAmount) ?> fee</div>
     </div>
     <a class="mobile-book-btn is-guidance" href="<?= $h($packageDetailUrl) ?>">
       <i data-lucide="arrow-left" size="16"></i>
@@ -4359,7 +4369,7 @@ body:has(.gp-package-notice) .booking-grid {
     <?php elseif ($isRentalCategory && !empty($attireItems)): ?>
     <div>
       <div class="mobile-book-price" id="mobileBookPrice"><?= $moneyRange($service) ?></div>
-      <div class="mobile-book-label" id="mobileBookLabel">Select an item to continue</div>
+      <div class="mobile-book-label" id="mobileBookLabel">Select an item to continue · +<?= $money($platformFeeAmount) ?> fee</div>
     </div>
     <button class="mobile-book-btn is-guidance" id="mobileBookBtn" type="button" onclick="document.getElementById('attire-gallery')?.scrollIntoView({behavior:'smooth'})">
       Choose item
@@ -4367,7 +4377,7 @@ body:has(.gp-package-notice) .booking-grid {
     <?php else: ?>
     <div>
       <div class="mobile-book-price"><?= $isVenue && $firstVenueRoom ? $money($firstVenueRoom['price'] ?? 0) : $moneyRange($service) ?></div>
-      <div class="mobile-book-label"><?= $isAddonContext ? 'Package add-on' : $pricingUnitLabel($service) ?></div>
+      <div class="mobile-book-label"><?= $isAddonContext ? 'Package add-on' : $pricingUnitLabel($service) ?> · +<?= $money($platformFeeAmount) ?> fee</div>
     </div>
     <a class="mobile-book-btn <?= $hasInitialBookOption ? '' : 'is-guidance' ?>" id="mobileBookBtn" href="<?= URLROOT ?>/cart">
       <?= $isAddonContext ? 'Add to package' : 'Book now' ?>
