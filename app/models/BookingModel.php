@@ -5065,14 +5065,14 @@ class BookingModel
      */
     public function getSupplierPaymentHistory(int $supplierId, int $limit = 20, int $offset = 0, array $filters = []): array
     {
-        $where = "p.type IN ('deposit','remaining','full')";
+        $where = "p.type IN ('deposit','remaining','full','payout')";
         $params = [[':sid1', $supplierId, PDO::PARAM_INT]];
 
         if (!empty($filters['status']) && in_array($filters['status'], ['success', 'pending', 'failed'], true)) {
             $where .= ' AND p.status = :status';
             $params[] = [':status', $filters['status'], PDO::PARAM_STR];
         }
-        if (!empty($filters['type']) && in_array($filters['type'], ['deposit', 'remaining', 'full'], true)) {
+        if (!empty($filters['type']) && in_array($filters['type'], ['deposit', 'remaining', 'full', 'payout'], true)) {
             $where .= ' AND p.type = :type';
             $params[] = [':type', $filters['type'], PDO::PARAM_STR];
         }
@@ -5101,14 +5101,14 @@ class BookingModel
 
     public function getSupplierPaymentHistoryCount(int $supplierId, array $filters = []): int
     {
-        $where = "p.type IN ('deposit','remaining','full')";
+        $where = "p.type IN ('deposit','remaining','full','payout')";
         $params = [[':sid', $supplierId, PDO::PARAM_INT]];
 
         if (!empty($filters['status']) && in_array($filters['status'], ['success', 'pending', 'failed'], true)) {
             $where .= ' AND p.status = :status';
             $params[] = [':status', $filters['status'], PDO::PARAM_STR];
         }
-        if (!empty($filters['type']) && in_array($filters['type'], ['deposit', 'remaining', 'full'], true)) {
+        if (!empty($filters['type']) && in_array($filters['type'], ['deposit', 'remaining', 'full', 'payout'], true)) {
             $where .= ' AND p.type = :type';
             $params[] = [':type', $filters['type'], PDO::PARAM_STR];
         }

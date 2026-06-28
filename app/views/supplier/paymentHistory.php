@@ -148,6 +148,7 @@ $filters = $filters ?? [];
         <option value="<?= $h($filterUrl(['type' => 'deposit'])) ?>" <?= ($filters['type'] ?? '') === 'deposit' ? 'selected' : '' ?>>Deposit</option>
         <option value="<?= $h($filterUrl(['type' => 'remaining'])) ?>" <?= ($filters['type'] ?? '') === 'remaining' ? 'selected' : '' ?>>Balance</option>
         <option value="<?= $h($filterUrl(['type' => 'full'])) ?>" <?= ($filters['type'] ?? '') === 'full' ? 'selected' : '' ?>>Full</option>
+        <option value="<?= $h($filterUrl(['type' => 'payout'])) ?>" <?= ($filters['type'] ?? '') === 'payout' ? 'selected' : '' ?>>Payout</option>
       </select>
     </div>
     <div class="payhist-filter">
@@ -192,7 +193,7 @@ $filters = $filters ?? [];
             $status = strtolower($payment['status'] ?? 'pending');
             $statusLabel = $status === 'success' ? 'Verified' : ($status === 'failed' ? 'Failed' : 'Pending');
             $badgeClass = $status === 'success' ? 'success' : ($status === 'failed' ? 'failed' : 'pending');
-            $typeLabel = ($payment['type'] ?? 'deposit') === 'deposit' ? 'Deposit' : (($payment['type'] ?? '') === 'remaining' ? 'Balance' : 'Payment');
+            $typeLabel = ($payment['type'] ?? 'deposit') === 'deposit' ? 'Deposit' : (($payment['type'] ?? '') === 'remaining' ? 'Balance' : (($payment['type'] ?? '') === 'payout' ? 'Payout' : 'Payment'));
             $supplierAmount = (float)($payment['supplier_amount'] ?? (float)($payment['amount'] ?? 0) - (float)($payment['platform_fee'] ?? 0));
             $escrow = strtolower($payment['escrow_status'] ?? 'held');
             $escrowLabel = $escrow === 'released' ? 'Released' : ($escrow === 'refunded' ? 'Refunded' : 'Held');
