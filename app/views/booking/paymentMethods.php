@@ -198,14 +198,15 @@ a{color:inherit;text-decoration:none}
           </div>
           <?php endforeach; ?>
           <div class="gp-divider" style="margin:4px 0"></div>
-          <div class="gp-row"><span>Booking subtotal</span><span><?= $money($total) ?></span></div>
+          <div class="gp-row"><span>Subtotal</span><span><?= $money($total) ?></span></div>
           <?php if ($platformFee > 0): ?>
-          <div class="gp-row"><span>Platform service fee (<?= $platformFeePercent ?>%)</span><span><?= $money($platformFee) ?></span></div>
+          <div class="gp-row"><span>Platform service fee (<?= $platformFeePercent ?>%)</span><span>+<?= $money($platformFee) ?></span></div>
           <?php endif; ?>
-          <div class="gp-row"><span>Grand total</span><span><?= $money($total + $platformFee) ?></span></div>
+          <div class="gp-row total"><span>You pay in total</span><span><?= $money($total + $platformFee) ?></span></div>
           <div class="gp-divider" style="margin:8px 0"></div>
-          <div class="gp-row total"><span>Amount to pay now (<?= $depositPercent ?>% deposit + fee)</span><span><?= $money($depositWithFee) ?></span></div>
-          <div class="gp-row balance"><span>Balance due before event</span><span><?= $money($balance) ?></span></div>
+          <div class="gp-row" style="font-weight:600"><span>Paying now (<?= $depositPercent ?>% deposit + service fee)</span><span><?= $money($depositWithFee) ?></span></div>
+          <div class="gp-row"><span>Remaining balance</span><span><?= $money($balance) ?></span></div>
+          <div style="font-size:11px;color:#8e7680;margin-top:6px">Pay the remaining <?= $money($balance) ?> before your event date. The platform fee is a one-time charge included in today's payment.</div>
         </div>
       </div>
     </div>
@@ -239,9 +240,10 @@ a{color:inherit;text-decoration:none}
           <div class="gp-account-row"><dt>Account / Number</dt><dd><?= $h($bankInfo['account'] ?? '') ?></dd></div>
           <div class="gp-account-row"><dt>Deposit (<?= $depositPercent ?>%)</dt><dd><?= $money($deposit) ?></dd></div>
           <?php if ($platformFee > 0): ?>
-          <div class="gp-account-row"><dt>Platform Fee (<?= $platformFeePercent ?>%)</dt><dd><?= $money($platformFee) ?></dd></div>
+          <div class="gp-account-row"><dt>Service fee (<?= $platformFeePercent ?>%, one-time)</dt><dd><?= $money($platformFee) ?></dd></div>
           <?php endif; ?>
-          <div class="gp-account-row"><dt>Total to Pay</dt><dd><?= $money($depositWithFee) ?></dd></div>
+          <div class="gp-account-row"><dt>Transfer now</dt><dd><?= $money($depositWithFee) ?></dd></div>
+          <div class="gp-account-row"><dt>Remaining balance</dt><dd><?= $money($balance) ?></dd></div>
         </dl>
       </div>
       <?php endforeach; ?>
