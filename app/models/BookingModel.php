@@ -4916,21 +4916,32 @@ class BookingModel
      */
     public function getSupplierEarningsBreakdown(int $supplierId, int $limit = 20, int $offset = 0): array
     {
+        // Payout amount is net (platform fees already deducted by settleSupplierPayouts).
+        // Derive the supplier's proportional share of platform fees from the
+        // original payment records (deposit/remaining/full) for each booking,
+        // so historical fee rates are preserved even if the global rate changes.
         $this->db->dbquery(
             "SELECT
                 p.id AS payment_id,
                 p.booking_id,
                 p.amount AS net_amount,
-                COALESCE(p.platform_fee, 0) AS platform_fee,
-                p.amount + COALESCE(p.platform_fee, 0) AS gross_amount,
                 p.status,
                 p.created_at,
                 p.verified_at,
                 p.verified_note,
                 p.payout_batch_id,
                 b.created_at AS booking_date,
+                b.total_amount AS booking_total,
                 GROUP_CONCAT(DISTINCT s.name SEPARATOR ', ') AS service_names,
-                GROUP_CONCAT(DISTINCT bs.item_price) AS item_prices
+                GROUP_CONCAT(DISTINCT bs.item_price) AS item_prices,
+                SUM(DISTINCT bs.item_price) AS supplier_service_total,
+                (
+                    SELECT COALESCE(SUM(COALESCE(py.platform_fee, 0)), 0)
+                      FROM payments py
+                     WHERE py.booking_id = p.booking_id
+                       AND py.status = 'success'
+                       AND py.type IN ('deposit','remaining','full')
+                ) AS booking_total_fees
              FROM payments p
              JOIN bookings b ON b.id = p.booking_id
              JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = p.supplier_id
@@ -4944,7 +4955,25 @@ class BookingModel
         $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
         $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
-        return $this->db->getmultidata();
+        $rows = $this->db->getmultidata();
+
+        foreach ($rows as &$row) {
+            $net = (float)($row['net_amount'] ?? 0);
+            $bookingTotal = (float)($row['booking_total'] ?? 0);
+            $supplierServiceTotal = (float)($row['supplier_service_total'] ?? 0);
+            $bookingTotalFees = (float)($row['booking_total_fees'] ?? 0);
+
+            // Supplier's proportional share of the platform fees
+            $proportion = ($bookingTotal > 0) ? ($supplierServiceTotal / $bookingTotal) : 0;
+            $fee = $proportion * $bookingTotalFees;
+            $gross = $net + $fee;
+
+            $row['platform_fee'] = round($fee, 2);
+            $row['gross_amount'] = round($gross, 2);
+        }
+        unset($row);
+
+        return $rows;
     }
 
     /**
@@ -4954,28 +4983,55 @@ class BookingModel
      */
     public function getSupplierGrossEarnings(int $supplierId): array
     {
-        // Sum from payout records (type='payout') which already represent
-        // the supplier's share per booking.
+        // Payout records store the NET amount (after platform fees were deducted
+        // during settleSupplierPayouts).  platform_fee is NULL on payout rows.
+        // Derive each supplier's proportional share of platform fees from the
+        // original payment records so historical fee rates are preserved.
+        //
+        // One row per payout (GROUP BY p.id), then sum in PHP.
+        // This mirrors getSupplierEarningsBreakdown's fee logic.
         $this->db->dbquery(
             "SELECT
-                COALESCE(SUM(CASE WHEN p.status = 'success' THEN p.amount ELSE 0 END), 0) AS paid_gross,
-                COALESCE(SUM(CASE WHEN p.status = 'success' THEN COALESCE(p.platform_fee, 0) ELSE 0 END), 0) AS paid_fees,
-                COUNT(CASE WHEN p.status = 'success' THEN 1 END) AS completed_booking_count
+                p.amount AS net_amount,
+                b.total_amount AS booking_total,
+                SUM(DISTINCT bs.item_price) AS supplier_service_total,
+                (
+                    SELECT COALESCE(SUM(COALESCE(py.platform_fee, 0)), 0)
+                      FROM payments py
+                     WHERE py.booking_id = p.booking_id
+                       AND py.status = 'success'
+                       AND py.type IN ('deposit','remaining','full')
+                ) AS booking_total_fees
              FROM payments p
-             WHERE p.supplier_id = :sid AND p.type = 'payout'"
+             JOIN bookings b ON b.id = p.booking_id
+             JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = p.supplier_id
+             WHERE p.supplier_id = :sid AND p.type = 'payout' AND p.status = 'success'
+             GROUP BY p.id"
         );
         $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $result = $this->db->getsingledata() ?: [];
+        $rows = $this->db->getmultidata() ?: [];
 
-        $paidGross = (float)($result['paid_gross'] ?? 0);
-        $paidFees = (float)($result['paid_fees'] ?? 0);
-        $completedBookingCount = (int)($result['completed_booking_count'] ?? 0);
+        $paidNet = 0.0;
+        $paidFees = 0.0;
+
+        foreach ($rows as $row) {
+            $net = (float)($row['net_amount'] ?? 0);
+            $bookingTotal = (float)($row['booking_total'] ?? 0);
+            $supplierServiceTotal = (float)($row['supplier_service_total'] ?? 0);
+            $bookingTotalFees = (float)($row['booking_total_fees'] ?? 0);
+
+            $proportion = ($bookingTotal > 0) ? ($supplierServiceTotal / $bookingTotal) : 0;
+            $fee = $proportion * $bookingTotalFees;
+
+            $paidNet += $net;
+            $paidFees += $fee;
+        }
 
         return [
-            'gross_earnings' => $paidGross,
-            'platform_fees' => $paidFees,
-            'net_earnings' => $paidGross - $paidFees,
-            'completed_booking_count' => $completedBookingCount,
+            'gross_earnings' => round($paidNet + $paidFees, 2),
+            'platform_fees'  => round($paidFees, 2),
+            'net_earnings'   => round($paidNet, 2),
+            'completed_booking_count' => count($rows),
         ];
     }
 
