@@ -74,6 +74,7 @@
     .sm-table .td-status { display:inline-flex; align-items:center; gap:5px; }
     .sm-table .td-status::before { content:''; width:6px; height:6px; border-radius:50%; background:#A8A29E; }
     .sm-table .td-status.is-active::before { background:#16a34a; }
+    .sm-table .td-status.is-pending::before { background:#d97706; }
     .sm-table .td-cat { color:#A8A29E; font-size:12px; }
     .sm-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:14px; }
     .service-card.sm-service-card { min-height:0; aspect-ratio:auto; border:1px solid #ead8c7; border-radius:12px; background:#fff; box-shadow:0 1px 2px rgba(28,25,23,.04); color:#34232b; overflow:hidden; transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease; }
@@ -86,6 +87,8 @@
     .sm-card-status::before { content:""; width:6px; height:6px; border-radius:50%; background:#9ca3af; }
     .sm-card-status.is-active { color:#08715a; }
     .sm-card-status.is-active::before { background:#059669; }
+    .sm-card-status.is-pending { color:#92400e; }
+    .sm-card-status.is-pending::before { background:#d97706; }
     .sm-card-body { padding:13px 14px 12px; }
     .sm-card-topline { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
     .sm-card-category { max-width:62%; overflow:hidden; border-radius:999px; background:#faf5ef; padding:3px 8px; color:#7b5c69; font-size:8px; font-weight:800; text-overflow:ellipsis; text-transform:uppercase; letter-spacing:.07em; white-space:nowrap; }

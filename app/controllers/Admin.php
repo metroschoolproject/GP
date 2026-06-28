@@ -859,7 +859,7 @@ class Admin extends Controller
             redirect('admin/service/' . (int)$serviceId);
         }
 
-        $this->serviceManagementModel->setServiceStatus((int)$service['supplier_id'], (int)$serviceId, true);
+        $this->serviceManagementModel->setServiceStatus((int)$service['supplier_id'], (int)$serviceId, true, 'published');
         $_SESSION['admin_flash'] = 'Service approved and published to customers.';
         redirect('admin/service/' . (int)$serviceId);
     }

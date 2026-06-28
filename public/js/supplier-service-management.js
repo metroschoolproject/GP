@@ -13,6 +13,13 @@ let editingSvcId = null, editingPkgId = null;
 let currentSort = 'newest'; // newest, name_asc, price_asc, price_desc
 let viewMode = localStorage.getItem('smViewMode') || 'grid';
 
+function svcStatusInfo(item) {
+  const ps = item.publish_status || 'draft';
+  if (ps === 'pending_review') return { cls: 'is-pending', label: 'Pending review' };
+  if (item.status === 'active') return { cls: 'is-active', label: 'Published' };
+  return { cls: '', label: 'Draft' };
+}
+
 // ── TOAST ───────────────────────────────────────────────────────
 function showToast(message, type) {
   type = type || 'error';
@@ -939,11 +946,11 @@ function svcTableRow(item) {
   const img = item.img
     ? `<img src="${escapeHtml(item.img)}" class="td-name-img" alt="">`
     : '<div class="td-name-img" style="display:grid;place-items:center;color:#A8A29E;font-size:14px">Photo</div>';
-  const isActive = item.status === 'active';
+  const st = svcStatusInfo(item);
 
   return `
     <tr>
-      <td><span class="td-status ${isActive ? 'is-active' : ''}">${isActive ? 'Published' : 'Draft'}</span></td>
+      <td><span class="td-status ${st.cls}">${st.label}</span></td>
       <td><div class="td-name">${img}<span class="td-name-text">${name}</span></div></td>
       <td class="td-cat">${escapeHtml(item.category || '-')}</td>
       <td class="td-price">MMK ${formatPriceRange(item)}</td>
@@ -1261,7 +1268,7 @@ function svcCard(item) {
   item = normalizeServiceItem(item);
   if (!item) return '';
   const icon = ICON[item.category] || '✨';
-  const isActive = item.status === 'active';
+  const st = svcStatusInfo(item);
   const name = escapeHtml(item.name || 'Untitled service');
   const category = escapeHtml(item.category || 'Service');
   const description = escapeHtml(item.desc || 'No description added yet.');
@@ -1273,7 +1280,7 @@ function svcCard(item) {
   <article role="link" tabindex="0" onclick="navigateToServiceDetail(${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();navigateToServiceDetail(${item.id})}" class="service-card sm-service-card cursor-pointer">
     <div class="sm-card-media">
       ${media}
-      <span class="sm-card-status ${isActive ? 'is-active' : ''}">${isActive ? 'Published' : 'Draft'}</span>
+      <span class="sm-card-status ${st.cls}">${st.label}</span>
     </div>
     <div class="sm-card-body">
       <div class="sm-card-topline">

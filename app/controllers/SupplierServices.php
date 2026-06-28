@@ -318,7 +318,8 @@ class SupplierServices extends SupplierControllerSupport
         $service = $this->serviceManagementModel->setServiceStatus(
             $supplierId,
             $serviceId,
-            false
+            false,
+            $makeActive ? 'pending_review' : 'draft'
         );
 
         if (!$service) {
@@ -385,7 +386,7 @@ class SupplierServices extends SupplierControllerSupport
             $this->jsonResponse(['status' => 'error', 'message' => $cooldownMessage], 429);
         }
 
-        $this->serviceManagementModel->setServiceStatus((int)$supplier['supplier_id'], $serviceId, false);
+        $this->serviceManagementModel->setServiceStatus((int)$supplier['supplier_id'], $serviceId, false, 'pending_review');
         $supplierName = trim((string)($supplier['business_name'] ?? $supplier['shop_name'] ?? $supplier['name'] ?? 'A supplier'));
         $serviceName = trim((string)($service['name'] ?? 'a service'));
 

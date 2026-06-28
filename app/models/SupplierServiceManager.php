@@ -82,6 +82,7 @@ class SupplierServiceManager
                          ' . $priceRangeFields . '
                          services.thumbnail_url,
                          services.is_active,
+                         services.publish_status,
                          services.booking_type,
                          services.duration_minutes,
                          services.buffer_minutes,
@@ -319,15 +320,22 @@ class SupplierServiceManager
         }
     }
 
-    public function setServiceStatus($supplierId, $serviceId, $isActive)
+    public function setServiceStatus($supplierId, $serviceId, $isActive, $publishStatus = null)
     {
+        $sets = 'is_active = :is_active';
+        if ($publishStatus !== null) {
+            $sets .= ', publish_status = :publish_status';
+        }
         $this->db->dbquery(
             'UPDATE services
-             SET is_active = :is_active
+             SET ' . $sets . '
              WHERE id = :id
                AND supplier_id = :supplier_id'
         );
         $this->db->dbbind(':is_active', $isActive ? 1 : 0);
+        if ($publishStatus !== null) {
+            $this->db->dbbind(':publish_status', $publishStatus);
+        }
         $this->db->dbbind(':id', (int)$serviceId);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
         $this->db->dbexecute();
@@ -1704,6 +1712,7 @@ class SupplierServiceManager
             'customize_price' => $priceMax,
             'category' => $service['category'] ?: 'Others',
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
+            'publish_status' => $service['publish_status'] ?? 'draft',
             'desc' => html_entity_decode($service['description'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'img' => $service['thumbnail_url'] ?? '',
             'capacity' => (int)($service['max_concurrent'] ?? 1),
