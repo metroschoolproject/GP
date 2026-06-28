@@ -133,6 +133,21 @@ $dashboardContent = function () use (
     $eventTime = trim($formatTime($firstStart) . ($firstEnd ? ' – ' . $formatTime($firstEnd) : ''), ' –');
     $needsResponse = $supplierStatus === 'pending';
     $myServiceRows = $myServiceRows ?? [];
+
+    // Determine multi-service state early (used in response bar + assignment section)
+    $assignedServiceKeys = [];
+    $hasPendingServices = false;
+    foreach ($myServiceRows as $row) {
+        $k = ($row['service_name'] ?? '') . '|' . ($row['category_name'] ?? '');
+        if (!isset($assignedServiceKeys[$k])) {
+            $assignedServiceKeys[$k] = true;
+        }
+        if (($row['status'] ?? '') === 'pending') {
+            $hasPendingServices = true;
+        }
+    }
+    $hasMultipleServices = count($assignedServiceKeys) > 1;
+
     $hasPackageSchedule = false;
     foreach ($packageSchedules as $scheduleRows) {
         if (!empty($scheduleRows)) {
@@ -438,11 +453,6 @@ $dashboardContent = function () use (
                 'booking_supplier_id' => (int)$row['id'],
             ];
         }
-    }
-    $hasMultipleServices = count($assignedServices) > 1;
-    $hasPendingServices = false;
-    foreach ($assignedServices as $svc) {
-        if ($svc['status'] === 'pending') { $hasPendingServices = true; break; }
     }
   ?>
   <section class="sup-assignment" aria-labelledby="supplier-assignment-title">
