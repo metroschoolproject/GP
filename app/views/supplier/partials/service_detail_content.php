@@ -111,7 +111,8 @@ if (!empty($attentionItems[0]['label'])) {
   </nav>
 
   <!-- ═══════════════ WORKSPACE ═══════════════ -->
-  <div class="sd-workspace sd-tabbed-workspace <?= $isRental ? 'is-attire-workspace' : '' ?>">
+  <?php $isDecoration = strtolower((string)$serviceCategoryRaw) === 'decoration'; ?>
+  <div class="sd-workspace sd-tabbed-workspace <?= $isRental ? 'is-attire-workspace' : ($isDecoration ? 'is-deco-workspace' : '') ?>">
 
     <!-- ═══ MAIN COLUMN ═══ -->
     <div class="sd-main">
@@ -145,28 +146,6 @@ if (!empty($attentionItems[0]['label'])) {
           </div>
         </div>
       </div>
-
-      <?php if (strtolower((string)$serviceCategoryRaw) === 'decoration'): ?>
-        <div class="sd-card sd-anim-card-3" data-service-panel="catalog">
-          <div class="sd-card-head">
-            <div>
-              <div class="sd-card-title">Decoration styles</div>
-              <div class="sd-card-sub">Style options customers can choose from</div>
-            </div>
-            <div class="sd-head-actions">
-              <span id="decorationStyleCount" class="sd-badge"><?= count($decorationStyles) ?> <?= count($decorationStyles) === 1 ? 'style' : 'styles' ?></span>
-              <button type="button" class="btn btn-primary btn-sm" id="addDecorationStyleBtn"><i class="ti ti-plus" style="font-size:13px"></i> Add style</button>
-            </div>
-          </div>
-          <div class="sd-card-body">
-            <div id="decorationStyleMessage" class="sd-message error" style="display:none"></div>
-            <div id="decorationStyleGrid" class="sd-decoration-styles"></div>
-          </div>
-          <div class="sd-card-foot">
-            <button type="button" class="btn btn-primary btn-sm" id="saveDecorationStylesBtn"><i class="ti ti-check" style="font-size:12px"></i> Save styles</button>
-          </div>
-        </div>
-      <?php endif; ?>
 
       <!-- === ROOMS / HALLS (Venue only) === -->
       <?php if ($isVenue): ?>
@@ -477,6 +456,30 @@ if (!empty($attentionItems[0]['label'])) {
         <div class="sd-card-foot">
           <span class="sd-attire-save-note">Your edits stay in this workspace until you save the collection.</span>
           <button type="button" class="btn btn-primary btn-sm" id="saveAttireItemsBtn"><i class="ti ti-check" style="font-size:12px"></i> Save collection</button>
+        </div>
+      </div>
+      <?php endif; ?>
+
+      <!-- === DECORATION STYLES (Decoration only) === -->
+      <?php if ($isDecoration): ?>
+      <div class="sd-card sd-deco-manager-card sd-anim-card-3" data-service-panel="catalog">
+        <div class="sd-card-head">
+          <div>
+            <div class="sd-card-title">Decoration styles</div>
+            <div class="sd-card-sub">Choose a style from your collection, then edit it in the larger workspace.</div>
+          </div>
+          <div class="sd-head-actions">
+            <span id="decorationStyleCount" class="sd-badge"><?= count($decorationStyles) ?> <?= count($decorationStyles) === 1 ? 'style' : 'styles' ?></span>
+            <button type="button" class="btn btn-primary btn-sm" id="addDecorationStyleBtn"><i class="ti ti-plus" style="font-size:13px"></i> Add style</button>
+          </div>
+        </div>
+        <div class="sd-card-body">
+          <div id="decorationStyleMessage" class="sd-message error" style="display:none"></div>
+          <div id="decorationStyleGrid" class="sd-decoration-styles"></div>
+        </div>
+        <div class="sd-card-foot">
+          <span class="sd-deco-save-note">Your edits stay in this workspace until you save the collection.</span>
+          <button type="button" class="btn btn-primary btn-sm" id="saveDecorationStylesBtn"><i class="ti ti-check" style="font-size:12px"></i> Save styles</button>
         </div>
       </div>
       <?php endif; ?>
