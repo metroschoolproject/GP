@@ -79,6 +79,7 @@ $paidTotal = (float)($booking['paid_amount'] ?? 0);
 $paidFraction = $bookingTotal > 0 ? min(1, $paidTotal / $bookingTotal) : 0;
 $supplierPaid = $supplierTotal * $paidFraction;
 $supplierRemaining = max(0, $supplierTotal - $supplierPaid);
+$supplierPaidFraction = $supplierTotal > 0 ? min(1, $supplierPaid / $supplierTotal) : 0;
 $paymentStatus = strtolower((string)($booking['payment_status'] ?? 'pending'));
 
 /* ── Lead time countdown ── */
@@ -374,10 +375,10 @@ $dashboardContent = function () use (
             <?php endif; ?>
           </div>
           <div class="sup-response-sub" style="margin-top:4px;opacity:.7">Your response will be sent to the customer and admin for review.</div>
-          <?php if ($bookingTotal > 0): ?>
+          <?php if ($supplierTotal > 0): ?>
           <div style="margin-top:6px;display:flex;gap:16px;font-size:11px;font-weight:600;color:var(--sup-text,#6d4c5b)">
-            <span>Booking total: <?= $money($bookingTotal) ?></span>
-            <?php if ($paidTotal > 0): ?><span>Paid: <?= $money($paidTotal) ?></span><?php endif; ?>
+            <span>Your total: <?= $money($supplierTotal) ?></span>
+            <?php if ($supplierPaid > 0): ?><span>Paid: <?= $money($supplierPaid) ?></span><?php endif; ?>
           </div>
           <?php endif; ?>
         </div>
@@ -548,8 +549,8 @@ $dashboardContent = function () use (
 
   <?php
     // ── Payment confidence strip ──
-    $depositAmount = $bookingTotal * (BOOKING_DEPOSIT_PERCENT / 100);
-    $depositCollected = $paidTotal >= $depositAmount;
+    $depositAmount = $supplierTotal * (BOOKING_DEPOSIT_PERCENT / 100);
+    $depositCollected = $supplierPaid >= $depositAmount;
     $fullyPaid = $paymentStatus === 'paid';
 
     // Find earliest successful payment date
@@ -587,25 +588,25 @@ $dashboardContent = function () use (
         </div>
         <div class="sup-payment-confidence-stat <?= $depositCollected ? 'sup-payment-confidence-stat--highlight' : '' ?>">
           <small>Customer has paid</small>
-          <strong><?= $money($paidTotal) ?></strong>
+          <strong><?= $money($supplierPaid) ?></strong>
         </div>
         <div class="sup-payment-confidence-stat">
           <small>Remaining</small>
-          <strong><?= $money(max(0, $bookingTotal - $paidTotal)) ?></strong>
+          <strong><?= $money($supplierRemaining) ?></strong>
         </div>
       </div>
 
       <div class="sup-payment-confidence-bar-wrap">
         <div class="sup-payment-confidence-bar">
-          <div class="sup-payment-confidence-bar-fill" style="width:<?= max(0, min(100, $paidFraction * 100)) ?>%"></div>
+          <div class="sup-payment-confidence-bar-fill" style="width:<?= max(0, min(100, $supplierPaidFraction * 100)) ?>%"></div>
         </div>
         <span class="sup-payment-confidence-bar-label">
           <?php if ($fullyPaid): ?>
             Fully paid
           <?php elseif ($depositCollected): ?>
-            <?= round($paidFraction * 100) ?>% deposited
+            <?= round($supplierPaidFraction * 100) ?>% deposited
           <?php else: ?>
-            <?= round($paidFraction * 100) ?>% paid
+            <?= round($supplierPaidFraction * 100) ?>% paid
           <?php endif; ?>
         </span>
       </div>
@@ -1148,7 +1149,7 @@ $dashboardContent = function () use (
       <div class="sup-payment-fact"><small>Remaining</small><strong><?= $money($supplierRemaining) ?></strong></div>
     </div>
     <div class="sup-payment-track" aria-label="Payment progress">
-      <div class="sup-payment-fill" style="width:<?= max(0, min(100, $paidFraction * 100)) ?>%"></div>
+      <div class="sup-payment-fill" style="width:<?= max(0, min(100, $supplierPaidFraction * 100)) ?>%"></div>
     </div>
   </div>
   </div>
