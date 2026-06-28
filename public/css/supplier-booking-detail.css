@@ -1215,6 +1215,7 @@
   }
   .sup-assignment-services-list {
     margin-top: 10px;
+    padding: 0 24px 20px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -1224,20 +1225,23 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 12px 14px;
-    background: #fffdfb;
-    border: 1px solid #eee0d5;
+    width: 100%;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #faf6f3 0%, #f5ede7 100%);
+    border: 1px solid #e8d8cc;
     border-radius: 10px;
-    transition: border-color .15s;
+    transition: border-color .15s, box-shadow .15s;
   }
   .sup-assignment-service-card:hover {
-    border-color: #d9c4b3;
+    border-color: #d4bfb0;
+    box-shadow: 0 2px 8px rgba(109, 76, 91, .06);
   }
   .sup-assignment-service-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     min-width: 0;
+    flex: 1;
   }
   .sup-assignment-service-info strong {
     font-weight: 650;
@@ -1249,7 +1253,7 @@
   }
   .sup-assignment-service-meta {
     font-size: 11px;
-    color: #a08070;
+    color: #9a7d6d;
     letter-spacing: .01em;
   }
   .sup-assignment-service-right {
