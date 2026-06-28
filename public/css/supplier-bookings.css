@@ -401,6 +401,209 @@
     .bk-filter-group::-webkit-scrollbar { display: none; }
 }
 
+/* ── Booking cards (replaces table for richer info) ────────── */
+.bk-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px 20px;
+}
+.bk-booking-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: start;
+    background: #fff;
+    border: 1px solid #ead8c7;
+    border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+    transition: box-shadow .15s, transform .15s;
+}
+.bk-booking-card:hover {
+    box-shadow: 0 6px 20px rgba(52, 35, 43, .06);
+    transform: translateY(-1px);
+}
+.bk-booking-card--pending { border-left: 3px solid #d97706; }
+.bk-booking-card--needs_replacement { border-left: 3px solid #6366f1; }
+
+.bk-card-left { min-width: 0; }
+
+.bk-card-toprow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+.bk-card-ref {
+    font-size: 11px;
+    font-weight: 700;
+    color: #a58b96;
+}
+.bk-card-time {
+    font-size: 10px;
+    color: #A8A29E;
+    font-weight: 500;
+}
+
+.bk-card-customer {
+    font-size: 15px;
+    font-weight: 750;
+    color: #6d4c5b;
+    margin-bottom: 10px;
+}
+
+.bk-card-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 8px;
+}
+.bk-card-fact {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #7b5c69;
+}
+.bk-card-fact i[data-lucide] {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: #a58b96;
+}
+.bk-card-fact strong {
+    font-weight: 700;
+    color: #6d4c5b;
+}
+
+.bk-card-services {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.bk-card-service-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #F5F0F2;
+    color: #6d4c5b;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.bk-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #eddecc;
+}
+.bk-card-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 750;
+    cursor: pointer;
+    transition: background .15s, box-shadow .15s;
+    border: 0;
+    text-decoration: none;
+}
+.bk-card-action-btn:disabled { opacity: .5; cursor: not-allowed; }
+.bk-card-action-btn i[data-lucide] { width: 13px; height: 13px; }
+.bk-card-action-btn--accept {
+    background: #059669;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, .2);
+}
+.bk-card-action-btn--accept:hover:not(:disabled) { background: #047857; }
+.bk-card-action-btn--decline {
+    background: #fff;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+.bk-card-action-btn--decline:hover:not(:disabled) { background: #FEF2F2; }
+.bk-card-action-btn--view {
+    background: #fff;
+    color: #6d4c5b;
+    border: 1px solid #dfcec1;
+}
+.bk-card-action-btn--view:hover { background: #F5F0F2; border-color: #cdb5bf; }
+
+/* Right column */
+.bk-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 120px;
+}
+.bk-card-countdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+.bk-card-countdown i[data-lucide] { width: 11px; height: 11px; }
+.bk-card-countdown--urgent { background: #FEF2F2; color: #991b1b; }
+.bk-card-countdown--soon { background: #FFFBEB; color: #92400e; }
+.bk-card-countdown--ok { background: #ECFDF5; color: #065f46; }
+.bk-card-countdown--past { background: #F5F5F4; color: #78716C; }
+
+.bk-card-payment {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+.bk-card-payment--paid { background: #ECFDF5; color: #065f46; }
+.bk-card-payment--partial { background: #FFFBEB; color: #92400e; }
+.bk-card-payment--pending { background: #F5F5F4; color: #78716C; }
+
+.bk-card-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 34px;
+    padding: 0 13px;
+    border: 1px solid #dfcec1;
+    border-radius: 9px;
+    background: #fff;
+    color: #6d4c5b;
+    font-size: 10px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: background .15s, border-color .15s;
+}
+.bk-card-view-btn:hover { background: #F5F0F2; border-color: #cdb5bf; }
+.bk-card-view-btn i[data-lucide] { width: 12px; height: 12px; }
+
+@media (min-width: 900px) {
+    .bk-card-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 680px) {
+    .bk-booking-card { grid-template-columns: 1fr; }
+    .bk-card-right { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+    .bk-card-actions { flex-wrap: wrap; }
+}
+
 /* ── Assignments view ──────────────────────────────────────────── */
 .asn-page { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
 .asn-header { margin-bottom: 24px; }

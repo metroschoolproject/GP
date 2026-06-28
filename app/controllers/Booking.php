@@ -1606,7 +1606,7 @@ class Booking extends Controller
         $filter = trim($_GET['status'] ?? 'all');
         $search = trim($_GET['search'] ?? '');
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = 20;
+        $perPage = 10;
         $offset = ($page - 1) * $perPage;
 
         // Fetch bookings based on search or normal view
