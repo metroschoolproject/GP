@@ -634,14 +634,31 @@ class SupplierProfile
         $revenue = array_fill(0, 12, 0);
         $bookings = array_fill(0, 12, 0);
 
+        // Revenue from payout records (net of platform fees), grouped by payout month
+        $this->db->dbquery(
+            "SELECT MONTH(COALESCE(p.verified_at, p.created_at)) AS m,
+                    COALESCE(SUM(p.amount), 0) AS revenue
+             FROM payments p
+             WHERE p.supplier_id = :sid
+               AND p.type = 'payout'
+               AND p.status IN ('success', 'processing', 'pending')
+               AND YEAR(COALESCE(p.verified_at, p.created_at)) = YEAR(CURDATE())
+             GROUP BY MONTH(COALESCE(p.verified_at, p.created_at))"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        foreach ($this->db->getmultidata() as $row) {
+            $idx = (int)($row['m'] ?? 0) - 1;
+            if ($idx >= 0 && $idx < 12) {
+                $revenue[$idx] = (float)($row['revenue'] ?? 0);
+            }
+        }
+
+        // Bookings by event date (distinct bookings per month)
         $this->db->dbquery(
             "SELECT MONTH(ed.event_date) AS m,
-                    COALESCE(SUM(COALESCE(bi.price, 0)), 0) AS revenue,
                     COUNT(DISTINCT bs.booking_id) AS cnt
              FROM booking_suppliers bs
-             INNER JOIN bookings b ON b.id = bs.booking_id
-             INNER JOIN event_details ed ON ed.booking_id = b.id
-             INNER JOIN booking_items bi ON bi.booking_id = b.id
+             INNER JOIN event_details ed ON ed.booking_id = bs.booking_id
              WHERE bs.supplier_id = :sid
                AND YEAR(ed.event_date) = YEAR(CURDATE())
                AND bs.status IN ('confirmed', 'completed', 'in_progress')
@@ -651,7 +668,6 @@ class SupplierProfile
         foreach ($this->db->getmultidata() as $row) {
             $idx = (int)($row['m'] ?? 0) - 1;
             if ($idx >= 0 && $idx < 12) {
-                $revenue[$idx] = (float)($row['revenue'] ?? 0);
                 $bookings[$idx] = (int)($row['cnt'] ?? 0);
             }
         }
