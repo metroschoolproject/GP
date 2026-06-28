@@ -572,7 +572,7 @@ class Supplier extends SupplierControllerSupport
         $dashboardData = $this->supplierProfileModel->getDashboardData($supplierId);
         $serviceCount  = $dashboardData['stats']['total_services'] ?? 0;
         $totalBookings = $dashboardData['stats']['total_bookings'] ?? 0;
-        $avgRating     = $dashboardData['stats']['avg_rating'] ?? null;
+        $avgRating     = $dashboardData['stats']['average_rating'] ?? null;
 
         $data = [
             // Supplier info
