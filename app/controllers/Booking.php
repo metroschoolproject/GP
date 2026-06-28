@@ -1960,7 +1960,9 @@ class Booking extends Controller
                 $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
             }
 
-            $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus);
+            // When targeting a specific service, only update that booking_item
+            $targetServiceId = $rowIdParam > 0 ? (int)($matchingRows[0]['service_id'] ?? 0) : 0;
+            $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus, $targetServiceId);
             $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, 'Supplier ' . $action . 'ed booking');
         }
 

@@ -2637,7 +2637,7 @@ class BookingModel
     /**
      * Update booking item status by supplier.
      */
-    public function updateBookingItemsStatusBySupplier(int $bookingId, int $supplierId, string $status): bool
+    public function updateBookingItemsStatusBySupplier(int $bookingId, int $supplierId, string $status, int $serviceId = 0): bool
     {
         $hasSupplierPackages = $this->tableExists('supplier_packages');
         $hasSupplierPackageItems = $this->tableExists('supplier_package_items');
@@ -2658,6 +2658,8 @@ class BookingModel
                     )"
             : '';
 
+        $serviceFilter = $serviceId > 0 ? 'AND bi.item_id = :service_id AND bi.item_type = \'service\'' : '';
+
         $this->db->dbquery(
             "UPDATE booking_items bi
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
@@ -2675,7 +2677,8 @@ class BookingModel
                           AND pi.default_supplier_id = :sid3
                     )
                     {$supplierPackageItemsCondition}
-               )"
+               )
+               {$serviceFilter}"
         );
         $this->db->dbbind(':status', $status);
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
@@ -2686,6 +2689,9 @@ class BookingModel
         $this->db->dbbind(':sid3', $supplierId, PDO::PARAM_INT);
         if ($hasSupplierPackageItems) {
             $this->db->dbbind(':sid4', $supplierId, PDO::PARAM_INT);
+        }
+        if ($serviceId > 0) {
+            $this->db->dbbind(':service_id', $serviceId, PDO::PARAM_INT);
         }
 
         return $this->db->dbexecute();
