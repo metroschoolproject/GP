@@ -2338,3 +2338,131 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ═══════════════════ CUSTOM CONFIRM MODAL ═══════════════════ */
+
+.sd-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(34, 24, 19, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.sd-confirm-overlay.is-visible {
+  display: flex;
+}
+
+.sd-confirm-modal {
+  width: 100%;
+  max-width: 400px;
+  background: #FFFFFF;
+  border: 1px solid #ead8c7;
+  border-radius: 14px;
+  box-shadow: 0 18px 55px rgba(52, 35, 43, 0.16);
+  overflow: hidden;
+}
+
+.sd-confirm-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee4dc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sd-confirm-head-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sd-confirm-head-icon.is-danger {
+  background: #fef2f2;
+  color: #b94b4b;
+}
+
+.sd-confirm-head-icon.is-warning {
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.sd-confirm-head-icon i {
+  font-size: 16px;
+}
+
+.sd-confirm-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: #6d4c5b;
+}
+
+.sd-confirm-body {
+  padding: 18px 20px;
+}
+
+.sd-confirm-text {
+  font-size: 13px;
+  color: #7b5c69;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.sd-confirm-actions {
+  padding: 14px 20px;
+  border-top: 1px solid #eee4dc;
+  display: flex;
+  gap: 8px;
+  background: #faf7f3;
+}
+
+.sd-confirm-actions button {
+  flex: 1;
+  min-height: 38px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sd-confirm-cancel {
+  border: 1px solid #ead8c7;
+  background: #fff;
+  color: #6d4c5b;
+}
+
+.sd-confirm-cancel:hover {
+  background: #faf5ef;
+}
+
+.sd-confirm-ok {
+  border: 0;
+  color: #fff;
+}
+
+.sd-confirm-ok.is-danger {
+  background: #b94b4b;
+}
+
+.sd-confirm-ok.is-danger:hover {
+  background: #9f3128;
+}
+
+.sd-confirm-ok.is-warning {
+  background: #6d4c5b;
+}
+
+.sd-confirm-ok.is-warning:hover {
+  background: #593b49;
+}

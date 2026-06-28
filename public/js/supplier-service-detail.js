@@ -1,6 +1,55 @@
 const serviceDetailConfig = window.serviceDetailConfig || { urls: {}, servicePayloadBase: {} };
 const urls = serviceDetailConfig.urls;
 
+// ── CUSTOM CONFIRM MODAL ──────────────────────────────────────
+let sdConfirmResolve = null;
+
+function sdConfirm({ title, message, confirmText = 'Delete', icon = 'ti-trash', variant = 'danger' }) {
+  const overlay = document.getElementById('sdConfirmOverlay');
+  const titleEl = document.getElementById('sdConfirmTitle');
+  const textEl = document.getElementById('sdConfirmText');
+  const iconWrap = document.getElementById('sdConfirmIcon');
+  const iconEl = document.getElementById('sdConfirmIconClass');
+  const okBtn = document.getElementById('sdConfirmOk');
+
+  if (!overlay || !titleEl || !textEl || !iconWrap || !iconEl || !okBtn) {
+    return Promise.resolve(window.confirm(message));
+  }
+
+  titleEl.textContent = title;
+  textEl.textContent = message;
+  okBtn.textContent = confirmText;
+  iconEl.className = 'ti ' + icon;
+  iconWrap.className = 'sd-confirm-head-icon ' + (variant === 'warning' ? 'is-warning' : 'is-danger');
+  okBtn.className = 'sd-confirm-ok ' + (variant === 'warning' ? 'is-warning' : 'is-danger');
+
+  overlay.classList.add('is-visible');
+
+  return new Promise(resolve => {
+    sdConfirmResolve = resolve;
+  });
+}
+
+function sdConfirmClose(result) {
+  const overlay = document.getElementById('sdConfirmOverlay');
+  overlay?.classList.remove('is-visible');
+  if (sdConfirmResolve) {
+    sdConfirmResolve(result);
+    sdConfirmResolve = null;
+  }
+}
+
+document.getElementById('sdConfirmCancel')?.addEventListener('click', () => sdConfirmClose(false));
+document.getElementById('sdConfirmOk')?.addEventListener('click', () => sdConfirmClose(true));
+document.getElementById('sdConfirmOverlay')?.addEventListener('click', event => {
+  if (event.target === event.currentTarget) sdConfirmClose(false);
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('sdConfirmOverlay')?.classList.contains('is-visible')) {
+    sdConfirmClose(false);
+  }
+});
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
@@ -138,7 +187,7 @@ document.getElementById('publishServiceBtn')?.addEventListener('click', async ev
   const isLive = detail?.dataset.serviceStatus === 'active';
   showMessage('publishMessage', '');
 
-  if (isLive && !window.confirm('Unpublish this service? Customers will no longer see or book it until admin approves a new publish request.')) {
+  if (isLive && !await sdConfirm({ title: 'Unpublish service?', message: 'Customers will no longer see or book it until admin approves a new publish request.', confirmText: 'Unpublish', icon: 'ti-eye-off', variant: 'warning' })) {
     return;
   }
 
@@ -216,7 +265,7 @@ document.querySelector('[data-media-picker]')?.addEventListener('change', event 
 });
 
 async function deleteServiceMedia(mediaId) {
-  if (!mediaId || !confirm('Delete this photo?')) return;
+  if (!mediaId || !await sdConfirm({ title: 'Delete photo?', message: 'This photo will be permanently removed from your portfolio.', confirmText: 'Delete', icon: 'ti-trash' })) return;
   showMessage('mediaMessage', '');
 
   try {
@@ -717,7 +766,7 @@ document.getElementById('attireItemGrid')?.addEventListener('input', event => {
   if (navList) navList.innerHTML = attireNavHtml();
 });
 
-document.getElementById('attireItemGrid')?.addEventListener('click', event => {
+document.getElementById('attireItemGrid')?.addEventListener('click', async event => {
   const navItem = event.target.closest('[data-attire-index]');
   if (navItem) {
     activeAttireIndex = Number(navItem.dataset.attireIndex);
@@ -731,7 +780,7 @@ document.getElementById('attireItemGrid')?.addEventListener('click', event => {
   if (event.target.closest('[data-attire-remove]')) {
     const item = attireDrafts[activeAttireIndex];
     const itemName = item?.name.trim() || `dress ${activeAttireIndex + 1}`;
-    if (item?.name.trim() && !window.confirm(`Remove "${itemName}" from this collection?`)) return;
+    if (item?.name.trim() && !await sdConfirm({ title: 'Remove dress?', message: `"${itemName}" will be removed from this collection.`, confirmText: 'Remove', icon: 'ti-trash' })) return;
     if (attireDrafts.length === 1) {
       attireDrafts[0] = normalizeAttireItem();
       activeAttireIndex = 0;
@@ -1238,7 +1287,7 @@ document.getElementById('saveOverrideBtn')?.addEventListener('click', async () =
 });
 
 async function deleteOverride(overrideId) {
-  if (!overrideId || !confirm('Delete this override?')) return;
+  if (!overrideId || !await sdConfirm({ title: 'Delete special date?', message: 'This special date override will be permanently removed.', confirmText: 'Delete', icon: 'ti-trash' })) return;
   showMessage('overrideMessage', '');
   try {
     await jsonPost(urls.overrideDelete + encodeURIComponent(overrideId));
@@ -1251,7 +1300,7 @@ async function deleteOverride(overrideId) {
 }
 
 async function deleteRoomOverride(overrideId) {
-  if (!overrideId || !confirm('Delete this hall override?')) return;
+  if (!overrideId || !await sdConfirm({ title: 'Delete hall special date?', message: 'This hall-specific special date override will be permanently removed.', confirmText: 'Delete', icon: 'ti-trash' })) return;
   showMessage('overrideMessage', '');
   try {
     await jsonPost(urls.roomOverrideDelete + encodeURIComponent(overrideId));

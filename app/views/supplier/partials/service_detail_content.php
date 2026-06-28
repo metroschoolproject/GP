@@ -565,4 +565,23 @@ if (!empty($attentionItems[0]['label'])) {
     </div>
   </div>
 
+  <!-- ═══════════════ CONFIRM MODAL ═══════════════ -->
+  <div id="sdConfirmOverlay" class="sd-confirm-overlay">
+    <div class="sd-confirm-modal">
+      <div class="sd-confirm-head">
+        <div id="sdConfirmIcon" class="sd-confirm-head-icon is-danger">
+          <i id="sdConfirmIconClass" class="ti ti-trash"></i>
+        </div>
+        <h2 id="sdConfirmTitle" class="sd-confirm-title"></h2>
+      </div>
+      <div class="sd-confirm-body">
+        <p id="sdConfirmText" class="sd-confirm-text"></p>
+      </div>
+      <div class="sd-confirm-actions">
+        <button type="button" class="sd-confirm-cancel" id="sdConfirmCancel">Cancel</button>
+        <button type="button" class="sd-confirm-ok is-danger" id="sdConfirmOk"></button>
+      </div>
+    </div>
+  </div>
+
 </div>
