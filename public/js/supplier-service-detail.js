@@ -285,6 +285,7 @@ function normalizeDecoStyle(style = {}) {
     id: style.id || 0,
     name: style.name || '',
     price: style.price ?? '',
+    customize_price: style.customize_price ?? '',
     photo_url: style.photo_url || ''
   };
 }
@@ -295,7 +296,10 @@ function decoHasPrice(item) {
 
 function decoOfferLabel(item) {
   const price = parseFloat(item.price || '0');
+  const customize = parseFloat(item.customize_price || '0');
+  if (price > 0 && customize > 0 && price !== customize) return formatMoney(price) + ' / ' + formatMoney(customize);
   if (price > 0) return formatMoney(price);
+  if (customize > 0) return formatMoney(customize);
   return 'No price set';
 }
 
@@ -343,7 +347,7 @@ function decoEditorHtml(item, index) {
           <span class="sd-deco-editor-kicker">Editing style ${index + 1}</span>
           <h3>${escapeHtml(itemName)}</h3>
         </div>
-        <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" data-deco-remove="${index}" title="Remove this style"><i class="ti ti-trash" style="font-size:13px"></i></button>
+        <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" data-deco-remove="${index}" title="Remove this style" style="margin-left:auto"><i class="ti ti-trash" style="font-size:13px"></i></button>
       </div>
       <div class="sd-deco-editor-body">
         <div class="sd-deco-photo-area">
@@ -359,6 +363,7 @@ function decoEditorHtml(item, index) {
         <div class="sd-deco-fields">
           <div class="sd-hall-fg full"><label>Style name</label><input class="sd-hall-input" data-deco-field="name" value="${escapeHtml(item.name || '')}" placeholder="e.g. Balloon arch"></div>
           <div class="sd-hall-fg full"><label>Package price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-deco-field="price" value="${escapeHtml(item.price)}" placeholder="0"><span>MMK</span></div></div>
+          <div class="sd-hall-fg full"><label>Customize price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-deco-field="customize_price" value="${escapeHtml(item.customize_price)}" placeholder="0"><span>MMK</span></div></div>
         </div>
       </div>
     </section>
@@ -406,6 +411,7 @@ function collectDecorationStyles() {
     id: item.id || 0,
     name: item.name.trim(),
     price: parseFloat(item.price || '0') || 0,
+    customize_price: parseFloat(item.customize_price || '0') || 0,
     photo_url: item.photo_url || null
   })).filter(style => style.name !== '');
 }

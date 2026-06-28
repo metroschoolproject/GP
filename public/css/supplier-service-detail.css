@@ -926,6 +926,10 @@
 }
 
 .sd-deco-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   padding: 18px 20px 14px;
   border-bottom: 1px solid var(--border);
 }
