@@ -405,12 +405,37 @@ $dashboardContent = function () use (
 
   </header>
 
+  <?php
+    // Collect unique non-addon services assigned to this supplier
+    $assignedServices = [];
+    foreach ($items as $item) {
+        if (!empty($item['package_booking_item_id'])) continue;
+        $svcName = $item['service_name'] ?? 'Service';
+        $catName = $item['category_name'] ?? '';
+        $key = $svcName . '|' . $catName;
+        if (!isset($assignedServices[$key])) {
+            $assignedServices[$key] = ['name' => $svcName, 'category' => $catName];
+        }
+    }
+  ?>
   <section class="sup-assignment" aria-labelledby="supplier-assignment-title">
     <div class="sup-assignment-head">
       <div>
         <p class="sup-assignment-kicker">Your assignment</p>
-        <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= $h($assignmentName) ?></h2>
-        <?php if ($assignmentCategory !== ''): ?><div class="sup-assignment-category"><?= $h($assignmentCategory) ?></div><?php endif; ?>
+        <?php if (count($assignedServices) > 1): ?>
+          <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= count($assignedServices) ?> services assigned</h2>
+          <div class="sup-assignment-services-list">
+            <?php foreach ($assignedServices as $svc): ?>
+              <div class="sup-assignment-service-item">
+                <strong><?= $h($svc['name']) ?></strong>
+                <?php if ($svc['category'] !== ''): ?><span class="sup-assignment-category"><?= $h($svc['category']) ?></span><?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php else: ?>
+          <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= $h($assignmentName) ?></h2>
+          <?php if ($assignmentCategory !== ''): ?><div class="sup-assignment-category"><?= $h($assignmentCategory) ?></div><?php endif; ?>
+        <?php endif; ?>
       </div>
       <span class="sup-assignment-status"><?= $h($assignmentStatusLabel) ?></span>
     </div>
