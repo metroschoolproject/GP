@@ -277,7 +277,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 <div class="mt-4 grid grid-cols-2 gap-3 border-t pt-3" style="border-color:var(--supplier-admin-border)">
                     <div>
                         <p class="supplier-admin-stat-label">Rating</p>
-                        <p class="mt-1 text-lg font-bold" style="color:#b45309"><?= number_format((float)($dashboardData['stats']['avg_rating'] ?? 0), 1) ?></p>
+                        <p class="mt-1 text-lg font-bold" style="color:#b45309"><?= number_format((float)($dashboardData['stats']['average_rating'] ?? 0), 1) ?></p>
                     </div>
                     <div>
                         <p class="supplier-admin-stat-label">Upcoming</p>
