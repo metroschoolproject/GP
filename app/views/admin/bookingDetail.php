@@ -324,15 +324,15 @@ $dashboardContent = function () use (
     --bkd-text: #111827;
     --bkd-muted: #b79c8b;
     --bkd-body: #7b5c69;
-    --bkd-success-bg: #ECFDF5;
-    --bkd-success-text: #065F46;
-    --bkd-success-border: #059669;
-    --bkd-warn-bg: #FFFBEB;
-    --bkd-warn-text: #92400E;
-    --bkd-warn-border: #d97706;
-    --bkd-danger-bg: #FEF2F2;
-    --bkd-danger-text: #991B1B;
-    --bkd-danger-border: #dc2626;
+    --bkd-success-bg: #f0f5f0;
+    --bkd-success-text: #3d6b4f;
+    --bkd-success-border: #6b9e7e;
+    --bkd-warn-bg: #fdf6ee;
+    --bkd-warn-text: #8b6914;
+    --bkd-warn-border: #c9a24e;
+    --bkd-danger-bg: #fdf2f4;
+    --bkd-danger-text: #8b3a4a;
+    --bkd-danger-border: #c4677a;
     --bkd-info-bg: #e8e7ff;
     --bkd-info-text: #4f46a5;
     --bkd-neutral-bg: #F5F5F4;
@@ -541,9 +541,9 @@ $dashboardContent = function () use (
 
   /* ── Review form ── */
   .bkd-review-form {
-    border: 1px solid var(--bkd-warn-border);
+    border: 1px solid var(--bkd-border);
     border-radius: 10px;
-    background: var(--bkd-warn-bg);
+    background: #faf8f5;
     padding: 14px;
     margin-top: 16px;
   }
@@ -570,9 +570,9 @@ $dashboardContent = function () use (
   .bkd-btn--primary { border: 1px solid var(--bkd-primary); background: var(--bkd-primary); color: #FFFFFF; font-weight: 800; }
   .bkd-btn--primary:hover { background: var(--bkd-primary-hover); box-shadow: 0 2px 8px rgba(109,76,91,.25); }
   .bkd-btn--success { border: 1px solid var(--bkd-success-border); background: var(--bkd-success-text); color: #FFFFFF; font-weight: 800; }
-  .bkd-btn--success:hover { background: #047857; }
-  .bkd-btn--danger { border: 1px solid var(--bkd-danger-border); background: #dc2626; color: #FFFFFF; font-weight: 800; }
-  .bkd-btn--danger:hover { background: #b91c1c; }
+  .bkd-btn--success:hover { background: #2d5a3f; }
+  .bkd-btn--danger { border: 1px solid var(--bkd-danger-border); background: var(--bkd-danger-text); color: #FFFFFF; font-weight: 800; }
+  .bkd-btn--danger:hover { background: #732e3e; }
 
   /* ── Badges ── */
   .bkd-badge {
@@ -737,7 +737,7 @@ $dashboardContent = function () use (
   .bkd-modal-head { display: block; padding: 26px 26px 0; }
   .bkd-modal-icon {
     display: grid; place-items: center; width: 46px; height: 46px;
-    margin-bottom: 16px; border-radius: .75rem; background: #FEE2E2; color: #dc2626;
+    margin-bottom: 16px; border-radius: .75rem; background: var(--bkd-danger-bg); color: var(--bkd-danger-text);
   }
   .bkd-modal-icon svg { width: 22px; height: 22px; }
   .bkd-modal-title { margin: 0; color: var(--bkd-text); font-size: 18px; font-weight: 800; line-height: 1.3; }
