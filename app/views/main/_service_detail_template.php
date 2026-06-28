@@ -3733,7 +3733,7 @@ body:has(.gp-package-notice) .booking-grid {
                 $checked = !$hasSelectedStyle && !$isLockedStyle;
                 if ($checked) { $hasSelectedStyle = true; }
               ?>
-              <div class="availability-row is-fullday is-available <?= $checked ? 'is-selected' : '' ?> <?= $isLockedStyle ? 'is-unavailable' : '' ?>" data-deco-row data-deco-id="<?= $styleId ?>" data-deco-name="<?= $h($ds['name']) ?>" data-deco-price="<?= $h($stylePrice) ?>" data-deco-photo="<?= $h($stylePhoto) ?>" data-aos="fade-up" data-aos-delay="<?= min($styleIdx * 80, 300) ?>">
+              <div class="availability-row is-fullday is-available <?= $checked ? 'is-selected' : '' ?> <?= $isLockedStyle ? 'is-unavailable' : '' ?>" data-deco-row data-deco-id="<?= $styleId ?>" data-deco-name="<?= $h($ds['name']) ?>" data-deco-price="<?= $h($styleCustomizePrice) ?>" data-deco-photo="<?= $h($stylePhoto) ?>" data-aos="fade-up" data-aos-delay="<?= min($styleIdx * 80, 300) ?>">
                 <span class="radio-dot"></span>
                 <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
                   <?php if ($stylePhoto): ?>
@@ -3749,10 +3749,10 @@ body:has(.gp-package-notice) .booking-grid {
                           <span>Package only</span>
                         <?php endif; ?>
                       </span>
-                      <span class="availability-status <?= $isLockedStyle ? 'is-closed' : '' ?>"><?= $isLockedStyle ? 'Package only' : $money($stylePrice) ?></span>
+                      <span class="availability-status <?= $isLockedStyle ? 'is-closed' : '' ?>"><?= $isLockedStyle ? 'Package only' : $money($styleCustomizePrice) ?></span>
                     </div>
-                    <?php if (!$isLockedStyle && $styleCustomizePrice > 0 && $styleCustomizePrice !== $stylePrice): ?>
-                      <span class="availability-range"><i data-lucide="paintbrush" size="14"></i>Customize: <?= $money($styleCustomizePrice) ?></span>
+                    <?php if (!$isLockedStyle && $stylePrice > 0 && $styleCustomizePrice !== $stylePrice): ?>
+                      <span class="availability-range"><i data-lucide="tag" size="14"></i>Package: <?= $money($stylePrice) ?></span>
                     <?php endif; ?>
                   </div>
                   <div style="flex-shrink:0">
@@ -3761,7 +3761,7 @@ body:has(.gp-package-notice) .booking-grid {
                         value="<?= $styleId ?>"
                         data-deco-id="<?= $styleId ?>"
                         data-deco-name="<?= $h($ds['name']) ?>"
-                        data-deco-price="<?= $h($stylePrice) ?>"
+                        data-deco-price="<?= $h($styleCustomizePrice) ?>"
                         data-deco-photo="<?= $h($stylePhoto) ?>"
                         <?= $checked ? 'checked' : '' ?>
                         <?= $isLockedStyle ? 'disabled' : '' ?>>
