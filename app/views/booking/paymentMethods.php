@@ -198,14 +198,13 @@ a{color:inherit;text-decoration:none}
           </div>
           <?php endforeach; ?>
           <div class="gp-divider" style="margin:4px 0"></div>
-          <div class="gp-row total"><span>Booking subtotal</span><span><?= $money($total) ?></span></div>
+          <div class="gp-row"><span>Booking subtotal</span><span><?= $money($total) ?></span></div>
           <?php if ($platformFee > 0): ?>
-          <div class="gp-row" style="color:var(--muted)"><span>Platform service fee (<?= $platformFeePercent ?>%)</span><span><?= $money($platformFee) ?></span></div>
+          <div class="gp-row"><span>Platform service fee (<?= $platformFeePercent ?>%)</span><span><?= $money($platformFee) ?></span></div>
           <?php endif; ?>
-          <div class="gp-row deposit"><span>Deposit to pay (<?= $depositPercent ?>% of subtotal)</span><span><?= $money($deposit) ?></span></div>
-          <?php if ($platformFee > 0): ?>
-          <div class="gp-row" style="color:var(--muted)"><span>Total with fee</span><span><?= $money($depositWithFee) ?></span></div>
-          <?php endif; ?>
+          <div class="gp-row"><span>Grand total</span><span><?= $money($total + $platformFee) ?></span></div>
+          <div class="gp-divider" style="margin:8px 0"></div>
+          <div class="gp-row total"><span>Amount to pay now (<?= $depositPercent ?>% deposit + fee)</span><span><?= $money($depositWithFee) ?></span></div>
           <div class="gp-row balance"><span>Balance due before event</span><span><?= $money($balance) ?></span></div>
         </div>
       </div>
