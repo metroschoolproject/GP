@@ -337,19 +337,59 @@ class Cart extends Controller
                 return;
             }
 
-            $slot = $this->cartModel->findAvailableSlotForServiceDate((int)$item['item_id'], $date, $startTime, $endTime);
+            $isFullday = ($item['booking_type'] ?? 'fullday') !== 'slot';
 
-            if (!$slot) {
-                redirect('cart');
-                return;
+            if ($isFullday) {
+                // Fullday items: resolve time from schedule → service default → category fallback
+                $serviceId = (int)($item['item_id'] ?? 0);
+                $resolvedStart = null;
+                $resolvedEnd = null;
+
+                // Try service schedule for the selected date's day-of-week
+                if ($date && $serviceId > 0) {
+                    $scheduleRow = $this->cartModel->getServiceScheduleForDay($serviceId, $date);
+                    if ($scheduleRow) {
+                        $resolvedStart = $scheduleRow['open_time'] ?? null;
+                        $resolvedEnd = $scheduleRow['close_time'] ?? null;
+                    }
+                }
+
+                // Fallback to service defaults
+                if (!$resolvedStart || !$resolvedEnd) {
+                    $serviceDefaults = $this->cartModel->getServiceDefaultTimes($serviceId);
+                    $resolvedStart = $resolvedStart ?: ($serviceDefaults['default_start_time'] ?? null);
+                    $resolvedEnd = $resolvedEnd ?: ($serviceDefaults['default_end_time'] ?? null);
+                }
+
+                // Fallback to category defaults
+                if (!$resolvedStart || !$resolvedEnd) {
+                    $categoryId = $this->cartModel->getServiceCategoryId($serviceId);
+                    $categoryTimes = defined('CATEGORY_DEFAULT_TIMES') ? (CATEGORY_DEFAULT_TIMES[$categoryId] ?? null) : null;
+                    $resolvedStart = $resolvedStart ?: ($categoryTimes['start'] ?? '00:00:00');
+                    $resolvedEnd = $resolvedEnd ?: ($categoryTimes['end'] ?? '23:59:59');
+                }
+
+                $this->cartModel->updateItemCustomization($this->userId, $cartItemId, [
+                    'selected_date' => $date,
+                    'slot_id' => null,
+                    'start_time' => $resolvedStart,
+                    'end_time' => $resolvedEnd,
+                ]);
+            } else {
+                $slot = $this->cartModel->findAvailableSlotForServiceDate((int)$item['item_id'], $date, $startTime, $endTime);
+
+                if (!$slot) {
+                    redirect('cart');
+                    return;
+                }
+
+                $this->cartModel->updateItemCustomization($this->userId, $cartItemId, [
+                    'selected_date' => $date,
+                    'slot_id' => $slot['slot_id'] ?? null,
+                    'start_time' => $slot['start_time'],
+                    'end_time' => $slot['end_time'],
+                ]);
             }
-
-            $this->cartModel->updateItemCustomization($this->userId, $cartItemId, [
-                'selected_date' => $date,
-                'slot_id' => $slot['slot_id'] ?? null,
-                'start_time' => $slot['start_time'],
-                'end_time' => $slot['end_time'],
-            ]);
         }
 
         redirect('cart');

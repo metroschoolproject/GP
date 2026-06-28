@@ -414,11 +414,12 @@ $dashboardContent = function () use (
       </div>
       <span class="sup-assignment-status"><?= $h($assignmentStatusLabel) ?></span>
     </div>
+    <?php $isDayBased = ($primarySchedule['booking_type'] ?? '') === 'fullday'; ?>
     <div class="sup-assignment-facts">
       <div class="sup-assignment-fact">
-        <small>Date & time</small>
+        <small><?= $isDayBased ? 'Day' : 'Date & time' ?></small>
         <strong><?= $h($formatDate($assignmentDate)) ?></strong>
-        <span><?= $h(trim($formatTime($assignmentStart) . ($assignmentEnd !== '' ? ' – ' . $formatTime($assignmentEnd) : '')) ?: 'Time not set') ?></span>
+        <span><?= $isDayBased ? 'Full day' : $h(trim($formatTime($assignmentStart) . ($assignmentEnd !== '' ? ' – ' . $formatTime($assignmentEnd) : '')) ?: 'Time not set') ?></span>
       </div>
       <div class="sup-assignment-fact">
         <small>Venue</small>
@@ -863,8 +864,12 @@ $dashboardContent = function () use (
                   'category' => $timelineEvent['category_name'] ?? 'Service',
                   'supplier' => $timelineEvent['supplier_name'] ?? 'Golden Promise',
                   'guests' => $scheduleGuests > 0 ? number_format($scheduleGuests) : 'Not specified',
-                  'start' => !empty($timelineEvent['start_time']) ? date('g:i A', strtotime($timelineEvent['start_time'])) : 'TBD',
-                  'end' => !empty($timelineEvent['end_time']) ? date('g:i A', strtotime($timelineEvent['end_time'])) : 'TBD',
+                  'start' => ($timelineEvent['booking_type'] ?? '') === 'fullday'
+                      ? 'Day'
+                      : (!empty($timelineEvent['start_time']) ? date('g:i A', strtotime($timelineEvent['start_time'])) : 'TBD'),
+                  'end' => ($timelineEvent['booking_type'] ?? '') === 'fullday'
+                      ? ''
+                      : (!empty($timelineEvent['end_time']) ? date('g:i A', strtotime($timelineEvent['end_time'])) : 'TBD'),
                   'venue' => $timelineEvent['venue_room_name'] ?? 'Not specified',
                   'isMine' => (int)($timelineEvent['supplier_id'] ?? 0) === $supplierId
                       || in_array($timelineServiceId, $ownTimelineServiceIds, true),
@@ -899,9 +904,11 @@ $dashboardContent = function () use (
                       'supplier' => $event['supplier_name'] ?? 'Golden Promise',
                       'guests' => $scheduleGuests > 0 ? number_format($scheduleGuests) : 'Not specified',
                       'date' => $formatDate($event['event_date'] ?? $firstDate),
-                      'time' => (!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD')
-                          . ' – '
-                          . (!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : 'TBD'),
+                      'time' => ($event['booking_type'] ?? '') === 'fullday'
+                          ? 'Full day'
+                          : ((!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD')
+                              . ' – '
+                              . (!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : 'TBD')),
                       'venue' => $event['venue_room_name'] ?? ($firstLocation !== '' ? $firstLocation : 'Not specified'),
                       'contact' => $scheduleContact !== '' ? $scheduleContact : $customerName,
                       'phone' => $schedulePhone !== '' ? $schedulePhone : ($customerPhone !== '' ? $customerPhone : 'Not provided'),
@@ -925,8 +932,12 @@ $dashboardContent = function () use (
                   </td>
                   <td style="color:var(--sup-body);font-size:12px"><?= $h($event['supplier_name'] ?? 'Golden Promise') ?></td>
                   <td><span class="sup-timeline-guest"><?= $scheduleGuests > 0 ? number_format($scheduleGuests) : '—' ?></span></td>
-                  <td style="font-weight:700"><?= $h(!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD') ?></td>
-                  <td style="font-weight:700"><?= $h(!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '—') ?></td>
+                  <?php if (($event['booking_type'] ?? '') === 'fullday'): ?>
+                    <td style="font-weight:700" colspan="2">Day</td>
+                  <?php else: ?>
+                    <td style="font-weight:700"><?= $h(!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD') ?></td>
+                    <td style="font-weight:700"><?= $h(!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '—') ?></td>
+                  <?php endif; ?>
                   <td style="color:var(--sup-muted);font-size:12px">
                     <?= $h($event['venue_room_name'] ?? '—') ?>
                     <?php if ($isOwnTimelineService): ?><span class="sup-service-more">View detail →</span><?php endif; ?>
@@ -1244,7 +1255,7 @@ $dashboardContent = function () use (
           event.category || 'Service',
           event.supplier || 'Golden Promise',
           event.guests && event.guests !== 'Not specified' ? event.guests + ' guests' : 'Guests not specified',
-          (event.start || 'TBD') + ' – ' + (event.end || 'TBD'),
+          event.start === 'Day' ? 'Full day' : ((event.start || 'TBD') + ' – ' + (event.end || 'TBD')),
           event.venue || ''
         ].filter(Boolean).join(' · ');
         copy.appendChild(service);

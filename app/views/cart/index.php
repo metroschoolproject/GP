@@ -1593,8 +1593,9 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         $selectedDate = $item['selected_date'] ?? '';
         $startTime   = $item['start_time'] ?? '';
         $endTime     = $item['end_time'] ?? '';
-        $timeRange   = $formatTimeRange($startTime, $endTime);
         $itemType    = $item['item_type'] ?? 'service';
+        $isFulldayItem = $itemType === 'service' && ($item['booking_type'] ?? 'fullday') !== 'slot';
+        $timeRange   = $isFulldayItem ? 'Full day' : $formatTimeRange($startTime, $endTime);
         $includedServices = $item['included_services'] ?? [];
         $packageSchedule = $item['package_schedule'] ?? [];
         $packageScheduleByItem = [];
@@ -1765,8 +1766,10 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
         </div>
 
-        <?php if ($itemType === 'service'): ?>
-        <form class="gp-edit-form" method="POST" action="<?= URLROOT ?>/cart/update">
+        <?php if ($itemType === 'service'):
+          $isFullday = ($item['booking_type'] ?? 'fullday') !== 'slot';
+        ?>
+        <form class="gp-edit-form" method="POST" action="<?= URLROOT ?>/cart/update" data-booking-type="<?= $isFullday ? 'fullday' : 'slot' ?>">
           <input type="hidden" name="cart_item_id" value="<?= $itemId ?>">
           <button class="gp-edit-toggle" type="button" aria-expanded="false" aria-label="Edit <?= $h($name) ?> details" title="Edit details">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -1788,6 +1791,17 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
                 <span class="gp-edit-slot-note">Earliest: <?= $h(date('M j, Y', strtotime($earliestBookingDate))) ?></span>
               <?php endif; ?>
             </div>
+            <?php if ($isFullday): ?>
+            <div class="gp-edit-field is-wide">
+              <div class="gp-edit-slot-note" style="margin-top:4px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Full-day booking — time is managed automatically
+              </div>
+              <input type="hidden" name="start_time" value="<?= $h($startTime ?: '00:00') ?>">
+              <input type="hidden" name="end_time" value="<?= $h($endTime ?: '23:59') ?>" data-end-time-field>
+              <input type="hidden" name="slot_id" value="" data-slot-id-field>
+            </div>
+            <?php else: ?>
             <div class="gp-edit-field is-wide">
               <label>Available times</label>
               <div class="gp-edit-slots" data-slot-container>
@@ -1796,6 +1810,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               <input type="hidden" name="end_time" value="<?= $h(substr((string)$endTime, 0, 5)) ?>" data-end-time-field>
               <input type="hidden" name="slot_id" value="<?= $h($item['slot_id'] ?? '') ?>" data-slot-id-field>
             </div>
+            <?php endif; ?>
             <div class="gp-edit-field">
               <label for="cart-price-<?= $itemId ?>">Price</label>
               <input id="cart-price-<?= $itemId ?>" type="number" name="price" min="0" step="0.01" value="<?= $h($price) ?>" readonly>
@@ -1837,7 +1852,8 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               $linePrice = (float)($item['cart_price'] ?? $item['price_min'] ?? $item['price_max'] ?? 0);
               $lineName  = $item['service_name'] ?? 'Service';
               $lineDate  = trim((string)($item['selected_date'] ?? ''));
-              $lineTime  = $formatTimeRange($item['start_time'] ?? '', $item['end_time'] ?? '');
+              $lineIsFullday = ($item['item_type'] ?? '') === 'service' && ($item['booking_type'] ?? 'fullday') !== 'slot';
+              $lineTime  = $lineIsFullday ? 'Full day' : $formatTimeRange($item['start_time'] ?? '', $item['end_time'] ?? '');
               $lineHall = trim((string)($item['venue_room_name'] ?? ''));
               $lineImage = trim((string)($item['thumbnail_url'] ?? ''));
               $lineMetaParts = [];
@@ -2152,7 +2168,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
       if (!form) return;
       const isOpen = form.classList.toggle('is-open');
       button.setAttribute('aria-expanded', String(isOpen));
-      if (isOpen) loadCartSlots(form);
+      if (isOpen && form.dataset.bookingType !== 'fullday') loadCartSlots(form);
     });
   });
 
@@ -2169,7 +2185,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
       input.dataset.currentStart = '';
       input.dataset.currentEnd = '';
       const form = input.closest('.gp-edit-form');
-      if (form?.classList.contains('is-open')) loadCartSlots(form);
+      if (form?.classList.contains('is-open') && form.dataset.bookingType !== 'fullday') loadCartSlots(form);
     });
   });
 

@@ -1537,7 +1537,11 @@ class SupplierServiceManager
         }
         $this->db->dbbind(':thumbnail_url', $data['img'] ?? $data['thumbnail_url'] ?? null);
         $this->db->dbbind(':is_active', ($data['status'] ?? 'active') === 'inactive' ? 0 : 1);
-        $this->db->dbbind(':booking_type', ($data['booking_type'] ?? '') === 'slot' || !empty($data['timeslot']) ? 'slot' : 'fullday');
+        // Only allow slot-based booking for categories in SLOT_BOOKING_CATEGORIES
+        $slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : [6];
+        $isSlotRequest = ($data['booking_type'] ?? '') === 'slot' || !empty($data['timeslot']);
+        $bookingType = ($isSlotRequest && in_array($categoryId, $slotCategories, true)) ? 'slot' : 'fullday';
+        $this->db->dbbind(':booking_type', $bookingType);
         $this->db->dbbind(':duration_minutes', !empty($data['duration_minutes']) ? (int)$data['duration_minutes'] : null);
         $this->db->dbbind(':pricing_unit', $data['pricing_unit'] ?? 'per_session');
         $this->db->dbbind(':max_concurrent', max(1, min(65535, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1))));

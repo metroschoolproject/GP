@@ -359,6 +359,43 @@ class CartModel
         return false;
     }
 
+    /**
+     * Get the service schedule (open/close times) for a specific date.
+     * Returns ['open_time' => ..., 'close_time' => ...] or null if unavailable.
+     */
+    public function getServiceScheduleForDay(int $serviceId, string $date): ?array
+    {
+        $result = $this->hoursForServiceDate($serviceId, $date);
+        return $result ?: null;
+    }
+
+    /**
+     * Get the default start/end times for a service.
+     */
+    public function getServiceDefaultTimes(int $serviceId): ?array
+    {
+        if (!$this->hasServiceDefaultTimeColumns()) {
+            return null;
+        }
+        $this->db->dbquery(
+            "SELECT default_start_time, default_end_time
+             FROM services WHERE id = :sid LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        return $this->db->getsingledata() ?: null;
+    }
+
+    /**
+     * Get the category_id for a service.
+     */
+    public function getServiceCategoryId(int $serviceId): int
+    {
+        $this->db->dbquery("SELECT category_id FROM services WHERE id = :sid LIMIT 1");
+        $this->db->dbbind(':sid', $serviceId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return (int)($row['category_id'] ?? 0);
+    }
+
     public function getServiceMinLeadDays(int $serviceId): int
     {
         $this->db->dbquery(
