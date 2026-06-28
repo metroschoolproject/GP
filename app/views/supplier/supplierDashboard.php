@@ -237,9 +237,15 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 </div>
                 <p class="supplier-admin-stat-label">Total Revenue</p>
                 <h2 id="totalRevenue" class="mt-1.5 text-2xl font-bold tracking-tighter" style="color:#6d4c5b">$63,400</h2>
-                <div class="mt-4 border-t pt-3" style="border-color:var(--supplier-admin-border)">
-                    <p class="supplier-admin-stat-label">Average spend</p>
-                    <p id="avgSpend" class="mt-1 text-base font-bold" style="color:#6d4c5b">$200</p>
+                <div class="mt-4 grid grid-cols-2 gap-3 border-t pt-3" style="border-color:var(--supplier-admin-border)">
+                    <div>
+                        <p class="supplier-admin-stat-label">Paid out</p>
+                        <p id="paidRevenue" class="mt-1 text-base font-bold" style="color:#07825f">$0</p>
+                    </div>
+                    <div>
+                        <p class="supplier-admin-stat-label">Pending</p>
+                        <p id="pendingRevenue" class="mt-1 text-base font-bold" style="color:#b45309">$0</p>
+                    </div>
                 </div>
             </div>
 
@@ -816,6 +822,8 @@ window.supplierDashboardData = <?= json_encode([
       confirmedBookings: d.stats.completed_bookings || 0,
       cancelledBookings: 0,
       totalRevenue: d.stats.total_revenue || 0,
+      paidRevenue: d.stats.paid_revenue || 0,
+      pendingRevenue: d.stats.pending_revenue || 0,
       avgSpend: d.stats.total_bookings > 0 ? Math.round(d.stats.total_revenue / d.stats.total_bookings) : 0,
     });
   }
@@ -824,6 +832,8 @@ window.supplierDashboardData = <?= json_encode([
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
     set("totalBookings", data.totalBookings.toLocaleString());
     set("totalRevenue", currency(data.totalRevenue));
+    set("paidRevenue", currency(data.paidRevenue));
+    set("pendingRevenue", currency(data.pendingRevenue));
     set("confirmedBookings", data.confirmedBookings);
     set("cancelledBookings", data.cancelledBookings);
     set("avgSpend", currency(data.avgSpend));

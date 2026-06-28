@@ -669,10 +669,6 @@ class SupplierProfile
                 (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :pending_bookings_supplier_id AND status = \'pending\') AS pending_bookings,
                 (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :active_bookings_supplier_id AND status IN (\'confirmed\', \'in_progress\')) AS active_bookings,
                 (SELECT COUNT(DISTINCT booking_id) FROM booking_suppliers WHERE supplier_id = :completed_bookings_supplier_id AND status = \'completed\') AS completed_bookings,
-                (SELECT COALESCE(SUM(item_price), 0)
-                 FROM booking_suppliers
-                 WHERE supplier_id = :revenue_supplier_id
-                   AND status IN (\'confirmed\', \'in_progress\', \'completed\')) AS total_revenue,
                 (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE supplier_id = :rating_supplier_id) AS average_rating,
                 (SELECT COUNT(*) FROM reviews WHERE supplier_id = :review_supplier_id) AS review_count'
         );
@@ -683,7 +679,6 @@ class SupplierProfile
             ':pending_bookings_supplier_id',
             ':active_bookings_supplier_id',
             ':completed_bookings_supplier_id',
-            ':revenue_supplier_id',
             ':rating_supplier_id',
             ':review_supplier_id',
         ] as $param) {
@@ -692,6 +687,18 @@ class SupplierProfile
 
         $stats = $this->db->getsingledata() ?: [];
 
+        // Revenue from payout records (net of platform fees)
+        $this->db->dbquery(
+            "SELECT
+                COALESCE(SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END), 0) AS paid_revenue,
+                COALESCE(SUM(CASE WHEN status IN ('pending', 'processing') THEN amount ELSE 0 END), 0) AS pending_revenue,
+                COALESCE(SUM(amount), 0) AS total_revenue
+             FROM payments
+             WHERE supplier_id = :sid AND type = 'payout'"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $revenue = $this->db->getsingledata() ?: [];
+
         return [
             'total_services' => (int)($stats['total_services'] ?? 0),
             'active_services' => (int)($stats['active_services'] ?? 0),
@@ -699,7 +706,9 @@ class SupplierProfile
             'pending_bookings' => (int)($stats['pending_bookings'] ?? 0),
             'active_bookings' => (int)($stats['active_bookings'] ?? 0),
             'completed_bookings' => (int)($stats['completed_bookings'] ?? 0),
-            'total_revenue' => (float)($stats['total_revenue'] ?? 0),
+            'total_revenue' => (float)($revenue['total_revenue'] ?? 0),
+            'paid_revenue' => (float)($revenue['paid_revenue'] ?? 0),
+            'pending_revenue' => (float)($revenue['pending_revenue'] ?? 0),
             'average_rating' => (float)($stats['average_rating'] ?? 0),
             'review_count' => (int)($stats['review_count'] ?? 0),
         ];
