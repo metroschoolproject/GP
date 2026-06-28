@@ -2251,6 +2251,7 @@ class Admin extends Controller
         }
 
         $bookingModel = $this->model('BookingModel');
+        $db = new Database();
 
         // Determine if this is a remaining payment rejection
         $currentBooking = $bookingModel->getBookingById($bookingId);
@@ -2258,35 +2259,35 @@ class Admin extends Controller
 
         // Reset booking status: remaining → confirmed, deposit → pending_payment
         $resetStatus = $isRemainingReject ? 'confirmed' : 'pending_payment';
-        $this->db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");
-        $this->db->dbbind(':status', $resetStatus);
-        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        $db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");
+        $db->dbbind(':status', $resetStatus);
+        $db->dbbind(':id', $bookingId, PDO::PARAM_INT);
 
-        if (!$this->db->dbexecute()) {
+        if (!$db->dbexecute()) {
             $this->jsonResponse(['error' => 'Failed to reject payment'], 500);
             return;
         }
 
         // Mark the pending payment record as failed
-        $this->db->dbquery("SHOW COLUMNS FROM payments LIKE 'verified_note'");
-        $hasVerifiedNote = (bool)$this->db->getsingledata();
+        $db->dbquery("SHOW COLUMNS FROM payments LIKE 'verified_note'");
+        $hasVerifiedNote = (bool)$db->getsingledata();
         $setParts = ["status = 'failed'", 'verified_by = :admin', 'verified_at = NOW()'];
         if ($hasVerifiedNote) {
             $setParts[] = 'verified_note = :reason';
         }
 
         $paymentType = $isRemainingReject ? 'remaining' : 'deposit';
-        $this->db->dbquery(
+        $db->dbquery(
             "UPDATE payments SET " . implode(', ', $setParts) . "
              WHERE booking_id = :bid AND type = :payment_type AND status = 'pending' LIMIT 1"
         );
-        $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
         if ($hasVerifiedNote) {
-            $this->db->dbbind(':reason', $reason, PDO::PARAM_STR);
+            $db->dbbind(':reason', $reason, PDO::PARAM_STR);
         }
-        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':payment_type', $paymentType);
-        $this->db->dbexecute();
+        $db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $db->dbbind(':payment_type', $paymentType);
+        $db->dbexecute();
 
         // Notify customer
         $notificationModel = $this->model('Notification');
