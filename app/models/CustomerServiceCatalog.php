@@ -868,7 +868,7 @@ class CustomerServiceCatalog
     {
         $photoSelect = $this->hasDecorationStylePhotoColumn() ? 'photo_url' : "'' AS photo_url";
         $this->db->dbquery(
-            'SELECT id, name, price, ' . $photoSelect . '
+            'SELECT id, name, price, package_price, customize_price, ' . $photoSelect . '
              FROM decoration_styles
              WHERE service_id = :service_id
              ORDER BY sort_order ASC, id ASC'
@@ -880,6 +880,8 @@ class CustomerServiceCatalog
                 'id' => (int)($row['id'] ?? 0),
                 'name' => $row['name'] ?? '',
                 'price' => (float)($row['price'] ?? 0),
+                'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
+                'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
                 'photo_url' => trim((string)($row['photo_url'] ?? '')),
             ];
         }, $this->db->getmultidata());
