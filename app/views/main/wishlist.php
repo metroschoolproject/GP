@@ -29,6 +29,7 @@ $wishlistPageUrl = URLROOT . '/main/wishlist';
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Wishlist — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -107,8 +108,11 @@ button,input,select{font-family:var(--font-body);outline:none}
 .wl-col-item.is-active{background:rgba(185,74,72,.08);color:var(--c-red)}
 .wl-col-icon{flex-shrink:0;width:16px;height:16px;display:grid;place-items:center;opacity:.6}
 .wl-col-count{margin-left:auto;font-size:11px;color:var(--c-pale);font-weight:500}
-.wl-col-actions{display:none;gap:4px;margin-left:4px}
+.wl-col-actions{display:none;gap:4px;margin-left:4px;flex-shrink:0}
 .wl-col-item:hover .wl-col-actions{display:flex}
+@media (hover:none) and (pointer:coarse){
+  .wl-col-actions{display:flex !important}
+}
 .wl-col-actions button{
   display:grid;place-items:center;width:22px;height:22px;border-radius:6px;
   border:none;background:transparent;color:var(--c-pale);cursor:pointer;font-size:11px;
@@ -415,7 +419,7 @@ button,input,select{font-family:var(--font-body);outline:none}
               <?php if (!$isDefault): ?>
               <span class="wl-col-actions" onclick="event.preventDefault();event.stopPropagation()">
                 <button title="Rename" onclick="startRename(<?= (int)$colId ?>,'<?= $h($colName) ?>')">✎</button>
-                <button title="Delete" onclick="deleteCollection(<?= (int)$colId ?>)">×</button>
+                <button title="Delete" onclick="deleteCollection(<?= (int)$colId ?>, event)">×</button>
               </span>
               <?php endif; ?>
             </a>
@@ -579,6 +583,7 @@ function showToast(msg, link){
 }
 
 /* ── wishlist toggle ── */
+var activeCollectionId = <?= $activeCollection !== null ? (int)$activeCollection : 'null' ?>;
 window.toggleWishlist = function(btn, favoriteId, itemType, itemId){
   btn.classList.add('is-loading');
   fetch('<?= URLROOT ?>/main/toggleWishlist', {
@@ -597,7 +602,20 @@ window.toggleWishlist = function(btn, favoriteId, itemType, itemId){
         card.style.transition = 'all .25s ease';
         setTimeout(function(){
           card.remove();
-          if (!document.querySelector('.wl-card')) { location.reload(); }
+          if (!document.querySelector('.wl-card')) {
+            // Last item removed — if inside a collection, delete the collection too
+            if (activeCollectionId !== null) {
+              fetch('<?= URLROOT ?>/main/collectionDelete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({collection_id: activeCollectionId})
+              })
+              .then(function(){ location.href = '<?= $wishlistPageUrl ?>'; })
+              .catch(function(){ location.href = '<?= $wishlistPageUrl ?>'; });
+            } else {
+              location.reload();
+            }
+          }
         }, 260);
       }
       showToast('Removed from wishlist');
@@ -653,7 +671,8 @@ window.renameCollection = function(colId){
   .catch(function(){});
 };
 
-window.deleteCollection = function(colId){
+window.deleteCollection = function(colId, e){
+  if (e) { e.preventDefault(); e.stopPropagation(); }
   if (!confirm('Delete this collection? Items inside will move to "All Saved".')) return;
   fetch('<?= URLROOT ?>/main/collectionDelete', {
     method: 'POST',
@@ -665,9 +684,15 @@ window.deleteCollection = function(colId){
     if (d.ok) {
       showToast('Collection deleted');
       setTimeout(function(){ location.href = '<?= $wishlistPageUrl ?>'; }, 500);
-    } else { showToast(d.error || 'Failed to delete'); }
+    } else {
+      showToast(d.error || 'Failed to delete');
+      console.error('Delete collection failed:', d);
+    }
   })
-  .catch(function(){});
+  .catch(function(err){
+    showToast('Network error — please try again');
+    console.error('Delete collection error:', err);
+  });
 };
 
 /* ── move to collection ── */
@@ -710,5 +735,6 @@ window.saveNote = function(favId){
 
 })();
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

@@ -4,6 +4,18 @@ $gpNavOverlay = !empty($gpNavOverlay);
 $isLoggedIn = $isLoggedIn ?? !empty($_SESSION['session_uid']);
 $cartCount = (int)($cartCount ?? 0);
 $gpShowFloatingCart = $isLoggedIn && ($gpShowFloatingCart ?? true);
+
+// Fetch wishlist count for logged-in user if not already provided
+if ($isLoggedIn && !isset($wishlistCount)) {
+    try {
+        require_once APPROOT . '/models/WishlistModel.php';
+        $wlModel = new WishlistModel();
+        $wishlistCount = $wlModel->getWishlistCount((int)$_SESSION['session_uid']);
+    } catch (\Throwable $e) {
+        $wishlistCount = 0;
+    }
+}
+$wishlistCount = (int)($wishlistCount ?? 0);
 $gpServiceCategories = $serviceCategories ?? [
     ['name' => 'Planning', 'slug' => 'planning'],
     ['name' => 'Florals', 'slug' => 'florals'],
@@ -25,10 +37,10 @@ $gpNavEsc = function ($value) {
 .nav-links a{position:relative;z-index:1;border:0;border-radius:7px;background:transparent;padding:7px 18px;color:#fff4e6;font:inherit;text-decoration:none;white-space:nowrap;cursor:pointer;transition:all .2s ease}
 .nav-links a:hover,.nav-links a.active{background:transparent;color:#3f2f24}
 .nav-actions{display:flex;align-items:center;gap:8px;margin-left:auto;font-family:'Playfair Display',Georgia,serif}
-.nav-partner,.nav-login{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border-radius:8px;font-size:14px;font-weight:800;text-decoration:none;transition:all .2s ease}
-.nav-partner{padding:7px 17px;background:#3f241a;color:#fff8ef;box-shadow:none}
-.nav-partner:hover{transform:translateY(-1px);background:#4a2d22;color:#fff8ef}
-.nav-login{padding:7px 16px;background:#fff8ef;color:#3f2f24}
+.nav-partner,.nav-login{display:inline-flex;align-items:center;justify-content:center;min-height:31px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all .3s ease;letter-spacing:0.04em}
+.nav-partner{padding:8px 16px;background:#3f241a;color:#fff8ef;box-shadow:0 10px 25px rgba(63,36,26,.24)}
+.nav-partner:hover{transform:translateY(-2px);background:#4a2d22;color:#fff8ef}
+.nav-login{padding:8px 16px;background:#fff8ef;color:#3f2f24}
 .nav-login:hover{background:#f3d9a4;color:#3f2f24}
 .home-profile-dropdown{position:relative}
 .home-profile-btn{display:grid;place-items:center;width:44px;height:44px;padding:4px;border-radius:9px;border:0;background:transparent;cursor:pointer;color:#fff4e6;font-family:'Playfair Display',Georgia,serif;transition:all .2s}
@@ -69,9 +81,9 @@ $gpNavEsc = function ($value) {
 .mobile-menu.open{display:grid}
 .mobile-menu a{padding:12px 14px;border-radius:8px;color:#fff4e6;font-weight:800;text-decoration:none}
 .mobile-menu a:hover{background:rgba(216,180,106,.16);color:#f3d9a4}
-.mobile-menu .mobile-partner{background:#3f241a;color:#fff8ef}
+.mobile-menu .mobile-partner{background:#3f241a;color:#fff8ef;font-weight:600;font-size:13px}
 .mobile-menu .mobile-partner:hover{background:#4a2d22;color:#fff8ef}
-.mobile-menu .mobile-login{background:#fff8ef;color:#3f2f24}
+.mobile-menu .mobile-login{background:#fff8ef;color:#3f2f24;font-weight:600;font-size:13px}
 .mobile-menu .mobile-login:hover{background:#f3d9a4;color:#3f2f24}
 .gp-customer-nav-spacer{height:78px}
 .gp-floating-cart{position:fixed;right:clamp(20px,5vw,60px);bottom:clamp(24px,6vw,60px);z-index:900;width:54px;height:54px;display:grid;place-items:center;border:1px solid rgba(234,216,199,.86);border-radius:16px;background:#fff8ef;color:#6D4C5B;text-decoration:none;box-shadow:0 12px 36px rgba(74,52,47,.15);transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease}
@@ -95,7 +107,7 @@ $gpNavEsc = function ($value) {
       <a class="<?= $gpNavActive === 'services' ? 'active' : '' ?>" href="<?= URLROOT ?>/customerServices/service">Services</a>
     </div>
     <div class="nav-actions">
-      <a class="nav-partner" href="<?= URLROOT ?>/users/register?type=supplier">Be a Partner</a>
+      <a class="nav-partner" href="<?= URLROOT ?>/users/auth?type=supplier">Be a Partner</a>
       <?php if ($isLoggedIn): ?>
         <?php if (defined('APPROOT') && file_exists(APPROOT . '/views/dashboardLayout/customerNotification.php')) require APPROOT . '/views/dashboardLayout/customerNotification.php'; ?>
         <?php
@@ -126,7 +138,7 @@ $gpNavEsc = function ($value) {
             <div class="home-profile-activity">
               <div class="home-profile-activity-title">Your activity</div>
               <a class="home-profile-menu-item" href="<?= URLROOT ?>/booking/myBookings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>Bookings</a>
-              <a class="home-profile-menu-item" href="<?= URLROOT ?>/main/wishlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78a5.5 5.5 0 0 0 1.06-8.84z"/></svg>Wishlist</a>
+              <a class="home-profile-menu-item" href="<?= URLROOT ?>/main/wishlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78a5.5 5.5 0 0 0 1.06-8.84z"/></svg>Wishlist<?php if ($wishlistCount > 0): ?> <span style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#6d4c5b;color:white;font-size:11px;font-weight:700;margin-left:6px"><?= $wishlistCount ?></span><?php endif; ?></a>
               <a class="home-profile-menu-item" href="<?= URLROOT ?>/review/my"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>My reviews</a>
             </div>
             <a class="home-profile-menu-item home-profile-menu-item--danger" href="<?= URLROOT ?>/users/logout"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log out</a>
@@ -142,7 +154,7 @@ $gpNavEsc = function ($value) {
     <a href="<?= URLROOT ?>/main/index#top">Home</a>
     <a href="<?= URLROOT ?>/customerServices/service">Our Service</a>
     <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
-    <a class="mobile-partner" href="<?= URLROOT ?>/users/register?type=supplier">Be a Partner</a>
+    <a class="mobile-partner" href="<?= URLROOT ?>/users/auth?type=supplier">Be a Partner</a>
     <?php if ($isLoggedIn): ?>
       <a href="<?= URLROOT ?>/booking/myBookings">My Bookings</a>
       <a href="<?= URLROOT ?>/review/my">My Reviews</a>

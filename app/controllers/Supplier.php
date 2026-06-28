@@ -33,16 +33,17 @@ class Supplier extends SupplierControllerSupport
         ];
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+            $this->requireCsrf(false);
             $data = [
-                'email' => htmlspecialchars(trim($_POST['email'] ?? ($_SESSION['pending_register_email'] ?? '')), ENT_QUOTES, 'UTF-8'),
-                'business_name' => htmlspecialchars(trim($_POST['business_name'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'business_description' => htmlspecialchars(trim($_POST['business_description'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'phone' => htmlspecialchars(trim($_POST['phone'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'business_address' => htmlspecialchars(trim($_POST['business_address'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'category_prompt' => htmlspecialchars(trim($_POST['category_prompt'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'email' => trim($_POST['email'] ?? ($_SESSION['pending_register_email'] ?? '')),
+                'business_name' => trim($_POST['business_name'] ?? ''),
+                'business_description' => trim($_POST['business_description'] ?? ''),
+                'phone' => trim($_POST['phone'] ?? ''),
+                'business_address' => trim($_POST['business_address'] ?? ''),
+                'category_prompt' => trim($_POST['category_prompt'] ?? ''),
                 'category_ids' => array_map('intval', $_POST['category_ids'] ?? []),
                 'category_source' => 'manual',
-                'business_url' => htmlspecialchars(trim($_POST['business_url'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'business_url' => trim($_POST['business_url'] ?? ''),
                 'thumbnail_url' => null,
                 'agreement_accepted' => !empty($_POST['agreement_accepted']),
                 'agreement_accepted_at' => date('Y-m-d H:i:s'),
@@ -64,6 +65,9 @@ class Supplier extends SupplierControllerSupport
             ) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please fill all required supplier information.';
+            } elseif (!preg_match('/^[0-9]{9,11}$/', $data['phone'])) {
+                $data['submitted'] = false;
+                $data['message'] = 'Please enter a valid phone number (9-11 digits).';
             } elseif (!filter_var(htmlspecialchars_decode($data['business_url'], ENT_QUOTES), FILTER_VALIDATE_URL)) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please enter a valid business URL.';
@@ -213,6 +217,33 @@ class Supplier extends SupplierControllerSupport
         ]);
     }
 
+    /**
+     * AJAX endpoint: returns filtered dashboard stats + chart data as JSON.
+     * GET supplier/dashboardData?range=year|6months|month|all
+     */
+    public function dashboardData()
+    {
+        header('Content-Type: application/json');
+
+        $userId = (int)($_SESSION['session_uid'] ?? 0);
+        if (!$userId) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            return;
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier || empty($supplier['supplier_id'])) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Not a supplier']);
+            return;
+        }
+
+        $range = $_GET['range'] ?? 'year';
+        $data = $this->supplierProfileModel->getFilteredDashboardData((int)$supplier['supplier_id'], $range);
+        echo json_encode($data);
+    }
+
     public function services()
     {
         return $this->forwardTo(SupplierServices::class, __FUNCTION__, func_get_args());
@@ -333,6 +364,11 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
     }
 
+    public function allServicesCapacityPreview()
+    {
+        return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
+    }
+
     public function serviceSlotReserve($slotId = null)
     {
         return $this->forwardTo(SupplierAvailability::class, __FUNCTION__, func_get_args());
@@ -373,6 +409,11 @@ class Supplier extends SupplierControllerSupport
         return $this->forwardTo(Booking::class, 'supplierBookings', func_get_args());
     }
 
+    public function assignments()
+    {
+        return $this->forwardTo(Booking::class, 'supplierAssignments', func_get_args());
+    }
+
     public function bookingDetail($bookingId = null)
     {
         return $this->forwardTo(Booking::class, 'supplierBookingDetail', [(int)$bookingId]);
@@ -381,6 +422,26 @@ class Supplier extends SupplierControllerSupport
     public function bookingRespond()
     {
         return $this->forwardTo(Booking::class, 'supplierRespond', func_get_args());
+    }
+
+    public function bookingCancellationRespond()
+    {
+        return $this->forwardTo(Booking::class, 'supplierCancellationRespond', func_get_args());
+    }
+
+    public function bookingRequestCancellation()
+    {
+        return $this->forwardTo(Booking::class, 'supplierRequestCancellation', func_get_args());
+    }
+
+    public function paymentHistory()
+    {
+        return $this->forwardTo(Booking::class, 'supplierPaymentHistory', func_get_args());
+    }
+
+    public function earnings()
+    {
+        return $this->forwardTo(Booking::class, 'supplierEarnings', func_get_args());
     }
 
     public function reviews()
@@ -534,10 +595,11 @@ class Supplier extends SupplierControllerSupport
         $lastName  = $nameParts[1] ?? '';
 
         // Get service count for stats
-        $dashboardData = $this->supplierProfileModel->getDashboardData($userId);
+        $supplierId    = (int)($supplier['supplier_id'] ?? 0);
+        $dashboardData = $this->supplierProfileModel->getDashboardData($supplierId);
         $serviceCount  = $dashboardData['stats']['total_services'] ?? 0;
         $totalBookings = $dashboardData['stats']['total_bookings'] ?? 0;
-        $avgRating     = $dashboardData['stats']['avg_rating'] ?? null;
+        $avgRating     = $dashboardData['stats']['average_rating'] ?? null;
 
         $data = [
             // Supplier info
@@ -548,6 +610,7 @@ class Supplier extends SupplierControllerSupport
             'business_url'  => $supplier['business_url'] ?? '',
             'category_names' => $supplier['category_names'] ?? '',
             'payment_status' => $supplier['payment_status'] ?? 'unpaid',
+            'business_license_url' => $supplier['business_license_url'] ?? null,
 
             // Owner info
             'user_id'    => $userId,
@@ -567,6 +630,115 @@ class Supplier extends SupplierControllerSupport
         ];
 
         $this->view('supplier/profile/profile', $data);
+    }
+
+    /**
+     * Supplier settings page.
+     */
+    public function settings()
+    {
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            redirect('users/login');
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier) {
+            redirect('supplier/onboarding');
+        }
+
+        // Parse notification preferences (JSON column or defaults)
+        $notifPrefs = [];
+        if (!empty($supplier['notification_prefs'])) {
+            $decoded = json_decode($supplier['notification_prefs'], true);
+            if (is_array($decoded)) {
+                $notifPrefs = $decoded;
+            }
+        }
+        $defaults = [
+            'new_booking' => true,
+            'payment_received' => true,
+            'new_review' => true,
+            'publish_approved' => true,
+        ];
+        $notifPrefs = array_merge($defaults, $notifPrefs);
+
+        $data = [
+            'supplier_id'          => (int)($supplier['supplier_id'] ?? 0),
+            'is_available'         => (int)($supplier['is_available'] ?? 0),
+            'auto_accept_bookings' => (int)($supplier['auto_accept_bookings'] ?? 0),
+            'min_advance_days'     => (int)($supplier['min_advance_days'] ?? 0),
+            'cancellation_policy'  => $supplier['cancellation_policy'] ?? '',
+            'bank_account'         => $supplier['bank_account'] ?? '',
+            'bank_code'            => $supplier['bank_code'] ?? '',
+            'platform_fee'         => (int) get_platform_fee_percent(),
+            'notification_prefs'   => $notifPrefs,
+        ];
+
+        $this->view('supplier/settings/settings', $data);
+    }
+
+    /**
+     * JSON endpoint — update supplier settings.
+     */
+    public function updateSettings()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier) {
+            echo json_encode(['ok' => false, 'error' => 'Supplier not found.']);
+            return;
+        }
+
+        $supplierId = (int)($supplier['supplier_id'] ?? 0);
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        $fields = [
+            'is_available'         => isset($input['is_available']) ? (int)$input['is_available'] : null,
+            'auto_accept_bookings' => isset($input['auto_accept_bookings']) ? (int)$input['auto_accept_bookings'] : null,
+            'min_advance_days'     => isset($input['min_advance_days']) ? max(0, (int)$input['min_advance_days']) : null,
+            'cancellation_policy'  => isset($input['cancellation_policy']) ? trim($input['cancellation_policy']) : null,
+            'bank_account'         => isset($input['bank_account']) ? trim($input['bank_account']) : null,
+            'bank_code'            => isset($input['bank_code']) ? trim($input['bank_code']) : null,
+            'notification_prefs'   => isset($input['notification_prefs']) ? json_encode($input['notification_prefs']) : null,
+        ];
+
+        // Remove nulls (fields not sent)
+        $fields = array_filter($fields, fn($v) => $v !== null);
+
+        if (empty($fields)) {
+            echo json_encode(['ok' => false, 'error' => 'No data to update.']);
+            return;
+        }
+
+        try {
+            $sets = [];
+            $params = [];
+            foreach ($fields as $col => $val) {
+                $sets[] = "$col = :$col";
+                $params[":$col"] = $val;
+            }
+            $sets[] = 'updated_at = NOW()';
+            $sql = 'UPDATE suppliers SET ' . implode(', ', $sets) . ' WHERE supplier_id = :sid';
+            $params[':sid'] = $supplierId;
+
+            $this->db->dbquery($sql);
+            foreach ($params as $k => $v) {
+                $this->db->dbbind($k, $v);
+            }
+            $this->db->dbexecute();
+
+            echo json_encode(['ok' => true]);
+        } catch (\Exception $e) {
+            echo json_encode(['ok' => false, 'error' => 'Failed to update settings.']);
+        }
     }
 
     /**
@@ -646,51 +818,56 @@ class Supplier extends SupplierControllerSupport
     {
         header('Content-Type: application/json');
 
-        $userId = $this->currentUserId();
-        if (!$userId) {
-            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
-            return;
+        try {
+            $userId = $this->currentUserId();
+            if (!$userId) {
+                echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+                return;
+            }
+
+            $payload = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($payload)) {
+                echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+                return;
+            }
+
+            $name    = trim((string)($payload['name'] ?? ''));
+            $email   = trim((string)($payload['email'] ?? ''));
+            $phone   = trim((string)($payload['phone'] ?? ''));
+            $address = trim((string)($payload['address'] ?? ''));
+            $shopName    = trim((string)($payload['shop_name'] ?? ''));
+            $description = trim((string)($payload['description'] ?? ''));
+            $businessUrl = trim((string)($payload['business_url'] ?? ''));
+
+            if ($name === '' || $email === '') {
+                echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
+                return;
+            }
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
+                return;
+            }
+
+            $this->supplierProfileModel->updateProfile($userId, [
+                'name'         => $name,
+                'email'        => $email,
+                'phone'        => $phone,
+                'address'      => $address,
+                'shop_name'    => $shopName,
+                'description'  => $description,
+                'business_url' => $businessUrl,
+            ]);
+
+            // Update session
+            $_SESSION['session_name']  = $name;
+            $_SESSION['session_email'] = $email;
+
+            echo json_encode(['ok' => true]);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'Server error. Please try again.']);
         }
-
-        $payload = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($payload)) {
-            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
-            return;
-        }
-
-        $name    = trim((string)($payload['name'] ?? ''));
-        $email   = trim((string)($payload['email'] ?? ''));
-        $phone   = trim((string)($payload['phone'] ?? ''));
-        $address = trim((string)($payload['address'] ?? ''));
-        $shopName    = trim((string)($payload['shop_name'] ?? ''));
-        $description = trim((string)($payload['description'] ?? ''));
-        $businessUrl = trim((string)($payload['business_url'] ?? ''));
-
-        if ($name === '' || $email === '') {
-            echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
-            return;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
-            return;
-        }
-
-        $this->supplierProfileModel->updateProfile($userId, [
-            'name'         => $name,
-            'email'        => $email,
-            'phone'        => $phone,
-            'address'      => $address,
-            'shop_name'    => $shopName,
-            'description'  => $description,
-            'business_url' => $businessUrl,
-        ]);
-
-        // Update session
-        $_SESSION['session_name']  = $name;
-        $_SESSION['session_email'] = $email;
-
-        echo json_encode(['ok' => true]);
     }
 
     /**
@@ -745,5 +922,61 @@ class Supplier extends SupplierControllerSupport
         ], $deviceInfo);
 
         echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * JSON endpoint — self-service delete account (soft-delete).
+     * Expects JSON body: { password }
+     * Verifies password, soft-deletes the account, destroys the session.
+     */
+    public function deleteAccount()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $this->currentUserId();
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['ok' => false, 'error' => 'Invalid request method.']);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+            return;
+        }
+
+        $password = trim((string)($payload['password'] ?? ''));
+        if ($password === '') {
+            echo json_encode(['ok' => false, 'error' => 'Password is required.']);
+            return;
+        }
+
+        $userModel = $this->model('User');
+
+        // Check if this is an OAuth user (no password set)
+        $userInfo = $userModel->getuserinfo($_SESSION['session_email'] ?? '');
+        $hasPassword = !empty($userInfo['password']);
+
+        if ($hasPassword && !$userModel->verifyPassword($userId, $password)) {
+            echo json_encode(['ok' => false, 'error' => 'Password is incorrect.']);
+            return;
+        }
+
+        $userModel->softDeleteAccount($userId);
+
+        // Destroy session
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $p = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+        }
+        session_destroy();
+
+        echo json_encode(['ok' => true, 'redirect' => URLROOT . '/']);
     }
 }

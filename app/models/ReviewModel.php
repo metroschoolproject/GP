@@ -62,8 +62,9 @@ class ReviewModel
 
     public function create(int $bookingId, int $customerId, int $rating, string $comment): int
     {
+        // Resolve supplier_id, service_id, and booking_item_id from the first service item
         $this->db->dbquery(
-            'SELECT s.supplier_id
+            'SELECT bi.id AS booking_item_id, bi.item_id AS service_id, s.supplier_id
               FROM booking_items bi
               JOIN services s ON s.id = bi.item_id AND bi.item_type = \'service\'
              WHERE bi.booking_id = :booking_id
@@ -72,12 +73,16 @@ class ReviewModel
         $this->db->dbbind(':booking_id', $bookingId);
         $row = $this->db->getsingledata();
         $supplierId = $row ? (int)$row['supplier_id'] : null;
+        $serviceId = $row ? (int)$row['service_id'] : 0;
+        $bookingItemId = $row ? (int)$row['booking_item_id'] : 0;
 
         $this->db->dbquery(
-            'INSERT INTO reviews (booking_id, customer_id, supplier_id, rating, comment, created_at)
-             VALUES (:booking_id, :customer_id, :supplier_id, :rating, :comment, NOW())'
+            'INSERT INTO reviews (booking_id, booking_item_id, service_id, customer_id, supplier_id, rating, comment, created_at)
+             VALUES (:booking_id, :booking_item_id, :service_id, :customer_id, :supplier_id, :rating, :comment, NOW())'
         );
         $this->db->dbbind(':booking_id', $bookingId);
+        $this->db->dbbind(':booking_item_id', $bookingItemId);
+        $this->db->dbbind(':service_id', $serviceId);
         $this->db->dbbind(':customer_id', $customerId);
         $this->db->dbbind(':supplier_id', $supplierId);
         $this->db->dbbind(':rating', $rating);
@@ -147,11 +152,13 @@ class ReviewModel
     {
         $this->db->dbquery(
             'SELECT r.id, r.booking_id, r.rating, r.comment, r.created_at, r.updated_at,
-                    b.event_date
+                    MIN(bi.booking_date) AS event_date
              FROM reviews r
              JOIN bookings b ON b.id = r.booking_id
+             LEFT JOIN booking_items bi ON bi.booking_id = b.id
              WHERE r.customer_id = :customer_id
                AND r.deleted_at IS NULL
+             GROUP BY r.id
              ORDER BY r.created_at DESC
              LIMIT :lim OFFSET :off'
         );
@@ -226,8 +233,10 @@ class ReviewModel
     public function getPendingBookings(int $customerId): array
     {
         $this->db->dbquery(
-            'SELECT b.id AS booking_id, b.event_date, b.total_amount
+            'SELECT b.id AS booking_id, b.total_amount,
+                    MIN(ed.event_date) AS event_date
              FROM bookings b
+             LEFT JOIN event_details ed ON ed.booking_id = b.id
              WHERE b.user_id = :customer_id
                AND b.status = \'completed\'
                AND b.created_at >= NOW() - INTERVAL 12 MONTH
@@ -237,7 +246,8 @@ class ReviewModel
                      AND r.customer_id = :customer_id2
                      AND r.deleted_at IS NULL
                )
-             ORDER BY b.event_date DESC'
+             GROUP BY b.id, b.total_amount
+             ORDER BY event_date DESC'
         );
         $this->db->dbbind(':customer_id', $customerId);
         $this->db->dbbind(':customer_id2', $customerId);

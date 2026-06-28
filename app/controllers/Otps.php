@@ -100,6 +100,40 @@ class Otps extends Controller{
                         'ua' => $this->ua,
                         'details' => 'OTP verifies successfully'
                     ]);
+
+                    // Determine user role and cache in session
+                    $roles = $this->usermodel->getUserRoles($this->userid);
+                    $isSupplier = in_array('supplier', $roles, true);
+                    $isAdmin = in_array('admin', $roles, true);
+                    $_SESSION['session_role'] = $isAdmin ? 'admin' : ($isSupplier ? 'supplier' : 'customer');
+
+                    // If the user is a pending supplier (but NOT admin), do NOT grant full session (guest mode)
+                    if ($isSupplier && !$isAdmin) {
+                        $supplierProfileModel = $this->model('SupplierProfile');
+                        $supplier = $supplierProfileModel->getByUserId($this->userid);
+                        $status = strtolower($supplier['status'] ?? '');
+                        if (!in_array($status, ['approved', 'verified'], true)) {
+                            // Save minimal info before destroying session
+                            $pendingName = $_SESSION['session_name'] ?? '';
+                            // Clear remember-me cookie so session isn't restored
+                            if (defined('REMEMBER_ME_COOKIE') && !empty($_COOKIE[REMEMBER_ME_COOKIE])) {
+                                forgetRememberMeCookie();
+                            }
+                            // Destroy full session, create minimal one
+                            session_regenerate_id(true);
+                            unset($_SESSION['session_uid'], $_SESSION['session_email'], $_SESSION['session_name'], $_SESSION['session_avatar'], $_SESSION['session_role'], $_SESSION['post_login_redirect'], $_SESSION['pending_remember_me']);
+                            $_SESSION['pending_register_user_id'] = $this->userid;
+                            $_SESSION['pending_register_email'] = $this->toEmail;
+                            $_SESSION['pending_register_name'] = $pendingName;
+                            $_SESSION['pending_register_role'] = 'supplier';
+                            echo json_encode([
+                                'otp_try_status' => true,
+                                'redirect' => 'supplier/pending'
+                            ]);
+                            exit;
+                        }
+                    }
+
                     echo json_encode([
                         'otp_try_status' => true,
                         'redirect' => $_SESSION['post_login_redirect'] ?? 'main/home'

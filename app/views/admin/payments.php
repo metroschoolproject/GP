@@ -22,12 +22,14 @@ $visiblePending = 0;
 $approvedAmount = 0;
 $rejectedAmount = 0;
 $pendingAmount = 0;
+$totalPlatformFee = 0;
 
 foreach ($payments as $payment) {
     $amount = (float)($payment['amount'] ?? 0);
     $paymentStatus = strtolower($payment['status'] ?? 'pending');
 
     $visibleTotal += $amount;
+    $totalPlatformFee += (float)($payment['platform_fee'] ?? 0);
 
     if ($paymentStatus === 'success') {
         $visibleApproved++;
@@ -41,8 +43,8 @@ foreach ($payments as $payment) {
     }
 }
 
-$dateTo = date('Y-m-d');
-$dateFrom = date('Y-m-d', strtotime('-30 days'));
+$dateTo = $dateTo ?? date('Y-m-d');
+$dateFrom = $dateFrom ?? date('Y-m-d', strtotime('-30 days'));
 
 $dashboardContent = function () use (
     $payments,
@@ -57,14 +59,15 @@ $dashboardContent = function () use (
     $approvedAmount,
     $rejectedAmount,
     $pendingAmount,
+    $totalPlatformFee,
     $dateFrom,
     $dateTo
 ) {
 ?>
 <style>
-  .admin-payment-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
+  .admin-payment-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-size:13.5px;overflow-y:auto}
   .admin-payment-page *{box-sizing:border-box}
-  .admin-payment-page{--bg:#FBFBF9;--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#d1fae5;--success-text:#065f46;--warn-bg:#fef3c7;--warn-text:#92400e;--danger-bg:#fee2e2;--danger-text:#991b1b;--neutral-bg:#f3f4f6;--neutral-text:#57534e;max-width:1600px;margin:0 auto}
+  .admin-payment-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#ECFDF5;--success-text:#065F46;--warn-bg:#FFFBEB;--warn-text:#92400E;--danger-bg:#FEF2F2;--danger-text:#991B1B;--neutral-bg:#F5F5F4;--neutral-text:#78716C;max-width:1600px;margin:0 auto}
 
   .page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
@@ -77,7 +80,7 @@ $dashboardContent = function () use (
   .filters{display:flex;gap:6px;flex-wrap:wrap}
   .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s;white-space:nowrap;text-decoration:none}
   .filter:hover{border-color:var(--border);background:var(--hover);color:var(--primary)}
-  .filter.active{border-color:var(--primary);background:var(--primary);color:#fcf8f5}
+  .filter.active{border-color:var(--primary);background:var(--primary);color:#FFFFFF}
 
   .divider{width:1px;height:20px;background:var(--border);margin:0 4px}
   .date-range{display:flex;align-items:center;gap:6px}
@@ -101,9 +104,9 @@ $dashboardContent = function () use (
   .stat-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
   .stat-value{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.3px}
   .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
-  .stat-value.success{color:#065f46}
-  .stat-value.warn{color:#92400e}
-  .stat-value.danger{color:#991b1b}
+  .stat-value.success{color:#065F46}
+  .stat-value.warn{color:#92400E}
+  .stat-value.danger{color:#991B1B}
 
   .card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.04)}
   .card-head{padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
@@ -139,9 +142,9 @@ $dashboardContent = function () use (
   .badge-refunded{background:#e0e7ff;color:#3730a3}
 
   .payment-actions{display:inline-flex;gap:6px;justify-content:flex-end}
-  .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#fcf8f5;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer}
+  .action-btn{height:30px;border:0;border-radius:.75rem;padding:0 10px;color:#FFFFFF;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer}
   .action-approve{background:var(--primary)}
-  .action-reject{background:#991b1b}
+  .action-reject{background:#991B1B}
   .empty-row{padding:34px 20px;text-align:center;color:var(--muted)}
 
   .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-light)}
@@ -149,7 +152,7 @@ $dashboardContent = function () use (
   .page-btns{display:flex;gap:4px}
   .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
   .page-btn:hover{background:var(--soft)}
-  .page-btn.active{background:var(--primary);color:#fcf8f5;border-color:var(--primary)}
+  .page-btn.active{background:var(--primary);color:#FFFFFF;border-color:var(--primary)}
   .page-btn:disabled{opacity:.4;cursor:default}
 
   @media(max-width:1100px){.summary-row{grid-template-columns:repeat(2,1fr)}}
@@ -172,8 +175,11 @@ $dashboardContent = function () use (
 
   <div class="toolbar">
     <div class="filters">
+      <?php
+        $filterBase = 'date_from=' . urlencode($dateFrom) . '&date_to=' . urlencode($dateTo);
+      ?>
       <?php foreach ($filters as $filter => $label): ?>
-        <a href="<?= URLROOT ?>/admin/payments?status=<?= urlencode($filter) ?>" class="filter <?= ($status === $filter || ($filter === 'rejected' && $status === 'failed')) ? 'active' : '' ?>">
+        <a href="<?= URLROOT ?>/admin/payments?status=<?= urlencode($filter) ?>&<?= $filterBase ?>" class="filter <?= ($status === $filter || ($filter === 'rejected' && $status === 'failed')) ? 'active' : '' ?>">
           <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
         </a>
       <?php endforeach; ?>
@@ -187,28 +193,44 @@ $dashboardContent = function () use (
       <span class="date-sep">-</span>
       <span class="date-label">To</span>
       <input type="date" class="date-input" id="date-to" value="<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?>">
+      <button type="button" class="qd" id="btn-apply-dates" style="font-weight:700">Apply</button>
     </div>
 
     <div class="divider"></div>
 
     <div class="quick-dates">
-      <button class="qd" onclick="setRange(7,this)">7d</button>
-      <button class="qd active" onclick="setRange(30,this)">30d</button>
-      <button class="qd" onclick="setRange(90,this)">90d</button>
-      <button class="qd" onclick="setRange(365,this)">1y</button>
+      <?php
+        $dayDiff = 30;
+        if (!empty($dateFrom) && !empty($dateTo)) {
+            $d1 = strtotime($dateFrom);
+            $d2 = strtotime($dateTo);
+            if ($d1 && $d2) {
+                $dayDiff = (int)round(($d2 - $d1) / 86400);
+            }
+        }
+        $quickDays = [7, 30, 90, 365];
+      ?>
+      <?php foreach ($quickDays as $qd): ?>
+        <button class="qd <?= ($dayDiff >= $qd - 2 && $dayDiff <= $qd + 2) ? 'active' : '' ?>" onclick="setRange(<?= $qd ?>,this)"><?= $qd === 365 ? '1y' : $qd . 'd' ?></button>
+      <?php endforeach; ?>
     </div>
 
-    <button type="button" class="btn-export">
+    <button type="button" class="btn-export" id="btn-export-csv">
       <i data-lucide="download" class="h-3.5 w-3.5" aria-hidden="true"></i>
       Export CSV
     </button>
   </div>
 
-  <div class="summary-row">
+  <div class="summary-row" style="grid-template-columns:repeat(5,1fr)">
     <div class="stat">
       <div class="stat-label">Total Collected</div>
       <div class="stat-value"><?= number_format($visibleTotal) ?></div>
       <div class="stat-sub">MMK · <?= count($payments) ?> payments</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Platform Fees</div>
+      <div class="stat-value" style="color:#6d4c5b"><?= number_format($totalPlatformFee) ?></div>
+      <div class="stat-sub">MMK · <?= (int)get_platform_fee_percent() ?>% per booking</div>
     </div>
     <div class="stat">
       <div class="stat-label">Approved</div>
@@ -242,6 +264,7 @@ $dashboardContent = function () use (
           <tr>
             <th>Transaction</th>
             <th>Amount</th>
+            <th>Fee</th>
             <th>Bank</th>
             <th>Sender Name</th>
             <th>Payment reference</th>
@@ -254,7 +277,7 @@ $dashboardContent = function () use (
         <tbody>
           <?php if (empty($payments)): ?>
             <tr>
-              <td colspan="9" class="empty-row">No payment transactions found.</td>
+              <td colspan="10" class="empty-row">No payment transactions found.</td>
             </tr>
           <?php endif; ?>
 
@@ -300,6 +323,7 @@ $dashboardContent = function () use (
                 <div class="biz-email"><?= htmlspecialchars($transactionEmail, ENT_QUOTES, 'UTF-8') ?></div>
               </td>
               <td><span class="amount"><?= number_format((float)($payment['amount'] ?? 0)) ?> MMK</span></td>
+              <td><span class="amount" style="color:var(--primary)"><?= ((float)($payment['platform_fee'] ?? 0) > 0) ? number_format((float)$payment['platform_fee'], 0) . ' MMK' : '—' ?></span></td>
               <td><span class="method-text"><?= $bankDisplay ?></span></td>
               <td><span class="method-text"><?= $senderName ?></span></td>
               <td>
@@ -344,7 +368,9 @@ $dashboardContent = function () use (
     <?php
     if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
         $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
-        $baseParams = 'status=' . urlencode($status ?? 'pending');
+        $baseParams = 'status=' . urlencode($status ?? 'pending')
+                    . '&date_from=' . urlencode($dateFrom ?? '')
+                    . '&date_to=' . urlencode($dateTo ?? '');
         if (!empty($selectedPaymentId)) {
             $baseParams .= '&payment=' . (int)$selectedPaymentId;
         }
@@ -355,19 +381,67 @@ $dashboardContent = function () use (
 </div>
 
 <script>
+  const ROOT = '<?= URLROOT ?>';
+  const currentStatus = '<?= htmlspecialchars($status ?? 'pending', ENT_QUOTES, 'UTF-8') ?>';
+
+  function buildUrl(overrides) {
+    const params = new URLSearchParams(window.location.search);
+    for (const [k, v] of Object.entries(overrides)) {
+      if (v === null || v === undefined) params.delete(k);
+      else params.set(k, v);
+    }
+    // Reset page when filters change
+    params.delete('page');
+    return ROOT + '/admin/payments?' + params.toString();
+  }
+
+  function navigate(overrides) {
+    window.location.href = buildUrl(overrides);
+  }
+
+  // Quick date buttons — immediately filter
   function setRange(days, el) {
     document.querySelectorAll('.qd').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
     const to = new Date();
     const from = new Date();
     from.setDate(to.getDate() - days);
-    document.getElementById('date-to').value = to.toISOString().split('T')[0];
-    document.getElementById('date-from').value = from.toISOString().split('T')[0];
+    const fromStr = from.toISOString().split('T')[0];
+    const toStr = to.toISOString().split('T')[0];
+    navigate({ date_from: fromStr, date_to: toStr });
   }
+
+  // Apply button for custom date range
+  document.getElementById('btn-apply-dates').addEventListener('click', () => {
+    const from = document.getElementById('date-from').value;
+    const to = document.getElementById('date-to').value;
+    navigate({ date_from: from, date_to: to });
+  });
+
+  // Clear active state from quick dates when manually changing date inputs
   document.querySelectorAll('.date-input').forEach(input => {
     input.addEventListener('change', () => {
       document.querySelectorAll('.qd').forEach(b => b.classList.remove('active'));
     });
+  });
+
+  // Export CSV
+  document.getElementById('btn-export-csv').addEventListener('click', () => {
+    const table = document.querySelector('.payment-table');
+    if (!table) return;
+    const rows = [];
+    table.querySelectorAll('tr').forEach(tr => {
+      const cells = [];
+      tr.querySelectorAll('th, td').forEach(cell => {
+        cells.push('"' + cell.textContent.trim().replace(/"/g, '""') + '"');
+      });
+      rows.push(cells.join(','));
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'payments-<?= date('Y-m-d') ?>.csv';
+    a.click();
   });
 </script>
 <?php

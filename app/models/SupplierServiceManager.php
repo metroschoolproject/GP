@@ -10,6 +10,7 @@ class SupplierServiceManager
     private $hasRentalPriceMatrixColumns = null;
     private $rentalPricingColumns = null;
     private $hasDecorationStylePhotoColumn = null;
+    private $tableExistsCache = [];
 
     public function __construct()
     {
@@ -31,6 +32,7 @@ class SupplierServiceManager
             'meta' => [
                 'services' => $this->paginationMeta($serviceLimit, $serviceOffset, $this->countServices($supplierId, $search)),
                 'packages' => $this->paginationMeta($packageLimit, $packageOffset, $this->countPackages($supplierId, $search)),
+                'supplier_packages_available' => $this->supplierPackageTablesAvailable(),
             ],
         ];
     }
@@ -80,6 +82,7 @@ class SupplierServiceManager
                          ' . $priceRangeFields . '
                          services.thumbnail_url,
                          services.is_active,
+                         services.publish_status,
                          services.booking_type,
                          services.duration_minutes,
                          services.buffer_minutes,
@@ -119,6 +122,10 @@ class SupplierServiceManager
 
     public function getPackages($supplierId, $limit = null, $offset = 0, string $search = '')
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return [];
+        }
+
         $query = 'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
                   FROM supplier_packages
                   WHERE supplier_id = :supplier_id
@@ -170,6 +177,7 @@ class SupplierServiceManager
         $serviceId = (int)$this->db->lastinsertid();
         $this->saveVenueDetails($supplierId, $serviceId, $data);
         $this->saveDecorationStyles($serviceId, $data);
+        $this->saveFoodItems($serviceId, $data);
         $this->saveRentalPricing($serviceId, $data);
         $this->saveAttireItems($serviceId, $data);
 
@@ -230,6 +238,7 @@ class SupplierServiceManager
         $this->db->dbexecute();
         $this->saveVenueDetails($supplierId, $serviceId, $data);
         $this->saveDecorationStyles($serviceId, $data);
+        $this->saveFoodItems($serviceId, $data);
         $this->saveRentalPricing($serviceId, $data);
         $this->saveAttireItems($serviceId, $data);
 
@@ -285,6 +294,9 @@ class SupplierServiceManager
             ];
 
             foreach ($childTables as $table) {
+                if (!$this->tableExists($table)) {
+                    continue;
+                }
                 $this->db->dbquery("DELETE FROM {$table} WHERE service_id = :service_id");
                 $this->db->dbbind(':service_id', $serviceId);
                 $this->db->dbexecute();
@@ -308,15 +320,22 @@ class SupplierServiceManager
         }
     }
 
-    public function setServiceStatus($supplierId, $serviceId, $isActive)
+    public function setServiceStatus($supplierId, $serviceId, $isActive, $publishStatus = null)
     {
+        $sets = 'is_active = :is_active';
+        if ($publishStatus !== null) {
+            $sets .= ', publish_status = :publish_status';
+        }
         $this->db->dbquery(
             'UPDATE services
-             SET is_active = :is_active
+             SET ' . $sets . '
              WHERE id = :id
                AND supplier_id = :supplier_id'
         );
         $this->db->dbbind(':is_active', $isActive ? 1 : 0);
+        if ($publishStatus !== null) {
+            $this->db->dbbind(':publish_status', $publishStatus);
+        }
         $this->db->dbbind(':id', (int)$serviceId);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
         $this->db->dbexecute();
@@ -402,6 +421,7 @@ class SupplierServiceManager
 
     public function createPackage($supplierId, $data)
     {
+        $this->requireSupplierPackageTables();
         $categories = $this->normalizeCategories($data['categories'] ?? []);
 
         $this->db->dbquery(
@@ -416,6 +436,7 @@ class SupplierServiceManager
 
     public function updatePackage($supplierId, $packageId, $data)
     {
+        $this->requireSupplierPackageTables();
         $package = $this->getPackageById($packageId, $supplierId);
 
         if (!$package) {
@@ -445,9 +466,14 @@ class SupplierServiceManager
 
     public function deletePackage($supplierId, $packageId)
     {
-        $this->db->dbquery('DELETE FROM supplier_package_items WHERE package_id = :package_id');
-        $this->db->dbbind(':package_id', (int)$packageId);
-        $this->db->dbexecute();
+        if (!$this->tableExists('supplier_packages')) {
+            return false;
+        }
+        if ($this->tableExists('supplier_package_items')) {
+            $this->db->dbquery('DELETE FROM supplier_package_items WHERE package_id = :package_id');
+            $this->db->dbbind(':package_id', (int)$packageId);
+            $this->db->dbexecute();
+        }
 
         $this->db->dbquery(
             'UPDATE supplier_packages
@@ -463,6 +489,10 @@ class SupplierServiceManager
 
     public function setPackageStatus($supplierId, $packageId, $isActive)
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return null;
+        }
+
         $this->db->dbquery(
             'UPDATE supplier_packages
              SET is_active = :is_active
@@ -536,6 +566,10 @@ class SupplierServiceManager
 
     private function countPackages($supplierId, string $search = '')
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return 0;
+        }
+
         $query = 'SELECT COUNT(*) AS total FROM supplier_packages WHERE supplier_id = :supplier_id AND deleted_at IS NULL';
         if ($search !== '') {
             $query .= ' AND (name LIKE :search OR description LIKE :search2)';
@@ -615,6 +649,7 @@ class SupplierServiceManager
         $category = strtolower((string)($service['category'] ?? ''));
         $isVenue = $category === 'venue';
         $isDecoration = $category === 'decoration';
+        $isFood = $category === 'food';
         $isRental = in_array($category, ['attire'], true);
         $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'] : [];
         $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
@@ -629,7 +664,7 @@ class SupplierServiceManager
             $missing[] = 'Add a service description.';
         }
 
-        if ($price <= 0 && !$isDecoration && !$isRental) {
+        if ($price <= 0 && !$isDecoration && !$isFood && !$isRental) {
             $missing[] = 'Add a valid package price.';
         }
 
@@ -648,22 +683,24 @@ class SupplierServiceManager
             if (empty($validStyles)) {
                 $missing[] = 'Add at least one decoration style with a name and price.';
             }
+            if (!$this->hasOpenWeeklySchedule($weekly)) {
+                $missing[] = 'Save your availability schedule with at least one available day.';
+            }
         } elseif ($isRental) {
             // Check attire items first; fall back to service-level rental pricing
             if (!empty($attireItems)) {
                 $hasValidItem = false;
                 foreach ($attireItems as $ai) {
-                    $aiBorrow = ($ai['borrow_package_price'] ?? $ai['borrow_price'] ?? 0) > 0
-                        || ($ai['borrow_customize_price'] ?? 0) > 0;
                     $aiBuy = ($ai['buy_package_price'] ?? $ai['buy_price'] ?? 0) > 0
                         || ($ai['buy_customize_price'] ?? 0) > 0;
-                    if ($aiBorrow || $aiBuy) {
+                    $hasRentalOptions = !empty($ai['rental_options']);
+                    if ($aiBuy || $hasRentalOptions) {
                         $hasValidItem = true;
                         break;
                     }
                 }
                 if (!$hasValidItem) {
-                    $missing[] = 'At least one attire item needs a borrow price, buy price, or both.';
+                    $missing[] = 'At least one attire item needs rental options (duration + price) or a buy price.';
                 }
             } else {
                 $hasBorrow = ($rentalPricing['borrow_package_price'] ?? $rentalPricing['borrow_price'] ?? 0) > 0
@@ -674,8 +711,20 @@ class SupplierServiceManager
                     $missing[] = 'Add a borrow price, a buy price, or both.';
                 }
             }
+            if (!$this->hasOpenWeeklySchedule($weekly)) {
+                $missing[] = 'Save your availability schedule with at least one available day.';
+            }
+        } elseif ($category === 'food') {
+            $foodItems = is_array($service['food_items'] ?? null) ? $service['food_items'] : [];
+            $validFood = array_filter($foodItems, fn($f) => trim((string)($f['name'] ?? '')) !== '' && (float)($f['package_price'] ?? $f['price'] ?? 0) > 0);
+            if (empty($validFood)) {
+                $missing[] = 'Add at least one cake item with a name and price.';
+            }
+            if (!$this->hasOpenWeeklySchedule($weekly)) {
+                $missing[] = 'Save your availability schedule with at least one available day.';
+            }
         } elseif (!$this->hasOpenWeeklySchedule($weekly)) {
-            $missing[] = 'Set at least one weekly available day with valid start and end time.';
+            $missing[] = 'Save your availability schedule with at least one available day.';
         }
 
         return [
@@ -868,6 +917,20 @@ class SupplierServiceManager
         $weekly = $this->calendarWeeklySchedule((int)$serviceId);
         $overrides = $this->calendarDateOverrides((int)$serviceId, $gridStart->format('Y-m-d'), $gridEnd->format('Y-m-d'));
         $bookings = $this->calendarBookings((int)$serviceId, (int)$supplierId, $gridStart->format('Y-m-d'), $gridEnd->format('Y-m-d'));
+
+        $category = strtolower((string)($service['category'] ?? ''));
+        $isVenue = $category === 'venue';
+        $venueRooms = [];
+        $roomOverrides = [];
+        $roomBookings = [];
+        $serviceMinLeadDays = max(0, (int)($service['min_lead_days'] ?? 0));
+
+        if ($isVenue && !empty($service['venue_id'])) {
+            $venueRooms = $this->getVenueRooms((int)$service['venue_id']);
+            $roomOverrides = $this->calendarRoomOverrides((int)$service['venue_id'], $gridStart->format('Y-m-d'), $gridEnd->format('Y-m-d'));
+            $roomBookings = $this->calendarRoomBookings((int)$serviceId, $gridStart->format('Y-m-d'), $gridEnd->format('Y-m-d'));
+        }
+
         $days = [];
 
         for ($day = $gridStart; $day <= $gridEnd; $day = $day->modify('+1 day')) {
@@ -904,7 +967,7 @@ class SupplierServiceManager
                 $status = $status === 'unavailable' ? 'unavailable' : 'booked';
             }
 
-            $days[] = [
+            $dayEntry = [
                 'date' => $date,
                 'day' => (int)$day->format('j'),
                 'weekday' => $day->format('D'),
@@ -918,6 +981,66 @@ class SupplierServiceManager
                 'bookings' => $dayBookings,
                 'booking_count' => count($dayBookings),
             ];
+
+            if ($isVenue && !empty($venueRooms)) {
+                $serviceClosedForDay = $status === 'unavailable';
+                $dayRoomOverrides = $roomOverrides[$date] ?? [];
+                $dayRoomBookings = $roomBookings[$date] ?? [];
+                $dayRooms = [];
+
+                foreach ($venueRooms as $room) {
+                    $roomId = (int)$room['id'];
+                    $roomMinLead = $room['min_lead_days'] !== null
+                        ? max(0, (int)$room['min_lead_days'])
+                        : $serviceMinLeadDays;
+                    $earliestDate = date('Y-m-d', strtotime('+' . $roomMinLead . ' days'));
+                    $leadBlocked = strtotime($date) < strtotime($earliestDate);
+                    $roomOverride = $dayRoomOverrides[$roomId] ?? null;
+                    $roomBookingCount = $dayRoomBookings[$roomId] ?? 0;
+
+                    if ($serviceClosedForDay) {
+                        $roomStatus = 'unavailable';
+                        $roomSource = 'service_override';
+                        $roomStart = null;
+                        $roomEnd = null;
+                    } elseif ($roomOverride !== null) {
+                        $roomSource = 'override';
+                        if ((int)$roomOverride['is_available'] === 0) {
+                            $roomStatus = 'unavailable';
+                            $roomStart = null;
+                            $roomEnd = null;
+                        } else {
+                            $roomStatus = $roomBookingCount > 0 ? 'booked' : 'open';
+                            $roomStart = $roomOverride['start_time'] ?? $room['start_time'];
+                            $roomEnd = $roomOverride['end_time'] ?? $room['end_time'];
+                        }
+                    } else {
+                        $roomSource = 'default';
+                        $roomStatus = $roomBookingCount > 0 ? 'booked' : 'open';
+                        $roomStart = $room['start_time'];
+                        $roomEnd = $room['end_time'];
+                    }
+
+                    if ($leadBlocked && $roomStatus !== 'unavailable') {
+                        $roomStatus = 'lead_blocked';
+                    }
+
+                    $dayRooms[] = [
+                        'room_id' => $roomId,
+                        'status' => $roomStatus,
+                        'source' => $roomSource,
+                        'start_time' => $roomStart,
+                        'end_time' => $roomEnd,
+                        'booking_count' => $roomBookingCount,
+                        'min_lead_days' => $roomMinLead,
+                        'override_id' => $roomOverride !== null ? (int)($roomOverride['id'] ?? 0) : null,
+                    ];
+                }
+
+                $dayEntry['rooms'] = $dayRooms;
+            }
+
+            $days[] = $dayEntry;
         }
 
         return [
@@ -931,6 +1054,14 @@ class SupplierServiceManager
             'prev_month' => $monthStart->modify('-1 month')->format('Y-m'),
             'next_month' => $monthStart->modify('+1 month')->format('Y-m'),
             'days' => $days,
+            'venue_rooms' => !empty($venueRooms) ? array_map(function ($room) {
+                return [
+                    'id' => (int)$room['id'],
+                    'name' => $room['name'] ?? '',
+                    'capacity' => (int)($room['capacity'] ?? 1),
+                    'min_lead_days' => $room['min_lead_days'] !== null ? (int)$room['min_lead_days'] : null,
+                ];
+            }, $venueRooms) : null,
         ];
     }
 
@@ -999,6 +1130,138 @@ class SupplierServiceManager
     }
 
     /**
+     * Read-only: fetch remaining capacity for all services on a given date.
+     * Does NOT create or modify time_slot rows — only reads existing data.
+     */
+    public function fetchAllServicesCapacity(int $supplierId, string $date): array
+    {
+        $date = $this->normalizeDate($date);
+        if (!$date) {
+            return ['date' => '', 'services' => []];
+        }
+
+        $services = $this->getServices($supplierId);
+        if (empty($services)) {
+            return ['date' => $date, 'services' => []];
+        }
+
+        $dayOfWeek = (int)date('N', strtotime($date));
+        $serviceIds = array_map(fn($s) => (int)$s['id'], $services);
+        $inPlaceholders = implode(',', array_map(fn($i) => ':sid_' . $i, array_keys($serviceIds)));
+
+        // Fetch all time slots for this date in one query
+        $this->db->dbquery(
+            "SELECT service_id, start_time, end_time,
+                    confirmed_count, max_concurrent,
+                    confirmed_package_count, confirmed_customize_count,
+                    max_concurrent_package, max_concurrent_customize, status
+             FROM service_time_slots
+             WHERE date = :date AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':date', $date);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $slotsByService = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $slotsByService[(int)$row['service_id']][] = $row;
+        }
+
+        // Fetch overrides for this date
+        $this->db->dbquery(
+            "SELECT service_id, type FROM service_availability WHERE date = :date AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':date', $date);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $overrides = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $overrides[(int)$row['service_id']] = $row['type'];
+        }
+
+        // Fetch weekly schedule for this day-of-week
+        $this->db->dbquery(
+            "SELECT service_id, is_available FROM service_schedules WHERE day_of_week = :dow AND service_id IN ({$inPlaceholders})"
+        );
+        $this->db->dbbind(':dow', $dayOfWeek);
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid);
+        }
+        $scheduleMap = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $scheduleMap[(int)$row['service_id']] = !empty($row['is_available']);
+        }
+
+        $result = [];
+        foreach ($services as $service) {
+            $sid = (int)$service['id'];
+            $overrideType = $overrides[$sid] ?? null;
+            $hasSlots = !empty($slotsByService[$sid]);
+
+            // Skip explicitly unavailable services with no existing slots
+            if ($overrideType === 'unavailable' && !$hasSlots) {
+                continue;
+            }
+
+            // Skip closed days (no override + weekly schedule says closed) with no slots
+            if (!$overrideType && empty($scheduleMap[$sid]) && !$hasSlots) {
+                continue;
+            }
+
+            if ($hasSlots) {
+                $slots = [];
+                $totalMax = 0;
+                $totalConfirmed = 0;
+                foreach ($slotsByService[$sid] as $slot) {
+                    $mc = (int)$slot['max_concurrent'];
+                    $cc = (int)$slot['confirmed_count'];
+                    $totalMax += $mc;
+                    $totalConfirmed += $cc;
+                    $left = max(0, $mc - $cc);
+                    $slots[] = [
+                        'start_time' => substr($slot['start_time'], 0, 5),
+                        'end_time' => substr($slot['end_time'], 0, 5),
+                        'max_concurrent' => $mc,
+                        'confirmed_count' => $cc,
+                        'remaining' => $left,
+                        'status' => $slot['status'],
+                    ];
+                }
+                $result[] = [
+                    'id' => $sid,
+                    'name' => $service['name'],
+                    'category' => $service['category'] ?? 'Service',
+                    'img' => $service['img'] ?? '',
+                    'status' => $service['status'],
+                    'booking_type' => $service['timeslot'] ? 'slot' : 'fullday',
+                    'total_capacity' => $totalMax,
+                    'total_confirmed' => $totalConfirmed,
+                    'total_remaining' => max(0, $totalMax - $totalConfirmed),
+                    'slots' => $slots,
+                ];
+            } else {
+                // No time slots generated yet — use service-level default
+                $mc = (int)($service['capacity'] ?? 1);
+                $result[] = [
+                    'id' => $sid,
+                    'name' => $service['name'],
+                    'category' => $service['category'] ?? 'Service',
+                    'img' => $service['img'] ?? '',
+                    'status' => $service['status'],
+                    'booking_type' => $service['timeslot'] ? 'slot' : 'fullday',
+                    'total_capacity' => $mc,
+                    'total_confirmed' => 0,
+                    'total_remaining' => $mc,
+                    'slots' => [],
+                ];
+            }
+        }
+
+        return ['date' => $date, 'services' => array_values($result)];
+    }
+
+    /**
      * Reserve a slot for a booking.
      * @param string $source 'package' or 'custom'
      */
@@ -1043,12 +1306,14 @@ class SupplierServiceManager
     {
         $poolColumn = $source === 'package' ? 'confirmed_package_count' : 'confirmed_customize_count';
 
+        // CAST to SIGNED before subtracting — confirmed_* are UNSIGNED, so 0 - 1
+        // underflows and errors under strict SQL mode before GREATEST applies.
         $this->db->dbquery(
             "UPDATE service_time_slots
-             SET confirmed_count = GREATEST(confirmed_count - 1, 0),
-                 {$poolColumn} = GREATEST({$poolColumn} - 1, 0),
+             SET confirmed_count = GREATEST(CAST(confirmed_count AS SIGNED) - 1, 0),
+                 {$poolColumn} = GREATEST(CAST({$poolColumn} AS SIGNED) - 1, 0),
                  status = CASE
-                    WHEN GREATEST(confirmed_count - 1, 0) >= max_concurrent THEN 'full'
+                    WHEN GREATEST(CAST(confirmed_count AS SIGNED) - 1, 0) >= max_concurrent THEN 'full'
                     ELSE 'available'
                  END
              WHERE id = :id"
@@ -1203,6 +1468,10 @@ class SupplierServiceManager
 
     private function getPackageById($packageId, $supplierId)
     {
+        if (!$this->tableExists('supplier_packages')) {
+            return null;
+        }
+
         $this->db->dbquery(
             'SELECT id, name, description, total_price, thumbnail_url, is_active, categories_json
              FROM supplier_packages
@@ -1216,6 +1485,40 @@ class SupplierServiceManager
         $package = $this->db->getsingledata();
 
         return $package ? $this->formatPackage($package) : null;
+    }
+
+    private function tableExists(string $table): bool
+    {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+               FROM information_schema.TABLES
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = :table'
+        );
+        $this->db->dbbind(':table', $table);
+        $row = $this->db->getsingledata();
+        $this->tableExistsCache[$table] = (int)($row['total'] ?? 0) > 0;
+
+        return $this->tableExistsCache[$table];
+    }
+
+    private function requireSupplierPackageTables(): void
+    {
+        if (!$this->supplierPackageTablesAvailable()) {
+            throw new RuntimeException(
+                'Supplier package management is unavailable because its database migration has not been applied.'
+            );
+        }
+    }
+
+    private function supplierPackageTablesAvailable(): bool
+    {
+        return $this->tableExists('supplier_packages')
+            && $this->tableExists('supplier_package_items');
     }
 
     private function bindServiceFields($supplierId, $categoryId, $data)
@@ -1409,6 +1712,7 @@ class SupplierServiceManager
             'customize_price' => $priceMax,
             'category' => $service['category'] ?: 'Others',
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
+            'publish_status' => $service['publish_status'] ?? 'draft',
             'desc' => html_entity_decode($service['description'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'img' => $service['thumbnail_url'] ?? '',
             'capacity' => (int)($service['max_concurrent'] ?? 1),
@@ -1425,6 +1729,7 @@ class SupplierServiceManager
             'venue_rooms' => !empty($service['venue_id']) ? $this->getVenueRooms((int)$service['venue_id']) : [],
             'attire_items' => $category === 'attire' ? $this->getAttireItems((int)$service['id']) : [],
             'decoration_styles' => $category === 'decoration' ? $this->getDecorationStyles((int)$service['id']) : [],
+            'food_items' => $category === 'food' ? $this->getFoodItems((int)$service['id']) : [],
             'rental_pricing' => in_array($category, ['attire'], true) ? $this->getRentalPricing((int)$service['id']) : null,
         ];
     }
@@ -2038,6 +2343,7 @@ class SupplierServiceManager
                     booking_items.start_time,
                     booking_items.end_time,
                     booking_items.status,
+                    booking_items.venue_room_id,
                     booking_suppliers.status AS supplier_status,
                     users.name AS customer_name
              FROM booking_items
@@ -2072,10 +2378,80 @@ class SupplierServiceManager
                 'end_time' => $row['end_time'],
                 'status' => $row['status'] ?? 'pending',
                 'supplier_status' => $row['supplier_status'] ?? 'pending',
+                'venue_room_id' => !empty($row['venue_room_id']) ? (int)$row['venue_room_id'] : null,
             ];
         }
 
         return $bookings;
+    }
+
+    private function calendarRoomOverrides($venueId, $startDate, $endDate)
+    {
+        $this->db->dbquery(
+            'SELECT venue_room_availability.id,
+                    venue_room_availability.room_id,
+                    venue_room_availability.date,
+                    venue_room_availability.start_time,
+                    venue_room_availability.end_time,
+                    venue_room_availability.is_available
+             FROM venue_room_availability
+             INNER JOIN venue_rooms ON venue_rooms.id = venue_room_availability.room_id
+             WHERE venue_rooms.venue_id = :venue_id
+               AND venue_room_availability.date BETWEEN :start_date AND :end_date'
+        );
+        $this->db->dbbind(':venue_id', (int)$venueId);
+        $this->db->dbbind(':start_date', $startDate);
+        $this->db->dbbind(':end_date', $endDate);
+
+        $overrides = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $roomId = (int)$row['room_id'];
+            $date = $row['date'] ?? '';
+            if ($date === '') {
+                continue;
+            }
+            $overrides[$date][$roomId] = [
+                'id' => (int)$row['id'],
+                'room_id' => $roomId,
+                'date' => $date,
+                'start_time' => $row['start_time'],
+                'end_time' => $row['end_time'],
+                'is_available' => (int)($row['is_available'] ?? 0),
+            ];
+        }
+
+        return $overrides;
+    }
+
+    private function calendarRoomBookings($serviceId, $startDate, $endDate)
+    {
+        $this->db->dbquery(
+            "SELECT booking_items.venue_room_id,
+                    DATE(booking_items.booking_date) AS booking_day,
+                    COUNT(*) AS booking_count
+             FROM booking_items
+             WHERE booking_items.item_type = 'service'
+               AND booking_items.item_id = :service_id
+               AND booking_items.venue_room_id IS NOT NULL
+               AND DATE(booking_items.booking_date) BETWEEN :start_date AND :end_date
+               AND COALESCE(booking_items.status, '') <> 'cancelled'
+             GROUP BY booking_items.venue_room_id, booking_day"
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $this->db->dbbind(':start_date', $startDate);
+        $this->db->dbbind(':end_date', $endDate);
+
+        $result = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $roomId = (int)$row['venue_room_id'];
+            $date = $row['booking_day'] ?? '';
+            if ($date === '' || $roomId <= 0) {
+                continue;
+            }
+            $result[$date][$roomId] = (int)$row['booking_count'];
+        }
+
+        return $result;
     }
 
     private function hasOpenWeeklySchedule(array $weekly)
@@ -2431,6 +2807,83 @@ class SupplierServiceManager
         return $this->hasDecorationStyleDualPriceColumn;
     }
 
+    // ── Food Items ──────────────────────────────────────────────
+
+    private function getFoodItems(int $serviceId): array
+    {
+        try {
+            $this->db->dbquery(
+                'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
+                 FROM food_items
+                 WHERE service_id = :service_id
+                 ORDER BY sort_order ASC, id ASC'
+            );
+            $this->db->dbbind(':service_id', $serviceId);
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        return array_map(function ($row) {
+            return [
+                'id' => (int)$row['id'],
+                'name' => html_entity_decode($row['name'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'description' => html_entity_decode($row['description'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'price' => (float)($row['price'] ?? 0),
+                'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
+                'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
+                'photo_url' => trim((string)($row['photo_url'] ?? '')),
+                'pricing_model' => $row['pricing_model'] ?? 'flat',
+            ];
+        }, $this->db->getmultidata());
+    }
+
+    private function saveFoodItems(int $serviceId, array $data): void
+    {
+        $category = strtolower((string)($data['category'] ?? ''));
+        if ($category !== 'food') {
+            return;
+        }
+
+        $items = is_array($data['food_items'] ?? null) ? $data['food_items'] : [];
+
+        try {
+            $this->db->dbquery('DELETE FROM food_items WHERE service_id = :service_id');
+            $this->db->dbbind(':service_id', $serviceId);
+            $this->db->dbexecute();
+        } catch (Throwable $e) {
+            return;
+        }
+
+        $sort = 0;
+        foreach ($items as $item) {
+            $name = html_entity_decode(trim((string)($item['name'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($name === '') {
+                continue;
+            }
+            $description = trim((string)($item['description'] ?? ''));
+            $price = max(0, (float)($item['price'] ?? 0));
+            $packagePrice = max(0, (float)($item['package_price'] ?? $item['price'] ?? 0));
+            $customizePrice = max($packagePrice, (float)($item['customize_price'] ?? $item['price'] ?? $packagePrice));
+            $photoUrl = trim((string)($item['photo_url'] ?? ''));
+            $pricingModel = in_array($item['pricing_model'] ?? '', ['per_person'], true) ? 'per_person' : 'flat';
+
+            $this->db->dbquery(
+                'INSERT INTO food_items (service_id, name, description, price, package_price, customize_price, photo_url, pricing_model, sort_order)
+                 VALUES (:service_id, :name, :description, :price, :package_price, :customize_price, :photo_url, :pricing_model, :sort_order)'
+            );
+            $this->db->dbbind(':service_id', $serviceId);
+            $this->db->dbbind(':name', $name);
+            $this->db->dbbind(':description', $description !== '' ? $description : null);
+            $this->db->dbbind(':price', number_format($price, 2, '.', ''), PDO::PARAM_STR);
+            $this->db->dbbind(':package_price', number_format($packagePrice, 2, '.', ''), PDO::PARAM_STR);
+            $this->db->dbbind(':customize_price', number_format($customizePrice, 2, '.', ''), PDO::PARAM_STR);
+            $this->db->dbbind(':photo_url', $photoUrl !== '' ? $photoUrl : null);
+            $this->db->dbbind(':pricing_model', $pricingModel);
+            $this->db->dbbind(':sort_order', $sort++, PDO::PARAM_INT);
+            $this->db->dbexecute();
+        }
+    }
+
     private function saveRentalPricing(int $serviceId, array $data): void
     {
         $category = strtolower((string)($data['category'] ?? ''));
@@ -2547,7 +3000,67 @@ class SupplierServiceManager
              ORDER BY sort_order ASC, id ASC'
         );
         $this->db->dbbind(':service_id', $serviceId);
+        $items = $this->db->getmultidata();
+
+        // Attach rental options to each item
+        foreach ($items as &$item) {
+            $item['rental_options'] = $this->getAttireRentalOptions((int)$item['id']);
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    /**
+     * Fetch rental duration options for an attire item.
+     */
+    public function getAttireRentalOptions(int $attireItemId): array
+    {
+        $this->db->dbquery(
+            'SELECT * FROM attire_rental_options
+             WHERE attire_item_id = :attire_item_id
+             ORDER BY sort_order ASC, days ASC'
+        );
+        $this->db->dbbind(':attire_item_id', $attireItemId);
         return $this->db->getmultidata();
+    }
+
+    /**
+     * Save rental duration options for an attire item (delete-and-reinsert).
+     */
+    private function saveAttireRentalOptions(int $attireItemId, array $options): void
+    {
+        $this->db->dbquery('DELETE FROM attire_rental_options WHERE attire_item_id = :attire_item_id');
+        $this->db->dbbind(':attire_item_id', $attireItemId);
+        $this->db->dbexecute();
+
+        $sortOrder = 0;
+        foreach ($options as $opt) {
+            if (!is_array($opt)) {
+                continue;
+            }
+            $days = (int)($opt['days'] ?? 0);
+            $price = (float)($opt['price'] ?? 0);
+            if ($days <= 0 || $price <= 0) {
+                continue;
+            }
+
+            $customizePrice = !empty($opt['customize_price']) && (float)$opt['customize_price'] > 0
+                ? (float)$opt['customize_price'] : null;
+
+            $this->db->dbquery(
+                'INSERT INTO attire_rental_options (attire_item_id, days, price, customize_price, sort_order)
+                 VALUES (:attire_item_id, :days, :price, :customize_price, :sort_order)'
+            );
+            $this->db->dbbind(':attire_item_id', $attireItemId, PDO::PARAM_INT);
+            $this->db->dbbind(':days', $days, PDO::PARAM_INT);
+            $this->db->dbbind(':price', $price);
+            $this->db->dbbind(':customize_price', $customizePrice,
+                $customizePrice === null ? PDO::PARAM_NULL : null);
+            $this->db->dbbind(':sort_order', $sortOrder, PDO::PARAM_INT);
+            $this->db->dbexecute();
+            $sortOrder++;
+        }
     }
 
     private function saveAttireItems(int $serviceId, array $data): void
@@ -2585,6 +3098,7 @@ class SupplierServiceManager
                          buy_package_price = :buy_package_price,
                          buy_customize_price = :buy_customize_price,
                          return_days = :return_days,
+                         buffer_days = :buffer_days,
                          sort_order = :sort_order
                      WHERE id = :id AND service_id = :service_id
                      LIMIT 1'
@@ -2595,11 +3109,11 @@ class SupplierServiceManager
                     'INSERT INTO attire_items (service_id, name, description, photo_url,
                      borrow_package_price, borrow_customize_price,
                      buy_package_price, buy_customize_price,
-                     return_days, sort_order)
+                     return_days, buffer_days, sort_order)
                      VALUES (:service_id, :name, :description, :photo_url,
                      :borrow_package_price, :borrow_customize_price,
                      :buy_package_price, :buy_customize_price,
-                     :return_days, :sort_order)'
+                     :return_days, :buffer_days, :sort_order)'
                 );
             }
 
@@ -2614,8 +3128,20 @@ class SupplierServiceManager
             $this->dbbindPrice(':buy_customize_price', $item['buy_customize_price'] ?? null);
             $this->db->dbbind(':return_days', !empty($item['return_days']) ? (int)$item['return_days'] : null,
                 !empty($item['return_days']) ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $bufferDays = isset($item['buffer_days']) ? max(0, (int)$item['buffer_days']) : 1;
+            $this->db->dbbind(':buffer_days', $bufferDays, PDO::PARAM_INT);
             $this->db->dbbind(':sort_order', $sortOrder, PDO::PARAM_INT);
             $this->db->dbexecute();
+
+            // Resolve the item ID for rental options save
+            $savedItemId = $itemId > 0 && !$replaceItems ? $itemId : (int)$this->db->lastinsertid();
+
+            // Save rental options if provided
+            $rentalOptions = $item['rental_options'] ?? [];
+            if (!empty($rentalOptions) && $savedItemId > 0) {
+                $this->saveAttireRentalOptions($savedItemId, $rentalOptions);
+            }
+
             $sortOrder++;
         }
 

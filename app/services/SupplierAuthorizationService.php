@@ -13,6 +13,7 @@ class SupplierAuthorizationService
 
     public function currentUserId()
     {
+        // Prefer session_uid (authenticated user) over pending registration
         $userId = $_SESSION['session_uid'] ?? $_SESSION['pending_register_user_id'] ?? null;
 
         return $userId ? (int)$userId : null;

@@ -2,8 +2,6 @@
 
 class PlatformPackage
 {
-    private const AGENT_FEE_RATE = 0.05;
-
     private $db;
     private $packageQuantityColumns = null;
     private $packageCategoryColumn = null;
@@ -26,8 +24,17 @@ class PlatformPackage
 
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $conditions[] = '(p.name LIKE :search OR p.description LIKE :search OR p.tagline LIKE :search OR p.slug LIKE :search)';
-            $bindings[':search'] = '%' . $search . '%';
+            $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($tokens as $i => $token) {
+                $key = ':search_' . $i;
+                $conditions[] = '(p.name LIKE ' . $key . ' OR p.description LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.slug LIKE ' . $key . ')';
+                $bindings[$key] = '%' . $token . '%';
+            }
+            $compact = preg_replace('/\s+/', '', $search);
+            if ($compact !== '') {
+                $conditions[] = '(REPLACE(p.name, " ", "") LIKE :search_compact OR REPLACE(p.tagline, " ", "") LIKE :search_compact)';
+                $bindings[':search_compact'] = '%' . $compact . '%';
+            }
         }
 
         $status = $filters['status'] ?? '';
@@ -65,7 +72,8 @@ class PlatformPackage
                        p.sort_order,
                        p.created_at,
                        COUNT(pi.service_id) AS item_count,
-                       COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total
+                       COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total,
+                       EXISTS(SELECT 1 FROM booking_items bi WHERE bi.item_type = \'package\' AND bi.item_id = p.package_id LIMIT 1) AS has_bookings
                 FROM packages p
              LEFT JOIN package_items pi ON pi.package_id = p.package_id
              LEFT JOIN services svc ON svc.id = pi.service_id
@@ -127,6 +135,9 @@ class PlatformPackage
         }
 
         $package['items'] = $this->getPackageItems($packageId);
+        $package['included_total'] = array_reduce($package['items'], static function ($total, $item) {
+            return $total + (float)($item['default_price'] ?? 0);
+        }, 0.0);
         return $this->withCustomerPackagePrice($package);
     }
 
@@ -220,7 +231,7 @@ class PlatformPackage
         );
         $this->db->dbbind(':package_id', (int)$packageId);
 
-        return $this->db->getmultidata();
+        return array_map([$this, 'normalizePackageItemPricing'], $this->db->getmultidata());
     }
 
     /**
@@ -337,11 +348,34 @@ class PlatformPackage
     }
 
     /**
+     * ── Admin: Check if package has any bookings ──
+     */
+    public function hasPackageBookings(int $packageId): bool
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS cnt FROM booking_items WHERE item_type = 'package' AND item_id = :package_id"
+        );
+        $this->db->dbbind(':package_id', $packageId);
+        $row = $this->db->getsingledata();
+        return ((int)($row['cnt'] ?? 0)) > 0;
+    }
+
+    /**
      * ── Admin: Delete package type ──
+     * Soft-deletes (sets deleted_at) when bookings reference this package,
+     * hard-deletes when no bookings exist.
      */
     public function deletePackageType($packageId)
     {
         try {
+            if ($this->hasPackageBookings((int)$packageId)) {
+                // Soft-delete: preserve booking history
+                $this->db->dbquery('UPDATE packages SET deleted_at = NOW(), is_active = 0 WHERE package_id = :package_id LIMIT 1');
+                $this->db->dbbind(':package_id', (int)$packageId);
+                return $this->db->dbexecute();
+            }
+
+            // Hard-delete: no bookings, safe to remove entirely
             $this->db->dbquery('DELETE FROM package_items WHERE package_id = :package_id');
             $this->db->dbbind(':package_id', (int)$packageId);
             $this->db->dbexecute();
@@ -353,6 +387,16 @@ class PlatformPackage
         } catch (PDOException $e) {
             return false;
         }
+    }
+
+    /**
+     * ── Admin: Restore a soft-deleted package ──
+     */
+    public function restorePackageType(int $packageId): bool
+    {
+        $this->db->dbquery('UPDATE packages SET deleted_at = NULL, is_active = 1 WHERE package_id = :package_id AND deleted_at IS NOT NULL LIMIT 1');
+        $this->db->dbbind(':package_id', $packageId);
+        return $this->db->dbexecute();
     }
 
     /**
@@ -591,11 +635,17 @@ class PlatformPackage
 
         $attireItem = null;
         $attireItemId = (int)($attireItemId ?? 0);
-        if ($attireItemId > 0) {
-            $attireItem = $this->getAttireItemById($attireItemId);
+        $isAttireService = $this->isAttireCategory(
+            $service['category_slug'] ?? '',
+            $service['category_name'] ?? ''
+        );
+        if ($isAttireService && $attireItemId > 0) {
+            $attireItem = $this->getAttireItemForService($attireItemId, (int)$serviceId);
             if (!$attireItem) {
                 return false;
             }
+        } elseif ($isAttireService) {
+            return false;
         }
 
         $decorationStyle = null;
@@ -609,8 +659,19 @@ class PlatformPackage
 
         $packagePrice = $this->servicePackagePrice($service);
         $customizePrice = $this->serviceCustomizePrice($service);
+        if ($attireItem) {
+            $borrowPackagePrice = (float)($attireItem['borrow_package_price'] ?? 0);
+            $buyPackagePrice = (float)($attireItem['buy_package_price'] ?? 0);
+            $packagePrice = $borrowPackagePrice > 0 ? $borrowPackagePrice : $buyPackagePrice;
+
+            $borrowCustomizePrice = (float)($attireItem['borrow_customize_price'] ?? 0);
+            $buyCustomizePrice = (float)($attireItem['buy_customize_price'] ?? 0);
+            $customizePrice = $borrowPackagePrice > 0
+                ? ($borrowCustomizePrice > 0 ? $borrowCustomizePrice : $packagePrice)
+                : ($buyCustomizePrice > 0 ? $buyCustomizePrice : $packagePrice);
+        }
         $price = $room ? (float)($room['price'] ?? 0)
-            : ($attireItem ? ($attireItem['borrow_package_price'] ?? $attireItem['buy_package_price'] ?? 0)
+            : ($attireItem ? $packagePrice
             : ($decorationStyle ? (float)($decorationStyle['package_price'] ?? $decorationStyle['price'] ?? 0)
             : $packagePrice));
         $isGuestPriced = $this->isGuestPricedCategory($service['category_slug'] ?? '', $service['category_name'] ?? '');
@@ -666,10 +727,17 @@ class PlatformPackage
         return $this->db->dbexecute();
     }
 
-    private function getAttireItemById(int $attireItemId): ?array
+    private function getAttireItemForService(int $attireItemId, int $serviceId): ?array
     {
-        $this->db->dbquery('SELECT * FROM attire_items WHERE id = :id LIMIT 1');
+        $this->db->dbquery(
+            'SELECT *
+             FROM attire_items
+             WHERE id = :id
+               AND service_id = :service_id
+             LIMIT 1'
+        );
         $this->db->dbbind(':id', $attireItemId);
+        $this->db->dbbind(':service_id', $serviceId);
         return $this->db->getsingledata();
     }
 
@@ -860,8 +928,17 @@ class PlatformPackage
         // Search
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $conditions[] = '(p.name LIKE :search OR p.tagline LIKE :search OR p.description LIKE :search)';
-            $bindings[':search'] = '%' . $search . '%';
+            $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($tokens as $i => $token) {
+                $key = ':search_' . $i;
+                $conditions[] = '(p.name LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.description LIKE ' . $key . ')';
+                $bindings[$key] = '%' . $token . '%';
+            }
+            $compact = preg_replace('/\s+/', '', $search);
+            if ($compact !== '') {
+                $conditions[] = '(REPLACE(p.name, " ", "") LIKE :search_compact OR REPLACE(p.tagline, " ", "") LIKE :search_compact)';
+                $bindings[':search_compact'] = '%' . $compact . '%';
+            }
         }
 
         // Category filter
@@ -975,8 +1052,17 @@ class PlatformPackage
 
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $conditions[] = '(p.name LIKE :search OR p.tagline LIKE :search OR p.description LIKE :search)';
-            $bindings[':search'] = '%' . $search . '%';
+            $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($tokens as $i => $token) {
+                $key = ':search_' . $i;
+                $conditions[] = '(p.name LIKE ' . $key . ' OR p.tagline LIKE ' . $key . ' OR p.description LIKE ' . $key . ')';
+                $bindings[$key] = '%' . $token . '%';
+            }
+            $compact = preg_replace('/\s+/', '', $search);
+            if ($compact !== '') {
+                $conditions[] = '(REPLACE(p.name, " ", "") LIKE :search_compact OR REPLACE(p.tagline, " ", "") LIKE :search_compact)';
+                $bindings[':search_compact'] = '%' . $compact . '%';
+            }
         }
 
         $where = implode(' AND ', $conditions);
@@ -1113,7 +1199,7 @@ class PlatformPackage
              ORDER BY c.name ASC, svc.name ASC'
         );
         $this->db->dbbind(':package_id', (int)$package['package_id']);
-        $items = $this->db->getmultidata();
+        $items = array_map([$this, 'normalizePackageItemPricing'], $this->db->getmultidata());
         $package['items'] = $items;
         $package['included_total'] = array_reduce($items, static function ($total, $item) {
             return $total + (float)($item['default_price'] ?? 0);
@@ -1391,10 +1477,11 @@ class PlatformPackage
         $includedTotal = (float)($package['included_total'] ?? 0);
         $storedBasePrice = (float)($package['base_price'] ?? 0);
         $packageBasePrice = $storedBasePrice > 0 ? $storedBasePrice : $includedTotal;
-        $agentFee = $packageBasePrice * self::AGENT_FEE_RATE;
+        $agentFeeRate = get_platform_fee_percent() / 100;
+        $agentFee = $packageBasePrice * $agentFeeRate;
 
         $package['package_base_price'] = $packageBasePrice;
-        $package['agent_fee_rate'] = self::AGENT_FEE_RATE;
+        $package['agent_fee_rate'] = $agentFeeRate;
         $package['agent_fee'] = $agentFee;
         $package['package_price'] = $packageBasePrice + $agentFee;
 
@@ -1622,15 +1709,37 @@ class PlatformPackage
     private function isGuestPricedCategory($slug, $name)
     {
         $label = strtolower(trim((string)$slug . ' ' . (string)$name));
-        // Food, catering, decoration, music, photography, makeup, attire, studio — all guest-driven
+        // Only services whose price scales with attendee count are guest-driven.
+        // Attire is priced per selected outfit/item, so it remains fixed.
         return strpos($label, 'food') !== false
             || strpos($label, 'cater') !== false
             || strpos($label, 'decor') !== false
             || strpos($label, 'music') !== false
             || strpos($label, 'photo') !== false
             || strpos($label, 'makeup') !== false
-            || strpos($label, 'attire') !== false
             || strpos($label, 'studio') !== false;
+    }
+
+    private function isAttireCategory($slug, $name): bool
+    {
+        return strpos(strtolower(trim((string)$slug . ' ' . (string)$name)), 'attire') !== false;
+    }
+
+    private function normalizePackageItemPricing(array $item): array
+    {
+        $isGuestPriced = $this->isGuestPricedCategory(
+            $item['category_slug'] ?? '',
+            $item['category_name'] ?? ''
+        );
+
+        // Keep legacy attire rows from displaying or totaling as per-guest items.
+        if (!$isGuestPriced && ($item['quantity_type'] ?? '') === 'guests') {
+            $item['quantity_type'] = 'fixed';
+            $item['quantity'] = 1;
+            $item['default_price'] = (float)($item['unit_price'] ?? $item['default_price'] ?? 0);
+        }
+
+        return $item;
     }
 
     private function serviceCustomizePrice($service)
@@ -1706,5 +1815,52 @@ class PlatformPackage
         }
 
         return (bool)$this->db->getsingledata();
+    }
+
+    /**
+     * Get IDs of sub-items (venue rooms, attire items, decoration styles)
+     * that are locked to active published packages.
+     * These items should not be available for customize (standalone) booking.
+     */
+    public function getLockedItemIds(): array
+    {
+        $result = [
+            'venue_room_ids' => [],
+            'attire_item_ids' => [],
+            'decoration_style_ids' => [],
+            'food_item_ids' => [],
+        ];
+
+        $this->db->dbquery(
+            "SELECT DISTINCT pi.venue_room_id, pi.attire_item_id, pi.decoration_style_id, pi.cake_design_id
+             FROM package_items pi
+             INNER JOIN packages p ON p.package_id = pi.package_id
+             WHERE pi.deleted_at IS NULL
+               AND p.is_active = 1
+               AND p.status = 'published'"
+        );
+        $rows = $this->db->getmultidata();
+
+        foreach ($rows as $row) {
+            if (!empty($row['venue_room_id'])) {
+                $result['venue_room_ids'][] = (int)$row['venue_room_id'];
+            }
+            if (!empty($row['attire_item_id'])) {
+                $result['attire_item_ids'][] = (int)$row['attire_item_id'];
+            }
+            if (!empty($row['decoration_style_id'])) {
+                $result['decoration_style_ids'][] = (int)$row['decoration_style_id'];
+            }
+            if (!empty($row['cake_design_id'])) {
+                $result['food_item_ids'][] = (int)$row['cake_design_id'];
+            }
+        }
+
+        $result['venue_room_ids'] = array_values(array_unique($result['venue_room_ids']));
+        $result['attire_item_ids'] = array_values(array_unique($result['attire_item_ids']));
+        $result['decoration_style_ids'] = array_values(array_unique($result['decoration_style_ids']));
+        $result['food_item_ids'] = array_values(array_unique($result['food_item_ids']));
+
+        return $result;
     }
 }

@@ -1,19 +1,22 @@
 <?php
 $booking = $booking ?? [];
+$bookingId = (int)($booking['id'] ?? 0);
 $items = $items ?? [];
 $eventDetails = $eventDetails ?? [];
 $suppliers = $suppliers ?? [];
 $logs = $logs ?? [];
 $vouchers = $vouchers ?? [];
 $bookingRef = $bookingRef ?? '';
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
+$platformFeePercent = (float)($platformFeePercent ?? get_platform_fee_percent());
 $canReview = $canReview ?? false;
 $existingReview = $existingReview ?? null;
 $canEditReview = $canEditReview ?? false;
 $pendingReplacement = $pendingReplacement ?? null;
+$replacementHistory = is_array($replacementHistory ?? null) ? $replacementHistory : [];
 
 $statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled','cancellation_requested'=>'Cancellation Requested'];
-$money = fn($v) => 'RM '.number_format((float)$v,0);
+$money = fn($v) => number_format((float)$v,0) . ' MMK';
 $plain = function($v){ $t=(string)$v; for($i=0;$i<10;$i++){$d=html_entity_decode($t,ENT_QUOTES|ENT_HTML5,'UTF-8');if($d===$t)break;$t=$d;}return $t; };
 $h = fn($v)=>htmlspecialchars($plain($v),ENT_QUOTES,'UTF-8');
 $depositPayment = $depositPayment ?? [];
@@ -170,20 +173,91 @@ a{color:inherit;text-decoration:none}
 <main class="gp-page">
   <div class="gp-back"><a href="<?=URLROOT?>/booking/myBookings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back to Bookings</a></div>
 
-  <?php if ($pendingReplacement): ?>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;background:#fffbeb;border:1px solid #fcd34d;border-radius:14px;padding:16px 20px;margin-bottom:20px">
-      <div>
-        <strong style="display:block;color:#92400e;font-size:14px">Replacement supplier needs your approval</strong>
-        <span style="color:#7b5c69;font-size:13px">
-          <?= $h($pendingReplacement['new_shop_name'] ?? 'A new supplier') ?> is available, but costs
-          <strong><?= number_format((float)($pendingReplacement['price_delta'] ?? 0), 0) ?> MMK</strong> more.
-          Approve and pay the difference to confirm it.
-        </span>
+  <?php if (!empty($replacementHistory)): ?>
+    <?php
+    $replStatusLabels = [
+        'pending_admin' => 'Finding replacement',
+        'declined_again' => 'Finding another replacement',
+        'rejected_by_customer' => 'You declined this option',
+        'pending_customer' => 'Waiting for your approval',
+        'assigned' => 'New supplier assigned',
+    ];
+    $badgeColor = function ($status) {
+        return match ($status) {
+            'pending_customer' => 'background:#fef3c7;color:#92400e;border-color:#fcd34d',
+            'assigned' => 'background:#dbeafe;color:#1e40af;border-color:#bfdbfe',
+            'rejected_by_customer' => 'background:#fee2e2;color:#991b1b;border-color:#fecaca',
+            'declined_again' => 'background:#fef3c7;color:#92400e;border-color:#fcd34d',
+            default => 'background:#f3f4f6;color:#57534e;border-color:#e5e7eb',
+        };
+    };
+    ?>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d4c5b" stroke-width="2"><path d="M16 3l5 5-5 5M21 8H8a5 5 0 0 0 0 10h1"/></svg>
+        <strong style="font-size:14px;color:#1f2937">Service Replacement</strong>
       </div>
-      <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$pendingReplacement['id'] ?>"
-         style="white-space:nowrap;background:#6d4c5b;color:#fcf8f5;padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none">
-        Approve &amp; pay difference →
-      </a>
+      <div style="padding:0 18px">
+      <?php foreach ($replacementHistory as $idx => $repl):
+        $isLast = $idx === count($replacementHistory) - 1;
+        $status = (string)($repl['status'] ?? '');
+        $oldService = $repl['old_service_name'] ?? 'A service';
+        $oldSupplier = $repl['old_shop_name'] ?? $repl['old_supplier_name'] ?? 'Original supplier';
+        $newSupplier = $repl['new_shop_name'] ?? $repl['new_service_name'] ?? 'New supplier';
+        $newPrice = (float)($repl['new_price'] ?? 0);
+        $oldPrice = (float)($repl['old_price'] ?? 0);
+        $delta = (float)($repl['price_delta'] ?? 0);
+        $reason = $repl['decline_reason'] ?? '';
+        $proofSubmitted = !empty($repl['customer_approved_at']) && !empty($repl['delta_payment_slip']);
+        $proposedAt = $repl['proposed_at'] ?? null;
+        $createdAt = $repl['created_at'] ?? null;
+        $deadline = $proposedAt ? date('M d', strtotime($proposedAt . ' + 3 days')) : null;
+        $daysLeft = $proposedAt ? max(0, (int)((strtotime($proposedAt) + 3*86400) - time()) / 86400) : null;
+      ?>
+        <div style="display:flex;gap:12px;padding:14px 0;<?= $isLast ? '' : 'border-bottom:1px solid #f3f4f6' ?>">
+          <!-- Timeline dot + line -->
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+            <div style="width:10px;height:10px;border-radius:50%;border:2px solid <?= $status === 'pending_customer' ? '#f59e0b' : ($status === 'rejected_by_customer' ? '#dc2626' : '#6d4c5b') ?>;background:<?= $status === 'pending_customer' ? '#fef3c7' : ($status === 'rejected_by_customer' ? '#fee2e2' : '#6d4c5b') ?>"></div>
+            <?php if (!$isLast): ?><div style="width:2px;flex:1;min-height:20px;background:#e5e7eb"></div><?php endif; ?>
+          </div>
+          <!-- Content -->
+          <div style="flex:1;min-width:0;padding-bottom:2px">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+              <strong style="font-size:13px;color:#1f2937"><?= $h($oldService) ?> — <?= $h($oldSupplier) ?></strong>
+              <span style="display:inline-flex;align-items:center;border:1px solid;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;<?= $badgeColor($status) ?>"><?= $h($replStatusLabels[$status] ?? $status) ?></span>
+            </div>
+            <?php if ($reason !== ''): ?>
+            <div style="font-size:12px;color:#991b1b;margin-bottom:4px">Reason: <?= $h($reason) ?></div>
+            <?php endif; ?>
+            <?php if ($status === 'pending_customer'): ?>
+              <div style="font-size:12px;color:#7b5c69;margin-bottom:6px">
+                <?= $h($newSupplier) ?> is available<?= $newPrice > 0 ? ' at ' . number_format($newPrice, 0) . ' MMK' : '' ?>.
+                <?php if ($delta > 0): ?><strong style="color:#dc2626">+<?= number_format($delta, 0) ?> MMK more.</strong><?php endif; ?>
+                <?php if ($deadline): ?>⏰ Respond by <strong><?= $deadline ?></strong><?php endif; ?>
+              </div>
+              <?php if (!$proofSubmitted): ?>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$repl['id'] ?>" style="background:#6d4c5b;color:#fff;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">Approve &amp; Pay →</a>
+                <form method="POST" action="<?=URLROOT?>/booking/rejectReplacement/<?= (int)$repl['id'] ?>" style="margin:0" onsubmit="return confirm('Decline this replacement? Admin will find another option.')">
+                  <input type="hidden" name="csrf_token" value="<?= $h(csrf_token()) ?>">
+                  <button type="submit" style="background:#fff;color:#991b1b;border:1px solid #fecaca;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer">Decline</button>
+                </form>
+              </div>
+              <?php else: ?>
+              <div style="font-size:12px;color:#92400e">⏳ Payment proof submitted — admin is verifying</div>
+              <?php endif; ?>
+            <?php elseif ($status === 'rejected_by_customer'): ?>
+              <div style="font-size:12px;color:#7b5c69">You declined this replacement. Admin will find another option.</div>
+            <?php elseif ($status === 'assigned'): ?>
+              <div style="font-size:12px;color:#1e40af"><?= $h($newSupplier) ?> has been assigned. Waiting for them to confirm.</div>
+            <?php else: ?>
+              <div style="font-size:12px;color:#7b5c69">Admin is finding a replacement supplier.</div>
+            <?php endif; ?>
+            <?php if ($createdAt): ?><div style="font-size:10px;color:#9ca3af;margin-top:4px"><?= date('M d, H:i', strtotime((string)$createdAt)) ?></div><?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+      </div>
     </div>
   <?php endif; ?>
 
@@ -215,7 +289,7 @@ a{color:inherit;text-decoration:none}
     <svg style="flex-shrink:0;margin-top:2px;color:#16a34a" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
     <div>
       <div style="font-weight:700;font-size:13px;color:#166534;margin-bottom:2px;">Supplier accepted — please complete payment</div>
-      <div style="font-size:12px;color:#15803d;">Your booking request was accepted! Please pay your 10% deposit below to lock in your booking.</div>
+      <div style="font-size:12px;color:#15803d;">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
     </div>
   </div>
   <?php endif; ?>
@@ -240,6 +314,9 @@ a{color:inherit;text-decoration:none}
       <?php if (!empty($depositPayment['paid_amount'])): ?>
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
       <?php endif; ?>
+      <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
+      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Includes Platform Fee</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div></div>
+      <?php endif; ?>
       <?php if (!empty($depositPayment['paid_at'])): ?>
       <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transfer Date</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
       <?php endif; ?>
@@ -247,6 +324,16 @@ a{color:inherit;text-decoration:none}
     <?php endif; ?>
   </div>
   <?php endif; ?>
+
+  <?php
+    // Remaining balance state — available after deposit is verified (paid, confirmed, or later)
+    $isConfirmedOrLater = in_array($currentStatus, ['paid', 'payment_verified', 'confirmed', 'pending_final_payment', 'finalized'], true);
+    $summaryBalanceEarly = max(0, (float)($booking['total_amount'] ?? 0) - (float)($booking['paid_amount'] ?? 0));
+    $hasRemainingBalance = $isConfirmedOrLater && $summaryBalanceEarly > 0;
+    $hasPendingRemaining = $hasPendingRemaining ?? false;
+    $eventDateDisplay = $eventDate ?? null;
+    $remainingPaymentsList = $remainingPayments ?? [];
+  ?>
 
   <?php
     $journeyStatus = strtolower((string)($booking['status'] ?? ''));
@@ -271,29 +358,44 @@ a{color:inherit;text-decoration:none}
         if (in_array($replacementStatus, ['confirmed', 'completed'], true)) $journeyCurrent = 4;
         $journeyCopy = 'Your confirmed booking is being updated with a replacement supplier.';
     } elseif ($journeyIsCancellation) {
+        $supplierInitiatedJourney = false;
+        foreach ($suppliers as $sup) {
+            if (($sup['status'] ?? '') === 'supplier_cancellation_requested') { $supplierInitiatedJourney = true; break; }
+        }
         $journeySteps = [
             'Booking Placed',
-            'Cancellation Requested',
+            $supplierInitiatedJourney ? 'Supplier Requests Cancellation' : 'Cancellation Requested',
             'Cancelled',
         ];
         $journeyCurrent = $journeyStatus === 'cancelled' ? 2 : 1;
-        $journeyCopy = 'Your cancellation progress is shown here in soft red for clarity.';
+        $journeyCopy = $supplierInitiatedJourney
+            ? 'Your supplier has requested to cancel this booking. Admin will review and process your refund.'
+            : 'Your cancellation progress is shown here in soft red for clarity.';
     } else {
         $journeySteps = [
             'Booking Placed',
-            'Deposit Required',
-            'Payment Under Review',
+            'Deposit Paid',
             'Booking Confirmed',
+            'Remaining Payment',
+            'Fully Paid',
             'Service Completed',
         ];
         if ($journeyStatus === 'completed') {
+            $journeyCurrent = 5;
+        } elseif ($journeyStatus === 'finalized') {
             $journeyCurrent = 4;
-        } elseif ($journeyStatus === 'confirmed') {
+        } elseif ($journeyStatus === 'pending_final_payment') {
             $journeyCurrent = 3;
+        } elseif ($journeyStatus === 'confirmed') {
+            if ($hasRemainingBalance) {
+                $journeyCurrent = 3; // Highlight "Remaining Payment" as current
+            } else {
+                $journeyCurrent = 3;
+            }
         } elseif (in_array($journeyStatus, ['payment_submitted', 'pending_admin', 'paid'], true)) {
-            $journeyCurrent = 2;
-        } elseif ($journeyStatus === 'pending_payment') {
             $journeyCurrent = 1;
+        } elseif ($journeyStatus === 'pending_payment') {
+            $journeyCurrent = 0;
         } else {
             $journeyCurrent = 0;
         }
@@ -467,9 +569,20 @@ a{color:inherit;text-decoration:none}
           </tbody>
         </table>
         <div class="gp-summary">
-          <div class="gp-summary-r"><span>Total</span><span><?=$money((float)($booking['total_amount']??0))?></span></div>
-          <div class="gp-summary-r" style="color:var(--plum);font-weight:600;"><span>Deposit paid (<?=$depositPercent?>%)</span><span><?=$money((float)($booking['paid_amount']??0))?></span></div>
-          <div class="gp-summary-r balance" style="color:var(--muted);font-size:12px;"><span>Balance due</span><span><?=$money(max(0,(float)($booking['total_amount']??0)-(float)($booking['paid_amount']??0)))?></span></div>
+          <?php
+          $summaryTotal = (float)($booking['total_amount'] ?? 0);
+          $summaryDeposit = round($summaryTotal * ($depositPercent / 100), 2);
+          $summaryFee = round($summaryTotal * ($platformFeePercent / 100), 2);
+          $summaryPaid = (float)($booking['paid_amount'] ?? 0);
+          $summaryBalance = max(0, $summaryTotal - $summaryPaid);
+          ?>
+          <div class="gp-summary-r"><span>Booking total</span><span><?=$money($summaryTotal)?></span></div>
+          <div class="gp-summary-r"><span>Deposit (<?=$depositPercent?>%)</span><span><?=$money($summaryDeposit)?></span></div>
+          <?php if ($summaryFee > 0): ?>
+          <div class="gp-summary-r"><span>Platform fee (<?=rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.')?>%)</span><span><?=$money($summaryFee)?></span></div>
+          <?php endif; ?>
+          <div class="gp-summary-r" style="color:var(--plum);font-weight:600;"><span>Amount paid</span><span><?=$money($summaryPaid)?></span></div>
+          <div class="gp-summary-r balance" style="color:var(--muted);font-size:12px;"><span>Balance due</span><span><?=$money($summaryBalance)?></span></div>
         </div>
       </div>
 
@@ -492,12 +605,30 @@ a{color:inherit;text-decoration:none}
   <?php $reviewFlashSuccess = $_SESSION['review_success'] ?? null; $reviewFlashError = $_SESSION['review_error'] ?? null; unset($_SESSION['review_success'], $_SESSION['review_error']); ?>
   <?php if ($canReview || $existingReview): ?>
   <div class="gp-review-section">
-    <div class="gp-review-section-h">Your Review</div>
+    <div class="gp-review-section-h"><?= $existingReview ? 'Your Review' : 'Leave a Review' ?></div>
     <div class="gp-review-section-b">
       <?php if ($reviewFlashSuccess): ?>
         <div class="gp-flash-success"><?= $h($reviewFlashSuccess) ?></div>
       <?php elseif ($reviewFlashError): ?>
         <div class="gp-flash-error"><?= $h($reviewFlashError) ?></div>
+      <?php endif; ?>
+
+      <!-- Completed services list -->
+      <?php if (!empty($items)): ?>
+      <div style="margin-bottom:16px">
+        <p style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Services completed</p>
+        <?php foreach ($items as $idx => $svc): ?>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;<?= $idx > 0 ? 'border-top:1px solid var(--rule);' : '' ?>">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="color:var(--muted);font-size:14px">✓</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--text)"><?= $h($svc['service_name'] ?? 'Service') ?></div>
+            <div style="font-size:11px;color:var(--muted)"><?= $h($svc['supplier_name'] ?? '') ?></div>
+          </div>
+        </div>
+        <?php endforeach; ?>
+      </div>
       <?php endif; ?>
 
       <?php if ($existingReview): ?>
@@ -532,14 +663,14 @@ a{color:inherit;text-decoration:none}
 
       <?php elseif ($canReview): ?>
         <form method="POST" action="<?=URLROOT?>/review/submit/<?=(int)($booking['id']??0)?>">
-          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">How was your experience with this booking?</p>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">How was your experience with these services?</p>
           <div class="gp-star-picker" id="submitStarPicker">
             <?php for ($s = 1; $s <= 5; $s++): ?>
               <button class="gp-star-btn" type="button" data-val="<?=$s?>" onclick="setSubmitStar(<?=$s?>)">★</button>
             <?php endfor; ?>
           </div>
           <input type="hidden" name="rating" id="submitRatingInput" value="">
-          <textarea class="gp-review-textarea" name="comment" placeholder="Share your experience (min 10 characters)…" maxlength="2000" oninput="updateCharCount('submitCommentCount',this.value,2000)"></textarea>
+          <textarea class="gp-review-textarea" name="comment" placeholder="Share your experience with the services you received (min 10 characters)…" maxlength="2000" oninput="updateCharCount('submitCommentCount',this.value,2000)"></textarea>
           <div class="gp-review-chars"><span id="submitCommentCount">0</span> / 2000</div>
           <div style="margin-top:12px">
             <button class="gp-btn-sm primary" type="submit" onclick="return validateReviewForm()">Submit Review</button>
@@ -566,8 +697,206 @@ a{color:inherit;text-decoration:none}
     <?php elseif (($booking['status']??'') === 'pending_supplier_response'): ?>
     <span class="gp-btn-sm" style="cursor:default;opacity:0.6;" title="Payment available after supplier confirms">Awaiting Supplier Response</span>
     <?php endif; ?>
+    <?php if ($hasRemainingBalance && !$hasPendingRemaining): ?>
+    <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance (<?= $money($summaryBalance) ?>)</a>
+    <?php elseif ($hasRemainingBalance && $hasPendingRemaining): ?>
+    <span class="gp-btn-sm" style="cursor:default;opacity:0.6;">Remaining Payment Under Review</span>
+    <?php endif; ?>
+
+    <?php if ($hasRemainingBalance): ?>
+    <div class="gp-card" style="margin-top:12px;">
+      <div class="gp-card-h">Remaining Balance Details</div>
+      <div class="gp-card-b" style="gap:10px;">
+        <?php if ($eventDateDisplay): ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px;">
+          <span style="color:var(--muted);font-weight:600;">Due Date (Event Date)</span>
+          <span style="font-weight:700;color:#b8924a;"><?= date('M d, Y', strtotime($eventDateDisplay)) ?></span>
+        </div>
+        <?php endif; ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px;">
+          <span style="color:var(--muted);font-weight:600;">Remaining Balance</span>
+          <span style="font-weight:700;color:var(--plum);"><?= $money($summaryBalance) ?></span>
+        </div>
+        <?php if (!empty($remainingPaymentsList)): ?>
+        <div style="padding-top:8px;">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Payment History</div>
+          <?php foreach ($remainingPaymentsList as $rp): ?>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px;">
+            <div>
+              <span style="font-weight:600;"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
+              <?php if (($rp['bank_name'] ?? '') !== ''): ?>
+              <span style="color:var(--muted);margin-left:8px;"><?= $h($rp['bank_name']) ?></span>
+              <?php endif; ?>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-weight:700;"><?= $money($rp['paid_amount'] ?? $rp['amount']) ?></span>
+              <?php
+                $rpStatus = $rp['status'] ?? 'pending';
+                $rpColors = [
+                  'success' => ['bg' => '#f0fdf4', 'color' => '#166534', 'label' => 'Verified'],
+                  'pending' => ['bg' => '#fffbeb', 'color' => '#92400e', 'label' => 'Under Review'],
+                  'failed'  => ['bg' => '#fef2f2', 'color' => '#991b1b', 'label' => 'Rejected'],
+                ];
+                $rpSt = $rpColors[$rpStatus] ?? $rpColors['pending'];
+              ?>
+              <span style="background:<?= $rpSt['bg'] ?>;color:<?= $rpSt['color'] ?>;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;"><?= $rpSt['label'] ?></span>
+            </div>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php endif; ?>
     <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
     <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
+    <?php endif; ?>
+    <?php if (($booking['status'] ?? '') === 'cancellation_requested'): ?>
+      <?php
+      $supplierApproved = false;
+      $supplierPending = false;
+      $supplierInitiated = false;
+      $supplierInitiatedName = '';
+      foreach ($suppliers as $sup) {
+        if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
+        if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
+        if (($sup['status'] ?? '') === 'supplier_cancellation_requested') {
+          $supplierInitiated = true;
+          $supplierInitiatedName = $sup['shop_name'] ?? 'Your supplier';
+        }
+      }
+      // Find cancellation reason from status logs
+      $cancelReason = '';
+      foreach (array_reverse($logs ?? []) as $log) {
+        if (($log['new_status'] ?? '') === 'cancellation_requested' && !empty($log['note'])) {
+          $cancelReason = $log['note'];
+          break;
+        }
+      }
+      ?>
+      <?php if ($supplierInitiated): ?>
+      <div style="background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:16px 18px;margin-top:8px;color:#9a3412">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:18px">⚠️</span>
+          <div>
+            <strong style="font-size:14px">Your supplier has requested to cancel this booking</strong>
+            <div style="font-size:12px;color:#c2410c;margin-top:2px"><?= $h($supplierInitiatedName) ?> is unable to fulfill this booking. Our admin team will review the request and process your refund.</div>
+          </div>
+        </div>
+        <?php if ($cancelReason): ?>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fdba74;font-size:12px">
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Reason from supplier</span><br>
+          <span style="font-weight:600"><?= $h($cancelReason) ?></span>
+        </div>
+        <?php endif; ?>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fdba74;font-size:12px;color:#c2410c;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>You will be notified once the admin processes your refund. No action is required from you.</span>
+        </div>
+      </div>
+      <?php elseif ($supplierPending): ?>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:8px">
+        <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
+        <?php if ($cancelReason): ?>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;font-size:12px;color:#a16207"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
+        <?php endif; ?>
+      </div>
+      <?php elseif ($supplierApproved): ?>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;font-size:13px;color:#166534;margin-top:8px">
+        <strong>Supplier approved</strong> — Your supplier has approved the cancellation. Admin will review and process your refund.
+        <?php if ($cancelReason): ?>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0;font-size:12px;color:#15803d"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
+        <?php endif; ?>
+      </div>
+      <?php else: ?>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;color:#1e40af;margin-top:8px">
+        <strong>Cancellation requested</strong> — Your cancellation request is being reviewed.
+        <?php if ($cancelReason): ?>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bfdbfe;font-size:12px;color:#1d4ed8"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+    <?php endif; ?>
+
+    <!-- Refund Status (shown when booking is cancelled and refund exists) -->
+    <?php
+      $refund = $refund ?? null;
+      $currentStatus2 = $booking['status'] ?? '';
+    ?>
+    <?php if ($refund): ?>
+      <?php
+        $refundStatus = (string)($refund['status'] ?? 'pending');
+        $refundColors = [
+          'pending'    => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e', 'icon' => '⏳'],
+          'processing' => ['bg' => '#eff6ff', 'border' => '#bfdbfe', 'text' => '#1e40af', 'icon' => '⚙️'],
+          'completed'  => ['bg' => '#f0fdf4', 'border' => '#bbf7d0', 'text' => '#166534', 'icon' => '✅'],
+          'rejected'   => ['bg' => '#fef2f2', 'border' => '#fecaca', 'text' => '#991b1b', 'icon' => '❌'],
+        ];
+        $rc = $refundColors[$refundStatus] ?? $refundColors['pending'];
+        $refundStatusText = [
+          'pending'    => 'Refund requested — admin will process your refund shortly.',
+          'processing' => 'Refund in progress — the admin has initiated the transfer to your account.',
+          'completed'  => 'Refund completed — the money has been sent to your account.',
+          'rejected'   => 'Refund request rejected.',
+        ];
+      ?>
+      <div style="background:<?= $rc['bg'] ?>;border:1px solid <?= $rc['border'] ?>;border-radius:12px;padding:16px 18px;margin-top:12px;color:<?= $rc['text'] ?>">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:18px"><?= $rc['icon'] ?></span>
+          <strong style="font-size:14px"><?= $refundStatusText[$refundStatus] ?? '' ?></strong>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:12.5px">
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Refund Amount</span><br>
+            <span style="font-weight:700;font-size:15px"><?= number_format((float)($refund['amount'] ?? 0), 0) ?> MMK</span>
+          </div>
+          <?php if (!empty($refund['policy_reason'])): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Policy Applied</span><br>
+            <span><?= htmlspecialchars($refund['policy_reason'], ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
+          <?php endif; ?>
+          <?php if ($refundStatus === 'completed' && !empty($refund['completed_at'])): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Completed On</span><br>
+            <span><?= date('M j, Y', strtotime($refund['completed_at'])) ?></span>
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($refund['refund_transaction_ref'])): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Transfer Reference</span><br>
+            <span style="font-weight:600"><?= htmlspecialchars($refund['refund_transaction_ref'], ENT_QUOTES, 'UTF-8') ?></span>
+            <?php if (!empty($refund['refund_bank_name'])): ?>
+              <span style="opacity:.7"> via <?= htmlspecialchars($refund['refund_bank_name'], ENT_QUOTES, 'UTF-8') ?></span>
+            <?php endif; ?>
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($refund['refund_slip_path']) && in_array($refundStatus, ['processing', 'completed'], true)): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Transfer Proof</span><br>
+            <?php if (preg_match('/\.(jpe?g|png|webp)$/i', $refund['refund_slip_path'])): ?>
+              <a href="<?= URLROOT . '/' . htmlspecialchars($refund['refund_slip_path'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" style="display:inline-block;margin-top:4px">
+                <img src="<?= URLROOT . '/' . htmlspecialchars($refund['refund_slip_path'], ENT_QUOTES, 'UTF-8') ?>" alt="Transfer proof" style="max-width:200px;max-height:120px;border-radius:8px;border:1px solid rgba(178,143,110,.3)">
+              </a>
+            <?php else: ?>
+              <a href="<?= URLROOT . '/' . htmlspecialchars($refund['refund_slip_path'], ENT_QUOTES, 'UTF-8') ?>" target="_blank" style="color:var(--plum);font-weight:600;text-decoration:underline;font-size:12px">
+                📄 View document
+              </a>
+            <?php endif; ?>
+          </div>
+          <?php endif; ?>
+          <?php if ($refundStatus === 'rejected' && !empty($refund['note'])): ?>
+          <div>
+            <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Reason</span><br>
+            <span><?= htmlspecialchars($refund['note'], ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
+          <?php endif; ?>
+        </div>
+      </div>
+    <?php elseif ($currentStatus2 === 'cancelled' && !$refund): ?>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 18px;margin-top:12px;color:#991b1b;font-size:13px">
+        <strong>Booking cancelled</strong> — No refund was issued for this booking based on the cancellation policy.
+      </div>
     <?php endif; ?>
   </div>
 </main>

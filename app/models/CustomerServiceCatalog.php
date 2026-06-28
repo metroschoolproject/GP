@@ -138,8 +138,19 @@ class CustomerServiceCatalog
 
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
-            $conditions[] = '(services.name LIKE :search OR services.description LIKE :search OR suppliers.shop_name LIKE :search OR categories.name LIKE :search)';
-            $bindings[':search'] = '%' . $search . '%';
+            // Split search into individual words for flexible matching
+            $tokens = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($tokens as $i => $token) {
+                $key = ':search_' . $i;
+                $conditions[] = '(services.name LIKE ' . $key . ' OR services.description LIKE ' . $key . ' OR suppliers.shop_name LIKE ' . $key . ' OR categories.name LIKE ' . $key . ')';
+                $bindings[$key] = '%' . $token . '%';
+            }
+            // Also match full query with spaces removed (e.g. "uhton" matches "U Hton")
+            $compact = preg_replace('/\s+/', '', $search);
+            if ($compact !== '') {
+                $conditions[] = '(REPLACE(services.name, " ", "") LIKE :search_compact OR REPLACE(suppliers.shop_name, " ", "") LIKE :search_compact OR REPLACE(categories.name, " ", "") LIKE :search_compact)';
+                $bindings[':search_compact'] = '%' . $compact . '%';
+            }
         }
 
         $category = trim((string)($filters['category'] ?? ''));
@@ -315,6 +326,8 @@ class CustomerServiceCatalog
         $formatted['selected_date'] = $selectedDate ?: '';
         $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate, $formatted['min_lead_days']) : [];
         $formatted['decoration_styles'] = strtolower((string)$formatted['category']) === 'decoration' ? $this->getDecorationStyles($serviceId) : [];
+        $formatted['food_items'] = strtolower((string)$formatted['category']) === 'food' ? $this->getFoodItems($serviceId) : [];
+        $formatted['attire_items'] = strtolower((string)$formatted['category']) === 'attire' ? $this->getAttireItemsWithRentalOptions($serviceId) : [];
         $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted, $selectedDate);
 
         require_once APPROOT . '/models/ReviewModel.php';
@@ -601,6 +614,9 @@ class CustomerServiceCatalog
         }
         $selectedDate = $this->normalizeDate($selectedDate);
 
+        $todayDateValue = $today->format('Y-m-d');
+        $bookingType = ($service['booking_type'] ?? 'fullday') === 'slot' ? 'slot' : 'fullday';
+
         if ($selectedDate) {
             $anchor = DateTimeImmutable::createFromFormat('!Y-m-d', $selectedDate);
             if ($anchor) {
@@ -617,6 +633,12 @@ class CustomerServiceCatalog
 
                     $availability = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue);
                     if (!$availability || empty($availability['slots'])) {
+                        // Always show today even if unavailable — so customer
+                        // sees "Closed" rather than today just disappearing.
+                        if ($dateValue === $todayDateValue && $availability) {
+                            $days[] = $availability;
+                            $seen[$dateValue] = true;
+                        }
                         continue;
                     }
 
@@ -628,15 +650,26 @@ class CustomerServiceCatalog
             return $days;
         }
 
-        for ($i = 0; $i < 28 && count($days) < 8; $i++) {
+        // No selected date: build the default 7-day list starting from today.
+        for ($i = 0; $i < 28 && count($days) < 7; $i++) {
             $day = $today->modify('+' . $i . ' days');
             $dateValue = $day->format('Y-m-d');
 
             $availability = $this->availabilityForDate($serviceId, $service, $weekly, $overrides, $dateValue);
             if (!$availability || empty($availability['slots'])) {
+                // Always show today
+                if ($dateValue === $todayDateValue && $availability) {
+                    $availability['is_today'] = true;
+                    $availability['status'] = $bookingType === 'slot'
+                        ? 'No times available today'
+                        : 'Closed today';
+                    $days[] = $availability;
+                    $seen[$dateValue] = true;
+                }
                 continue;
             }
 
+            $availability['is_today'] = ($dateValue === $todayDateValue);
             $days[] = $availability;
             $seen[$dateValue] = true;
         }
@@ -667,24 +700,49 @@ class CustomerServiceCatalog
         $hours = $this->hoursForDate($dateValue, $weekly, $overrides);
         $slots = [];
         $status = 'Unavailable';
+        $isAllPast = false;
 
         if (!empty($hours['is_available'])) {
             $duration = max(15, (int)($service['duration_minutes'] ?? 60));
             $buffer = max(0, (int)($service['buffer_minutes'] ?? 0));
             $bookingType = ($service['booking_type'] ?? 'fullday') === 'slot' ? 'slot' : 'fullday';
-            $slots = $bookingType === 'slot'
-                ? $this->availableSlotsForDate($serviceId, $dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer, (int)($service['max_concurrent'] ?? 1))
-                : ($this->isFutureSlot($dateValue, $hours['open_time']) ? [[
+
+            if ($bookingType === 'slot') {
+                $slots = $this->availableSlotsForDate($serviceId, $dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer, (int)($service['max_concurrent'] ?? 1));
+
+                // Detect: all generated slots are past for today
+                $generatedSlots = $this->buildSlots($dateValue, $hours['open_time'], $hours['close_time'], $duration, $buffer);
+                $anyFuture = false;
+                foreach ($generatedSlots as $gs) {
+                    if ($this->isFutureSlot($dateValue, $gs['start_time'])) {
+                        $anyFuture = true;
+                        break;
+                    }
+                }
+                $isAllPast = !empty($generatedSlots) && !$anyFuture;
+            } else {
+                $slots = $this->isFutureSlot($dateValue, $hours['open_time']) ? [[
                     'start_time' => $hours['open_time'],
                     'end_time' => $hours['close_time'],
                     'label' => $this->formatTimeRange($hours['open_time'], $hours['close_time']),
                     'remaining' => max(1, (int)($service['max_concurrent'] ?? 1)),
-                ]] : []);
+                ]] : [];
+                $isAllPast = empty($slots);
+            }
             $status = $hours['source'] === 'override' ? 'Custom hours' : 'Available';
         }
 
+        // Better status for empty slots
         if (empty($slots) && !empty($hours['is_available'])) {
-            $status = 'Booked';
+            $todayStr = (new DateTimeImmutable('today'))->format('Y-m-d');
+            if ($dateValue === $todayStr && $isAllPast) {
+                $status = 'Closed today';
+                if ($bookingType === 'slot') {
+                    $status = 'No more slots today';
+                }
+            } elseif ($status !== 'Available') {
+                $status = 'Booked';
+            }
         }
 
         return [
@@ -823,6 +881,34 @@ class CustomerServiceCatalog
                 'name' => $row['name'] ?? '',
                 'price' => (float)($row['price'] ?? 0),
                 'photo_url' => trim((string)($row['photo_url'] ?? '')),
+            ];
+        }, $this->db->getmultidata());
+    }
+
+    private function getFoodItems($serviceId): array
+    {
+        try {
+            $this->db->dbquery(
+                'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
+                 FROM food_items
+                 WHERE service_id = :service_id
+                 ORDER BY sort_order ASC, id ASC'
+            );
+            $this->db->dbbind(':service_id', (int)$serviceId);
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        return array_map(function ($row) {
+            return [
+                'id' => (int)($row['id'] ?? 0),
+                'name' => $row['name'] ?? '',
+                'description' => $row['description'] ?? '',
+                'price' => (float)($row['price'] ?? 0),
+                'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
+                'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
+                'photo_url' => trim((string)($row['photo_url'] ?? '')),
+                'pricing_model' => $row['pricing_model'] ?? 'flat',
             ];
         }, $this->db->getmultidata());
     }
@@ -1237,5 +1323,32 @@ class CustomerServiceCatalog
         $this->db->dbbind(':township_like2', $townshipLike);
 
         return array_map(fn($row) => (int)$row['id'], $this->db->getmultidata());
+    }
+
+    /**
+     * Fetch attire items for a service with their rental options.
+     */
+    private function getAttireItemsWithRentalOptions(int $serviceId): array
+    {
+        $this->db->dbquery(
+            'SELECT * FROM attire_items
+             WHERE service_id = :service_id
+             ORDER BY sort_order ASC, id ASC'
+        );
+        $this->db->dbbind(':service_id', $serviceId);
+        $items = $this->db->getmultidata();
+
+        foreach ($items as &$item) {
+            $this->db->dbquery(
+                'SELECT * FROM attire_rental_options
+                 WHERE attire_item_id = :attire_item_id
+                 ORDER BY days ASC'
+            );
+            $this->db->dbbind(':attire_item_id', (int)$item['id']);
+            $item['rental_options'] = $this->db->getmultidata();
+        }
+        unset($item);
+
+        return $items;
     }
 }

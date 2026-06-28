@@ -7,6 +7,7 @@ $weeklyRows = is_array($availability['weekly'] ?? null) ? $availability['weekly'
 $overrideRows = is_array($availability['overrides'] ?? null) ? $availability['overrides'] : [];
 $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'] : [];
 $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
+$foodItems = is_array($service['food_items'] ?? null) ? $service['food_items'] : [];
 $attireItems = is_array($service['attire_items'] ?? null) ? $service['attire_items'] : [];
 
 $dashboardTitle = 'Supplier';
@@ -137,14 +138,15 @@ $isReady = empty($attentionItems);
 $mediaCreateUrl = URLROOT . '/supplier/serviceMediaCreate/' . $serviceId;
 $mediaDeleteUrl = URLROOT . '/supplier/serviceMediaDelete/' . $serviceId . '/';
 $serviceUpdateUrl = URLROOT . '/supplierServices/serviceUpdate/' . $serviceId;
+$serviceStatusUrl = URLROOT . '/supplierServices/serviceStatus/' . $serviceId;
 $publishRequestUrl = URLROOT . '/supplier/servicePublishRequest/' . $serviceId;
 $publishStatusUrl = URLROOT . '/supplier/servicePublishStatus/' . $serviceId;
 $availabilitySaveUrl = URLROOT . '/supplier/serviceAvailabilitySave/' . $serviceId;
 $overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $serviceId;
 $overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
-$previewUrl = URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId;
+$serviceManageUrl = URLROOT . '/supplier/services';
 
-$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $attireItems, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $maxConcurrentPackage, $maxConcurrentCustomize, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $previewUrl) {
+$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $foodItems, $attireItems, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $maxConcurrentPackage, $maxConcurrentCustomize, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $serviceStatusUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $serviceManageUrl) {
 ?>
 <?php
 $serviceDetailCssVersion = file_exists(APPROOT . '/../public/css/supplier-service-detail.css') ? filemtime(APPROOT . '/../public/css/supplier-service-detail.css') : time();
@@ -154,12 +156,13 @@ $serviceDetailConfig = [
         'mediaCreate' => $mediaCreateUrl,
         'mediaDelete' => $mediaDeleteUrl,
         'serviceUpdate' => $serviceUpdateUrl,
+        'serviceStatus' => $serviceStatusUrl,
         'publishRequest' => $publishRequestUrl,
         'publishStatus' => $publishStatusUrl,
         'availabilitySave' => $availabilitySaveUrl,
         'overrideSave' => $overrideSaveUrl,
         'overrideDelete' => $overrideDeleteUrl,
-        'preview' => $previewUrl,
+        'serviceManage' => $serviceManageUrl,
     ],
     'servicePayloadBase' => [
         'name' => $serviceNameRaw,
@@ -176,6 +179,7 @@ $serviceDetailConfig = [
         'rental_pricing' => $rentalPricing ?: null,
     ],
     'decorationStyles' => $decorationStyles,
+    'foodItems' => $foodItems,
     'attireItems' => $attireItems,
 ];
 ?>

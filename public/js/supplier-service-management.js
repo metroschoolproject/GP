@@ -1,19 +1,24 @@
 // ── DATA ──────────────────────────────────────────────────────
-const BADGE = { Venue:'badge-venue', Accessories:'badge-decor', Dress:'badge-makeup', Decoration:'badge-decor', Food:'badge-catering', Package:'badge-others', Studio:'badge-photo', Makeup:'badge-makeup', Photography:'badge-photo', Catering:'badge-catering', Decor:'badge-decor', Music:'badge-music', Others:'badge-others' };
-const GRAD  = { Venue:'from-amber-50 to-orange-50', Accessories:'from-yellow-50 to-amber-50', Dress:'from-rose-50 to-orange-50', Decoration:'from-pink-50 to-rose-50', Food:'from-stone-50 to-emerald-50', Package:'from-stone-50 to-zinc-50', Studio:'from-blue-50 to-stone-50', Makeup:'from-rose-50 to-orange-50', Photography:'from-blue-50 to-stone-50', Catering:'from-stone-50 to-emerald-50', Decor:'from-yellow-50 to-amber-50', Music:'from-red-50 to-stone-50', Others:'from-stone-50 to-zinc-50' };
 const ICON  = { Venue:'🏛️', Accessories:'✨', Dress:'👗', Decoration:'🌸', Food:'🍽️', Package:'🎀', Studio:'📸', Makeup:'💄', Photography:'📸', Catering:'🍽️', Decor:'🌸', Music:'🎵', Others:'✨' };
 
 const serviceManagementConfig = window.serviceManagementConfig || {};
 const serviceManagementUrls = serviceManagementConfig.urls || {};
 const DATA_URLROOT = (serviceManagementConfig.urls?.data || '').replace(/\/supplierServices\/serviceManagementData$/, '');
 const PAGE_SIZE = Number(serviceManagementConfig.pageSize || 24);
-const INITIAL_TAB = serviceManagementConfig.initialTab === 'packages' ? 'packages' : 'services';
+const PACKAGES_AVAILABLE = serviceManagementConfig.initialData?.meta?.supplier_packages_available !== false;
+const INITIAL_TAB = PACKAGES_AVAILABLE && serviceManagementConfig.initialTab === 'packages' ? 'packages' : 'services';
 
 let currentTab = INITIAL_TAB, currentFilter = 'All', statusFilter = 'all', nextId = 200;
 let editingSvcId = null, editingPkgId = null;
 let currentSort = 'newest'; // newest, name_asc, price_asc, price_desc
+let viewMode = localStorage.getItem('smViewMode') || 'grid';
 
-function serviceDetailUrl(id) { return DATA_URLROOT + '/supplier/serviceDetail/' + id; }
+function svcStatusInfo(item) {
+  const ps = item.publish_status || 'draft';
+  if (ps === 'pending_review') return { cls: 'is-pending', label: 'Pending review' };
+  if (item.status === 'active') return { cls: 'is-active', label: 'Published' };
+  return { cls: '', label: 'Draft' };
+}
 
 // ── TOAST ───────────────────────────────────────────────────────
 function showToast(message, type) {
@@ -30,7 +35,7 @@ function showToast(message, type) {
   toast.style.opacity = '1';
   toast.style.transform = 'translateX(-50%) translateY(0)';
   toast.style.background = type === 'success' ? '#166534' : type === 'info' ? '#1e40af' : '#991b1b';
-  toast.style.color = '#fcf8f5';
+  toast.style.color = '#fff';
   clearTimeout(toast._timer);
   toast._timer = setTimeout(function(){
     toast.style.opacity = '0';
@@ -111,35 +116,21 @@ function packageCheckboxHtml(category, className) {
 
 function renderCategoryControls() {
   var csSelect = document.getElementById('csCategory');
-  var createCategoryCards = document.getElementById('createCategoryCards');
+  var createPills = document.getElementById('createCategoryPills');
   var epCategoryList = document.getElementById('epCategoryList');
   var cpCategoryList = document.getElementById('cpCategoryList');
-  var nonVenueCategories = serviceCategories.filter(function(category){ return category !== 'Venue'; });
-  var selectableCategories = nonVenueCategories.length ? nonVenueCategories : serviceCategories;
 
   if (csSelect) {
     csSelect.innerHTML = '<option value="">Choose category...</option>' + serviceCategories.map(categoryOptionHtml).join('');
   }
 
-  if (createCategoryCards) {
-    var categoryMeta = {
-      Venue: ['⌂', 'Rooms, halls and event spaces'],
-      Decoration: ['✦', 'Themes, styling and décor'],
-      Dress: ['♢', 'Wedding and formal wear'],
-      Accessories: ['◌', 'Jewellery and finishing pieces'],
-      Food: ['◇', 'Catering, cakes and dining'],
-      Studio: ['□', 'Photo and video services'],
-      Package: ['▦', 'Bundled service offerings']
-    };
-    createCategoryCards.innerHTML = serviceCategories.map(function(category, index) {
-      var meta = categoryMeta[category] || ['＋', 'Specialist wedding service'];
-      return '<button type="button" class="create-category-card" data-create-category-index="' + index + '" data-create-category="' + escapeHtml(category) + '">' +
-        '<span class="create-category-icon" aria-hidden="true">' + meta[0] + '</span>' +
-        '<strong>' + escapeHtml(category) + '</strong><small>' + meta[1] + '</small></button>';
+  if (createPills) {
+    createPills.innerHTML = serviceCategories.map(function(category) {
+      return '<button type="button" class="create-cat-pill" data-pill-cat="' + escapeHtml(category) + '">' + escapeHtml(category) + '</button>';
     }).join('');
-    createCategoryCards.querySelectorAll('[data-create-category-index]').forEach(function(card) {
-      card.addEventListener('click', function() {
-        selectCreateCategory(serviceCategories[Number(card.dataset.createCategoryIndex)] || '');
+    createPills.querySelectorAll('[data-pill-cat]').forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        selectCreateCategory(pill.dataset.pillCat);
       });
     });
   }
@@ -492,6 +483,100 @@ function validateVenueRooms(prefix) {
   return true;
 }
 
+// ── FOOD ITEMS (CAKES) ──────────────────────────────────────
+let foodItemCounter = 0;
+
+function foodItemRowHtml(prefix, item = {}) {
+  const uid = ++foodItemCounter;
+  const name = escapeHtml(item.name || '');
+  const desc = escapeHtml(item.description || '');
+  const packagePrice = item.package_price ?? item.price ?? '';
+  const customizePrice = item.customize_price ?? item.price ?? '';
+  const photoUrl = item.photo_url || '';
+  const photoInputId = `foodPhotoInput_${uid}`;
+  const photoPreviewId = `foodPhotoPreview_${uid}`;
+  const photoDataId = `foodPhotoData_${uid}`;
+  const photoPreviewHtml = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`
+    : `<span style="font-size:11px;color:#aaa">Photo</span>`;
+  return `
+    <div class="${prefix}-food-item" style="background:var(--fm-surface-warm);border:1px solid var(--fm-border);border-radius:var(--fm-radius);padding:14px 16px">
+      <div style="display:grid;grid-template-columns:80px minmax(0,1fr);gap:12px;align-items:start">
+        <input type="hidden" class="food-photo-data" id="${photoDataId}" value="${escapeHtml(photoUrl)}">
+        <label for="${photoInputId}" id="${photoPreviewId}" style="display:flex;align-items:center;justify-content:center;width:80px;height:60px;border:1.5px dashed #d1c9c0;border-radius:6px;cursor:pointer;overflow:hidden;background:#faf8f5">${photoPreviewHtml}</label>
+        <input type="file" id="${photoInputId}" accept="image/*" class="absolute opacity-0 pointer-events-none w-px h-px" onchange="onFoodItemPhotoChange(this,'${photoDataId}','${photoPreviewId}')"/>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input type="text" value="${name}" placeholder="e.g. Chocolate Wedding Cake" class="fm-input food-name" style="font-size:13px;padding:6px 8px"/>
+          <input type="text" value="${desc}" placeholder="Description (optional)" class="fm-input food-description" style="font-size:12px;padding:6px 8px"/>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;align-items:center;margin-top:10px">
+        <input type="number" min="0" step="0.01" value="${packagePrice}" placeholder="Package price" class="fm-input food-package-price" style="font-size:12px;padding:6px 8px"/>
+        <input type="number" min="0" step="0.01" value="${customizePrice}" placeholder="Customize price" class="fm-input food-customize-price" style="font-size:12px;padding:6px 8px"/>
+        <button type="button" onclick="removeFoodItem(this,'${prefix}')" class="room-row-remove" title="Remove">&times;</button>
+      </div>
+    </div>
+  `;
+}
+
+function collectFoodItems(prefix) {
+  const rows = Array.from(document.querySelectorAll('.' + prefix + '-food-item'));
+  return rows.map(row => ({
+    name: row.querySelector('.food-name')?.value.trim() || '',
+    description: row.querySelector('.food-description')?.value.trim() || '',
+    price: parseFloat(row.querySelector('.food-package-price')?.value || '0') || 0,
+    package_price: parseFloat(row.querySelector('.food-package-price')?.value || '0') || 0,
+    customize_price: parseFloat(row.querySelector('.food-customize-price')?.value || '0') || 0,
+    photo_url: row.querySelector('.food-photo-data')?.value || null,
+  })).filter(s => s.name !== '');
+}
+
+function renderFoodItems(prefix, items = []) {
+  const list = document.getElementById(prefix + 'FoodItemsList');
+  if (!list) return;
+  const rows = items.length ? items : [{}];
+  list.innerHTML = rows.map(s => foodItemRowHtml(prefix, s)).join('');
+}
+
+function addFoodItem(prefix) {
+  const list = document.getElementById(prefix + 'FoodItemsList');
+  if (!list) return;
+  list.insertAdjacentHTML('beforeend', foodItemRowHtml(prefix));
+}
+
+function removeFoodItem(btn, prefix) {
+  const list = document.getElementById(prefix + 'FoodItemsList');
+  const row = btn.closest('.' + prefix + '-food-item');
+  if (!list || !row) return;
+  if (list.querySelectorAll('.' + prefix + '-food-item').length <= 1) {
+    row.querySelectorAll('input').forEach(i => { if (i.type !== 'hidden') i.value = ''; });
+    return;
+  }
+  row.remove();
+}
+
+function onFoodItemPhotoChange(input, dataId, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const dataInput = document.getElementById(dataId);
+    if (dataInput) dataInput.value = dataUrl;
+    const preview = document.getElementById(previewId);
+    if (preview) preview.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function validateFoodItems(prefix) {
+  const items = collectFoodItems(prefix);
+  if (!items.length) { showToast('Add at least one cake item with a name.', 'error'); return false; }
+  const missingPrice = items.find(s => s.price <= 0);
+  if (missingPrice) { showToast('Each cake item needs a price greater than zero.', 'error'); return false; }
+  return true;
+}
+
 // ── DECORATION STYLES ────────────────────────────────────────
 let decorationStyleCounter = 0;
 
@@ -664,7 +749,10 @@ function attireItemRowHtml(prefix) {
     '<div><label class="fm-label">Return days</label><input class="' + prefix + '-attire-return-days fm-input" type="number" min="1" step="1" placeholder="e.g. 3"></div>' +
     '</div>' +
     '<div class="attire-photo-data-wrap"><input class="' + prefix + '-attire-photo-data" type="hidden" value=""></div>' +
-    '<button type="button" onclick="removeAttireItem(this,\'' + prefix + '\')" class="btn-dull" style="margin-top:8px;font-size:11px">Remove</button>' +
+    '<button type="button" onclick="removeAttireItem(this,\'' + prefix + '\')" class="item-remove-btn">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
+      'Remove item' +
+    '</button>' +
     '</div>';
 }
 
@@ -742,12 +830,31 @@ function renderAttireItems(prefix, items) {
   });
 }
 
+function validateDefaultEventTime(prefix) {
+  var startEl = document.getElementById(prefix + 'DefaultStartTime');
+  var endEl = document.getElementById(prefix + 'DefaultEndTime');
+  if (!startEl || !endEl) return true;
+  var start = startEl.value.trim();
+  var end = endEl.value.trim();
+  if (start === '' && end === '') return true;
+  if (start === '' || end === '') {
+    showToast('Add both default event start and end time, or leave both blank.', 'error');
+    return false;
+  }
+  if (start >= end) {
+    showToast('Default event start time must be before end time.', 'error');
+    return false;
+  }
+  return true;
+}
+
 function serviceFormPayload(prefix, category) {
   const isVenue = category === 'Venue';
   const isDecoration = category === 'Decoration';
-  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire') || category === 'Attire';
+  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire');
+  const isFood = category === 'Food';
   const rooms = isVenue ? collectVenueRooms(prefix) : [];
-  const priceRange = isVenue ? venueRoomPriceRange(prefix) : (isDecoration || isRental ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload(prefix));
+  const priceRange = isVenue ? venueRoomPriceRange(prefix) : (isDecoration || isRental || isFood ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload(prefix));
   const minLeadDaysEl = document.getElementById(prefix + 'MinLeadDays');
   const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
   const minLeadDays = minLeadDaysValue === '' ? 0 : Math.max(0, Math.min(365, parseInt(minLeadDaysValue) || 0));
@@ -769,6 +876,7 @@ function serviceFormPayload(prefix, category) {
     default_end_time: document.getElementById(prefix + 'DefaultEndTime')?.value || null,
     rooms,
     decoration_styles: isDecoration ? collectDecorationStyles(prefix) : [],
+    food_items: isFood ? collectFoodItems(prefix) : [],
     rental_pricing: isRental ? collectRentalPricing(prefix) : null,
     attire_items: isRental ? collectAttireItems(prefix) : [],
     attire_items_replace: isRental,
@@ -795,36 +903,111 @@ function serviceDetailUrl(id) {
   return (serviceManagementUrls.serviceDetail || '#') + encodeURIComponent(id);
 }
 
+function setViewMode(mode) {
+  viewMode = mode === 'table' ? 'table' : 'grid';
+  localStorage.setItem('smViewMode', viewMode);
+
+  const gridBtn = document.getElementById('viewGrid');
+  const tableBtn = document.getElementById('viewTable');
+  const gridEl = document.getElementById('cardsGrid');
+  const tableEl = document.getElementById('tableWrap');
+
+  if (gridBtn) gridBtn.classList.toggle('active', viewMode === 'grid');
+  if (tableBtn) tableBtn.classList.toggle('active', viewMode === 'table');
+  if (gridBtn) gridBtn.setAttribute('aria-pressed', String(viewMode === 'grid'));
+  if (tableBtn) tableBtn.setAttribute('aria-pressed', String(viewMode === 'table'));
+  if (gridEl) {
+    gridEl.classList.toggle('hidden', viewMode === 'table');
+    gridEl.style.display = viewMode === 'table' ? 'none' : '';
+  }
+  if (tableEl) {
+    tableEl.classList.toggle('hidden', viewMode === 'grid');
+    tableEl.style.display = viewMode === 'grid' ? 'none' : '';
+  }
+}
+
+function navigateToServiceDetail(id) {
+  const url = serviceDetailUrl(id);
+  if (!url || url === '#') return;
+
+  if (window.top && window.top !== window) {
+    window.top.location.href = url;
+    return;
+  }
+
+  window.location.href = url;
+}
+
+function svcTableRow(item) {
+  item = normalizeServiceItem(item);
+  if (!item) return '';
+
+  const name = escapeHtml(item.name || 'Untitled');
+  const img = item.img
+    ? `<img src="${escapeHtml(item.img)}" class="td-name-img" alt="">`
+    : '<div class="td-name-img" style="display:grid;place-items:center;color:#A8A29E;font-size:14px">Photo</div>';
+  const st = svcStatusInfo(item);
+
+  return `
+    <tr>
+      <td><span class="td-status ${st.cls}">${st.label}</span></td>
+      <td><div class="td-name">${img}<span class="td-name-text">${name}</span></div></td>
+      <td class="td-cat">${escapeHtml(item.category || '-')}</td>
+      <td class="td-price">MMK ${formatPriceRange(item)}</td>
+      <td class="td-actions"><a href="${serviceDetailUrl(item.id)}" class="sm-card-link">Edit</a></td>
+    </tr>
+  `;
+}
+
+function pkgTableRow(item) {
+  item = normalizePackageItem(item);
+  if (!item) return '';
+
+  const name = escapeHtml(item.name || 'Untitled');
+  const categories = Array.isArray(item.categories) && item.categories.length ? item.categories.join(' · ') : 'Package';
+  const img = item.img
+    ? `<img src="${escapeHtml(item.img)}" class="td-name-img" alt="">`
+    : '<div class="td-name-img" style="display:grid;place-items:center;color:#A8A29E;font-size:14px">Photo</div>';
+  const isActive = item.status === 'active';
+
+  return `
+    <tr>
+      <td><span class="td-status ${isActive ? 'is-active' : ''}">${isActive ? 'Published' : 'Draft'}</span></td>
+      <td><div class="td-name">${img}<span class="td-name-text">${name}</span></div></td>
+      <td class="td-cat">${escapeHtml(categories)}</td>
+      <td class="td-price">MMK ${formatPrice(item.price)}</td>
+      <td class="td-actions"><button type="button" class="sm-card-link" onclick="openEditPackage(${item.id})">Edit</button></td>
+    </tr>
+  `;
+}
+
 // ── UNIFIED CREATE SERVICE MODAL ─────────────────────────────
 let currentCreateCategory = '';
-let currentCreateStep = 1;
 
 function selectCreateCategory(cat) {
   currentCreateCategory = cat;
   var select = document.getElementById('csCategory');
   if (select) select.value = cat;
-  document.querySelectorAll('[data-create-category]').forEach(function(card) {
-    card.classList.toggle('is-selected', card.dataset.createCategory === cat);
-    card.setAttribute('aria-pressed', card.dataset.createCategory === cat ? 'true' : 'false');
+  document.querySelectorAll('[data-pill-cat]').forEach(function(pill) {
+    pill.classList.toggle('is-selected', pill.dataset.pillCat === cat);
   });
-  var detailCategory = document.getElementById('createDetailCategory');
-  if (detailCategory) detailCategory.textContent = cat || 'your category';
   toggleCategoryFields(cat);
-  updateCreateFlowControls();
 }
 
 function toggleCategoryFields(category) {
   var isVenue = category === 'Venue';
   var isDecoration = category === 'Decoration';
-  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire') || category === 'Attire';
+  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire');
+  var isFood = category === 'Food';
 
   var standard = document.getElementById('csStandardPriceFields');
   var venueExtras = document.getElementById('csVenueExtras');
   var decoExtras = document.getElementById('csDecorationExtras');
   var rentalExtras = document.getElementById('csRentalExtras');
+  var foodExtras = document.getElementById('csFoodExtras');
   var attireList = document.getElementById('csAttireItemsList');
 
-  if (standard) standard.classList.toggle('hidden-section', isVenue || isDecoration || isRental);
+  if (standard) standard.classList.toggle('hidden-section', isVenue || isDecoration || isRental || isFood);
   if (attireList) {
     if (isRental && !attireList.querySelectorAll('.cs-attire-item').length) {
       addAttireItem('cs');
@@ -833,8 +1016,10 @@ function toggleCategoryFields(category) {
   if (venueExtras) venueExtras.classList.toggle('hidden-section', !isVenue);
   if (decoExtras) decoExtras.classList.toggle('hidden-section', !isDecoration);
   if (rentalExtras) rentalExtras.classList.toggle('hidden-section', !isRental);
+  if (foodExtras) foodExtras.classList.toggle('hidden-section', !isFood);
 
   if (isDecoration && !document.querySelectorAll('.cs-style-row').length) renderDecorationStyles('cs');
+  if (isFood && !document.querySelectorAll('.cs-food-item').length) renderFoodItems('cs');
 }
 
 function onCreateCategoryChange(value) {
@@ -844,15 +1029,15 @@ function onOthersCategoryChange(value) { onCreateCategoryChange(value); }
 
 function openCreateServiceModal() {
   resetCreateForm();
-  document.getElementById('createServiceModal').classList.remove('hidden');
+  document.getElementById('createServicePage').classList.remove('hidden');
+  document.querySelector('.sm-page').classList.add('hidden');
   renderCategoryControls();
-  currentCreateStep = 1;
   selectCreateCategory('');
-  showCreateStep(1);
 }
 
 function closeCreateServiceModal() {
-  document.getElementById('createServiceModal').classList.add('hidden');
+  document.getElementById('createServicePage').classList.add('hidden');
+  document.querySelector('.sm-page').classList.remove('hidden');
 }
 
 function resetCreateForm() {
@@ -870,113 +1055,19 @@ function resetCreateForm() {
   currentCreateCategory = '';
 }
 
-function showCreateStep(step) {
-  currentCreateStep = Math.max(1, Math.min(3, Number(step) || 1));
-  document.querySelectorAll('[data-create-step]').forEach(function(panel) {
-    panel.classList.toggle('is-active', Number(panel.dataset.createStep) === currentCreateStep);
-  });
-  document.querySelectorAll('[data-create-step-button]').forEach(function(button) {
-    var buttonStep = Number(button.dataset.createStepButton);
-    button.classList.toggle('is-active', buttonStep === currentCreateStep);
-    button.classList.toggle('is-complete', buttonStep < currentCreateStep);
-  });
-
-  var subtitles = {
-    1: 'Start by choosing what you provide.',
-    2: 'Add the information customers need at a glance.',
-    3: 'Complete pricing, availability, and category details.'
-  };
-  var subtitle = document.getElementById('createServiceSubtitle');
-  if (subtitle) subtitle.textContent = subtitles[currentCreateStep];
-  updateCreateFlowControls();
-
-  var body = document.querySelector('#createServiceModal .create-service-body');
-  if (body) body.scrollTop = 0;
-}
-
-function updateCreateFlowControls() {
-  var back = document.getElementById('createBackBtn');
-  var next = document.getElementById('createNextBtn');
-  var save = document.getElementById('createSaveBtn');
-  var summary = document.getElementById('createStepSummary');
-  if (back) back.classList.toggle('hidden', currentCreateStep === 1);
-  if (next) {
-    next.classList.toggle('hidden', currentCreateStep === 3);
-    next.disabled = currentCreateStep === 1 && !currentCreateCategory;
-  }
-  if (save) save.classList.toggle('hidden', currentCreateStep !== 3);
-  if (summary) {
-    summary.textContent = currentCreateStep === 1
-      ? (currentCreateCategory ? currentCreateCategory + ' selected' : 'Choose one category to continue')
-      : currentCreateStep === 2
-        ? 'Step 2 of 3 · ' + currentCreateCategory
-        : 'Ready to create · ' + currentCreateCategory;
-  }
-}
-
-function validateCreateEssentials() {
-  var name = document.getElementById('csName');
-  if (!name || !name.value.trim()) {
-    showToast('Add a service name before continuing.', 'error');
-    if (name) name.focus();
-    return false;
-  }
-  return true;
-}
-
-function validateDefaultEventTime(prefix) {
-  const start = document.getElementById(prefix + 'DefaultStartTime');
-  const end = document.getElementById(prefix + 'DefaultEndTime');
-  if (!start || !end) return true;
-
-  const startValue = start.value.trim();
-  const endValue = end.value.trim();
-  if (!startValue && !endValue) return true;
-
-  if (!startValue || !endValue) {
-    showToast('Add both default event start and end time, or leave both blank.', 'error');
-    (startValue ? end : start).focus();
-    return false;
-  }
-
-  if (startValue >= endValue) {
-    showToast('Default event end time must be later than the start time.', 'error');
-    end.focus();
-    return false;
-  }
-
-  return true;
-}
-
-function nextCreateStep() {
-  if (currentCreateStep === 1 && !currentCreateCategory) {
-    showToast('Choose a service category first.', 'error');
-    return;
-  }
-  if (currentCreateStep === 2 && !validateCreateEssentials()) return;
-  showCreateStep(currentCreateStep + 1);
-}
-
-function previousCreateStep() {
-  showCreateStep(currentCreateStep - 1);
-}
-
-function goToCreateStep(step) {
-  step = Number(step);
-  if (step >= currentCreateStep) return;
-  showCreateStep(step);
-}
-
 async function saveCreateService() {
   var category = document.getElementById('csCategory').value || currentCreateCategory;
+  if (!category) { showToast('Please choose a category.', 'error'); return; }
   var name = document.getElementById('csName').value.trim();
-  if (!name) { showCreateStep(2); showToast('Please fill in the service name.', 'error'); return; }
-  if (!validateDefaultEventTime('cs')) { showCreateStep(3); return; }
+  if (!name) { showToast('Please fill in the service name.', 'error'); document.getElementById('csName').focus(); return; }
+  if (!validateDefaultEventTime('cs')) return;
 
   if (category === 'Venue') {
     if (!validateVenueRooms('cs')) return;
   } else if (category === 'Decoration') {
     if (!validateDecorationStyles('cs')) return;
+  } else if (category === 'Food') {
+    if (!validateFoodItems('cs')) return;
   } else if (category === 'Dress' || category === 'Accessories' || category === 'Attire') {
     if (!validateAttireItems('cs')) return;
   } else {
@@ -1021,21 +1112,18 @@ function render() {
   if (!grid || !empty) return;
 
   grid.innerHTML = '';
+  const tableBody = document.getElementById('tableBody');
+  if (tableBody) tableBody.innerHTML = '';
   empty.classList.add('hidden');
 
   // Sort bar
   const sortWrap = document.getElementById('smSortWrap');
   if (sortWrap) sortWrap.classList.toggle('hidden', items.length === 0);
   // Highlight active sort
-  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('bg-[#6e4e58]','text-white','border-[#6e4e58]'));
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('is-active'));
   const activeSortBtn = document.getElementById('sort-'+currentSort.replace('_','-'));
   if (activeSortBtn) {
-    activeSortBtn.classList.add('bg-[#6e4e58]','text-white','border-[#6e4e58]');
-    activeSortBtn.classList.remove('bg-white','text-gray-700');
-  }
-
-  if (currentTab === 'services') {
-    grid.insertAdjacentHTML('beforeend', plusCard());
+    activeSortBtn.classList.add('is-active');
   }
 
   if (!items.length) {
@@ -1043,14 +1131,6 @@ function render() {
       if (emptyMessage) emptyMessage.textContent = 'No results for “' + searchQuery + '”';
       if (emptyActionLabel) {
         emptyActionLabel.textContent = 'Clear search';
-        emptyActionLabel.onclick = function(){
-          var si = document.getElementById('searchInput');
-          if (si) si.value = '';
-          searchQuery = '';
-          services = []; packages = []; pagingMeta = {};
-          renderEmpty(); loadMoreCurrentTab();
-        };
-        emptyActionLabel.style.cursor = 'pointer';
       }
     } else if (currentTab === 'packages') {
       if (emptyMessage) emptyMessage.textContent = 'How about creating a package right now?';
@@ -1062,26 +1142,27 @@ function render() {
     empty.classList.remove('hidden');
   } else {
     items.forEach(item => grid.insertAdjacentHTML('beforeend', currentTab === 'services' ? svcCard(item) : pkgCard(item)));
+    if (tableBody) {
+      tableBody.innerHTML = '';
+      items.forEach(item => tableBody.insertAdjacentHTML('beforeend', currentTab === 'services' ? svcTableRow(item) : pkgTableRow(item)));
+    }
   }
+  setViewMode(viewMode);
   updateLoadMoreControl();
 }
 
-function plusCard() {
-  return `
-  <div onclick="openCreateServiceModal()" class="service-card rounded-xl border-2 border-dashed border-gray-300 overflow-hidden cursor-pointer transition hover:border-[#6e4e58] hover:bg-[#fbf9f6] flex items-center justify-center" style="box-shadow:0 1px 4px rgba(74,59,50,0.05); background: rgba(252,248,245,0.5); min-height:300px;">
-    <div class="flex flex-col items-center justify-center gap-3 p-6">
-      <div class="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center transition group-hover:border-[#6e4e58]">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </div>
-      <span class="text-sm font-semibold text-gray-400">Add Service</span>
-    </div>
-  </div>`;
-}
-
 document.getElementById('emptyStateAction')?.addEventListener('click', () => {
+  if (searchQuery) {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+    searchQuery = '';
+    services = [];
+    packages = [];
+    pagingMeta = {};
+    renderEmpty();
+    loadMoreCurrentTab();
+    return;
+  }
   if (currentTab === 'packages') {
     openPackageModal();
     return;
@@ -1178,104 +1259,97 @@ function onSearchInput() {
 function renderEmpty() {
   const grid = document.getElementById('cardsGrid');
   if (grid) grid.innerHTML = '';
+  const tableBody = document.getElementById('tableBody');
+  if (tableBody) tableBody.innerHTML = '';
   document.getElementById('emptyState')?.classList.add('hidden');
 }
 
 function svcCard(item) {
   item = normalizeServiceItem(item);
   if (!item) return '';
-  const grad = GRAD[item.category]||'from-stone-100 to-stone-200';
-  const icon = ICON[item.category]||'✨';
-  const isActive = item.status === 'active';
-  const imgInner = item.img
-    ? `<img src="${item.img}" alt="${item.name}"/>`
-    : `<div class="card-icon"><span style="font-size:2.8rem;line-height:1">${icon}</span></div>`;
+  const icon = ICON[item.category] || '✨';
+  const st = svcStatusInfo(item);
+  const name = escapeHtml(item.name || 'Untitled service');
+  const category = escapeHtml(item.category || 'Service');
+  const description = escapeHtml(item.desc || 'No description added yet.');
+  const media = item.img
+    ? `<img src="${escapeHtml(item.img)}" alt="${name}"/>`
+    : `<div class="sm-card-placeholder" aria-hidden="true">${icon}</div>`;
+
   return `
-  <div onclick="window.location='${serviceDetailUrl(item.id)}'" class="service-card rounded-xl border border-gray-100 overflow-hidden cursor-pointer" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
-    <div class="card-img-wrap bg-gradient-to-br ${grad}">
-      ${imgInner}
+  <article role="link" tabindex="0" onclick="navigateToServiceDetail(${item.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();navigateToServiceDetail(${item.id})}" class="service-card sm-service-card cursor-pointer">
+    <div class="sm-card-media">
+      ${media}
+      <span class="sm-card-status ${st.cls}">${st.label}</span>
     </div>
-    <div class="card-img-overlay"></div>
-    <button onclick="event.stopPropagation();openEditService(${item.id})" class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-    </button>
-    <button onclick="event.stopPropagation();deleteService(${item.id})" class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete service">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-    </button>
-    <!-- Status pill top-right -->
-    <span class="status-pill ${isActive?'active-pill':'inactive-pill'} absolute top-2.5 right-2.5 z-10">
-      <span class="status-dot ${isActive?'dot-green':'dot-gray'}"></span>
-      ${isActive?'Active':'Inactive'}
-    </span>
-    <div class="card-content p-4 flex flex-col gap-2.5 justify-end">
-      <div class="flex-1 flex flex-col justify-end">
-        <div class="flex items-center justify-between mb-1.5">
-          <span class="text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE[item.category]||''}">${item.category}</span>
+    <div class="sm-card-body">
+      <div class="sm-card-topline">
+        <span class="sm-card-category">${category}</span>
+        <span class="sm-card-price">MMK ${formatPriceRange(item)}</span>
+      </div>
+      <h3 class="sm-card-title">${name}</h3>
+      <p class="sm-card-description line-clamp-2">${description}</p>
+      <div class="sm-card-footer">
+        <a href="${serviceDetailUrl(item.id)}" class="sm-card-link" onclick="event.stopPropagation()">Manage details →</a>
+        <div class="sm-card-actions">
+          <button type="button" onclick="event.stopPropagation();openEditService(${item.id})" class="sm-icon-btn" title="Edit service" aria-label="Edit ${name}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button type="button" onclick="event.stopPropagation();deleteService(${item.id})" class="sm-icon-btn is-danger" title="Delete service" aria-label="Delete ${name}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </button>
         </div>
-        <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
-        <p class="text-custom-primary font-bold text-sm mt-0.5">MMK ${formatPriceRange(item)}</p>
-        ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
-      </div>
-      <div class="pt-2.5 border-t border-gray-100">
-        <a href="${serviceDetailUrl(item.id)}"
-          class="btn-card flex w-full items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-semibold bg-white/90 text-gray-800 border border-white/30 hover:bg-white">
-          Manage details
-        </a>
       </div>
     </div>
-  </div>`;
+  </article>`;
 }
 
 function pkgCard(item) {
   item = normalizePackageItem(item);
   if (!item) return '';
-  const cats = item.categories||[];
-  const grad = cats.length ? (GRAD[cats[0]]||'from-stone-50 to-stone-100') : 'from-stone-50 to-stone-100';
-  const icons = cats.map(c=>ICON[c]||'🎀').join(' ');
+  const categories = item.categories || [];
+  const icons = categories.map(category => ICON[category] || '🎀').join(' ');
   const isActive = item.status === 'active';
-  const badges = cats.map(c=>`<span class="text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE[c]||''}">${c}</span>`).join('');
-  const imgInner = item.img
-    ? `<img src="${item.img}" alt="${item.name}"/>`
-    : `<div class="card-icon"><span style="font-size:2.4rem;line-height:1;letter-spacing:0.1em">${icons||'🎀'}</span></div>`;
+  const name = escapeHtml(item.name || 'Untitled package');
+  const description = escapeHtml(item.desc || 'No description added yet.');
+  const categorySummary = escapeHtml(categories.length ? categories.join(' · ') : 'Package');
+  const media = item.img
+    ? `<img src="${escapeHtml(item.img)}" alt="${name}"/>`
+    : `<div class="sm-card-placeholder" aria-hidden="true">${icons || '🎀'}</div>`;
+
   return `
-  <div onclick="event.preventDefault();" class="service-card rounded-xl border border-gray-100 overflow-hidden cursor-pointer" style="box-shadow:0 1px 4px rgba(74,59,50,0.05)">
-    <div class="card-img-wrap bg-gradient-to-br ${grad}">
-      ${imgInner}
+  <article class="service-card sm-service-card">
+    <div class="sm-card-media">
+      ${media}
+      <span class="sm-card-status ${isActive ? 'is-active' : ''}">${isActive ? 'Published' : 'Draft'}</span>
     </div>
-    <div class="card-img-overlay"></div>
-    <button onclick="event.stopPropagation();openEditPackage(${item.id})" class="btn-card btn-edit absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-black/50 transition">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-    </button>
-    <button onclick="event.stopPropagation();deletePackage(${item.id})" class="btn-card btn-delete absolute top-2.5 left-11 z-10 p-1.5 rounded-lg bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-rose-50 transition" title="Delete package">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-    </button>
-    <!-- Status pill top-right -->
-    <span class="status-pill ${isActive?'active-pill':'inactive-pill'} absolute top-2.5 right-2.5 z-10">
-      <span class="status-dot ${isActive?'dot-green':'dot-gray'}"></span>
-      ${isActive?'Active':'Inactive'}
-    </span>
-    <div class="card-content p-4 flex flex-col gap-2.5 justify-end">
-      <div class="flex-1 flex flex-col justify-end">
-        <div class="mb-1.5">
-          <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-stone-100 text-stone-700">Package</span>
+    <div class="sm-card-body">
+      <div class="sm-card-topline">
+        <span class="sm-card-category">${categorySummary}</span>
+        <span class="sm-card-price">MMK ${formatPrice(item.price)}</span>
+      </div>
+      <h3 class="sm-card-title">${name}</h3>
+      <p class="sm-card-description line-clamp-2">${description}</p>
+      <div class="sm-card-footer">
+        <button type="button" class="sm-card-link" onclick="openEditPackage(${item.id})">Manage package →</button>
+        <div class="sm-card-actions">
+          <button type="button" onclick="openEditPackage(${item.id})" class="sm-icon-btn" title="Edit package" aria-label="Edit ${name}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button type="button" onclick="deletePackage(${item.id})" class="sm-icon-btn is-danger" title="Delete package" aria-label="Delete ${name}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </button>
         </div>
-        <h3 class="font-semibold text-gray-800 text-sm leading-snug">${item.name}</h3>
-        <p class="text-custom-primary font-bold text-sm mt-0.5">MMK ${formatPrice(item.price)}</p>
-        ${item.desc?`<p class="text-gray-400 text-xs mt-1.5 line-clamp-2 leading-relaxed">${item.desc}</p>`:''}
-        <div class="flex flex-wrap gap-1 mt-2">${badges}</div>
-      </div>
-      <div class="pt-2.5 border-t border-gray-100">
-        <button type="button"
-          class="btn-card w-full py-1.5 rounded-lg text-xs font-semibold bg-white/90 text-gray-800 border border-white/30">
-          Package details
-        </button>
       </div>
     </div>
-  </div>`;
+  </article>`;
 }
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
+  if (tab === 'packages' && !PACKAGES_AVAILABLE) {
+    tab = 'services';
+  }
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.classList.remove('active','text-gray-800','border-gray-800');
@@ -1286,6 +1360,9 @@ function switchTab(tab) {
     el.classList.add('active','text-gray-800','border-gray-800');
     el.classList.remove('text-gray-400','border-transparent');
   }
+  document.querySelectorAll('[role="tab"]').forEach(tabButton => {
+    tabButton.setAttribute('aria-selected', String(tabButton === el));
+  });
   const btnLabel = document.getElementById('headerCreateBtnLabel');
   if (btnLabel) {
     btnLabel.textContent = tab === 'packages' ? 'Create Package' : 'Add Service';
@@ -1320,13 +1397,11 @@ function setStatusFilter(f) {
 // ── CLOSE ALL MODALS ──────────────────────────────────────────
 function closeAll() {
   if(currentCropperInstance) { currentCropperInstance.destroy(); currentCropperInstance = null; }
-  ['createServiceModal','editServiceModal','editPackageModal','createPackageModal']
+  ['editServiceModal','editPackageModal','createPackageModal']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
+  closeCreateServiceModal();
 }
 
-function closeServiceTypeModal() { closeCreateServiceModal(); }
-function closeTypeModal() { closeCreateServiceModal(); }
-function openServiceTypeModal() { openCreateServiceModal(); }
 
 function confirmDeleteModal({ title = 'Delete item?', message = 'This action cannot be undone.', requireType = null } = {}) {
   const modal = document.getElementById('deleteConfirmModal');
@@ -1413,14 +1488,17 @@ function openEditService(id) {
   else resetImgBox('esImgBox', true);
   const venueExtras = document.getElementById('esVenueExtras');
   const decoExtras = document.getElementById('esDecorationExtras');
+  const foodExtras = document.getElementById('esFoodExtras');
   const rentalExtras = document.getElementById('esRentalExtras');
   const isVenueEdit = item.category === 'Venue';
   const isDecoEdit = item.category === 'Decoration';
+  const isFoodEdit = item.category === 'Food';
   const isRentalEdit = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
   venueExtras?.classList.toggle('hidden', !isVenueEdit);
   decoExtras?.classList.toggle('hidden', !isDecoEdit);
+  foodExtras?.classList.toggle('hidden', !isFoodEdit);
   rentalExtras?.classList.toggle('hidden', !isRentalEdit);
-  document.getElementById('esServicePriceFields')?.classList.toggle('hidden', isVenueEdit || isDecoEdit || isRentalEdit);
+  document.getElementById('esServicePriceFields')?.classList.toggle('hidden', isVenueEdit || isDecoEdit || isFoodEdit || isRentalEdit);
   document.getElementById('esDefaultTimeRow')?.classList.toggle('hidden', isVenueEdit);
   if (isVenueEdit) {
     document.getElementById('esType').value=item.type||'';
@@ -1431,6 +1509,9 @@ function openEditService(id) {
   if (isDecoEdit) {
     renderDecorationStyles('es', item.decoration_styles || []);
   }
+  if (isFoodEdit) {
+    renderFoodItems('es', item.food_items || []);
+  }
   if (isRentalEdit) {
     const rp = item.rental_pricing || {};
     document.getElementById('esBorrowPackagePrice').value = rp.borrow_package_price ?? rp.borrow_price ?? '';
@@ -1438,7 +1519,6 @@ function openEditService(id) {
     document.getElementById('esReturnDays').value = rp.return_days ?? '';
     document.getElementById('esBuyPackagePrice').value = rp.buy_package_price ?? rp.buy_price ?? '';
     document.getElementById('esBuyCustomizePrice').value = rp.buy_customize_price ?? rp.buy_price ?? '';
-    renderAttireItems('es', item.attire_items || []);
   }
   document.getElementById('editServiceModal').classList.remove('hidden');
 }
@@ -1446,13 +1526,14 @@ async function updateService() {
   const item=services.find(s=>s.id===editingSvcId); if (!item) return;
   const isVenueUpd = item.category === 'Venue';
   const isDecoUpd = item.category === 'Decoration';
+  const isFoodUpd = item.category === 'Food';
   const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
-  if (!isVenueUpd && !isDecoUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
+  if (!isVenueUpd && !isDecoUpd && !isFoodUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
   if (!validateDefaultEventTime('es')) return;
   if (isVenueUpd && !validateVenueRooms('es')) return;
   if (isDecoUpd && !validateDecorationStyles('es')) return;
-  if (isRentalUpd && !validateAttireItems('es')) return;
-  const priceRange = isVenueUpd ? venueRoomPriceRange('es') : (isDecoUpd || isRentalUpd ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload('es'));
+  if (isFoodUpd && !validateFoodItems('es')) return;
+  const priceRange = isVenueUpd ? venueRoomPriceRange('es') : (isDecoUpd || isFoodUpd || isRentalUpd ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload('es'));
   const minLeadDaysEl = document.getElementById('esMinLeadDays');
   const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
   const minLeadDays = minLeadDaysValue === '' ? 0 : Math.max(0, Math.min(365, parseInt(minLeadDaysValue) || 0));
@@ -1473,9 +1554,8 @@ async function updateService() {
     rooms: isVenueUpd ? collectVenueRooms('es') : [],
     rooms_replace: isVenueUpd,
     decoration_styles: isDecoUpd ? collectDecorationStyles('es') : [],
+    food_items: isFoodUpd ? collectFoodItems('es') : [],
     rental_pricing: isRentalUpd ? collectRentalPricing('es') : null,
-    attire_items: isRentalUpd ? collectAttireItems('es') : [],
-    attire_items_replace: isRentalUpd,
   };
   try {
     const result = await apiRequest(serviceManagementUrls.serviceUpdate + editingSvcId, payload);
@@ -1818,7 +1898,7 @@ document.addEventListener('change', function(e) {
 });
 
 // Close when overlay is clicked
-['createServiceModal','editServiceModal','editPackageModal','createPackageModal'].forEach(function(id){
+['editServiceModal','editPackageModal','createPackageModal'].forEach(function(id){
   document.getElementById(id).addEventListener('click', function(e){ if(e.target===this) closeAll(); });
 });
 
@@ -1842,4 +1922,9 @@ if (searchEl) {
 
 installNonNegativeNumberGuards();
 renderCategoryControls();
+if (!PACKAGES_AVAILABLE) {
+  const packageTab = document.getElementById('tab-packages');
+  if (packageTab) packageTab.hidden = true;
+}
+setViewMode(viewMode);
 switchTab(currentTab);

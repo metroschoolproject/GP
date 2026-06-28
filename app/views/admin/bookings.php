@@ -3,6 +3,13 @@ $bookings = $bookings ?? [];
 $stats = $stats ?? [];
 $activeFilter = $activeFilter ?? 'all';
 $search = $search ?? '';
+$sort = $sort ?? 'event_asc';
+$dateFrom = $dateFrom ?? '';
+$dateTo = $dateTo ?? '';
+$currentPage = max(1, (int)($currentPage ?? 1));
+$totalPages = max(1, (int)($totalPages ?? 1));
+$totalCount = max(0, (int)($totalCount ?? count($bookings)));
+$perPage = max(1, (int)($perPage ?? 15));
 
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -11,9 +18,18 @@ $dateOnly = static function ($value, string $fallback = '-') {
     $timestamp = strtotime((string)$value);
     return $timestamp ? date('M j, Y', $timestamp) : $fallback;
 };
+$timeOnly = static function ($value, string $fallback = '') {
+    if (empty($value)) return $fallback;
+    $timestamp = strtotime((string)$value);
+    return $timestamp ? date('H:i', $timestamp) : $fallback;
+};
 
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = 'All bookings';
+$dashboardBreadcrumbs = [
+    ['label' => 'Bookings', 'url' => URLROOT . '/admin/bookings'],
+    ['label' => 'All bookings', 'url' => null],
+];
 $dashboardContentClass = 'admin-booking-outlet';
 
 $filters = [
@@ -59,14 +75,33 @@ $summaryItems = [
     ['label' => 'Cancelled', 'value' => (int)($stats['cancelled_count'] ?? 0), 'sub' => 'Stopped bookings', 'class' => 'danger'],
 ];
 
-$dashboardContent = function () use ($bookings, $activeFilter, $search, $filters, $filterCounts, $summaryItems, $money, $h, $dateOnly, $statusBadge) {
-    $shownCount = count($bookings);
-    $totalCount = $search !== '' ? $shownCount : (int)($filterCounts[$activeFilter] ?? $shownCount);
+$dashboardContent = function () use (
+    $bookings,
+    $activeFilter,
+    $search,
+    $sort,
+    $dateFrom,
+    $dateTo,
+    $filters,
+    $filterCounts,
+    $summaryItems,
+    $money,
+    $h,
+    $dateOnly,
+    $timeOnly,
+    $statusBadge,
+    $currentPage,
+    $totalPages,
+    $totalCount,
+    $perPage
+) {
+    $rangeStart = $totalCount > 0 ? (($currentPage - 1) * $perPage) + 1 : 0;
+    $rangeEnd = min($currentPage * $perPage, $totalCount);
 ?>
 <style>
-  .admin-booking-outlet{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px;overflow-y:auto}
+  .admin-booking-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-size:13.5px;overflow-y:auto}
   .admin-booking-page *{box-sizing:border-box}
-  .admin-booking-page{--bg:#FBFBF9;--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#d1fae5;--success-text:#065f46;--warn-bg:#fef3c7;--warn-text:#92400e;--danger-bg:#fee2e2;--danger-text:#991b1b;--info-bg:#e8e7ff;--info-text:#4f46a5;--neutral-bg:#f3f4f6;--neutral-text:#57534e;max-width:1600px;margin:0 auto}
+  .admin-booking-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;--success-bg:#ECFDF5;--success-text:#065F46;--warn-bg:#FFFBEB;--warn-text:#92400E;--danger-bg:#FEF2F2;--danger-text:#991B1B;--info-bg:#e8e7ff;--info-text:#4f46a5;--neutral-bg:#F5F5F4;--neutral-text:#78716C;max-width:1600px;margin:0 auto}
   .page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
   .eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
   .admin-booking-page h1{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin:0}
@@ -76,12 +111,17 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
   .filters{display:flex;gap:6px;flex-wrap:wrap}
   .filter{display:inline-flex;align-items:center;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);color:var(--body);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .12s;white-space:nowrap;text-decoration:none}
   .filter:hover{background:var(--hover);color:var(--primary)}
-  .filter.active{border-color:var(--primary);background:var(--primary);color:#fcf8f5}
+  .filter.active{border-color:var(--primary);background:var(--primary);color:#FFFFFF}
   .divider{width:1px;height:20px;background:var(--border);margin:0 4px}
-  .booking-search{display:flex;align-items:center;gap:6px;margin-left:auto}
-  .search-input{height:34px;min-width:280px;padding:0 10px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--text);font-size:12px;font-family:inherit;font-weight:600;outline:none}
-  .search-input::placeholder{color:var(--muted)}
-  .search-input:focus{border-color:var(--primary)}
+  .booking-search{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap}
+  .control-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(109,76,91,.1)}
+  .control-input{height:34px;padding:0 10px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-family:inherit;font-size:11px;font-weight:600;outline:none}
+  .sort-select{min-width:154px}
+  .date-input{width:132px}
+  .date-range{display:flex;align-items:center;gap:5px}
+  .date-range-label{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .active-filter-note{display:flex;align-items:center;gap:6px;width:100%;margin-top:2px;color:var(--body);font-size:10px;font-weight:700}
+  .active-filter-note svg{width:12px;height:12px;color:var(--primary)}
   .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
   .stat{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:14px 16px}
   .stat-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
@@ -110,6 +150,8 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
   .supplier-text{display:inline-block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--body);font-size:12px;font-weight:600}
   .amount{font-weight:700;color:var(--text);white-space:nowrap}
   .paid-text,.date-text{font-size:12px;color:var(--muted);white-space:nowrap}
+  .event-date{font-weight:700;color:var(--text)}
+  .event-time{display:block;margin-top:2px;color:var(--muted);font-size:10px;font-weight:700}
   .badge{display:inline-flex;align-items:center;border-radius:20px;padding:3px 9px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
   .badge-pending{background:var(--warn-bg);color:var(--warn-text)}
   .badge-success{background:var(--success-bg);color:var(--success-text)}
@@ -117,16 +159,22 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
   .badge-info{background:var(--info-bg);color:var(--info-text)}
   .badge-neutral{background:var(--neutral-bg);color:var(--neutral-text)}
   .action-link{display:inline-flex;align-items:center;gap:6px;height:28px;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:0 9px;color:var(--primary);font-size:11px;font-weight:800;text-decoration:none;white-space:nowrap}
+  .type-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+  .type-chip-package{background:#EDE9FE;color:#5B21B6}
+  .type-chip-package-addon{background:#FCE7F3;color:#9D174D}
+  .type-chip-supplier-package{background:#FEF3C7;color:#92400E}
+  .type-chip-custom{background:#E0F2FE;color:#075985}
+  .type-chip-mixed{background:#F5F5F4;color:#78716C}
   .action-link:hover{background:var(--hover)}
   .empty-row{padding:34px 20px;text-align:center;color:var(--muted)}
   .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-light)}
   .page-info{font-size:12px;color:var(--muted)}
   .page-btns{display:flex;gap:4px}
   .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
-  .page-btn.active{background:var(--primary);color:#fcf8f5;border-color:var(--primary)}
+  .page-btn.active{background:var(--primary);color:#FFFFFF;border-color:var(--primary)}
   .page-btn:disabled{opacity:.4;cursor:default}
-  @media(max-width:1100px){.summary-row{grid-template-columns:repeat(2,1fr)}.booking-search{margin-left:0;width:100%}.search-input{flex:1;min-width:180px}}
-  @media(max-width:760px){.admin-booking-outlet{padding:20px 16px}.page-header{align-items:flex-start;flex-direction:column}.summary-row{grid-template-columns:1fr}.divider{display:none}.booking-search{flex-direction:column}.search-input,.booking-search .btn-ghost{width:100%}}
+  @media(max-width:1250px){.summary-row{grid-template-columns:repeat(2,1fr)}.booking-search{margin-left:0;width:100%}}
+  @media(max-width:760px){.admin-booking-outlet{padding:20px 16px}.page-header{align-items:flex-start;flex-direction:column}.summary-row{grid-template-columns:1fr}.divider{display:none}.booking-search{display:grid;grid-template-columns:1fr}.control-input,.booking-search .btn-ghost,.date-input{width:100%;min-width:0}.date-range{display:grid;grid-template-columns:auto 1fr 1fr}.active-filter-note{grid-column:1/-1}}
 </style>
 
 <div class="admin-booking-page">
@@ -147,7 +195,9 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
         <?php
           $params = [];
           if ($key !== 'all') $params['status'] = $key;
-          if ($search !== '') $params['search'] = $search;
+          if ($sort !== 'event_asc') $params['sort'] = $sort;
+          if ($dateFrom !== '') $params['date_from'] = $dateFrom;
+          if ($dateTo !== '') $params['date_to'] = $dateTo;
           $url = URLROOT . '/admin/bookings' . (!empty($params) ? '?' . http_build_query($params) : '');
         ?>
         <a href="<?= $h($url) ?>" class="filter <?= $activeFilter === $key ? 'active' : '' ?>">
@@ -162,13 +212,34 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
       <?php if ($activeFilter !== 'all'): ?>
         <input type="hidden" name="status" value="<?= $h($activeFilter) ?>">
       <?php endif; ?>
-      <input class="search-input" type="search" name="search" value="<?= $h($search) ?>" placeholder="Search booking, customer, supplier">
-      <button type="submit" class="btn-ghost">
-        <i data-lucide="search" class="h-3.5 w-3.5" aria-hidden="true"></i>
-        Search
-      </button>
       <?php if ($search !== ''): ?>
-        <a class="btn-ghost" href="<?= URLROOT ?>/admin/bookings<?= $activeFilter !== 'all' ? '?status=' . urlencode($activeFilter) : '' ?>">Clear</a>
+        <input type="hidden" name="search" value="<?= $h($search) ?>">
+      <?php endif; ?>
+      <select class="control-input sort-select" name="sort" aria-label="Sort bookings">
+        <option value="event_asc" <?= $sort === 'event_asc' ? 'selected' : '' ?>>Event date · upcoming first</option>
+        <option value="event_desc" <?= $sort === 'event_desc' ? 'selected' : '' ?>>Event date · latest</option>
+        <option value="created_desc" <?= $sort === 'created_desc' ? 'selected' : '' ?>>Booked · newest</option>
+        <option value="created_asc" <?= $sort === 'created_asc' ? 'selected' : '' ?>>Booked · oldest</option>
+        <option value="total_desc" <?= $sort === 'total_desc' ? 'selected' : '' ?>>Total · highest</option>
+        <option value="total_asc" <?= $sort === 'total_asc' ? 'selected' : '' ?>>Total · lowest</option>
+      </select>
+      <div class="date-range">
+        <span class="date-range-label">Event</span>
+        <input class="control-input date-input" type="date" name="date_from" value="<?= $h($dateFrom) ?>" aria-label="Event date from">
+        <input class="control-input date-input" type="date" name="date_to" value="<?= $h($dateTo) ?>" aria-label="Event date to">
+      </div>
+      <button type="submit" class="btn-ghost">
+        <i data-lucide="sliders-horizontal" class="h-3.5 w-3.5" aria-hidden="true"></i>
+        Apply
+      </button>
+      <?php if ($dateFrom !== '' || $dateTo !== '' || $sort !== 'event_asc'): ?>
+        <a class="btn-ghost" href="<?= URLROOT ?>/admin/bookings<?= $activeFilter !== 'all' ? '?status=' . urlencode($activeFilter) : '' ?>">Reset</a>
+      <?php endif; ?>
+      <?php if ($search !== ''): ?>
+        <div class="active-filter-note">
+          <i data-lucide="search" aria-hidden="true"></i>
+          Showing results for "<?= $h($search) ?>" — <a href="<?= URLROOT ?>/admin/bookings<?= $activeFilter !== 'all' ? '?status=' . urlencode($activeFilter) : '' ?>" style="color:var(--primary);text-decoration:underline">clear search</a>
+        </div>
       <?php endif; ?>
     </form>
   </div>
@@ -189,7 +260,9 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
         <div class="card-head-icon"><i data-lucide="calendar-check" class="h-4 w-4" aria-hidden="true"></i></div>
         <span class="card-head-title">Booking records</span>
       </div>
-      <span class="card-count"><?= $shownCount ?> records</span>
+      <span class="card-count">
+        <?= $totalCount > 0 ? $rangeStart . '–' . $rangeEnd . ' of ' . $totalCount : '0 records' ?>
+      </span>
     </div>
 
     <div class="booking-table-wrap">
@@ -198,18 +271,19 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
           <tr>
             <th>Booking</th>
             <th>Customer</th>
+            <th>Type</th>
             <th>Suppliers</th>
             <th>Total</th>
             <th>Paid</th>
             <th>Status</th>
-            <th>Date</th>
+            <th>Event date</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
           <?php if (empty($bookings)): ?>
             <tr>
-              <td colspan="8" class="empty-row">No bookings found.</td>
+              <td colspan="9" class="empty-row">No bookings found.</td>
             </tr>
           <?php endif; ?>
 
@@ -221,7 +295,22 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
               $customerEmail = (string)($booking['customer_email'] ?? '');
               $supplierNames = trim((string)($booking['supplier_names'] ?? ''));
               $status = (string)($booking['status'] ?? 'draft');
-              $createdAt = $dateOnly($booking['created_at'] ?? null);
+              $eventDate = $dateOnly($booking['event_date'] ?? null, 'Not scheduled');
+              $eventTime = $timeOnly($booking['event_start_time'] ?? null);
+              $bookingType = (string)($booking['booking_type'] ?? 'Booking');
+              $typeChipClass = match ($bookingType) {
+                  'Package' => 'type-chip-package',
+                  'Package + Add-ons' => 'type-chip-package-addon',
+                  'Supplier Package' => 'type-chip-supplier-package',
+                  'Custom Services' => 'type-chip-custom',
+                  default => 'type-chip-mixed',
+              };
+              $typeIcon = match ($bookingType) {
+                  'Package', 'Package + Add-ons' => 'gift',
+                  'Supplier Package' => 'box',
+                  'Custom Services' => 'puzzle',
+                  default => 'layers',
+              };
             ?>
             <tr>
               <td><span class="booking-ref"><?= $h($bookingRef) ?></span></td>
@@ -231,11 +320,22 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
                   <div class="customer-email"><?= $h($customerEmail) ?></div>
                 <?php endif; ?>
               </td>
+              <td>
+                <span class="type-chip <?= $typeChipClass ?>">
+                  <i data-lucide="<?= $typeIcon ?>" style="width:11px;height:11px"></i>
+                  <?= $h($bookingType) ?>
+                </span>
+              </td>
               <td><span class="supplier-text"><?= $h($supplierNames !== '' ? $supplierNames : '-') ?></span></td>
               <td><span class="amount"><?= $money($booking['total_amount'] ?? 0) ?></span></td>
               <td><span class="paid-text"><?= $money($booking['paid_amount'] ?? 0) ?></span></td>
               <td><?= $statusBadge($status) ?></td>
-              <td><span class="date-text"><?= $h($createdAt) ?></span></td>
+              <td>
+                <span class="date-text event-date"><?= $h($eventDate) ?></span>
+                <?php if ($eventTime !== ''): ?>
+                  <span class="event-time"><?= $h($eventTime) ?></span>
+                <?php endif; ?>
+              </td>
               <td>
                 <a class="action-link" href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>">
                   <i data-lucide="eye" class="h-3.5 w-3.5" aria-hidden="true"></i>
@@ -249,16 +349,17 @@ $dashboardContent = function () use ($bookings, $activeFilter, $search, $filters
     </div>
 
     <?php
-    if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
-        $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
-        $filterParam = $activeFilter ?? 'all';
-        $searchParam = $search ?? '';
-        $baseParams = 'status=' . urlencode($filterParam);
-        if ($searchParam !== '') {
-            $baseParams .= '&search=' . urlencode($searchParam);
-        }
-        require APPROOT . '/views/partials/_pagination.php';
-    }
+    $filterParam = $activeFilter ?? 'all';
+    $searchParam = $search ?? '';
+    $paginationParams = [];
+    if ($filterParam !== 'all') $paginationParams['status'] = $filterParam;
+    if ($searchParam !== '') $paginationParams['search'] = $searchParam;
+    if ($sort !== 'event_asc') $paginationParams['sort'] = $sort;
+    if ($dateFrom !== '') $paginationParams['date_from'] = $dateFrom;
+    if ($dateTo !== '') $paginationParams['date_to'] = $dateTo;
+    $baseParams = http_build_query($paginationParams);
+    $showSinglePage = true;
+    require APPROOT . '/views/partials/_pagination.php';
     ?>
   </div>
 </div>

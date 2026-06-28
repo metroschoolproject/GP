@@ -6,13 +6,13 @@ $items = $items ?? [];
 $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
 $user = $user ?? ['name' => '', 'email' => '', 'phone' => ''];
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$money = fn($v) => 'MMK ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $formatDate = function ($value) {
     $timestamp = strtotime((string)$value);
     return $timestamp ? date('M j, Y', $timestamp) : '';
@@ -76,6 +76,7 @@ foreach ($items as $defaultItem) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Confirm Booking — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1179,6 +1180,38 @@ font-weight: 700;
   margin: 6px 0 0;
   padding-left: 18px;
 }
+
+/* Unavailable package services panel */
+.gp-unavailable-panel { display:none; margin-bottom:12px; border:1px solid #fcd34d; border-radius:var(--r-md); background:#fffdf5; overflow:hidden; }
+.gp-unavailable-panel.show { display:block; }
+.gp-unavailable-head { padding:14px 16px; border-bottom:1px solid #fcd34d; display:flex; align-items:flex-start; gap:10px; }
+.gp-unavailable-head-icon { flex-shrink:0; width:20px; height:20px; color:#d97706; margin-top:1px; }
+.gp-unavailable-head-text strong { display:block; color:#92400e; font-size:13px; margin-bottom:2px; }
+.gp-unavailable-head-text span { color:#b45309; font-size:12px; }
+.gp-unavailable-body { padding:12px 16px; }
+.gp-unavailable-services { display:flex; flex-direction:column; gap:10px; }
+.gp-svc-status-row { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:var(--r-sm); border:1px solid #e5e7eb; background:#fff; }
+.gp-svc-status-row.unavailable { border-color:#fecaca; background:#fef2f2; }
+.gp-svc-status-icon { flex-shrink:0; width:18px; height:18px; }
+.gp-svc-status-icon.available { color:#16a34a; }
+.gp-svc-status-icon.unavailable { color:#dc2626; }
+.gp-svc-status-name { font-size:13px; font-weight:600; flex:1; min-width:0; }
+.gp-svc-status-row.unavailable .gp-svc-status-name { color:#991b1b; }
+.gp-svc-status-detail { font-size:11px; color:#7f746d; margin-top:2px; }
+.gp-svc-alt-dates { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.gp-alt-date-pill { display:inline-flex; align-items:center; padding:4px 10px; border:1px solid #d1d5db; border-radius:999px; background:#fff; color:#374151; font-size:11px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .14s; }
+.gp-alt-date-pill:hover { border-color:#6d4c5b; color:#6d4c5b; background:#fdf2f8; }
+.gp-all-available-section { padding:12px 16px; border-bottom:1px solid #fcd34d; background:#f0fdf4; }
+.gp-all-available-label { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#16a34a; margin-bottom:8px; }
+.gp-all-available-dates { display:flex; flex-wrap:wrap; gap:6px; }
+.gp-all-date-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 14px; border:2px solid #16a34a; border-radius:999px; background:#fff; color:#16a34a; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .14s; }
+.gp-all-date-btn:hover { background:#16a34a; color:#fff; transform:translateY(-1px); box-shadow:0 4px 12px rgba(22,163,74,.2); }
+.gp-unavailable-actions { padding:10px 16px; border-top:1px solid #fcd34d; display:flex; gap:8px; flex-wrap:wrap; }
+.gp-unavailable-actions button { font-family:inherit; font-size:11px; font-weight:700; padding:6px 14px; border-radius:999px; cursor:pointer; transition:all .14s; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+.gp-ua-btn-choose { border:1px solid #6d4c5b; background:#6d4c5b; color:#fff; }
+.gp-ua-btn-choose:hover { background:#5a3e4a; }
+.gp-ua-btn-remove { border:1px solid #e5e7eb; background:#fff; color:#6b7280; }
+.gp-ua-btn-remove:hover { border-color:#dc2626; color:#dc2626; }
 .gp-detail-textarea { min-height: 70px; resize: vertical; }
 .gp-detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .gp-detail-field { display: flex; flex-direction: column; gap: 4px; }
@@ -1811,6 +1844,7 @@ input[type="date"]:invalid {
   </div>
 
   <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
+    <?= csrf_field() ?>
     <div class="gp-layout">
 
       <!-- LEFT: item cards -->
@@ -2153,7 +2187,10 @@ input[type="date"]:invalid {
                     <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>"
                            name="item_contact_phone[<?= $i ?>]"
                            value="<?= $h($user['phone'] ?? '') ?>"
-                           placeholder="+60 12 345 6789">
+                           placeholder="09xxxxxxxxx"
+                           inputmode="numeric" pattern="[0-9 ]{10,15}"
+                           minlength="10" maxlength="15"
+                           title="Phone number must be 10 to 11 digits.">
                   </div>
                 </div>
                 <div class="gp-detail-row" style="margin-top:12px;">
@@ -2245,6 +2282,29 @@ input[type="date"]:invalid {
           </div>
 
           <div class="gp-summary-footer">
+            <div id="unavailable-panel" class="gp-unavailable-panel" role="alert" aria-live="polite" hidden>
+              <div class="gp-unavailable-head">
+                <svg class="gp-unavailable-head-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M12 2l10 19H2L12 2z"/></svg>
+                <div class="gp-unavailable-head-text">
+                  <strong>This package isn't fully available</strong>
+                  <span id="unavailable-panel-subtitle">Some services have no time slots on your selected date.</span>
+                </div>
+              </div>
+              <div id="all-available-section" class="gp-all-available-section" style="display:none">
+                <div class="gp-all-available-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>
+                  All services available on these dates
+                </div>
+                <div id="all-available-dates" class="gp-all-available-dates"></div>
+              </div>
+              <div class="gp-unavailable-body">
+                <div id="unavailable-services-list" class="gp-unavailable-services"></div>
+              </div>
+              <div class="gp-unavailable-actions">
+                <button type="button" id="ua-btn-scroll" class="gp-ua-btn-choose">Change Dates</button>
+                <button type="button" id="ua-btn-remove" class="gp-ua-btn-remove">Remove Package</button>
+              </div>
+            </div>
             <div class="gp-booking-reminder" id="booking-reminder" role="alert" aria-live="polite"></div>
             <button class="gp-btn-primary" type="submit" id="submit-btn">
               Confirm &amp; Proceed
@@ -2602,6 +2662,159 @@ const packageScheduleState = new Map();
     bookingReminder.classList.add('show');
   }
 
+  function showUnavailablePanel(packageServices, unavailableItems, allAvailableDates) {
+    const panel = document.getElementById('unavailable-panel');
+    const list = document.getElementById('unavailable-services-list');
+    const subtitle = document.getElementById('unavailable-panel-subtitle');
+    if (!panel || !list) return;
+
+    // Show "all available" dates section if any exist
+    const allAvailSection = document.getElementById('all-available-section');
+    const allAvailDates = document.getElementById('all-available-dates');
+    if (allAvailSection && allAvailDates && allAvailableDates) {
+      let allDates = [];
+      for (const pkgId in allAvailableDates) {
+        if (Array.isArray(allAvailableDates[pkgId])) {
+          allDates = allDates.concat(allAvailableDates[pkgId]);
+        }
+      }
+      // Dedupe by date
+      const seen = new Set();
+      allDates = allDates.filter(d => { if (seen.has(d.date)) return false; seen.add(d.date); return true; });
+      if (allDates.length) {
+        let datesHtml = '';
+        allDates.forEach(function(d) {
+          datesHtml += '<button type="button" class="gp-all-date-btn" data-date="' + escapeHtml(d.date) + '">';
+          datesHtml += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>';
+          datesHtml += escapeHtml(d.label) + '</button>';
+        });
+        allAvailDates.innerHTML = datesHtml;
+        allAvailSection.style.display = '';
+
+        // Wire up all-available date buttons
+        allAvailDates.querySelectorAll('.gp-all-date-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            const dateInputs = form.querySelectorAll('input[name^="item_date["]');
+            for (var i = 0; i < dateInputs.length; i++) {
+              if (dateInputs[i].offsetParent !== null) {
+                dateInputs[i].value = this.dataset.date;
+                dateInputs[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                dateInputs[i].focus();
+                break;
+              }
+            }
+          });
+        });
+      } else {
+        allAvailSection.style.display = 'none';
+      }
+    }
+
+    const unavailableIds = new Set(unavailableItems.map(u => parseInt(u.service_id)));
+    let html = '';
+
+    // Build service status grid from first packageServices entry
+    const firstPkg = (packageServices && packageServices.length) ? packageServices[0] : null;
+    const services = firstPkg ? (firstPkg.services || []) : [];
+    const pkgDate = firstPkg ? firstPkg.date : '';
+
+    if (services.length) {
+      if (subtitle) subtitle.textContent = 'On ' + (pkgDate || 'your date') + ':';
+
+      services.forEach(function(svc) {
+        const isAvailable = svc.is_available;
+        const svcId = parseInt(svc.service_id);
+        const alt = unavailableItems.find(function(u) { return parseInt(u.service_id) === svcId; });
+
+        html += '<div class="gp-svc-status-row' + (isAvailable ? '' : ' unavailable') + '">';
+        html += '<svg class="gp-svc-status-icon ' + (isAvailable ? 'available' : 'unavailable') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">';
+        if (isAvailable) {
+          html += '<path d="M5 13l4 4L19 7"/>';
+        } else {
+          html += '<path d="M6 6l12 12M18 6l-12 12"/>';
+        }
+        html += '</svg>';
+        html += '<div style="flex:1;min-width:0">';
+        html += '<div class="gp-svc-status-name">' + escapeHtml(svc.service_name) + '</div>';
+        if (!isAvailable && alt) {
+          html += '<div class="gp-svc-status-detail">' + escapeHtml(alt.message || 'No time slots available') + '</div>';
+          if (Array.isArray(alt.alternatives) && alt.alternatives.length) {
+            html += '<div class="gp-svc-alt-dates">';
+            alt.alternatives.slice(0, 5).forEach(function(a) {
+              html += '<button type="button" class="gp-alt-date-pill" data-date="' + escapeHtml(a.date) + '" data-service="' + svcId + '">' + escapeHtml(a.label || a.date) + '</button>';
+            });
+            html += '</div>';
+          }
+        } else if (isAvailable) {
+          html += '<div class="gp-svc-status-detail" style="color:#16a34a">Available on this date</div>';
+        }
+        html += '</div></div>';
+      });
+    } else {
+      // Fallback: just list unavailable items
+      unavailableItems.forEach(function(u) {
+        html += '<div class="gp-svc-status-row unavailable">';
+        html += '<svg class="gp-svc-status-icon unavailable" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6l-12 12"/></svg>';
+        html += '<div style="flex:1;min-width:0">';
+        html += '<div class="gp-svc-status-name">' + escapeHtml(u.service_name || 'A package service') + '</div>';
+        html += '<div class="gp-svc-status-detail">' + escapeHtml(u.message || 'Not available') + '</div>';
+        if (Array.isArray(u.alternatives) && u.alternatives.length) {
+          html += '<div class="gp-svc-alt-dates">';
+          u.alternatives.slice(0, 5).forEach(function(a) {
+            html += '<button type="button" class="gp-alt-date-pill" data-date="' + escapeHtml(a.date) + '" data-service="' + parseInt(u.service_id) + '">' + escapeHtml(a.label || a.date) + '</button>';
+          });
+          html += '</div>';
+        }
+        html += '</div></div>';
+      });
+    }
+
+    list.innerHTML = html;
+    panel.hidden = false;
+
+    // Wire up alternative date pills
+    list.querySelectorAll('.gp-alt-date-pill').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        // Find first visible date input and set it to the clicked alternative date
+        const dateInputs = form.querySelectorAll('input[name^="item_date["]');
+        for (var i = 0; i < dateInputs.length; i++) {
+          if (dateInputs[i].offsetParent !== null) {
+            dateInputs[i].value = this.dataset.date;
+            dateInputs[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            dateInputs[i].focus();
+            break;
+          }
+        }
+      });
+    });
+
+    // Wire up action buttons
+    var scrollBtn = document.getElementById('ua-btn-scroll');
+    if (scrollBtn) {
+      scrollBtn.onclick = function() {
+        var firstDateInput = form.querySelector('input[name^="item_date["]');
+        if (firstDateInput) {
+          firstDateInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstDateInput.focus();
+        }
+      };
+    }
+
+    var removeBtn = document.getElementById('ua-btn-remove');
+    if (removeBtn) {
+      removeBtn.onclick = function() {
+        if (confirm('Remove this package from your order?')) {
+          // Find the first package item's remove button
+          var removeBtns = document.querySelectorAll('.gp-btn-item-remove');
+          if (removeBtns.length) {
+            removeBtns[0].click();
+          }
+          panel.hidden = true;
+        }
+      };
+    }
+  }
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, char => ({
       '&': '&amp;',
@@ -2676,6 +2889,12 @@ const packageScheduleState = new Map();
       if (!itemPhone) {
         missing.push('contact phone');
         rememberMissing(card.querySelector(`[name="item_contact_phone[${index}]"]`));
+      } else {
+        const phoneDigits = itemPhone.replace(/\D/g, '');
+        if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+          missing.push('contact phone (must be 10–11 digits)');
+          rememberMissing(card.querySelector(`[name="item_contact_phone[${index}]"]`));
+        }
       }
       if (!itemLocation) {
         missing.push('location');
@@ -2782,23 +3001,33 @@ const packageScheduleState = new Map();
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="gp-spinner"></span> Creating booking…';
+    document.getElementById('unavailable-panel').hidden = true;
+    var allAvailSec = document.getElementById('all-available-section');
+    if (allAvailSec) allAvailSec.style.display = 'none';
+    bookingReminder.classList.remove('show');
     fetch(form.action, { method: 'POST', body: new FormData(form) })
       .then(r => r.json())
       .then(data => {
         if (data.success && data.redirect) {
           window.location.href = data.redirect;
+        } else if (Array.isArray(data.unavailable) && data.unavailable.length) {
+          showUnavailablePanel(data.packageServices || [], data.unavailable, data.allAvailableDates || {});
+          const first = data.unavailable[0];
+          const svcName = first.service_name || 'A package service';
+          showToast(svcName + ': ' + (first.message || 'not available'), 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalSubmitHtml;
         } else {
-          const error = data.error || 'Something went wrong. Please try again.';
-          showBookingReminder([error], 'Please fix this before proceeding.');
+          const error = data.error || 'An unexpected error occurred.';
+          const title = data.error ? 'Please complete the following:' : 'Booking could not be completed';
+          showBookingReminder([error], title);
           showToast(error, 'error');
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalSubmitHtml;
         }
       })
       .catch(() => {
-        const error = 'Something went wrong. Please try again.';
-        showBookingReminder([error], 'Please fix this before proceeding.');
-        showToast(error, 'error');
+        showToast('Unable to reach the server. Please check your connection and try again.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalSubmitHtml;
       });
@@ -3183,5 +3412,6 @@ document.querySelectorAll('.gp-item-card[data-package-id]').forEach(card => {
   }
 });
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

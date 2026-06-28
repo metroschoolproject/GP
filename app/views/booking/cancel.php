@@ -2,9 +2,11 @@
 $booking = $booking ?? [];
 $items = $items ?? [];
 $bookingRef = $bookingRef ?? '';
-$depositPercent = (int)($depositPercent ?? 10);
+$depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
+$refundEstimate = $refundEstimate ?? null;
+$platformFeePercent = (float)($platformFeePercent ?? get_platform_fee_percent());
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -57,7 +59,36 @@ $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
           Cancellation is not final until the admin team reviews it. If a <?= $depositPercent ?>% deposit has been paid, refund handling depends on the event date, supplier work already started, and the cancellation policy.
         </div>
 
+        <?php if ($refundEstimate && (float)($booking['paid_amount'] ?? 0) > 0): ?>
+        <div style="border:1px solid #bbf7d0;background:#f0fdf4;border-radius:14px;padding:14px 16px;font-size:13px;color:#166534;margin-bottom:18px;line-height:1.55">
+          <strong style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            Estimated Refund
+          </strong>
+          <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:baseline">
+            <span style="font-size:20px;font-weight:800"><?= number_format($refundEstimate[0], 0) ?> MMK</span>
+            <span style="opacity:.75;font-size:12px"><?= htmlspecialchars($refundEstimate[1], ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
+          <?php
+          $estTotal = (float)($booking['total_amount'] ?? 0);
+          $estFee = round($estTotal * ($platformFeePercent / 100), 2);
+          $estDeposit = (float)($booking['paid_amount'] ?? 0) - $estFee;
+          ?>
+          <?php if ($estFee > 0): ?>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0;font-size:11px;color:#15803d;opacity:.85">
+            Your payment of <?= $money($booking['paid_amount'] ?? 0) ?> includes a <?= $money($estFee) ?> platform service fee (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%). The refund amount is calculated on the full payment including this fee.
+          </div>
+          <?php endif; ?>
+          <?php if ($refundEstimate[0] <= 0): ?>
+            <p style="margin-top:6px;font-size:12px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px">
+              ⚠️ Based on the cancellation policy, no refund is applicable for cancellations less than 2 days before the event.
+            </p>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <form id="cancel-form" method="POST" action="<?= URLROOT ?>/booking/submitCancellation">
+          <?= csrf_field() ?>
           <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
           <div class="gp-field">
             <label class="gp-label" for="reason">Reason for cancellation</label>

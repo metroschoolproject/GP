@@ -19,6 +19,22 @@ abstract class SupplierControllerSupport extends Controller
 
     public function __construct()
     {
+        // Role guard: require supplier role or pending-registration state
+        $sessionUid = (int)($_SESSION['session_uid'] ?? 0);
+        $pendingUid = (int)($_SESSION['pending_register_user_id'] ?? 0);
+
+        if (!$sessionUid && !$pendingUid) {
+            redirect('users/auth?type=supplier');
+        }
+
+        // If fully logged in, verify supplier role (skip for pending registrations)
+        if ($sessionUid && !$pendingUid) {
+            $sessionRole = $_SESSION['session_role'] ?? '';
+            if ($sessionRole !== 'supplier' && !user_has_role($sessionUid, 'supplier')) {
+                redirect('main/home');
+            }
+        }
+
         $this->supplierProfileModel = $this->model('SupplierProfile');
         $this->paymentModel = $this->model('Payment');
         $this->notificationModel = $this->model('Notification');
@@ -74,8 +90,8 @@ abstract class SupplierControllerSupport extends Controller
     protected function servicePayload($supplierId, $type)
     {
         $payload = $this->jsonPayload();
-        $payload['name'] = htmlspecialchars(trim((string)($payload['name'] ?? '')), ENT_QUOTES, 'UTF-8');
-        $payload['desc'] = htmlspecialchars(trim((string)($payload['desc'] ?? $payload['description'] ?? '')), ENT_QUOTES, 'UTF-8');
+        $payload['name'] = trim((string)($payload['name'] ?? ''));
+        $payload['desc'] = trim((string)($payload['desc'] ?? $payload['description'] ?? ''));
         $priceMin = max(0, (float)($payload['package_price'] ?? $payload['price_min'] ?? $payload['priceMin'] ?? $payload['price'] ?? 0));
         $priceMax = max($priceMin, (float)($payload['customize_price'] ?? $payload['price_max'] ?? $payload['priceMax'] ?? $priceMin));
         $payload['price'] = $priceMin;
@@ -114,6 +130,19 @@ abstract class SupplierControllerSupport extends Controller
                     $item['photo_url'] ?? '',
                     $supplierId,
                     'attire-item'
+                );
+            }
+            unset($item);
+        }
+        if (!empty($payload['food_items']) && is_array($payload['food_items'])) {
+            foreach ($payload['food_items'] as &$item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $item['photo_url'] = $this->uploadService->storeServiceImageFromPayload(
+                    $item['photo_url'] ?? '',
+                    $supplierId,
+                    'food-item'
                 );
             }
             unset($item);

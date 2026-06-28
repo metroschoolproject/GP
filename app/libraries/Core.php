@@ -42,9 +42,19 @@ class Core
 
     public function geturl()
     {
-        // echo rtrim($_GET['url']);  this remove whitespaces and   This function is particularly useful when dealing with user inputs, form submissions, or other situations where you want to clean up or normalize strings.
         $url = isset($_GET['url']) ? rtrim($_GET['url']) : '';
         $url = filter_var($url, FILTER_SANITIZE_URL);
+
+        // Strip base-path prefix (e.g. "GP/" or "GP") so the router
+        // never treats the project folder name as a controller.
+        if ($url !== '') {
+            if ($url === 'GP') {
+                $url = '';
+            } elseif (stripos($url, 'GP/') === 0) {
+                $url = substr($url, 3);
+            }
+        }
+
         return $url === '' ? [] : explode('/', $url);
     }
 }

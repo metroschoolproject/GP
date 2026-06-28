@@ -1,10 +1,8 @@
 <?php
 
 require_once APPROOT . '/services/UploadService.php';
-require_once APPROOT . '/services/PaymentGatewayService.php';
 require_once APPROOT . '/services/EmailService.php';
 require_once APPROOT . '/controllers/Booking.php';
-require_once APPROOT . '/services/EmailService.php';
 
 class Admin extends Controller
 {
@@ -12,17 +10,22 @@ class Admin extends Controller
     private $supplierProfileModel;
     private $paymentModel;
     private $serviceManagementModel;
+    private $customerModel;
     private $uploadService;
-    private $paymentGateway;
 
     public function __construct()
     {
+        $route = trim((string)($_GET['url'] ?? ''), '/');
+        $method = explode('/', $route)[1] ?? '';
+        if (!str_starts_with($method, 'cron')) {
+            $this->requireRole('admin', false, 'users/auth?type=internal');
+        }
         $this->notificationModel = $this->model('Notification');
         $this->supplierProfileModel = $this->model('SupplierProfile');
         $this->paymentModel = $this->model('Payment');
         $this->serviceManagementModel = $this->model('SupplierServiceManager');
+        $this->customerModel = $this->model('CustomerModel');
         $this->uploadService = new UploadService();
-        $this->paymentGateway = new PaymentGatewayService();
     }   
 
     public function dashboard()
@@ -183,7 +186,7 @@ class Admin extends Controller
         $db->dbquery(
             "SELECT b.id, u.name AS customer_name, ed.event_date, ed.start_time, ed.location,
                     b.status,
-                    (SELECT s.shop_name FROM booking_suppliers bs_s
+                    (SELECT s_s.shop_name FROM booking_suppliers bs_s
                      INNER JOIN suppliers s_s ON bs_s.supplier_id = s_s.supplier_id
                      WHERE bs_s.booking_id = b.id ORDER BY bs_s.id ASC LIMIT 1) AS supplier_name
              FROM bookings b
@@ -558,6 +561,86 @@ class Admin extends Controller
         exit;
     }
 
+    /**
+     * Platform settings page (GET: show, POST: save).
+     */
+    public function settings(): void
+    {
+        $this->requireRole('admin');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->requireCsrf(false);
+
+            // --- Agent fee (per-booking percentage) ---
+            $feePercent = trim((string)($_POST['platform_fee_percent'] ?? ''));
+
+            if ($feePercent === '' || !is_numeric($feePercent)) {
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Agent fee must be a number.'];
+                redirect('admin/settings');
+                return;
+            }
+
+            $feePercent = (float)$feePercent;
+            if ($feePercent < 0 || $feePercent > 100) {
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Agent fee must be between 0 and 100.'];
+                redirect('admin/settings');
+                return;
+            }
+
+            // --- Supplier membership fee (fixed amount) ---
+            $supplierFee = trim((string)($_POST['supplier_membership_fee'] ?? ''));
+
+            if ($supplierFee === '' || !is_numeric($supplierFee)) {
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Supplier membership fee must be a number.'];
+                redirect('admin/settings');
+                return;
+            }
+
+            $supplierFee = (float)$supplierFee;
+            if ($supplierFee < 0) {
+                $_SESSION['platform_flash'] = ['type' => 'error', 'message' => 'Supplier membership fee cannot be negative.'];
+                redirect('admin/settings');
+                return;
+            }
+
+            // Save both settings
+            $db = new Database();
+
+            $formattedFee = number_format($feePercent, 2, '.', '');
+            $db->dbquery(
+                "INSERT INTO platform_settings (setting_key, setting_value, updated_at)
+                 VALUES ('platform_fee_percent', :val, NOW())
+                 ON DUPLICATE KEY UPDATE setting_value = :val2, updated_at = NOW()"
+            );
+            $db->dbbind(':val', $formattedFee, PDO::PARAM_STR);
+            $db->dbbind(':val2', $formattedFee, PDO::PARAM_STR);
+            $db->dbexecute();
+
+            $formattedSupplier = number_format($supplierFee, 2, '.', '');
+            $db->dbquery(
+                "INSERT INTO platform_settings (setting_key, setting_value, updated_at)
+                 VALUES ('supplier_membership_fee', :val, NOW())
+                 ON DUPLICATE KEY UPDATE setting_value = :val2, updated_at = NOW()"
+            );
+            $db->dbbind(':val', $formattedSupplier, PDO::PARAM_STR);
+            $db->dbbind(':val2', $formattedSupplier, PDO::PARAM_STR);
+            $db->dbexecute();
+
+            $_SESSION['platform_flash'] = ['type' => 'success', 'message' => 'Platform fees updated successfully.'];
+            redirect('admin/settings');
+            return;
+        }
+
+        // GET — load current values
+        $currentFee = get_platform_fee_percent();
+        $supplierFee = (float)get_platform_setting('supplier_membership_fee', '50000');
+
+        $this->view('admin/setting/platform', [
+            'currentFee' => $currentFee,
+            'supplierFee' => $supplierFee,
+        ]);
+    }
+
     public function bookings()
     {
         $bookingController = new Booking();
@@ -572,11 +655,94 @@ class Admin extends Controller
 
     public function bookingCancel()
     {
+        $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminCancelBooking'], func_get_args());
     }
 
+    /**
+     * Mark a finalized booking as completed (AJAX POST).
+     * Triggers supplier payout record creation.
+     */
+    public function markBookingCompleted(): void
+    {
+        $this->requireCsrf();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        if ($bookingId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid booking ID'], 400);
+            return;
+        }
+
+        $bookingModel = $this->model('BookingModel');
+        $result = $bookingModel->markBookingCompleted($bookingId);
+
+        if (!$result) {
+            $this->jsonResponse(['error' => 'Could not mark as completed. Booking must be in finalized or in_progress status.'], 409);
+            return;
+        }
+
+        // Notify customer
+        $notificationModel = $this->model('Notification');
+        try {
+            $notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Booking Completed',
+                'Your booking has been marked as completed. Supplier payouts have been processed.',
+                'booking'
+            );
+        } catch (\Throwable $e) {
+            error_log('Completion notification failed: ' . $e->getMessage());
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Booking marked as completed. Supplier payouts have been created.',
+        ]);
+    }
+
     /* ─── Supplier replacement (on decline of confirmed package booking) ─── */
+
+    public function refundQueue()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminRefundQueue'], func_get_args());
+    }
+
+    /**
+     * Process a refund (upload proof, mark as processing).
+     * Delegates to Booking::adminProcessRefund.
+     */
+    public function processRefundPost()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminProcessRefund'], func_get_args());
+    }
+
+    /**
+     * Mark a refund as completed (money sent to customer).
+     * Delegates to Booking::adminCompleteRefund.
+     */
+    public function completeRefundPost()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminCompleteRefund'], func_get_args());
+    }
+
+    /**
+     * Reject a refund request.
+     * Delegates to Booking::adminRejectRefund.
+     */
+    public function rejectRefundPost()
+    {
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminRejectRefund'], func_get_args());
+    }
 
     public function replacementQueue()
     {
@@ -592,18 +758,21 @@ class Admin extends Controller
 
     public function assignReplacement()
     {
+        $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminAssignReplacement'], func_get_args());
     }
 
     public function verifyReplacementPayment()
     {
+        $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminVerifyReplacementPayment'], func_get_args());
     }
 
     public function markBookingReceived()
     {
+        $this->requireCsrf();
         $bookingController = new Booking();
         return call_user_func_array([$bookingController, 'adminMarkBookingReceived'], func_get_args());
     }
@@ -638,6 +807,10 @@ class Admin extends Controller
 
         if ($referenceType === 'service' && $referenceId > 0) {
             redirect('admin/service/' . $referenceId);
+        }
+
+        if ($referenceType === 'payout') {
+            redirect('admin/payouts');
         }
 
         redirect('admin/dashboard');
@@ -686,7 +859,7 @@ class Admin extends Controller
             redirect('admin/service/' . (int)$serviceId);
         }
 
-        $this->serviceManagementModel->setServiceStatus((int)$service['supplier_id'], (int)$serviceId, true);
+        $this->serviceManagementModel->setServiceStatus((int)$service['supplier_id'], (int)$serviceId, true, 'published');
         $_SESSION['admin_flash'] = 'Service approved and published to customers.';
         redirect('admin/service/' . (int)$serviceId);
     }
@@ -711,7 +884,7 @@ class Admin extends Controller
         }
 
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = 15;
+        $perPage = 10;
         $offset = ($page - 1) * $perPage;
         $search = trim((string)($_GET['search'] ?? ''));
         $categoryId = max(0, (int)($_GET['category'] ?? 0));
@@ -768,10 +941,18 @@ class Admin extends Controller
             redirect('admin/suppliers');
         }
 
+        // Get supplier fee payment info if exists
+        $supplierFeePayment = $this->paymentModel->getLatestSupplierFeePayment((int)$supplierId);
+
         $this->view('admin/supplier_review', [
             'supplier' => $supplier,
             'message' => $_SESSION['admin_flash'] ?? '',
             'performance' => $this->supplierProfileModel->getSupplierPerformance((int)$supplierId),
+            'supplierFeePayment' => $supplierFeePayment,
+            'supplierServices' => $this->supplierProfileModel->getSupplierServices((int)$supplierId),
+            'recentBookings' => $this->supplierProfileModel->getSupplierRecentBookings((int)$supplierId, 5),
+            'supplierReviews' => $this->supplierProfileModel->getSupplierReviews((int)$supplierId, 5),
+            'supplierWarnings' => $this->supplierProfileModel->getSupplierWarnings((int)$supplierId),
         ]);
         unset($_SESSION['admin_flash']);
     }
@@ -783,6 +964,26 @@ class Admin extends Controller
         }
 
         $this->supplierProfileModel->updateStatus((int)$supplierId, 'approved', $this->currentUserId());
+
+        // Notify the supplier
+        $supplier = $this->supplierProfileModel->getById((int)$supplierId);
+        if ($supplier && !empty($supplier['user_id'])) {
+            $this->notificationModel->notifyUser(
+                (int)$supplier['user_id'],
+                'Application Approved',
+                'Your supplier application has been approved! You can now submit your membership payment to unlock your dashboard.',
+                'approval',
+                'supplier',
+                $supplierId
+            );
+            // Also send email
+            $userData = $this->customerModel->getCustomerById((int)$supplier['user_id']);
+            if ($userData && !empty($userData['email'])) {
+                $emailService = new EmailService();
+                $emailService->sendSupplierApproved($userData['email'], $userData['name'] ?? 'Supplier');
+            }
+        }
+
         $_SESSION['admin_flash'] = 'Supplier approved. They can now access the locked dashboard and submit membership payment.';
         redirect('admin/supplier/' . (int)$supplierId);
     }
@@ -794,11 +995,41 @@ class Admin extends Controller
         }
 
         $reason = trim($_POST['reason'] ?? '');
-        $this->supplierProfileModel->updateStatus((int)$supplierId, 'rejected', $this->currentUserId());
-        if ($reason !== '') {
-            $this->supplierProfileModel->warnSupplier((int)$supplierId, 0, 'Rejected: ' . $reason, $this->currentUserId());
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to reject a supplier application.';
+            redirect('admin/supplier/' . (int)$supplierId);
+            return;
         }
+        $this->supplierProfileModel->updateStatus((int)$supplierId, 'rejected', $this->currentUserId());
+        $this->supplierProfileModel->warnSupplier((int)$supplierId, 0, 'Rejected: ' . $reason, $this->currentUserId());
+
+        // Notify the supplier
+        $supplier = $this->supplierProfileModel->getById((int)$supplierId);
+        if ($supplier && !empty($supplier['user_id'])) {
+            $this->notificationModel->notifyUser(
+                (int)$supplier['user_id'],
+                'Application Status Update',
+                'Your supplier application requires attention: ' . $reason . '. Please review and re-apply if needed.',
+                'approval',
+                'supplier',
+                $supplierId
+            );
+        }
+
         $_SESSION['admin_flash'] = 'Supplier application rejected.';
+        redirect('admin/supplier/' . (int)$supplierId);
+    }
+
+    public function supplierNote($supplierId = null)
+    {
+        if (!$supplierId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/suppliers');
+        }
+
+        $note = trim((string)($_POST['admin_note'] ?? ''));
+        $this->supplierProfileModel->updateAdminNote((int)$supplierId, $note);
+
+        $_SESSION['admin_flash'] = 'Admin notes saved.';
         redirect('admin/supplier/' . (int)$supplierId);
     }
 
@@ -843,6 +1074,207 @@ class Admin extends Controller
         redirect('admin/supplier/' . (int)$supplierId);
     }
 
+    /* ─── Customer Management ─────────────────────────────────────── */
+
+    public function customers()
+    {
+        $status = (string)($_GET['status'] ?? 'all');
+        $allowed = ['all', 'active', 'suspended', 'banned', 'deleted'];
+        if (!in_array($status, $allowed, true)) {
+            $status = 'all';
+        }
+        $search = trim((string)($_GET['search'] ?? ''));
+
+        if (($_GET['export'] ?? '') === 'csv') {
+            $this->exportCustomersCsv($status, $search);
+            return;
+        }
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 15;
+        $totalCount = $this->customerModel->getCustomersCount($status, $search);
+        $totalPages = max(1, (int)ceil($totalCount / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        $this->view('admin/customers', [
+            'customers' => $this->customerModel->getCustomers($status, $search, $perPage, $offset),
+            'stats' => $this->customerModel->getCustomerStats(),
+            'status' => $status,
+            'search' => $search,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
+        ]);
+    }
+
+    private function exportCustomersCsv(string $status, string $search): void
+    {
+        $rows = $this->customerModel->getCustomers($status, $search, 5000, 0);
+
+        $filename = 'customers-' . date('Y-m-d-His') . '.csv';
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
+        fputcsv($output, ['Customer ID', 'Name', 'Email', 'Phone', 'Status', 'Bookings', 'Joined', 'Last login']);
+        foreach ($rows as $row) {
+            fputcsv($output, [
+                $row['user_id'] ?? '',
+                $row['name'] ?? '',
+                $row['email'] ?? '',
+                $row['phone'] ?? '',
+                ($row['deleted_at'] ?? null) ? 'deleted' : ($row['status'] ?? ''),
+                $row['bookings_count'] ?? 0,
+                $row['created_at'] ?? '',
+                $row['last_login'] ?? '',
+            ]);
+        }
+        fclose($output);
+    }
+
+    public function customer($customerId = null)
+    {
+        if (!$customerId) {
+            redirect('admin/customers');
+        }
+
+        $customer = $this->customerModel->getCustomerById((int)$customerId);
+        if (!$customer) {
+            $_SESSION['admin_flash'] = 'Customer not found.';
+            redirect('admin/customers');
+        }
+
+        $this->view('admin/customer_detail', [
+            'customer' => $customer,
+            'bookings' => $this->customerModel->getCustomerBookings((int)$customerId),
+            'activeBookings' => $this->customerModel->getActiveBookingCount((int)$customerId),
+            'history' => $this->customerModel->getModerationHistory((int)$customerId),
+            'message' => $_SESSION['admin_flash'] ?? '',
+        ]);
+        unset($_SESSION['admin_flash']);
+    }
+
+    public function customerSuspend($customerId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $reason = trim($_POST['reason'] ?? '');
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to suspend a customer.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->setStatus((int)$customerId, 'suspended', 'suspend', $reason, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer suspended. Reason: ' . $reason;
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerBan($customerId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $reason = trim($_POST['reason'] ?? '');
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to ban a customer.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->setStatus((int)$customerId, 'banned', 'ban', $reason, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer banned. Reason: ' . $reason;
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerUnban($customerId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $customer = $this->customerModel->getCustomerById((int)$customerId);
+        if ($customer && !empty($customer['deleted_at'])) {
+            $_SESSION['admin_flash'] = 'This account is deleted and cannot be restored here.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->setStatus((int)$customerId, 'active', 'unban', null, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer restored to active status.';
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerUpdate($customerId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $name = trim($_POST['name'] ?? '');
+        if ($name === '') {
+            $_SESSION['admin_flash'] = 'Name cannot be empty.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->updateContact((int)$customerId, [
+            'name' => $name,
+            'phone' => trim($_POST['phone'] ?? ''),
+            'address' => trim($_POST['address'] ?? ''),
+        ], $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer contact details updated.';
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerDelete($customerId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $reason = trim($_POST['reason'] ?? '');
+        if ($reason === '') {
+            $_SESSION['admin_flash'] = 'A reason is required to delete a customer.';
+            redirect('admin/customer/' . (int)$customerId);
+        }
+        $this->customerModel->softDelete((int)$customerId, $reason, $this->currentUserId());
+        $_SESSION['admin_flash'] = 'Customer account deleted (soft-delete). Login is now blocked.';
+        redirect('admin/customer/' . (int)$customerId);
+    }
+
+    public function customerPermanentDelete($customerId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$customerId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/customers');
+        }
+        $customer = $this->customerModel->getCustomerById((int)$customerId);
+        if (!$customer) {
+            $_SESSION['admin_flash'] = 'Customer not found.';
+            redirect('admin/customers');
+        }
+        $userModel = $this->model('User');
+        $userModel->permanentDeleteAccount((int)$customerId);
+        $_SESSION['admin_flash'] = 'Customer account permanently deleted. Email is now freed up.';
+        redirect('admin/customers');
+    }
+
+    public function supplierPermanentDelete($supplierId = null)
+    {
+        $this->requireCsrf(false);
+        if (!$supplierId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/suppliers');
+        }
+        $supplier = $this->supplierProfileModel->getApplicationById((int)$supplierId);
+        if (!$supplier) {
+            $_SESSION['admin_flash'] = 'Supplier not found.';
+            redirect('admin/suppliers');
+        }
+        $userModel = $this->model('User');
+        $userModel->permanentDeleteAccount((int)$supplier['user_id']);
+        $_SESSION['admin_flash'] = 'Supplier account permanently deleted. Email is now freed up.';
+        redirect('admin/suppliers');
+    }
+
     public function payments()
     {
         $status = $_GET['status'] ?? 'pending';
@@ -853,18 +1285,31 @@ class Admin extends Controller
             $status = 'pending';
         }
 
+        $dateFrom = trim($_GET['date_from'] ?? '');
+        $dateTo   = trim($_GET['date_to'] ?? '');
+
+        // Default to last 30 days if no dates provided
+        if ($dateFrom === '' && $dateTo === '') {
+            $dateFrom = date('Y-m-d', strtotime('-30 days'));
+            $dateTo   = date('Y-m-d');
+        }
+
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
 
+        $totalCount = $this->paymentModel->getAdminPaymentHistoryCount($status, $dateFrom, $dateTo);
+
         $this->view('admin/payments', [
-            'payments' => $this->paymentModel->getAdminPaymentHistory($status, $perPage, $offset),
+            'payments' => $this->paymentModel->getAdminPaymentHistory($status, $perPage, $offset, $dateFrom, $dateTo),
             'status' => $status,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
             'selectedPaymentId' => isset($_GET['payment']) ? (int)$_GET['payment'] : null,
             'message' => $_SESSION['admin_flash'] ?? '',
             'currentPage' => $page,
-            'totalPages' => max(1, (int)ceil($this->paymentModel->getAdminPaymentHistoryCount($status) / $perPage)),
-            'totalCount' => $this->paymentModel->getAdminPaymentHistoryCount($status),
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
             'perPage' => $perPage,
         ]);
         unset($_SESSION['admin_flash']);
@@ -960,7 +1405,6 @@ class Admin extends Controller
             redirect('admin/packages');
         }
 
-        $categories = $packageModel->getAllCategories();
         $serviceOptions = $packageModel->getAdminServiceOptions();
         $hallOptionsByService = [];
         $attireOptionsByService = [];
@@ -978,7 +1422,6 @@ class Admin extends Controller
 
         $this->view('admin/packages/detail', [
             'package' => $package,
-            'categories' => $categories,
             'serviceOptions' => $serviceOptions,
             'hallOptionsByService' => $hallOptionsByService,
             'attireOptionsByService' => $attireOptionsByService,
@@ -993,30 +1436,28 @@ class Admin extends Controller
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
             $packageModel = $this->model('PlatformPackage');
             $this->view('admin/packages/create', [
-                'categories' => $packageModel->getAllCategories(),
-                'serviceOptions' => $packageModel->getAdminServiceOptions(),
                 'message' => $_SESSION['admin_flash'] ?? '',
+                'old' => $_SESSION['pkg_old'] ?? [],
+                'errors' => $_SESSION['pkg_errors'] ?? [],
             ]);
-            unset($_SESSION['admin_flash']);
+            unset($_SESSION['admin_flash'], $_SESSION['pkg_old'], $_SESSION['pkg_errors']);
             return;
         }
 
         $packageModel = $this->model('PlatformPackage');
         $slug = trim($_POST['slug'] ?? '');
         $name = trim($_POST['name'] ?? '');
+        $errors = [];
 
         if ($name === '') {
-            $_SESSION['admin_flash'] = 'Package name is required.';
-            redirect('admin/packageCreate');
+            $errors['name'] = 'Package name is required.';
         }
 
-        $imageUrl = '';
-        if ($this->uploadService->hasUploaded('package_image')) {
-            $imageUrl = $this->uploadService->storePackageImage($_FILES['package_image']);
-            if ($imageUrl === '') {
-                $_SESSION['admin_flash'] = 'Package image must be JPG, PNG, or WebP and no larger than 6MB.';
-                redirect('admin/packageCreate');
-            }
+        if (!empty($errors)) {
+            $_SESSION['pkg_old'] = $_POST;
+            $_SESSION['pkg_errors'] = $errors;
+            $_SESSION['admin_flash'] = 'Please fix the errors below.';
+            redirect('admin/packageCreate');
         }
 
         $data = [
@@ -1026,45 +1467,37 @@ class Admin extends Controller
             'tagline' => trim($_POST['tagline'] ?? ''),
             'base_price' => (float)($_POST['base_price'] ?? 0),
             'max_concurrent' => (int)($_POST['max_concurrent'] ?? 0),
-            'image_url' => $imageUrl,
+            'image_url' => '',
             'is_active' => !empty($_POST['is_active']),
             'sort_order' => (int)($_POST['sort_order'] ?? 0),
-            'category_id' => (int)($_POST['category_id'] ?? 0),
         ];
 
         $packageId = $packageModel->createPackageType($data);
 
         if (!$packageId) {
+            $_SESSION['pkg_old'] = $_POST;
+            $_SESSION['pkg_errors'] = ['general' => 'Failed to create package. Please try again.'];
             $_SESSION['admin_flash'] = 'Failed to create package type.';
             redirect('admin/packageCreate');
         }
 
-        $serviceIds = $_POST['service_ids'] ?? [];
-        $selectedServiceCount = 0;
-        $addedServiceCount = 0;
-        if (is_array($serviceIds)) {
-            foreach ($serviceIds as $serviceId) {
-                $serviceId = (int)$serviceId;
-                if ($serviceId <= 0) {
-                    continue;
-                }
-                $selectedServiceCount++;
-                if ($packageModel->addPackageService($packageId, $serviceId, (int)($_POST['guest_count'] ?? 100))) {
-                    $addedServiceCount++;
+        // Handle image upload after creation (non-blocking — image is optional)
+        $imageFlash = '';
+        if ($this->uploadService->hasUploaded('package_image')) {
+            $imageError = $this->uploadService->validatePackageImage($_FILES['package_image']);
+            if ($imageError !== '') {
+                $imageFlash = ' Package image skipped: ' . $imageError;
+            } else {
+                $imageUrl = $this->uploadService->storePackageImage($_FILES['package_image']);
+                if ($imageUrl !== '') {
+                    $packageModel->updatePackageType((int)$packageId, ['image_url' => $imageUrl]);
+                } else {
+                    $imageFlash = ' Package image could not be saved. You can re-upload from the package detail page.';
                 }
             }
         }
 
-        $createdPackage = $packageModel->getPackageById($packageId);
-        if ($createdPackage) {
-            $packageModel->updatePackageType($packageId, [
-                'base_price' => (float)($createdPackage['included_total'] ?? 0),
-            ]);
-        }
-
-        $_SESSION['admin_flash'] = $selectedServiceCount > 0
-            ? 'Package type created successfully. Added ' . $addedServiceCount . ' of ' . $selectedServiceCount . ' selected services.'
-            : 'Package type created successfully.';
+        $_SESSION['admin_flash'] = 'Package type created successfully.' . $imageFlash . ' You can now add services from the package detail page.';
         redirect('admin/packageDetail/' . $packageId);
     }
 
@@ -1120,9 +1553,6 @@ class Admin extends Controller
         if (isset($_POST['sort_order'])) {
             $data['sort_order'] = (int)$_POST['sort_order'];
         }
-        if (isset($_POST['category_id'])) {
-            $data['category_id'] = (int)$_POST['category_id'];
-        }
 
         $updated = $packageModel->updatePackageType((int)$packageId, $data);
 
@@ -1141,18 +1571,35 @@ class Admin extends Controller
         $packageModel = $this->model('PlatformPackage');
         $package = $packageModel->getPackageById((int)$packageId);
 
-        // Deletion of published packages is handled via publish flow (soft-delete on replace)
-        if ($package && ($package['status'] ?? '') === 'published') {
-            $_SESSION['admin_flash'] = 'Published packages cannot be deleted directly. Use the archive flow.';
-            redirect('admin/packageDetail/' . (int)$packageId);
+        if (!$package) {
+            $_SESSION['admin_flash'] = 'Package not found.';
+            redirect('admin/packages');
         }
 
+        $hasBookings = $packageModel->hasPackageBookings((int)$packageId);
         $deleted = $packageModel->deletePackageType((int)$packageId);
 
         $_SESSION['admin_flash'] = $deleted
-            ? 'Package deleted from database.'
+            ? ($hasBookings
+                ? 'Package archived — booking history is preserved. It is now hidden from all listings.'
+                : 'Package permanently deleted.')
             : 'Package could not be deleted.';
         redirect('admin/packages');
+    }
+
+    public function packageRestore($packageId = null)
+    {
+        if (!$packageId || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/packages');
+        }
+
+        $packageModel = $this->model('PlatformPackage');
+        $restored = $packageModel->restorePackageType((int)$packageId);
+
+        $_SESSION['admin_flash'] = $restored
+            ? 'Package restored and reactivated.'
+            : 'Package could not be restored (it may not be archived).';
+        redirect('admin/packageDetail/' . (int)$packageId);
     }
 
     public function packageApplySuggestedPrice($packageId = null)
@@ -1183,7 +1630,7 @@ class Admin extends Controller
 
         $packageModel->updatePackageType((int)$packageId, ['base_price' => $serviceTotal]);
 
-        $_SESSION['admin_flash'] = 'Package base price updated from included services. Admin/customer price adds 5% agent fee.';
+        $_SESSION['admin_flash'] = 'Package base price updated from included services. Admin/customer price adds ' . (int)get_platform_fee_percent() . '% agent fee.';
         redirect('admin/packageDetail/' . (int)$packageId);
     }
 
@@ -1389,6 +1836,150 @@ class Admin extends Controller
         ]);
     }
 
+    // ═══════════════════════════════════════════════════════════
+    //  CATEGORY MANAGEMENT
+    // ═══════════════════════════════════════════════════════════
+
+    public function categories()
+    {
+        $categoryModel = $this->model('Category');
+        $search = trim($_GET['search'] ?? '');
+        $allCategories = $categoryModel->getAll();
+
+        if ($search !== '') {
+            $searchLower = strtolower($search);
+            $allCategories = array_filter($allCategories, function ($cat) use ($searchLower) {
+                return strpos(strtolower($cat['name']), $searchLower) !== false
+                    || strpos(strtolower($cat['slug']), $searchLower) !== false;
+            });
+        }
+
+        $categories = [];
+        foreach ($allCategories as $cat) {
+            $cat['supplier_count'] = $categoryModel->getSupplierCount((int)$cat['id']);
+            $cat['service_count'] = $categoryModel->getServiceCount((int)$cat['id']);
+            $categories[] = $cat;
+        }
+
+        $this->view('admin/categories', [
+            'categories' => $categories,
+            'stats' => $categoryModel->getStats(),
+            'search' => $search,
+            'message' => $_SESSION['admin_flash'] ?? '',
+        ]);
+        unset($_SESSION['admin_flash']);
+    }
+
+    public function categoryCreate()
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/categories');
+        }
+
+        $this->requireCsrf();
+
+        $name = trim($_POST['name'] ?? '');
+        if ($name === '') {
+            $_SESSION['admin_flash'] = 'Category name is required.';
+            redirect('admin/categories');
+        }
+
+        if (mb_strlen($name) > 100) {
+            $_SESSION['admin_flash'] = 'Category name must be 100 characters or less.';
+            redirect('admin/categories');
+        }
+
+        $categoryModel = $this->model('Category');
+        $slug = Category::slugify($name);
+
+        if ($categoryModel->nameExists($name)) {
+            $_SESSION['admin_flash'] = 'A category with this name already exists.';
+            redirect('admin/categories');
+        }
+
+        if ($categoryModel->slugExists($slug)) {
+            $slug = $slug . '-' . time();
+        }
+
+        $categoryModel->create($name, $slug);
+
+        $_SESSION['admin_flash'] = 'Category "' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '" created successfully.';
+        redirect('admin/categories');
+    }
+
+    public function categoryUpdate($id = null)
+    {
+        if (!$id || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/categories');
+        }
+
+        $this->requireCsrf();
+
+        $categoryModel = $this->model('Category');
+        $category = $categoryModel->getById((int)$id);
+
+        if (!$category) {
+            $_SESSION['admin_flash'] = 'Category not found.';
+            redirect('admin/categories');
+        }
+
+        $name = trim($_POST['name'] ?? '');
+        if ($name === '') {
+            $_SESSION['admin_flash'] = 'Category name is required.';
+            redirect('admin/categories');
+        }
+
+        if (mb_strlen($name) > 100) {
+            $_SESSION['admin_flash'] = 'Category name must be 100 characters or less.';
+            redirect('admin/categories');
+        }
+
+        if ($categoryModel->nameExists($name, (int)$id)) {
+            $_SESSION['admin_flash'] = 'Another category with this name already exists.';
+            redirect('admin/categories');
+        }
+
+        $slug = Category::slugify($name);
+        if ($categoryModel->slugExists($slug, (int)$id)) {
+            $slug = $slug . '-' . time();
+        }
+
+        $categoryModel->update((int)$id, $name, $slug);
+
+        $_SESSION['admin_flash'] = 'Category updated successfully.';
+        redirect('admin/categories');
+    }
+
+    public function categoryDelete($id = null)
+    {
+        if (!$id || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            redirect('admin/categories');
+        }
+
+        $this->requireCsrf();
+
+        $categoryModel = $this->model('Category');
+        $category = $categoryModel->getById((int)$id);
+
+        if (!$category) {
+            $_SESSION['admin_flash'] = 'Category not found.';
+            redirect('admin/categories');
+        }
+
+        $serviceCount = $categoryModel->getServiceCount((int)$id);
+        $supplierCount = $categoryModel->getSupplierCount((int)$id);
+
+        if ($serviceCount > 0 || $supplierCount > 0) {
+            $_SESSION['admin_flash'] = 'Cannot delete "' . htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') . '" — it is used by ' . $serviceCount . ' service(s) and ' . $supplierCount . ' supplier(s). Remove those associations first.';
+            redirect('admin/categories');
+        }
+
+        $categoryModel->delete((int)$id);
+
+        $_SESSION['admin_flash'] = 'Category deleted successfully.';
+        redirect('admin/categories');
+    }
+
     private function currentUserId()
     {
         return isset($_SESSION['session_uid']) ? (int)$_SESSION['session_uid'] : null;
@@ -1436,25 +2027,34 @@ class Admin extends Controller
                     : 'NULL AS ' . $column;
             }
 
-            // Count for pending tab
+            // Count for pending tab (deposits + remaining payments)
             $db->dbquery(
                 "SELECT COUNT(*) AS total
                  FROM bookings b
-                 WHERE b.status = 'payment_submitted'"
+                 WHERE (b.status = 'payment_submitted'
+                        AND EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = b.id AND p.type = 'deposit' AND p.status = 'pending'))
+                    OR (b.status IN ('pending_final_payment', 'paid', 'payment_verified')
+                        AND EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = b.id AND p.type = 'remaining' AND p.status = 'pending'))"
             );
             $totalCount = (int)($db->getsingledata()['total'] ?? 0);
 
-            // Get bookings with status='payment_submitted'
+            // Get bookings with pending deposit OR pending remaining payments
             $db->dbquery(
                 "SELECT b.*, u.name, u.email, u.phone,
+                        b.total_amount as booking_total_amount,
                         p.id as payment_id, p.amount as payment_amount, p.transaction_ref, p.method,
                         " . implode(', ', $manualPaymentSelects) . ",
                         p.created_at as payment_created_at,
+                        p.type as payment_type,
                         (SELECT COUNT(*) FROM booking_items WHERE booking_id = b.id) as item_count
                  FROM bookings b
                  LEFT JOIN users u ON b.user_id = u.user_id
-                 LEFT JOIN payments p ON b.id = p.booking_id AND p.type = 'deposit' AND p.status = 'pending'
-                 WHERE b.status = 'payment_submitted'
+                 LEFT JOIN payments p ON b.id = p.booking_id
+                    AND ((p.type = 'deposit' AND p.status = 'pending' AND b.status = 'payment_submitted')
+                      OR (p.type = 'remaining' AND p.status = 'pending' AND b.status IN ('pending_final_payment', 'paid', 'payment_verified')))
+                 WHERE p.id IS NOT NULL
+                   AND ((b.status = 'payment_submitted' AND p.type = 'deposit')
+                     OR (b.status IN ('pending_final_payment', 'paid', 'payment_verified') AND p.type = 'remaining'))
                  ORDER BY b.created_at DESC
                  LIMIT :limit OFFSET :offset"
             );
@@ -1486,6 +2086,7 @@ class Admin extends Controller
      */
     public function verifyPaymentPost(): void
     {
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
@@ -1506,59 +2107,107 @@ class Admin extends Controller
 
         $bookingModel = $this->model('BookingModel');
         $beforeVerification = $bookingModel->getBookingById($bookingId);
+        $beforeStatus = (string)($beforeVerification['status'] ?? '');
+
+        // Determine if this is a deposit or remaining payment verification.
+        // Check both the booking status AND whether a pending remaining payment
+        // exists — handles legacy bookings where status wasn't updated to
+        // 'pending_final_payment' due to a previous bug.
+        $isRemaining = ($beforeStatus === 'pending_final_payment')
+            || $bookingModel->hasPendingRemainingPayment($bookingId);
 
         // Verify payment and update booking status
-        if (!$bookingModel->adminVerifyPayment($bookingId, $adminId, $note)) {
-            $this->jsonResponse(['error' => 'Failed to verify payment'], 500);
+        if ($isRemaining) {
+            $verifyResult = $bookingModel->adminVerifyRemainingPayment($bookingId, $adminId, $note);
+        } else {
+            $verifyResult = $bookingModel->adminVerifyPayment($bookingId, $adminId, $note);
+        }
+        if (!$verifyResult) {
+            $this->jsonResponse(['error' => $bookingModel->getPaymentVerificationError()], 422);
             return;
         }
 
         // Notify customer
         $notificationModel = $this->model('Notification');
-        $notificationModel->notifyBookingCustomer(
-            $bookingId,
-            'Payment Verified',
-            'Your payment has been verified! Suppliers are now reviewing your booking.',
-            'payment'
-        );
-
-        // Notify suppliers
-        $notificationModel->notifyBookingSuppliers(
-            $bookingId,
-            'New Booking — Payment Verified',
-            'A new booking with confirmed payment is ready for your review.',
-            'booking'
-        );
+        if ($isRemaining) {
+            // Check if booking is now fully paid after this verification
+            $afterBooking = $bookingModel->getBookingById($bookingId);
+            $isFullyPaid = ($afterBooking['payment_status'] ?? '') === 'paid';
+            $notifMessage = $isFullyPaid
+                ? 'Your remaining balance payment has been verified! Your booking is now fully paid and finalized.'
+                : 'Your remaining balance payment has been verified! You can continue making payments toward your remaining balance.';
+            $notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Remaining Payment Verified',
+                $notifMessage,
+                'payment'
+            );
+        } else {
+            $notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Payment Verified',
+                'Your payment has been verified! Suppliers are now reviewing your booking.',
+                'payment'
+            );
+            // Notify suppliers (only for deposit verification)
+            $notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'New Booking — Payment Verified',
+                'A new booking with confirmed payment is ready for your review.',
+                'booking'
+            );
+        }
 
         // Send the verified payment details to the customer, then notify suppliers.
         $booking   = $bookingModel->getBookingById($bookingId);
         $items     = $bookingModel->getBookingItems($bookingId);
         $eventDetails = $bookingModel->getEventDetails($bookingId);
         $customer  = $bookingModel->getCustomerForBooking($bookingId);
-        $suppliers = $bookingModel->getSupplierEmailsForBooking($bookingId);
-        $verifiedPayment = $bookingModel->getDepositPayment($bookingId) ?: [];
-        if ($customer && $booking) {
-            $emailService = new EmailService();
-            $emailSent = $emailService->sendAdminVerifiedPaymentToCustomer(
-                $customer,
-                $booking,
-                $verifiedPayment,
-                $items,
-                $eventDetails
-            );
-            $emailService->sendPaymentVerifiedEvent($customer, $suppliers, [], $booking, $items, false);
+        $emailSent = false;
+        $verifiedPayment = [];
+        if (!$isRemaining) {
+            $suppliers = $bookingModel->getSupplierEmailsForBooking($bookingId);
+            $verifiedPayment = $bookingModel->getDepositPayment($bookingId) ?: [];
+            if ($customer && $booking) {
+                $emailService = new EmailService();
+                $emailSent = $emailService->sendAdminVerifiedPaymentToCustomer(
+                    $customer,
+                    $booking,
+                    $verifiedPayment,
+                    $items,
+                    $eventDetails
+                );
+                $emailService->sendPaymentVerifiedEvent($customer, $suppliers, [], $booking, $items, false);
+            }
         } else {
-            $emailSent = false;
+            // For remaining payments, get the payment record for logging
+            $payments = $bookingModel->getBookingPayments($bookingId);
+            foreach (array_reverse($payments) as $p) {
+                if (($p['type'] ?? '') === 'remaining' && ($p['status'] ?? '') === 'success') {
+                    $verifiedPayment = $p;
+                    break;
+                }
+            }
+            if ($customer && $booking) {
+                $emailService = new EmailService();
+                $emailSent = $emailService->sendRemainingPaymentVerifiedToCustomer(
+                    $customer,
+                    $booking,
+                    $verifiedPayment,
+                    $items,
+                    $eventDetails
+                );
+            }
         }
 
         $paymentId = (int)($verifiedPayment['id'] ?? 0);
         $newStatus = (string)($booking['status'] ?? 'paid');
         $bookingModel->logStatusChange(
             $bookingId,
-            (string)($beforeVerification['status'] ?? 'payment_submitted'),
+            $beforeStatus ?: 'payment_submitted',
             $newStatus,
             $adminId,
-            'Deposit verified by admin' . ($note !== '' ? ': ' . $note : '')
+            ($isRemaining ? 'Remaining payment' : 'Deposit') . ' verified by admin' . ($note !== '' ? ': ' . $note : '')
         );
 
         $this->jsonResponse([
@@ -1582,6 +2231,7 @@ class Admin extends Controller
      */
     public function rejectPaymentSlipPost(): void
     {
+        $this->requireCsrf();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['error' => 'Method not allowed'], 405);
         }
@@ -1601,34 +2251,43 @@ class Admin extends Controller
         }
 
         $bookingModel = $this->model('BookingModel');
+        $db = new Database();
 
-        // Reset booking to pending_payment
-        $this->db->dbquery("UPDATE bookings SET status = 'pending_payment' WHERE id = :id LIMIT 1");
-        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        // Determine if this is a remaining payment rejection
+        $currentBooking = $bookingModel->getBookingById($bookingId);
+        $isRemainingReject = ($currentBooking['status'] ?? '') === 'pending_final_payment';
 
-        if (!$this->db->dbexecute()) {
+        // Reset booking status: remaining → confirmed, deposit → pending_payment
+        $resetStatus = $isRemainingReject ? 'confirmed' : 'pending_payment';
+        $db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");
+        $db->dbbind(':status', $resetStatus);
+        $db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+
+        if (!$db->dbexecute()) {
             $this->jsonResponse(['error' => 'Failed to reject payment'], 500);
             return;
         }
 
         // Mark the pending payment record as failed
-        $this->db->dbquery("SHOW COLUMNS FROM payments LIKE 'verified_note'");
-        $hasVerifiedNote = (bool)$this->db->getsingledata();
+        $db->dbquery("SHOW COLUMNS FROM payments LIKE 'verified_note'");
+        $hasVerifiedNote = (bool)$db->getsingledata();
         $setParts = ["status = 'failed'", 'verified_by = :admin', 'verified_at = NOW()'];
         if ($hasVerifiedNote) {
             $setParts[] = 'verified_note = :reason';
         }
 
-        $this->db->dbquery(
+        $paymentType = $isRemainingReject ? 'remaining' : 'deposit';
+        $db->dbquery(
             "UPDATE payments SET " . implode(', ', $setParts) . "
-             WHERE booking_id = :bid AND type = 'deposit' AND status = 'pending' LIMIT 1"
+             WHERE booking_id = :bid AND type = :payment_type AND status = 'pending' LIMIT 1"
         );
-        $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
         if ($hasVerifiedNote) {
-            $this->db->dbbind(':reason', $reason, PDO::PARAM_STR);
+            $db->dbbind(':reason', $reason, PDO::PARAM_STR);
         }
-        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbexecute();
+        $db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $db->dbbind(':payment_type', $paymentType);
+        $db->dbexecute();
 
         // Notify customer
         $notificationModel = $this->model('Notification');
@@ -1643,6 +2302,266 @@ class Admin extends Controller
             'success' => true,
             'message' => 'Payment rejected and customer has been notified.',
         ]);
+    }
+
+    /* ─── Supplier Payout Management (Manual) ─────────────────────── */
+
+    /**
+     * Display supplier payout queue.
+     * Admin reviews and manually transfers money to suppliers.
+     */
+    public function payouts(): void
+    {
+        $status = $_GET['status'] ?? 'processing';
+        if (!in_array($status, ['processing', 'pending', 'success', 'failed'], true)) {
+            $status = 'processing';
+        }
+
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
+        $db = new Database();
+
+        // Count
+        $db->dbquery(
+            "SELECT COUNT(*) AS total FROM payments WHERE type = 'payout' AND status = :status"
+        );
+        $db->dbbind(':status', $status, PDO::PARAM_STR);
+        $totalCount = (int)($db->getsingledata()['total'] ?? 0);
+
+        // Group payouts by supplier for cleaner display
+        $db->dbquery(
+            "SELECT p.supplier_id,
+                    s.shop_name,
+                    s.bank_account,
+                    s.bank_code,
+                    u.name AS owner_name,
+                    u.email,
+                    COUNT(p.id) AS payout_count,
+                    SUM(p.amount) AS total_amount,
+                    MIN(p.payout_requested_at) AS first_requested,
+                    MAX(p.payout_requested_at) AS last_requested,
+                    MIN(p.payout_batch_id) AS batch_id
+               FROM payments p
+               JOIN suppliers s ON p.supplier_id = s.supplier_id
+               JOIN users u ON s.user_id = u.user_id
+              WHERE p.type = 'payout' AND p.status = :status
+              GROUP BY p.supplier_id, s.shop_name, s.bank_account, s.bank_code, u.name, u.email
+              ORDER BY first_requested DESC
+              LIMIT :limit OFFSET :offset"
+        );
+        $db->dbbind(':status', $status, PDO::PARAM_STR);
+        $db->dbbind(':limit', $perPage, PDO::PARAM_INT);
+        $db->dbbind(':offset', $offset, PDO::PARAM_INT);
+        $payouts = $db->getmultidata();
+
+        // Summary stats
+        $db->dbquery(
+            "SELECT
+                COALESCE(SUM(CASE WHEN status = 'processing' THEN amount ELSE 0 END), 0) as review_total,
+                COUNT(CASE WHEN status = 'processing' THEN 1 END) as review_count,
+                COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as pending_total,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+                COALESCE(SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END), 0) as paid_total,
+                COUNT(CASE WHEN status = 'success' THEN 1 END) as paid_count
+             FROM payments WHERE type = 'payout'"
+        );
+        $stats = $db->getsingledata();
+
+        $this->view('admin/payouts', [
+            'payouts' => $payouts,
+            'activeStatus' => $status,
+            'currentPage' => $page,
+            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
+            'totalCount' => $totalCount,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Show individual payout details for a supplier (AJAX GET).
+     */
+    public function payoutDetails(int $supplierId = 0): void
+    {
+        $supplierId = $supplierId ?: (int)($_GET['supplier_id'] ?? 0);
+        $status = $_GET['status'] ?? 'processing';
+
+        $db = new Database();
+        $db->dbquery(
+            "SELECT p.id, p.booking_id, p.amount, p.status, p.payout_batch_id,
+                    p.payout_requested_at, p.verified_at, p.verified_note,
+                    b.created_at AS booking_date
+               FROM payments p
+               LEFT JOIN bookings b ON p.booking_id = b.id
+              WHERE p.supplier_id = :sid AND p.type = 'payout' AND p.status = :status
+              ORDER BY p.payout_requested_at DESC"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':status', $status, PDO::PARAM_STR);
+        $items = $db->getmultidata();
+
+        $this->jsonResponse(['items' => $items]);
+    }
+
+    /**
+     * Mark supplier payout(s) as paid after manual bank transfer (AJAX POST).
+     */
+    public function markPayoutPaid(): void
+    {
+        $this->requireCsrf();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $supplierId = (int)($_POST['supplier_id'] ?? 0);
+        $note = trim($_POST['note'] ?? '');
+
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid supplier ID'], 400);
+            return;
+        }
+
+        // Handle optional payment proof upload
+        $proofPath = null;
+        if ($this->uploadService->hasUploaded('proof')) {
+            $proofPath = $this->uploadService->uploadPayoutProof($_FILES['proof'], $supplierId);
+            if ($proofPath === false) {
+                $this->jsonResponse(['error' => 'Invalid file. Accepted: JPG, PNG, WebP, PDF (max 5 MB).'], 400);
+                return;
+            }
+        }
+
+        $db = new Database();
+        $adminId = $this->currentUserId();
+
+        // Mark all processing payouts for this supplier as 'success'
+        $setProof = $proofPath ? ', payment_slip_path = :proof' : '';
+        $db->dbquery(
+            "UPDATE payments
+                SET status = 'success',
+                    verified_by = :admin,
+                    verified_at = NOW(),
+                    verified_note = :note
+                    {$setProof}
+              WHERE supplier_id = :sid
+                AND type = 'payout'
+                AND status = 'processing'"
+        );
+        $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $db->dbbind(':note', $note ?: 'Paid via manual bank transfer', PDO::PARAM_STR);
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        if ($proofPath) {
+            $db->dbbind(':proof', $proofPath, PDO::PARAM_STR);
+        }
+        $db->dbexecute();
+
+        // Get the total paid for notification
+        $db->dbquery(
+            "SELECT SUM(amount) AS total, COUNT(*) AS cnt
+               FROM payments
+              WHERE supplier_id = :sid AND type = 'payout' AND status = 'success'
+                AND verified_by = :admin AND verified_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $summary = $db->getsingledata();
+
+        // Notify the supplier (non-blocking — don't fail the payout if notification breaks)
+        try {
+            $notificationModel = $this->model('Notification');
+            $notificationModel->notifyUser(
+                $this->getSupplierUserId($supplierId),
+                'Payout Received',
+                'Your payout of ' . number_format((float)($summary['total'] ?? 0), 0) . ' MMK has been processed and sent to your bank account.',
+                'payout',
+                'supplier',
+                $supplierId
+            );
+        } catch (\Throwable $e) {
+            error_log('Payout notification failed: ' . $e->getMessage());
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payout marked as paid. Supplier has been notified.',
+            'total' => (float)($summary['total'] ?? 0),
+            'count' => (int)($summary['cnt'] ?? 0),
+        ]);
+    }
+
+    /**
+     * Reject supplier payout(s) — returns funds to pending (AJAX POST).
+     */
+    public function rejectPayout(): void
+    {
+        $this->requireCsrf();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $supplierId = (int)($_POST['supplier_id'] ?? 0);
+        $reason = trim($_POST['reason'] ?? '');
+
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Invalid supplier ID'], 400);
+            return;
+        }
+
+        $db = new Database();
+        $adminId = $this->currentUserId();
+
+        // Move processing payouts back to pending so supplier can re-request
+        $db->dbquery(
+            "UPDATE payments
+                SET status = 'failed',
+                    verified_by = :admin,
+                    verified_at = NOW(),
+                    verified_note = :reason
+              WHERE supplier_id = :sid
+                AND type = 'payout'
+                AND status = 'processing'"
+        );
+        $db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $db->dbbind(':reason', $reason ?: 'Rejected by admin', PDO::PARAM_STR);
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbexecute();
+
+        // Notify the supplier (non-blocking)
+        try {
+            $notificationModel = $this->model('Notification');
+            $notificationModel->notifyUser(
+                $this->getSupplierUserId($supplierId),
+                'Payout Request Rejected',
+                'Your payout request was rejected' . ($reason ? ': ' . $reason : '.') . ' Please update your bank details and try again.',
+                'payout',
+                'supplier',
+                $supplierId
+            );
+        } catch (\Throwable $e) {
+            error_log('Payout rejection notification failed: ' . $e->getMessage());
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Payout rejected. Supplier has been notified.',
+        ]);
+    }
+
+    /**
+     * Helper: get the user_id for a supplier.
+     */
+    private function getSupplierUserId(int $supplierId): int
+    {
+        $db = new Database();
+        $db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $row = $db->getsingledata();
+        return (int)($row['user_id'] ?? 0);
     }
 
     /* ─── Cron Jobs & Scheduled Tasks ──────────────────────────────── */
@@ -1684,7 +2603,10 @@ class Admin extends Controller
     }
 
     /**
-     * Send payment reminders for bookings 3-5 days before event.
+     * Send payment reminders for confirmed bookings with remaining balance.
+     * Reminds customers:
+     *   - 7 days after deposit (if not yet paid)
+     *   - 3-5 days before event (urgent)
      * Call via: curl https://goldenpromise.com/admin/cronPaymentReminders?token=SECRET_CRON_TOKEN
      */
     public function cronPaymentReminders(): void
@@ -1698,118 +2620,82 @@ class Admin extends Controller
             exit;
         }
 
-        // Find CONFIRMED bookings with event in next 5 days
+        // Find CONFIRMED bookings with remaining balance and no pending/success remaining payment
         $this->db->dbquery(
-            "SELECT b.id, b.user_id, b.total_amount, b.paid_amount, u.email, u.name, ed.event_date
+            "SELECT b.id, b.user_id, b.total_amount, b.paid_amount, u.email, u.name, ed.event_date,
+                    (SELECT MIN(p2.created_at) FROM payments p2 WHERE p2.booking_id = b.id AND p2.type = 'deposit' AND p2.status = 'success') AS deposit_paid_at
              FROM bookings b
              JOIN users u ON b.user_id = u.user_id
              LEFT JOIN event_details ed ON ed.booking_id = b.id
              WHERE b.status = 'confirmed'
-               AND NOT EXISTS (SELECT 1 FROM payments WHERE booking_id = b.id AND type = 'remaining' AND status IN ('pending', 'success'))
-               AND DATE(ed.event_date) BETWEEN DATE_ADD(CURDATE(), INTERVAL 3 DAY) AND DATE_ADD(CURDATE(), INTERVAL 5 DAY)
+               AND b.paid_amount < b.total_amount
+               AND NOT EXISTS (SELECT 1 FROM payments WHERE booking_id = b.id AND type = 'remaining' AND status IN ('pending', 'processing', 'success'))
              ORDER BY ed.event_date ASC"
         );
         $bookings = $this->db->getmultidata();
 
         $emailService = new EmailService();
+        $notificationModel = $this->model('Notification');
         $sent = 0;
 
         foreach ($bookings as $booking) {
+            $bookingId = (int)$booking['id'];
+            $eventDate = $booking['event_date'] ? strtotime($booking['event_date']) : null;
+            $depositPaidAt = $booking['deposit_paid_at'] ? strtotime($booking['deposit_paid_at']) : null;
+            $daysUntilEvent = $eventDate ? (int)ceil(($eventDate - time()) / 86400) : PHP_INT_MAX;
+            $daysSinceDeposit = $depositPaidAt ? (int)floor((time() - $depositPaidAt) / 86400) : PHP_INT_MAX;
+
+            $shouldRemind = false;
+            $urgency = 'gentle';
+
+            // 7 days after deposit: first reminder
+            if ($daysSinceDeposit >= 7 && $daysSinceDeposit <= 8) {
+                $shouldRemind = true;
+                $urgency = 'gentle';
+            }
+            // 3-5 days before event: urgent reminder
+            if ($daysUntilEvent >= 3 && $daysUntilEvent <= 5) {
+                $shouldRemind = true;
+                $urgency = 'urgent';
+            }
+            // 1-2 days before event: final reminder
+            if ($daysUntilEvent >= 1 && $daysUntilEvent <= 2) {
+                $shouldRemind = true;
+                $urgency = 'final';
+            }
+
+            if (!$shouldRemind) continue;
+
             $customer = [
                 'name' => $booking['name'] ?? '',
                 'email' => $booking['email'] ?? '',
             ];
-            $dueDate = date('M d, Y', strtotime($booking['event_date'] ?? 'now'));
+            $dueDate = $eventDate ? date('M d, Y', $eventDate) : 'your event date';
 
             if ($emailService->sendFinalPaymentReminder($customer, $booking, $dueDate)) {
                 $sent++;
             }
+
+            // Also send in-app notification
+            $balance = max(0, (float)$booking['total_amount'] - (float)$booking['paid_amount']);
+            $message = match ($urgency) {
+                'final' => "Your event is in {$daysUntilEvent} day(s). Please pay your remaining balance of " . number_format($balance, 0) . " MMK as soon as possible to avoid any issues.",
+                'urgent' => "Your event is in {$daysUntilEvent} days. Please pay your remaining balance of " . number_format($balance, 0) . " MMK soon.",
+                default => "Friendly reminder: you have a remaining balance of " . number_format($balance, 0) . " MMK on your booking. You can pay anytime before your event.",
+            };
+            $notificationModel->notifyUser(
+                (int)$booking['user_id'],
+                'Remaining Payment Reminder',
+                $message,
+                'payment',
+                'booking',
+                $bookingId
+            );
         }
 
         echo json_encode([
             'success' => true,
             'reminders_sent' => $sent,
-            'timestamp' => date('Y-m-d H:i:s'),
-        ]);
-
-        exit;
-    }
-
-    /**
-     * Process supplier payouts via 2C2P.
-     * Call via: curl https://goldenpromise.com/admin/cronProcessPayouts?token=SECRET_CRON_TOKEN
-     *
-     * Payouts are created when supplier fee is paid. This cron processes pending payouts.
-     * For now, suppliers need to provide bank details during onboarding.
-     * TODO: Add bank_account and bank_code columns to suppliers table.
-     */
-    public function cronProcessPayouts(): void
-    {
-        $cronToken = $_GET['token'] ?? '';
-        $expectedToken = defined('CRON_TOKEN') ? CRON_TOKEN : '';
-
-        if ($cronToken !== $expectedToken || $expectedToken === '') {
-            http_response_code(403);
-            echo json_encode(['error' => 'Unauthorized cron job']);
-            exit;
-        }
-
-        $this->db->dbquery(
-            "SELECT p.*, s.supplier_id, s.bank_account, s.bank_code
-             FROM payments p
-             JOIN suppliers s ON p.supplier_id = s.supplier_id
-             WHERE p.type = 'payout' AND p.status = 'pending'"
-        );
-        $payouts = $this->db->getmultidata();
-
-        $processed = 0;
-        $failed = 0;
-
-        foreach ($payouts as $payout) {
-            $bankAccount = $payout['bank_account'] ?? '';
-            $bankCode = $payout['bank_code'] ?? 'AYA';
-
-            if (!$bankAccount) {
-                $this->db->dbquery(
-                    "UPDATE payments SET status = 'failed', verified_at = NOW()
-                     WHERE id = :id LIMIT 1"
-                );
-                $this->db->dbbind(':id', (int)$payout['id']);
-                $this->db->dbexecute();
-                $failed++;
-                continue;
-            }
-
-            $result = $this->paymentGateway->createSupplierPayout(
-                (int)$payout['supplier_id'],
-                (float)$payout['amount'],
-                $bankAccount,
-                $bankCode
-            );
-
-            if ($result['success'] ?? false) {
-                $this->db->dbquery(
-                    "UPDATE payments SET status = 'processing', verified_at = NOW()
-                     WHERE id = :id LIMIT 1"
-                );
-                $this->db->dbbind(':id', (int)$payout['id']);
-                $this->db->dbexecute();
-                $processed++;
-            } else {
-                $this->db->dbquery(
-                    "UPDATE payments SET status = 'failed', verified_at = NOW()
-                     WHERE id = :id LIMIT 1"
-                );
-                $this->db->dbbind(':id', (int)$payout['id']);
-                $this->db->dbexecute();
-                $failed++;
-            }
-        }
-
-        echo json_encode([
-            'success' => true,
-            'payouts_processed' => $processed,
-            'payouts_failed' => $failed,
             'timestamp' => date('Y-m-d H:i:s'),
         ]);
 
@@ -1837,6 +2723,7 @@ class Admin extends Controller
         $bookingModel = $this->model('BookingModel');
         $notificationModel = $this->model('Notification');
         $expired = $bookingModel->expireOverdueBookingRequests();
+        $unpaidExpired = $bookingModel->expireAbandonedUnpaidBookings();
 
         if ($expired > 0) {
             $this->db->dbquery(
@@ -1881,7 +2768,70 @@ class Admin extends Controller
         echo json_encode([
             'success' => true,
             'expired' => $expired,
+            'unpaid_bookings_expired' => $unpaidExpired,
             'replacements_requeued' => $replResult['requeued'],
+            'timestamp' => date('Y-m-d H:i:s'),
+        ]);
+
+        exit;
+    }
+
+    /**
+     * Auto-complete bookings the day after the event date.
+     * Creates supplier payout records so suppliers can request earnings.
+     * Call via: curl https://goldenpromise.com/admin/cronAutoCompleteBookings?token=SECRET_CRON_TOKEN
+     */
+    public function cronAutoCompleteBookings(): void
+    {
+        $cronToken = $_GET['token'] ?? '';
+        $expectedToken = defined('CRON_TOKEN') ? CRON_TOKEN : '';
+
+        if ($cronToken !== $expectedToken || $expectedToken === '') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Unauthorized cron job']);
+            exit;
+        }
+
+        $db = new Database();
+        $bookingModel = $this->model('BookingModel');
+        $notificationModel = $this->model('Notification');
+
+        // Find finalized bookings where the event date has passed
+        $db->dbquery(
+            "SELECT b.id, ed.event_date
+               FROM bookings b
+               JOIN event_details ed ON ed.booking_id = b.id
+              WHERE b.status = 'finalized'
+                AND ed.event_date < CURDATE()"
+        );
+        $bookings = $db->getmultidata();
+
+        $completed = 0;
+        $failed = 0;
+
+        foreach ($bookings as $booking) {
+            $bookingId = (int)$booking['id'];
+            if ($bookingModel->markBookingCompleted($bookingId)) {
+                $completed++;
+                try {
+                    $notificationModel->notifyBookingCustomer(
+                        $bookingId,
+                        'Booking Completed',
+                        'Your wedding event is complete! Supplier payouts have been processed.',
+                        'booking'
+                    );
+                } catch (\Throwable $e) {
+                    error_log('Auto-complete notification failed: ' . $e->getMessage());
+                }
+            } else {
+                $failed++;
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'bookings_completed' => $completed,
+            'bookings_failed' => $failed,
             'timestamp' => date('Y-m-d H:i:s'),
         ]);
 
@@ -1996,44 +2946,49 @@ class Admin extends Controller
     {
         header('Content-Type: application/json');
 
-        $userId = $_SESSION['session_uid'] ?? 0;
-        if (!$userId) {
-            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
-            return;
+        try {
+            $userId = $_SESSION['session_uid'] ?? 0;
+            if (!$userId) {
+                echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+                return;
+            }
+
+            $payload = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($payload)) {
+                echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+                return;
+            }
+
+            $name  = trim((string)($payload['name'] ?? ''));
+            $email = trim((string)($payload['email'] ?? ''));
+            $phone = trim((string)($payload['phone'] ?? ''));
+
+            if ($name === '' || $email === '') {
+                echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
+                return;
+            }
+
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
+                return;
+            }
+
+            $userModel = $this->model('User');
+            $userModel->updateProfile($userId, [
+                'name'  => $name,
+                'email' => $email,
+                'phone' => $phone,
+            ]);
+
+            // Update session
+            $_SESSION['session_name'] = $name;
+            $_SESSION['session_email'] = $email;
+
+            echo json_encode(['ok' => true]);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'Server error. Please try again.']);
         }
-
-        $payload = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($payload)) {
-            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
-            return;
-        }
-
-        $name  = trim((string)($payload['name'] ?? ''));
-        $email = trim((string)($payload['email'] ?? ''));
-        $phone = trim((string)($payload['phone'] ?? ''));
-
-        if ($name === '' || $email === '') {
-            echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
-            return;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['ok' => false, 'error' => 'Invalid email address.']);
-            return;
-        }
-
-        $userModel = $this->model('User');
-        $userModel->updateProfile($userId, [
-            'name'  => $name,
-            'email' => $email,
-            'phone' => $phone,
-        ]);
-
-        // Update session
-        $_SESSION['session_name'] = $name;
-        $_SESSION['session_email'] = $email;
-
-        echo json_encode(['ok' => true]);
     }
 
     /**
@@ -2088,6 +3043,58 @@ class Admin extends Controller
         ], $deviceInfo);
 
         echo json_encode(['ok' => true]);
+    }
+
+    /**
+     * JSON endpoint — self-service delete account (soft-delete).
+     * Expects JSON body: { password }
+     * Verifies password, soft-deletes the account, destroys the session.
+     */
+    public function deleteAccount()
+    {
+        header('Content-Type: application/json');
+
+        $userId = $_SESSION['session_uid'] ?? 0;
+        if (!$userId) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['ok' => false, 'error' => 'Invalid request method.']);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid payload.']);
+            return;
+        }
+
+        $password = trim((string)($payload['password'] ?? ''));
+        if ($password === '') {
+            echo json_encode(['ok' => false, 'error' => 'Password is required.']);
+            return;
+        }
+
+        $userModel = $this->model('User');
+
+        if (!$userModel->verifyPassword($userId, $password)) {
+            echo json_encode(['ok' => false, 'error' => 'Password is incorrect.']);
+            return;
+        }
+
+        $userModel->softDeleteAccount($userId);
+
+        // Destroy session
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $p = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+        }
+        session_destroy();
+
+        echo json_encode(['ok' => true, 'redirect' => URLROOT . '/']);
     }
 
 }

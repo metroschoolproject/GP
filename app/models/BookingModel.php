@@ -12,10 +12,30 @@ class BookingModel
     private ?bool $bookingSupplierDeadlineColumn = null;
     private ?array $bookingStatusValues = null;
     private array $paymentColumnCache = [];
+    private array $replacementColumnCache = [];
+    private array $tableExistsCache = [];
+    private ?string $replacementSwapError = null;
+    private ?string $paymentVerificationError = null;
+    private ?array $lastUnavailableService = null;
 
     public function __construct()
     {
         $this->db = new Database();
+    }
+
+    public function beginTransaction(): bool
+    {
+        return $this->db->beginTransaction();
+    }
+
+    public function commit(): bool
+    {
+        return $this->db->commit();
+    }
+
+    public function rollBack(): bool
+    {
+        return $this->db->rollBack();
     }
 
     /* ─── Booking CRUD ─────────────────────────────────────────────── */
@@ -64,31 +84,50 @@ class BookingModel
             : '';
         $packageParentInsertColumn = $hasBookingPackageParentColumn ? ', package_booking_item_id' : '';
         $packageParentSelectColumn = $hasBookingPackageParentColumn ? ', NULL' : '';
+        $hasDesignColumns = $this->hasBookingDesignColumns();
+        $designInsertColumn = $hasDesignColumns ? ', attire_item_id, decoration_style_id, cake_design_id' : '';
+        $designSelectColumn = $hasDesignColumns
+            ? ', ci.attire_item_id, ci.decoration_style_id, ci.cake_design_id'
+            : '';
+        $hasBookingRentalColumns = $this->hasBookingRentalColumns();
+        $rentalInsertColumn = $hasBookingRentalColumns ? ', rental_type, borrow_date, return_date' : '';
+        $rentalSelectColumn = $hasBookingRentalColumns
+            ? ", ci.rental_type, ci.borrow_date, CASE WHEN ci.rental_type = 'borrow' AND aro.days IS NOT NULL THEN DATE_ADD(ci.borrow_date, INTERVAL (aro.days - 1) DAY) ELSE NULL END"
+            : '';
+        $hasSupplierPackages = $this->tableExists('supplier_packages');
+        $supplierPackagePrice = $hasSupplierPackages ? 'sp.total_price' : 'NULL';
+        $supplierPackageName = $hasSupplierPackages ? 'sp.name' : 'NULL';
+        $supplierPackageShop = $hasSupplierPackages ? 'sp_sup.shop_name' : 'NULL';
+        $supplierPackageThumbnail = $hasSupplierPackages ? 'sp.thumbnail_url' : 'NULL';
+        $supplierPackageJoin = $hasSupplierPackages
+            ? "LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
+               LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id"
+            : '';
 
         $this->db->dbquery(
             "INSERT INTO booking_items (booking_id, item_type{$sourceInsertColumn}, item_id, booking_date, price,
                     item_name, supplier_name, category_name, thumbnail_url,
-                    status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn}{$packageParentInsertColumn})
+                    status, slot_id, start_time, end_time, booking_type{$venueRoomInsertColumn}{$packageParentInsertColumn}{$designInsertColumn}{$rentalInsertColumn})
             SELECT :bid, ci.item_type{$sourceSelectColumn}, ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
-                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
-                        ELSE COALESCE(ci.price, s.price_min, s.price, sp.total_price, 0)
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
+                        ELSE COALESCE(ci.price, s.price_min, s.price, {$supplierPackagePrice}, 0)
                     END,
-                    COALESCE(s.name, p.name, sp.name),
-                    COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise'),
+                    COALESCE(s.name, p.name, {$supplierPackageName}),
+                    COALESCE(sup.shop_name, {$supplierPackageShop}, 'Golden Promise'),
                     cat.name,
-                    COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url),
+                    COALESCE(s.thumbnail_url, p.image_url, {$supplierPackageThumbnail}),
                     'pending',
                     ci.slot_id, ci.start_time, ci.end_time,
-                    COALESCE(s.booking_type, 'fullday'){$venueRoomSelectColumn}{$packageParentSelectColumn}
+                    COALESCE(s.booking_type, 'fullday'){$venueRoomSelectColumn}{$packageParentSelectColumn}{$designSelectColumn}{$rentalSelectColumn}
             FROM cart_items ci
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
-            LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
+            {$supplierPackageJoin}
             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
-            LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
             LEFT JOIN categories cat ON s.category_id = cat.id
+            LEFT JOIN attire_rental_options aro ON aro.id = ci.rental_option_id
             LEFT JOIN venue_room_availability selected_vra ON selected_vra.id = ci.slot_id
             WHERE ci.user_id = :uid
             ORDER BY ci.id DESC"
@@ -190,6 +229,32 @@ class BookingModel
         return $this->bookingVenueRoomColumn;
     }
 
+    private $bookingDesignColumns = null;
+    private function hasBookingDesignColumns(): bool
+    {
+        if ($this->bookingDesignColumns !== null) {
+            return $this->bookingDesignColumns;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM booking_items LIKE 'attire_item_id'");
+        $this->bookingDesignColumns = (bool)$this->db->getsingledata();
+
+        return $this->bookingDesignColumns;
+    }
+
+    private ?bool $bookingRentalColumns = null;
+    private function hasBookingRentalColumns(): bool
+    {
+        if ($this->bookingRentalColumns !== null) {
+            return $this->bookingRentalColumns;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM booking_items LIKE 'rental_type'");
+        $this->bookingRentalColumns = (bool)$this->db->getsingledata();
+
+        return $this->bookingRentalColumns;
+    }
+
     private function hasCartSourceColumn(): bool
     {
         if ($this->cartSourceColumn !== null) {
@@ -259,6 +324,38 @@ class BookingModel
         $this->paymentColumnCache[$column] = (bool)$this->db->getsingledata();
 
         return $this->paymentColumnCache[$column];
+    }
+
+    private function replacementHasColumn(string $column): bool
+    {
+        if (array_key_exists($column, $this->replacementColumnCache)) {
+            return $this->replacementColumnCache[$column];
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM booking_supplier_replacements LIKE :column");
+        $this->db->dbbind(':column', $column);
+        $this->replacementColumnCache[$column] = (bool)$this->db->getsingledata();
+
+        return $this->replacementColumnCache[$column];
+    }
+
+    private function tableExists(string $table): bool
+    {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+               FROM information_schema.TABLES
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = :table'
+        );
+        $this->db->dbbind(':table', $table);
+        $row = $this->db->getsingledata();
+        $this->tableExistsCache[$table] = (int)($row['total'] ?? 0) > 0;
+
+        return $this->tableExistsCache[$table];
     }
 
     private function bookingStatusValues(): array
@@ -395,6 +492,18 @@ class BookingModel
     }
 
     /**
+     * Details of the service whose slot could not be reserved in the most
+     * recent reservePackageServiceSlots() call, or null if the last call
+     * succeeded. Mirrors the $replacementSwapError accessor pattern.
+     *
+     * @return array{service_id:int,service_name:string,date:string,message:string}|null
+     */
+    public function getLastUnavailableService(): ?array
+    {
+        return $this->lastUnavailableService;
+    }
+
+    /**
      * Reserve per-service time slots for every service inside a package.
      * Creates service_time_slot entries for slot-type services and increments
      * their confirmed_count + confirmed_package_count so they're blocked from double booking.
@@ -407,8 +516,9 @@ class BookingModel
      *
      * @return array<int,array>  indexed by service_id
      */
-    public function reservePackageServiceSlots(string $eventDate, array $packageSchedule): array
+    public function reservePackageServiceSlots(int $bookingId, string $eventDate, array $packageSchedule): array|false
     {
+        $this->lastUnavailableService = null;
         foreach ($packageSchedule as $event) {
             if (($event['booking_type'] ?? '') === 'slot') {
                 $svcId = (int)($event['service_id'] ?? 0);
@@ -431,12 +541,79 @@ class BookingModel
                     $packageCap,
                     $svcConcurrent['max_concurrent_customize'] ?? 0
                 );
-                if ($slotId) {
-                    $this->reserveServiceSlot($slotId, 'package');
+                if (!$slotId || !$this->reserveServiceSlot($slotId, 'package')) {
+                    $this->lastUnavailableService = [
+                        'service_id'   => $svcId,
+                        'service_name' => (string)($event['service_name'] ?? 'Package service'),
+                        'date'         => $eventDate,
+                        'message'      => 'No package slots available for this time',
+                    ];
+                    return false;
+                }
+                if (!$this->recordSlotReservation(
+                    $bookingId,
+                    $slotId,
+                    'package',
+                    null,
+                    $svcId,
+                    (int)($event['package_item_id'] ?? 0)
+                )) {
+                    return false;
                 }
             }
         }
         return $packageSchedule;
+    }
+
+    public function reserveBookingItemSlots(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "SELECT id, slot_id, item_id AS service_id
+               FROM booking_items
+              WHERE booking_id = :bid
+                AND item_type = 'service'
+                AND slot_id IS NOT NULL"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        foreach ($this->db->getmultidata() as $item) {
+            $slotId = (int)$item['slot_id'];
+            if (
+                !$this->reserveServiceSlot($slotId, 'custom')
+                || !$this->recordSlotReservation(
+                    $bookingId,
+                    $slotId,
+                    'custom',
+                    (int)$item['id'],
+                    (int)$item['service_id']
+                )
+            ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function recordSlotReservation(
+        int $bookingId,
+        int $slotId,
+        string $source,
+        ?int $bookingItemId = null,
+        ?int $serviceId = null,
+        ?int $packageItemId = null
+    ): bool {
+        $this->db->dbquery(
+            "INSERT INTO booking_slot_reservations
+                (booking_id, booking_item_id, package_item_id, service_id, slot_id, source, reserved_at)
+             VALUES
+                (:bid, :biid, :piid, :sid, :slot, :source, NOW())"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':biid', $bookingItemId, $bookingItemId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $this->db->dbbind(':piid', $packageItemId, $packageItemId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $this->db->dbbind(':sid', $serviceId, $serviceId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $this->db->dbbind(':slot', $slotId, PDO::PARAM_INT);
+        $this->db->dbbind(':source', $source);
+        return $this->db->dbexecute();
     }
 
     /**
@@ -589,6 +766,20 @@ class BookingModel
         // The uniq_booking_pkg_item (booking_id, package_item_id) key keeps
         // package lines idempotent; direct/supplier-package lines (NULL
         // package_item_id) are distinct per service within a single insert.
+
+        $hasSupplierPackageItems = $this->tableExists('supplier_package_items');
+
+        $supplierPackageUnion = $hasSupplierPackageItems ? "
+                UNION ALL
+
+                -- Supplier-package service lines
+                SELECT bi.booking_id, s2.supplier_id, s2.id, s2.category_id, NULL, spi.price
+                FROM booking_items bi
+                INNER JOIN supplier_package_items spi
+                    ON spi.package_id = bi.item_id AND bi.item_type = 'supplier_package'
+                INNER JOIN services s2 ON spi.service_id = s2.id
+                WHERE bi.booking_id = :supplier_package_items_bid" : '';
+
         $this->db->dbquery(
             "INSERT IGNORE INTO booking_suppliers
                 (booking_id, supplier_id, service_id, category_id, package_item_id, item_price)
@@ -615,22 +806,15 @@ class BookingModel
                 FROM booking_items bi
                 INNER JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
                 WHERE bi.booking_id = :service_bid
-
-                UNION ALL
-
-                -- Supplier-package service lines
-                SELECT bi.booking_id, s2.supplier_id, s2.id, s2.category_id, NULL, NULL
-                FROM booking_items bi
-                INNER JOIN supplier_package_items spi
-                    ON spi.package_id = bi.item_id AND bi.item_type = 'supplier_package'
-                INNER JOIN services s2 ON spi.service_id = s2.id
-                WHERE bi.booking_id = :supplier_package_items_bid
+                {$supplierPackageUnion}
              ) svc_lines
              WHERE svc_lines.supplier_id IS NOT NULL"
         );
         $this->db->dbbind(':package_bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':service_bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':supplier_package_items_bid', $bookingId, PDO::PARAM_INT);
+        if ($hasSupplierPackageItems) {
+            $this->db->dbbind(':supplier_package_items_bid', $bookingId, PDO::PARAM_INT);
+        }
 
         return $this->db->dbexecute();
     }
@@ -714,6 +898,15 @@ class BookingModel
      */
     public function getBookingItems(int $bookingId): array
     {
+        $hasSupplierPackages = $this->tableExists('supplier_packages');
+        $supplierPackageName = $hasSupplierPackages ? 'sp.name' : 'NULL';
+        $supplierPackageThumbnail = $hasSupplierPackages ? 'sp.thumbnail_url' : 'NULL';
+        $supplierPackageShop = $hasSupplierPackages ? 'sp_sup.shop_name' : 'NULL';
+        $supplierPackageJoin = $hasSupplierPackages
+            ? "LEFT JOIN supplier_packages sp
+                     ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+               LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id"
+            : '';
         $hasBookingVenueRoomColumn = $this->hasBookingVenueRoomColumn();
         $bookingVenueSelect = $hasBookingVenueRoomColumn
             ? 'COALESCE(bi_vr.id, slot_vr.id) AS venue_room_id,
@@ -744,9 +937,9 @@ class BookingModel
         $this->db->dbquery(
             "SELECT bi.*,
                     {$packageParentSelect}
-                    COALESCE(bi.item_name, s.name, p.name, sp.name) AS service_name,
-                    COALESCE(bi.thumbnail_url, s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
-                    COALESCE(bi.supplier_name, sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
+                    COALESCE(bi.item_name, s.name, p.name, {$supplierPackageName}) AS service_name,
+                    COALESCE(bi.thumbnail_url, s.thumbnail_url, p.image_url, {$supplierPackageThumbnail}) AS thumbnail_url,
+                    COALESCE(bi.supplier_name, sup.shop_name, {$supplierPackageShop}, 'Golden Promise') AS supplier_name,
                     sup.supplier_id,
                     COALESCE(bi.category_name, cat.name) AS category_name,
                     {$bookingVenueSelect}
@@ -754,9 +947,8 @@ class BookingModel
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
              LEFT JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
              {$packageParentJoin}
-             LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+             {$supplierPackageJoin}
              LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
-             LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
              LEFT JOIN categories cat ON s.category_id = cat.id
              {$bookingVenueJoin}
              LEFT JOIN venue_room_availability slot_vra ON slot_vra.id = bi.slot_id
@@ -774,6 +966,19 @@ class BookingModel
      */
     public function getBookingItemsForSupplier(int $bookingId, int $supplierId): array
     {
+        $hasSupplierPackages = $this->tableExists('supplier_packages');
+        $supplierPackageName = $hasSupplierPackages ? 'sp.name' : 'NULL';
+        $supplierPackageThumbnail = $hasSupplierPackages ? 'sp.thumbnail_url' : 'NULL';
+        $supplierPackageShop = $hasSupplierPackages ? 'sp_sup.shop_name' : 'NULL';
+        $supplierPackageId = $hasSupplierPackages ? 'sp_sup.supplier_id' : 'NULL';
+        $supplierPackageJoin = $hasSupplierPackages
+            ? "LEFT JOIN supplier_packages sp
+                     ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+               LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id"
+            : '';
+        $supplierPackageFilter = $hasSupplierPackages
+            ? 'OR sp.supplier_id = :sid_package'
+            : '';
         $hasBookingVenueRoomColumn = $this->hasBookingVenueRoomColumn();
         $bookingVenueSelect = $hasBookingVenueRoomColumn
             ? 'COALESCE(bi_vr.id, slot_vr.id) AS venue_room_id,
@@ -802,19 +1007,18 @@ class BookingModel
         $this->db->dbquery(
             "SELECT bi.*,
                     {$packageParentSelect}
-                    COALESCE(bi.item_name, s.name, p.name, sp.name) AS service_name,
-                    COALESCE(bi.thumbnail_url, s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
-                    COALESCE(bi.supplier_name, sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
-                    COALESCE(sup.supplier_id, sp_sup.supplier_id) AS supplier_id,
+                    COALESCE(bi.item_name, s.name, p.name, {$supplierPackageName}) AS service_name,
+                    COALESCE(bi.thumbnail_url, s.thumbnail_url, p.image_url, {$supplierPackageThumbnail}) AS thumbnail_url,
+                    COALESCE(bi.supplier_name, sup.shop_name, {$supplierPackageShop}, 'Golden Promise') AS supplier_name,
+                    COALESCE(sup.supplier_id, {$supplierPackageId}) AS supplier_id,
                     COALESCE(bi.category_name, cat.name) AS category_name,
                     {$bookingVenueSelect}
              FROM booking_items bi
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
              LEFT JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
              {$packageParentJoin}
-             LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+             {$supplierPackageJoin}
              LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
-             LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
              LEFT JOIN categories cat ON s.category_id = cat.id
              {$bookingVenueJoin}
              LEFT JOIN venue_room_availability slot_vra ON slot_vra.id = bi.slot_id
@@ -823,18 +1027,16 @@ class BookingModel
              WHERE bi.booking_id = :bid
                AND (
                     s.supplier_id = :sid_service
-                    OR sp.supplier_id = :sid_package
+                    {$supplierPackageFilter}
                     OR (
                         bi.item_type = 'package'
                         AND EXISTS (
                             SELECT 1
-                            FROM package_items pi_supplier
-                            LEFT JOIN services pi_service ON pi_service.id = pi_supplier.service_id
-                            WHERE pi_supplier.package_id = bi.item_id
-                              AND (
-                                  pi_supplier.default_supplier_id = :sid_default
-                                  OR pi_service.supplier_id = :sid_package_service
-                              )
+                            FROM booking_suppliers bs_supplier
+                            WHERE bs_supplier.booking_id = bi.booking_id
+                              AND bs_supplier.supplier_id = :sid_default
+                              AND bs_supplier.package_item_id IS NOT NULL
+                              AND bs_supplier.status NOT IN ('replaced','rejected','cancelled')
                         )
                     )
                )
@@ -842,9 +1044,10 @@ class BookingModel
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':sid_service', $supplierId, PDO::PARAM_INT);
-        $this->db->dbbind(':sid_package', $supplierId, PDO::PARAM_INT);
+        if ($hasSupplierPackages) {
+            $this->db->dbbind(':sid_package', $supplierId, PDO::PARAM_INT);
+        }
         $this->db->dbbind(':sid_default', $supplierId, PDO::PARAM_INT);
-        $this->db->dbbind(':sid_package_service', $supplierId, PDO::PARAM_INT);
         return $this->db->getmultidata();
     }
 
@@ -897,6 +1100,15 @@ class BookingModel
                     sup.shop_name,
                     svc.name AS service_name,
                     cat.name AS category_name,
+                    r.id AS replacement_request_id,
+                    r.status AS replacement_status,
+                    (
+                        SELECT originated_r.id
+                        FROM booking_supplier_replacements originated_r
+                        WHERE originated_r.booking_supplier_id = bs.id
+                        ORDER BY originated_r.id DESC
+                        LIMIT 1
+                    ) AS originated_replacement_request_id,
                     (
                         SELECT sd.file_url
                         FROM supplier_documents sd
@@ -909,6 +1121,11 @@ class BookingModel
              LEFT JOIN suppliers sup ON bs.supplier_id = sup.supplier_id
              LEFT JOIN services svc ON svc.id = bs.service_id
              LEFT JOIN categories cat ON cat.id = bs.category_id
+             LEFT JOIN booking_supplier_replacements r
+                    ON r.booking_id = bs.booking_id
+                   AND r.new_supplier_id = bs.supplier_id
+                   AND r.new_service_id = bs.service_id
+                   AND r.status IN ('assigned','accepted')
              WHERE bs.booking_id = :bid
              ORDER BY bs.id ASC"
         );
@@ -1167,10 +1384,19 @@ class BookingModel
     /**
      * Get all bookings (admin view).
      */
-    public function getAllBookings(?string $statusFilter = null, ?string $search = null, int $limit = 15, int $offset = 0): array
+    public function getAllBookings(
+        ?string $statusFilter = null,
+        ?string $search = null,
+        int $limit = 15,
+        int $offset = 0,
+        string $sort = 'event_asc',
+        ?string $dateFrom = null,
+        ?string $dateTo = null
+    ): array
     {
         $sql = "SELECT b.*, u.name AS customer_name, u.email AS customer_email, u.phone AS customer_phone,
                        (SELECT event_date FROM event_details ed WHERE ed.booking_id = b.id ORDER BY ed.event_date ASC LIMIT 1) AS event_date,
+                       (SELECT start_time FROM event_details ed WHERE ed.booking_id = b.id ORDER BY ed.event_date ASC, ed.start_time ASC LIMIT 1) AS event_start_time,
                        (SELECT GROUP_CONCAT(DISTINCT sup.shop_name SEPARATOR ', ')
                         FROM booking_suppliers bs2
                         LEFT JOIN suppliers sup ON bs2.supplier_id = sup.supplier_id
@@ -1208,7 +1434,36 @@ class BookingModel
             $params[':search5'] = '%' . $search . '%';
         }
 
-        $sql .= " ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
+        if ($dateFrom || $dateTo) {
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM event_details ed_range
+                WHERE ed_range.booking_id = b.id";
+            if ($dateFrom) {
+                $sql .= " AND ed_range.event_date >= :date_from";
+                $params[':date_from'] = $dateFrom;
+            }
+            if ($dateTo) {
+                $sql .= " AND ed_range.event_date <= :date_to";
+                $params[':date_to'] = $dateTo;
+            }
+            $sql .= ")";
+        }
+
+        $orderBy = match ($sort) {
+            'event_desc' => '(event_date IS NULL) ASC, event_date DESC, event_start_time DESC, b.id DESC',
+            'created_desc' => 'b.created_at DESC, b.id DESC',
+            'created_asc' => 'b.created_at ASC, b.id ASC',
+            'total_desc' => 'b.total_amount DESC, event_date ASC, b.id DESC',
+            'total_asc' => 'b.total_amount ASC, event_date ASC, b.id ASC',
+            default => '(event_date IS NULL) ASC,
+                        (event_date < CURRENT_DATE()) ASC,
+                        CASE WHEN event_date >= CURRENT_DATE() THEN event_date END ASC,
+                        CASE WHEN event_date >= CURRENT_DATE() THEN event_start_time END ASC,
+                        CASE WHEN event_date < CURRENT_DATE() THEN event_date END DESC,
+                        CASE WHEN event_date < CURRENT_DATE() THEN event_start_time END DESC,
+                        b.id ASC',
+        };
+        $sql .= " ORDER BY {$orderBy} LIMIT :limit OFFSET :offset";
 
         $this->db->dbquery($sql);
         foreach ($params as $key => $val) {
@@ -1220,7 +1475,12 @@ class BookingModel
         return $this->db->getmultidata();
     }
 
-    public function getAllBookingsCount(?string $statusFilter = null, ?string $search = null): int
+    public function getAllBookingsCount(
+        ?string $statusFilter = null,
+        ?string $search = null,
+        ?string $dateFrom = null,
+        ?string $dateTo = null
+    ): int
     {
         $sql = "SELECT COUNT(*) AS total FROM bookings b
                 LEFT JOIN users u ON b.user_id = u.user_id
@@ -1255,11 +1515,85 @@ class BookingModel
             $params[':search5'] = '%' . $search . '%';
         }
 
+        if ($dateFrom || $dateTo) {
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM event_details ed_range
+                WHERE ed_range.booking_id = b.id";
+            if ($dateFrom) {
+                $sql .= " AND ed_range.event_date >= :date_from";
+                $params[':date_from'] = $dateFrom;
+            }
+            if ($dateTo) {
+                $sql .= " AND ed_range.event_date <= :date_to";
+                $params[':date_to'] = $dateTo;
+            }
+            $sql .= ")";
+        }
+
         $this->db->dbquery($sql);
         foreach ($params as $key => $val) {
             $this->db->dbbind($key, $val);
         }
         return (int)($this->db->getsingledata()['total'] ?? 0);
+    }
+
+    /**
+     * Batch-fetch the display type for a list of bookings.
+     * Returns an associative array keyed by booking_id with values like
+     * 'Package', 'Package + Add-ons', 'Supplier Package', 'Custom Services', 'Mixed'.
+     *
+     * @param int[] $bookingIds
+     * @return array<int,string>  booking_id => type label
+     */
+    public function getBookingTypes(array $bookingIds): array
+    {
+        if (empty($bookingIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_map(static fn($i) => ':id' . $i, array_keys($bookingIds)));
+
+        $this->db->dbquery(
+            "SELECT bi.booking_id,
+                    MAX(CASE WHEN bi.item_type = 'package' THEN 1 ELSE 0 END) AS has_package,
+                    MAX(CASE WHEN bi.item_type = 'supplier_package' THEN 1 ELSE 0 END) AS has_supplier_package,
+                    MAX(CASE WHEN bi.item_type = 'service' AND (bi.package_booking_item_id IS NULL OR bi.package_booking_item_id = 0) THEN 1 ELSE 0 END) AS has_standalone_service,
+                    MAX(CASE WHEN bi.package_booking_item_id IS NOT NULL AND bi.package_booking_item_id > 0 THEN 1 ELSE 0 END) AS has_addon
+             FROM booking_items bi
+             WHERE bi.booking_id IN ({$placeholders})
+             GROUP BY bi.booking_id"
+        );
+
+        foreach ($bookingIds as $i => $bid) {
+            $this->db->dbbind(':id' . $i, (int)$bid, PDO::PARAM_INT);
+        }
+
+        $rows = $this->db->getmultidata();
+        $result = [];
+
+        foreach ($rows as $row) {
+            $bid = (int)$row['booking_id'];
+            $hasPackage = (int)$row['has_package'] > 0;
+            $hasSupplierPackage = (int)$row['has_supplier_package'] > 0;
+            $hasStandaloneService = (int)$row['has_standalone_service'] > 0;
+            $hasAddon = (int)$row['has_addon'] > 0;
+
+            if ($hasPackage && $hasStandaloneService) {
+                $result[$bid] = 'Mixed';
+            } elseif ($hasPackage && $hasAddon) {
+                $result[$bid] = 'Package + Add-ons';
+            } elseif ($hasPackage) {
+                $result[$bid] = 'Package';
+            } elseif ($hasSupplierPackage) {
+                $result[$bid] = 'Supplier Package';
+            } elseif ($hasStandaloneService) {
+                $result[$bid] = 'Custom Services';
+            } else {
+                $result[$bid] = 'Booking';
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -1349,6 +1683,58 @@ class BookingModel
     }
 
     /**
+     * Get all assignments for a supplier — pending (needs response) and active (confirmed).
+     * Joins with replacements table to flag replacement assignments.
+     */
+    public function getSupplierAssignments(int $supplierId): array
+    {
+        $this->db->dbquery(
+            "SELECT b.id AS booking_id,
+                    b.total_amount,
+                    b.paid_amount,
+                    b.payment_status,
+                    b.status AS booking_status,
+                    b.supplier_response_deadline,
+                    u.name AS customer_name,
+                    u.phone AS customer_phone,
+                    bs.id AS booking_supplier_id,
+                    bs.status AS supplier_status,
+                    bs.confirmed_at,
+                    bs.created_at AS assigned_at,
+                    s.name AS assigned_service_name,
+                    cat.name AS category_name,
+                    MIN(ed.event_date) AS event_date,
+                    (SELECT ed2.location FROM event_details ed2 WHERE ed2.booking_id = b.id LIMIT 1) AS venue,
+                    r.id AS replacement_id,
+                    r.status AS replacement_status,
+                    r.price_delta,
+                    r.requires_customer_approval,
+                    osup.shop_name AS original_supplier_name,
+                    os.name AS original_service_name
+             FROM booking_suppliers bs
+             INNER JOIN bookings b ON bs.booking_id = b.id
+             LEFT JOIN users u ON b.user_id = u.user_id
+             LEFT JOIN event_details ed ON ed.booking_id = b.id
+             LEFT JOIN services s ON s.id = bs.service_id
+             LEFT JOIN categories cat ON cat.id = bs.category_id
+             LEFT JOIN booking_supplier_replacements r
+                   ON r.booking_id = b.id AND r.new_supplier_id = bs.supplier_id
+                   AND r.status = 'assigned'
+             LEFT JOIN suppliers osup ON osup.supplier_id = r.old_supplier_id
+             LEFT JOIN services os ON os.id = r.old_service_id
+             WHERE bs.supplier_id = :sid
+               AND bs.status IN ('pending', 'confirmed', 'in_progress')
+               AND b.status NOT IN ('draft', 'pending_payment', 'cancelled')
+             GROUP BY b.id, bs.id
+             ORDER BY
+               CASE WHEN bs.status = 'pending' THEN 0 ELSE 1 END ASC,
+               MIN(ed.event_date) ASC"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        return $this->db->getmultidata() ?: [];
+    }
+
+    /**
      * Get admin stats.
      */
     public function getAdminStats(): array
@@ -1374,7 +1760,7 @@ class BookingModel
     /**
      * Update booking_supplier status.
      */
-    public function updateSupplierStatus(int $bookingSupplierId, string $status): bool
+    public function updateSupplierStatus(int $bookingSupplierId, string $status, array $allowedCurrentStatuses = []): bool
     {
         $setClause = "status = :status";
         if ($status === 'confirmed') {
@@ -1383,13 +1769,24 @@ class BookingModel
             $setClause .= ", completed_at = NOW()";
         }
 
-        $this->db->dbquery(
-            "UPDATE booking_suppliers SET {$setClause} WHERE id = :id"
-        );
+        $where = 'id = :id';
+        if ($allowedCurrentStatuses) {
+            $placeholders = [];
+            foreach (array_values($allowedCurrentStatuses) as $index => $allowedStatus) {
+                $placeholder = ':current_' . $index;
+                $placeholders[] = $placeholder;
+            }
+            $where .= ' AND status IN (' . implode(', ', $placeholders) . ')';
+        }
+        $this->db->dbquery("UPDATE booking_suppliers SET {$setClause} WHERE {$where}");
         $this->db->dbbind(':status', $status);
         $this->db->dbbind(':id', $bookingSupplierId, PDO::PARAM_INT);
+        foreach (array_values($allowedCurrentStatuses) as $index => $allowedStatus) {
+            $this->db->dbbind(':current_' . $index, $allowedStatus);
+        }
 
-        return $this->db->dbexecute();
+        $this->db->dbexecute();
+        return $this->db->rowcount() === 1;
     }
 
     /**
@@ -1402,11 +1799,11 @@ class BookingModel
         $this->db->dbquery(
             "UPDATE booking_suppliers
                 SET status = 'needs_replacement', declined_at = NOW()
-              WHERE id = :id"
+              WHERE id = :id AND status = 'confirmed'"
         );
         $this->db->dbbind(':id', $bookingSupplierId, PDO::PARAM_INT);
-
-        return $this->db->dbexecute();
+        $this->db->dbexecute();
+        return $this->db->rowcount() === 1;
     }
 
     /**
@@ -1418,18 +1815,31 @@ class BookingModel
      */
     public function createReplacementRequest(int $bookingId, array $supplierRow, ?string $reason = null): int
     {
+        $packageItemColumn = $this->replacementHasColumn('package_item_id')
+            ? ', package_item_id'
+            : '';
+        $packageItemValue = $this->replacementHasColumn('package_item_id')
+            ? ', :package_item_id'
+            : '';
         $this->db->dbquery(
             "INSERT INTO booking_supplier_replacements
-                (booking_id, booking_supplier_id, category_id,
+                (booking_id, booking_supplier_id{$packageItemColumn}, category_id,
                  old_supplier_id, old_service_id, old_price,
                  status, decline_reason, created_at)
              VALUES
-                (:bid, :bsid, :cat,
+                (:bid, :bsid{$packageItemValue}, :cat,
                  :old_sup, :old_svc, :old_price,
                  'pending_admin', :reason, NOW())"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':bsid', (int)($supplierRow['id'] ?? 0), PDO::PARAM_INT);
+        if ($this->replacementHasColumn('package_item_id')) {
+            $this->db->dbbind(
+                ':package_item_id',
+                !empty($supplierRow['package_item_id']) ? (int)$supplierRow['package_item_id'] : null,
+                !empty($supplierRow['package_item_id']) ? PDO::PARAM_INT : PDO::PARAM_NULL
+            );
+        }
         $this->db->dbbind(':cat', $supplierRow['category_id'] ?? null);
         $this->db->dbbind(':old_sup', (int)($supplierRow['supplier_id'] ?? 0), PDO::PARAM_INT);
         $this->db->dbbind(':old_svc', $supplierRow['service_id'] ?? null);
@@ -1457,12 +1867,14 @@ class BookingModel
         }
         $hasPools = $this->hasSlotPoolColumns();
         $poolCol = $source === 'package' ? 'confirmed_package_count' : 'confirmed_customize_count';
-        $poolUpdate = $hasPools ? ", {$poolCol} = GREATEST({$poolCol} - 1, 0)" : '';
+        // CAST to SIGNED before subtracting — confirmed_* are UNSIGNED, and
+        // 0 - 1 underflows (errors under strict SQL mode) before GREATEST applies.
+        $poolUpdate = $hasPools ? ", {$poolCol} = GREATEST(CAST({$poolCol} AS SIGNED) - 1, 0)" : '';
 
         $this->db->dbquery(
             "UPDATE service_time_slots
-                SET confirmed_count = GREATEST(confirmed_count - 1, 0){$poolUpdate},
-                    status = CASE WHEN GREATEST(confirmed_count - 1, 0) < max_concurrent AND status <> 'blocked'
+                SET confirmed_count = GREATEST(CAST(confirmed_count AS SIGNED) - 1, 0){$poolUpdate},
+                    status = CASE WHEN GREATEST(CAST(confirmed_count AS SIGNED) - 1, 0) < max_concurrent AND status <> 'blocked'
                                   THEN 'available' ELSE status END
               WHERE id = :id"
         );
@@ -1477,17 +1889,34 @@ class BookingModel
      */
     public function getReplacement(int $replacementId): array|false
     {
+        $packageItemExpression = $this->replacementHasColumn('package_item_id')
+            ? 'COALESCE(r.package_item_id, bs.package_item_id)'
+            : 'bs.package_item_id';
         $this->db->dbquery(
             "SELECT r.*,
                     sup.shop_name AS old_shop_name,
                     cat.name      AS category_name,
                     osvc.name     AS old_service_name,
+                    nsup.shop_name AS new_shop_name,
+                    nsvc.name AS new_service_name,
+                    p.status AS delta_payment_status,
+                    p.payment_slip_path AS delta_payment_slip,
+                    p.paid_amount AS delta_paid_amount,
+                    pkg.package_id AS package_id,
+                    pkg.name       AS package_name,
+                    {$packageItemExpression} AS original_package_item_id,
                     (SELECT event_date FROM event_details ed
                       WHERE ed.booking_id = r.booking_id ORDER BY ed.event_date ASC LIMIT 1) AS event_date
                FROM booking_supplier_replacements r
+               LEFT JOIN booking_suppliers bs ON bs.id = r.booking_supplier_id
+               LEFT JOIN package_items pi ON pi.id = {$packageItemExpression}
+               LEFT JOIN packages pkg ON pkg.package_id = pi.package_id
                LEFT JOIN suppliers  sup  ON sup.supplier_id = r.old_supplier_id
+               LEFT JOIN suppliers nsup ON nsup.supplier_id = r.new_supplier_id
                LEFT JOIN categories cat  ON cat.id = r.category_id
                LEFT JOIN services   osvc ON osvc.id = r.old_service_id
+               LEFT JOIN services   nsvc ON nsvc.id = r.new_service_id
+               LEFT JOIN payments      p ON p.id = r.delta_payment_id
               WHERE r.id = :id
               LIMIT 1"
         );
@@ -1496,26 +1925,44 @@ class BookingModel
     }
 
     /**
-     * Replacement requests awaiting an admin decision (queue view).
+     * Open replacement requests for the admin tracking view.
      */
     public function getPendingReplacements(): array
     {
+        $packageItemExpression = $this->replacementHasColumn('package_item_id')
+            ? 'COALESCE(r.package_item_id, bs.package_item_id)'
+            : 'bs.package_item_id';
         $this->db->dbquery(
             "SELECT r.*,
                     sup.shop_name AS old_shop_name,
                     cat.name      AS category_name,
                     osvc.name     AS old_service_name,
+                    nsup.shop_name AS new_shop_name,
+                    nsvc.name AS new_service_name,
+                    pkg.package_id AS package_id,
+                    pkg.name       AS package_name,
                     b.status      AS booking_status,
                     u.name        AS customer_name,
+                    p.status      AS delta_payment_status,
+                    p.payment_slip_path AS delta_payment_slip,
                     (SELECT event_date FROM event_details ed
                       WHERE ed.booking_id = r.booking_id ORDER BY ed.event_date ASC LIMIT 1) AS event_date
                FROM booking_supplier_replacements r
+               LEFT JOIN booking_suppliers bs ON bs.id = r.booking_supplier_id
+               LEFT JOIN package_items pi ON pi.id = {$packageItemExpression}
+               LEFT JOIN packages pkg ON pkg.package_id = pi.package_id
                LEFT JOIN suppliers  sup  ON sup.supplier_id = r.old_supplier_id
+               LEFT JOIN suppliers  nsup ON nsup.supplier_id = r.new_supplier_id
                LEFT JOIN categories cat  ON cat.id = r.category_id
                LEFT JOIN services   osvc ON osvc.id = r.old_service_id
+               LEFT JOIN services   nsvc ON nsvc.id = r.new_service_id
                LEFT JOIN bookings   b    ON b.id = r.booking_id
                LEFT JOIN users      u    ON u.user_id = b.user_id
-              WHERE r.status IN ('pending_admin','declined_again','rejected_by_customer')
+               LEFT JOIN payments   p    ON p.id = r.delta_payment_id
+              WHERE r.status IN (
+                    'pending_admin','declined_again','rejected_by_customer',
+                    'pending_customer','assigned'
+              )
               ORDER BY r.created_at ASC"
         );
         return $this->db->getmultidata();
@@ -1538,6 +1985,13 @@ class BookingModel
         $oldPrice = (float)($r['old_price'] ?? 0);
         $eventDate = $r['event_date'] ?? null;
 
+        // Services already rejected for this replacement (by the customer or a
+        // backed-out supplier) must not be offered again on re-pick.
+        $rejectedIds = array_values(array_filter(array_map(
+            'intval',
+            explode(',', (string)($r['rejected_service_ids'] ?? ''))
+        )));
+
         $cap = defined('MAX_REPLACEMENT_UPCHARGE_PCT') ? (float)MAX_REPLACEMENT_UPCHARGE_PCT : 25.0;
         $ceiling = $oldPrice > 0 ? $oldPrice * (1 + $cap / 100) : null;
 
@@ -1556,6 +2010,11 @@ class BookingModel
                    AND sup.is_available = 1
                    AND sup.status IN ('approved','verified')
                    AND sup.payment_status = 'paid'";
+        // Exclude services already rejected on a previous pick for this request.
+        if ($rejectedIds) {
+            $placeholders = implode(',', array_map(static fn($i) => ':rej' . $i, array_keys($rejectedIds)));
+            $sql .= " AND s.id NOT IN ($placeholders)";
+        }
         // Price ceiling is NOT enforced — admins may pick an over-budget
         // replacement; those are flagged below and routed through the customer
         // approval (propose + pay delta) flow.
@@ -1584,6 +2043,9 @@ class BookingModel
         $this->db->dbquery($sql);
         $this->db->dbbind(':cat', $categoryId, PDO::PARAM_INT);
         $this->db->dbbind(':old_sup', $oldSupplier, PDO::PARAM_INT);
+        foreach ($rejectedIds as $i => $sid) {
+            $this->db->dbbind(':rej' . $i, $sid, PDO::PARAM_INT);
+        }
         if ($dayOfWeek !== null) {
             $this->db->dbbind(':dow', $dayOfWeek, PDO::PARAM_INT);
         }
@@ -1611,8 +2073,8 @@ class BookingModel
     {
         $allowed = [
             'new_supplier_id','new_service_id','new_price','price_delta',
-            'requires_customer_approval','customer_approved_at','delta_payment_id',
-            'status','chosen_by_admin_id','assigned_at','resolved_at',
+            'requires_customer_approval','customer_approved_at','proposed_at','delta_payment_id',
+            'status','chosen_by_admin_id','assigned_at','resolved_at','rejected_service_ids',
         ];
         $sets = [];
         foreach ($fields as $k => $v) {
@@ -1646,8 +2108,10 @@ class BookingModel
      */
     public function performReplacementSwap(int $replacementId, bool $applyNewPrice = false): bool
     {
+        $this->replacementSwapError = null;
         $r = $this->getReplacement($replacementId);
         if (!$r || (int)($r['new_service_id'] ?? 0) <= 0) {
+            $this->replacementSwapError = 'The replacement proposal is incomplete or no longer available.';
             return false;
         }
         $bookingId      = (int)$r['booking_id'];
@@ -1672,30 +2136,64 @@ class BookingModel
         $this->db->dbbind(':sid', $newServiceId, PDO::PARAM_INT);
         $newSvc = $this->db->getsingledata();
         if (!$newSvc) {
+            $this->replacementSwapError = 'The proposed replacement service no longer exists.';
             return false;
         }
         $newSupplierId = (int)$newSvc['supplier_id'];
 
         $this->db->beginTransaction();
         try {
-            // 1. Old supplier row -> replaced.
+            $packageItemId = (int)($r['original_package_item_id'] ?? 0);
+
+            // 1. Old supplier row -> replaced. Clear its package-item identity
+            // so the active replacement can own the unique booking/package line.
             $this->db->dbquery(
-                "UPDATE booking_suppliers SET status = 'replaced' WHERE id = :id"
+                "UPDATE booking_suppliers
+                    SET status = 'replaced', package_item_id = NULL
+                  WHERE id = :id
+                    AND status IN ('needs_replacement','confirmed')"
             );
             $this->db->dbbind(':id', $oldSupplierRow, PDO::PARAM_INT);
             $this->db->dbexecute();
+            if ($this->db->rowcount() !== 1) {
+                throw new RuntimeException('Original supplier line is no longer replaceable.');
+            }
 
-            // 2. Release old supplier's package slot for the date (best-effort).
+            $replacementStart = '09:00:00';
+            $replacementEnd = '10:00:00';
+
+            // 2. Release the exact package slot recorded for the old package item.
             if ($oldServiceId > 0 && $eventDate) {
                 $this->db->dbquery(
-                    "SELECT id FROM service_time_slots
-                      WHERE service_id = :sid AND date = :d ORDER BY id ASC LIMIT 1"
+                    "SELECT bsr.id AS reservation_id, st.id AS slot_id, st.start_time, st.end_time
+                       FROM booking_slot_reservations bsr
+                       INNER JOIN service_time_slots st ON st.id = bsr.slot_id
+                      WHERE bsr.booking_id = :bid
+                        AND bsr.source = 'package'
+                        AND bsr.service_id = :sid
+                        AND bsr.released_at IS NULL
+                        AND (:package_item_id = 0 OR bsr.package_item_id = :package_item_id_match)
+                      ORDER BY bsr.id ASC
+                      LIMIT 1"
                 );
+                $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
                 $this->db->dbbind(':sid', $oldServiceId, PDO::PARAM_INT);
-                $this->db->dbbind(':d', $eventDate);
+                $this->db->dbbind(':package_item_id', $packageItemId, PDO::PARAM_INT);
+                $this->db->dbbind(':package_item_id_match', $packageItemId, PDO::PARAM_INT);
                 $oldSlot = $this->db->getsingledata();
                 if ($oldSlot) {
-                    $this->releaseServiceSlot((int)$oldSlot['id'], 'package');
+                    $replacementStart = (string)$oldSlot['start_time'];
+                    $replacementEnd = (string)$oldSlot['end_time'];
+                    $this->db->dbquery(
+                        "UPDATE booking_slot_reservations
+                            SET released_at = NOW()
+                          WHERE id = :id AND released_at IS NULL"
+                    );
+                    $this->db->dbbind(':id', (int)$oldSlot['reservation_id'], PDO::PARAM_INT);
+                    $this->db->dbexecute();
+                    if ($this->db->rowcount() === 1) {
+                        $this->releaseServiceSlot((int)$oldSlot['slot_id'], 'package');
+                    }
                 }
             }
 
@@ -1703,15 +2201,24 @@ class BookingModel
             $finalPrice = $applyNewPrice ? $newPrice : $oldPrice;
             $this->db->dbquery(
                 "INSERT INTO booking_suppliers
-                    (booking_id, supplier_id, service_id, category_id, item_price, status, created_at)
-                 VALUES (:bid, :sup, :svc, :cat, :price, 'pending', NOW())"
+                    (booking_id, supplier_id, service_id, category_id, package_item_id,
+                     item_price, status, created_at)
+                 VALUES (:bid, :sup, :svc, :cat, :package_item_id,
+                         :price, 'pending', NOW())"
             );
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
             $this->db->dbbind(':sup', $newSupplierId, PDO::PARAM_INT);
             $this->db->dbbind(':svc', $newServiceId, PDO::PARAM_INT);
             $this->db->dbbind(':cat', $categoryId);
+            $this->db->dbbind(
+                ':package_item_id',
+                $packageItemId > 0 ? $packageItemId : null,
+                $packageItemId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL
+            );
             $this->db->dbbind(':price', $finalPrice);
-            $this->db->dbexecute();
+            if (!$this->db->dbexecute()) {
+                throw new RuntimeException('Replacement supplier line could not be created.');
+            }
             $newRowId = (int)$this->db->lastinsertid();
 
             // 4. Point the old row at its replacement.
@@ -1726,31 +2233,29 @@ class BookingModel
             if ($eventDate) {
                 $conc = $this->getServiceConcurrent($newServiceId);
                 $slotId = $this->findOrCreateServiceSlot(
-                    $newServiceId, $eventDate, '09:00:00', '10:00:00',
+                    $newServiceId, $eventDate, $replacementStart, $replacementEnd,
                     $conc['max_concurrent'] ?? 1,
                     $conc['max_concurrent_package'] ?? 0,
                     $conc['max_concurrent_customize'] ?? 0
                 );
-                if ($slotId) {
-                    $this->reserveServiceSlot($slotId, 'package');
+                if (
+                    !$slotId
+                    || !$this->reserveServiceSlot($slotId, 'package')
+                    || !$this->recordSlotReservation(
+                        $bookingId,
+                        $slotId,
+                        'package',
+                        null,
+                        $newServiceId,
+                        $packageItemId > 0 ? $packageItemId : null
+                    )
+                ) {
+                    throw new RuntimeException('Replacement service has no remaining capacity.');
                 }
             }
 
-            // 6. Refresh the booking_item display snapshot (price only if paid).
-            $priceSet = $applyNewPrice ? ", price = :price" : "";
-            $this->db->dbquery(
-                "UPDATE booking_items
-                    SET supplier_name = :sname, item_name = :iname, thumbnail_url = :thumb{$priceSet}
-                  WHERE booking_id = :bid AND item_type = 'package'"
-            );
-            $this->db->dbbind(':sname', $newSvc['shop_name'] ?? '');
-            $this->db->dbbind(':iname', $newSvc['service_name'] ?? '');
-            $this->db->dbbind(':thumb', $newSvc['thumbnail_url'] ?? null);
-            if ($applyNewPrice) {
-                $this->db->dbbind(':price', $finalPrice);
-            }
-            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-            $this->db->dbexecute();
+            // 6. The package booking item remains the package itself. Its
+            // per-service display comes from the active booking_suppliers row.
 
             // 7. If the customer paid a delta, bump the booking totals.
             if ($applyNewPrice && $newPrice > $oldPrice) {
@@ -1780,9 +2285,17 @@ class BookingModel
             return true;
         } catch (Throwable $e) {
             $this->db->rollBack();
+            $this->replacementSwapError = str_contains($e->getMessage(), 'booking_slot_reservations')
+                ? 'The booking slot reservation migration has not been applied.'
+                : $e->getMessage();
             error_log('performReplacementSwap failed: ' . $e->getMessage());
             return false;
         }
+    }
+
+    public function getReplacementSwapError(): string
+    {
+        return $this->replacementSwapError ?: 'The replacement swap could not be completed.';
     }
 
     /**
@@ -1791,14 +2304,161 @@ class BookingModel
      */
     public function createReplacementDeltaPayment(int $bookingId, float $delta): int
     {
+        $feePercent = get_platform_fee_percent();
+        $platformFee = round($delta * ($feePercent / 100), 2);
+        $supplierAmount = round($delta - $platformFee, 2);
+
         $this->db->dbquery(
-            "INSERT INTO payments (booking_id, amount, type, status, created_at)
-             VALUES (:bid, :amt, 'replacement_delta', 'pending', NOW())"
+            "INSERT INTO payments (booking_id, amount, platform_fee, supplier_amount, type, status, created_at)
+             VALUES (:bid, :amt, :pfee, :samt, 'replacement_delta', 'pending', NOW())"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':amt', $delta);
+        $this->db->dbbind(':amt', number_format($delta, 2, '.', ''), PDO::PARAM_STR);
+        $this->db->dbbind(':pfee', number_format($platformFee, 2, '.', ''), PDO::PARAM_STR);
+        $this->db->dbbind(':samt', number_format($supplierAmount, 2, '.', ''), PDO::PARAM_STR);
         $this->db->dbexecute();
         return (int)$this->db->lastinsertid();
+    }
+
+    /**
+     * Map a supplier to its owning user id (for targeted notifications).
+     */
+    public function getSupplierUserId(int $supplierId): int
+    {
+        if ($supplierId <= 0) {
+            return 0;
+        }
+        $this->db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return (int)($row['user_id'] ?? 0);
+    }
+
+    /**
+     * Append a service id to a replacement's rejected list (deduped) so the
+     * candidate finder won't re-offer it on the next pick.
+     */
+    public function appendRejectedService(int $replacementId, int $serviceId): bool
+    {
+        if ($serviceId <= 0) {
+            return false;
+        }
+        $r = $this->getReplacement($replacementId);
+        if (!$r) {
+            return false;
+        }
+        $ids = array_values(array_filter(array_map('intval', explode(',', (string)($r['rejected_service_ids'] ?? '')))));
+        if (!in_array($serviceId, $ids, true)) {
+            $ids[] = $serviceId;
+        }
+        return $this->updateReplacement($replacementId, ['rejected_service_ids' => implode(',', $ids)]);
+    }
+
+    /**
+     * Reverse a replacement price-delta that was already paid (payment in
+     * 'success') when the replacement later falls through. Refunds the payment
+     * and subtracts the delta from the booking totals — exactly once.
+     * Safe to call when nothing was paid (returns false, no-op).
+     */
+    public function reverseReplacementDeltaIfPaid(int $replacementId): bool
+    {
+        $r = $this->getReplacement($replacementId);
+        if (!$r) {
+            return false;
+        }
+        $paymentId = (int)($r['delta_payment_id'] ?? 0);
+        $delta = round((float)($r['price_delta'] ?? 0), 2);
+        if ($paymentId <= 0 || $delta <= 0) {
+            return false;
+        }
+
+        // Only reverse a payment that is currently 'success' and not yet
+        // refunded (idempotent: a second call finds escrow_status already
+        // 'refunded' and rowcount is 0).
+        $this->db->dbquery(
+            "UPDATE payments
+                SET escrow_status = 'refunded', verified_at = NOW()
+              WHERE id = :pid AND type = 'replacement_delta' AND status = 'success' AND escrow_status != 'refunded'"
+        );
+        $this->db->dbbind(':pid', $paymentId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        if ($this->db->rowcount() !== 1) {
+            return false; // nothing to reverse (not paid, or already refunded)
+        }
+
+        $this->db->dbquery(
+            "UPDATE bookings
+                SET total_amount = GREATEST(COALESCE(total_amount,0) - :d, 0),
+                    paid_amount  = GREATEST(COALESCE(paid_amount,0) - :d2, 0)
+              WHERE id = :bid"
+        );
+        $this->db->dbbind(':d', $delta);
+        $this->db->dbbind(':d2', $delta);
+        $this->db->dbbind(':bid', (int)$r['booking_id'], PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        $this->logStatusChange(
+            (int)$r['booking_id'], null, 'replacement_delta_refunded', null,
+            'Refunded paid price-difference of ' . number_format($delta, 0) . ' after replacement fell through'
+        );
+        return true;
+    }
+
+    public function rejectReplacementByCustomer(int $replacementId, int $userId): array|false
+    {
+        $replacement = $this->getReplacementForCustomer($replacementId);
+        if (
+            !$replacement
+            || (int)$replacement['user_id'] !== $userId
+            || ($replacement['status'] ?? '') !== 'pending_customer'
+        ) {
+            return false;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Remember the rejected service so the admin's re-pick won't re-offer it.
+            $this->appendRejectedService($replacementId, (int)($replacement['new_service_id'] ?? 0));
+
+            $paymentId = (int)($replacement['delta_payment_id'] ?? 0);
+            if ($paymentId > 0) {
+                $this->db->dbquery(
+                    "UPDATE payments
+                        SET status = 'failed', verified_at = NOW()
+                      WHERE id = :pid AND type = 'replacement_delta' AND status = 'pending'"
+                );
+                $this->db->dbbind(':pid', $paymentId, PDO::PARAM_INT);
+                $this->db->dbexecute();
+            }
+
+            $this->db->dbquery(
+                "UPDATE booking_supplier_replacements
+                    SET status = 'rejected_by_customer',
+                        new_supplier_id = NULL, new_service_id = NULL,
+                        new_price = NULL, price_delta = NULL,
+                        requires_customer_approval = 0, delta_payment_id = NULL,
+                        customer_approved_at = NULL, proposed_at = NULL
+                  WHERE id = :id AND status = 'pending_customer'"
+            );
+            $this->db->dbbind(':id', $replacementId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+            if ($this->db->rowcount() !== 1) {
+                throw new RuntimeException('Replacement proposal already handled.');
+            }
+            $this->logStatusChange(
+                (int)$replacement['booking_id'],
+                null,
+                'replacement_rejected_by_customer',
+                $userId,
+                'Customer rejected the pricier replacement; admin re-pick required'
+            );
+            $this->db->commit();
+            return $replacement;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('Customer replacement rejection failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -1838,11 +2498,18 @@ class BookingModel
         $this->db->dbquery(
             "SELECT r.*, b.user_id, b.total_amount,
                     sup.shop_name AS new_shop_name,
-                    s.name AS new_service_name
+                    s.name AS new_service_name,
+                    sup_old.shop_name AS old_shop_name,
+                    svc_old.name AS old_service_name,
+                    p.status AS delta_payment_status,
+                    p.payment_slip_path AS delta_payment_slip
                FROM booking_supplier_replacements r
                INNER JOIN bookings b ON b.id = r.booking_id
                LEFT JOIN suppliers sup ON sup.supplier_id = r.new_supplier_id
-               LEFT JOIN services  s   ON s.id = r.new_service_id
+               LEFT JOIN suppliers sup_old ON sup_old.supplier_id = r.old_supplier_id
+               LEFT JOIN services s ON s.id = r.new_service_id
+               LEFT JOIN services svc_old ON svc_old.id = r.old_service_id
+               LEFT JOIN payments p ON p.id = r.delta_payment_id
               WHERE r.id = :id LIMIT 1"
         );
         $this->db->dbbind(':id', $replacementId, PDO::PARAM_INT);
@@ -1861,7 +2528,10 @@ class BookingModel
                  WHERE booking_id = :bid AND status = 'needs_replacement') AS pending_rows,
                (SELECT COUNT(*) FROM booking_supplier_replacements
                  WHERE booking_id = :bid2
-                   AND status IN ('pending_admin','pending_customer','declined_again','rejected_by_customer')) AS open_reqs"
+                   AND status IN (
+                       'pending_admin','pending_customer','assigned',
+                       'declined_again','rejected_by_customer'
+                   )) AS open_reqs"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':bid2', $bookingId, PDO::PARAM_INT);
@@ -1876,14 +2546,49 @@ class BookingModel
     public function getPendingCustomerReplacement(int $bookingId): array|false
     {
         $this->db->dbquery(
-            "SELECT r.*, sup.shop_name AS new_shop_name
+            "SELECT r.*, sup.shop_name AS new_shop_name,
+                    p.status AS delta_payment_status,
+                    p.payment_slip_path AS delta_payment_slip
                FROM booking_supplier_replacements r
                LEFT JOIN suppliers sup ON sup.supplier_id = r.new_supplier_id
+               LEFT JOIN payments p ON p.id = r.delta_payment_id
               WHERE r.booking_id = :bid AND r.status = 'pending_customer'
               ORDER BY r.id DESC LIMIT 1"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         return $this->db->getsingledata();
+    }
+
+    /**
+     * Get all replacement history for a booking (for customer-facing timeline).
+     */
+    public function getReplacementHistory(int $bookingId): array
+    {
+        $this->db->dbquery(
+            "SELECT r.id, r.status, r.new_service_id, r.new_price, r.price_delta,
+                    r.old_supplier_id, r.new_supplier_id,
+                    svc_old.name AS old_service_name,
+                    sp_old.shop_name AS old_supplier_name,
+                    r.old_price,
+                    r.decline_reason,
+                    r.proposed_at, r.resolved_at, r.created_at,
+                    r.customer_approved_at,
+                    sp_old.shop_name AS old_shop_name,
+                    sp_new.shop_name AS new_shop_name,
+                    svc_new.name AS new_service_name,
+                    p.status AS delta_payment_status,
+                    p.payment_slip_path AS delta_payment_slip
+             FROM booking_supplier_replacements r
+             LEFT JOIN suppliers sp_old ON sp_old.supplier_id = r.old_supplier_id
+             LEFT JOIN suppliers sp_new ON sp_new.supplier_id = r.new_supplier_id
+             LEFT JOIN services svc_new ON svc_new.id = r.new_service_id
+             LEFT JOIN services svc_old ON svc_old.id = r.old_service_id
+             LEFT JOIN payments p ON p.id = r.delta_payment_id
+             WHERE r.booking_id = :bid
+             ORDER BY r.id ASC"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
     }
 
     /**
@@ -1903,19 +2608,65 @@ class BookingModel
     }
 
     /**
+     * A replacement can be answered once any customer-paid price difference
+     * attached to that replacement has been verified. Replacements without a
+     * price difference are ready immediately after assignment.
+     */
+    public function isReplacementDeltaVerified(array $replacement): bool
+    {
+        $paymentId = (int)($replacement['delta_payment_id'] ?? 0);
+        if ($paymentId <= 0) {
+            return true;
+        }
+
+        $this->db->dbquery(
+            "SELECT status
+               FROM payments
+              WHERE id = :id
+                AND booking_id = :bid
+                AND type = 'replacement_delta'
+              LIMIT 1"
+        );
+        $this->db->dbbind(':id', $paymentId, PDO::PARAM_INT);
+        $this->db->dbbind(':bid', (int)($replacement['booking_id'] ?? 0), PDO::PARAM_INT);
+        $payment = $this->db->getsingledata();
+
+        return $payment && ($payment['status'] ?? '') === 'success';
+    }
+
+    /**
      * Update booking item status by supplier.
      */
     public function updateBookingItemsStatusBySupplier(int $bookingId, int $supplierId, string $status): bool
     {
+        $hasSupplierPackages = $this->tableExists('supplier_packages');
+        $hasSupplierPackageItems = $this->tableExists('supplier_package_items');
+        $supplierPackageJoin = $hasSupplierPackages
+            ? "LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'"
+            : '';
+        $supplierPackageCondition = $hasSupplierPackages
+            ? 'OR sp.supplier_id = :sid2'
+            : '';
+        $supplierPackageItemsCondition = $hasSupplierPackageItems
+            ? "OR EXISTS (
+                        SELECT 1
+                        FROM supplier_package_items spi
+                        INNER JOIN services spi_service ON spi.service_id = spi_service.id
+                        WHERE bi.item_type = 'supplier_package'
+                          AND spi.package_id = bi.item_id
+                          AND spi_service.supplier_id = :sid4
+                    )"
+            : '';
+
         $this->db->dbquery(
             "UPDATE booking_items bi
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
-             LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+             {$supplierPackageJoin}
              SET bi.status = :status
              WHERE bi.booking_id = :bid
                AND (
                     s.supplier_id = :sid
-                    OR sp.supplier_id = :sid2
+                    {$supplierPackageCondition}
                     OR EXISTS (
                         SELECT 1
                         FROM package_items pi
@@ -1923,22 +2674,19 @@ class BookingModel
                           AND pi.package_id = bi.item_id
                           AND pi.default_supplier_id = :sid3
                     )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM supplier_package_items spi
-                        INNER JOIN services spi_service ON spi.service_id = spi_service.id
-                        WHERE bi.item_type = 'supplier_package'
-                          AND spi.package_id = bi.item_id
-                          AND spi_service.supplier_id = :sid4
-                    )
+                    {$supplierPackageItemsCondition}
                )"
         );
         $this->db->dbbind(':status', $status);
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
-        $this->db->dbbind(':sid2', $supplierId, PDO::PARAM_INT);
+        if ($hasSupplierPackages) {
+            $this->db->dbbind(':sid2', $supplierId, PDO::PARAM_INT);
+        }
         $this->db->dbbind(':sid3', $supplierId, PDO::PARAM_INT);
-        $this->db->dbbind(':sid4', $supplierId, PDO::PARAM_INT);
+        if ($hasSupplierPackageItems) {
+            $this->db->dbbind(':sid4', $supplierId, PDO::PARAM_INT);
+        }
 
         return $this->db->dbexecute();
     }
@@ -1962,19 +2710,25 @@ class BookingModel
             'package' => 'VCH-PKG',
             'supplier_package' => 'VCH-SPK',
         ];
+        $hasSupplierPackages = $this->tableExists('supplier_packages');
+        $supplierPackageName = $hasSupplierPackages ? 'sp.name' : 'NULL';
+        $supplierPackageSupplierId = $hasSupplierPackages ? 'sp_sup.supplier_id' : 'NULL';
+        $supplierPackageJoin = $hasSupplierPackages
+            ? "LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+               LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id"
+            : '';
 
         $this->db->dbquery(
             "SELECT bi.*,
-                    COALESCE(s.name, p.name, sp.name) AS service_name,
+                    COALESCE(s.name, p.name, {$supplierPackageName}) AS service_name,
                     cat.name AS category_name,
-                    COALESCE(sup.supplier_id, sp_sup.supplier_id, pi.default_supplier_id) AS supplier_id,
+                    COALESCE(sup.supplier_id, {$supplierPackageSupplierId}, pi.default_supplier_id) AS supplier_id,
                     ed.location
              FROM booking_items bi
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
              LEFT JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
-             LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
+             {$supplierPackageJoin}
              LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
-             LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
              LEFT JOIN (SELECT package_id, MIN(default_supplier_id) AS default_supplier_id FROM package_items GROUP BY package_id) pi ON bi.item_id = pi.package_id AND bi.item_type = 'package'
              LEFT JOIN categories cat ON s.category_id = cat.id
              LEFT JOIN event_details ed ON ed.booking_id = bi.booking_id AND ed.id = (
@@ -2156,6 +2910,8 @@ class BookingModel
 
     /**
      * Submit a cancellation request.
+     * For customize (non-package) bookings, also sets the supplier row to
+     * 'cancellation_pending' so the supplier can accept/decline.
      */
     public function requestCancellation(int $bookingId, string $reason): bool
     {
@@ -2176,7 +2932,201 @@ class BookingModel
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
 
-        return $this->db->dbexecute();
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // For customize bookings, set the supplier row to cancellation_pending
+        // so the supplier can review and accept/decline the cancellation.
+        if (!$this->isPackageBooking($bookingId)) {
+            $this->db->dbquery(
+                "UPDATE booking_suppliers
+                 SET status = 'cancellation_pending'
+                 WHERE booking_id = :bid AND status IN ('confirmed', 'in_progress', 'pending')"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+        }
+
+        return true;
+    }
+
+    /**
+     * Supplier requests cancellation of a confirmed booking.
+     * Sets booking to cancellation_requested and marks the supplier's rows.
+     * Admin will review and process the refund.
+     */
+    public function supplierRequestCancellation(int $bookingId, int $supplierId, string $reason): bool
+    {
+        // Verify booking is in a cancellable state
+        $this->db->dbquery("SELECT status FROM bookings WHERE id = :bid LIMIT 1");
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+        if (!$booking || !in_array($booking['status'] ?? '', ['confirmed', 'paid'], true)) {
+            return false;
+        }
+
+        // Verify supplier has confirmed/in_progress rows for this booking
+        $this->db->dbquery(
+            "SELECT id FROM booking_suppliers
+             WHERE booking_id = :bid AND supplier_id = :sid AND status IN ('confirmed', 'in_progress')
+             LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $supplierRow = $this->db->getsingledata();
+        if (!$supplierRow) {
+            return false;
+        }
+
+        // Resolve supplier's user_id for logging
+        $this->db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $supplierUser = $this->db->getsingledata();
+        $changedBy = (int)($supplierUser['user_id'] ?? 0) ?: null;
+
+        // Update booking status
+        $this->db->dbquery(
+            "UPDATE bookings SET status = 'cancellation_requested' WHERE id = :bid LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        if (!$this->db->dbexecute()) {
+            return false;
+        }
+
+        // Mark supplier's rows as supplier_cancellation_requested
+        $this->db->dbquery(
+            "UPDATE booking_suppliers
+             SET status = 'supplier_cancellation_requested'
+             WHERE booking_id = :bid AND supplier_id = :sid AND status IN ('confirmed', 'in_progress')"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        // Log the status change
+        $this->logStatusChange(
+            $bookingId,
+            $booking['status'],
+            'cancellation_requested',
+            $changedBy,
+            'Supplier requested cancellation. Reason: ' . $reason
+        );
+
+        return true;
+    }
+
+    /**
+     * Supplier responds to a cancellation request (customize bookings only).
+     * @return string 'approved' or 'declined', or '' on failure
+     */
+    public function supplierRespondToCancellation(int $bookingId, int $supplierId, string $action, string $reason = ''): string
+    {
+        if (!in_array($action, ['approve', 'decline'], true)) {
+            return '';
+        }
+
+        // Verify booking is in cancellation_requested status
+        $this->db->dbquery("SELECT status FROM bookings WHERE id = :bid LIMIT 1");
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+        if (!$booking || ($booking['status'] ?? '') !== 'cancellation_requested') {
+            return '';
+        }
+
+        // Find the supplier's row in cancellation_pending
+        $this->db->dbquery(
+            "SELECT id, status FROM booking_suppliers
+             WHERE booking_id = :bid AND supplier_id = :sid AND status = 'cancellation_pending'
+             LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $supplierRow = $this->db->getsingledata();
+
+        if (!$supplierRow) {
+            return '';
+        }
+
+        $supplierRowId = (int)$supplierRow['id'];
+
+        // Resolve supplier's user_id for logging (changed_by references users.user_id)
+        $this->db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $supplierUser = $this->db->getsingledata();
+        $changedBy = (int)($supplierUser['user_id'] ?? 0) ?: null;
+
+        if ($action === 'approve') {
+            // Supplier approves: mark their row as cancellation_approved
+            $this->db->dbquery(
+                "UPDATE booking_suppliers SET status = 'cancellation_approved' WHERE id = :id"
+            );
+            $this->db->dbbind(':id', $supplierRowId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            $this->logStatusChange(
+                $bookingId,
+                'cancellation_requested',
+                'supplier_cancellation_approved',
+                $changedBy,
+                'Supplier approved cancellation request.' . ($reason !== '' ? ' Note: ' . $reason : '')
+            );
+
+            return 'approved';
+        }
+
+        // Decline: revert booking status and supplier status
+        // Get the old_status from the cancellation_requested log entry
+        $this->db->dbquery(
+            "SELECT old_status FROM booking_status_logs
+             WHERE booking_id = :bid AND new_status = 'cancellation_requested'
+             ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $log = $this->db->getsingledata();
+        $previousStatus = ($log['old_status'] ?? '') ?: 'confirmed';
+
+        // Revert booking status
+        $this->db->dbquery(
+            "UPDATE bookings SET status = :status WHERE id = :bid LIMIT 1"
+        );
+        $this->db->dbbind(':status', $previousStatus);
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        // Revert supplier row to confirmed
+        $this->db->dbquery(
+            "UPDATE booking_suppliers SET status = 'confirmed' WHERE id = :id"
+        );
+        $this->db->dbbind(':id', $supplierRowId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        $this->logStatusChange(
+            $bookingId,
+            'cancellation_requested',
+            $previousStatus,
+            $changedBy,
+            'Supplier declined cancellation. Reason: ' . $reason
+        );
+
+        return 'declined';
+    }
+
+    /**
+     * Get the cancellation reason from booking_status_logs.
+     */
+    public function getCancellationReason(int $bookingId): string
+    {
+        $this->db->dbquery(
+            "SELECT note FROM booking_status_logs
+             WHERE booking_id = :bid AND new_status = 'cancellation_requested'
+             ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $log = $this->db->getsingledata();
+        $note = $log['note'] ?? '';
+        // Strip the "Cancellation requested: " prefix
+        return preg_replace('/^Cancellation requested:\s*/i', '', $note);
     }
 
     /**
@@ -2184,45 +3134,62 @@ class BookingModel
      */
     public function adminCancelBooking(int $bookingId, string $reason, int $adminId, bool $refundDeposit): bool
     {
+        $this->db->beginTransaction();
+        try {
         $this->db->dbquery(
             "UPDATE bookings SET status = 'cancelled', approved_by = :admin_id, approved_at = NOW()
-             WHERE id = :bid"
+             WHERE id = :bid AND status NOT IN ('cancelled','completed')"
         );
         $this->db->dbbind(':admin_id', $adminId, PDO::PARAM_INT);
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
 
-        if (!$this->db->dbexecute()) {
-            return false;
+        if (!$this->db->dbexecute() || $this->db->rowcount() !== 1) {
+            throw new RuntimeException('Booking cannot be cancelled from its current state.');
         }
 
         if ($refundDeposit) {
-            // Capture how much is being marked refunded (for the audit note)
-            $this->db->dbquery(
-                "SELECT COALESCE(SUM(COALESCE(paid_amount, amount)), 0) AS total
-                 FROM payments
-                 WHERE booking_id = :bid AND status = 'success'"
-            );
-            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-            $refundedAmount = (float) ($this->db->getsingledata()['total'] ?? 0);
+            // Calculate refund amount based on cancellation timing policy
+            $refundCalc = $this->calculateRefund($bookingId);
 
-            // Manual refund: admin processes the money outside the system,
-            // this only flips the bookkeeping flag.
+            // Fallback: sum all successful payments if calculateRefund fails
+            if ($refundCalc === false) {
+                $this->db->dbquery(
+                    "SELECT COALESCE(SUM(COALESCE(paid_amount, amount)), 0) AS total
+                     FROM payments
+                     WHERE booking_id = :bid AND status = 'success'"
+                );
+                $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+                $refundAmount = (float) ($this->db->getsingledata()['total'] ?? 0);
+                $policyReason = 'Manual refund by admin (policy calculation unavailable)';
+            } else {
+                $refundAmount = $refundCalc[0];
+                $policyReason = $refundCalc[1];
+            }
+
+            // Create a refund queue entry so admin can track and process it
             $this->db->dbquery(
-                "UPDATE payments SET escrow_status = 'refunded'
-                 WHERE booking_id = :bid AND status = 'success'"
+                "INSERT INTO refunds (booking_id, amount, reason, policy_reason, status, requested_by, requested_at)
+                 VALUES (:bid, :amount, :reason, :policy, 'pending', :admin_id, NOW())"
             );
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbbind(':amount', $refundAmount, PDO::PARAM_STR);
+            $this->db->dbbind(':reason', $reason, PDO::PARAM_STR);
+            $this->db->dbbind(':policy', $policyReason, PDO::PARAM_STR);
+            $this->db->dbbind(':admin_id', $adminId, PDO::PARAM_INT);
             $this->db->dbexecute();
 
-            // Audit row so the manual refund is traceable (who/when/how much)
+            // Audit row so the refund request is traceable
             $this->logStatusChange(
                 $bookingId,
                 'cancelled',
                 'cancelled',
                 $adminId,
-                'Deposit marked as refunded by admin (manual): ' . number_format($refundedAmount, 0) . ' MMK'
+                'Refund of ' . number_format($refundAmount, 0) . ' MMK queued (' . $policyReason . ')'
             );
         }
+
+        $this->releaseBookingSlots($bookingId);
+        $this->releaseAttireItems($bookingId);
 
         // Update booking_suppliers
         $this->db->dbquery(
@@ -2243,7 +3210,220 @@ class BookingModel
         // Log
         $this->logStatusChange($bookingId, null, 'cancelled', $adminId, 'Cancelled by admin: ' . $reason);
 
+        $this->db->commit();
         return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('Booking cancellation failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /* ─── Refund lifecycle ────────────────────────────────────── */
+
+    /**
+     * Get all refunds in the admin queue (pending or processing).
+     */
+    public function getRefundQueue(): array
+    {
+        $this->db->dbquery(
+            "SELECT r.*,
+                    b.status AS booking_status,
+                    b.user_id,
+                    u.name AS customer_name,
+                    u.email AS customer_email
+             FROM refunds r
+             JOIN bookings b ON b.id = r.booking_id
+             JOIN users u ON u.user_id = b.user_id
+             WHERE r.status IN ('pending','processing')
+             ORDER BY r.requested_at DESC"
+        );
+        return $this->db->getmultidata() ?: [];
+    }
+
+    /**
+     * Get a single refund by ID.
+     */
+    public function getRefundById(int $refundId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT r.*,
+                    b.status AS booking_status,
+                    b.user_id,
+                    u.name AS customer_name,
+                    u.email AS customer_email
+             FROM refunds r
+             JOIN bookings b ON b.id = r.booking_id
+             JOIN users u ON u.user_id = b.user_id
+             WHERE r.id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
+     * Get refund(s) for a specific booking (most recent first).
+     */
+    public function getBookingRefund(int $bookingId): array|false
+    {
+        $this->db->dbquery(
+            "SELECT * FROM refunds WHERE booking_id = :bid ORDER BY id DESC LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    /**
+     * Admin uploads proof of refund transfer (sets status to processing).
+     */
+    public function processRefund(
+        int $refundId,
+        int $adminId,
+        string $transactionRef,
+        string $bankName,
+        string $slipPath,
+        string $note = ''
+    ): bool {
+        $this->db->dbquery(
+            "UPDATE refunds
+             SET status = 'processing',
+                 refund_transaction_ref = :txn,
+                 refund_bank_name = :bank,
+                 refund_slip_path = :slip,
+                 processed_by = :admin_id,
+                 processed_at = NOW(),
+                 note = :note
+             WHERE id = :id AND status IN ('pending','processing')"
+        );
+        $this->db->dbbind(':txn', $transactionRef, PDO::PARAM_STR);
+        $this->db->dbbind(':bank', $bankName, PDO::PARAM_STR);
+        $this->db->dbbind(':slip', $slipPath, PDO::PARAM_STR);
+        $this->db->dbbind(':admin_id', $adminId, PDO::PARAM_INT);
+        $this->db->dbbind(':note', $note, PDO::PARAM_STR);
+        $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
+        $ok = $this->db->dbexecute() && $this->db->rowcount() === 1;
+
+        if ($ok) {
+            $refund = $this->getRefundById($refundId);
+            if ($refund) {
+                $this->logStatusChange(
+                    (int)$refund['booking_id'],
+                    'cancelled',
+                    'cancelled',
+                    $adminId,
+                    'Refund processing: proof uploaded via ' . $bankName .
+                    ($transactionRef ? ' (ref: ' . $transactionRef . ')' : '')
+                );
+            }
+        }
+
+        return $ok;
+    }
+
+    /**
+     * Admin marks a refund as completed (money sent to customer).
+     */
+    public function completeRefund(int $refundId, int $adminId): bool
+    {
+        $refund = $this->getRefundById($refundId);
+        if (!$refund || $refund['status'] !== 'processing') {
+            return false;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Mark refund completed
+            $this->db->dbquery(
+                "UPDATE refunds SET status = 'completed', completed_at = NOW()
+                 WHERE id = :id AND status = 'processing'"
+            );
+            $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // Ensure the payment escrow_status is flipped to refunded
+            $this->db->dbquery(
+                "UPDATE payments SET escrow_status = 'refunded', refund_id = :rid
+                 WHERE booking_id = :bid AND status = 'success' AND escrow_status != 'refunded'"
+            );
+            $this->db->dbbind(':rid', $refundId, PDO::PARAM_INT);
+            $this->db->dbbind(':bid', (int)$refund['booking_id'], PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // Link refund_id to all successful payments on this booking
+            $this->db->dbquery(
+                "UPDATE payments SET refund_id = :rid
+                 WHERE booking_id = :bid AND status = 'success'"
+            );
+            $this->db->dbbind(':rid', $refundId, PDO::PARAM_INT);
+            $this->db->dbbind(':bid', (int)$refund['booking_id'], PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // Audit log
+            $this->logStatusChange(
+                (int)$refund['booking_id'],
+                'cancelled',
+                'cancelled',
+                $adminId,
+                'Refund completed: ' . number_format((float)$refund['amount'], 0) . ' MMK'
+            );
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('completeRefund failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Admin rejects a refund request.
+     */
+    public function rejectRefund(int $refundId, int $adminId, string $reason): bool
+    {
+        $refund = $this->getRefundById($refundId);
+        if (!$refund || !in_array($refund['status'], ['pending','processing'], true)) {
+            return false;
+        }
+
+        $this->db->dbquery(
+            "UPDATE refunds SET status = 'rejected', note = :note, processed_by = :admin_id, processed_at = NOW()
+             WHERE id = :id AND status IN ('pending','processing')"
+        );
+        $this->db->dbbind(':note', $reason, PDO::PARAM_STR);
+        $this->db->dbbind(':admin_id', $adminId, PDO::PARAM_INT);
+        $this->db->dbbind(':id', $refundId, PDO::PARAM_INT);
+        $ok = $this->db->dbexecute() && $this->db->rowcount() === 1;
+
+        if ($ok) {
+            $this->logStatusChange(
+                (int)$refund['booking_id'],
+                'cancelled',
+                'cancelled',
+                $adminId,
+                'Refund rejected: ' . $reason
+            );
+        }
+
+        return $ok;
+    }
+
+    /**
+     * Aggregate stats for the admin refund queue page.
+     */
+    public function getRefundStats(): array
+    {
+        $this->db->dbquery(
+            "SELECT
+                SUM(status = 'pending')    AS pending_count,
+                SUM(status = 'processing') AS processing_count,
+                SUM(status = 'completed')  AS completed_count,
+                SUM(status = 'rejected')   AS rejected_count,
+                COALESCE(SUM(CASE WHEN status IN ('pending','processing') THEN amount ELSE 0 END), 0) AS pending_amount,
+                COALESCE(SUM(CASE WHEN status = 'completed' AND DATE(completed_at) = CURDATE() THEN amount ELSE 0 END), 0) AS completed_today
+             FROM refunds"
+        );
+        return $this->db->getsingledata() ?: [];
     }
 
     /**
@@ -2265,11 +3445,9 @@ class BookingModel
         return "(SELECT COUNT(*)
                 FROM booking_items bi_count
                 LEFT JOIN services s_count ON bi_count.item_id = s_count.id AND bi_count.item_type = 'service'
-                LEFT JOIN supplier_packages sp_count ON bi_count.item_id = sp_count.id AND bi_count.item_type = 'supplier_package'
                 WHERE bi_count.booking_id = b.id
                   AND (
                       s_count.supplier_id = bs.supplier_id
-                      OR sp_count.supplier_id = bs.supplier_id
                       OR (
                           bi_count.item_type = 'package'
                           AND EXISTS (
@@ -2291,11 +3469,9 @@ class BookingModel
         return "(SELECT COALESCE(SUM(bi_total.price), 0)
                 FROM booking_items bi_total
                 LEFT JOIN services s_total ON bi_total.item_id = s_total.id AND bi_total.item_type = 'service'
-                LEFT JOIN supplier_packages sp_total ON bi_total.item_id = sp_total.id AND bi_total.item_type = 'supplier_package'
                 WHERE bi_total.booking_id = b.id
                   AND (
                       s_total.supplier_id = bs.supplier_id
-                      OR sp_total.supplier_id = bs.supplier_id
                       OR (
                           bi_total.item_type = 'package'
                           AND EXISTS (
@@ -2441,17 +3617,153 @@ class BookingModel
         $count = 0;
         foreach ($expired as $row) {
             $bookingId = (int)$row['id'];
+
+            // Collect supplier IDs before cancelling
+            $this->db->dbquery(
+                "SELECT DISTINCT supplier_id FROM booking_suppliers WHERE booking_id = :bid AND supplier_id > 0"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $supplierRows = $this->db->getmultidata() ?: [];
+
             $this->db->dbquery(
                 "UPDATE bookings SET status = 'cancelled' WHERE id = :id LIMIT 1"
             );
             $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
             if ($this->db->dbexecute()) {
-                $this->logStatusChange($bookingId, 'pending_supplier_response', 'cancelled', null, 'Auto-expired: 48-hour supplier response deadline passed');
+                $this->logStatusChange($bookingId, 'pending_supplier_response', 'cancelled', null, 'Auto-expired: 24-hour supplier response deadline passed');
+                $this->releaseBookingSlots($bookingId);
+                $this->releaseAttireItems($bookingId);
                 $this->cancelAllSuppliers($bookingId);
+
+                // Track missed responses per supplier and issue warnings
+                foreach ($supplierRows as $sRow) {
+                    $supplierId = (int)$sRow['supplier_id'];
+                    if ($supplierId > 0) {
+                        $this->incrementMissedResponseCount($supplierId, $bookingId);
+                    }
+                }
+
                 $count++;
             }
         }
 
+        return $count;
+    }
+
+    /**
+     * Increment a supplier's missed-response counter and issue a warning at thresholds.
+     */
+    private function incrementMissedResponseCount(int $supplierId, int $bookingId): void
+    {
+        // Check if the missed_response_count column exists
+        $this->db->dbquery("SHOW COLUMNS FROM suppliers LIKE 'missed_response_count'");
+        if (!$this->db->getsingledata()) {
+            return; // Column doesn't exist yet (migration not run)
+        }
+
+        // Increment the counter
+        $this->db->dbquery(
+            "UPDATE suppliers SET missed_response_count = missed_response_count + 1 WHERE supplier_id = :sid LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        // Get the new count
+        $this->db->dbquery(
+            "SELECT missed_response_count FROM suppliers WHERE supplier_id = :sid LIMIT 1"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        $count = (int)($result['missed_response_count'] ?? 0);
+
+        // Issue warning at thresholds: 3 (first warning), 6 (final warning), then every 3
+        $shouldWarn = ($count === 3) || ($count === 6) || ($count > 6 && $count % 3 === 0);
+        if (!$shouldWarn) {
+            return;
+        }
+
+        $isNewWarning = ($count === 3);
+        $level = $count >= 6 ? 2 : 1;
+        $severity = $level === 2 ? 'high' : 'medium';
+        $reason = $level === 2
+            ? "FINAL WARNING: {$count} bookings auto-cancelled due to non-response. Your account may be restricted."
+            : "You have {$count} bookings auto-cancelled due to not responding within 24 hours. Please respond promptly to avoid account restrictions.";
+
+        // Update warning_level and last_warning_at on suppliers table
+        $this->db->dbquery(
+            "UPDATE suppliers
+             SET warning_level = GREATEST(warning_level, :level),
+                 last_warning_at = NOW()
+             WHERE supplier_id = :sid LIMIT 1"
+        );
+        $this->db->dbbind(':level', $level, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        // Insert into supplier_warnings table
+        $this->db->dbquery(
+            "INSERT INTO supplier_warnings (supplier_id, issued_by, reason, severity, source, booking_id)
+             VALUES (:sid, 0, :reason, :severity, 'system', :bid)"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':reason', $reason);
+        $this->db->dbbind(':severity', $severity);
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        // Notify the supplier
+        $this->db->dbquery("SELECT user_id FROM suppliers WHERE supplier_id = :sid LIMIT 1");
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $userResult = $this->db->getsingledata();
+        $userId = (int)($userResult['user_id'] ?? 0);
+
+        if ($userId > 0) {
+            $title = $level === 2 ? 'Final Warning: Missed Booking Responses' : 'Warning: Missed Booking Responses';
+            $this->db->dbquery(
+                "INSERT INTO notifications (user_id, title, message, type, reference_type, reference_id, is_read, created_at)
+                 VALUES (:uid, :title, :msg, 'system', 'supplier', :sid, 0, NOW())"
+            );
+            $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+            $this->db->dbbind(':title', $title);
+            $this->db->dbbind(':msg', $reason);
+            $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+        }
+    }
+
+    public function expireAbandonedUnpaidBookings(): int
+    {
+        $this->db->dbquery(
+            "SELECT b.id
+               FROM bookings b
+              WHERE b.status = 'pending_payment'
+                AND b.payment_status = 'unpaid'
+                AND b.created_at < (NOW() - INTERVAL 2 HOUR)
+                AND NOT EXISTS (
+                    SELECT 1 FROM payments p
+                     WHERE p.booking_id = b.id
+                       AND p.type = 'deposit'
+                       AND p.status IN ('pending','success')
+                )"
+        );
+        $rows = $this->db->getmultidata();
+        $count = 0;
+        foreach ($rows as $row) {
+            $bookingId = (int)$row['id'];
+            $this->db->dbquery(
+                "UPDATE bookings SET status = 'cancelled'
+                  WHERE id = :id AND status = 'pending_payment'"
+            );
+            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+            if ($this->db->rowcount() === 1) {
+                $this->releaseBookingSlots($bookingId);
+                $this->releaseAttireItems($bookingId);
+                $this->cancelAllSuppliers($bookingId);
+                $this->logStatusChange($bookingId, 'pending_payment', 'cancelled', null, 'Auto-expired: deposit not submitted within 2 hours');
+                $count++;
+            }
+        }
         return $count;
     }
 
@@ -2473,7 +3785,7 @@ class BookingModel
 
         // A) Assigned replacement supplier missed the deadline.
         $this->db->dbquery(
-            "SELECT r.id AS rid, r.booking_id, r.new_supplier_id
+            "SELECT r.id AS rid, r.booking_id, r.new_supplier_id, r.new_service_id
                FROM booking_supplier_replacements r
                INNER JOIN bookings b ON b.id = r.booking_id
                INNER JOIN booking_suppliers bs
@@ -2499,6 +3811,12 @@ class BookingModel
             $this->db->dbbind(':sup', $newSupplier, PDO::PARAM_INT);
             $this->db->dbexecute();
 
+            // Refund any already-paid delta and remember the rejected service
+            // before clearing the pick (must run before updateReplacement).
+            $rejectedServiceId = (int)($row['new_service_id'] ?? 0);
+            $this->reverseReplacementDeltaIfPaid($rid);
+            $this->appendRejectedService($rid, $rejectedServiceId);
+
             // Re-open the request for admin.
             $this->updateReplacement($rid, [
                 'status' => 'declined_again',
@@ -2517,7 +3835,8 @@ class BookingModel
             "SELECT id AS rid, booking_id, delta_payment_id
                FROM booking_supplier_replacements
               WHERE status = 'pending_customer'
-                AND created_at < (NOW() - INTERVAL 3 DAY)"
+                AND customer_approved_at IS NULL
+                AND COALESCE(proposed_at, created_at) < (NOW() - INTERVAL 3 DAY)"
         );
         $staleProposals = $this->db->getmultidata();
         foreach ($staleProposals as $row) {
@@ -2557,11 +3876,27 @@ class BookingModel
     {
         $allowedStatuses = ['paid', 'payment_verified', 'suppliers_responding', 'confirmed', 'pending_final_payment', 'finalized', 'completed'];
 
-        $this->db->dbquery("SELECT status FROM bookings WHERE id = :id LIMIT 1");
+        $this->db->dbquery(
+            "SELECT b.status,
+                    EXISTS (
+                        SELECT 1
+                        FROM payments p
+                        WHERE p.booking_id = b.id
+                          AND p.type = 'deposit'
+                          AND p.status = 'success'
+                    ) AS has_verified_deposit
+               FROM bookings b
+              WHERE b.id = :id
+              LIMIT 1"
+        );
         $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
         $booking = $this->db->getsingledata();
 
-        return $booking && in_array($booking['status'], $allowedStatuses, true);
+        return $booking
+            && (
+                in_array($booking['status'], $allowedStatuses, true)
+                || (int)($booking['has_verified_deposit'] ?? 0) === 1
+            );
     }
 
     /**
@@ -2588,17 +3923,10 @@ class BookingModel
         string $accountName = '',
         string $mobileNumber = '',
         float $paidAmount = 0.0,
-        string $paidAt = ''
+        string $paidAt = '',
+        float $platformFee = 0.0,
+        float $supplierAmount = 0.0
     ): bool {
-        $status = $this->normalizeBookingStatus('payment_submitted');
-        $this->db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");
-        $this->db->dbbind(':status', $status);
-        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
-
-        if (!$this->db->dbexecute()) {
-            return false;
-        }
-
         $columns = ['booking_id', 'amount', 'type', 'method', 'status', 'transaction_ref', 'escrow_status'];
         $values = [':bid', ':amount', "'deposit'", ':method', "'pending'", ':ref', "'held'"];
         $bindings = [
@@ -2607,6 +3935,16 @@ class BookingModel
             ':method' => [$method, PDO::PARAM_STR],
             ':ref' => [$reference, PDO::PARAM_STR],
         ];
+
+        // Platform fee column
+        $columns[] = 'platform_fee';
+        $values[] = ':pfee';
+        $bindings[':pfee'] = [number_format($platformFee, 2, '.', '')];
+
+        // Supplier amount column
+        $columns[] = 'supplier_amount';
+        $values[] = ':samt';
+        $bindings[':samt'] = [number_format($supplierAmount, 2, '.', '')];
 
         $optionalColumns = [
             'bank_name' => [$method, PDO::PARAM_STR],
@@ -2627,15 +3965,189 @@ class BookingModel
             $bindings[$param] = [$value, $type];
         }
 
+        $this->db->beginTransaction();
+        try {
+            $status = $this->normalizeBookingStatus('payment_submitted');
+            $this->db->dbquery(
+                "UPDATE bookings
+                    SET status = :status
+                  WHERE id = :id
+                    AND status IN ('draft','pending_payment')
+                  LIMIT 1"
+            );
+            $this->db->dbbind(':status', $status);
+            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+            if ($this->db->rowcount() !== 1) {
+                throw new RuntimeException('Booking is no longer awaiting payment.');
+            }
+
+            $this->db->dbquery(
+                'INSERT INTO payments (' . implode(', ', $columns) . ')
+                 VALUES (' . implode(', ', $values) . ')'
+            );
+            foreach ($bindings as $param => [$value, $type]) {
+                $this->db->dbbind($param, $value, $type);
+            }
+            $this->db->dbexecute();
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('Payment proof submission failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function releaseBookingSlots(int $bookingId): bool
+    {
         $this->db->dbquery(
-            'INSERT INTO payments (' . implode(', ', $columns) . ')
-             VALUES (' . implode(', ', $values) . ')'
+            "SELECT id, slot_id, source
+               FROM booking_slot_reservations
+              WHERE booking_id = :bid
+                AND released_at IS NULL
+              ORDER BY id ASC"
         );
-        foreach ($bindings as $param => [$value, $type]) {
-            $this->db->dbbind($param, $value, $type);
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $rows = $this->db->getmultidata();
+        foreach ($rows as $row) {
+            $slotId = (int)($row['slot_id'] ?? 0);
+            if ($slotId <= 0) {
+                continue;
+            }
+            $this->db->dbquery(
+                "UPDATE booking_slot_reservations
+                    SET released_at = NOW()
+                  WHERE id = :id AND released_at IS NULL"
+            );
+            $this->db->dbbind(':id', (int)$row['id'], PDO::PARAM_INT);
+            $this->db->dbexecute();
+            if ($this->db->rowcount() === 1) {
+                $this->releaseServiceSlot($slotId, (string)($row['source'] ?? 'custom'));
+            }
+        }
+        return true;
+    }
+
+    // ─── Attire Rental Reservation ─────────────────────────────────
+
+    /**
+     * Reserve an attire item for a date range (block dates).
+     * Returns true on success, false if conflict detected.
+     */
+    public function reserveAttireItem(int $bookingItemId, int $attireItemId, string $rentalType, ?string $borrowDate, ?string $returnDate, ?int $rentalDays, ?int $bufferDays): bool
+    {
+        if ($rentalType !== 'borrow' || !$borrowDate || !$returnDate) {
+            // Buy type — no date blocking needed, just record the booking
+            $this->db->dbquery(
+                "INSERT INTO attire_rental_bookings (booking_item_id, attire_item_id, rental_type, borrow_date, return_date, rental_days, buffer_until, status)
+                 VALUES (:bii, :aii, :rt, NULL, NULL, NULL, NULL, 'reserved')"
+            );
+            $this->db->dbbind(':bii', $bookingItemId, PDO::PARAM_INT);
+            $this->db->dbbind(':aii', $attireItemId, PDO::PARAM_INT);
+            $this->db->dbbind(':rt', $rentalType);
+            return $this->db->dbexecute();
         }
 
+        $bufferDays = max(0, (int)($bufferDays ?? 1));
+        $bufferUntil = date('Y-m-d', strtotime($returnDate . " + " . $bufferDays . " days"));
+
+        // Check for conflicts
+        if (!$this->checkAttireConflict($attireItemId, $borrowDate, $bufferUntil)) {
+            return false;
+        }
+
+        $this->db->dbquery(
+            "INSERT INTO attire_rental_bookings (booking_item_id, attire_item_id, rental_type, borrow_date, return_date, rental_days, buffer_until, status)
+             VALUES (:bii, :aii, :rt, :bd, :rd, :rda, :bu, 'reserved')"
+        );
+        $this->db->dbbind(':bii', $bookingItemId, PDO::PARAM_INT);
+        $this->db->dbbind(':aii', $attireItemId, PDO::PARAM_INT);
+        $this->db->dbbind(':rt', $rentalType);
+        $this->db->dbbind(':bd', $borrowDate);
+        $this->db->dbbind(':rd', $returnDate);
+        $this->db->dbbind(':rda', $rentalDays, PDO::PARAM_INT);
+        $this->db->dbbind(':bu', $bufferUntil);
+
         return $this->db->dbexecute();
+    }
+
+    /**
+     * Check if an attire item has a conflicting reservation for the given date range.
+     * Returns true if available (no conflict), false if conflict exists.
+     */
+    public function checkAttireConflict(int $attireItemId, string $borrowDate, string $bufferUntil): bool
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS cnt FROM attire_rental_bookings
+             WHERE attire_item_id = :aii
+               AND status IN ('reserved', 'picked_up')
+               AND borrow_date <= :bu
+               AND buffer_until >= :bd"
+        );
+        $this->db->dbbind(':aii', $attireItemId, PDO::PARAM_INT);
+        $this->db->dbbind(':bu', $bufferUntil);
+        $this->db->dbbind(':bd', $borrowDate);
+        $result = $this->db->getsingledata();
+
+        return ((int)($result['cnt'] ?? 0)) === 0;
+    }
+
+    /**
+     * Release all attire reservations for a booking (on cancellation).
+     */
+    public function releaseAttireItems(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE attire_rental_bookings arb
+             INNER JOIN booking_items bi ON bi.id = arb.booking_item_id
+             SET arb.status = 'cancelled'
+             WHERE bi.booking_id = :bid
+               AND arb.status = 'reserved'"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        return true;
+    }
+
+    /**
+     * Reserve all attire items for a booking's booking_items.
+     * Called after insertBookingItems().
+     */
+    public function reserveBookingAttireItems(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "SELECT bi.id, bi.attire_item_id, bi.rental_type, bi.borrow_date, bi.return_date,
+                    ai.buffer_days, aro.days AS rental_days
+             FROM booking_items bi
+             JOIN attire_items ai ON ai.id = bi.attire_item_id
+             LEFT JOIN attire_rental_options aro ON aro.attire_item_id = bi.attire_item_id AND aro.days = DATEDIFF(bi.return_date, bi.borrow_date) + 1
+             WHERE bi.booking_id = :bid
+               AND bi.attire_item_id IS NOT NULL
+               AND bi.rental_type IS NOT NULL"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $items = $this->db->getmultidata();
+
+        foreach ($items as $item) {
+            $rentalDays = (int)($item['rental_days'] ?? 0);
+            if ($rentalDays <= 0 && !empty($item['borrow_date']) && !empty($item['return_date'])) {
+                $rentalDays = (int)((strtotime($item['return_date']) - strtotime($item['borrow_date'])) / 86400) + 1;
+            }
+            $result = $this->reserveAttireItem(
+                (int)$item['id'],
+                (int)$item['attire_item_id'],
+                (string)$item['rental_type'],
+                $item['borrow_date'],
+                $item['return_date'],
+                $rentalDays,
+                (int)($item['buffer_days'] ?? 1)
+            );
+            if (!$result) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -2643,7 +4155,7 @@ class BookingModel
      */
     public function getDepositPayment(int $bookingId): array|false
     {
-        $selects = ['id', 'amount', 'method', 'transaction_ref', 'status', 'verified_at', 'created_at'];
+        $selects = ['id', 'amount', 'platform_fee', 'supplier_amount', 'method', 'transaction_ref', 'status', 'verified_at', 'created_at'];
         foreach (['bank_name', 'account_name', 'mobile_number', 'paid_amount', 'paid_at', 'payment_slip_path', 'verified_note'] as $column) {
             $selects[] = $this->paymentHasColumn($column) ? $column : 'NULL AS ' . $column;
         }
@@ -2658,25 +4170,70 @@ class BookingModel
         return $this->db->getsingledata();
     }
 
+    public function getPaymentById(int $paymentId): array|false
+    {
+        $this->db->dbquery("SELECT * FROM payments WHERE id = :id LIMIT 1");
+        $this->db->dbbind(':id', $paymentId, PDO::PARAM_INT);
+        return $this->db->getsingledata();
+    }
+
+    public function markPaymentSuccess(int $paymentId, int $adminId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE payments
+                SET status = 'success', verified_by = :admin, verified_at = NOW()
+              WHERE id = :id AND status = 'pending'"
+        );
+        $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+        $this->db->dbbind(':id', $paymentId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        return $this->db->rowcount() === 1;
+    }
+
+    public function getPaymentVerificationError(): string
+    {
+        return $this->paymentVerificationError ?: 'Failed to verify payment';
+    }
+
     /**
      * Admin verifies payment and moves booking to paid.
      * Notifies all suppliers that booking is ready for their review.
      */
     public function adminVerifyPayment(int $bookingId, int $adminId, string $note = ''): bool
     {
+        $this->paymentVerificationError = null;
         $this->db->dbquery(
-            "SELECT id
-             FROM payments
-             WHERE booking_id = :bid
-               AND type = 'deposit'
-               AND status = 'pending'
-             ORDER BY id DESC
-             LIMIT 1"
+            "SELECT p.id,
+                    COALESCE(p.paid_amount, p.amount, 0) AS submitted_amount,
+                    b.total_amount
+               FROM payments p
+               INNER JOIN bookings b ON b.id = p.booking_id
+              WHERE p.booking_id = :bid
+                AND p.type = 'deposit'
+                AND p.status = 'pending'
+              ORDER BY p.id DESC
+              LIMIT 1"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         $pendingPayment = $this->db->getsingledata();
         $paymentId = (int)($pendingPayment['id'] ?? 0);
         if ($paymentId <= 0) {
+            $this->paymentVerificationError = 'No pending deposit payment found for this booking. It may already be reviewed.';
+            return false;
+        }
+        $totalAmount = (float)($pendingPayment['total_amount'] ?? 0);
+        $expectedDeposit = round($totalAmount * (BOOKING_DEPOSIT_PERCENT / 100), 2);
+        $expectedPlatformFee = round($totalAmount * (get_platform_fee_percent() / 100), 2);
+        $expectedPayment = round($expectedDeposit + $expectedPlatformFee, 2);
+        $submittedAmount = (float)($pendingPayment['submitted_amount'] ?? 0);
+        if ($expectedPayment <= 0) {
+            $this->paymentVerificationError = 'Booking total is invalid, so the expected payment cannot be calculated.';
+            return false;
+        }
+        if (abs($submittedAmount - $expectedPayment) > 0.01) {
+            $this->paymentVerificationError = 'Payment amount must equal deposit plus platform fee: '
+                . number_format($expectedPayment, 0) . ' MMK expected, '
+                . number_format($submittedAmount, 0) . ' MMK submitted.';
             return false;
         }
 
@@ -2704,9 +4261,18 @@ class BookingModel
             // Update booking status (normalized so it works with old + new ENUMs).
             $status = $this->normalizeBookingStatus('paid');
             $this->db->dbquery(
-                "UPDATE bookings SET status = :status, payment_status = 'partial' WHERE id = :id LIMIT 1"
+                "UPDATE bookings
+                    SET status = :status,
+                        payment_status = 'partial',
+                        paid_amount = :paid_amount
+                  WHERE id = :id
+                  LIMIT 1"
             );
             $this->db->dbbind(':status', $status);
+            $this->db->dbbind(
+                ':paid_amount',
+                number_format((float)$pendingPayment['submitted_amount'], 2, '.', '')
+            );
             $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
             if (!$this->db->dbexecute()) {
                 throw new RuntimeException('Booking status could not be updated.');
@@ -2714,24 +4280,9 @@ class BookingModel
             $this->db->commit();
         } catch (Throwable $e) {
             $this->db->rollBack();
+            $this->paymentVerificationError = 'Payment verification failed while updating records.';
             error_log('Deposit verification failed: ' . $e->getMessage());
             return false;
-        }
-
-        // Sync paid_amount on the booking using what the customer actually transferred
-        $paidAmountExpr = $this->paymentHasColumn('paid_amount')
-            ? 'COALESCE(paid_amount, amount, 0)'
-            : 'COALESCE(amount, 0)';
-        $this->db->dbquery(
-            "SELECT {$paidAmountExpr} AS deposit_paid
-             FROM payments WHERE booking_id = :bid AND type = 'deposit' AND status = 'success'
-             ORDER BY id DESC LIMIT 1"
-        );
-        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $payRow = $this->db->getsingledata();
-        $depositPaid = (float)($payRow['deposit_paid'] ?? 0);
-        if ($depositPaid > 0) {
-            $this->updatePaidAmount($bookingId, $depositPaid);
         }
 
         // For package bookings: auto-confirm all suppliers and advance to confirmed.
@@ -2751,33 +4302,135 @@ class BookingModel
     }
 
     /**
-     * Confirm instant payment (Visa/Card or MM QR).
-     * Sets booking status directly to paid and creates success payment record.
+     * Verify a remaining balance payment (admin action).
+     * Marks the remaining payment as success and finalizes the booking.
      */
-    public function confirmInstantPayment(int $bookingId, string $method, string $transactionId, float $amount = 0): bool
+    public function adminVerifyRemainingPayment(int $bookingId, int $adminId, string $note = ''): bool
     {
-        // Update booking to paid (normalized to work with old + new ENUMs).
-        $status = $this->normalizeBookingStatus('paid');
+        $this->paymentVerificationError = null;
         $this->db->dbquery(
-            "UPDATE bookings SET status = :status, payment_status = 'partial' WHERE id = :id LIMIT 1"
+            "SELECT p.id,
+                    COALESCE(p.paid_amount, p.amount, 0) AS submitted_amount,
+                    b.total_amount
+               FROM payments p
+               INNER JOIN bookings b ON b.id = p.booking_id
+              WHERE p.booking_id = :bid
+                AND p.type = 'remaining'
+                AND p.status = 'pending'
+              ORDER BY p.id DESC
+              LIMIT 1"
         );
-        $this->db->dbbind(':status', $status);
-        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
-
-        if (!$this->db->dbexecute()) {
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $pendingPayment = $this->db->getsingledata();
+        $paymentId = (int)($pendingPayment['id'] ?? 0);
+        if ($paymentId <= 0) {
+            $this->paymentVerificationError = 'No pending remaining payment found for this booking.';
             return false;
         }
 
-        // Create successful payment record
+        $totalAmount = (float)($pendingPayment['total_amount'] ?? 0);
+        $submittedAmount = (float)($pendingPayment['submitted_amount'] ?? 0);
+
+        // Calculate already-paid from actual successful payments (not from
+        // bookings.paid_amount, which may be stale). Exclude platform fees
+        // since they are not part of the service total.
         $this->db->dbquery(
-            "INSERT INTO payments (booking_id, type, method, status, transaction_ref, escrow_status, verified_at)
-             VALUES (:bid, 'deposit', :method, 'success', :txn, 'held', NOW())"
+            "SELECT COALESCE(SUM(COALESCE(paid_amount, amount)), 0) AS total_paid,
+                    COALESCE(SUM(COALESCE(platform_fee, 0)), 0) AS total_fees
+               FROM payments
+              WHERE booking_id = :bid
+                AND status = 'success'
+                AND id <> :exclude_id"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $this->db->dbbind(':method', $method, PDO::PARAM_STR);
-        $this->db->dbbind(':txn', $transactionId, PDO::PARAM_STR);
+        $this->db->dbbind(':exclude_id', $paymentId, PDO::PARAM_INT);
+        $paidRow = $this->db->getsingledata();
+        $alreadyPaid = (float)($paidRow['total_paid'] ?? 0);
+        $totalFees = (float)($paidRow['total_fees'] ?? 0);
 
-        return $this->db->dbexecute();
+        // Subtract platform fees — they are not part of the service price
+        $expectedBalance = max(0, $totalAmount - ($alreadyPaid - $totalFees));
+
+        if ($expectedBalance <= 0) {
+            $this->paymentVerificationError = 'This booking is already fully paid.';
+            return false;
+        }
+
+        // Validate: amount must be between minimum and remaining balance
+        $minPayment = defined('MIN_REMAINING_PAYMENT') ? (float)MIN_REMAINING_PAYMENT : 1000;
+        if ($submittedAmount < $minPayment - 0.01) {
+            $this->paymentVerificationError = 'Payment amount must be at least '
+                . number_format($minPayment, 0) . ' MMK.';
+            return false;
+        }
+        if ($submittedAmount > $expectedBalance + 0.01) {
+            $this->paymentVerificationError = 'Payment amount cannot exceed remaining balance: '
+                . number_format($expectedBalance, 0) . ' MMK.';
+            return false;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Mark remaining payment as success
+            $setParts = ["status = 'success'", 'verified_by = :admin', 'verified_at = NOW()'];
+            if ($this->paymentHasColumn('verified_note')) {
+                $setParts[] = 'verified_note = :note';
+            }
+            $this->db->dbquery(
+                "UPDATE payments SET " . implode(', ', $setParts) . "
+                 WHERE id = :payment_id AND status = 'pending' LIMIT 1"
+            );
+            $this->db->dbbind(':admin', $adminId, PDO::PARAM_INT);
+            if ($this->paymentHasColumn('verified_note')) {
+                $this->db->dbbind(':note', $note, PDO::PARAM_STR);
+            }
+            $this->db->dbbind(':payment_id', $paymentId, PDO::PARAM_INT);
+            if (!$this->db->dbexecute() || $this->db->rowcount() !== 1) {
+                throw new RuntimeException('Remaining payment was already reviewed.');
+            }
+
+            // Calculate new total paid (including this payment).
+            // alreadyPaid excludes platform fees; add them back so
+            // bookings.paid_amount stays consistent (it includes fees).
+            $newTotalPaid = $alreadyPaid + $totalFees + $submittedAmount;
+            $isFullyPaid = ($alreadyPaid + $submittedAmount) >= ($totalAmount - 0.01);
+
+            if ($isFullyPaid) {
+                // Fully paid — finalize the booking
+                $this->db->dbquery(
+                    "UPDATE bookings
+                        SET status = 'finalized',
+                            payment_status = 'paid',
+                            paid_amount = total_amount
+                      WHERE id = :id LIMIT 1"
+                );
+                $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+                if (!$this->db->dbexecute()) {
+                    throw new RuntimeException('Booking status could not be updated.');
+                }
+            } else {
+                // Partial payment — update paid_amount, keep status as confirmed
+                $this->db->dbquery(
+                    "UPDATE bookings
+                        SET paid_amount = :paid,
+                            payment_status = 'partial'
+                      WHERE id = :id LIMIT 1"
+                );
+                $this->db->dbbind(':paid', number_format($newTotalPaid, 2, '.', ''));
+                $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+                if (!$this->db->dbexecute()) {
+                    throw new RuntimeException('Booking paid_amount could not be updated.');
+                }
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            $this->paymentVerificationError = 'Remaining payment verification failed.';
+            error_log('Remaining payment verification failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -2798,16 +4451,26 @@ class BookingModel
         $totalAmount = (float)$booking['total_amount'];
         $paidAmount = (float)$booking['paid_amount'];
 
+        // Deduct platform fees so suppliers only receive the deposit portion.
+        // paid_amount may include platform fee (deposit + fee), but payouts
+        // should be based on the deposit portion only.
+        $this->db->dbquery(
+            "SELECT COALESCE(SUM(platform_fee), 0) AS total_fees
+               FROM payments
+              WHERE booking_id = :bid AND status = 'success'"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $feeRow = $this->db->getsingledata();
+        $totalPlatformFees = (float)($feeRow['total_fees'] ?? 0);
+        $paidAmount = max(0, $paidAmount - $totalPlatformFees);
+
         // Get all suppliers and their amounts for this booking
         $this->db->dbquery(
             "SELECT bs.supplier_id,
-                    COALESCE(SUM(bi.price), 0) as supplier_service_amount
-             FROM booking_suppliers bs
-             LEFT JOIN booking_items bi ON bi.booking_id = :bid
-             LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
-             LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
-             WHERE bs.booking_id = :bid
-               AND (s.supplier_id = bs.supplier_id OR sp.supplier_id = bs.supplier_id OR bi.item_type = 'package')
+                    COALESCE(SUM(bs.item_price), 0) AS supplier_service_amount
+               FROM booking_suppliers bs
+              WHERE bs.booking_id = :bid
+               AND bs.status IN ('confirmed','in_progress','completed')
              GROUP BY bs.supplier_id"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
@@ -2828,6 +4491,18 @@ class BookingModel
 
             if ($payoutAmount > 0) {
                 $this->db->dbquery(
+                    "SELECT id FROM payments
+                      WHERE booking_id = :existing_bid
+                        AND supplier_id = :existing_sid
+                        AND type = 'payout'
+                      LIMIT 1"
+                );
+                $this->db->dbbind(':existing_bid', $bookingId, PDO::PARAM_INT);
+                $this->db->dbbind(':existing_sid', $supplierId, PDO::PARAM_INT);
+                if ($this->db->getsingledata()) {
+                    continue;
+                }
+                $this->db->dbquery(
                     "INSERT INTO payments (booking_id, supplier_id, type, amount, escrow_status, status)
                      VALUES (:bid, :sid, 'payout', :amount, 'released', 'pending')"
                 );
@@ -2847,7 +4522,169 @@ class BookingModel
     /* ─── Final Payment Collection & Refund Logic ─────────────────── */
 
     /**
-     * Collect final 90% payment for bookings where event is within 3 days.
+     * Get the platform fee portion that was included in the deposit payment.
+     * bookings.paid_amount includes the platform fee, so subtract this to get
+     * the true service-payment portion only.
+     */
+    public function getDepositPlatformFee(int $bookingId): float
+    {
+        $this->db->dbquery(
+            "SELECT COALESCE(SUM(platform_fee), 0) AS total_fees
+               FROM payments
+              WHERE booking_id = :bid
+                AND type = 'deposit'
+                AND status = 'success'"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return (float)($row['total_fees'] ?? 0);
+    }
+
+    /**
+     * Get the true remaining balance for a booking.
+     * Unlike bookings.paid_amount (which includes platform fees), this returns
+     * the actual amount still owed toward the service total.
+     */
+    public function getTrueRemainingBalance(int $bookingId): float
+    {
+        $this->db->dbquery(
+            "SELECT COALESCE(total_amount, 0) AS total,
+                    COALESCE(paid_amount, 0) AS paid
+               FROM bookings WHERE id = :id LIMIT 1"
+        );
+        $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+        $booking = $this->db->getsingledata();
+        if (!$booking) return 0.0;
+
+        $total = (float)$booking['total'];
+        $paid = (float)$booking['paid'];
+        $platformFee = $this->getDepositPlatformFee($bookingId);
+
+        return max(0, $total - ($paid - $platformFee));
+    }
+
+    /**
+     * Check if a booking has a pending (under review) remaining balance payment.
+     */
+    public function hasPendingRemainingPayment(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "SELECT 1 FROM payments
+              WHERE booking_id = :bid AND type = 'remaining' AND status IN ('pending','processing')
+              LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return (bool)$this->db->getsingledata();
+    }
+
+    /**
+     * Get all remaining balance payments for a booking (successful + pending).
+     */
+    public function getRemainingPayments(int $bookingId): array
+    {
+        $this->db->dbquery(
+            "SELECT * FROM payments
+              WHERE booking_id = :bid AND type = 'remaining'
+              ORDER BY created_at ASC"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Get the earliest event date for a booking.
+     * Returns null when no event date is set.
+     */
+    public function getFirstEventDate(int $bookingId): ?string
+    {
+        $this->db->dbquery(
+            "SELECT MIN(event_date) AS event_date
+             FROM event_details
+             WHERE booking_id = :bid AND event_date IS NOT NULL"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return $row['event_date'] ?? null;
+    }
+
+    /**
+     * Submit remaining balance payment slip (manual bank transfer).
+     * Creates a 'remaining' type payment record and updates booking status.
+     */
+    public function submitRemainingPaymentSlip(
+        int $bookingId,
+        string $slipPath,
+        string $reference,
+        string $method,
+        string $accountName = '',
+        string $mobileNumber = '',
+        float $paidAmount = 0.0,
+        string $paidAt = ''
+    ): bool {
+        $this->db->beginTransaction();
+        try {
+            // Create remaining payment record
+            $columns = ['booking_id', 'amount', 'type', 'method', 'status', 'transaction_ref', 'escrow_status'];
+            $values = [':bid', ':amount', "'remaining'", ':method', "'pending'", ':ref', "'held'"];
+            $bindings = [
+                ':bid' => [$bookingId, PDO::PARAM_INT],
+                ':amount' => [number_format($paidAmount, 2, '.', ''), PDO::PARAM_STR],
+                ':method' => [$method, PDO::PARAM_STR],
+                ':ref' => [$reference, PDO::PARAM_STR],
+            ];
+
+            $optionalColumns = [
+                'bank_name' => [$method, PDO::PARAM_STR],
+                'account_name' => [$accountName !== '' ? $accountName : null, $accountName !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+                'mobile_number' => [$mobileNumber !== '' ? $mobileNumber : null, $mobileNumber !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+                'paid_amount' => [$paidAmount > 0 ? round($paidAmount, 2) : null, $paidAmount > 0 ? PDO::PARAM_STR : PDO::PARAM_NULL],
+                'paid_at' => [$paidAt !== '' ? $paidAt : null, $paidAt !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+                'payment_slip_path' => [$slipPath !== '' ? $slipPath : null, $slipPath !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL],
+            ];
+
+            foreach ($optionalColumns as $column => [$value, $type]) {
+                if (!$this->paymentHasColumn($column)) {
+                    continue;
+                }
+                $param = ':' . $column;
+                $columns[] = $column;
+                $values[] = $param;
+                $bindings[$param] = [$value, $type];
+            }
+
+            $sql = "INSERT INTO payments (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
+            $this->db->dbquery($sql);
+            foreach ($bindings as $param => [$value, $type]) {
+                $this->db->dbbind($param, $value, $type);
+            }
+
+            if (!$this->db->dbexecute()) {
+                throw new RuntimeException('Failed to create payment record.');
+            }
+
+            // Update booking status to pending_final_payment.
+            // Accept any post-deposit status: 'confirmed' (package bookings),
+            // 'paid' or 'payment_verified' (non-package bookings).
+            $this->db->dbquery(
+                "UPDATE bookings SET status = 'pending_final_payment'
+                 WHERE id = :id
+                   AND status IN ('confirmed', 'paid', 'payment_verified')
+                 LIMIT 1"
+            );
+            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('Remaining payment submission failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Collect the remaining balance for bookings where the event is within 3 days.
      * Returns count of bookings processed, or false on error.
      * Call this via cron job daily.
      */
@@ -2877,8 +4714,7 @@ class BookingModel
             $total = (float)$booking['total_amount'];
             $paid = (float)$booking['paid_amount'];
 
-            // Calculate remaining amount (90% not yet paid)
-            $remaining = ($total * 0.90) - ($paid - ($total * 0.10));
+            $remaining = max(0, $total - $paid);
 
             if ($remaining > 0) {
                 // Create pending final payment record
@@ -3024,8 +4860,10 @@ class BookingModel
         $this->db->dbquery(
             "SELECT
                 COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as pending_amount,
+                COALESCE(SUM(CASE WHEN status = 'processing' THEN amount ELSE 0 END), 0) as processing_amount,
                 COALESCE(SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END), 0) as paid_amount,
                 COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+                COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_count,
                 COUNT(CASE WHEN status = 'success' THEN 1 END) as paid_count
              FROM payments
              WHERE supplier_id = :sid AND type = 'payout'"
@@ -3035,10 +4873,16 @@ class BookingModel
 
         return [
             'pending_amount' => (float)($result['pending_amount'] ?? 0),
+            'processing_amount' => (float)($result['processing_amount'] ?? 0),
             'paid_amount' => (float)($result['paid_amount'] ?? 0),
             'pending_count' => (int)($result['pending_count'] ?? 0),
+            'processing_count' => (int)($result['processing_count'] ?? 0),
             'paid_count' => (int)($result['paid_count'] ?? 0),
-            'total_earned' => (float)(($result['pending_amount'] ?? 0) + ($result['paid_amount'] ?? 0)),
+            'total_earned' => (float)(
+                ($result['pending_amount'] ?? 0)
+                + ($result['processing_amount'] ?? 0)
+                + ($result['paid_amount'] ?? 0)
+            ),
         ];
     }
 
@@ -3060,6 +4904,182 @@ class BookingModel
         $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    /**
+     * Get supplier earnings breakdown by booking with service names.
+     * Used on the earnings page to show per-booking detail.
+     *
+     * Each row represents one payout record joined to its booking and service.
+     * Uses GROUP_CONCAT for service names since a payout is per-supplier-per-booking,
+     * and a supplier can have multiple services in one booking.
+     */
+    public function getSupplierEarningsBreakdown(int $supplierId, int $limit = 20, int $offset = 0): array
+    {
+        // Payout amount is net (platform fees already deducted by settleSupplierPayouts).
+        // Derive the supplier's proportional share of platform fees from the
+        // original payment records (deposit/remaining/full) for each booking,
+        // so historical fee rates are preserved even if the global rate changes.
+        $this->db->dbquery(
+            "SELECT
+                p.id AS payment_id,
+                p.booking_id,
+                p.amount AS net_amount,
+                p.status,
+                p.created_at,
+                p.verified_at,
+                p.verified_note,
+                p.payout_batch_id,
+                b.created_at AS booking_date,
+                b.total_amount AS booking_total,
+                GROUP_CONCAT(DISTINCT s.name SEPARATOR ', ') AS service_names,
+                GROUP_CONCAT(DISTINCT bs.item_price) AS item_prices,
+                SUM(DISTINCT bs.item_price) AS supplier_service_total,
+                (
+                    SELECT COALESCE(SUM(COALESCE(py.platform_fee, 0)), 0)
+                      FROM payments py
+                     WHERE py.booking_id = p.booking_id
+                       AND py.status = 'success'
+                       AND py.type IN ('deposit','remaining','full')
+                ) AS booking_total_fees,
+                (
+                    SELECT r2.amount FROM refunds r2
+                     WHERE r2.booking_id = p.booking_id AND r2.status = 'completed'
+                     ORDER BY r2.id DESC LIMIT 1
+                ) AS refund_amount,
+                (
+                    SELECT r3.status FROM refunds r3
+                     WHERE r3.booking_id = p.booking_id
+                     ORDER BY r3.id DESC LIMIT 1
+                ) AS refund_status
+             FROM payments p
+             JOIN bookings b ON b.id = p.booking_id
+             JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = p.supplier_id
+             LEFT JOIN services s ON s.id = bs.service_id
+             WHERE p.supplier_id = :sid AND p.type = 'payout'
+             GROUP BY p.id
+             ORDER BY p.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+
+        $rows = $this->db->getmultidata();
+
+        foreach ($rows as &$row) {
+            $net = (float)($row['net_amount'] ?? 0);
+            $bookingTotal = (float)($row['booking_total'] ?? 0);
+            $supplierServiceTotal = (float)($row['supplier_service_total'] ?? 0);
+            $bookingTotalFees = (float)($row['booking_total_fees'] ?? 0);
+
+            // Supplier's proportional share of the platform fees
+            $proportion = ($bookingTotal > 0) ? ($supplierServiceTotal / $bookingTotal) : 0;
+            $fee = $proportion * $bookingTotalFees;
+            $gross = $net + $fee;
+
+            $row['platform_fee'] = round($fee, 2);
+            $row['gross_amount'] = round($gross, 2);
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * Get supplier's gross earnings from all successful booking payments
+     * associated with the supplier. Returns gross amount, platform fees,
+     * net earnings, and the count of completed bookings that generated payouts.
+     */
+    public function getSupplierGrossEarnings(int $supplierId): array
+    {
+        // Payout records store the NET amount (after platform fees were deducted
+        // during settleSupplierPayouts).  platform_fee is NULL on payout rows.
+        // Derive each supplier's proportional share of platform fees from the
+        // original payment records so historical fee rates are preserved.
+        //
+        // One row per payout (GROUP BY p.id), then sum in PHP.
+        // This mirrors getSupplierEarningsBreakdown's fee logic.
+        $this->db->dbquery(
+            "SELECT
+                p.amount AS net_amount,
+                b.total_amount AS booking_total,
+                SUM(DISTINCT bs.item_price) AS supplier_service_total,
+                (
+                    SELECT COALESCE(SUM(COALESCE(py.platform_fee, 0)), 0)
+                      FROM payments py
+                     WHERE py.booking_id = p.booking_id
+                       AND py.status = 'success'
+                       AND py.type IN ('deposit','remaining','full')
+                ) AS booking_total_fees
+             FROM payments p
+             JOIN bookings b ON b.id = p.booking_id
+             JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = p.supplier_id
+             WHERE p.supplier_id = :sid AND p.type = 'payout' AND p.status = 'success'
+             GROUP BY p.id"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $rows = $this->db->getmultidata() ?: [];
+
+        $paidNet = 0.0;
+        $paidFees = 0.0;
+
+        foreach ($rows as $row) {
+            $net = (float)($row['net_amount'] ?? 0);
+            $bookingTotal = (float)($row['booking_total'] ?? 0);
+            $supplierServiceTotal = (float)($row['supplier_service_total'] ?? 0);
+            $bookingTotalFees = (float)($row['booking_total_fees'] ?? 0);
+
+            $proportion = ($bookingTotal > 0) ? ($supplierServiceTotal / $bookingTotal) : 0;
+            $fee = $proportion * $bookingTotalFees;
+
+            $paidNet += $net;
+            $paidFees += $fee;
+        }
+
+        return [
+            'gross_earnings' => round($paidNet + $paidFees, 2),
+            'platform_fees'  => round($paidFees, 2),
+            'net_earnings'   => round($paidNet, 2),
+            'completed_booking_count' => count($rows),
+        ];
+    }
+
+    /**
+     * Get all payment transactions related to a supplier's bookings (deposits, remaining, full).
+     * This is the supplier's payment history — what customers paid toward their services.
+     */
+    public function getSupplierPaymentHistory(int $supplierId, int $limit = 20, int $offset = 0): array
+    {
+        $this->db->dbquery(
+            "SELECT p.id, p.booking_id, p.amount, p.platform_fee, p.supplier_amount,
+                    p.type, p.status, p.escrow_status, p.method, p.created_at, p.paid_at,
+                    u.name AS customer_name
+             FROM payments p
+             JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid1
+             JOIN bookings b ON b.id = p.booking_id
+             JOIN users u ON u.user_id = b.user_id
+             WHERE p.type IN ('deposit','remaining','full')
+             ORDER BY p.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $this->db->dbbind(':sid1', $supplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
+        $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    public function getSupplierPaymentHistoryCount(int $supplierId): int
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(DISTINCT p.id)
+             FROM payments p
+             JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid
+             WHERE p.type IN ('deposit','remaining','full')"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+        return (int)($row['COUNT(DISTINCT p.id)'] ?? 0);
     }
 
     public function getCustomerForBooking(int $bookingId): array

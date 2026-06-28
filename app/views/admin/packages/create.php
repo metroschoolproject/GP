@@ -1,7 +1,7 @@
 <?php
-$categories = $categories ?? [];
-$serviceOptions = $serviceOptions ?? [];
 $message = $message ?? '';
+$old = $old ?? [];
+$errors = $errors ?? [];
 
 $dashboardTitle = 'Packages';
 $dashboardCrumb = 'New Package';
@@ -12,23 +12,14 @@ $dashboardBreadcrumbs = [
 ];
 $dashboardContentClass = 'admin-pkg-create';
 
-$dashboardContent = function () use ($categories, $serviceOptions, $message) {
+$dashboardContent = function () use ($message, $old, $errors) {
   $h = fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-  $money = fn($value) => 'MMK ' . number_format((float)$value, 0);
-  $servicesByCategory = [];
-  foreach ($serviceOptions as $service) {
-    $categoryId = (int)($service['category_id'] ?? 0);
-    $categoryName = trim((string)($service['category_name'] ?? 'Other'));
-    $key = $categoryId . '|' . $categoryName;
-    $servicesByCategory[$key]['id'] = $categoryId;
-    $servicesByCategory[$key]['name'] = $categoryName;
-    $servicesByCategory[$key]['services'][] = $service;
-  }
+  $agentFeeRate = get_platform_fee_percent() / 100;
 ?>
 <style>
-  .admin-pkg-create{min-height:100%;background:#FBFBF9;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#111827;font-size:13px}
+  .admin-pkg-create{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
   .admin-pkg-page *{box-sizing:border-box}
-  .admin-pkg-page{--bg:#FBFBF9;--surface:#fcf8f5;--soft:#faf5ef;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;max-width:980px;margin:0 auto}
+  .admin-pkg-page{--bg:#F4F1EE;--surface:#FFFFFF;--soft:#FFFFFF;--hover:#eddecc;--border:#ead8c7;--border-light:#eddecc;--primary:#6d4c5b;--primary-hover:#7b5c69;--primary-soft:#eddecc;--text:#111827;--muted:#b79c8b;--body:#7b5c69;max-width:980px;margin:0 auto}
 
   .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;margin-bottom:16px}
   .back-link:hover{color:var(--primary)}
@@ -42,8 +33,11 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 
   .flash{border:1px solid var(--border);border-radius:.75rem;background:var(--surface);padding:12px 14px;margin-bottom:18px;color:var(--body);font-size:13px;font-weight:600}
+  .flash.flash-error{border-color:#e5c4c4;background:#fef2f2;color:#991B1B}
+  .field-error{color:#b42318;font-size:11px;font-weight:600;margin-top:4px}
+  .field.has-error input,.field.has-error textarea,.field.has-error select{border-color:#e5a3a3}
 
-  .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#fcf8f5;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
+  .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#FFFFFF;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-primary:hover{background:var(--primary-hover)}
 
   input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .12s}
@@ -52,22 +46,14 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   input[type=number]{width:140px}
   select{width:100%}
 
-  .cat-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:8px 0}
-  .cat-option{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;padding:10px 12px;border:1px solid var(--border-light);border-radius:.5rem;cursor:pointer;transition:all .12s;background:var(--surface)}
-  .cat-option:hover{background:var(--soft)}
-  .cat-option input[type=checkbox]{width:auto;margin:0}
-  .cat-option.selected{background:var(--primary-soft);border-color:var(--primary)}
-  .service-category{border:1px solid var(--border-light);border-radius:.75rem;background:var(--bg);padding:14px;margin-top:12px}
-  .service-category-title{margin:0 0 10px;color:var(--text);font-size:12px;font-weight:800}
-  .service-option-title{display:block;color:var(--text);font-size:13px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
-  .service-option-meta{display:block;margin-top:3px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.45}
   .hint{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5}
+  .stat-sub{font-size:11px;color:var(--muted);margin-top:2px}
 
   .toggle-wrap{display:flex;align-items:center;gap:10px}
   .toggle{position:relative;width:40px;height:22px;border-radius:999px;border:none;cursor:pointer;transition:background .2s}
   .toggle.on{background:var(--primary)}
   .toggle.off{background:var(--border)}
-  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fcf8f5;transition:transform .2s}
+  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#FFFFFF;transition:transform .2s}
   .toggle.on::after{transform:translateX(18px)}
 
   .cover-uploader{position:relative;min-height:250px;border:1.5px dashed #d8d5d2;border-radius:14px;background:#fcfcfb;overflow:hidden;transition:border-color .18s,background .18s,box-shadow .18s}
@@ -80,14 +66,14 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   .cover-upload-title{display:block;font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px}
   .cover-upload-title span{color:var(--primary)}
   .cover-upload-help{display:block;font-size:12px;color:var(--muted);margin-bottom:18px}
-  .cover-upload-button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 16px;border:1px solid var(--border);border-radius:.65rem;background:#fcf8f5;color:var(--text);font-size:12px;font-weight:700;box-shadow:0 1px 2px rgba(17,24,39,.04)}
+  .cover-upload-button{display:inline-flex;align-items:center;justify-content:center;height:36px;padding:0 16px;border:1px solid var(--border);border-radius:.65rem;background:#FFFFFF;color:var(--text);font-size:12px;font-weight:700;box-shadow:0 1px 2px rgba(17,24,39,.04)}
   .cover-uploader-preview{position:absolute;inset:0;display:none}
   .cover-uploader.has-image .cover-uploader-preview{display:block}
   .cover-uploader.has-image .cover-uploader-empty{display:none}
   .cover-uploader-preview img{width:100%;height:100%;object-fit:cover}
-  .cover-preview-shade{position:absolute;inset:auto 0 0;padding:54px 20px 18px;background:linear-gradient(transparent,rgba(18,13,15,.82));display:flex;align-items:flex-end;justify-content:space-between;gap:16px;color:#fcf8f5}
+  .cover-preview-shade{position:absolute;inset:auto 0 0;padding:54px 20px 18px;background:linear-gradient(transparent,rgba(18,13,15,.82));display:flex;align-items:flex-end;justify-content:space-between;gap:16px;color:#FFFFFF}
   .cover-preview-name{min-width:0;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cover-preview-change{flex-shrink:0;border:1px solid rgba(252,248,245,.55);border-radius:.6rem;background:rgba(252,248,245,.14);color:#fcf8f5;padding:8px 12px;font-family:inherit;font-size:11px;font-weight:700;backdrop-filter:blur(8px);cursor:pointer}
+  .cover-preview-change{flex-shrink:0;border:1px solid rgba(252,248,245,.55);border-radius:.6rem;background:rgba(252,248,245,.14);color:#FFFFFF;padding:8px 12px;font-family:inherit;font-size:11px;font-weight:700;backdrop-filter:blur(8px);cursor:pointer}
   .cover-upload-error{display:none;margin-top:7px;color:#b42318;font-size:12px;font-weight:600}
   .cover-upload-error.is-visible{display:block}
 </style>
@@ -98,7 +84,8 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   </a>
 
   <?php if ($message !== ''): ?>
-    <div class="flash"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
+    <?php $isError = stripos($message, 'fix') !== false || stripos($message, 'error') !== false || stripos($message, 'required') !== false || stripos($message, 'failed') !== false; ?>
+    <div class="flash<?= $isError ? ' flash-error' : '' ?>"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></div>
   <?php endif; ?>
 
   <form id="packageCreateForm" method="POST" action="<?= URLROOT ?>/admin/packageCreate" enctype="multipart/form-data">
@@ -106,45 +93,38 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
       <div class="card-title">Package Details</div>
 
       <div class="two-col">
-        <div class="field">
+        <div class="field<?= !empty($errors['name']) ? ' has-error' : '' ?>">
           <label>Name *</label>
-          <input type="text" name="name" required placeholder="e.g. Standard Complete Wedding">
+          <input type="text" name="name" required placeholder="e.g. Standard Complete Wedding" value="<?= $h($old['name'] ?? '') ?>">
+          <?php if (!empty($errors['name'])): ?>
+            <p class="field-error"><?= $h($errors['name']) ?></p>
+          <?php endif; ?>
         </div>
         <div class="field">
           <label>Slug</label>
-          <input type="text" name="slug" placeholder="leave blank to auto-generate">
+          <input type="text" name="slug" placeholder="leave blank to auto-generate" value="<?= $h($old['slug'] ?? '') ?>">
         </div>
       </div>
 
       <div class="field">
         <label>Tagline</label>
-        <input type="text" name="tagline" placeholder="Short, compelling one-liner">
+        <input type="text" name="tagline" placeholder="Short, compelling one-liner" value="<?= $h($old['tagline'] ?? '') ?>">
       </div>
 
       <div class="field">
         <label>Description</label>
-        <textarea name="description" placeholder="Describe the complete wedding services included in this package..."></textarea>
+        <textarea name="description" placeholder="Describe the complete wedding services included in this package..."><?= $h($old['description'] ?? '') ?></textarea>
       </div>
 
       <div class="field">
-        <label>Package Category</label>
-        <?php if (!empty($categories)): ?>
-          <select name="category_id" id="packageCategorySelect">
-            <option value="">No display category</option>
-            <?php foreach ($categories as $cat): ?>
-              <option value="<?= (int)$cat['id'] ?>"><?= $h($cat['name'] ?? '') ?></option>
-            <?php endforeach; ?>
-          </select>
-          <p class="hint" style="margin-top:6px">Used for browsing and filtering. The package can still include services from any category.</p>
-        <?php else: ?>
-          <input type="text" value="No categories available" readonly>
-          <input type="hidden" name="category_id" value="0">
-        <?php endif; ?>
+        <label>Base Price (MMK)</label>
+        <input type="number" name="base_price" id="basePriceInput" min="0" step="100" value="<?= (float)($old['base_price'] ?? 0) ?>">
+        <p class="stat-sub" style="margin-top:6px">Customer-facing price = base + <?= (int)($agentFeeRate * 100) ?>% agent fee, calculated automatically.</p>
       </div>
 
       <div class="field">
         <label>Max Concurrent Bookings (per date)</label>
-        <input type="number" name="max_concurrent" min="0" step="1" value="0">
+        <input type="number" name="max_concurrent" min="0" step="1" value="<?= (int)($old['max_concurrent'] ?? 0) ?>">
         <p class="hint" style="margin-top:6px">How many of this package can be booked for the same wedding date. 0 = unlimited.</p>
       </div>
 
@@ -155,10 +135,10 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
           <label class="cover-uploader-label" for="packageCoverInput">
             <span class="cover-uploader-empty">
               <span class="cover-upload-icon" aria-hidden="true">
-                <svg width="58" height="44" viewBox="0 0 58 44" fill="none"><path d="M46.5 19.2A14.5 14.5 0 0 0 18.7 14 10.5 10.5 0 0 0 20 35h25.5a8 8 0 0 0 1-15.8Z" fill="currentColor"/><path d="m29 14-7 8h4v8h6v-8h4l-7-8Z" fill="#fcf8f5"/></svg>
+                <svg width="58" height="44" viewBox="0 0 58 44" fill="none"><path d="M46.5 19.2A14.5 14.5 0 0 0 18.7 14 10.5 10.5 0 0 0 20 35h25.5a8 8 0 0 0 1-15.8Z" fill="currentColor"/><path d="m29 14-7 8h4v8h6v-8h4l-7-8Z" fill="#FFFFFF"/></svg>
               </span>
               <span class="cover-upload-title">Choose an image or <span>drag &amp; drop it here</span></span>
-              <span class="cover-upload-help">JPG, PNG or WebP · Up to 6MB</span>
+              <span class="cover-upload-help">JPG, PNG or WebP</span>
               <span class="cover-upload-button">Browse files</span>
             </span>
           </label>
@@ -170,7 +150,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
             </div>
           </div>
         </div>
-        <p class="cover-upload-error" id="packageCoverError" role="alert"></p>
+        <p class="cover-upload-error<?= !empty($errors['image']) ? ' is-visible' : '' ?>" id="packageCoverError" role="alert"><?= $h($errors['image'] ?? '') ?></p>
       </div>
 
       <div class="field">
@@ -182,45 +162,6 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-title">Starting Services</div>
-      <p class="hint">Optional. Choose actual supplier services that should be included immediately. You can add or remove more services after creating the package.</p>
-      <?php if (empty($serviceOptions)): ?>
-        <p class="hint">No approved supplier services are available yet.</p>
-      <?php else: ?>
-        <div class="field">
-          <label>Food Guest Count</label>
-          <input type="number" name="guest_count" min="1" step="1" value="100">
-          <p class="hint" style="margin-top:6px">Used only for selected Food/Catering services. Other services stay fixed.</p>
-        </div>
-        <?php foreach ($servicesByCategory as $categoryGroup): ?>
-          <section class="service-category">
-            <h3 class="service-category-title"><?= $h($categoryGroup['name'] ?? 'Other') ?></h3>
-            <div class="cat-checklist">
-              <?php foreach (($categoryGroup['services'] ?? []) as $service):
-                $isFoodService = strpos(strtolower((string)(($service['category_slug'] ?? '') . ' ' . ($service['category_name'] ?? ''))), 'food') !== false
-                  || strpos(strtolower((string)(($service['category_slug'] ?? '') . ' ' . ($service['category_name'] ?? ''))), 'cater') !== false;
-              ?>
-                <label class="cat-option">
-                  <input type="checkbox"
-                         name="service_ids[]"
-                         value="<?= (int)($service['id'] ?? 0) ?>"
-                         data-category-id="<?= (int)($service['category_id'] ?? 0) ?>"
-                         data-category-name="<?= $h($service['category_name'] ?? 'this category') ?>">
-                  <span>
-                    <span class="service-option-title"><?= $h($service['name'] ?? 'Service') ?></span>
-                    <span class="service-option-meta">
-                      <?= $h($service['supplier_name'] ?? 'Supplier') ?> · <?= $money($service['display_price'] ?? 0) ?><?= $isFoodService ? ' per guest' : '' ?>
-                    </span>
-                  </span>
-                </label>
-              <?php endforeach; ?>
-            </div>
-          </section>
-        <?php endforeach; ?>
-      <?php endif; ?>
-    </div>
-
     <div style="display:flex;gap:8px">
       <button class="btn-primary" type="submit">Create Package</button>
       <a class="btn-ghost" href="<?= URLROOT ?>/admin/packages" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:36px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-weight:700;font-family:inherit;text-decoration:none;cursor:pointer">Cancel</a>
@@ -228,9 +169,6 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   </form>
 </div>
 <script>
-  const packageCreateForm = document.getElementById('packageCreateForm');
-  const serviceCheckboxes = document.querySelectorAll('.cat-option input[type="checkbox"]');
-
   function initPackageCoverUploader() {
     const uploader = document.getElementById('packageCoverUploader');
     const input = document.getElementById('packageCoverInput');
@@ -240,8 +178,7 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
     const error = document.getElementById('packageCoverError');
     if (!uploader || !input || !preview) return;
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    const maxSize = 6 * 1024 * 1024;
+    const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
 
     function showError(message) {
       error.textContent = message;
@@ -250,14 +187,10 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
 
     function setFile(file) {
       if (!file) return;
-      if (!allowedTypes.includes(file.type)) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!allowedExts.includes(ext)) {
         input.value = '';
         showError('Choose a JPG, PNG, or WebP image.');
-        return;
-      }
-      if (file.size > maxSize) {
-        input.value = '';
-        showError('The cover image must be 6MB or smaller.');
         return;
       }
       showError('');
@@ -290,32 +223,6 @@ $dashboardContent = function () use ($categories, $serviceOptions, $message) {
   }
 
   initPackageCoverUploader();
-
-  serviceCheckboxes.forEach(input => {
-    input.addEventListener('change', () => {
-      input.closest('.cat-option')?.classList.toggle('selected', input.checked);
-    });
-  });
-
-  packageCreateForm?.addEventListener('submit', event => {
-    const counts = new Map();
-    serviceCheckboxes.forEach(input => {
-      if (!input.checked) return;
-      const categoryId = input.dataset.categoryId || '0';
-      const categoryName = input.dataset.categoryName || 'this category';
-      if (!counts.has(categoryId)) counts.set(categoryId, { name: categoryName, count: 0 });
-      counts.get(categoryId).count += 1;
-    });
-
-    const duplicates = Array.from(counts.values()).filter(item => item.count > 1);
-    if (duplicates.length === 0) return;
-
-    const message = duplicates
-      .map(item => item.count + ' services from ' + item.name)
-      .join(', ');
-    const ok = confirm('You selected ' + message + '. Create the package with these same-category services?');
-    if (!ok) event.preventDefault();
-  });
 </script>
 <?php
 };

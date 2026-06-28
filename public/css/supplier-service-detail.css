@@ -338,6 +338,18 @@
   color: var(--primary);
 }
 
+#supplier-service-detail .sd-unpublish-btn {
+  border-color: #f0c9c5;
+  background: #fff;
+  color: var(--danger);
+}
+
+#supplier-service-detail .sd-unpublish-btn:hover {
+  border-color: #dfa9a4;
+  background: #fff6f5;
+  color: #9f3128;
+}
+
 #supplier-service-detail .btn-ghost {
   background: transparent;
   border-color: transparent;
@@ -807,6 +819,83 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* ── Food items (cakes) ── */
+.sd-food-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sd-food-item-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fcf8f5;
+  padding: 12px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.sd-food-item-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.sd-food-item-photo {
+  width: 100px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-soft);
+}
+
+.sd-food-item-preview {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  color: var(--text-3);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.sd-food-item-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sd-food-item-preview.is-empty {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 8px;
+}
+
+.sd-food-item-preview.is-empty i { font-size: 20px; }
+.sd-food-item-preview.is-empty span { font-size: 10px; font-weight: 600; }
+
+.sd-food-item-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sd-food-item-fields .sd-hall-fg.full {
+  grid-column: 1 / -1;
+}
+
+.sd-food-item-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(252,248,245,0.92);
+  box-shadow: var(--shadow-sm);
+}
+
 /* ═══════════════════ ATTIRE ITEMS ═══════════════════ */
 
 .sd-attire-manager-card .sd-card-body {
@@ -1157,6 +1246,15 @@
 .sd-avail-field input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(107,58,74,0.1);
+}
+
+.sd-avail-field .sd-field-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-3);
+  opacity: 0.8;
 }
 
 /* Day cards row */
@@ -2239,4 +2337,132 @@
   .sd-tabbed-workspace .sd-service-info-card .sd-card-body {
     grid-template-columns: 1fr;
   }
+}
+
+/* ═══════════════════ CUSTOM CONFIRM MODAL ═══════════════════ */
+
+.sd-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(34, 24, 19, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.sd-confirm-overlay.is-visible {
+  display: flex;
+}
+
+.sd-confirm-modal {
+  width: 100%;
+  max-width: 400px;
+  background: #FFFFFF;
+  border: 1px solid #ead8c7;
+  border-radius: 14px;
+  box-shadow: 0 18px 55px rgba(52, 35, 43, 0.16);
+  overflow: hidden;
+}
+
+.sd-confirm-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee4dc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sd-confirm-head-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sd-confirm-head-icon.is-danger {
+  background: #fef2f2;
+  color: #b94b4b;
+}
+
+.sd-confirm-head-icon.is-warning {
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.sd-confirm-head-icon i {
+  font-size: 16px;
+}
+
+.sd-confirm-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: #6d4c5b;
+}
+
+.sd-confirm-body {
+  padding: 18px 20px;
+}
+
+.sd-confirm-text {
+  font-size: 13px;
+  color: #7b5c69;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.sd-confirm-actions {
+  padding: 14px 20px;
+  border-top: 1px solid #eee4dc;
+  display: flex;
+  gap: 8px;
+  background: #faf7f3;
+}
+
+.sd-confirm-actions button {
+  flex: 1;
+  min-height: 38px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sd-confirm-cancel {
+  border: 1px solid #ead8c7;
+  background: #fff;
+  color: #6d4c5b;
+}
+
+.sd-confirm-cancel:hover {
+  background: #faf5ef;
+}
+
+.sd-confirm-ok {
+  border: 0;
+  color: #fff;
+}
+
+.sd-confirm-ok.is-danger {
+  background: #b94b4b;
+}
+
+.sd-confirm-ok.is-danger:hover {
+  background: #9f3128;
+}
+
+.sd-confirm-ok.is-warning {
+  background: #6d4c5b;
+}
+
+.sd-confirm-ok.is-warning:hover {
+  background: #593b49;
 }

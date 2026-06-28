@@ -24,6 +24,8 @@ $calendarConfig = [
         'data' => URLROOT . '/supplier/serviceCalendarData/' . $serviceId,
         'overrideSave' => URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $serviceId,
         'overrideDelete' => URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/',
+        'roomOverrideSave' => URLROOT . '/supplier/venueRoomAvailabilityOverrideSave/' . $serviceId,
+        'roomOverrideDelete' => URLROOT . '/supplier/venueRoomAvailabilityOverrideDelete/' . $serviceId . '/',
         'preview' => URLROOT . '/supplier/serviceAvailabilityPreview/' . $serviceId,
         'detail' => URLROOT . '/supplier/serviceDetail/' . $serviceId,
     ],
@@ -71,6 +73,10 @@ $dashboardContent = function () use ($h, $serviceId, $serviceNameRaw, $serviceCa
         <button type="button" class="icon-btn" id="nextMonthBtn" aria-label="Next month"><i class="ti ti-chevron-right"></i></button>
       </div>
 
+      <div id="roomFilterBar" class="room-filter-bar" hidden>
+        <button type="button" class="room-filter-btn is-active" data-room-id="">All rooms</button>
+      </div>
+
       <div class="weekday-row">
         <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
       </div>
@@ -83,6 +89,7 @@ $dashboardContent = function () use ($h, $serviceId, $serviceNameRaw, $serviceCa
         <h2 id="calendarFocusDate">Choose a date</h2>
         <p id="calendarFocusStatus">Review availability, bookings, and overrides.</p>
         <div id="calendarFocusMeta" class="focus-meta"></div>
+        <div id="calendarFocusRooms" class="focus-rooms" hidden></div>
       </section>
 
       <section class="calendar-side-card">
@@ -123,6 +130,20 @@ $dashboardContent = function () use ($h, $serviceId, $serviceNameRaw, $serviceCa
       <input type="hidden" id="overrideId">
 
       <div id="modalBookings" class="booking-list" hidden></div>
+
+      <div id="overrideScopeFields" class="override-scope-fields" hidden>
+        <label class="field">
+          <span>Apply to</span>
+          <select id="overrideScope">
+            <option value="service">Entire venue</option>
+            <option value="room">Specific hall</option>
+          </select>
+        </label>
+        <label class="field" id="overrideRoomField" hidden>
+          <span>Hall</span>
+          <select id="overrideRoomId"></select>
+        </label>
+      </div>
 
       <div id="modalCapacity" class="capacity-list" hidden></div>
 

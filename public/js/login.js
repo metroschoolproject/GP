@@ -24,6 +24,31 @@ function toggleStrengthUI(show) {
 
 
 
+function updateRequirements(value) {
+  const reqs = {
+    reqLength: value.length >= 8,
+    reqUpper:  /[A-Z]/.test(value),
+    reqLower:  /[a-z]/.test(value),
+    reqNumber: /[0-9]/.test(value),
+    reqSymbol: /[^A-Za-z0-9]/.test(value),
+  };
+  Object.entries(reqs).forEach(([id, met]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('met', met);
+    el.textContent = el.dataset.label || '';
+  });
+}
+
+function resetRequirements() {
+  ['reqLength','reqUpper','reqLower','reqNumber','reqSymbol'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('met');
+    el.textContent = el.dataset.label || '';
+  });
+}
+
 function updateStrength() {
   if (isSignIn || passwordInput.value.trim() === '') {
     hideStrengthUI();
@@ -34,6 +59,8 @@ function updateStrength() {
 
   const value = passwordInput.value;
 
+  updateRequirements(value);
+
   let score = 0;
 
   if (value.length >= 8) score++;
@@ -43,9 +70,9 @@ function updateStrength() {
 
   ['seg1','seg2','seg3','seg4']
     .forEach((id,index)=>{
-      document
-        .getElementById(id)
-        .classList.toggle('active', index < score);
+      const el = document.getElementById(id);
+      el.classList.toggle('active', index < score);
+      el.setAttribute('data-level', score);
     });
 
   const text = document.getElementById('strengthText');
@@ -66,6 +93,7 @@ function hideStrengthUI() {
     strengthBox.style.visibility = 'hidden';
   }
   resetStrength();
+  resetRequirements();
 }
 
 function showStrengthUI() {
@@ -134,6 +162,15 @@ function showStrengthUI() {
 
       function setModeText(el, signup) {
         el.textContent = el.dataset[signup ? 'signup' : 'signin'];
+      }
+
+      function fadeText(el, newText) {
+        el.style.transition = 'opacity 0.4s cubic-bezier(0.4,0,0.2,1)';
+        el.style.opacity = '0';
+        setTimeout(() => {
+          el.textContent = newText;
+          el.style.opacity = '1';
+        }, 400);
       }
 
       function allFields() {
@@ -218,48 +255,50 @@ function showStrengthUI() {
         const rects = getCharRects(el);
         rects.forEach(({el:c,cx,cy},i) => {
           setTimeout(()=>{
-            if(c.textContent.trim()) emitParticles(cx,cy,10);
-            c.style.transition='opacity 0.4s ease,filter 0.4s ease,transform 0.4s ease';
-            c.style.opacity='0'; c.style.filter='blur(6px)'; c.style.transform='scale(0.87)';
-          }, i*18);
+            if(c.textContent.trim()) emitParticles(cx,cy,8);
+            c.style.transition='opacity 0.55s cubic-bezier(0.4,0,0.2,1),filter 0.55s cubic-bezier(0.4,0,0.2,1),transform 0.55s cubic-bezier(0.4,0,0.2,1)';
+            c.style.opacity='0'; c.style.filter='blur(5px)'; c.style.transform='scale(0.92)';
+          }, i*22);
         });
-        setTimeout(onDone, rects.length*18+200);
+        setTimeout(onDone, rects.length*22+300);
       }
 
       function assembleIn(el) {
         const rects = getCharRects(el);
         rects.forEach(({el:c,cx,cy},i) => {
           setTimeout(()=>{
-            if(c.textContent.trim()) emitParticles(cx,cy,6);
-            c.style.transition='opacity 0.48s cubic-bezier(0,0,0.2,1),filter 0.48s cubic-bezier(0,0,0.2,1),transform 0.48s cubic-bezier(0,0,0.2,1)';
+            if(c.textContent.trim()) emitParticles(cx,cy,5);
+            c.style.transition='opacity 0.6s cubic-bezier(0.4,0,0.2,1),filter 0.6s cubic-bezier(0.4,0,0.2,1),transform 0.6s cubic-bezier(0.4,0,0.2,1)';
             c.style.opacity='1'; c.style.filter='blur(0px)'; c.style.transform='scale(1)';
-          }, i*20);
+          }, i*24);
         });
-        return rects.length*42+500;
+        return rects.length*50+600;
       }
 
       function hideAllFields(onDone) {
         allFields().forEach((el, i) => {
           setTimeout(() => {
-            el.style.transition = `max-height 0.45s cubic-bezier(0.4,0,0.2,1) ${i*60}ms, opacity 0.38s cubic-bezier(0.4,0,0.2,1) ${i*60}ms, transform 0.38s cubic-bezier(0.4,0,0.2,1) ${i*60}ms`;
+            el.style.transition = `max-height 0.6s cubic-bezier(0.4,0,0.2,1) ${i*70}ms, opacity 0.5s cubic-bezier(0.4,0,0.2,1) ${i*70}ms, transform 0.5s cubic-bezier(0.4,0,0.2,1) ${i*70}ms, margin-bottom 0.5s cubic-bezier(0.4,0,0.2,1) ${i*70}ms`;
             el.style.maxHeight = '0';
             el.style.opacity = '0';
-            el.style.transform = 'translateY(10px)';
+            el.style.transform = 'translateY(8px)';
+            el.style.marginBottom = '0';
             el.classList.remove('visible');
-          }, i*60);
+          }, i*70);
         });
-        setTimeout(onDone, allFields().length*60+480);
+        setTimeout(onDone, allFields().length*70+600);
       }
 
       function showFields(ids) {
         ids.forEach((id, i) => {
           setTimeout(() => {
             const el = $(id);
+            el.style.transition = `max-height 0.6s cubic-bezier(0.4,0,0.2,1), opacity 0.5s cubic-bezier(0.4,0,0.2,1), transform 0.5s cubic-bezier(0.4,0,0.2,1), margin-bottom 0.5s cubic-bezier(0.4,0,0.2,1)`;
             el.style.maxHeight = el.dataset.height;
             el.style.opacity = '1';
             el.style.transform = 'translateY(0)';
             el.style.marginBottom = el.dataset.margin;
-          }, i * 90);
+          }, i * 100);
         });
       }
 
@@ -299,8 +338,8 @@ function showStrengthUI() {
       buildSpans(subH, subH.textContent, false);
       setupInitialFields(modeFields(false));
       fieldGroup.classList.add('mb-2');
-      mainBtn.classList.remove('hidden');
-      divider.classList.remove('hidden');
+      mainBtn.classList.remove('anim-hide');
+      divider.classList.remove('anim-hide');
 
       $('toggleBtn').addEventListener('click', () => {
         if (isAnimating) return;
@@ -324,8 +363,8 @@ function showStrengthUI() {
         fieldGroup.classList.toggle('mb-5', goingToSignup);
         fieldGroup.classList.toggle('mb-2', !goingToSignup);
 
-        mainBtn.classList.add('hidden');
-        divider.classList.add('hidden');
+        mainBtn.classList.add('anim-hide');
+        divider.classList.add('anim-hide');
 
         dissolveOut(mainH, ()=>{});
         dissolveOut(subH, ()=>{
@@ -351,12 +390,13 @@ function showStrengthUI() {
         hideAllFields(()=>{
           showFields(nextFields);
           setTimeout(()=>{
-            mainBtn.classList.remove('hidden');
-            divider.classList.remove('hidden');
-          }, nextFields.length*90+200);
+            mainBtn.classList.remove('anim-hide');
+            mainBtn.classList.add('anim-show');
+            divider.classList.remove('anim-hide');
+          }, nextFields.length*100+300);
         });
 
-        setModeText($('btnText'), goingToSignup);
-        setModeText($('togglePrompt'), goingToSignup);
-        setModeText($('toggleBtn'), goingToSignup);
+        fadeText($('btnText'), $('btnText').dataset[goingToSignup ? 'signup' : 'signin']);
+        fadeText($('togglePrompt'), $('togglePrompt').dataset[goingToSignup ? 'signup' : 'signin']);
+        fadeText($('toggleBtn'), $('toggleBtn').dataset[goingToSignup ? 'signup' : 'signin']);
       });

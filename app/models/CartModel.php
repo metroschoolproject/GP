@@ -8,6 +8,7 @@ class CartModel
     private ?bool $serviceDefaultTimeColumns = null;
     private ?bool $packageItemConcurrentColumn = null;
     private ?bool $packageConcurrentColumn = null;
+    private ?bool $cartGuestCountColumn = null;
     private ?bool $slotPoolColumns = null;
     private ?bool $servicePoolColumns = null;
 
@@ -51,8 +52,18 @@ class CartModel
         $startTime = $data['start_time'] ?? null;
         $endTime   = $data['end_time'] ?? null;
         $packageCartItemId = !empty($data['package_cart_item_id']) ? (int)$data['package_cart_item_id'] : null;
+        $attireItemId = !empty($data['attire_item_id']) ? (int)$data['attire_item_id'] : null;
+        $decorationStyleId = !empty($data['decoration_style_id']) ? (int)$data['decoration_style_id'] : null;
+        $cakeDesignId = !empty($data['cake_design_id']) ? (int)$data['cake_design_id'] : null;
+        $guestCount = !empty($data['guest_count']) ? (int)$data['guest_count'] : null;
+        $rentalType = in_array($data['rental_type'] ?? '', ['borrow', 'buy'], true) ? $data['rental_type'] : null;
+        $borrowDate = !empty($data['borrow_date']) ? $data['borrow_date'] : null;
+        $rentalOptionId = !empty($data['rental_option_id']) ? (int)$data['rental_option_id'] : null;
         $hasVenueRoomColumn = $this->hasCartVenueRoomColumn();
         $hasPackageParentColumn = $this->hasCartPackageParentColumn();
+        $hasDesignColumns = $this->hasCartDesignColumns();
+        $hasRentalColumns = $this->hasCartRentalColumns();
+        $hasGuestCountColumn = $this->hasCartGuestCountColumn();
 
         if ($itemId <= 0) {
             return false;
@@ -97,9 +108,15 @@ class CartModel
         $venueRoomValueSql = $hasVenueRoomColumn ? ', :vrid' : '';
         $packageParentColumnSql = $hasPackageParentColumn ? ', package_cart_item_id' : '';
         $packageParentValueSql = $hasPackageParentColumn ? ', :package_cart_item_id' : '';
+        $designColumnSql = $hasDesignColumns ? ', attire_item_id, decoration_style_id, cake_design_id' : '';
+        $designValueSql = $hasDesignColumns ? ', :attire_item_id, :decoration_style_id, :cake_design_id' : '';
+        $rentalColumnSql = $hasRentalColumns ? ', rental_type, borrow_date, rental_option_id' : '';
+        $rentalValueSql = $hasRentalColumns ? ', :rental_type, :borrow_date, :rental_option_id' : '';
+        $guestCountColumnSql = $hasGuestCountColumn ? ', guest_count' : '';
+        $guestCountValueSql = $hasGuestCountColumn ? ', :guest_count' : '';
         $this->db->dbquery(
-            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql}{$packageParentColumnSql})
-             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql}{$packageParentValueSql})"
+            "INSERT INTO cart_items (cart_id, user_id, item_type, item_id, selected_date, price, source, slot_id, start_time, end_time{$venueRoomColumnSql}{$packageParentColumnSql}{$designColumnSql}{$rentalColumnSql}{$guestCountColumnSql})
+             VALUES (:cid, :uid, :itype, :iid, :sdate, :price, :src, :sid, :stime, :etime{$venueRoomValueSql}{$packageParentValueSql}{$designValueSql}{$rentalValueSql}{$guestCountValueSql})"
         );
         $this->db->dbbind(':cid', $cartId, PDO::PARAM_INT);
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
@@ -120,6 +137,19 @@ class CartModel
                 $packageCartItemId,
                 $packageCartItemId ? PDO::PARAM_INT : PDO::PARAM_NULL
             );
+        }
+        if ($hasDesignColumns) {
+            $this->db->dbbind(':attire_item_id', $attireItemId, $attireItemId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $this->db->dbbind(':decoration_style_id', $decorationStyleId, $decorationStyleId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $this->db->dbbind(':cake_design_id', $cakeDesignId, $cakeDesignId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
+        if ($hasRentalColumns) {
+            $this->db->dbbind(':rental_type', $rentalType, $rentalType ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $this->db->dbbind(':borrow_date', $borrowDate, $borrowDate ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $this->db->dbbind(':rental_option_id', $rentalOptionId, $rentalOptionId ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        }
+        if ($hasGuestCountColumn) {
+            $this->db->dbbind(':guest_count', $guestCount, $guestCount ? PDO::PARAM_INT : PDO::PARAM_NULL);
         }
 
         if ($this->db->dbexecute()) {
@@ -497,6 +527,109 @@ class CartModel
         return $this->cartVenueRoomColumn;
     }
 
+    private $cartDesignColumns = null;
+    private function hasCartDesignColumns(): bool
+    {
+        if ($this->cartDesignColumns !== null) {
+            return $this->cartDesignColumns;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'attire_item_id'");
+        $this->cartDesignColumns = (bool)$this->db->getsingledata();
+
+        return $this->cartDesignColumns;
+    }
+
+    private ?bool $cartRentalColumns = null;
+
+    private function hasCartRentalColumns(): bool
+    {
+        if ($this->cartRentalColumns !== null) {
+            return $this->cartRentalColumns;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'rental_type'");
+        $this->cartRentalColumns = (bool)$this->db->getsingledata();
+
+        return $this->cartRentalColumns;
+    }
+
+    private function hasCartGuestCountColumn(): bool
+    {
+        if ($this->cartGuestCountColumn !== null) {
+            return $this->cartGuestCountColumn;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM cart_items LIKE 'guest_count'");
+        $this->cartGuestCountColumn = (bool)$this->db->getsingledata();
+
+        return $this->cartGuestCountColumn;
+    }
+
+    /**
+     * Check if an attire item is available for a given date range.
+     * Returns true if available, false if there's a conflict.
+     */
+    public function isAttireItemAvailable(int $attireItemId, string $borrowDate, string $bufferUntil): bool
+    {
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS cnt FROM attire_rental_bookings
+             WHERE attire_item_id = :attire_item_id
+               AND status IN ('reserved', 'picked_up')
+               AND borrow_date <= :buffer_until
+               AND buffer_until >= :borrow_date"
+        );
+        $this->db->dbbind(':attire_item_id', $attireItemId, PDO::PARAM_INT);
+        $this->db->dbbind(':buffer_until', $bufferUntil);
+        $this->db->dbbind(':borrow_date', $borrowDate);
+        $result = $this->db->getsingledata();
+
+        return ((int)($result['cnt'] ?? 0)) === 0;
+    }
+
+    /**
+     * Get blocked date ranges for an attire item (for calendar disabling).
+     */
+    public function getAttireBlockedDates(int $attireItemId): array
+    {
+        $this->db->dbquery(
+            "SELECT borrow_date, buffer_until FROM attire_rental_bookings
+             WHERE attire_item_id = :attire_item_id
+               AND status IN ('reserved', 'picked_up')
+             ORDER BY borrow_date ASC"
+        );
+        $this->db->dbbind(':attire_item_id', $attireItemId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Get rental option details by ID.
+     */
+    public function getRentalOption(int $optionId): ?array
+    {
+        $this->db->dbquery(
+            "SELECT aro.*, ai.buffer_days, ai.service_id
+             FROM attire_rental_options aro
+             JOIN attire_items ai ON ai.id = aro.attire_item_id
+             WHERE aro.id = :id"
+        );
+        $this->db->dbbind(':id', $optionId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        return $result ?: null;
+    }
+
+    public function getFoodItem(int $foodItemId): ?array
+    {
+        $this->db->dbquery(
+            "SELECT id, name, price, pricing_model
+             FROM food_items
+             WHERE id = :id"
+        );
+        $this->db->dbbind(':id', $foodItemId, PDO::PARAM_INT);
+        $result = $this->db->getsingledata();
+        return $result ?: null;
+    }
+
     private function hasPackageItemConcurrentColumn(): bool
     {
         if ($this->packageItemConcurrentColumn !== null) {
@@ -600,43 +733,192 @@ class CartModel
         $this->db->dbbind(':package_id', $packageId, PDO::PARAM_INT);
         $rows = $this->db->getmultidata();
 
-        foreach ($rows as &$row) {
+        $expanded = [];
+        foreach ($rows as $row) {
             $categoryId = (int)($row['category_id'] ?? 0);
             $categoryTimes = defined('CATEGORY_DEFAULT_TIMES')
                 ? (CATEGORY_DEFAULT_TIMES[$categoryId] ?? null)
                 : null;
 
-            $row['start_time'] = $row['schedule_start_time']
+            $openTime = $row['schedule_start_time']
                 ?: ($row['default_start_time'] ?: ($categoryTimes['start'] ?? '09:00:00'));
-            $row['end_time'] = $row['schedule_end_time']
+            $closeTime = $row['schedule_end_time']
                 ?: ($row['default_end_time'] ?: ($categoryTimes['end'] ?? '17:00:00'));
             $row['event_date'] = $eventDate;
 
             if (($row['booking_type'] ?? '') === 'slot') {
-                $availability = $this->getPackageServiceSlotAvailability(
-                    (int)($row['service_id'] ?? 0),
-                    $eventDate,
-                    (string)$row['start_time'],
-                    (string)$row['end_time'],
-                    max(1, (int)($row['max_concurrent'] ?? 1)),
-                    (int)($row['max_concurrent_package'] ?? 0),
-                    (int)($row['item_max_concurrent'] ?? 0)
-                );
-                $row = array_merge($row, $availability);
+                // Expand slot-type services into individual time slots
+                $serviceId = (int)($row['service_id'] ?? 0);
+                $duration = max(15, (int)($row['duration_minutes'] ?? 180));
+                $buffer = max(0, (int)($row['buffer_minutes'] ?? 0));
+                $maxConcurrent = max(1, (int)($row['max_concurrent'] ?? 1));
+                $generatedSlots = $this->buildSlots($eventDate, $openTime, $closeTime, $duration, $buffer);
+                $storedSlots = $this->storedSlotsForDate($serviceId, $eventDate);
+
+                foreach ($generatedSlots as $slot) {
+                    $slotRow = $row;
+                    $slotRow['start_time'] = $slot['start_time'];
+                    $slotRow['end_time'] = $slot['end_time'];
+
+                    $isPast = !$this->isFutureSlot($eventDate, $slot['start_time']);
+                    $stored = $storedSlots[$slot['start_time']] ?? null;
+                    $capacity = $stored ? (int)$stored['max_concurrent'] : $maxConcurrent;
+                    $confirmed = $stored ? (int)$stored['confirmed_count'] : 0;
+                    $status = $stored['status'] ?? 'available';
+                    $available = max(0, $capacity - $confirmed);
+
+                    $pkgCap = (int)($row['max_concurrent_package'] ?? 0);
+                    if ($stored && $this->hasSlotPoolColumns()) {
+                        $storedPkgCap = (int)($stored['max_concurrent_package'] ?? 0);
+                        if ($storedPkgCap > 0) {
+                            $pkgCap = $pkgCap > 0 ? min($pkgCap, $storedPkgCap) : $storedPkgCap;
+                        }
+                    }
+                    $pkgConfirmed = $stored && $this->hasSlotPoolColumns()
+                        ? max(0, (int)($stored['confirmed_package_count'] ?? 0))
+                        : 0;
+                    $availPackage = $pkgCap > 0 ? max(0, $pkgCap - $pkgConfirmed) : $available;
+
+                    $isAvailable = $status === 'available' && $available > 0 && $availPackage > 0 && !$isPast;
+
+                    $slotRow['availability_status'] = $isPast ? 'past' : ($isAvailable ? 'available' : 'full');
+                    $slotRow['available'] = $available;
+                    $slotRow['available_package'] = $availPackage;
+                    $slotRow['is_available'] = $isAvailable;
+                    $slotRow['availability_message'] = $isPast
+                        ? 'This time slot has passed'
+                        : ($isAvailable
+                            ? ($availPackage . ' package slot' . ($availPackage === 1 ? '' : 's') . ' available')
+                            : 'No package slots available');
+
+                    $expanded[] = $slotRow;
+                }
             } else {
+                $row['start_time'] = $openTime;
+                $row['end_time'] = $closeTime;
                 $row['availability_status'] = 'managed';
                 $row['available'] = null;
                 $row['available_package'] = null;
                 $row['is_available'] = true;
                 $row['availability_message'] = 'Managed automatically';
+                $expanded[] = $row;
             }
         }
-        unset($row);
-        usort($rows, static fn(array $a, array $b): int =>
+
+        usort($expanded, static fn(array $a, array $b): int =>
             strcmp((string)($a['start_time'] ?? ''), (string)($b['start_time'] ?? ''))
         );
 
-        return $rows;
+        return $expanded;
+    }
+
+    /**
+     * Return the slot-type services in a package that are NOT available on a
+     * given date. Reuses getPackageEventSchedule()'s computed availability so
+     * the logic stays in one place. Empty array = every service is bookable.
+     *
+     * @return array<int,array{service_id:int,service_name:string,date:string,message:string}>
+     */
+    public function getUnavailablePackageServices(int $packageId, string $eventDate): array
+    {
+        $unavailable = [];
+        foreach ($this->getPackageEventSchedule($packageId, $eventDate) as $row) {
+            if (($row['booking_type'] ?? '') !== 'slot') {
+                continue; // 'managed' services are always available
+            }
+            if (empty($row['is_available'])) {
+                $unavailable[] = [
+                    'service_id'   => (int)($row['service_id'] ?? 0),
+                    'service_name' => (string)($row['service_name'] ?? 'Package service'),
+                    'date'         => $eventDate,
+                    'message'      => (string)($row['availability_message']
+                                        ?? 'No package slots available for this time'),
+                ];
+            }
+        }
+        return $unavailable;
+    }
+
+    /**
+     * Suggest upcoming dates on which a specific package service is available,
+     * for when the customer's chosen date is full. Re-runs the package schedule
+     * per candidate date because auto-resolved times shift with day-of-week.
+     *
+     * @return array<int,array{date:string,label:string}>
+     */
+    public function findAlternativePackageDates(
+        int $packageId,
+        int $serviceId,
+        string $fromDate,
+        int $maxResults = 3,
+        int $horizonDays = 60
+    ): array {
+        $alternatives = [];
+        $start = DateTimeImmutable::createFromFormat('!Y-m-d', $fromDate);
+        if (!$start || $packageId <= 0 || $serviceId <= 0) {
+            return $alternatives;
+        }
+        for ($offset = 1; $offset <= $horizonDays && count($alternatives) < $maxResults; $offset++) {
+            $candidate = $start->modify('+' . $offset . ' days');
+            $candidateStr = $candidate->format('Y-m-d');
+            foreach ($this->getPackageEventSchedule($packageId, $candidateStr) as $row) {
+                if ((int)($row['service_id'] ?? 0) !== $serviceId) {
+                    continue;
+                }
+                if (($row['booking_type'] ?? '') === 'slot' && !empty($row['is_available'])) {
+                    $alternatives[] = [
+                        'date'  => $candidateStr,
+                        'label' => $candidate->format('D, M j'),
+                    ];
+                }
+                break; // this service appears once per schedule
+            }
+        }
+        return $alternatives;
+    }
+
+    /**
+     * Find upcoming dates where ALL slot-type services in a package are
+     * available simultaneously. Returns up to $maxResults dates within
+     * $horizonDays of $fromDate.
+     *
+     * @return array<int,array{date:string,label:string}>
+     */
+    public function findAlternativePackageDatesAllAvailable(
+        int $packageId,
+        string $fromDate,
+        int $maxResults = 3,
+        int $horizonDays = 60
+    ): array {
+        $alternatives = [];
+        $start = DateTimeImmutable::createFromFormat('!Y-m-d', $fromDate);
+        if (!$start || $packageId <= 0) {
+            return $alternatives;
+        }
+        for ($offset = 1; $offset <= $horizonDays && count($alternatives) < $maxResults; $offset++) {
+            $candidate = $start->modify('+' . $offset . ' days');
+            $candidateStr = $candidate->format('Y-m-d');
+            $schedule = $this->getPackageEventSchedule($packageId, $candidateStr);
+            $hasSlotServices = false;
+            $allAvailable = true;
+            foreach ($schedule as $row) {
+                if (($row['booking_type'] ?? '') !== 'slot') {
+                    continue; // managed services are always available
+                }
+                $hasSlotServices = true;
+                if (empty($row['is_available'])) {
+                    $allAvailable = false;
+                    break;
+                }
+            }
+            if ($hasSlotServices && $allAvailable) {
+                $alternatives[] = [
+                    'date'  => $candidateStr,
+                    'label' => $candidate->format('D, M j'),
+                ];
+            }
+        }
+        return $alternatives;
     }
 
     private function getPackageServiceSlotAvailability(
@@ -689,18 +971,22 @@ class CartModel
         $availablePackage = $packageCap > 0
             ? max(0, $packageCap - $packageConfirmed)
             : $available;
-        $isAvailable = $status === 'available' && $available > 0 && $availablePackage > 0;
+        // Filter out past time slots when the event date is today
+        $isPast = !$this->isFutureSlot($eventDate, $startTime);
+        $isAvailable = $status === 'available' && $available > 0 && $availablePackage > 0 && !$isPast;
 
         return [
-            'availability_status' => $isAvailable ? 'available' : 'full',
+            'availability_status' => $isPast ? 'past' : ($isAvailable ? 'available' : 'full'),
             'available' => $available,
             'available_package' => $availablePackage,
             'package_capacity' => $packageCap,
             'confirmed_package_count' => $packageConfirmed,
             'is_available' => $isAvailable,
-            'availability_message' => $isAvailable
-                ? ($availablePackage . ' package slot' . ($availablePackage === 1 ? '' : 's') . ' available')
-                : 'No package slots available for this time',
+            'availability_message' => $isPast
+                ? 'This time slot has already passed'
+                : ($isAvailable
+                    ? ($availablePackage . ' package slot' . ($availablePackage === 1 ? '' : 's') . ' available')
+                    : 'No package slots available for this time'),
         ];
     }
 
@@ -816,7 +1102,7 @@ class CartModel
                     ci.item_id, 
                     ci.selected_date,
                     CASE
-                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price)
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price)
                         ELSE ci.price
                     END AS cart_price, 
                     ci.slot_id, 
@@ -826,17 +1112,17 @@ class CartModel
                     {$venueRoomSelect}
                     {$resolvedTimeSelect}
 
-                    COALESCE(s.name, p.name, sp.name) AS service_name,
-                    COALESCE(s.thumbnail_url, p.image_url, sp.thumbnail_url) AS thumbnail_url,
-                    COALESCE(s.price_min, p.base_price * 1.05, sp.total_price) AS price_min,
-                    COALESCE(s.price_max, p.base_price * 1.05, sp.total_price) AS price_max,
+                    COALESCE(s.name, p.name) AS service_name,
+                    COALESCE(s.thumbnail_url, p.image_url) AS thumbnail_url,
+                    COALESCE(s.price_min, p.base_price) AS price_min,
+                    COALESCE(s.price_max, p.base_price) AS price_max,
                     COALESCE(s.booking_type, 'fullday') AS booking_type,
                     s.max_concurrent AS service_max_booking,
                     {$packageMaxBookingSelect}
                     {$minLeadSelect} AS min_lead_days,
 
-                    COALESCE(sup.shop_name, sp_sup.shop_name, 'Golden Promise') AS supplier_name,
-                    COALESCE(sup.supplier_id, sp_sup.supplier_id) AS supplier_id,
+                    COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name,
+                    sup.supplier_id AS supplier_id,
                     
                     COALESCE(cat.name, package_cat.name) AS category_name,
                     COALESCE(cat.id, package_cat.id) AS category_id,
@@ -845,8 +1131,18 @@ class CartModel
                     
                     -- Venue location for booking auto-fill
                     v.location AS service_location,
-                    s.id AS service_id
-                    
+                    s.id AS service_id,
+
+                    -- Attire rental fields
+                    ci.attire_item_id,
+                    ci.rental_type,
+                    ci.borrow_date,
+                    ci.rental_option_id,
+                    ai.name AS attire_item_name,
+                    ai.photo_url AS attire_item_photo,
+                    ai.buffer_days AS attire_buffer_days,
+                    aro.days AS rental_days,
+                    aro.price AS rental_option_price
             FROM cart_items ci
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN venues v ON v.service_id = s.id
@@ -856,10 +1152,10 @@ class CartModel
             LEFT JOIN venues selected_venue ON selected_venue.id = selected_vr.venue_id
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
             {$packageParentJoin}
-            LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
-            LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id
             LEFT JOIN categories cat ON s.category_id = cat.id
+            LEFT JOIN attire_items ai ON ai.id = ci.attire_item_id
+            LEFT JOIN attire_rental_options aro ON aro.id = ci.rental_option_id
             LEFT JOIN categories package_cat ON package_cat.slug = 'package'
             WHERE ci.user_id = :uid
             ORDER BY ci.id DESC"
@@ -949,15 +1245,14 @@ class CartModel
         $this->db->dbquery(
             "SELECT COALESCE(SUM(
                 CASE
-                    WHEN ci.item_type = 'package' THEN COALESCE(p.base_price * 1.05, ci.price, 0)
-                    ELSE COALESCE(ci.price, s.price_min, s.price, sp.total_price, 0)
+                    WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
+                    ELSE COALESCE(ci.price, s.price_min, s.price, 0)
                 END
              ), 0) AS total
              FROM cart_items ci
              LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
              LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
-             LEFT JOIN supplier_packages sp ON ci.item_id = sp.id AND ci.item_type = 'supplier_package'
-             WHERE ci.user_id = :uid"
+              WHERE ci.user_id = :uid"
         );
         $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
         $row = $this->db->getsingledata();

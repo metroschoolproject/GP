@@ -60,6 +60,7 @@ class SupplierServices extends SupplierControllerSupport
             'payment' => $access['payment'],
             'dashboardData' => $this->supplierProfileModel->getDashboardData((int)$supplier['supplier_id']),
             'services' => $this->serviceManagementModel->getServices((int)$supplier['supplier_id']),
+            'allCapacityUrl' => URLROOT . '/supplier/allServicesCapacityPreview',
         ]);
     }
 
@@ -307,7 +308,7 @@ class SupplierServices extends SupplierControllerSupport
                 ], 422);
             }
 
-            $cooldownMessage = $this->servicePublishCooldownMessage($serviceId);
+            $cooldownMessage = $this->servicePublishCooldownMessage($serviceId, $existingService);
 
             if ($cooldownMessage !== '') {
                 $this->jsonResponse(['status' => 'error', 'message' => $cooldownMessage], 429);
@@ -317,7 +318,8 @@ class SupplierServices extends SupplierControllerSupport
         $service = $this->serviceManagementModel->setServiceStatus(
             $supplierId,
             $serviceId,
-            false
+            false,
+            $makeActive ? 'pending_review' : 'draft'
         );
 
         if (!$service) {
@@ -378,13 +380,13 @@ class SupplierServices extends SupplierControllerSupport
         }
 
         $service = $readiness['service'];
-        $cooldownMessage = $this->servicePublishCooldownMessage($serviceId);
+        $cooldownMessage = $this->servicePublishCooldownMessage($serviceId, $service);
 
         if ($cooldownMessage !== '') {
             $this->jsonResponse(['status' => 'error', 'message' => $cooldownMessage], 429);
         }
 
-        $this->serviceManagementModel->setServiceStatus((int)$supplier['supplier_id'], $serviceId, false);
+        $this->serviceManagementModel->setServiceStatus((int)$supplier['supplier_id'], $serviceId, false, 'pending_review');
         $supplierName = trim((string)($supplier['business_name'] ?? $supplier['shop_name'] ?? $supplier['name'] ?? 'A supplier'));
         $serviceName = trim((string)($service['name'] ?? 'a service'));
 
@@ -432,8 +434,14 @@ class SupplierServices extends SupplierControllerSupport
         ]);
     }
 
-    private function servicePublishCooldownMessage($serviceId)
+    private function servicePublishCooldownMessage($serviceId, array $service = [])
     {
+        // Skip cooldown if the service was previously approved and is now back
+        // in draft (e.g. supplier edited it after approval, triggering auto-unpublish).
+        if (!empty($service) && ($service['is_active'] ?? 0) == 0) {
+            return '';
+        }
+
         $latest = $this->notificationModel->getLatestForReference('approval', 'service', (int)$serviceId);
 
         if (empty($latest['created_at'])) {

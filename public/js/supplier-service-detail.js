@@ -1,6 +1,55 @@
 const serviceDetailConfig = window.serviceDetailConfig || { urls: {}, servicePayloadBase: {} };
 const urls = serviceDetailConfig.urls;
 
+// ── CUSTOM CONFIRM MODAL ──────────────────────────────────────
+let sdConfirmResolve = null;
+
+function sdConfirm({ title, message, confirmText = 'Delete', icon = 'ti-trash', variant = 'danger' }) {
+  const overlay = document.getElementById('sdConfirmOverlay');
+  const titleEl = document.getElementById('sdConfirmTitle');
+  const textEl = document.getElementById('sdConfirmText');
+  const iconWrap = document.getElementById('sdConfirmIcon');
+  const iconEl = document.getElementById('sdConfirmIconClass');
+  const okBtn = document.getElementById('sdConfirmOk');
+
+  if (!overlay || !titleEl || !textEl || !iconWrap || !iconEl || !okBtn) {
+    return Promise.resolve(window.confirm(message));
+  }
+
+  titleEl.textContent = title;
+  textEl.textContent = message;
+  okBtn.textContent = confirmText;
+  iconEl.className = 'ti ' + icon;
+  iconWrap.className = 'sd-confirm-head-icon ' + (variant === 'warning' ? 'is-warning' : 'is-danger');
+  okBtn.className = 'sd-confirm-ok ' + (variant === 'warning' ? 'is-warning' : 'is-danger');
+
+  overlay.classList.add('is-visible');
+
+  return new Promise(resolve => {
+    sdConfirmResolve = resolve;
+  });
+}
+
+function sdConfirmClose(result) {
+  const overlay = document.getElementById('sdConfirmOverlay');
+  overlay?.classList.remove('is-visible');
+  if (sdConfirmResolve) {
+    sdConfirmResolve(result);
+    sdConfirmResolve = null;
+  }
+}
+
+document.getElementById('sdConfirmCancel')?.addEventListener('click', () => sdConfirmClose(false));
+document.getElementById('sdConfirmOk')?.addEventListener('click', () => sdConfirmClose(true));
+document.getElementById('sdConfirmOverlay')?.addEventListener('click', event => {
+  if (event.target === event.currentTarget) sdConfirmClose(false);
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('sdConfirmOverlay')?.classList.contains('is-visible')) {
+    sdConfirmClose(false);
+  }
+});
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
@@ -11,7 +60,7 @@ function escapeHtml(value) {
   }[char]));
 }
 
-function showMessage(elementId, text, success = false) {
+function showMessage(elementId, text, success = false, title = '') {
   const element = document.getElementById(elementId);
   if (!element) return;
 
@@ -19,7 +68,7 @@ function showMessage(elementId, text, success = false) {
     element.innerHTML = `
       <div class="sd-publish-toast-icon"><i class="ti ${success ? 'ti-send' : 'ti-alert-triangle'}"></i></div>
       <div class="sd-publish-toast-copy">
-        <strong>${success ? 'Publish request sent' : 'Request needs attention'}</strong>
+        <strong>${escapeHtml(title || (success ? 'Changes saved' : 'Request needs attention'))}</strong>
         <p>${escapeHtml(text)}</p>
       </div>
       <button type="button" class="sd-publish-toast-close" aria-label="Dismiss notification">&times;</button>
@@ -75,23 +124,33 @@ async function jsonGet(url) {
 
 let publishPollTimer = null;
 
-function setPublishedState(isLive) {
-  const topnav = document.querySelector('#supplier-service-detail .sd-topnav');
+function setPublishedState(isLive, readinessText = '') {
+  const detail = document.getElementById('supplier-service-detail');
   const dot = document.getElementById('publishStatusDot');
   const text = document.getElementById('publishStatusText');
   const button = document.getElementById('publishServiceBtn');
   const buttonText = document.getElementById('publishServiceBtnText');
   const buttonIcon = button?.querySelector('i');
+  const infoStatus = document.getElementById('serviceInfoStatus');
 
-  if (topnav) topnav.dataset.serviceStatus = isLive ? 'active' : 'inactive';
+  if (detail) detail.dataset.serviceStatus = isLive ? 'active' : 'inactive';
   dot?.classList.toggle('is-live', Boolean(isLive));
 
-  if (text) text.textContent = isLive ? 'Live' : text.textContent;
-  if (button) button.disabled = Boolean(isLive);
-  if (buttonText && isLive) buttonText.textContent = 'Published';
-  if (buttonIcon && isLive) {
-    buttonIcon.className = 'ti ti-circle-check';
+  if (text) text.textContent = isLive ? 'Live' : (readinessText || 'Draft');
+  if (button) {
+    button.disabled = false;
+    button.classList.toggle('btn-primary', !isLive);
+    button.classList.toggle('btn-outline', isLive);
+    button.classList.toggle('sd-unpublish-btn', isLive);
+  }
+  if (buttonText) buttonText.textContent = isLive ? 'Unpublish' : 'Request publish';
+  if (buttonIcon) {
+    buttonIcon.className = isLive ? 'ti ti-eye-off' : 'ti ti-send';
     buttonIcon.style.fontSize = '13px';
+  }
+  if (infoStatus) {
+    infoStatus.style.color = isLive ? 'var(--success)' : 'var(--text-3)';
+    infoStatus.innerHTML = `<i class="ti ${isLive ? 'ti-circle-check-filled' : 'ti-file-pencil'}" style="font-size:13px"></i><span>${isLive ? 'Published' : 'Draft'}</span>`;
   }
 }
 
@@ -124,19 +183,33 @@ function startPublishStatusPolling() {
 
 document.getElementById('publishServiceBtn')?.addEventListener('click', async event => {
   const button = event.currentTarget;
+  const detail = document.getElementById('supplier-service-detail');
+  const isLive = detail?.dataset.serviceStatus === 'active';
   showMessage('publishMessage', '');
+
+  if (isLive && !await sdConfirm({ title: 'Unpublish service?', message: 'Customers will no longer see or book it until admin approves a new publish request.', confirmText: 'Unpublish', icon: 'ti-eye-off', variant: 'warning' })) {
+    return;
+  }
+
   button.disabled = true;
 
   try {
-    const result = await jsonPost(urls.publishRequest);
-    showMessage('publishMessage', result.message || 'Publish request sent to admin.', true);
-    startPublishStatusPolling();
+    if (isLive) {
+      const result = await jsonPost(urls.serviceStatus, { status: 'inactive' });
+      const draftReady = detail?.dataset.draftReadiness === 'ready';
+      setPublishedState(false, draftReady ? 'Draft · Ready to publish' : 'Draft · Needs attention');
+      stopPublishStatusPolling();
+      showMessage('publishMessage', result.message || 'Service unpublished.', true, 'Moved to draft');
+    } else {
+      const result = await jsonPost(urls.publishRequest);
+      showMessage('publishMessage', result.message || 'Publish request sent to admin.', true, 'Request sent');
+      setTimeout(() => { window.location.href = urls.serviceManage; }, 1500);
+      return;
+    }
   } catch (error) {
     showMessage('publishMessage', error.message);
   } finally {
-    if (button.closest('.sd-topnav')?.dataset.serviceStatus !== 'active') {
-      button.disabled = false;
-    }
+    button.disabled = false;
   }
 });
 
@@ -192,7 +265,7 @@ document.querySelector('[data-media-picker]')?.addEventListener('change', event 
 });
 
 async function deleteServiceMedia(mediaId) {
-  if (!mediaId || !confirm('Delete this photo?')) return;
+  if (!mediaId || !await sdConfirm({ title: 'Delete photo?', message: 'This photo will be permanently removed from your portfolio.', confirmText: 'Delete', icon: 'ti-trash' })) return;
   showMessage('mediaMessage', '');
 
   try {
@@ -337,23 +410,177 @@ document.getElementById('saveDecorationStylesBtn')?.addEventListener('click', as
 
 renderDecorationStyles(Array.isArray(serviceDetailConfig.decorationStyles) ? serviceDetailConfig.decorationStyles : []);
 
+// ── FOOD ITEMS (CAKES) ────────────────────────────────────────────
+let foodItemCounter = 0;
+
+function foodItemCardHtml(item = {}) {
+  const uid = ++foodItemCounter;
+  const photoUrl = item.photo_url || '';
+  const photoPreview = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" alt="Cake photo">`
+    : '<i class="ti ti-photo"></i><span>Photo</span>';
+
+  return `
+    <div class="sd-food-item-card">
+      <input type="hidden" class="food-item-photo-url" value="${escapeHtml(photoUrl)}">
+      <div class="sd-food-item-photo">
+        <label class="sd-food-item-preview ${photoUrl ? '' : 'is-empty'}" for="foodItemPhoto${uid}">
+          ${photoPreview}
+        </label>
+        <input id="foodItemPhoto${uid}" type="file" accept="image/*" class="food-item-photo-input" style="display:none">
+      </div>
+      <div class="sd-food-item-fields">
+        <div class="sd-hall-fg full"><label>Cake name</label><input class="sd-hall-input food-item-name" value="${escapeHtml(item.name || '')}" placeholder="e.g. Chocolate Wedding Cake"></div>
+        <div class="sd-hall-fg full"><label>Description</label><input class="sd-hall-input food-item-description" value="${escapeHtml(item.description || '')}" placeholder="e.g. 3-tier, serves 100"></div>
+        <div class="sd-hall-fg"><label>Package price</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-package-price" value="${item.package_price ?? item.price ?? ''}" placeholder="MMK"></div>
+        <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-customize-price" value="${item.customize_price ?? item.price ?? ''}" placeholder="MMK"></div>
+      </div>
+      <button type="button" class="btn btn-icon btn-danger-ghost btn-sm sd-food-item-remove" title="Remove"><i class="ti ti-trash" style="font-size:13px"></i></button>
+    </div>
+  `;
+}
+
+function updateFoodItemCount() {
+  const count = document.querySelectorAll('.sd-food-item-card').length;
+  const badge = document.getElementById('foodItemCount');
+  if (badge) badge.textContent = count + ' ' + (count === 1 ? 'item' : 'items');
+}
+
+function renderFoodItems(items = []) {
+  const grid = document.getElementById('foodItemGrid');
+  if (!grid) return;
+  const rows = items.length ? items : [{}];
+  grid.innerHTML = rows.map(item => foodItemCardHtml(item)).join('');
+  updateFoodItemCount();
+}
+
+function addFoodItem() {
+  const grid = document.getElementById('foodItemGrid');
+  if (!grid) return;
+  grid.insertAdjacentHTML('beforeend', foodItemCardHtml());
+  updateFoodItemCount();
+}
+
+function collectFoodItems() {
+  return Array.from(document.querySelectorAll('.sd-food-item-card')).map(card => ({
+    name: card.querySelector('.food-item-name')?.value.trim() || '',
+    description: card.querySelector('.food-item-description')?.value.trim() || '',
+    price: parseFloat(card.querySelector('.food-item-package-price')?.value || '0') || 0,
+    package_price: parseFloat(card.querySelector('.food-item-package-price')?.value || '0') || 0,
+    customize_price: parseFloat(card.querySelector('.food-item-customize-price')?.value || '0') || 0,
+    photo_url: card.querySelector('.food-item-photo-url')?.value || null
+  })).filter(item => item.name !== '');
+}
+
+document.getElementById('addFoodItemBtn')?.addEventListener('click', addFoodItem);
+
+document.getElementById('foodItemGrid')?.addEventListener('click', event => {
+  const removeButton = event.target.closest('.sd-food-item-remove');
+  if (!removeButton) return;
+  const grid = document.getElementById('foodItemGrid');
+  const card = removeButton.closest('.sd-food-item-card');
+  if (!grid || !card) return;
+
+  if (grid.querySelectorAll('.sd-food-item-card').length <= 1) {
+    card.querySelectorAll('input').forEach(input => { if (input.type !== 'hidden') input.value = ''; });
+    const preview = card.querySelector('.sd-food-item-preview');
+    if (preview) {
+      preview.classList.add('is-empty');
+      preview.innerHTML = '<i class="ti ti-photo"></i><span>Photo</span>';
+    }
+  } else {
+    card.remove();
+  }
+
+  updateFoodItemCount();
+});
+
+document.getElementById('foodItemGrid')?.addEventListener('change', async event => {
+  const input = event.target.closest('.food-item-photo-input');
+  if (!input || !input.files?.[0]) return;
+
+  const card = input.closest('.sd-food-item-card');
+  const hidden = card?.querySelector('.food-item-photo-url');
+  const preview = card?.querySelector('.sd-food-item-preview');
+
+  try {
+    const dataUrl = await fileToDataUrl(input.files[0]);
+    if (hidden) hidden.value = dataUrl;
+    if (preview) {
+      preview.classList.remove('is-empty');
+      preview.innerHTML = `<img src="${dataUrl}" alt="Cake photo preview">`;
+    }
+  } catch (error) {
+    showMessage('foodItemMessage', 'Could not read photo. Please try another image.');
+  } finally {
+    input.value = '';
+  }
+});
+
+document.getElementById('saveFoodItemsBtn')?.addEventListener('click', async () => {
+  showMessage('foodItemMessage', '');
+  try {
+    const items = collectFoodItems();
+    if (!items.length) {
+      throw new Error('Add at least one cake item with a name.');
+    }
+    if (items.some(item => item.price <= 0)) {
+      throw new Error('Each cake item needs a price greater than zero.');
+    }
+
+    const result = await jsonPost(urls.serviceUpdate, {
+      ...serviceDetailConfig.servicePayloadBase,
+      min_lead_days: currentServiceMinLeadDays(),
+      food_items: items
+    });
+    const savedService = result.item || {};
+    const savedItems = Array.isArray(savedService.food_items) ? savedService.food_items : items;
+    serviceDetailConfig.foodItems = savedItems;
+    serviceDetailConfig.servicePayloadBase.price = savedService.price ?? serviceDetailConfig.servicePayloadBase.price;
+    serviceDetailConfig.servicePayloadBase.price_min = savedService.price_min ?? serviceDetailConfig.servicePayloadBase.price_min;
+    serviceDetailConfig.servicePayloadBase.price_max = savedService.price_max ?? serviceDetailConfig.servicePayloadBase.price_max;
+    renderFoodItems(savedItems);
+    updateServiceInfoFromService(savedService);
+    showMessage('foodItemMessage', 'Cake items saved.', true);
+  } catch (error) {
+    showMessage('foodItemMessage', error.message);
+  }
+});
+
+renderFoodItems(Array.isArray(serviceDetailConfig.foodItems) ? serviceDetailConfig.foodItems : []);
+
 // ── ATTIRE ITEMS ────────────────────────────────────────────────
 let attireDrafts = [];
 let activeAttireIndex = 0;
 
 function normalizeAttireItem(item = {}) {
+  const options = Array.isArray(item.rental_options) ? item.rental_options : [];
   return {
+    id: item.id || 0,
     name: item.name || '',
     photo_url: item.photo_url || '',
     borrow_package_price: item.borrow_package_price ?? '',
     borrow_customize_price: item.borrow_customize_price ?? '',
     buy_package_price: item.buy_package_price ?? '',
     buy_customize_price: item.buy_customize_price ?? '',
-    return_days: item.return_days ?? ''
+    return_days: item.return_days ?? '',
+    buffer_days: item.buffer_days ?? 1,
+    rental_options: options.map(normalizeRentalOption)
+  };
+}
+
+function normalizeRentalOption(opt = {}) {
+  return {
+    days: opt.days ?? '',
+    price: opt.price ?? '',
+    customize_price: opt.customize_price ?? ''
   };
 }
 
 function attireHasBorrowPrice(item) {
+  if (Array.isArray(item.rental_options) && item.rental_options.length > 0) {
+    return true;
+  }
   return Number(item.borrow_package_price) > 0 || Number(item.borrow_customize_price) > 0;
 }
 
@@ -393,6 +620,29 @@ function attireNavHtml() {
       </button>
     `;
   }).join('');
+}
+
+function rentalOptionsHtml(options = []) {
+  if (!options.length) {
+    return '<p style="color:var(--text-3);font-size:12px;margin:0">No rental durations added yet. Add at least one.</p>';
+  }
+  return options.map((opt, i) => `
+    <div class="sd-rental-option-row" data-rental-index="${i}" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px">
+      <div class="sd-hall-fg" style="flex:0 0 100px">
+        <label>Days</label>
+        <input type="number" min="1" step="1" class="sd-hall-input" data-rental-field="days" value="${escapeHtml(opt.days)}" placeholder="3">
+      </div>
+      <div class="sd-hall-fg" style="flex:1">
+        <label>Package price</label>
+        <div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-rental-field="price" value="${escapeHtml(opt.price)}" placeholder="0"><span>MMK</span></div>
+      </div>
+      <div class="sd-hall-fg" style="flex:1">
+        <label>Customize price</label>
+        <div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-rental-field="customize_price" value="${escapeHtml(opt.customize_price)}" placeholder="0"><span>MMK</span></div>
+      </div>
+      <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" data-remove-rental-option="${i}" title="Remove" style="margin-bottom:2px"><i class="ti ti-x" style="font-size:14px"></i></button>
+    </div>
+  `).join('');
 }
 
 function attireEditorHtml(item, index) {
@@ -436,12 +686,12 @@ function attireEditorHtml(item, index) {
             <input class="sd-hall-input" data-attire-field="name" value="${escapeHtml(item.name)}" placeholder="e.g. Long Sleeve Bridal Gown">
           </div>
           <div class="sd-attire-price-group">
-            <div class="sd-attire-group-head"><i class="ti ti-clock"></i><span>Borrow pricing</span><small>Customer returns it</small></div>
-            <div class="sd-attire-pair">
-              <div class="sd-hall-fg"><label>Package price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-attire-field="borrow_package_price" value="${escapeHtml(item.borrow_package_price)}" placeholder="0"><span>MMK</span></div></div>
-              <div class="sd-hall-fg"><label>Customize price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-attire-field="borrow_customize_price" value="${escapeHtml(item.borrow_customize_price)}" placeholder="0"><span>MMK</span></div></div>
+            <div class="sd-attire-group-head"><i class="ti ti-clock"></i><span>Rental options</span><small>Duration tiers with pricing</small></div>
+            <div class="sd-rental-options-list" data-rental-options>
+              ${rentalOptionsHtml(item.rental_options || [])}
             </div>
-            <div class="sd-hall-fg sd-attire-return"><label>Return within</label><div class="sd-attire-return-input"><input type="number" min="1" step="1" class="sd-hall-input" data-attire-field="return_days" value="${escapeHtml(item.return_days)}" placeholder="3"><span>days</span></div></div>
+            <button type="button" class="btn btn-outline btn-sm" data-add-rental-option style="margin-top:8px"><i class="ti ti-plus" style="font-size:12px"></i> Add duration</button>
+            <div class="sd-hall-fg sd-attire-return" style="margin-top:12px"><label>Buffer days after return</label><div class="sd-attire-return-input"><input type="number" min="0" step="1" class="sd-hall-input" data-attire-field="buffer_days" value="${escapeHtml(item.buffer_days ?? 1)}" placeholder="1"><span>days</span></div><small style="color:var(--text-3);font-size:11px">Blocked for cleaning/alteration after return</small></div>
           </div>
           <div class="sd-attire-price-group">
             <div class="sd-attire-group-head buy"><i class="ti ti-shopping-bag"></i><span>Buy pricing</span><small>Customer keeps it</small></div>
@@ -477,15 +727,27 @@ function addAttireItem() {
 }
 
 function collectAttireItems() {
-  return attireDrafts.map(item => ({
-    name: item.name.trim(),
-    photo_url: item.photo_url || null,
-    borrow_package_price: parseFloat(item.borrow_package_price || '0') || null,
-    borrow_customize_price: parseFloat(item.borrow_customize_price || '0') || null,
-    buy_package_price: parseFloat(item.buy_package_price || '0') || null,
-    buy_customize_price: parseFloat(item.buy_customize_price || '0') || null,
-    return_days: parseInt(item.return_days || '0', 10) || null
-  })).filter(item => item.name !== '');
+  return attireDrafts.map(item => {
+    const rentalOptions = (item.rental_options || [])
+      .filter(opt => parseInt(opt.days || '0', 10) > 0 && parseFloat(opt.price || '0') > 0)
+      .map(opt => ({
+        days: parseInt(opt.days, 10),
+        price: parseFloat(opt.price),
+        customize_price: parseFloat(opt.customize_price || '0') || null
+      }));
+    return {
+      id: item.id || 0,
+      name: item.name.trim(),
+      photo_url: item.photo_url || null,
+      borrow_package_price: parseFloat(item.borrow_package_price || '0') || null,
+      borrow_customize_price: parseFloat(item.borrow_customize_price || '0') || null,
+      buy_package_price: parseFloat(item.buy_package_price || '0') || null,
+      buy_customize_price: parseFloat(item.buy_customize_price || '0') || null,
+      return_days: parseInt(item.return_days || '0', 10) || null,
+      buffer_days: parseInt(item.buffer_days || '1', 10) || 1,
+      rental_options: rentalOptions
+    };
+  }).filter(item => item.name !== '');
 }
 
 document.getElementById('addAttireItemBtn')?.addEventListener('click', addAttireItem);
@@ -504,7 +766,7 @@ document.getElementById('attireItemGrid')?.addEventListener('input', event => {
   if (navList) navList.innerHTML = attireNavHtml();
 });
 
-document.getElementById('attireItemGrid')?.addEventListener('click', event => {
+document.getElementById('attireItemGrid')?.addEventListener('click', async event => {
   const navItem = event.target.closest('[data-attire-index]');
   if (navItem) {
     activeAttireIndex = Number(navItem.dataset.attireIndex);
@@ -518,7 +780,7 @@ document.getElementById('attireItemGrid')?.addEventListener('click', event => {
   if (event.target.closest('[data-attire-remove]')) {
     const item = attireDrafts[activeAttireIndex];
     const itemName = item?.name.trim() || `dress ${activeAttireIndex + 1}`;
-    if (item?.name.trim() && !window.confirm(`Remove "${itemName}" from this collection?`)) return;
+    if (item?.name.trim() && !await sdConfirm({ title: 'Remove dress?', message: `"${itemName}" will be removed from this collection.`, confirmText: 'Remove', icon: 'ti-trash' })) return;
     if (attireDrafts.length === 1) {
       attireDrafts[0] = normalizeAttireItem();
       activeAttireIndex = 0;
@@ -545,6 +807,42 @@ document.getElementById('attireItemGrid')?.addEventListener('change', async even
   }
 });
 
+// Rental option event handlers
+document.getElementById('attireItemGrid')?.addEventListener('click', event => {
+  const addBtn = event.target.closest('[data-add-rental-option]');
+  if (addBtn) {
+    if (!attireDrafts[activeAttireIndex].rental_options) {
+      attireDrafts[activeAttireIndex].rental_options = [];
+    }
+    attireDrafts[activeAttireIndex].rental_options.push(normalizeRentalOption());
+    renderAttireItems();
+    return;
+  }
+  const removeBtn = event.target.closest('[data-remove-rental-option]');
+  if (removeBtn) {
+    const idx = Number(removeBtn.dataset.removeRentalOption);
+    if (attireDrafts[activeAttireIndex].rental_options) {
+      attireDrafts[activeAttireIndex].rental_options.splice(idx, 1);
+      renderAttireItems();
+    }
+    return;
+  }
+});
+
+document.getElementById('attireItemGrid')?.addEventListener('input', event => {
+  const field = event.target.closest('[data-rental-field]');
+  if (!field || !attireDrafts[activeAttireIndex]) return;
+  const row = field.closest('[data-rental-index]');
+  if (!row) return;
+  const idx = Number(row.dataset.rentalIndex);
+  if (!attireDrafts[activeAttireIndex].rental_options) {
+    attireDrafts[activeAttireIndex].rental_options = [];
+  }
+  if (attireDrafts[activeAttireIndex].rental_options[idx]) {
+    attireDrafts[activeAttireIndex].rental_options[idx][field.dataset.rentalField] = field.value;
+  }
+});
+
 document.getElementById('saveAttireItemsBtn')?.addEventListener('click', async () => {
   showMessage('attireItemMessage', '');
   try {
@@ -553,13 +851,12 @@ document.getElementById('saveAttireItemsBtn')?.addEventListener('click', async (
       throw new Error('Add at least one attire item with a name.');
     }
     const hasNoPrice = items.some(item =>
-      (!item.borrow_package_price || item.borrow_package_price <= 0) &&
-      (!item.borrow_customize_price || item.borrow_customize_price <= 0) &&
+      (!item.rental_options || item.rental_options.length === 0) &&
       (!item.buy_package_price || item.buy_package_price <= 0) &&
       (!item.buy_customize_price || item.buy_customize_price <= 0)
     );
     if (hasNoPrice) {
-      throw new Error('Each attire item needs at least one price greater than zero.');
+      throw new Error('Each attire item needs rental options (duration + price) or a buy price.');
     }
 
     const result = await jsonPost(urls.serviceUpdate, {
@@ -628,10 +925,12 @@ document.getElementById('saveAvailabilityBtn')?.addEventListener('click', async 
     const concurrentElement = document.getElementById('availabilityConcurrent');
     const concurrentPackageEl = document.getElementById('availabilityConcurrentPackage');
     const concurrentCustomizeEl = document.getElementById('availabilityConcurrentCustomize');
+    const durationEl = document.getElementById('availabilityDuration');
+    const bufferEl = document.getElementById('availabilityBuffer');
     const minLeadDays = currentServiceMinLeadDays();
     await jsonPost(urls.availabilitySave, {
-      duration_minutes: document.getElementById('availabilityDuration').value,
-      buffer_minutes: document.getElementById('availabilityBuffer').value,
+      duration_minutes: durationEl ? durationEl.value : 60,
+      buffer_minutes: bufferEl ? bufferEl.value : 0,
       max_concurrent: concurrentElement ? concurrentElement.value : 1,
       max_concurrent_package: concurrentPackageEl ? concurrentPackageEl.value : 0,
       max_concurrent_customize: concurrentCustomizeEl ? concurrentCustomizeEl.value : 0,
@@ -988,7 +1287,7 @@ document.getElementById('saveOverrideBtn')?.addEventListener('click', async () =
 });
 
 async function deleteOverride(overrideId) {
-  if (!overrideId || !confirm('Delete this override?')) return;
+  if (!overrideId || !await sdConfirm({ title: 'Delete special date?', message: 'This special date override will be permanently removed.', confirmText: 'Delete', icon: 'ti-trash' })) return;
   showMessage('overrideMessage', '');
   try {
     await jsonPost(urls.overrideDelete + encodeURIComponent(overrideId));
@@ -1001,7 +1300,7 @@ async function deleteOverride(overrideId) {
 }
 
 async function deleteRoomOverride(overrideId) {
-  if (!overrideId || !confirm('Delete this hall override?')) return;
+  if (!overrideId || !await sdConfirm({ title: 'Delete hall special date?', message: 'This hall-specific special date override will be permanently removed.', confirmText: 'Delete', icon: 'ti-trash' })) return;
   showMessage('overrideMessage', '');
   try {
     await jsonPost(urls.roomOverrideDelete + encodeURIComponent(overrideId));

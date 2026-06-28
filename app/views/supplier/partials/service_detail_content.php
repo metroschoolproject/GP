@@ -1,4 +1,4 @@
-<div id="supplier-service-detail" class="is-tabbed-layout">
+<div id="supplier-service-detail" class="is-tabbed-layout" data-service-status="<?= $h($serviceStatus) ?>" data-draft-readiness="<?= $isReady ? 'ready' : 'incomplete' ?>">
 
 <?php
 // Derived rental pricing variables (used in stats bar and rental card below)
@@ -55,8 +55,8 @@ if (!empty($attentionItems[0]['label'])) {
       <h1><?= $h($serviceNameRaw) ?></h1>
       <p><?= $serviceDescriptionRaw !== '' ? $h($serviceDescriptionRaw) : 'Add a description so customers understand this service.' ?></p>
       <div class="sd-service-readiness <?= $isReady ? 'is-ready' : '' ?>">
-        <span class="sd-status-dot <?= $serviceStatus === 'active' || $isReady ? 'is-live' : '' ?>" id="publishStatusDot"></span>
-        <strong id="publishStatusText"><?= $serviceStatus === 'active' ? 'Live' : ($isReady ? 'Ready to publish' : 'Needs attention') ?></strong>
+        <span class="sd-status-dot <?= $serviceStatus === 'active' ? 'is-live' : '' ?>" id="publishStatusDot"></span>
+        <strong id="publishStatusText"><?= $serviceStatus === 'active' ? 'Live' : ($isReady ? 'Draft · Ready to publish' : 'Draft · Needs attention') ?></strong>
         <span class="sd-service-readiness-divider"></span>
         <span><?= $isReady ? 'All required sections are complete' : count($attentionItems) . ' ' . (count($attentionItems) === 1 ? 'task remains' : 'tasks remain') ?></span>
         <?php if (!$isReady): ?>
@@ -65,12 +65,9 @@ if (!empty($attentionItems[0]['label'])) {
       </div>
     </div>
     <div class="sd-service-header-actions">
-      <a href="<?= URLROOT ?>/main/service/<?= (int)$serviceId ?>" target="_blank" class="btn btn-outline btn-sm">
-        <i class="ti ti-eye" style="font-size:13px"></i> Preview
-      </a>
-      <button type="button" id="publishServiceBtn" class="btn btn-primary btn-sm" <?= $serviceStatus === 'active' ? 'disabled' : '' ?>>
-        <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check' : 'ti-send' ?>" style="font-size:13px"></i>
-        <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Published' : 'Request publish' ?></span>
+      <button type="button" id="publishServiceBtn" class="btn <?= $serviceStatus === 'active' ? 'btn-outline sd-unpublish-btn' : 'btn-primary' ?> btn-sm">
+        <i class="ti <?= $serviceStatus === 'active' ? 'ti-eye-off' : 'ti-send' ?>" style="font-size:13px"></i>
+        <span id="publishServiceBtnText"><?= $serviceStatus === 'active' ? 'Unpublish' : 'Request publish' ?></span>
       </button>
     </div>
   </header>
@@ -244,6 +241,7 @@ if (!empty($attentionItems[0]['label'])) {
 
           <!-- Controls row -->
           <div class="sd-avail-controls">
+            <?php if (!$isRental): ?>
             <div class="sd-avail-field">
               <label>Slot duration</label>
               <select id="availabilityDuration">
@@ -258,9 +256,10 @@ if (!empty($attentionItems[0]['label'])) {
                   <option value="<?= (int)$minutes ?>" <?= (int)$minutes === $slotDuration ? 'selected' : '' ?>><?= $h($durationLabel($minutes)) ?></option>
                 <?php endforeach; ?>
               </select>
+              <span class="sd-field-hint">How long each booking lasts</span>
             </div>
             <div class="sd-avail-field">
-              <label>Buffer between slots</label>
+              <label>Buffer time</label>
               <select id="availabilityBuffer">
                 <?php
                 $bufferOptions = [0, 5, 10, 15, 30, 45, 60];
@@ -273,27 +272,30 @@ if (!empty($attentionItems[0]['label'])) {
                   <option value="<?= (int)$minutes ?>" <?= (int)$minutes === $bufferMinutes ? 'selected' : '' ?>><?= (int)$minutes === 0 ? 'No buffer' : $h($durationLabel($minutes)) ?></option>
                 <?php endforeach; ?>
               </select>
+              <span class="sd-field-hint">Gap between back-to-back bookings</span>
             </div>
+            <?php endif; // !isRental ?>
 	            <?php if (!$isVenue): ?>
 	            <div class="sd-avail-field">
-	              <label>Bookings per time slot</label>
+	              <label>Max bookings per slot</label>
 	              <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
-	              <span class="sd-field-hint">Total bookings this service can accept for the same date and time window.</span>
+	              <span class="sd-field-hint">How many customers can book the same time</span>
 	            </div>
 	            <div class="sd-avail-field">
-	              <label>Package bookings per slot</label>
+	              <label>Package limit per slot</label>
 	              <input id="availabilityConcurrentPackage" type="number" min="0" value="<?= (int)$maxConcurrentPackage ?>">
-	              <span class="sd-field-hint">Optional cap for admin package bookings in the same slot. 0 = use total capacity.</span>
+	              <span class="sd-field-hint">Max admin package bookings. 0 = no separate limit</span>
 	            </div>
 	            <div class="sd-avail-field">
-	              <label>Custom bookings per slot</label>
+	              <label>Custom limit per slot</label>
 	              <input id="availabilityConcurrentCustomize" type="number" min="0" value="<?= (int)$maxConcurrentCustomize ?>">
-	              <span class="sd-field-hint">Optional cap for direct/customized bookings in the same slot. 0 = use total capacity.</span>
+	              <span class="sd-field-hint">Max custom bookings. 0 = no separate limit</span>
 	            </div>
             <?php endif; ?>
             <div class="sd-avail-field">
               <label>Minimum notice</label>
               <input id="availabilityMinLeadDays" type="number" min="0" max="365" value="<?= (int)($service['min_lead_days'] ?? 0) ?>">
+              <span class="sd-field-hint">Days before the event a customer must book</span>
             </div>
           </div>
 
@@ -526,8 +528,9 @@ if (!empty($attentionItems[0]['label'])) {
           <div class="sd-info-row">
             <span class="sd-info-key">Status</span>
             <span class="sd-info-val">
-              <span style="display:inline-flex;align-items:center;gap:4px;color:<?= $serviceStatus === 'active' ? 'var(--success)' : 'var(--text-3)' ?>;font-size:12px">
-                <i class="ti ti-circle-check-filled" style="font-size:13px"></i> <?= $h(ucfirst($serviceStatus)) ?>
+              <span id="serviceInfoStatus" style="display:inline-flex;align-items:center;gap:4px;color:<?= $serviceStatus === 'active' ? 'var(--success)' : 'var(--text-3)' ?>;font-size:12px">
+                <i class="ti <?= $serviceStatus === 'active' ? 'ti-circle-check-filled' : 'ti-file-pencil' ?>" style="font-size:13px"></i>
+                <span><?= $serviceStatus === 'active' ? 'Published' : 'Draft' ?></span>
               </span>
             </span>
           </div>
@@ -552,13 +555,32 @@ if (!empty($attentionItems[0]['label'])) {
             </div>
           <?php elseif (!$isRental): ?>
             <div class="sd-info-row">
-              <span class="sd-info-key">Concurrent bookings</span>
+              <span class="sd-info-key">Max bookings per slot</span>
               <span class="sd-info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>
             </div>
           <?php endif; ?>
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ═══════════════ CONFIRM MODAL ═══════════════ -->
+  <div id="sdConfirmOverlay" class="sd-confirm-overlay">
+    <div class="sd-confirm-modal">
+      <div class="sd-confirm-head">
+        <div id="sdConfirmIcon" class="sd-confirm-head-icon is-danger">
+          <i id="sdConfirmIconClass" class="ti ti-trash"></i>
+        </div>
+        <h2 id="sdConfirmTitle" class="sd-confirm-title"></h2>
+      </div>
+      <div class="sd-confirm-body">
+        <p id="sdConfirmText" class="sd-confirm-text"></p>
+      </div>
+      <div class="sd-confirm-actions">
+        <button type="button" class="sd-confirm-cancel" id="sdConfirmCancel">Cancel</button>
+        <button type="button" class="sd-confirm-ok is-danger" id="sdConfirmOk"></button>
+      </div>
     </div>
   </div>
 

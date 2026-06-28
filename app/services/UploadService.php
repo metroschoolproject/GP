@@ -94,16 +94,22 @@ class UploadService
 
     public function storePackageImage($file)
     {
-        if (!$this->isValidFile($file, ['image/jpeg', 'image/png', 'image/webp'], 6 * 1024 * 1024)) {
+        $error = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+        if ($error !== UPLOAD_ERR_OK) {
             return '';
         }
 
-        $mimeType = $this->mimeType($file);
-        $extension = $this->extensionForMime($mimeType);
-
+        $extension = $this->extensionFromFilename($file['name'] ?? '');
         if (!$extension) {
             return '';
         }
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        if (!in_array($extension, $allowedExtensions, true)) {
+            return '';
+        }
+
+        $mimeType = 'image/' . ($extension === 'jpg' ? 'jpeg' : $extension);
 
         $relativeDir = 'uploads/admin/packages';
         $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
@@ -125,6 +131,39 @@ class UploadService
         return IMG_ROOT . '/' . $relativeDir . '/' . ($optimizedFilename ?: $filename);
     }
 
+    /**
+     * Validate a package image upload by file extension only.
+     * Returns '' if the file is valid.
+     */
+    public function validatePackageImage($file): string
+    {
+        $error = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+
+        if ($error === UPLOAD_ERR_NO_FILE) {
+            return ''; // No file uploaded — not an error (image is optional)
+        }
+
+        if ($error === UPLOAD_ERR_INI_SIZE) {
+            $limit = ini_get('upload_max_filesize');
+            return "Image exceeds the server upload limit ($limit). Please increase PHP upload_max_filesize.";
+        }
+
+        if ($error !== UPLOAD_ERR_OK) {
+            return 'The image upload failed. Please try again.';
+        }
+
+        $extension = $this->extensionFromFilename($file['name'] ?? '');
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        if (!$extension || !in_array($extension, $allowedExtensions, true)) {
+            $ext = $extension ?: strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+            return $ext
+                ? "Image format not supported (.$ext). Please use JPG, PNG, or WebP."
+                : 'Could not determine image format. Please use JPG, PNG, or WebP.';
+        }
+
+        return '';
+    }
+
     public function slugify($value)
     {
         $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $value), '-'));
@@ -143,6 +182,18 @@ class UploadService
         }
 
         return in_array($this->mimeType($file), $allowedMimeTypes, true);
+    }
+
+    /**
+     * Extract and normalize a file extension from an uploaded file's original name.
+     * Returns lowercase extension without dot, or '' if unrecognised.
+     */
+    private function extensionFromFilename(string $name): string
+    {
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        // Normalize common aliases
+        if ($ext === 'jpeg') return 'jpg';
+        return $ext;
     }
 
     private function mimeType($file)
@@ -169,7 +220,20 @@ class UploadService
 
     private function ensureDirectory($absoluteDir)
     {
-        return is_dir($absoluteDir) || mkdir($absoluteDir, 0755, true);
+        if (!is_dir($absoluteDir)) {
+            if (!mkdir($absoluteDir, 0777, true)) {
+                return false;
+            }
+        }
+        // Ensure directory and parents are writable (handles dirs created by CLI with 0755)
+        $uploadsRoot = dirname(APPROOT) . '/public/uploads';
+        $dir = $absoluteDir;
+        while ($dir && strpos($dir, $uploadsRoot) === 0 && $dir !== $uploadsRoot) {
+            @chmod($dir, 0777);
+            $dir = dirname($dir);
+        }
+        @chmod($uploadsRoot, 0777);
+        return true;
     }
 
     private function createOptimizedImageVariant($sourcePath, $targetDir, $basename, $mimeType, $maxWidth, $maxHeight)
@@ -258,6 +322,43 @@ class UploadService
         }
 
         $basename = 'slip-' . $bookingId . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
+        $filename = $basename . '.' . $extension;
+        $absolutePath = $absoluteDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $absolutePath)) {
+            return false;
+        }
+
+        return $relativeDir . '/' . $filename;
+    }
+
+    /**
+     * Upload payout proof (admin bank transfer screenshot).
+     * Accepts JPEG / PNG / WebP / PDF, max 5 MB.
+     * Returns relative path from public/ or false on failure.
+     */
+    public function uploadPayoutProof($file, int $supplierId): string|false
+    {
+        $mimeType = $this->mimeType($file);
+        $extension = $this->extensionForMime($mimeType, true);
+
+        $validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!in_array($mimeType, $validTypes, true) || !$extension) {
+            return false;
+        }
+
+        if ($file['size'] > 5 * 1024 * 1024) {
+            return false;
+        }
+
+        $relativeDir = 'uploads/payouts/proofs/' . date('Y/m');
+        $absoluteDir = dirname(APPROOT) . '/public/' . $relativeDir;
+
+        if (!$this->ensureDirectory($absoluteDir)) {
+            return false;
+        }
+
+        $basename = 'payout-' . $supplierId . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4));
         $filename = $basename . '.' . $extension;
         $absolutePath = $absoluteDir . '/' . $filename;
 

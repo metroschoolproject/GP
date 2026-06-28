@@ -1,10 +1,19 @@
 <?php
 
 define('APPNAME', 'Golden Promise');
-define('URLROOT', 'http://localhost/GP');
-define('IMG_ROOT', 'http://localhost/GP/public');
-define('NETWORK_URLROOT', 'http://10.247.249.2/GP');
-define('NETWORK_IMG_ROOT', 'http://10.247.249.2/GP/public');
+// Dynamic base URL — works on localhost, local network, and Ngrok
+// Detect HTTPS — handles direct HTTPS, reverse proxies (Ngrok, LocalTunnel, Cloudflare)
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+        || (($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '') === 'on');
+$protocol = $isHttps ? 'https' : 'http';
+$host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$basePath = '/GP';
+define('URLROOT', $protocol . '://' . $host . $basePath);
+define('IMG_ROOT', URLROOT . '/public');
+// Legacy aliases (kept for backward compat; prefer URLROOT / IMG_ROOT)
+define('NETWORK_URLROOT', URLROOT);
+define('NETWORK_IMG_ROOT', IMG_ROOT);
 define('APPROOT', dirname(dirname(__FILE__)));
 // define('VENDOR_AUTOLOAD','');
 
@@ -12,6 +21,9 @@ define('APPROOT', dirname(dirname(__FILE__)));
 // candidates priced above the original item are only shown up to this
 // percentage over the original price; pricier picks need customer approval.
 define('MAX_REPLACEMENT_UPCHARGE_PCT', 25);
+define('BOOKING_DEPOSIT_PERCENT', 20);
+define('PLATFORM_FEE_PERCENT', 5);
+define('MIN_REMAINING_PAYMENT', 1000); // Minimum amount per partial remaining payment (MMK)
 
 define('DB_HOST', 'localhost;port=3307');
 define('DB_USER', 'root');
@@ -19,16 +31,16 @@ define('DB_PASS', '');
 define('DB_NAME', 'goldenpromise');
 
 define('GOOGLE_CLIENT_ID', '453132170855-j9npo21t5tr7n6c874ml66ta1l96km1j.apps.googleusercontent.com');
-define('GOOGLE_CLIENT_SECRET', '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');
-define('GOOGLE_REDIRECT_URI', 'http://localhost/GP/users/googleCallback');
+define('GOOGLE_CLIENT_SECRET', env('GOOGLE_CLIENT_SECRET', ''));
+define('GOOGLE_REDIRECT_URI', URLROOT . '/users/googleCallback');
 
 define('FACEBOOK_APP_ID', '26938920369127434');
-define('FACEBOOK_APP_SECRET', '0b24838fe93fdae640f11a882f1a298c');
-define('FACEBOOK_REDIRECT_URI', 'http://localhost/GP/users/facebookCallback');
+define('FACEBOOK_APP_SECRET', env('FACEBOOK_APP_SECRET', ''));
+define('FACEBOOK_REDIRECT_URI', URLROOT . '/users/facebookCallback');
 
 
 
-define('GEMINI_API_KEY', 'AQ.Ab8RN6K4xV4_5A_Gq4vIRxK4gH0hnTZgyseqwUjKbyCgXWqNlg');
+define('GEMINI_API_KEY', env('GEMINI_API_KEY', ''));
 
 
 // Email Configuration
@@ -47,8 +59,8 @@ define('PLATFORM_BANK_ACCOUNTS', [
     'Visa / MasterCard' => ['account' => 'XXXX-XXXX-XXXX-XXXX', 'name' => 'Golden Promise Co., Ltd.'],
 ]);
 
-// Cron Security
-define('CRON_TOKEN', 'your-secret-cron-token');
+// Cron Security — set a strong CRON_TOKEN in .env before relying on cron auth
+define('CRON_TOKEN', env('CRON_TOKEN', ''));
 
 // Default service time windows by category (used for fullday package bookings).
 // Priority: service_schedules open/close > services.default_start/end_time > this fallback.

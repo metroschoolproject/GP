@@ -61,17 +61,18 @@ class Payment
         string $transactionRef,
         float $paidAmount,
         string $paidAt,
-        string $slipPath = ''
+        string $slipPath = '',
+        string $remark = ''
     ): ?int {
         $this->db->dbquery(
             'INSERT INTO payments(
                 supplier_id, amount, platform_fee, supplier_amount, escrow_status, type,
                 method, bank_name, account_name, mobile_number, transaction_ref,
-                paid_amount, paid_at, payment_slip_path, status
+                paid_amount, paid_at, payment_slip_path, status, remark
              ) VALUES(
                 :supplier_id, :amount, :amount, :zero, NULL, :type,
                 :method, :bank_name, :account_name, :mobile_number, :transaction_ref,
-                :paid_amount, :paid_at, :slip_path, :status
+                :paid_amount, :paid_at, :slip_path, :status, :remark
              )'
         );
         $this->db->dbbind(':supplier_id', $supplierId);
@@ -87,6 +88,7 @@ class Payment
         $this->db->dbbind(':paid_at', $paidAt ?: null);
         $this->db->dbbind(':slip_path', $slipPath ?: null);
         $this->db->dbbind(':status', 'pending');
+        $this->db->dbbind(':remark', $remark !== '' ? $remark : null);
 
         if (!$this->db->dbexecute()) {
             return null;
@@ -101,7 +103,9 @@ class Payment
 
     public function getLatestSupplierFeePayment($supplierId, $status = null)
     {
-        $query = 'SELECT id, amount, method, status, transaction_ref, verified_at, created_at
+        $query = 'SELECT id, amount, method, status, bank_name, account_name,
+                         mobile_number, paid_amount, paid_at, transaction_ref,
+                         payment_slip_path, verified_at, created_at
                   FROM payments
                   WHERE supplier_id = :supplier_id
                     AND type = :type';
@@ -187,12 +191,18 @@ class Payment
      * Unified admin payment history for supplier membership fees and customer
      * booking payments.
      */
-    public function getAdminPaymentHistory(string $status = 'all', int $limit = 20, int $offset = 0): array
-    {
+    public function getAdminPaymentHistory(
+        string $status = 'all',
+        int $limit = 20,
+        int $offset = 0,
+        string $dateFrom = '',
+        string $dateTo = ''
+    ): array {
         $query = "SELECT p.id,
                          p.booking_id,
                          p.supplier_id,
                          COALESCE(p.paid_amount, p.amount, 0) AS amount,
+                         p.platform_fee,
                          p.method,
                          p.bank_name,
                          p.account_name,
@@ -224,6 +234,12 @@ class Payment
         if ($status !== 'all') {
             $query .= ' AND p.status = :status';
         }
+        if ($dateFrom !== '') {
+            $query .= ' AND COALESCE(p.verified_at, p.created_at) >= :date_from';
+        }
+        if ($dateTo !== '') {
+            $query .= ' AND COALESCE(p.verified_at, p.created_at) < DATE_ADD(:date_to, INTERVAL 1 DAY)';
+        }
         $query .= ' ORDER BY COALESCE(p.verified_at, p.created_at) DESC, p.id DESC';
         $query .= ' LIMIT :limit OFFSET :offset';
 
@@ -231,13 +247,22 @@ class Payment
         if ($status !== 'all') {
             $this->db->dbbind(':status', $status);
         }
+        if ($dateFrom !== '') {
+            $this->db->dbbind(':date_from', $dateFrom);
+        }
+        if ($dateTo !== '') {
+            $this->db->dbbind(':date_to', $dateTo);
+        }
         $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
         $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
         return $this->db->getmultidata();
     }
 
-    public function getAdminPaymentHistoryCount(string $status = 'all'): int
-    {
+    public function getAdminPaymentHistoryCount(
+        string $status = 'all',
+        string $dateFrom = '',
+        string $dateTo = ''
+    ): int {
         $query = "SELECT COUNT(*) AS total
                   FROM payments p
                   LEFT JOIN suppliers s ON s.supplier_id = p.supplier_id
@@ -249,10 +274,22 @@ class Payment
         if ($status !== 'all') {
             $query .= ' AND p.status = :status';
         }
+        if ($dateFrom !== '') {
+            $query .= ' AND COALESCE(p.verified_at, p.created_at) >= :date_from';
+        }
+        if ($dateTo !== '') {
+            $query .= ' AND COALESCE(p.verified_at, p.created_at) < DATE_ADD(:date_to, INTERVAL 1 DAY)';
+        }
 
         $this->db->dbquery($query);
         if ($status !== 'all') {
             $this->db->dbbind(':status', $status);
+        }
+        if ($dateFrom !== '') {
+            $this->db->dbbind(':date_from', $dateFrom);
+        }
+        if ($dateTo !== '') {
+            $this->db->dbbind(':date_to', $dateTo);
         }
         return (int)($this->db->getsingledata()['total'] ?? 0);
     }
@@ -287,11 +324,12 @@ class Payment
                     p.status AS payment_status,
                     p.verified_at,
                     p.verified_note,
-                    p.created_at AS payment_created_at
+                    p.created_at AS payment_created_at,
+                    p.type AS payment_type
              FROM payments p
              JOIN bookings b ON b.id = p.booking_id
              LEFT JOIN users u ON u.user_id = b.user_id
-             WHERE p.type = 'deposit' AND p.status = :pstatus
+             WHERE p.type IN ('deposit', 'remaining') AND p.status = :pstatus
              ORDER BY p.verified_at DESC, p.id DESC
              LIMIT :limit OFFSET :offset"
         );
@@ -310,7 +348,7 @@ class Payment
             "SELECT COUNT(*) AS total
              FROM payments p
              JOIN bookings b ON b.id = p.booking_id
-             WHERE p.type = 'deposit' AND p.status = :pstatus"
+             WHERE p.type IN ('deposit', 'remaining') AND p.status = :pstatus"
         );
         $this->db->dbbind(':pstatus', $payStatus);
         return (int)($this->db->getsingledata()['total'] ?? 0);

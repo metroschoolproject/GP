@@ -277,7 +277,11 @@ HTML;
             $this->mailer->isHTML(true);
             $this->mailer->Subject = 'Booking Request Received — Booking #' . $booking['id'];
 
-            $deposit = number_format((float)$booking['total_amount'] * 0.10, 0) . ' MMK';
+            $deposit = number_format(
+                (float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100),
+                0
+            ) . ' MMK';
+            $depositPercent = BOOKING_DEPOSIT_PERCENT;
             $total   = number_format((float)$booking['total_amount'], 0) . ' MMK';
             $payUrl  = URLROOT . '/booking/pay/' . $booking['id'];
 
@@ -302,7 +306,7 @@ HTML;
       <tbody>{$itemRows}</tbody>
     </table>
     <div style="background:white;padding:16px 20px;border-radius:6px;border-left:4px solid #6b4459;margin:20px 0;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#999;font-size:12px;">DEPOSIT DUE (10%)</span><span style="font-size:20px;font-weight:bold;color:#6b4459;">{$deposit}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#999;font-size:12px;">DEPOSIT DUE ({$depositPercent}%)</span><span style="font-size:20px;font-weight:bold;color:#6b4459;">{$deposit}</span></div>
       <div style="display:flex;justify-content:space-between;"><span style="color:#999;font-size:12px;">TOTAL</span><span style="color:#666;">{$total}</span></div>
     </div>
     <p><a href="{$payUrl}" style="display:inline-block;padding:12px 30px;background:#6b4459;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Pay Deposit Now</a></p>
@@ -554,6 +558,105 @@ HTML;
             return $this->mailer->send();
         } catch (Exception $e) {
             error_log('Email send error (verified payment customer): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Notify customer that their remaining balance payment was verified and
+     * the booking is now fully paid / finalized.
+     */
+    public function sendRemainingPaymentVerifiedToCustomer(
+        array $customer,
+        array $booking,
+        array $payment,
+        array $items,
+        array $eventDetails
+    ): bool {
+        if (empty($customer['email'])) {
+            return false;
+        }
+
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($customer['email'], $customer['name'] ?? 'Customer');
+            $this->mailer->isHTML(true);
+
+            $bookingId = (int)($booking['id'] ?? 0);
+            $customerName = htmlspecialchars((string)($customer['name'] ?? 'Customer'), ENT_QUOTES);
+            $amount = (float)($payment['paid_amount'] ?? $payment['amount'] ?? 0);
+            $amountText = number_format($amount, 0) . ' MMK';
+            $method = htmlspecialchars((string)($payment['bank_name'] ?? $payment['method'] ?? 'Manual payment'), ENT_QUOTES);
+            $reference = htmlspecialchars((string)($payment['transaction_ref'] ?? '-'), ENT_QUOTES);
+            $verifiedAt = !empty($payment['verified_at'])
+                ? date('M j, Y g:i A', strtotime((string)$payment['verified_at']))
+                : date('M j, Y g:i A');
+            $totalAmount = number_format((float)($booking['total_amount'] ?? 0), 0) . ' MMK';
+            $bookingUrl = URLROOT . '/booking/detail/' . $bookingId;
+
+            $eventsByItem = [];
+            foreach ($eventDetails as $event) {
+                $itemId = (int)($event['booking_item_id'] ?? 0);
+                if ($itemId > 0) {
+                    $eventsByItem[$itemId] = $event;
+                }
+            }
+
+            $itemRows = '';
+            foreach ($items as $item) {
+                $event = $eventsByItem[(int)($item['id'] ?? 0)] ?? [];
+                $name = htmlspecialchars((string)($item['service_name'] ?? 'Service'), ENT_QUOTES);
+                $date = !empty($event['event_date'])
+                    ? date('M j, Y', strtotime((string)$event['event_date']))
+                    : (!empty($item['booking_date']) ? date('M j, Y', strtotime((string)$item['booking_date'])) : 'TBD');
+                $start = $event['start_time'] ?? $item['start_time'] ?? null;
+                $end = $event['end_time'] ?? $item['end_time'] ?? null;
+                $time = $start
+                    ? date('g:i A', strtotime((string)$start)) . ($end ? ' - ' . date('g:i A', strtotime((string)$end)) : '')
+                    : 'Full day';
+                $guests = !empty($event['guest_count']) ? (int)$event['guest_count'] : '-';
+                $itemRows .= "<tr>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$name}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$date}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;'>{$time}</td>
+                    <td style='padding:9px 0;border-bottom:1px solid #ead8c7;text-align:right;'>{$guests}</td>
+                </tr>";
+            }
+
+            $this->mailer->Subject = 'Booking Fully Paid — Booking #' . $bookingId;
+            $this->mailer->Body = <<<HTML
+<div style="font-family:Poppins,Arial,sans-serif;max-width:640px;margin:0 auto;color:#2d2530;">
+  <div style="background:#065F46;padding:28px;color:#fff;text-align:center;">
+    <h1 style="margin:0;font-size:24px;">🎉 Booking Fully Paid!</h1>
+    <p style="margin:8px 0 0;">Your remaining balance has been verified.</p>
+  </div>
+  <div style="padding:28px;background:#faf5ef;">
+    <p>Dear {$customerName},</p>
+    <p>Your remaining balance payment for booking <strong>#{$bookingId}</strong> was verified on {$verifiedAt}. Your booking is now <strong>fully paid and finalized</strong>!</p>
+    <div style="background:#fff;padding:16px;border:1px solid #ead8c7;margin:20px 0;">
+      <p style="margin:0 0 7px;"><strong>Remaining amount paid:</strong> {$amountText}</p>
+      <p style="margin:0 0 7px;"><strong>Total booking amount:</strong> {$totalAmount}</p>
+      <p style="margin:0 0 7px;"><strong>Payment method:</strong> {$method}</p>
+      <p style="margin:0;"><strong>Reference:</strong> {$reference}</p>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;padding-bottom:7px;">Service</th>
+        <th style="text-align:left;padding-bottom:7px;">Date</th>
+        <th style="text-align:left;padding-bottom:7px;">Time</th>
+        <th style="text-align:right;padding-bottom:7px;">Guests</th>
+      </tr></thead>
+      <tbody>{$itemRows}</tbody>
+    </table>
+    <p style="margin-top:24px;"><a href="{$bookingUrl}" style="display:inline-block;padding:12px 24px;background:#6d4c5b;color:#fff;text-decoration:none;">View booking details</a></p>
+  </div>
+</div>
+HTML;
+            $this->mailer->AltBody = "Your remaining balance of {$amountText} for booking #{$bookingId} has been verified. Your booking is now fully paid! View details: {$bookingUrl}";
+
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (remaining payment verified customer): ' . $e->getMessage());
             return false;
         }
     }
@@ -814,9 +917,214 @@ HTML;
         return URLROOT . '/booking/detail/' . $bookingId;
     }
 
+    /**
+     * Notify customer that supplier approved their cancellation request.
+     */
+    public function sendSupplierApprovedCancellation(array $customer, int $bookingId, string $bookingRef): bool
+    {
+        if (empty($customer['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($customer['email'], $customer['name'] ?? 'Customer');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Cancellation Approved by Supplier — ' . $bookingRef;
+            $bookingUrl = $this->getBookingUrl($bookingId);
+            $customerName = htmlspecialchars($customer['name'] ?? 'Customer', ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#166534;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Cancellation Approved</h1>
+        <p style="margin:8px 0 0;opacity:.85;">{$bookingRef}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>Dear {$customerName},</p>
+        <p>Your supplier has <strong>approved</strong> your cancellation request. The admin team will now review and process your refund.</p>
+        <p>You'll receive another notification once the cancellation is finalized.</p>
+        <p><a href="{$bookingUrl}" style="display:inline-block;padding:12px 30px;background:#166534;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">View Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "Your cancellation request for {$bookingRef} has been approved by the supplier. Admin will process your refund. View: {$bookingUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (supplier approved cancel): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Notify customer that supplier declined their cancellation request.
+     */
+    public function sendSupplierDeclinedCancellation(array $customer, int $bookingId, string $bookingRef, string $reason): bool
+    {
+        if (empty($customer['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($customer['email'], $customer['name'] ?? 'Customer');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Cancellation Declined by Supplier — ' . $bookingRef;
+            $bookingUrl = $this->getBookingUrl($bookingId);
+            $customerName = htmlspecialchars($customer['name'] ?? 'Customer', ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#92400e;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Cancellation Declined</h1>
+        <p style="margin:8px 0 0;opacity:.85;">{$bookingRef}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>Dear {$customerName},</p>
+        <p>Your supplier has <strong>declined</strong> your cancellation request. Your booking remains active.</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #92400e;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">SUPPLIER'S REASON</p>
+          <p style="margin:0;color:#92400e;">{$reasonHtml}</p>
+        </div>
+        <p>If you believe this cancellation should still proceed, please contact the admin team.</p>
+        <p><a href="{$bookingUrl}" style="display:inline-block;padding:12px 30px;background:#92400e;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">View Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "Your cancellation request for {$bookingRef} was declined by the supplier. Reason: {$reason}. View: {$bookingUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (supplier declined cancel): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send email to customer when supplier initiates cancellation.
+     */
+    public function sendSupplierInitiatedCancellationToCustomer(array $customer, int $bookingId, string $bookingRef, string $supplierName, string $reason): bool
+    {
+        if (empty($customer['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($customer['email'], $customer['name'] ?? 'Customer');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Supplier Cancellation Request — ' . $bookingRef;
+            $bookingUrl = $this->getBookingUrl($bookingId);
+            $customerName = htmlspecialchars($customer['name'] ?? 'Customer', ENT_QUOTES);
+            $supplierNameHtml = htmlspecialchars($supplierName, ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#b45309;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Supplier Cancellation Request</h1>
+        <p style="margin:8px 0 0;opacity:.85;">{$bookingRef}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>Dear {$customerName},</p>
+        <p><strong>{$supplierNameHtml}</strong> has requested to cancel your booking. Our admin team will review this request and process any applicable refund.</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #b45309;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">REASON</p>
+          <p style="margin:0;color:#b45309;">{$reasonHtml}</p>
+        </div>
+        <p>You will be notified once the admin reviews the cancellation and processes your refund.</p>
+        <p><a href="{$bookingUrl}" style="display:inline-block;padding:12px 30px;background:#b45309;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">View Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "{$supplierName} has requested cancellation of {$bookingRef}. Reason: {$reason}. Admin will review and process your refund. View: {$bookingUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (supplier-initiated cancel to customer): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Send email to admin when supplier initiates cancellation.
+     */
+    public function sendSupplierInitiatedCancellationToAdmin(array $admin, int $bookingId, string $bookingRef, string $supplierName, string $reason): bool
+    {
+        if (empty($admin['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($admin['email'], $admin['name'] ?? 'Admin');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Action Required: Supplier Cancellation — ' . $bookingRef;
+            $adminUrl = URLROOT . '/admin/bookingDetail/' . $bookingId;
+            $supplierNameHtml = htmlspecialchars($supplierName, ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#dc2626;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Supplier Cancellation Request</h1>
+        <p style="margin:8px 0 0;opacity:.85;">{$bookingRef}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>A supplier has requested cancellation of a booking. Please review and process the refund.</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #dc2626;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">SUPPLIER</p>
+          <p style="margin:0 0 14px 0;font-weight:600;">{$supplierNameHtml}</p>
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">REASON</p>
+          <p style="margin:0;color:#dc2626;">{$reasonHtml}</p>
+        </div>
+        <p><a href="{$adminUrl}" style="display:inline-block;padding:12px 30px;background:#dc2626;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">Review &amp; Process Refund</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "Supplier {$supplierName} requests cancellation of {$bookingRef}. Reason: {$reason}. Review: {$adminUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (supplier-initiated cancel to admin): ' . $e->getMessage());
+            return false;
+        }
+    }
+
     private function getBookingUrl(int $bookingId): string
     {
         return URLROOT . '/booking/detail/' . $bookingId;
+    }
+
+    /**
+     * Send supplier application approved email.
+     */
+    public function sendSupplierApproved(string $email, string $name): bool
+    {
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($email, $name);
+
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Your Supplier Application Has Been Approved — Golden Promise';
+
+            $userName   = htmlspecialchars($name, ENT_QUOTES);
+            $loginUrl   = URLROOT . '/supplier/dashboard';
+            $paymentUrl = URLROOT . '/payments/supplierFee';
+
+            $htmlBody = <<<HTML
+<div style="font-family:Poppins,Arial,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+  <div style="background:linear-gradient(135deg,#6b4459 0%,#c4a882 100%);padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+    <h1 style="margin:0;font-size:22px;">Application Approved 🎉</h1>
+    <p style="margin:8px 0 0;opacity:.85;">Welcome to Golden Promise</p>
+  </div>
+  <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+    <p>Hi {$userName},</p>
+    <p>Great news! Your supplier application has been <strong>approved</strong> by our admin team. You're one step away from going live on Golden Promise.</p>
+    <div style="background:#fff;padding:16px;border-radius:6px;border-left:4px solid #6b4459;margin:20px 0;">
+      <p style="margin:0 0 8px;font-weight:bold;">Next step: Complete your membership payment</p>
+      <p style="margin:0;font-size:13px;color:#555;">Your dashboard is currently locked. Submit the membership fee to unlock all supplier tools and start receiving bookings.</p>
+    </div>
+    <p style="margin-top:24px;">
+      <a href="{$paymentUrl}" style="display:inline-block;padding:12px 28px;background:#6b4459;color:white;text-decoration:none;border-radius:6px;font-weight:bold;margin-right:10px;">Pay Membership Fee</a>
+      <a href="{$loginUrl}" style="display:inline-block;padding:12px 28px;border:1px solid #ead8c7;color:#6b4459;text-decoration:none;border-radius:6px;font-weight:bold;">Go to Dashboard</a>
+    </p>
+    <p style="margin-top:28px;color:#aaa;font-size:12px;border-top:1px solid #ead8c7;padding-top:18px;">
+      Golden Promise — Support: support@goldenpromise.com
+    </p>
+  </div>
+</div>
+HTML;
+            $this->mailer->Body = $htmlBody;
+            $this->mailer->AltBody = "Hi {$name}, your supplier application has been approved! Log in to your dashboard and complete your membership payment to start receiving bookings. {$loginUrl}";
+
+            return $this->mailer->send();
+        } catch (\Exception $e) {
+            error_log('EmailService::sendSupplierApproved — ' . $e->getMessage());
+            return false;
+        }
     }
 
     private function getSupplierDashboardUrl(): string

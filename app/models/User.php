@@ -148,10 +148,15 @@ class User
 
     public function login($data)
     {
-        $this->db->dbquery("SELECT user_id,password,name FROM users WHERE email = :email");
+        $this->db->dbquery("SELECT user_id,password,name,status,deleted_at,avatar FROM users WHERE email = :email");
         $this->db->dbbind(":email", $data['email']);
         $row = $this->db->getsingledata();
         if (!$row) return false;
+
+        // Defense-in-depth: never authenticate a moderated/soft-deleted account.
+        if (!empty($row['deleted_at']) || in_array(($row['status'] ?? ''), ['suspended', 'banned'], true)) {
+            return false;
+        }
 
         $pw_sha = $data['pw_sha'];
         $response = $data['response'];
@@ -166,6 +171,10 @@ class User
                 $_SESSION['session_email'] = $data['email'];
                 $_SESSION['session_name'] = $row['name'] ?? '';
                 $_SESSION['session_avatar'] = $row['avatar'] ?? null;
+                // Cache primary role in session to avoid DB lookups on every request
+                $roles = $this->getUserRoles((int)$row['user_id']);
+                $_SESSION['session_role'] = in_array('admin', $roles, true) ? 'admin'
+                    : (in_array('supplier', $roles, true) ? 'supplier' : 'customer');
                 return true;
             } else {
                 return false;
@@ -484,6 +493,67 @@ class User
         }
         $this->db->dbbind(':id', $userId);
         return $this->db->dbexecute();
+    }
+
+    /**
+     * Self-service account soft-delete.
+     * Sets deleted_at, forces status to 'banned', and clears remember token.
+     * Records are preserved (bookings, payments, etc.) but login is blocked.
+     */
+    public function softDeleteAccount(int $userId): bool
+    {
+        $this->db->dbquery('UPDATE users SET deleted_at = NOW(), status = \'banned\' WHERE user_id = :id');
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        $this->clearRememberToken($userId);
+        return true;
+    }
+
+    /**
+     * Permanently anonymize a soft-deleted account.
+     * Replaces personal data with placeholders so the email is freed up,
+     * but keeps the row to preserve foreign key integrity (bookings, payments, etc.).
+     */
+    public function permanentDeleteAccount(int $userId): bool
+    {
+        $anonEmail = 'deleted_' . $userId . '_' . time() . '@deleted.invalid';
+        $this->db->dbquery('UPDATE users SET
+            email = :email,
+            name = :name,
+            password = \'\',
+            avatar = NULL,
+            phone = \'\',
+            address = \'\',
+            status = \'banned\',
+            deleted_at = NOW(),
+            google_id = NULL,
+            facebook_id = NULL,
+            remember_token = NULL
+            WHERE user_id = :id');
+        $this->db->dbbind(':email', $anonEmail);
+        $this->db->dbbind(':name', 'Deleted User');
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        // Also anonymize supplier record if exists
+        $this->db->dbquery('UPDATE suppliers SET
+            shop_name = :shop_name,
+            description = \'\',
+            verify_url = NULL,
+            deleted_at = NOW()
+            WHERE user_id = :id');
+        $this->db->dbbind(':shop_name', 'Deleted Supplier');
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        // Remove roles
+        $this->db->dbquery('DELETE FROM user_roles WHERE user_id = :id');
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        $this->clearRememberToken($userId);
+        return true;
     }
 }
 

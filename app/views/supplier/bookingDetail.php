@@ -6,10 +6,12 @@ $suppliers = $suppliers ?? [];
 $bookingRef = $bookingRef ?? '';
 $supplierStatus = strtolower($supplierStatus ?? 'pending');
 $supplierId = (int)($supplierId ?? 0);
-$depositPercent = $depositPercent ?? 30;
+$depositPercent = $depositPercent ?? BOOKING_DEPOSIT_PERCENT;
 $packageSchedules = $packageSchedules ?? [];
+$paymentHistory = $paymentHistory ?? [];
+$refund = $refund ?? null;
 
-$money = fn($v) => 'RM ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $formatDate = function ($value, string $fallback = '-') {
     if (empty($value)) return $fallback;
@@ -94,7 +96,7 @@ $statusBadgeClass = function (string $status): string {
         return 'sup-badge--success';
     if (in_array($s, ['pending', 'unpaid', 'partial', 'payment_submitted'], true))
         return 'sup-badge--warn';
-    if (in_array($s, ['rejected', 'cancelled', 'canceled', 'failed', 'cancelled_by_customer', 'supplier_rejected'], true))
+    if (in_array($s, ['rejected', 'cancelled', 'canceled', 'failed', 'cancelled_by_customer', 'supplier_rejected', 'supplier_cancellation_requested'], true))
         return 'sup-badge--danger';
     return 'sup-badge--neutral';
 };
@@ -107,6 +109,10 @@ $customerEmail = trim((string)($booking['customer_email'] ?? ''));
 $customerPhone = trim((string)($booking['customer_phone'] ?? ''));
 $customerInitial = strtoupper(substr($customerName !== '' ? $customerName : 'C', 0, 1));
 $bookingStatus = strtolower((string)($booking['status'] ?? $supplierStatus));
+$bookingStatusLabel = match ($bookingStatus) {
+    'replacement_pending' => 'Replacement in progress',
+    default => ucwords(str_replace('_', ' ', $bookingStatus ?: 'pending')),
+};
 
 $dashboardTitle = 'Bookings';
 $dashboardCrumb = $bookingRef ?: 'Booking detail';
@@ -118,9 +124,11 @@ $dashboardContent = function () use (
     $totalGuests, $hasGuestData, $firstDate, $firstStart, $firstEnd,
     $firstLocation, $firstContactName, $firstContactPhone,
     $allSpecialRequests, $supplierTotal, $supplierPaid, $supplierRemaining,
-    $paymentStatus, $daysUntil, $otherSuppliers, $bookingStatus,
+    $bookingTotal, $paidTotal, $paidFraction, $paymentStatus, $daysUntil, $otherSuppliers, $bookingStatus, $bookingStatusLabel,
     $customerName, $customerEmail, $customerPhone, $customerInitial,
-    $packageSchedules, $isPackage, $declineCutoffDays, $myServiceRows
+    $packageSchedules, $isPackage, $declineCutoffDays, $myServiceRows,
+    $cancellationReason, $paymentHistory, $activeReplacement, $refund,
+    $isCancelledOrReplaced
 ) {
     $eventTime = trim($formatTime($firstStart) . ($firstEnd ? ' – ' . $formatTime($firstEnd) : ''), ' –');
     $needsResponse = $supplierStatus === 'pending';
@@ -133,1198 +141,88 @@ $dashboardContent = function () use (
         }
     }
 
-    // A supplier auto-accepts a package booking, so give them a bounded escape
-    // hatch: decline INDIVIDUAL services on a confirmed package booking (→ admin
-    // replacement) while the event is still at least $declineCutoffDays away.
-    $withinDeclineWindow = $isPackage && ($daysUntil === null || $daysUntil >= $declineCutoffDays);
+    // Give the supplier a bounded escape hatch: decline confirmed services while
+    // the event is still at least $declineCutoffDays away. For package bookings
+    // this triggers admin replacement; for non-package bookings it cancels.
+    $withinDeclineWindow = $daysUntil === null || $daysUntil >= $declineCutoffDays;
     $declinableRows = $withinDeclineWindow
         ? array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['confirmed', 'in_progress'], true)))
         : [];
 
+    // Supplier-initiated cancellation
+    $supplierCancellationRequested = in_array($supplierStatus, ['supplier_cancellation_requested'], true);
+    $canRequestCancellation = !$supplierCancellationRequested
+        && !$needsResponse
+        && in_array($bookingStatus, ['confirmed', 'paid'], true)
+        && in_array($supplierStatus, ['confirmed', 'in_progress'], true);
+
+
     // Services of this supplier already routed to replacement.
     $replacementRows = array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['needs_replacement', 'rejected'], true)));
+    $acceptedReplacementRows = array_values(array_filter(
+        $myServiceRows,
+        static fn($r) => ($r['replacement_status'] ?? '') === 'accepted'
+    ));
+    $assignedReplacementRows = array_values(array_filter(
+        $myServiceRows,
+        static fn($r) => ($r['replacement_status'] ?? '') === 'assigned'
+    ));
     $inReplacement = !empty($replacementRows) || $bookingStatus === 'replacement_pending';
+    $primaryAssignment = $myServiceRows[0] ?? [];
+    $primaryServiceId = (int)($primaryAssignment['service_id'] ?? 0);
+    $primarySchedule = null;
+    foreach ($packageSchedules as $scheduleRows) {
+        foreach ($scheduleRows as $scheduleRow) {
+            if (
+                (int)($scheduleRow['service_id'] ?? 0) === $primaryServiceId
+                || (int)($scheduleRow['supplier_id'] ?? 0) === $supplierId
+            ) {
+                $primarySchedule = $scheduleRow;
+                break 2;
+            }
+        }
+    }
+    $assignmentName = (string)(
+        $primarySchedule['service_name']
+        ?? $primaryAssignment['service_name']
+        ?? $items[0]['service_name']
+        ?? 'Assigned service'
+    );
+    $assignmentCategory = (string)(
+        $primarySchedule['category_name']
+        ?? $primaryAssignment['category_name']
+        ?? $items[0]['category_name']
+        ?? ''
+    );
+    $assignmentDate = (string)($primarySchedule['event_date'] ?? $firstDate);
+    $assignmentStart = (string)($primarySchedule['start_time'] ?? $firstStart);
+    $assignmentEnd = (string)($primarySchedule['end_time'] ?? $firstEnd);
+    $assignmentVenue = trim((string)(
+        $primarySchedule['venue_room_name']
+        ?? $items[0]['venue_room_name']
+        ?? $firstLocation
+    ));
+    $assignmentStatusLabel = $needsResponse
+        ? 'Awaiting your response'
+        : (in_array($supplierStatus, ['confirmed', 'accepted'], true) ? 'Your service is confirmed' : ucwords(str_replace('_', ' ', $supplierStatus)));
     $ownTimelineServiceIds = array_values(array_unique(array_filter(array_map(
         static fn($row) => (int)($row['service_id'] ?? 0),
         $myServiceRows
     ))));
 ?>
-<style>
-  /* ── Supplier Booking Detail — Redesign ── */
-  .sup-page {
-    --sup-surface: #fcf8f5;
-    --sup-soft: #faf5ef;
-    --sup-border: #ead8c7;
-    --sup-border-light: #eddecc;
-    --sup-primary: #6d4c5b;
-    --sup-primary-soft: #eddecc;
-    --sup-primary-hover: #7b5c69;
-    --sup-text: #111827;
-    --sup-muted: #b79c8b;
-    --sup-body: #7b5c69;
-    --sup-success-bg: #d1fae5;
-    --sup-success-text: #065f46;
-    --sup-success-border: #059669;
-    --sup-warn-bg: #fef3c7;
-    --sup-warn-text: #92400e;
-    --sup-warn-border: #d97706;
-    --sup-danger-bg: #fee2e2;
-    --sup-danger-text: #991b1b;
-    --sup-danger-border: #dc2626;
-    --sup-info-bg: #e8e7ff;
-    --sup-info-text: #4f46a5;
-    --sup-neutral-bg: #f3f4f6;
-    --sup-neutral-text: #57534e;
-    width: 100%;
-    max-width: 1600px;
-    min-width: 0;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    font-family: 'Poppins', system-ui, sans-serif;
-    font-size: 13px;
-    color: var(--sup-text);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-  }
-  .sup-page * { box-sizing: border-box; }
-
-  /* ── Header ── */
-  .sup-header {
-    background: var(--sup-surface);
-    border: 1px solid var(--sup-border);
-    border-radius: 1rem;
-    padding: 20px 24px;
-    box-shadow: 0 1px 2px rgba(28, 25, 23, .04);
-  }
-  .sup-header-top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
-  }
-  .sup-header-left { min-width: 0; }
-  .sup-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--sup-muted);
-    text-decoration: none;
-    margin-bottom: 10px;
-    transition: color .12s;
-  }
-  .sup-back:hover { color: var(--sup-text); }
-  .sup-back svg { width: 12px; height: 12px; }
-
-  .sup-ref {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--sup-text);
-    letter-spacing: -.02em;
-    line-height: 1.2;
-    margin: 0;
-    overflow-wrap: anywhere;
-  }
-  .sup-ref em {
-    font-style: normal;
-    color: var(--sup-muted);
-    font-weight: 400;
-  }
-  .sup-header-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-  }
-
-  /* ── Customer strip ── */
-  .sup-cust {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-shrink: 0;
-  }
-  .sup-cust-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--sup-primary-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--sup-primary);
-    flex-shrink: 0;
-  }
-  .sup-cust-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--sup-text);
-  }
-  .sup-cust-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 2px;
-  }
-  .sup-cust-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    color: var(--sup-muted);
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-  .sup-cust-item svg { width: 11px; height: 11px; flex-shrink: 0; }
-
-  /* ── Response bar (inline, not yellow) ── */
-  .sup-response-bar {
-    border-top: 1px solid var(--sup-border);
-    margin-top: 16px;
-    padding-top: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .sup-selfdecline {
-    border-top: 1px solid var(--sup-border);
-    margin-top: 16px;
-    padding-top: 14px;
-  }
-  .sup-selfdecline-head {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  .sup-selfdecline-head > svg {
-    width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;
-    color: var(--sup-warn-text);
-  }
-  .sup-selfdecline-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-  .sup-selfdecline-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--sup-border);
-    border-radius: .75rem;
-    background: var(--sup-soft);
-  }
-  .sup-selfdecline-svc { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .sup-selfdecline-svc strong { font-weight: 700; color: var(--sup-text); font-size: 13px; }
-  .sup-selfdecline-svc span { font-size: 11px; color: var(--sup-muted); }
-  .sup-replace-banner {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-top: 16px;
-    padding: 12px 14px;
-    border: 1px solid var(--sup-info-text);
-    border-radius: .75rem;
-    background: var(--sup-info-bg);
-    color: var(--sup-info-text);
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .sup-replace-banner svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
-  .sup-replace-banner strong { font-weight: 700; }
-  .sup-response-info {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    min-width: 0;
-  }
-  .sup-response-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: .75rem;
-    background: var(--sup-primary-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--sup-primary);
-    flex-shrink: 0;
-  }
-  .sup-response-icon svg { width: 14px; height: 14px; }
-  .sup-response-text {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--sup-body);
-  }
-  .sup-response-sub {
-    font-size: 11px;
-    color: var(--sup-muted);
-    margin-top: 2px;
-  }
-  .sup-response-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  /* ── Buttons ── */
-  .sup-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-family: 'Poppins', system-ui, sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .03em;
-    padding: 8px 16px;
-    border-radius: .75rem;
-    border: none;
-    cursor: pointer;
-    transition: background .15s, box-shadow .15s;
-    white-space: nowrap;
-    text-decoration: none;
-  }
-  .sup-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
-  .sup-btn:disabled { cursor: wait; opacity: .55; }
-  .sup-btn--accept  {
-    background: var(--sup-success-text);
-    color: #fcf8f5;
-    border: 1px solid var(--sup-success-border);
-  }
-  .sup-btn--accept:hover {
-    background: #047857;
-    box-shadow: 0 2px 8px rgba(5, 150, 105, .25);
-  }
-  .sup-btn--decline {
-    background: var(--sup-surface);
-    color: var(--sup-text);
-    border: 1px solid var(--sup-border);
-  }
-  .sup-btn--decline:hover {
-    background: var(--sup-danger-bg);
-    color: var(--sup-danger-text);
-    border-color: var(--sup-danger-border);
-  }
-  .sup-btn--ghost {
-    background: var(--sup-surface);
-    color: var(--sup-muted);
-    border: 1px solid var(--sup-border);
-  }
-  .sup-btn--ghost:hover {
-    background: var(--sup-primary-soft);
-    color: var(--sup-primary);
-  }
-
-  /* ── Badges ── */
-  .sup-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 999px;
-    white-space: nowrap;
-  }
-  .sup-badge::before {
-    content: '';
-    display: inline-block;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-  }
-  .sup-badge--success { background: var(--sup-success-bg); color: var(--sup-success-text); }
-  .sup-badge--warn    { background: var(--sup-warn-bg);    color: var(--sup-warn-text); }
-  .sup-badge--danger  { background: var(--sup-danger-bg);  color: var(--sup-danger-text); }
-  .sup-badge--neutral { background: var(--sup-neutral-bg); color: var(--sup-neutral-text); }
-
-  /* ── Countdown pill ── */
-  .sup-countdown {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 999px;
-    white-space: nowrap;
-  }
-  .sup-countdown svg { width: 10px; height: 10px; }
-  .sup-countdown--urgent {
-    background: var(--sup-danger-bg);
-    color: var(--sup-danger-text);
-  }
-  .sup-countdown--soon {
-    background: var(--sup-warn-bg);
-    color: var(--sup-warn-text);
-  }
-  .sup-countdown--ok {
-    background: var(--sup-success-bg);
-    color: var(--sup-success-text);
-  }
-
-  /* ── Stats band ── */
-  .sup-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-  }
-  .sup-stat {
-    background: var(--sup-surface);
-    border: 1px solid var(--sup-border);
-    border-left-width: 3px;
-    border-radius: .75rem;
-    padding: 16px 18px;
-    transition: box-shadow .15s;
-  }
-  .sup-stat:hover { box-shadow: 0 2px 8px rgba(28, 25, 23, .06); }
-  .sup-stat--neutral { border-left-color: #a8a29e; }
-  .sup-stat--primary { border-left-color: var(--sup-primary); }
-  .sup-stat-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--sup-muted);
-    margin-bottom: 6px;
-  }
-  .sup-stat-value {
-    font-size: 24px;
-    font-weight: 700;
-    line-height: 1.1;
-    color: var(--sup-text);
-    letter-spacing: -.02em;
-    overflow-wrap: anywhere;
-  }
-  .sup-stat-value--sm { font-size: 16px; }
-  .sup-stat-sub {
-    font-size: 11px;
-    color: var(--sup-muted);
-    margin-top: 4px;
-  }
-
-  /* ── 2-column body ── */
-  .sup-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 18px;
-    align-items: start;
-    min-width: 0;
-  }
-  .sup-main, .sup-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-
-  /* ── Cards ── */
-  .sup-card {
-    background: var(--sup-surface);
-    border: 1px solid var(--sup-border);
-    border-radius: .75rem;
-    overflow: hidden;
-    box-shadow: 0 1px 2px rgba(28, 25, 23, .04);
-    min-width: 0;
-  }
-  .sup-card-head {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--sup-border-light);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .sup-card-title {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--sup-muted);
-  }
-  .sup-card-body { padding: 16px 20px; }
-
-  /* ── Services table ── */
-  .sup-table-wrap { overflow-x: auto; }
-  .sup-table { width: 100%; min-width: 700px; border-collapse: collapse; }
-  .sup-table th {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--sup-muted);
-    padding: 10px 20px;
-    text-align: left;
-    background: var(--sup-soft);
-    border-bottom: 1px solid var(--sup-border);
-    white-space: nowrap;
-  }
-  .sup-table th:last-child,
-  .sup-table th.is-right { text-align: right; }
-  .sup-table td {
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--sup-soft);
-    vertical-align: top;
-  }
-  .sup-table tr:last-child td { border-bottom: none; }
-  .sup-table tr:hover td { background: var(--sup-soft); }
-  .sup-table td:last-child,
-  .sup-table td.is-right { text-align: right; }
-
-  /* ── Service thumb ── */
-  .sup-svc-thumb {
-    width: 40px;
-    height: 40px;
-    border-radius: .6rem;
-    object-fit: cover;
-    border: 1px solid var(--sup-border);
-    flex-shrink: 0;
-  }
-  .sup-svc-thumb-placeholder {
-    width: 40px;
-    height: 40px;
-    border-radius: .6rem;
-    background: var(--sup-soft);
-    border: 1px solid var(--sup-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .sup-svc-thumb-placeholder svg { width: 16px; height: 16px; color: var(--sup-muted); }
-  .sup-svc-name { font-size: 13px; font-weight: 700; color: var(--sup-text); }
-  .sup-svc-cat  { font-size: 11px; color: var(--sup-muted); margin-top: 2px; }
-  .sup-svc-note {
-    font-size: 11px;
-    color: var(--sup-body);
-    margin-top: 6px;
-    padding: 7px 10px;
-    background: var(--sup-soft);
-    border-left: 3px solid var(--sup-border);
-    border-radius: 0 .5rem .5rem 0;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-  }
-  .sup-svc-addon {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 1px 7px;
-    border-radius: 999px;
-    background: var(--sup-info-bg);
-    color: var(--sup-info-text);
-    margin-top: 3px;
-  }
-  .sup-price {
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--sup-text);
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  /* ── Sidebar elements ── */
-  .sup-side-head {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--sup-muted);
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .sup-side-head svg { width: 12px; height: 12px; }
-  .sup-contact-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--sup-text);
-    margin-bottom: 4px;
-  }
-  .sup-contact-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--sup-muted);
-    margin-bottom: 3px;
-    overflow-wrap: anywhere;
-  }
-  .sup-contact-row svg { width: 11px; height: 11px; flex-shrink: 0; }
-
-  /* Supplier rows */
-  .sup-sup-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 7px 0;
-    border-bottom: 1px solid var(--sup-soft);
-  }
-  .sup-sup-row:last-child { border-bottom: none; }
-  .sup-sup-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .sup-sup-thumb {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid var(--sup-border);
-    flex-shrink: 0;
-  }
-  .sup-sup-initial {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--sup-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--sup-muted);
-    flex-shrink: 0;
-  }
-  .sup-sup-name {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--sup-text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Special requests */
-  .sup-sr-item {
-    font-size: 12px;
-    color: var(--sup-body);
-    line-height: 1.6;
-    padding: 9px 11px;
-    background: var(--sup-surface);
-    border: 1px solid var(--sup-border);
-    border-radius: .6rem;
-    margin-bottom: 6px;
-    overflow-wrap: anywhere;
-  }
-  .sup-sr-item:last-child { margin-bottom: 0; }
-
-  /* ── Empty states ── */
-  .sup-empty {
-    padding: 32px 24px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--sup-muted);
-    font-weight: 600;
-  }
-
-  /* ── Modal ── */
-  .sup-modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    background: rgba(34, 24, 19, .45);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-  .sup-modal-overlay.is-open { display: flex; }
-  .sup-modal {
-    background: var(--sup-surface);
-    border: 1px solid var(--sup-border);
-    border-radius: .75rem;
-    width: 100%;
-    max-width: 440px;
-    box-shadow: 0 20px 60px rgba(34, 24, 19, .18);
-  }
-  .sup-modal-head {
-    padding: 18px 20px;
-    border-bottom: 1px solid var(--sup-border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .sup-modal-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--sup-text);
-  }
-  .sup-modal-close {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--sup-muted);
-    padding: 4px;
-    display: flex;
-  }
-  .sup-modal-close:hover { color: var(--sup-text); }
-  .sup-modal-close svg { width: 16px; height: 16px; }
-  .sup-modal-body { padding: 20px; }
-  .sup-field { margin-bottom: 14px; }
-  .sup-label {
-    display: block;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--sup-muted);
-    margin-bottom: 5px;
-  }
-  .sup-input, .sup-textarea {
-    width: 100%;
-    font-family: 'Poppins', system-ui, sans-serif;
-    font-size: 13px;
-    color: var(--sup-text);
-    background: var(--sup-surface);
-    border: 1px solid var(--sup-border);
-    border-radius: .6rem;
-    padding: 9px 11px;
-    outline: none;
-    transition: border-color .15s;
-  }
-  .sup-input:focus, .sup-textarea:focus { border-color: var(--sup-primary); }
-  .sup-textarea { resize: vertical; min-height: 80px; }
-  .sup-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .sup-modal-foot {
-    padding: 14px 20px;
-    border-top: 1px solid var(--sup-border);
-    display: flex;
-    gap: 8px;
-  }
-  .sup-modal-foot .sup-btn { flex: 1; justify-content: center; }
-
-  /* ── Responsive ── */
-  @media (max-width: 1050px) {
-    .sup-body { grid-template-columns: 1fr; }
-    .sup-stats { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 680px) {
-    .sup-stats { grid-template-columns: 1fr 1fr; }
-    .sup-header { padding: 16px; }
-    .sup-card-head, .sup-card-body { padding-left: 16px; padding-right: 16px; }
-    .sup-ref { font-size: 20px; }
-    .sup-response-actions .sup-btn { width: 100%; justify-content: center; }
-    .sup-response-actions { width: 100%; }
-    .sup-field-row { grid-template-columns: 1fr; }
-  }
-  @media (max-width: 480px) {
-    .sup-stats { grid-template-columns: 1fr; }
-    .sup-response-bar { flex-direction: column; align-items: stretch; }
-  }
-
-  /* ── Tabbed booking workspace ── */
-  .sup-booking-tabs {
-    position: sticky;
-    top: 76px;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 8px;
-    border: 1px solid #e7e5e4;
-    border-radius: 14px;
-    background: rgba(250,249,248,.94);
-    box-shadow: 0 1px 2px rgba(28,25,23,.05);
-    backdrop-filter: blur(14px);
-  }
-  .sup-booking-tab-list {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-width: 0;
-  }
-  .sup-booking-tab {
-    display: inline-flex;
-    min-height: 38px;
-    align-items: center;
-    gap: 7px;
-    padding: 0 13px;
-    border: 0;
-    border-radius: 9px;
-    color: #78716c;
-    background: transparent;
-    font-size: 11px;
-    font-weight: 750;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  .sup-booking-tab svg { width: 14px; height: 14px; }
-  .sup-booking-tab:hover { color: #673049; background: #fde8ef; }
-  .sup-booking-tab.is-active {
-    color: #673049;
-    background: #fcf8f5;
-    box-shadow: 0 2px 9px rgba(28,25,23,.08);
-  }
-  .sup-booking-tab:focus-visible {
-    outline: 3px solid rgba(103,48,73,.15);
-    outline-offset: 2px;
-  }
-  .sup-booking-tab-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding-right: 8px;
-    color: #78716c;
-    font-size: 10px;
-    font-weight: 650;
-  }
-  .sup-booking-tab-status i {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: <?= $needsResponse ? '#d97706' : '#059669' ?>;
-  }
-  .sup-tabbed-body {
-    display: contents;
-  }
-  .sup-tabbed-body .sup-main,
-  .sup-tabbed-body .sup-side {
-    display: contents;
-  }
-  [data-booking-panel] {
-    display: none;
-    width: 100%;
-    animation: none;
-  }
-  [data-booking-panel].is-active {
-    display: block;
-    animation: supTabEnter .22s ease both;
-  }
-  @keyframes supTabEnter {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .sup-stats[data-booking-panel] {
-    grid-template-columns: repeat(4, minmax(0,1fr));
-  }
-  .sup-stats[data-booking-panel].is-active {
-    display: grid;
-  }
-  .sup-payment-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0,1fr));
-    gap: 12px;
-    padding: 20px;
-  }
-  .sup-payment-fact {
-    padding: 16px;
-    border: 1px solid #e7e5e4;
-    border-radius: 12px;
-    background: #f9f8f6;
-  }
-  .sup-payment-fact small {
-    display: block;
-    color: #78716c;
-    font-size: 10px;
-    font-weight: 700;
-  }
-  .sup-payment-fact strong {
-    display: block;
-    margin-top: 5px;
-    color: #1c1917;
-    font-size: 18px;
-  }
-  .sup-payment-track {
-    height: 7px;
-    margin: 0 20px 20px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: #e7e5e4;
-  }
-  .sup-payment-fill {
-    height: 100%;
-    border-radius: inherit;
-    background: #673049;
-  }
-  @media (max-width: 820px) {
-    .sup-booking-tabs { align-items: flex-start; flex-direction: column; }
-    .sup-booking-tab-list { width:100%; overflow-x:auto; }
-    .sup-booking-tab-status { padding:0 8px 4px; }
-    .sup-stats[data-booking-panel] { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .sup-payment-grid { grid-template-columns:1fr; }
-  }
-  @media (max-width: 520px) {
-    .sup-page { padding: 14px 12px; }
-    .sup-booking-tab span { display:none; }
-    .sup-booking-tab { min-width:42px; justify-content:center; padding:0 10px; }
-    .sup-stats[data-booking-panel] { grid-template-columns:1fr; }
-  }
-
-  /* ── Event run sheet layout ── */
-  .sup-runsheet-head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 18px;
-    padding: 4px 2px;
-  }
-  .sup-runsheet-head span {
-    color: #673049;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .11em;
-    text-transform: uppercase;
-  }
-  .sup-runsheet-head h2 {
-    margin: 3px 0 0;
-    color: #34232b;
-    font-family: "Playfair Display", serif;
-    font-size: 27px;
-    font-weight: 650;
-    letter-spacing: -.025em;
-  }
-  .sup-runsheet-head p {
-    margin: 0;
-    color: #78716c;
-    font-size: 11px;
-  }
-  .sup-runsheet-layout {
-    display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
-    gap: 14px;
-    align-items: start;
-  }
-  .sup-runsheet-layout > .sup-stats {
-    grid-column: 1;
-    grid-row: 1;
-    grid-template-columns: 1fr;
-    position: sticky;
-    top: 84px;
-  }
-  .sup-runsheet-layout > .sup-body {
-    display: contents;
-  }
-  .sup-runsheet-layout .sup-main {
-    grid-column: 2;
-    grid-row: 1 / span 3;
-  }
-  .sup-runsheet-layout .sup-side {
-    grid-column: 1;
-    grid-row: 2;
-  }
-  .sup-runsheet-layout > .sup-payment-card {
-    grid-column: 2;
-  }
-  .sup-runsheet-layout .sup-stat {
-    border-left-width: 1px;
-    border-color: #e7e5e4;
-    border-radius: 12px;
-    background: #fcf8f5;
-    padding: 14px;
-    box-shadow: 0 1px 2px rgba(28,25,23,.04);
-  }
-  .sup-runsheet-layout .sup-stat-value {
-    font-size: 18px;
-  }
-  .sup-runsheet-layout .sup-main > .sup-card {
-    position: relative;
-  }
-  .sup-runsheet-layout .sup-main > .sup-card + .sup-card {
-    margin-top: 0;
-  }
-  .sup-runsheet-layout .sup-main > .sup-card:not(:first-child)::before {
-    content: '';
-    position: absolute;
-    top: -19px;
-    left: 28px;
-    width: 2px;
-    height: 19px;
-    background: #eadce3;
-  }
-  .sup-runsheet-layout .sup-card {
-    border-color: #e7e5e4;
-    border-radius: 16px;
-  }
-  .sup-runsheet-layout .sup-card-title {
-    color: #1c1917;
-    font-size: 12px;
-    letter-spacing: -.01em;
-    text-transform: none;
-  }
-  .sup-runsheet-layout .sup-table thead {
-    background: #f9f8f6;
-  }
-  .sup-runsheet-layout .sup-table tr:hover td {
-    background: #f5f5f3;
-  }
-  .sup-timeline-row.is-mine td {
-    background: #fff8fb;
-    border-top: 1px solid #f3cddb;
-    border-bottom: 1px solid #f3cddb;
-  }
-  .sup-timeline-row.is-mine td:first-child {
-    border-left: 4px solid #673049;
-  }
-  .sup-timeline-row.is-mine:hover td {
-    background: #fdeef4;
-  }
-  .sup-timeline-row.is-clickable {
-    cursor: pointer;
-  }
-  .sup-timeline-row.is-clickable:focus {
-    outline: 3px solid rgba(103,48,73,.18);
-    outline-offset: -3px;
-  }
-  .sup-own-service {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 5px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    color: #673049;
-    background: #fde8ef;
-    font-size: 9px;
-    font-weight: 800;
-  }
-  .sup-own-service::before {
-    content: '';
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-  .sup-timeline-guest {
-    color: #1c1917;
-    font-size: 12px;
-    font-weight: 750;
-  }
-  .sup-service-more {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: #673049;
-    font-size: 9px;
-    font-weight: 750;
-  }
-  .sup-service-drawer-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 70;
-    visibility: hidden;
-    background: rgba(36,24,30,.2);
-    opacity: 0;
-    backdrop-filter: blur(2px);
-    transition: opacity .2s ease, visibility .2s ease;
-  }
-  .sup-service-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    z-index: 80;
-    width: min(430px,92vw);
-    height: 100vh;
-    overflow-y: auto;
-    border-left: 1px solid #ead8c7;
-    background: #fcf8f5;
-    padding: 25px;
-    box-shadow: -20px 0 50px rgba(52,35,43,.13);
-    transform: translateX(105%);
-    transition: transform .24s ease;
-  }
-  body.sup-service-drawer-open .sup-service-drawer-backdrop {
-    visibility: visible;
-    opacity: 1;
-  }
-  body.sup-service-drawer-open .sup-service-drawer {
-    transform: translateX(0);
-  }
-  .sup-service-drawer-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 18px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #ead8c7;
-  }
-  .sup-service-drawer-kicker {
-    margin: 0 0 5px;
-    color: #9b7d89;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-  }
-  .sup-service-drawer-title {
-    margin: 0;
-    color: #34232b;
-    font: 700 21px "Playfair Display",serif;
-  }
-  .sup-service-drawer-close {
-    display: inline-flex;
-    width: 36px;
-    height: 36px;
-    flex: 0 0 36px;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #ead8c7;
-    border-radius: 10px;
-    background: #faf5ef;
-    color: #7b5c69;
-    cursor: pointer;
-  }
-  .sup-service-detail-list {
-    display: grid;
-    margin: 12px 0 0;
-  }
-  .sup-service-detail {
-    padding: 15px 0;
-    border-bottom: 1px solid #f0e5dc;
-  }
-  .sup-service-detail dt {
-    color: #a58b96;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-  }
-  .sup-service-detail dd {
-    margin: 6px 0 0;
-    color: #34232b;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.55;
-    overflow-wrap: anywhere;
-  }
-  .sup-drawer-timeline {
-    margin-top: 22px;
-  }
-  .sup-drawer-timeline-head {
-    padding-bottom: 12px;
-    border-bottom: 1px solid #ead8c7;
-  }
-  .sup-drawer-timeline-head span {
-    color: #9b7d89;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-  }
-  .sup-drawer-timeline-head h3 {
-    margin: 4px 0 0;
-    color: #34232b;
-    font-size: 14px;
-    font-weight: 750;
-  }
-  .sup-drawer-timeline-list {
-    position: relative;
-    display: grid;
-    gap: 0;
-    padding-top: 14px;
-  }
-  .sup-drawer-timeline-item {
-    position: relative;
-    display: grid;
-    grid-template-columns: 52px 22px minmax(0,1fr);
-    gap: 9px;
-    padding-bottom: 15px;
-  }
-  .sup-drawer-timeline-item:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    left: 62px;
-    top: 21px;
-    bottom: -1px;
-    width: 1px;
-    background: #ead8c7;
-  }
-  .sup-drawer-time {
-    padding-top: 3px;
-    color: #9b7d89;
-    font-size: 9px;
-    font-weight: 750;
-    text-align: right;
-  }
-  .sup-drawer-dot {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    width: 22px;
-    height: 22px;
-    place-items: center;
-    border: 4px solid #fcf8f5;
-    border-radius: 50%;
-    background: #d6c8ce;
-  }
-  .sup-drawer-timeline-copy {
-    padding: 10px 11px;
-    border: 1px solid #ead8c7;
-    border-radius: 10px;
-    background: #fcf8f5;
-  }
-  .sup-drawer-timeline-copy strong {
-    display: block;
-    color: #34232b;
-    font-size: 11px;
-  }
-  .sup-drawer-timeline-copy small {
-    display: block;
-    margin-top: 3px;
-    color: #9b7d89;
-    font-size: 9px;
-  }
-  .sup-drawer-timeline-item.is-mine .sup-drawer-dot {
-    background: #b87994;
-  }
-  .sup-drawer-timeline-item.is-mine .sup-drawer-timeline-copy {
-    border-color: #e8bace;
-    background: #fff8fb;
-  }
-  .sup-drawer-timeline-item.is-current .sup-drawer-dot {
-    background: #673049;
-    box-shadow: 0 0 0 4px #fde8ef;
-  }
-  .sup-drawer-timeline-item.is-current .sup-drawer-timeline-copy {
-    border-color: #673049;
-    background: #fde8ef;
-    box-shadow: 0 4px 14px rgba(103,48,73,.1);
-  }
-  .sup-drawer-timeline-label {
-    display: inline-flex;
-    margin-top: 6px;
-    border-radius: 999px;
-    padding: 2px 7px;
-    color: #673049;
-    background: #fcf8f5;
-    font-size: 8px;
-    font-weight: 800;
-  }
-  @media (max-width: 980px) {
-    .sup-runsheet-layout { grid-template-columns: 1fr; }
-    .sup-runsheet-layout > .sup-stats,
-    .sup-runsheet-layout .sup-main,
-    .sup-runsheet-layout .sup-side,
-    .sup-runsheet-layout > .sup-payment-card {
-      grid-column: 1;
-      grid-row: auto;
-      position: static;
-    }
-    .sup-runsheet-layout > .sup-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  }
-  @media (max-width: 560px) {
-    .sup-runsheet-head { align-items:flex-start; flex-direction:column; }
-    .sup-runsheet-layout > .sup-stats { grid-template-columns:1fr; }
-  }
-</style>
-
+<link rel="stylesheet" href="<?= URLROOT ?>/public/css/supplier-booking-detail.css?v=<?= filemtime(APPROOT . "/../public/css/supplier-booking-detail.css") ?>">
+<script src="<?= URLROOT ?>/public/js/supplier-toast.js"></script>
 <div class="sup-page">
 
   <!-- ── Header ── -->
   <header class="sup-header">
     <div class="sup-header-top">
       <div class="sup-header-left">
-        <a href="<?= URLROOT ?>/supplier/bookings" class="sup-back">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 12L6 8l4-4"/></svg>
-          All bookings
-        </a>
+        <nav class="sup-breadcrumb" aria-label="Breadcrumb">
+          <a href="<?= URLROOT ?>/supplier/bookings">Bookings</a>
+          <span class="sup-breadcrumb-sep">/</span>
+          <span class="sup-breadcrumb-current"><?= $h($bookingRef ?: 'Detail') ?></span>
+        </nav>
         <h1 class="sup-ref">
           <?php
             $refParts = $bookingRef ? explode('-', $bookingRef, 2) : ['Booking', ''];
@@ -1342,7 +240,7 @@ $dashboardContent = function () use (
               else: echo $daysUntil . ' day' . ($daysUntil === 1 ? '' : 's') . ' away'; endif; ?>
             </span>
           <?php endif; ?>
-          <span class="sup-badge <?= $statusBadgeClass($bookingStatus) ?>">Booking <?= $h(ucfirst($bookingStatus ?: 'pending')) ?></span>
+          <span class="sup-badge <?= $statusBadgeClass($bookingStatus) ?>">Booking <?= $h($bookingStatusLabel) ?></span>
         </div>
       </div>
 
@@ -1355,7 +253,7 @@ $dashboardContent = function () use (
             <?php if ($customerPhone !== ''): ?>
               <span class="sup-cust-item">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h2.5l1 3-1.5 1a8 8 0 003 3l1-1.5 3 1V12a1 1 0 01-1 1C6 13 2 8.5 2 4a1 1 0 011-1z"/></svg>
-                <?= $h($customerPhone) ?>
+                <a href="tel:<?= $h($customerPhone) ?>" class="sup-tel-link"><?= $h($customerPhone) ?></a>
               </span>
             <?php endif; ?>
             <?php if ($customerEmail !== ''): ?>
@@ -1370,18 +268,33 @@ $dashboardContent = function () use (
     </div>
 
     <!-- Response bar — inline, no yellow background -->
-    <?php if ($needsResponse): ?>
-    <div class="sup-response-bar">
+    <?php if ($needsResponse):
+        $isReplacementAssignment = !empty($activeReplacement);
+        $replOrigSupplier = $isReplacementAssignment ? trim((string)($activeReplacement['old_shop_name'] ?? $activeReplacement['old_supplier_name'] ?? '')) : '';
+        $replOrigService = $isReplacementAssignment ? trim((string)($activeReplacement['old_service_name'] ?? '')) : '';
+    ?>
+    <div class="sup-response-bar is-sticky">
       <div class="sup-response-info">
         <div class="sup-response-icon">
-          <?php if ($bookingStatus === 'pending_supplier_response'): ?>
+          <?php if ($isReplacementAssignment): ?>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 0110-4.5M14 8a6 6 0 01-10 4.5"/><path d="M12 2v3H9M4 14v-3h3"/></svg>
+          <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a4 4 0 014 4v2l1 2H3l1-2V6a4 4 0 014-4zm-1 10h2a1 1 0 01-2 0z"/></svg>
           <?php else: ?>
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
           <?php endif; ?>
         </div>
         <div>
-          <?php if ($bookingStatus === 'pending_supplier_response'): ?>
+          <?php if ($isReplacementAssignment): ?>
+            <div class="sup-response-text">You've been assigned as a replacement</div>
+            <div class="sup-response-sub">
+              <?php if ($replOrigSupplier !== ''): ?>
+                <?= $h($replOrigSupplier) ?><?php if ($replOrigService !== ''): ?>'s <?= $h($replOrigService) ?><?php endif; ?> is no longer available. Please accept or decline this replacement assignment.
+              <?php else: ?>
+                A previous supplier declined this booking. Please accept or decline this replacement assignment.
+              <?php endif; ?>
+            </div>
+          <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
             <div class="sup-response-text">New booking request — customer is requesting your services</div>
             <div class="sup-response-sub">Please accept or decline within 48 hours. No payment has been collected yet.</div>
           <?php else: ?>
@@ -1393,13 +306,13 @@ $dashboardContent = function () use (
       <div class="sup-response-actions">
         <button type="button" class="booking-action sup-btn sup-btn--accept" data-action="accept">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-          <?= $bookingStatus === 'pending_supplier_response' ? 'Accept Request' : 'Accept' ?>
+          <?= $isReplacementAssignment ? 'Accept Assignment' : ($bookingStatus === 'pending_supplier_response' ? 'Accept Request' : 'Accept') ?>
         </button>
         <button type="button" class="booking-action sup-btn sup-btn--decline" data-action="decline">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-          <?= $bookingStatus === 'pending_supplier_response' ? 'Decline Request' : 'Decline' ?>
+          <?= $isReplacementAssignment ? 'Decline Assignment' : ($bookingStatus === 'pending_supplier_response' ? 'Decline Request' : 'Decline') ?>
         </button>
-        <?php if ($bookingStatus !== 'pending_supplier_response'): ?>
+        <?php if (!$isReplacementAssignment && $bookingStatus !== 'pending_supplier_response'): ?>
         <button type="button" id="reschedule-btn" class="sup-btn sup-btn--ghost">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 2v2M11 2v2M2 7h12"/></svg>
           Propose reschedule
@@ -1409,29 +322,342 @@ $dashboardContent = function () use (
     </div>
     <?php endif; ?>
 
-    <!-- Replacement-in-progress banner (after a decline) -->
-    <?php if ($inReplacement): ?>
-    <div class="sup-replace-banner">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 0110-4.5M14 8a6 6 0 01-10 4.5"/><path d="M12 2v3H9M4 14v-3h3"/></svg>
-      <div>
-        <strong>Replacement in progress.</strong>
-        <?php if (!empty($replacementRows)): ?>
-          You declined
-          <?= $h(implode(', ', array_map(static fn($r) => $r['service_name'] ?? ($r['category_name'] ?? 'a service'), $replacementRows))) ?>.
-        <?php endif; ?>
-        The admin is assigning another supplier for the affected service(s) — your other services on this booking are unchanged.
+    <?php
+    // Cancellation review bar — shown when the supplier needs to approve/decline a cancellation request
+    $needsCancellationReview = $bookingStatus === 'cancellation_requested' && $supplierStatus === 'cancellation_pending';
+    $supplierApprovedCancellation = $supplierStatus === 'cancellation_approved';
+    ?>
+    <?php if ($needsCancellationReview): ?>
+    <div class="sup-response-bar sup-cancellation-review">
+      <div class="sup-response-info">
+        <div class="sup-response-icon" style="color:var(--sup-amber)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
+        </div>
+        <div>
+          <div class="sup-response-text">Cancellation request from <?= $h($customerName) ?></div>
+          <div class="sup-response-sub">
+            <?php if ($cancellationReason): ?>
+              <strong>Reason:</strong> <?= $h($cancellationReason) ?>
+            <?php else: ?>
+              The customer has requested to cancel this booking.
+            <?php endif; ?>
+          </div>
+          <div class="sup-response-sub" style="margin-top:4px;opacity:.7">Your response will be sent to the customer and admin for review.</div>
+          <?php if ($bookingTotal > 0): ?>
+          <div style="margin-top:6px;display:flex;gap:16px;font-size:11px;font-weight:600;color:var(--sup-text,#6d4c5b)">
+            <span>Booking total: <?= $money($bookingTotal) ?></span>
+            <?php if ($paidTotal > 0): ?><span>Paid: <?= $money($paidTotal) ?></span><?php endif; ?>
+          </div>
+          <?php endif; ?>
+        </div>
+      </div>
+      <div class="sup-response-actions">
+        <button type="button" class="sup-btn sup-btn--accept cancellation-review-btn" data-action="approve">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
+          Approve Cancellation
+        </button>
+        <button type="button" class="sup-btn sup-btn--decline cancellation-review-btn" data-action="decline">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+          Decline Cancellation
+        </button>
+      </div>
+    </div>
+    <?php elseif ($supplierApprovedCancellation): ?>
+    <div class="sup-response-bar" style="background:#f0fdf4;border-color:#bbf7d0">
+      <div class="sup-response-info">
+        <div class="sup-response-icon" style="color:#16a34a">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
+        </div>
+        <div>
+          <div class="sup-response-text">You approved the cancellation</div>
+          <div class="sup-response-sub">Admin will review and finalize the cancellation and refund process.</div>
+        </div>
       </div>
     </div>
     <?php endif; ?>
 
-    <!-- Self-decline per service (confirmed package, before cutoff) -->
-    <?php if (!empty($declinableRows)): ?>
+    <?php if (!empty($isCancelledOrReplaced)):
+        $cancelledLabel = match ($supplierStatus) {
+            'cancelled' => 'This booking has been cancelled',
+            'rejected' => 'You declined this booking',
+            'replaced' => 'This assignment was replaced',
+            default => 'This booking is no longer active',
+        };
+        $cancelledSub = match ($supplierStatus) {
+            'cancelled' => 'The booking was cancelled. You can still view the details below.',
+            'rejected' => 'You declined this booking request. Details are preserved for your records.',
+            'replaced' => 'A replacement supplier was assigned. Details are preserved for your records.',
+            default => 'Actions are disabled for this booking.',
+        };
+    ?>
+    <div class="sup-response-bar" style="background:#fef2f2;border-color:#fecaca">
+      <div class="sup-response-info">
+        <div class="sup-response-icon" style="color:#b94b4b">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M6 6l4 4M10 6l-4 4"/></svg>
+        </div>
+        <div>
+          <div class="sup-response-text"><?= $h($cancelledLabel) ?></div>
+          <div class="sup-response-sub"><?= $h($cancelledSub) ?></div>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+  </header>
+
+  <section class="sup-assignment" aria-labelledby="supplier-assignment-title">
+    <div class="sup-assignment-head">
+      <div>
+        <p class="sup-assignment-kicker">Your assignment</p>
+        <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= $h($assignmentName) ?></h2>
+        <?php if ($assignmentCategory !== ''): ?><div class="sup-assignment-category"><?= $h($assignmentCategory) ?></div><?php endif; ?>
+      </div>
+      <span class="sup-assignment-status"><?= $h($assignmentStatusLabel) ?></span>
+    </div>
+    <div class="sup-assignment-facts">
+      <div class="sup-assignment-fact">
+        <small>Date & time</small>
+        <strong><?= $h($formatDate($assignmentDate)) ?></strong>
+        <span><?= $h(trim($formatTime($assignmentStart) . ($assignmentEnd !== '' ? ' – ' . $formatTime($assignmentEnd) : '')) ?: 'Time not set') ?></span>
+      </div>
+      <div class="sup-assignment-fact">
+        <small>Venue</small>
+        <strong><?= $h($assignmentVenue !== '' ? $assignmentVenue : 'Not specified') ?></strong>
+      </div>
+      <div class="sup-assignment-fact">
+        <small>Guests</small>
+        <strong><?= $hasGuestData ? number_format($totalGuests) : 'Not specified' ?></strong>
+      </div>
+      <div class="sup-assignment-fact">
+        <small>Event contact</small>
+        <strong><?= $h($firstContactName !== '' ? $firstContactName : $customerName) ?></strong>
+        <?php $displayPhone = $firstContactPhone !== '' ? $firstContactPhone : ($customerPhone !== '' ? $customerPhone : ''); ?>
+        <?php if ($displayPhone !== ''): ?>
+          <span><a href="tel:<?= $h($displayPhone) ?>" class="sup-tel-link"><?= $h($displayPhone) ?></a></span>
+        <?php else: ?>
+          <span>No phone provided</span>
+        <?php endif; ?>
+      </div>
+    </div>
+  </section>
+
+  <?php
+    // ── Payment confidence strip ──
+    $depositAmount = $bookingTotal * (BOOKING_DEPOSIT_PERCENT / 100);
+    $depositCollected = $paidTotal >= $depositAmount;
+    $fullyPaid = $paymentStatus === 'paid';
+
+    // Find earliest successful payment date
+    $firstPaymentDate = '';
+    foreach ($paymentHistory as $ph) {
+        if (strtolower((string)($ph['status'] ?? '')) === 'success' && !empty($ph['created_at'])) {
+            $firstPaymentDate = $ph['created_at'];
+            break;
+        }
+    }
+
+    // Timeline step states
+    $depositStepState = $depositCollected ? 'is-done' : 'is-current';
+    $eventStepState = 'is-current';
+    $payoutStepState = '';
+    if ($fullyPaid) {
+        $depositStepState = 'is-done';
+        $eventStepState = ($daysUntil !== null && $daysUntil < 0) ? 'is-done' : 'is-current';
+    }
+    if ($daysUntil !== null && $daysUntil < 0) {
+        $eventStepState = 'is-done';
+        $payoutStepState = 'is-current';
+    }
+  ?>
+  <section class="sup-payment-confidence" aria-label="Payment status">
+    <div class="sup-payment-confidence-head">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L2 4v4c0 3.5 2.5 6.5 6 7.5 3.5-1 6-4 6-7.5V4L8 1z"/><path d="M5.5 8l2 2 3.5-3.5"/></svg>
+      <strong>Payment managed by <?= $h(APPNAME) ?></strong>
+    </div>
+    <div class="sup-payment-confidence-body">
+      <div class="sup-payment-confidence-stats">
+        <div class="sup-payment-confidence-stat">
+          <small>Your earnings</small>
+          <strong><?= $money($supplierTotal) ?></strong>
+        </div>
+        <div class="sup-payment-confidence-stat <?= $depositCollected ? 'sup-payment-confidence-stat--highlight' : '' ?>">
+          <small>Customer has paid</small>
+          <strong><?= $money($paidTotal) ?></strong>
+        </div>
+        <div class="sup-payment-confidence-stat">
+          <small>Remaining</small>
+          <strong><?= $money(max(0, $bookingTotal - $paidTotal)) ?></strong>
+        </div>
+      </div>
+
+      <div class="sup-payment-confidence-bar-wrap">
+        <div class="sup-payment-confidence-bar">
+          <div class="sup-payment-confidence-bar-fill" style="width:<?= max(0, min(100, $paidFraction * 100)) ?>%"></div>
+        </div>
+        <span class="sup-payment-confidence-bar-label">
+          <?php if ($fullyPaid): ?>
+            Fully paid
+          <?php elseif ($depositCollected): ?>
+            <?= round($paidFraction * 100) ?>% deposited
+          <?php else: ?>
+            <?= round($paidFraction * 100) ?>% paid
+          <?php endif; ?>
+        </span>
+      </div>
+
+      <div class="sup-payment-confidence-timeline">
+        <div class="sup-payment-confidence-step <?= $depositStepState ?>">
+          <div class="sup-payment-confidence-dot">
+            <?php if ($depositCollected): ?>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
+            <?php else: ?>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/></svg>
+            <?php endif; ?>
+          </div>
+          <div class="sup-payment-confidence-step-content">
+            <div class="sup-payment-confidence-step-title">
+              <?= $depositCollected ? 'Deposit collected by ' . $h(APPNAME) : 'Deposit pending' ?>
+            </div>
+            <div class="sup-payment-confidence-step-meta">
+              <?php if ($depositCollected && $firstPaymentDate !== ''): ?>
+                <?= $h($formatDate($firstPaymentDate)) ?> · <?= $money($depositAmount) ?> (<?= BOOKING_DEPOSIT_PERCENT ?>%)
+              <?php elseif ($depositCollected): ?>
+                <?= $money($depositAmount) ?> (<?= BOOKING_DEPOSIT_PERCENT ?>%)
+              <?php else: ?>
+                <?= $money($depositAmount) ?> required to confirm
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+
+        <div class="sup-payment-confidence-step <?= $eventStepState ?>">
+          <div class="sup-payment-confidence-dot">
+            <?php if ($eventStepState === 'is-done'): ?>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
+            <?php else: ?>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 2v2M11 2v2M2 7h12"/></svg>
+            <?php endif; ?>
+          </div>
+          <div class="sup-payment-confidence-step-content">
+            <div class="sup-payment-confidence-step-title">
+              <?php if ($eventStepState === 'is-done'): ?>
+                Event completed
+              <?php else: ?>
+                Event date — final payment due
+              <?php endif; ?>
+            </div>
+            <div class="sup-payment-confidence-step-meta">
+              <?= $h($formatDate($firstDate)) ?>
+              <?php if ($daysUntil !== null && $daysUntil >= 0): ?>
+                · <?= $daysUntil ?> day<?= $daysUntil === 1 ? '' : 's' ?> away
+              <?php elseif ($daysUntil !== null): ?>
+                · Event passed
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+
+        <div class="sup-payment-confidence-step <?= $payoutStepState ?>">
+          <div class="sup-payment-confidence-dot">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6h12M5 9h3M5 11h2"/></svg>
+          </div>
+          <div class="sup-payment-confidence-step-content">
+            <div class="sup-payment-confidence-step-title">Payout to you</div>
+            <div class="sup-payment-confidence-step-meta">
+              <?= $h(APPNAME) ?> will process your payout within 7 days after the event is completed
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sup-payment-confidence-note">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11h.01"/></svg>
+        <span><?= $h(APPNAME) ?> collects all payments from the customer and releases your earnings after the event is completed.</span>
+      </div>
+    </div>
+  </section>
+
+  <?php if ($refund): ?>
+    <?php
+      $refundStatus = (string)($refund['status'] ?? 'pending');
+      $rc = match($refundStatus) {
+        'pending'    => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e', 'icon' => '⏳', 'label' => 'Refund requested — admin will process the refund shortly.'],
+        'processing' => ['bg' => '#eff6ff', 'border' => '#bfdbfe', 'text' => '#1e40af', 'icon' => '⚙️', 'label' => 'Refund in progress — admin has initiated the transfer to the customer.'],
+        'completed'  => ['bg' => '#f0fdf4', 'border' => '#bbf7d0', 'text' => '#166534', 'icon' => '✅', 'label' => 'Refund completed — the customer has been refunded.'],
+        'rejected'   => ['bg' => '#fef2f2', 'border' => '#fecaca', 'text' => '#991b1b', 'icon' => '❌', 'label' => 'Refund request was rejected.'],
+        default      => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e', 'icon' => '⏳', 'label' => 'Refund pending.'],
+      };
+    ?>
+    <div style="background:<?= $rc['bg'] ?>;border:1px solid <?= $rc['border'] ?>;border-radius:12px;padding:16px 18px;margin-top:12px;color:<?= $rc['text'] ?>">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px"><?= $rc['icon'] ?></span>
+        <strong style="font-size:13px">Refund Status</strong>
+        <span style="font-size:12px;opacity:0.8">— <?= $rc['label'] ?></span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:20px;font-size:12px">
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Refund Amount</span><br>
+          <span style="font-weight:700;font-size:14px"><?= $money($refund['amount'] ?? 0) ?></span>
+        </div>
+        <?php if (!empty($refund['policy_reason'])): ?>
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Policy Applied</span><br>
+          <span><?= $h($refund['policy_reason']) ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if ($refundStatus === 'completed' && !empty($refund['completed_at'])): ?>
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Completed On</span><br>
+          <span><?= date('M j, Y', strtotime($refund['completed_at'])) ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($refund['refund_transaction_ref'])): ?>
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Transfer Reference</span><br>
+          <span style="font-weight:600"><?= $h($refund['refund_transaction_ref']) ?></span>
+          <?php if (!empty($refund['refund_bank_name'])): ?>
+            <span style="opacity:.7"> via <?= $h($refund['refund_bank_name']) ?></span>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        <?php if ($refundStatus === 'rejected' && !empty($refund['note'])): ?>
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Reason</span><br>
+          <span><?= $h($refund['note']) ?></span>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($inReplacement && !$needsResponse): ?>
+    <div class="sup-quiet-notice">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 0110-4.5M14 8a6 6 0 01-10 4.5"/><path d="M12 2v3H9M4 14v-3h3"/></svg>
+      <div>
+        <?php if (!empty($acceptedReplacementRows)): ?>
+          <strong>Your replacement service is confirmed.</strong> Other replacement services on this booking are still awaiting responses.
+        <?php elseif (!empty($replacementRows)): ?>
+          <strong>Your declined service is being reassigned.</strong> No further action is required from you.
+        <?php else: ?>
+          <strong>Your assignment is confirmed.</strong> Other replacement services on this booking are still being arranged.
+        <?php endif; ?>
+      </div>
+    </div>
+  <?php endif; ?>
+
+  <?php if (!empty($declinableRows) && !$needsResponse && empty($isCancelledOrReplaced)): ?>
+  <details class="sup-secondary-action">
+    <summary>Can’t fulfill this assignment?</summary>
     <div class="sup-selfdecline">
       <div class="sup-selfdecline-head">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
         <div>
-          <div class="sup-response-text">Can't take one of your services?</div>
-          <div class="sup-response-sub">Decline a specific service and admin will arrange a replacement for just that one. Allowed up to <?= (int)$declineCutoffDays ?> days before the event — the customer's booking stays intact.</div>
+          <div class="sup-response-text">Decline a specific service</div>
+          <?php if ($isPackage): ?>
+            <div class="sup-response-sub">Admin will arrange another supplier. Available until <?= (int)$declineCutoffDays ?> days before the event.</div>
+          <?php else: ?>
+            <div class="sup-response-sub">The customer will be notified and the booking will be cancelled. Available until <?= (int)$declineCutoffDays ?> days before the event.</div>
+          <?php endif; ?>
         </div>
       </div>
       <ul class="sup-selfdecline-list">
@@ -1451,15 +677,51 @@ $dashboardContent = function () use (
         <?php endforeach; ?>
       </ul>
     </div>
-    <?php endif; ?>
-  </header>
+  </details>
+  <?php endif; ?>
 
+  <?php if ($supplierCancellationRequested): ?>
+  <div class="sup-response-bar" style="background:#fffbeb;border-color:#fde68a">
+    <div class="sup-response-info">
+      <div class="sup-response-icon" style="color:#d97706">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
+      </div>
+      <div>
+        <div class="sup-response-text">Cancellation request submitted</div>
+        <div class="sup-response-sub">Admin will review your request and process the refund. The customer has been notified.</div>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($canRequestCancellation && empty($isCancelledOrReplaced)): ?>
+  <details class="sup-secondary-action">
+    <summary>Need to cancel this booking?</summary>
+    <div class="sup-selfdecline">
+      <div class="sup-selfdecline-head">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
+        <div>
+          <div class="sup-response-text">Request booking cancellation</div>
+          <div class="sup-response-sub">The customer and admin will be notified. Admin will review and process the refund.</div>
+        </div>
+      </div>
+      <button type="button" class="sup-btn sup-btn--decline" id="supplier-cancel-btn"
+              style="margin-top:10px">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        Request Cancellation
+      </button>
+    </div>
+  </details>
+  <?php endif; ?>
+
+  <details class="sup-booking-details">
+    <summary>View full booking details</summary>
+    <div class="sup-booking-details-content">
   <div class="sup-runsheet-head">
     <div>
-      <span><?= $needsResponse ? 'Response required' : 'Event operations' ?></span>
-      <h2>Event run sheet</h2>
+      <h2>Full event schedule</h2>
     </div>
-    <p><?= $needsResponse ? 'Confirm availability before preparing the delivery plan.' : 'Everything you need to prepare and deliver this booking.' ?></p>
+    <p>Your service is highlighted.</p>
   </div>
 
   <div class="sup-runsheet-layout">
@@ -1495,7 +757,7 @@ $dashboardContent = function () use (
       <div class="sup-card">
         <div class="sup-card-head">
           <span class="sup-card-title">Services in this booking</span>
-          <span class="sup-badge <?= $statusBadgeClass($bookingStatus) ?>"><?= $h(ucfirst($bookingStatus ?: 'pending')) ?></span>
+          <span class="sup-badge <?= $statusBadgeClass($bookingStatus) ?>"><?= $h($bookingStatusLabel) ?></span>
         </div>
         <?php if (empty($items)): ?>
           <div class="sup-empty">No supplier service lines are attached to this booking.</div>
@@ -1543,6 +805,18 @@ $dashboardContent = function () use (
                           </span>
                         <?php endif; ?>
                         <div class="sup-svc-cat"><?= $h($item['category_name'] ?? $item['supplier_name'] ?? '') ?></div>
+                        <?php
+                          $itemRentalType = $item['rental_type'] ?? null;
+                          $itemBorrowDate = $item['borrow_date'] ?? null;
+                          $itemReturnDate = $item['return_date'] ?? null;
+                        ?>
+                        <?php if ($itemRentalType === 'borrow' && $itemBorrowDate): ?>
+                          <div class="sup-svc-cat" style="color:var(--sup-accent)">
+                            Borrow: <?= $h(date('M j', strtotime($itemBorrowDate))) ?> – <?= $h(date('M j, Y', strtotime($itemReturnDate))) ?>
+                          </div>
+                        <?php elseif ($itemRentalType === 'buy'): ?>
+                          <div class="sup-svc-cat" style="color:var(--sup-accent)">Purchase</div>
+                        <?php endif; ?>
                         <?php if ($itemNotes !== ''): ?>
                           <div class="sup-svc-note"><?= $h($itemNotes) ?></div>
                         <?php endif; ?>
@@ -1687,7 +961,7 @@ $dashboardContent = function () use (
             <?php if ($firstContactPhone !== ''): ?>
               <div class="sup-contact-row">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h2.5l1 3-1.5 1a8 8 0 003 3l1-1.5 3 1V12a1 1 0 01-1 1C6 13 2 8.5 2 4a1 1 0 011-1z"/></svg>
-                <?= $h($firstContactPhone) ?>
+                <a href="tel:<?= $h($firstContactPhone) ?>" class="sup-tel-link"><?= $h($firstContactPhone) ?></a>
               </div>
             <?php endif; ?>
           </div>
@@ -1701,7 +975,7 @@ $dashboardContent = function () use (
             </div>
             <div class="sup-contact-name"><?= $h($customerName) ?></div>
             <div class="sup-contact-row"><?= $h($customerEmail) ?></div>
-            <div class="sup-contact-row"><?= $h($customerPhone) ?></div>
+            <div class="sup-contact-row"><a href="tel:<?= $h($customerPhone) ?>" class="sup-tel-link"><?= $h($customerPhone) ?></a></div>
           </div>
 
           <!-- Other suppliers -->
@@ -1763,6 +1037,8 @@ $dashboardContent = function () use (
     </div>
   </div>
   </div>
+    </div>
+  </details>
 
   <div class="sup-service-drawer-backdrop" data-service-drawer-close></div>
   <aside class="sup-service-drawer" id="supplier-service-detail-drawer" aria-hidden="true" aria-labelledby="supplier-service-drawer-title">
@@ -1837,7 +1113,7 @@ $dashboardContent = function () use (
   <div id="decline-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="decline-modal-title">
     <div class="sup-modal">
       <div class="sup-modal-head">
-        <h2 id="decline-modal-title" class="sup-modal-title">Decline this booking</h2>
+        <h2 id="decline-modal-title" class="sup-modal-title">Can’t fulfill this service</h2>
         <button type="button" class="decline-close sup-modal-close" aria-label="Close">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
         </button>
@@ -1845,16 +1121,72 @@ $dashboardContent = function () use (
       <form id="decline-form">
         <div class="sup-modal-body">
           <p class="sup-response-sub" style="margin-bottom:14px">
-            The customer keeps their booking — the admin will assign a replacement supplier in your place. This can't be undone.
+            The customer keeps the booking. Admin will assign another supplier to this service.
           </p>
           <div class="sup-field" style="margin-bottom:0">
             <label class="sup-label" for="dec-reason">Reason <span style="color:var(--sup-danger-text)">*</span></label>
-            <textarea id="dec-reason" name="reason" rows="3" required placeholder="e.g. Already booked another wedding on this date" class="sup-textarea"></textarea>
+            <textarea id="dec-reason" name="reason" rows="3" required minlength="10" maxlength="500" placeholder="e.g., Already booked for this date, schedule conflict, equipment unavailable" class="sup-textarea"></textarea>
+            <span class="sup-char-count" id="dec-char-count">0 / 500</span>
           </div>
         </div>
         <div class="sup-modal-foot">
           <button type="button" class="decline-close sup-btn sup-btn--ghost">Cancel</button>
           <button type="submit" class="sup-btn sup-btn--decline">Confirm decline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cancellation decline modal -->
+  <div id="cancel-decline-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cancel-decline-modal-title">
+    <div class="sup-modal">
+      <div class="sup-modal-head">
+        <h2 id="cancel-decline-modal-title" class="sup-modal-title">Decline Cancellation Request</h2>
+        <button type="button" class="cancel-decline-close sup-modal-close" aria-label="Close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+      <form id="cancel-decline-form">
+        <div class="sup-modal-body">
+          <p class="sup-response-sub" style="margin-bottom:14px">
+            The booking will remain active. The customer and admin will be notified of your decision.
+          </p>
+          <div class="sup-field" style="margin-bottom:0">
+            <label class="sup-label" for="cancel-dec-reason">Reason for declining <span style="color:var(--sup-danger-text)">*</span></label>
+            <textarea id="cancel-dec-reason" name="reason" rows="3" required placeholder="e.g. Work already started, materials purchased" class="sup-textarea"></textarea>
+          </div>
+        </div>
+        <div class="sup-modal-foot">
+          <button type="button" class="cancel-decline-close sup-btn sup-btn--ghost">Cancel</button>
+          <button type="submit" class="sup-btn sup-btn--decline">Submit decline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Supplier Request Cancellation Modal -->
+  <div id="supplier-cancel-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="supplier-cancel-modal-title">
+    <div class="sup-modal">
+      <div class="sup-modal-head">
+        <h2 id="supplier-cancel-modal-title" class="sup-modal-title">Request Booking Cancellation</h2>
+        <button type="button" class="supplier-cancel-close sup-modal-close" aria-label="Close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+      <form id="supplier-cancel-form">
+        <div class="sup-modal-body">
+          <p class="sup-response-sub" style="margin-bottom:14px">
+            The customer and admin will be notified of your cancellation request. Admin will review and process any applicable refund.
+          </p>
+          <div class="sup-field" style="margin-bottom:0">
+            <label class="sup-label" for="supplier-cancel-reason">Reason for cancellation <span style="color:var(--sup-danger-text)">*</span></label>
+            <textarea id="supplier-cancel-reason" name="reason" rows="3" required minlength="10" maxlength="500" placeholder="e.g., Unforeseen circumstances, double booking, unable to fulfill" class="sup-textarea"></textarea>
+            <span class="sup-char-count" id="supplier-cancel-char-count">0 / 500</span>
+          </div>
+        </div>
+        <div class="sup-modal-foot">
+          <button type="button" class="supplier-cancel-close sup-btn sup-btn--ghost">Cancel</button>
+          <button type="submit" class="sup-btn sup-btn--decline">Submit cancellation request</button>
         </div>
       </form>
     </div>
@@ -1980,20 +1312,21 @@ $dashboardContent = function () use (
 
       var formData = new FormData(form);
       formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
 
       try {
         var resp = await fetch('<?= URLROOT ?>/supplier/proposeReschedule', { method: 'POST', body: formData });
         var data = await resp.json().catch(function(){ return {}; });
         if (data.success) {
-          alert(data.message);
+          supToastSuccess(data.message || 'Reschedule proposal sent!');
           modal.classList.remove('is-open');
           form.reset();
-          window.location.reload();
+          setTimeout(function() { window.location.reload(); }, 1200);
         } else {
-          alert(data.error || 'Could not send reschedule proposal.');
+          supToastError(data.error || 'Could not send reschedule proposal.');
         }
       } catch (err) {
-        alert('Network error. Please try again.');
+        supToastError('Network error. Please try again.');
       }
       submitBtn.disabled = false;
       submitBtn.innerHTML = original;
@@ -2010,14 +1343,19 @@ $dashboardContent = function () use (
       var formData = new FormData();
       formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
       formData.append('action', button.dataset.action);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
 
       try {
         var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
         var data = await resp.json().catch(function(){ return {}; });
-        if (data.success) { window.location.reload(); return; }
-        alert(data.error || 'Could not update booking.');
+        if (data.success) {
+          supToastSuccess(button.dataset.action === 'accept' ? 'Booking accepted!' : 'Booking declined.');
+          setTimeout(function() { window.location.reload(); }, 1200);
+          return;
+        }
+        supToastError(data.error || 'Could not update booking.');
       } catch (err) {
-        alert('Network error. Please try again.');
+        supToastError('Network error. Please try again.');
       }
       button.disabled = false;
       button.innerHTML = original;
@@ -2032,12 +1370,25 @@ $dashboardContent = function () use (
   var declineTarget = null;
 
   if (declineModal && declineForm && declineBtns.length) {
+    /* Character counter for decline textarea */
+    var decReason = document.getElementById('dec-reason');
+    var decCharCount = document.getElementById('dec-char-count');
+    if (decReason && decCharCount) {
+      decReason.addEventListener('input', function() {
+        var len = decReason.value.length;
+        decCharCount.textContent = len + ' / 500';
+        decCharCount.classList.toggle('is-over', len > 500);
+      });
+    }
+
     declineBtns.forEach(function(btn){
       btn.addEventListener('click', function(){
         declineTarget = btn.dataset.bsid || '';
         if (declineTitle) declineTitle.textContent = 'Decline “' + (btn.dataset.svc || 'this service') + '”';
         document.getElementById('dec-reason').value = '';
+        if (decCharCount) decCharCount.textContent = '0 / 500';
         declineModal.classList.add('is-open');
+        if (decReason) decReason.focus();
       });
     });
     document.querySelectorAll('.decline-close').forEach(function(b){
@@ -2048,8 +1399,8 @@ $dashboardContent = function () use (
     declineForm.addEventListener('submit', async function(e){
       e.preventDefault();
       var reason = (document.getElementById('dec-reason').value || '').trim();
-      if (!reason) { alert('Please enter a reason.'); return; }
-      if (!declineTarget) { alert('No service selected.'); return; }
+      if (!reason || reason.length < 10) { supToastWarning('Please provide a reason (at least 10 characters).'); return; }
+      if (!declineTarget) { supToastWarning('No service selected.'); return; }
 
       var submitBtn = declineForm.querySelector('button[type="submit"]');
       var original = submitBtn.innerHTML;
@@ -2061,14 +1412,145 @@ $dashboardContent = function () use (
       formData.append('booking_supplier_id', declineTarget);
       formData.append('action', 'decline');
       formData.append('reason', reason);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
 
       try {
         var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
         var data = await resp.json().catch(function(){ return {}; });
-        if (data.success) { window.location.reload(); return; }
-        alert(data.error || 'Could not submit your decline.');
+        if (data.success) {
+          supToastSuccess('Service declined. Admin will arrange a replacement.');
+          setTimeout(function() { window.location.reload(); }, 1200);
+          return;
+        }
+        supToastError(data.error || 'Could not submit your decline.');
       } catch (err) {
-        alert('Network error. Please try again.');
+        supToastError('Network error. Please try again.');
+      }
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = original;
+    });
+  }
+
+  /* ── Cancellation review (approve / decline) ── */
+  var cancelDeclineModal = document.getElementById('cancel-decline-modal');
+  var cancelDeclineForm = document.getElementById('cancel-decline-form');
+  var cancellationBtns = document.querySelectorAll('.cancellation-review-btn');
+
+  if (cancellationBtns.length) {
+    cancellationBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var action = btn.dataset.action;
+        if (action === 'decline') {
+          // Open modal to get reason
+          document.getElementById('cancel-dec-reason').value = '';
+          if (cancelDeclineModal) cancelDeclineModal.classList.add('is-open');
+        } else {
+          // Approve directly
+          submitCancellationReview('approve', '');
+        }
+      });
+    });
+
+    // Close modal handlers
+    if (cancelDeclineModal) {
+      document.querySelectorAll('.cancel-decline-close').forEach(function(b) {
+        b.addEventListener('click', function() { cancelDeclineModal.classList.remove('is-open'); });
+      });
+      cancelDeclineModal.addEventListener('click', function(e) { if (e.target === cancelDeclineModal) cancelDeclineModal.classList.remove('is-open'); });
+    }
+
+    // Decline form submit
+    if (cancelDeclineForm) {
+      cancelDeclineForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var reason = (document.getElementById('cancel-dec-reason').value || '').trim();
+        if (!reason) { supToastWarning('Please enter a reason.'); return; }
+        submitCancellationReview('decline', reason);
+        if (cancelDeclineModal) cancelDeclineModal.classList.remove('is-open');
+      });
+    }
+  }
+
+  async function submitCancellationReview(action, reason) {
+    var formData = new FormData();
+    formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+    formData.append('action', action);
+    formData.append('reason', reason);
+    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+    try {
+      var resp = await fetch('<?= URLROOT ?>/supplier/bookingCancellationRespond', { method: 'POST', body: formData });
+      var data = await resp.json().catch(function(){ return {}; });
+      if (data.success) {
+        supToastSuccess(action === 'approve' ? 'Cancellation approved.' : 'Cancellation declined.');
+        setTimeout(function() { window.location.reload(); }, 1200);
+        return;
+      }
+      supToastError(data.error || 'Could not process your response.');
+    } catch (err) {
+      supToastError('Network error. Please try again.');
+    }
+  }
+
+  /* ── Supplier request cancellation ── */
+  var supplierCancelBtn   = document.getElementById('supplier-cancel-btn');
+  var supplierCancelModal = document.getElementById('supplier-cancel-modal');
+  var supplierCancelForm  = document.getElementById('supplier-cancel-form');
+
+  if (supplierCancelBtn && supplierCancelModal && supplierCancelForm) {
+    var scReason = document.getElementById('supplier-cancel-reason');
+    var scCharCount = document.getElementById('supplier-cancel-char-count');
+
+    if (scReason && scCharCount) {
+      scReason.addEventListener('input', function() {
+        scCharCount.textContent = scReason.value.length + ' / 500';
+      });
+    }
+
+    supplierCancelBtn.addEventListener('click', function() {
+      scReason.value = '';
+      if (scCharCount) scCharCount.textContent = '0 / 500';
+      supplierCancelModal.classList.add('is-open');
+      scReason.focus();
+    });
+
+    document.querySelectorAll('.supplier-cancel-close').forEach(function(b) {
+      b.addEventListener('click', function() { supplierCancelModal.classList.remove('is-open'); });
+    });
+    supplierCancelModal.addEventListener('click', function(e) {
+      if (e.target === supplierCancelModal) supplierCancelModal.classList.remove('is-open');
+    });
+
+    supplierCancelForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var reason = (scReason.value || '').trim();
+      if (!reason || reason.length < 10) {
+        supToastWarning('Please provide a reason (at least 10 characters).');
+        return;
+      }
+
+      var submitBtn = supplierCancelForm.querySelector('button[type="submit"]');
+      var original = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Submitting…';
+
+      var formData = new FormData();
+      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+      formData.append('reason', reason);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+      try {
+        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRequestCancellation', { method: 'POST', body: formData });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (data.success) {
+          supplierCancelModal.classList.remove('is-open');
+          supToastSuccess('Cancellation request submitted. Admin will review.');
+          setTimeout(function() { window.location.reload(); }, 1500);
+          return;
+        }
+        supToastError(data.error || 'Could not submit cancellation request.');
+      } catch (err) {
+        supToastError('Network error. Please try again.');
       }
       submitBtn.disabled = false;
       submitBtn.innerHTML = original;

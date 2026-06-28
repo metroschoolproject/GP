@@ -4,12 +4,14 @@ $total = (float)($total ?? 0);
 $cartCount = (int)($cartCount ?? 0);
 $includedServiceWarning = $includedServiceWarning ?? null;
 $addonError = trim((string)($addonError ?? ''));
+$isGuest = $isGuest ?? false;
+$guestItems = $guestItems ?? [];
 
 $isLoggedIn = !empty($_SESSION['session_uid']);
 $authNavUrl = $isLoggedIn ? URLROOT . '/users/logout' : URLROOT . '/users/auth';
 $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
-$money = fn($v) => 'MMK ' . number_format((float)$v, 0);
+$money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -42,6 +44,7 @@ $formatTimeRange = function ($start, $end) use ($formatTime) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Cart — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php
 $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time();
 ?>
@@ -1194,6 +1197,19 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   box-shadow: none;
 }
 
+/* ─── Guest cart state ─────────────────────────────────── */
+.gp-guest-cart { max-width: 600px; margin: 40px auto; text-align: center; }
+.gp-guest-cart-header { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; }
+.gp-guest-cart-icon { color: #d97706; }
+.gp-guest-cart-header h2 { font-family: var(--font-d); font-size: 24px; font-weight: 600; color: var(--text); margin: 0; }
+.gp-guest-cart-header p { max-width: 380px; margin: 4px auto 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.gp-guest-cart-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.gp-guest-cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid #ead8c7; border-radius: 10px; background: #fff; font-size: 13px; }
+.gp-guest-cart-date { color: var(--muted); font-size: 12px; }
+.gp-guest-cart-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.gp-guest-cart-actions .gp-btn-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px; border: 1px solid var(--rule-strong, #ead8c7); border-radius: 999px; background: #fff; color: var(--text, #34232b); font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .14s; }
+.gp-guest-cart-actions .gp-btn-secondary:hover { border-color: var(--plum); color: var(--plum); background: rgba(107,68,89,0.05); }
+
 /* ─── Included service reminder ───────────────────────── */
 .gp-included-reminder {
   display: grid;
@@ -1519,7 +1535,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   </section>
   <?php endif; ?>
 
-  <?php if (empty($items)): ?>
+  <?php if (empty($items) && empty($guestItems)): ?>
   <!-- ── Empty state ───────────────────────────────────── -->
   <div class="gp-empty">
     <div class="gp-empty-icon">
@@ -1534,6 +1550,40 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
       </a>
       <a class="gp-btn-browse secondary" href="<?= URLROOT ?>/customerServices/packages">
         Packages
+      </a>
+    </div>
+  </div>
+
+  <?php elseif (!empty($guestItems)): ?>
+  <!-- ── Guest cart state ─────────────────────────────── -->
+  <div class="gp-guest-cart">
+    <div class="gp-guest-cart-header">
+      <div class="gp-guest-cart-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div>
+        <h2>You have <?= count($guestItems) ?> item<?= count($guestItems) !== 1 ? 's' : '' ?> saved</h2>
+        <p>Sign in or create an account to keep your selections and complete your booking.</p>
+      </div>
+    </div>
+    <div class="gp-guest-cart-items">
+      <?php foreach ($guestItems as $gIdx => $gItem):
+        $gName = htmlspecialchars($gItem['name'] ?? $gItem['item_type'] ?? 'Service', ENT_QUOTES, 'UTF-8');
+        $gDate = !empty($gItem['selected_date']) ? date('M j, Y', strtotime($gItem['selected_date'])) : 'Any date';
+      ?>
+      <div class="gp-guest-cart-item">
+        <span><?= $gName ?></span>
+        <span class="gp-guest-cart-date"><?= $gDate ?></span>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <div class="gp-guest-cart-actions">
+      <a href="<?= URLROOT ?>/users/auth" class="gp-btn-browse">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Sign in to continue
+      </a>
+      <a href="<?= URLROOT ?>/users/register" class="gp-btn-secondary">
+        Create account
       </a>
     </div>
   </div>
@@ -1608,6 +1658,30 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             <span class="gp-item-pill">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>
               <?= $h($venueRoomName . ($venueName !== '' ? ' · ' . $venueName : '')) ?>
+            </span>
+          </div>
+          <?php endif; ?>
+          <?php
+            // Attire rental info
+            $rentalType = $item['rental_type'] ?? null;
+            $attireItemName = $item['attire_item_name'] ?? null;
+            $rentalDays = $item['rental_days'] ?? null;
+            $borrowDate = $item['borrow_date'] ?? null;
+          ?>
+          <?php if ($rentalType && $attireItemName): ?>
+          <div class="gp-item-meta">
+            <span class="gp-item-pill">
+              <i data-lucide="hanger" style="width:11px;height:11px"></i>
+              <?= $h($attireItemName) ?>
+            </span>
+            <span class="gp-item-pill">
+              <?php if ($rentalType === 'borrow'): ?>
+                <i data-lucide="refresh-cw" style="width:11px;height:11px"></i>
+                Borrow <?= (int)$rentalDays ?> day<?= (int)$rentalDays !== 1 ? 's' : '' ?>
+              <?php else: ?>
+                <i data-lucide="shopping-bag" style="width:11px;height:11px"></i>
+                Buy
+              <?php endif; ?>
             </span>
           </div>
           <?php endif; ?>
@@ -1811,9 +1885,9 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
               <span class="gp-line-val"><?= $money($total) ?></span>
             </div>
             <div class="gp-line">
-              <span class="gp-line-name">Deposit (10%)</span>
+              <span class="gp-line-name">Deposit (<?= BOOKING_DEPOSIT_PERCENT ?>%)</span>
               <span class="gp-line-dots" aria-hidden="true"></span>
-              <span class="gp-line-val"><?= $money($total * 0.10) ?></span>
+              <span class="gp-line-val"><?= $money($total * BOOKING_DEPOSIT_PERCENT / 100) ?></span>
             </div>
           </div>
 
@@ -2244,5 +2318,6 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   }, { passive: true });
 })();
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

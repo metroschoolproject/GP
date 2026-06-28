@@ -125,11 +125,22 @@ public function register()
                 exit;
             }
 
+            // Block registration on the internal (admin/staff) portal
+            if (($input['type'] ?? '') === 'internal') {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Registration is not allowed on this portal.'
+                ]);
+                exit;
+            }
+
             $username = $input['username'] ?? $input['name'] ?? '';
             $password = $input['password'] ?? '';
             $compassword = $input['compassword'] ?? $input['confirm_password'] ?? '';
 
-            $role = ($input['role'] ?? $input['type'] ?? '') === 'supplier' ? 'supplier' : 'customer';
+            $allowedRoles = ['customer', 'supplier'];
+            $requestedRole = $input['role'] ?? $input['type'] ?? '';
+            $role = in_array($requestedRole, $allowedRoles, true) ? $requestedRole : 'customer';
 
             $data = [
                 'username' => htmlspecialchars(trim($username), ENT_QUOTES, 'UTF-8'),
@@ -164,6 +175,20 @@ public function register()
                 echo json_encode([
                     'status' => 'error',
                     'message' => 'Passwords do not match'
+                ]);
+                exit;
+            }
+
+            // Enforce minimum password strength (at least "Fair" = score 2)
+            $pwScore = 0;
+            if (strlen($data['password']) >= 8) $pwScore++;
+            if (preg_match('/[A-Z]/', $data['password'])) $pwScore++;
+            if (preg_match('/[0-9]/', $data['password'])) $pwScore++;
+            if (preg_match('/[^A-Za-z0-9]/', $data['password'])) $pwScore++;
+            if ($pwScore < 2) {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Password is too weak. Include uppercase letters, numbers, or symbols.'
                 ]);
                 exit;
             }
@@ -265,6 +290,23 @@ public function register()
     // Get Email From User to Server
     public function auth()
     {
+        // Store return URL from query param so user goes back after login.
+        // The frontend passes window.location.pathname (e.g. /GP/customerServices/detail/56).
+        // We strip the leading / and the GP/ base path prefix so it becomes
+        // customerServices/detail/56 — which URLROOT/redirect will resolve correctly.
+        $redirect = trim((string)($_GET['redirect'] ?? ''));
+        if ($redirect !== '' && $redirect[0] === '/' && strpos($redirect, 'http') !== 0) {
+            // Remove leading slash and optional GP/ (or bare GP) prefix
+            $clean = ltrim($redirect, '/');
+            if ($clean === 'GP') {
+                $clean = '';
+            } elseif (strpos($clean, 'GP/') === 0) {
+                $clean = substr($clean, 3);
+            }
+            if ($clean !== '') {
+                $_SESSION['post_login_return_url'] = $clean;
+            }
+        }
         $this->view('users/auth');
     }
 
@@ -273,6 +315,50 @@ public function register()
         $this->view('users/verification_sent', [
             'email' => htmlspecialchars(trim($_GET['e'] ?? ''), ENT_QUOTES, 'UTF-8')
         ]);
+    }
+
+    /**
+     * JSON — Resend verification email.
+     * POST body: { "email": "..." }
+     */
+    public function resendVerification()
+    {
+        header('Content-Type: application/json');
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        $email = trim($payload['email'] ?? '');
+
+        if (empty($email)) {
+            echo json_encode(['ok' => false, 'message' => 'Email address is required.']);
+            return;
+        }
+
+        $user = $this->usermodel->getuserinfo($email);
+        if (!$user) {
+            // Don't reveal whether the email exists
+            echo json_encode(['ok' => true, 'message' => 'If an account with that email exists, a verification link has been sent.']);
+            return;
+        }
+
+        if (!empty($user['email_verified_at'])) {
+            echo json_encode(['ok' => true, 'message' => 'Your email is already verified. Please sign in.']);
+            return;
+        }
+
+        try {
+            $tokenPair = $this->resettoken->generateResetToken();
+            $expires = (new DateTime('+24 hours'))->format('Y-m-d H:i:s');
+            $tokenStored = $this->emailverificationmodel->storeToken($user['user_id'], $tokenPair['token_hash'], $expires);
+            $mailSent = $tokenStored && $this->emailverificationmail->sendVerificationEmail($email, $tokenPair['token']);
+
+            if ($mailSent) {
+                echo json_encode(['ok' => true, 'message' => 'Verification email sent! Check your inbox.']);
+            } else {
+                echo json_encode(['ok' => false, 'message' => 'Could not send verification email. Please try again later.']);
+            }
+        } catch (\Exception $e) {
+            echo json_encode(['ok' => false, 'message' => 'An error occurred. Please try again later.']);
+        }
     }
 
     public function verifyEmail()
@@ -293,18 +379,43 @@ public function register()
             return;
         }
 
-        $_SESSION['session_uid'] = $user['user_id'];
-        $_SESSION['session_email'] = $user['email'];
-        $_SESSION['session_name'] = $user['name'] ?? '';
+        // Check if this user has the supplier role
+        $roles = $this->usermodel->getUserRoles($user['user_id']);
+        $isSupplier = in_array('supplier', $roles, true);
+        $isAdmin = in_array('admin', $roles, true);
 
-        $redirect = $this->getPostLoginRedirect($user['user_id']);
-
-        if ($redirect === 'supplier/onboarding') {
+        if ($isSupplier && !$isAdmin) {
+            // Supplier — do NOT create a full session (guest mode).
+            // Clear any existing remember-me cookie so session isn't restored.
+            if (defined('REMEMBER_ME_COOKIE') && !empty($_COOKIE[REMEMBER_ME_COOKIE])) {
+                forgetRememberMeCookie();
+            }
+            // Destroy any existing session and start fresh with minimal data.
+            session_regenerate_id(true);
+            $_SESSION = [];
             $_SESSION['pending_register_user_id'] = $user['user_id'];
             $_SESSION['pending_register_email'] = $user['email'];
             $_SESSION['pending_register_name'] = $user['name'] ?? '';
             $_SESSION['pending_register_role'] = 'supplier';
+
+            $this->view('users/email_verified', [
+                'verified' => true,
+                'redirect' => null,
+                'isPendingSupplier' => true,
+                'message' => 'Your email has been verified! Your supplier application is pending admin approval. You will be able to log in and access your dashboard once approved.'
+            ]);
+            return;
         }
+
+        // Customer / admin — log in normally
+        $_SESSION['session_uid'] = $user['user_id'];
+        $_SESSION['session_email'] = $user['email'];
+        $_SESSION['session_name'] = $user['name'] ?? '';
+        // Cache role (supplier already excluded above, so this is customer or admin)
+        $roles = $this->usermodel->getUserRoles($user['user_id']);
+        $_SESSION['session_role'] = in_array('admin', $roles, true) ? 'admin' : 'customer';
+
+        $redirect = $this->getPostLoginRedirect($user['user_id']);
 
         $this->view('users/email_verified', [
             'verified' => true,
@@ -338,6 +449,16 @@ public function register()
                         echo json_encode([
                             'status' => 'email_unverified',
                             'email' => $data['email']
+                        ]);
+                        exit;
+                    }
+
+                    // Block moderated accounts (suspended / banned / soft-deleted).
+                    // 'locked' is a timed lock handled separately below, so it is excluded here.
+                    if ($user && (!empty($user['deleted_at']) || in_array(($user['status'] ?? ''), ['suspended', 'banned'], true))) {
+                        echo json_encode([
+                            'status' => 'account_blocked',
+                            'message' => 'Your account has been ' . (!empty($user['deleted_at']) ? 'deactivated' : $user['status']) . '. Please contact support.'
                         ]);
                         exit;
                     }
@@ -556,6 +677,13 @@ public function register()
             return $redirect;
         }
 
+        // If the user was on a specific page and clicked "Sign in to book", go back
+        if (!empty($_SESSION['post_login_return_url'])) {
+            $returnUrl = $_SESSION['post_login_return_url'];
+            unset($_SESSION['post_login_return_url']);
+            return $returnUrl;
+        }
+
         $roles = $this->usermodel->getUserRoles($userId);
 
         if (in_array('admin', $roles, true)) {
@@ -588,7 +716,9 @@ public function register()
 
     private function finishSocialLogin($user)
     {
-        $role = ($_SESSION['oauth_intent'] ?? 'customer') === 'supplier' ? 'supplier' : 'customer';
+        $allowedRoles = ['customer', 'supplier'];
+        $requestedRole = $_SESSION['oauth_intent'] ?? 'customer';
+        $role = in_array($requestedRole, $allowedRoles, true) ? $requestedRole : 'customer';
 
         $this->usermodel->assignRole($user['user_id'], $role);
         $this->usermodel->markEmailVerified($user['user_id']);
@@ -596,6 +726,7 @@ public function register()
         $_SESSION['session_uid'] = $user['user_id'];
         $_SESSION['session_email'] = $user['email'];
         $_SESSION['session_name'] = $user['name'] ?? '';
+        $_SESSION['session_role'] = $role;
 
         if ($role === 'supplier') {
             $_SESSION['pending_register_user_id'] = $user['user_id'];
