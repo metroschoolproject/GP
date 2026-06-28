@@ -639,10 +639,52 @@ window.supplierDashboardData = <?= json_encode([
   }
 
   /* ── payment table ── */
+  var currentPaymentFilter = 'all';
+  var currentPaymentDateFilter = 'week';
+
+  function matchesDateFilter(dateStr, filter) {
+    if (filter === 'all' || !dateStr || dateStr === '—') return true;
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return true;
+    var now = new Date();
+    var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (filter === 'today') {
+      return d >= startOfToday;
+    }
+    if (filter === 'week') {
+      var weekAgo = new Date(startOfToday);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return d >= weekAgo;
+    }
+    if (filter === 'month') {
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }
+    if (filter === 'year') {
+      return d.getFullYear() === now.getFullYear();
+    }
+    return true;
+  }
+
+  function getFilteredPayments() {
+    return paymentData.filter(function(r) {
+      // Status filter
+      if (currentPaymentFilter !== 'all') {
+        var total = parseFloat(r.total) || 0;
+        var paid = parseFloat(r.paid) || 0;
+        if (currentPaymentFilter === 'pending' && paid !== 0) return false;
+        if (currentPaymentFilter === 'full paid' && (total <= 0 || paid < total)) return false;
+        if (currentPaymentFilter === 'half paid' && (paid <= 0 || paid >= total)) return false;
+      }
+      // Date filter
+      if (!matchesDateFilter(r.eventDate, currentPaymentDateFilter)) return false;
+      return true;
+    });
+  }
+
   function renderPaymentTable() {
     const tbody = document.getElementById("paymentTableBody");
     const noRows = document.getElementById("noPaymentRows");
-    const rows = paymentData;
+    const rows = getFilteredPayments();
 
     if (rows.length === 0) {
       tbody.innerHTML = "";
@@ -661,6 +703,20 @@ window.supplierDashboardData = <?= json_encode([
         <td class="py-2.5 px-2 font-medium text-app-text">${currency(r.paid)}</td>
       </tr>
     `).join("");
+  }
+
+  function filterPayments(status) {
+    currentPaymentFilter = status;
+    // Update tab active states
+    var tabs = document.querySelectorAll('#payment-status [data-status]');
+    tabs.forEach(function(tab) {
+      if (tab.getAttribute('data-status') === status) {
+        tab.className = '<?= $dashboardFilterTabClass ?> bg-app-primary text-app-white';
+      } else {
+        tab.className = '<?= $dashboardFilterTabClass ?> text-app-secondary bg-app-soft';
+      }
+    });
+    renderPaymentTable();
   }
 
   /* ── withdraw table ── */
@@ -1045,7 +1101,16 @@ window.supplierDashboardData = <?= json_encode([
     function openPayMenu()  { payMenu.classList.remove("invisible","opacity-0"); payBtn.setAttribute("aria-expanded","true"); payChev.classList.add("rotate-180"); }
     payBtn.addEventListener("click", e => { e.stopPropagation(); payBtn.getAttribute("aria-expanded")==="true" ? closePayMenu() : openPayMenu(); });
     document.querySelectorAll("[data-payment-filter]").forEach(opt => {
-      opt.addEventListener("click", () => { payLbl.innerText = sectionLabels[opt.dataset.paymentFilter]; closePayMenu(); });
+      opt.addEventListener("click", () => {
+        var filter = opt.dataset.paymentFilter;
+        currentPaymentDateFilter = filter;
+        payLbl.innerText = sectionLabels[filter];
+        // Update active style
+        document.querySelectorAll("[data-payment-filter]").forEach(function(b) { b.className = '<?= $dashboardMenuItemClass ?>'; });
+        opt.className = '<?= $dashboardMenuItemActiveClass ?>';
+        closePayMenu();
+        renderPaymentTable();
+      });
     });
     document.addEventListener("click", e => { if (payBtn && !payBtn.contains(e.target) && !payMenu.contains(e.target)) closePayMenu(); });
 
