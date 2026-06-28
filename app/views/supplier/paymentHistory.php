@@ -115,6 +115,7 @@ $dashboardContent = function () use (
             <th>Your Earnings</th>
             <th>Type</th>
             <th>Status</th>
+            <th>Escrow</th>
             <th>Date</th>
           </tr>
         </thead>
@@ -125,6 +126,9 @@ $dashboardContent = function () use (
             $badgeClass = $status === 'success' ? 'success' : ($status === 'failed' ? 'failed' : 'pending');
             $typeLabel = ($payment['type'] ?? 'deposit') === 'deposit' ? 'Deposit' : (($payment['type'] ?? '') === 'remaining' ? 'Balance' : 'Payment');
             $supplierAmount = (float)($payment['supplier_amount'] ?? (float)($payment['amount'] ?? 0) - (float)($payment['platform_fee'] ?? 0));
+            $escrow = strtolower($payment['escrow_status'] ?? 'held');
+            $escrowLabel = $escrow === 'released' ? 'Released' : ($escrow === 'refunded' ? 'Refunded' : 'Held');
+            $escrowBadge = $escrow === 'released' ? 'success' : ($escrow === 'refunded' ? 'failed' : 'pending');
           ?>
           <tr>
             <td style="font-weight:700">#<?= (int)($payment['booking_id'] ?? 0) ?></td>
@@ -134,6 +138,7 @@ $dashboardContent = function () use (
             <td style="color:var(--green);font-weight:700"><?= $money($supplierAmount) ?></td>
             <td><?= $h($typeLabel) ?></td>
             <td><span class="payhist-badge <?= $badgeClass ?>"><?= $statusLabel ?></span></td>
+            <td><span class="payhist-badge <?= $escrowBadge ?>"><?= $escrowLabel ?></span></td>
             <td style="color:var(--muted)"><?= $formatDate($payment['created_at'] ?? null) ?></td>
           </tr>
           <?php endforeach; ?>

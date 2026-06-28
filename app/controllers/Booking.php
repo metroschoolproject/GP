@@ -1768,6 +1768,9 @@ class Booking extends Controller
         // Fetch payment history for the confidence strip timeline
         $paymentHistory = $this->bookingModel->getBookingPayments($bookingId);
 
+        // Fetch refund info (if any) so supplier can see refund status
+        $refund = $this->bookingModel->getBookingRefund($bookingId);
+
         $this->view('supplier/bookingDetail', [
             'booking' => $booking,
             'items' => $items,
@@ -1785,6 +1788,7 @@ class Booking extends Controller
             'paymentHistory' => $paymentHistory,
             'cancellationReason' => $cancellationReason,
             'activeReplacement' => $activeReplacement,
+            'refund' => $refund ?: null,
         ]);
     }
 

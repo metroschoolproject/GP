@@ -204,11 +204,20 @@ $dashboardContent = function () use (
                     <p class="er-fb-value er-fb-value--fee"><?= number_format($feeTotal, 0) ?></p>
                     <p class="er-fb-unit">MMK</p>
                 </div>
+                <?php if ($totalRefunded > 0): ?>
+                <div class="er-fb-op">−</div>
+                <!-- Refunds -->
+                <div class="er-fb-cell" style="border-color:#fecaca">
+                    <p class="er-fb-label" style="color:#dc2626">Refunds Deducted</p>
+                    <p class="er-fb-value" style="color:#dc2626"><?= number_format($totalRefunded, 0) ?></p>
+                    <p class="er-fb-unit">MMK</p>
+                </div>
+                <?php endif; ?>
                 <div class="er-fb-op">=</div>
                 <!-- Net -->
                 <div class="er-fb-cell er-fb-cell--net">
                     <p class="er-fb-label">You Received</p>
-                    <p class="er-fb-value er-fb-value--net"><?= number_format($netTotal, 0) ?></p>
+                    <p class="er-fb-value er-fb-value--net"><?= number_format($netTotal - $totalRefunded, 0) ?></p>
                     <p class="er-fb-unit">MMK</p>
                 </div>
             </div>
@@ -247,11 +256,14 @@ $dashboardContent = function () use (
                         <th class="er-right">Gross</th>
                         <th class="er-right">Fee</th>
                         <th class="er-right">Net</th>
+                        <th class="er-right">Refund</th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($earningsBreakdown as $row):
+                <?php
+                  $totalRefunded = 0;
+                  foreach ($earningsBreakdown as $row):
                     $status   = $row['status'] ?? 'pending';
                     $net      = (float)($row['net_amount']   ?? 0);
                     $fee      = (float)($row['platform_fee'] ?? 0);
@@ -260,6 +272,9 @@ $dashboardContent = function () use (
                     $bookingId = (int)($row['booking_id'] ?? 0);
                     $rowDate   = $row['created_at'] ?? null;
                     $paidDate  = $row['verified_at'] ?? null;
+                    $refundAmt = (float)($row['refund_amount'] ?? 0);
+                    $refundSt  = (string)($row['refund_status'] ?? '');
+                    if ($refundAmt > 0) $totalRefunded += $refundAmt;
 
                     $statusCfg = match($status) {
                         'success'    => ['cls' => 'paid',       'label' => $paidDate ? ('Paid ' . date('M d', strtotime($paidDate))) : 'Paid'],
@@ -296,6 +311,17 @@ $dashboardContent = function () use (
                         <td class="er-right er-amount er-amount--fee">−<?= number_format($fee, 0) ?></td>
                         <!-- Net -->
                         <td class="er-right er-amount er-amount--net"><?= number_format($net, 0) ?> MMK</td>
+                        <!-- Refund -->
+                        <td class="er-right er-amount" style="<?= $refundAmt > 0 ? 'color:#dc2626;font-weight:700' : 'color:#d6d3d1' ?>">
+                            <?php if ($refundAmt > 0): ?>
+                                −<?= number_format($refundAmt, 0) ?>
+                                <?php if ($refundSt && $refundSt !== 'completed'): ?>
+                                    <span style="font-size:10px;font-weight:500;opacity:0.7">(<?= $refundSt ?>)</span>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                —
+                            <?php endif; ?>
+                        </td>
                         <!-- Status -->
                         <td>
                             <span class="er-badge er-badge-<?= $statusCfg['cls'] ?>">

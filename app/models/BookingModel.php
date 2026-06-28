@@ -4941,7 +4941,17 @@ class BookingModel
                      WHERE py.booking_id = p.booking_id
                        AND py.status = 'success'
                        AND py.type IN ('deposit','remaining','full')
-                ) AS booking_total_fees
+                ) AS booking_total_fees,
+                (
+                    SELECT r2.amount FROM refunds r2
+                     WHERE r2.booking_id = p.booking_id AND r2.status = 'completed'
+                     ORDER BY r2.id DESC LIMIT 1
+                ) AS refund_amount,
+                (
+                    SELECT r3.status FROM refunds r3
+                     WHERE r3.booking_id = p.booking_id
+                     ORDER BY r3.id DESC LIMIT 1
+                ) AS refund_status
              FROM payments p
              JOIN bookings b ON b.id = p.booking_id
              JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = p.supplier_id
@@ -5043,7 +5053,7 @@ class BookingModel
     {
         $this->db->dbquery(
             "SELECT p.id, p.booking_id, p.amount, p.platform_fee, p.supplier_amount,
-                    p.type, p.status, p.method, p.created_at, p.paid_at,
+                    p.type, p.status, p.escrow_status, p.method, p.created_at, p.paid_at,
                     u.name AS customer_name
              FROM payments p
              JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid1

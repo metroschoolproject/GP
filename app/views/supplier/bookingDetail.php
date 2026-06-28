@@ -9,6 +9,7 @@ $supplierId = (int)($supplierId ?? 0);
 $depositPercent = $depositPercent ?? BOOKING_DEPOSIT_PERCENT;
 $packageSchedules = $packageSchedules ?? [];
 $paymentHistory = $paymentHistory ?? [];
+$refund = $refund ?? null;
 
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
@@ -546,6 +547,59 @@ $dashboardContent = function () use (
       </div>
     </div>
   </section>
+
+  <?php if ($refund): ?>
+    <?php
+      $refundStatus = (string)($refund['status'] ?? 'pending');
+      $rc = match($refundStatus) {
+        'pending'    => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e', 'icon' => '⏳', 'label' => 'Refund requested — admin will process the refund shortly.'],
+        'processing' => ['bg' => '#eff6ff', 'border' => '#bfdbfe', 'text' => '#1e40af', 'icon' => '⚙️', 'label' => 'Refund in progress — admin has initiated the transfer to the customer.'],
+        'completed'  => ['bg' => '#f0fdf4', 'border' => '#bbf7d0', 'text' => '#166534', 'icon' => '✅', 'label' => 'Refund completed — the customer has been refunded.'],
+        'rejected'   => ['bg' => '#fef2f2', 'border' => '#fecaca', 'text' => '#991b1b', 'icon' => '❌', 'label' => 'Refund request was rejected.'],
+        default      => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e', 'icon' => '⏳', 'label' => 'Refund pending.'],
+      };
+    ?>
+    <div style="background:<?= $rc['bg'] ?>;border:1px solid <?= $rc['border'] ?>;border-radius:12px;padding:16px 18px;margin-top:12px;color:<?= $rc['text'] ?>">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px"><?= $rc['icon'] ?></span>
+        <strong style="font-size:13px">Refund Status</strong>
+        <span style="font-size:12px;opacity:0.8">— <?= $rc['label'] ?></span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:20px;font-size:12px">
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Refund Amount</span><br>
+          <span style="font-weight:700;font-size:14px"><?= $money($refund['amount'] ?? 0) ?></span>
+        </div>
+        <?php if (!empty($refund['policy_reason'])): ?>
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Policy Applied</span><br>
+          <span><?= $h($refund['policy_reason']) ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if ($refundStatus === 'completed' && !empty($refund['completed_at'])): ?>
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Completed On</span><br>
+          <span><?= date('M j, Y', strtotime($refund['completed_at'])) ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($refund['refund_transaction_ref'])): ?>
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Transfer Reference</span><br>
+          <span style="font-weight:600"><?= $h($refund['refund_transaction_ref']) ?></span>
+          <?php if (!empty($refund['refund_bank_name'])): ?>
+            <span style="opacity:.7"> via <?= $h($refund['refund_bank_name']) ?></span>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        <?php if ($refundStatus === 'rejected' && !empty($refund['note'])): ?>
+        <div>
+          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.06em">Reason</span><br>
+          <span><?= $h($refund['note']) ?></span>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  <?php endif; ?>
 
   <?php if ($inReplacement && !$needsResponse): ?>
     <div class="sup-quiet-notice">

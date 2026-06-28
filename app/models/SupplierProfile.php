@@ -896,6 +896,28 @@ class SupplierProfile
         $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
         $revenue = $this->db->getsingledata() ?: [];
 
+        // Refund metrics for this supplier's bookings
+        $refundDateFilter = '';
+        if ($range === 'month') {
+            $refundDateFilter = ' AND YEAR(r.completed_at) = YEAR(CURDATE()) AND MONTH(r.completed_at) = MONTH(CURDATE())';
+        } elseif ($range === '6months') {
+            $refundDateFilter = ' AND r.completed_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)';
+        } elseif ($range === 'year') {
+            $refundDateFilter = ' AND YEAR(r.completed_at) = YEAR(CURDATE())';
+        }
+
+        $this->db->dbquery(
+            "SELECT COUNT(*) AS refund_count,
+                    COALESCE(SUM(r.amount), 0) AS total_refunded
+             FROM refunds r
+             INNER JOIN booking_suppliers bs ON bs.booking_id = r.booking_id
+             WHERE bs.supplier_id = :sid
+               AND r.status = 'completed'
+               {$refundDateFilter}"
+        );
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $refunds = $this->db->getsingledata() ?: [];
+
         return [
             'total_services' => (int)($portfolio['total_services'] ?? 0),
             'active_services' => (int)($portfolio['active_services'] ?? 0),
@@ -907,6 +929,8 @@ class SupplierProfile
             'total_revenue' => (float)($revenue['total_revenue'] ?? 0),
             'paid_revenue' => (float)($revenue['paid_revenue'] ?? 0),
             'pending_revenue' => (float)($revenue['pending_revenue'] ?? 0),
+            'refund_count' => (int)($refunds['refund_count'] ?? 0),
+            'total_refunded' => (float)($refunds['total_refunded'] ?? 0),
             'average_rating' => (float)($portfolio['average_rating'] ?? 0),
             'review_count' => (int)($portfolio['review_count'] ?? 0),
         ];
