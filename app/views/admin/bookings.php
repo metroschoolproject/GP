@@ -117,6 +117,7 @@ $dashboardContent = function () use (
   .control-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(109,76,91,.1)}
   .control-input{height:34px;padding:0 10px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-family:inherit;font-size:11px;font-weight:600;outline:none}
   .sort-select{min-width:154px}
+  .status-filter-select{min-width:150px;font-size:12px;font-weight:700;cursor:pointer}
   .date-input{width:132px}
   .date-range{display:flex;align-items:center;gap:5px}
   .date-range-label{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -190,24 +191,6 @@ $dashboardContent = function () use (
   </div>
 
   <div class="toolbar">
-    <div class="filters">
-      <?php foreach ($filters as $key => $label): ?>
-        <?php
-          $params = [];
-          if ($key !== 'all') $params['status'] = $key;
-          if ($sort !== 'event_asc') $params['sort'] = $sort;
-          if ($dateFrom !== '') $params['date_from'] = $dateFrom;
-          if ($dateTo !== '') $params['date_to'] = $dateTo;
-          $url = URLROOT . '/admin/bookings' . (!empty($params) ? '?' . http_build_query($params) : '');
-        ?>
-        <a href="<?= $h($url) ?>" class="filter <?= $activeFilter === $key ? 'active' : '' ?>">
-          <?= $h($label) ?>
-        </a>
-      <?php endforeach; ?>
-    </div>
-
-    <div class="divider"></div>
-
     <form class="booking-search" method="get" action="<?= URLROOT ?>/admin/bookings">
       <?php if ($activeFilter !== 'all'): ?>
         <input type="hidden" name="status" value="<?= $h($activeFilter) ?>">
@@ -224,7 +207,6 @@ $dashboardContent = function () use (
         <option value="total_asc" <?= $sort === 'total_asc' ? 'selected' : '' ?>>Total · lowest</option>
       </select>
       <div class="date-range">
-        <span class="date-range-label">Event</span>
         <input class="control-input date-input" type="date" name="date_from" value="<?= $h($dateFrom) ?>" aria-label="Event date from">
         <input class="control-input date-input" type="date" name="date_to" value="<?= $h($dateTo) ?>" aria-label="Event date to">
       </div>
@@ -260,9 +242,26 @@ $dashboardContent = function () use (
         <div class="card-head-icon"><i data-lucide="calendar-check" class="h-4 w-4" aria-hidden="true"></i></div>
         <span class="card-head-title">Booking records</span>
       </div>
-      <span class="card-count">
-        <?= $totalCount > 0 ? $rangeStart . '–' . $rangeEnd . ' of ' . $totalCount : '0 records' ?>
-      </span>
+      <?php
+        $filterOptions = [];
+        foreach ($filters as $key => $label) {
+          $params = [];
+          if ($key !== 'all') $params['status'] = $key;
+          if ($sort !== 'event_asc') $params['sort'] = $sort;
+          if ($dateFrom !== '') $params['date_from'] = $dateFrom;
+          if ($dateTo !== '') $params['date_to'] = $dateTo;
+          $url = URLROOT . '/admin/bookings' . (!empty($params) ? '?' . http_build_query($params) : '');
+          $count = $filterCounts[$key] ?? 0;
+          $filterOptions[] = ['url' => $url, 'label' => $label, 'count' => $count, 'key' => $key];
+        }
+      ?>
+      <select class="control-input status-filter-select" onchange="if(this.value)window.location.href=this.value">
+        <?php foreach ($filterOptions as $opt): ?>
+          <option value="<?= $h($opt['url']) ?>" <?= $activeFilter === $opt['key'] ? 'selected' : '' ?>>
+            <?= $h($opt['label']) ?> (<?= $opt['count'] ?>)
+          </option>
+        <?php endforeach; ?>
+      </select>
     </div>
 
     <div class="booking-table-wrap">
