@@ -199,6 +199,10 @@ class SupplierServices extends SupplierControllerSupport
                 $data['status'] = 'inactive';
             }
 
+            // Preserve published status: don't let the update accidentally
+            // downgrade a published service to inactive via the payload.
+            $wasActive = ($existingService['status'] ?? 'inactive') !== 'inactive';
+
             $service = $this->serviceManagementModel->updateService((int)$supplier['supplier_id'], $serviceId, $data);
         } catch (Throwable $e) {
             $this->jsonResponse(['status' => 'error', 'message' => 'Could not update service. ' . $e->getMessage()], 500);
@@ -208,7 +212,10 @@ class SupplierServices extends SupplierControllerSupport
             $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
         }
 
-        if ($this->serviceManagementModel->unpublishServiceIfIncomplete((int)$supplier['supplier_id'], $serviceId)) {
+        // Only auto-unpublish inactive services. Published (active/pending_review)
+        // services stay published — they were already approved. The publish-request
+        // flow handles validation for new publish attempts.
+        if (!$wasActive && $this->serviceManagementModel->unpublishServiceIfIncomplete((int)$supplier['supplier_id'], $serviceId)) {
             $service['status'] = 'inactive';
         }
 

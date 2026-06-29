@@ -13,6 +13,9 @@ class SupplierAvailability extends SupplierControllerSupport
             $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
         }
 
+        $service = $this->serviceManagementModel->getServiceById($serviceId, (int)$supplier['supplier_id']);
+        $wasActive = $service && ($service['status'] ?? 'inactive') !== 'inactive';
+
         $availability = $this->serviceManagementModel->saveWeeklyAvailability(
             (int)$supplier['supplier_id'],
             $serviceId,
@@ -23,7 +26,10 @@ class SupplierAvailability extends SupplierControllerSupport
             $this->jsonResponse(['status' => 'error', 'message' => 'Service not found.'], 404);
         }
 
-        $unpublished = $this->serviceManagementModel->unpublishServiceIfIncomplete((int)$supplier['supplier_id'], $serviceId);
+        $unpublished = false;
+        if (!$wasActive) {
+            $unpublished = $this->serviceManagementModel->unpublishServiceIfIncomplete((int)$supplier['supplier_id'], $serviceId);
+        }
 
         $this->jsonResponse(['status' => 'success', 'availability' => $availability, 'unpublished' => $unpublished]);
     }
