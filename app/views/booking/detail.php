@@ -21,6 +21,14 @@ $plain = function($v){ $t=(string)$v; for($i=0;$i<10;$i++){$d=html_entity_decode
 $h = fn($v)=>htmlspecialchars($plain($v),ENT_QUOTES,'UTF-8');
 $depositPayment = $depositPayment ?? [];
 $packageSchedules = $packageSchedules ?? [];
+$eventDetailsByItem = [];
+foreach ($eventDetails as $ed) {
+    $eventDetailsByItem[(int)($ed['booking_item_id'] ?? 0)] = $ed;
+}
+$fallbackEventDetail = $eventDetails[0] ?? [];
+$summaryTotalTop = (float)($booking['total_amount'] ?? 0);
+$summaryPaidTop = (float)($booking['paid_amount'] ?? 0);
+$summaryBalanceTop = max(0, $summaryTotalTop - $summaryPaidTop);
 ?>
 <!DOCTYPE html>
 <html lang="en"><head>
@@ -64,45 +72,65 @@ a{color:inherit;text-decoration:none}
 .gp-profile-menu-item--danger{color:var(--danger)}
 .gp-profile-menu-item--danger:hover{background:rgba(185,75,75,.08)}
 
-.gp-page{position:relative;z-index:1;flex:1;padding:40px var(--pad-x) 80px;max-width:1000px;margin:0 auto;width:100%}
+.gp-page{position:relative;z-index:1;flex:1;padding:24px var(--pad-x) 80px;max-width:1180px;margin:0 auto;width:100%}
 .gp-back{margin-bottom:20px}
 .gp-back a{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);transition:color .2s}
 .gp-back a:hover{color:var(--plum)}
 
-.gp-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:28px}
+.gp-detail-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 22px;padding-top:2px}
+.gp-detail-topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.gp-detail-topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.gp-detail-topbar-actions .gp-btn-sm,.gp-detail-topbar-actions .gp-badge{background:rgba(252,248,245,.62)}
+.gp-detail-topbar-actions .gp-btn-sm.primary{background:var(--plum);color:#fffaf5;border-color:var(--plum)}
+.gp-detail-topbar-actions .gp-btn-sm.danger{background:rgba(252,248,245,.68)}
+.gp-detail-topbar-actions .gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
+.gp-detail-back{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:8px 14px;border-radius:999px;border:1px solid rgba(178,143,110,.26);background:rgba(252,248,245,.52);color:var(--muted);font-size:12px;font-weight:700;transition:all .18s}
+.gp-detail-back:hover{border-color:var(--plum);color:var(--plum);background:rgba(252,248,245,.84)}
+.gp-head{display:none}
 .gp-head h1{font-family:var(--font-d);font-size:28px;font-weight:600}
 .gp-head em{font-style:italic;color:var(--plum-lt)}
 .gp-badge{display:inline-flex;padding:4px 12px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 
-.gp-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.gp-layout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:20px;align-items:start}
 .gp-col{display:flex;flex-direction:column;gap:16px}
 
 .gp-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden}
-.gp-card-h{padding:14px 18px;border-bottom:1px solid var(--rule);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.gp-status-card{order:2}
+.gp-event-card{order:1}
+.gp-card-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:rgba(42, 31, 44, 0.9);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color: #faf0e1}
 .gp-card-b{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
-.gp-journey-card{margin:18px 0 20px;padding:18px 20px 20px;background:linear-gradient(135deg,rgba(252,248,245,.98),rgba(250,246,241,.92));border:1px solid rgba(178,143,110,.26);border-radius:var(--r-lg);box-shadow:0 18px 46px rgba(26,17,24,.07)}
-.gp-journey-card.is-cancel{background:linear-gradient(135deg,rgba(255,247,246,.98),rgba(252,238,236,.88));border-color:rgba(185,75,75,.18)}
-.gp-journey-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
-.gp-journey-kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
-.gp-journey-title{margin-top:4px;font-family:var(--font-d);font-size:22px;font-weight:600;color:var(--text);line-height:1.08}
-.gp-journey-copy{margin-top:4px;font-size:12px;color:var(--muted);line-height:1.45}
-.gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:rgba(107,68,89,.08);color:var(--plum);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.gp-info-box{background:rgba(252,248,245,.78);border:1px solid rgba(184,146,74,.28);border-radius:14px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;box-shadow:0 10px 24px rgba(26,17,24,.035)}
+.gp-info-icon{flex-shrink:0;display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(184,146,74,.14);color:var(--gold)}
+.gp-info-title{font-weight:800;font-size:13px;color:var(--plum);margin-bottom:2px}
+.gp-info-copy{font-size:12px;color:var(--text2);line-height:1.55}
+.gp-info-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.gp-journey-card{margin:0 0 18px;padding:20px 28px 24px;background:rgba(252,248,245,.88);border:1px solid rgba(178,143,110,.18);border-radius:18px;box-shadow:0 12px 30px rgba(26,17,24,.04)}
+.gp-journey-card.is-cancel{background:rgba(255,247,246,.82);border-color:rgba(185,75,75,.16)}
+.gp-journey-head{display:block;margin-bottom:22px}
+.gp-journey-ref{font-family:var(--font-b);font-size:16px;font-weight:800;color:var(--text);line-height:1.25}
+.gp-journey-flow{margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#a58c7d}
+.gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;margin-top:4px;padding:7px 13px;border-radius:999px;background:#efe2e3;color:#6b4459;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em}
 .gp-journey-card.is-cancel .gp-journey-status{background:rgba(185,75,75,.09);color:var(--danger)}
-.gp-journey-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:14px}
-.gp-journey-step{position:relative;display:flex;align-items:flex-start;gap:10px;min-width:0}
-.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:34px;right:-12px;top:14px;height:1px;background:rgba(178,143,110,.28);z-index:0}
+.gp-journey-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:0;max-width:none;margin:0}
+.gp-journey-step{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:calc(50% + 20px);right:calc(-50% + 20px);top:20px;height:2px;background:#eadcc8;z-index:0}
 .gp-journey-card.is-cancel .gp-journey-step:not(:last-child)::after{background:rgba(185,75,75,.18)}
-.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(178,143,110,.46);background:#fbf4ea;color:var(--muted);font-size:12px;font-weight:800;box-shadow:0 0 0 5px rgba(252,248,245,.94)}
-.gp-journey-step.is-complete .gp-journey-dot{border-color:var(--gold);background:var(--gold);color:#fffaf3}
-.gp-journey-step.is-current .gp-journey-dot{border-color:var(--plum);background:var(--plum);color:#fffaf3;box-shadow:0 0 0 5px rgba(107,68,89,.10)}
+.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:2px solid #eadacc;background:#fffaf7;color:#a58c7d;font-size:12px;font-weight:800;box-shadow:0 0 0 6px rgba(252,248,245,.92)}
+.gp-journey-step.is-complete .gp-journey-dot{border-color:#dbc08f;background:var(--plum);color:#fffaf3}
+.gp-journey-step.is-current .gp-journey-dot{border-color:#dbc08f;background:var(--plum);color:#fffaf3;box-shadow:0 0 0 8px rgba(107,68,89,.08)}
 .gp-journey-card.is-cancel .gp-journey-step.is-complete .gp-journey-dot{border-color:#d79a92;background:#d79a92;color:#fffaf3}
 .gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-dot{border-color:var(--danger);background:var(--danger);color:#fffaf3;box-shadow:0 0 0 5px rgba(185,75,75,.10)}
-.gp-journey-text{position:relative;z-index:1;min-width:0;padding-top:1px}
-.gp-journey-label{font-size:12px;font-weight:800;color:var(--text);line-height:1.25}
-.gp-journey-state{margin-top:2px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.gp-journey-text{position:relative;z-index:1;min-width:0;padding-top:8px}
+.gp-journey-label{font-size:11px;font-weight:800;color:var(--text);line-height:1.25}
+.gp-journey-state{margin-top:2px;font-size:8px;font-weight:800;color:#ad9b94;text-transform:uppercase;letter-spacing:.08em}
 .gp-journey-step.is-current .gp-journey-label{color:var(--plum)}
 .gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-label{color:var(--danger)}
-.gp-field{display:flex;flex-direction:column;gap:0}
+.gp-service-detail-panel{display:none}
+.gp-service-detail-panel.active{display:flex;flex-direction:column;gap:12px}
+.gp-service-detail-title{font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--text);line-height:1.15}
+.gp-service-detail-meta{font-size:12px;color:var(--plum-lt);font-weight:600}
+.gp-service-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.gp-field{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px;border:1px solid rgba(178,143,110,.18);border-radius:12px;background:rgba(255,250,247,.58)}
 .gp-field-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .gp-field-v{font-size:13px;color:var(--text)}
 .gp-field-v.quote{font-style:italic;color:var(--text2);padding:8px 12px;background:rgba(107,68,89,0.04);border-radius:var(--r-sm);border-left:3px solid var(--plum-lt)}
@@ -119,16 +147,20 @@ a{color:inherit;text-decoration:none}
 .gp-event-plan-meta{font-size:9px;color:var(--muted);line-height:1.45;margin-top:2px}
 .gp-event-plan-hall{display:inline-flex;margin-top:4px;padding:2px 6px;border-radius:999px;background:rgba(107,68,89,.06);color:var(--plum-lt);font-size:9px;font-weight:700}
 
-.gp-timeline{display:flex;flex-direction:column;gap:0}
-.gp-tl-item{display:flex;gap:12px;padding:10px 0;position:relative}
-.gp-tl-item:not(:last-child)::after{content:'';position:absolute;left:12px;top:30px;bottom:-4px;width:2px;background:var(--rule)}
-.gp-tl-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
-.gp-tl-dot.past{background:var(--plum);color:#fcf8f5}
-.gp-tl-dot.current{background:var(--rose);color:#fcf8f5;animation:pulse 2s ease-in-out infinite}
-.gp-tl-dot.future{background:rgba(107,68,89,0.1);color:var(--muted)}
-.gp-tl-c{padding-top:2px}
-.gp-tl-t{font-size:13px;font-weight:500;color:var(--text)}
-.gp-tl-s{font-size:11px;color:var(--muted)}
+.gp-timeline{display:flex;flex-direction:column;gap:12px}
+.gp-tl-item{display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:center;padding:13px 14px;position:relative;border-radius:16px;border:1px solid rgba(178,143,110,.14);background:rgba(252,248,245,.78);box-shadow:0 10px 24px rgba(26,17,24,.035)}
+.gp-tl-item:nth-child(2n){background:rgba(184,146,74,.08)}
+.gp-tl-item:nth-child(3n){background:rgba(194,122,142,.08)}
+.gp-tl-item:nth-child(4n){background:rgba(107,68,89,.06)}
+.gp-tl-dot{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:0;flex-shrink:0;background:rgba(107,68,89,.10);color:var(--plum)}
+.gp-tl-dot svg{width:21px;height:21px;display:block}
+.gp-tl-dot.current{background:var(--plum);color:#fffaf3;animation:none}
+.gp-tl-c{padding-top:0;min-width:0}
+.gp-tl-t{font-size:14px;font-weight:800;color:var(--text);line-height:1.3}
+.gp-tl-s{font-size:12px;color:var(--plum-lt);line-height:1.4;margin-top:2px}
+.gp-tl-item:nth-child(2n) .gp-tl-s{color:#8a682d}
+.gp-tl-item:nth-child(3n) .gp-tl-s{color:var(--rose)}
+.gp-tl-item:nth-child(4n) .gp-tl-s{color:var(--plum)}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 
 .gp-items-table{width:100%;border-collapse:collapse}
@@ -139,14 +171,26 @@ a{color:inherit;text-decoration:none}
 .gp-item-detail{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:2px}
 .gp-item-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
 
-.gp-summary{padding:14px 18px;display:flex;flex-direction:column;gap:6px}
-.gp-summary-r{display:flex;justify-content:space-between;font-size:12px;color:var(--text2)}
-.gp-summary-r.total{font-size:16px;font-weight:700;color:var(--plum);font-family:var(--font-d);padding-top:10px;border-top:1px solid var(--rule-strong)}
+.gp-order-list{display:flex;flex-direction:column;gap:10px}
+.gp-order-item{width:100%;display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px;border:1px solid transparent;border-radius:14px;background:transparent;text-align:left;font-family:var(--font-b);color:var(--text);transition:background .18s,border-color .18s,box-shadow .18s}
+.gp-order-item:hover{background:rgba(107,68,89,.04);border-color:rgba(107,68,89,.12)}
+.gp-order-item.active{background:rgba(184,146,74,.12);border-color:rgba(107,68,89,.28);box-shadow:0 12px 28px rgba(107,68,89,.08)}
+.gp-order-item.active .gp-order-thumb{background:var(--plum);color:#fffaf3}
+.gp-order-item.active .gp-order-name{color:var(--plum)}
+.gp-order-item.active .gp-order-price{color:var(--plum)}
+.gp-order-thumb{width:62px;height:62px;border-radius:14px;overflow:hidden;background:#f1e6dc;display:grid;place-items:center;color:var(--plum);font-size:18px;font-weight:800}
+.gp-order-thumb img{width:100%;height:100%;object-fit:cover}
+.gp-order-name{display:block;font-size:14px;font-weight:800;line-height:1.25;color:var(--text)}
+.gp-order-sub{display:block;margin-top:3px;font-size:11px;font-weight:600;color:var(--muted)}
+.gp-order-price{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap}
+.gp-summary{padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--rule)}
+.gp-summary-r{display:flex;justify-content:space-between;gap:20px;font-size:13px;color:var(--text2)}
+.gp-summary-r.total{font-size:18px;font-weight:800;color:var(--text);font-family:var(--font-b);padding-top:12px;margin-top:4px;border-top:1px solid var(--rule-strong)}
 
 .gp-bottom-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 
 .gp-review-section{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden;margin-top:24px}
-.gp-review-section-h{padding:14px 18px;border-bottom:1px solid var(--rule);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.gp-review-section-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:rgba(184,146,74,.10);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .gp-review-section-b{padding:18px}
 .gp-star-picker{display:flex;gap:6px;margin-bottom:12px}
 .gp-star-btn{background:none;border:none;cursor:pointer;font-size:26px;color:var(--rule-strong);padding:0;line-height:1;transition:color .15s}
@@ -163,15 +207,149 @@ a{color:inherit;text-decoration:none}
 .gp-flash-error{background:#fdecea;color:#c62828;border:1px solid #ef9a9a;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 .gp-edit-form{margin-top:12px;display:none}
 
-@media(max-width:768px){.gp-layout{grid-template-columns:1fr}}
-@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}}
+@media(max-width:900px){.gp-layout{grid-template-columns:1fr}.gp-detail-topbar{align-items:flex-start;flex-direction:column}.gp-detail-topbar-actions{justify-content:flex-start}.gp-journey-steps{max-width:100%}}
+@media(max-width:768px){.gp-service-detail-grid{grid-template-columns:1fr}.gp-order-item{grid-template-columns:54px minmax(0,1fr);align-items:start}.gp-order-price{grid-column:2;font-size:13px}}
+@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:16px;padding:18px 14px 20px}.gp-journey-head{grid-template-columns:1fr;margin-bottom:20px}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:20px;right:auto;top:40px;bottom:-20px;width:2px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px}.gp-order-thumb{width:54px;height:54px}}
 </style>
 </head><body>
 
 <?php $gpNavActive = 'bookings'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <main class="gp-page">
-  <div class="gp-back"><a href="<?=URLROOT?>/booking/myBookings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Back to Bookings</a></div>
+  <?php
+    $currentStatus = $booking['status'] ?? '';
+    $heroHasRemainingBalance = in_array($currentStatus, ['paid', 'payment_verified', 'confirmed', 'pending_final_payment', 'finalized'], true) && $summaryBalanceTop > 0;
+
+    $journeyStatus = strtolower((string)($booking['status'] ?? ''));
+    $journeyIsCancellation = in_array($journeyStatus, ['cancellation_requested', 'cancelled'], true);
+    $journeyIsReplacement = !empty($pendingReplacement);
+    $journeyTone = $journeyIsCancellation ? 'cancel' : ($journeyIsReplacement ? 'replacement' : 'normal');
+    $journeyStatusLabel = $statusLabels[$journeyStatus] ?? ucfirst(str_replace('_', ' ', $journeyStatus ?: 'booking placed'));
+
+    if ($journeyIsReplacement) {
+        $journeyFlowLabel = 'Replacement Booking Journey';
+        $journeySteps = [
+            'Booking Confirmed',
+            'Supplier Replacement Proposed',
+            'Difference Payment Required',
+            'Replacement Approved',
+            'Updated Booking Confirmed',
+        ];
+        $replacementStatus = strtolower((string)($pendingReplacement['status'] ?? ''));
+        $replacementDelta = (float)($pendingReplacement['price_delta'] ?? 0);
+        $journeyCurrent = 1;
+        if ($replacementDelta > 0) $journeyCurrent = 2;
+        if (in_array($replacementStatus, ['approved', 'accepted'], true)) $journeyCurrent = 3;
+        if (in_array($replacementStatus, ['confirmed', 'completed'], true)) $journeyCurrent = 4;
+        $journeyCopy = 'Your confirmed booking is being updated with a replacement supplier.';
+    } elseif ($journeyIsCancellation) {
+        $journeyFlowLabel = 'Cancellation Booking Journey';
+        $supplierInitiatedJourney = false;
+        foreach ($suppliers as $sup) {
+            if (($sup['status'] ?? '') === 'supplier_cancellation_requested') { $supplierInitiatedJourney = true; break; }
+        }
+        $journeySteps = [
+            'Booking Placed',
+            $supplierInitiatedJourney ? 'Supplier Requests Cancellation' : 'Cancellation Requested',
+            'Cancelled',
+        ];
+        $journeyCurrent = $journeyStatus === 'cancelled' ? 2 : 1;
+        $journeyCopy = $supplierInitiatedJourney
+            ? 'Your supplier has requested to cancel this booking. Admin will review and process your refund.'
+            : 'Your cancellation progress is shown here in soft red for clarity.';
+    } else {
+        $journeyFlowLabel = 'Normal Booking Journey';
+        $journeySteps = [
+            'Booking Placed',
+            'Deposit Paid',
+            'Booking Confirmed',
+            'Remaining Payment',
+            'Fully Paid',
+            'Service Completed',
+        ];
+        if ($journeyStatus === 'completed') {
+            $journeyCurrent = 5;
+        } elseif ($journeyStatus === 'finalized') {
+            $journeyCurrent = 4;
+        } elseif ($journeyStatus === 'pending_final_payment') {
+            $journeyCurrent = 3;
+        } elseif ($journeyStatus === 'confirmed') {
+            $journeyCurrent = 3;
+        } elseif (in_array($journeyStatus, ['payment_submitted', 'pending_admin', 'paid'], true)) {
+            $journeyCurrent = 1;
+        } elseif ($journeyStatus === 'pending_payment') {
+            $journeyCurrent = 0;
+        } else {
+            $journeyCurrent = 0;
+        }
+        $journeyCopy = 'Follow each milestone from booking placement through completion.';
+    }
+  ?>
+
+  <div class="gp-detail-topbar" aria-label="Booking actions">
+      <div class="gp-detail-topbar-left">
+        <a class="gp-detail-back" href="<?=URLROOT?>/booking/myBookings">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Bookings
+        </a>
+      </div>
+      <div class="gp-detail-topbar-actions">
+        <?php if (in_array($booking['status']??'', ['draft', 'pending_payment']) && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
+          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Proceed to Payment</a>
+        <?php elseif (($booking['status']??'') === 'pending_supplier_response'): ?>
+          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;" title="Payment available after supplier confirms">Awaiting Supplier Response</span>
+        <?php endif; ?>
+        <?php if ($heroHasRemainingBalance && !($hasPendingRemaining ?? false)): ?>
+          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance</a>
+        <?php elseif ($heroHasRemainingBalance && ($hasPendingRemaining ?? false)): ?>
+          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;">Remaining Payment Under Review</span>
+        <?php endif; ?>
+        <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
+          <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
+        <?php endif; ?>
+      </div>
+  </div>
+
+  <section class="gp-journey-card<?= $journeyTone === 'cancel' ? ' is-cancel' : '' ?>" aria-label="Booking Journey">
+    <div class="gp-journey-head">
+      <div class="gp-journey-ref">#<?= $h($bookingRef) ?></div>
+      <div class="gp-journey-flow"><?= $h($journeyFlowLabel) ?></div>
+    </div>
+    <div class="gp-journey-steps">
+      <?php foreach ($journeySteps as $stepIndex => $stepLabel): ?>
+        <?php
+          $stepClass = $stepIndex < $journeyCurrent ? 'is-complete' : ($stepIndex === $journeyCurrent ? 'is-current' : 'is-upcoming');
+          $stepState = $stepIndex < $journeyCurrent ? 'Completed' : ($stepIndex === $journeyCurrent ? 'Current' : 'Upcoming');
+        ?>
+        <div class="gp-journey-step <?= $stepClass ?>">
+          <div class="gp-journey-dot" aria-hidden="true"><?= $stepIndex < $journeyCurrent ? '✓' : ($stepIndex + 1) ?></div>
+          <div class="gp-journey-text">
+            <div class="gp-journey-label"><?= $h($stepLabel) ?></div>
+            <div class="gp-journey-state"><?= $h($stepState) ?></div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </section>
+
+  <?php if (in_array($currentStatus, ['paid', 'confirmed'], true) && $summaryBalanceTop > 0): ?>
+  <div class="gp-info-box">
+    <div class="gp-info-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
+    </div>
+    <div>
+      <div class="gp-info-title">Deposit paid — complete full payment</div>
+      <div class="gp-info-copy">Your deposit has been paid. Remaining balance: <strong><?= $money($summaryBalanceTop) ?></strong>. You can pay now to complete the full payment.</div>
+      <div class="gp-info-actions">
+        <?php if (!($hasPendingRemaining ?? false)): ?>
+          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance (<?= $money($summaryBalanceTop) ?>)</a>
+        <?php else: ?>
+          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;">Remaining Payment Under Review</span>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <?php if (!empty($replacementHistory)): ?>
     <?php
@@ -263,33 +441,28 @@ a{color:inherit;text-decoration:none}
 
   <div class="gp-head">
     <h1>Booking <?= $h($bookingRef) ?></h1>
-    <span class="gp-badge <?php
-      $s=$booking['status']??'';
-      if(in_array($s,['confirmed','completed'])) echo 'background:#f0fdf4;color:#166534';
-      elseif($s==='paid') echo 'background:#eff6ff;color:#1d4ed8';
-      elseif($s==='cancelled') echo 'background:#fef2f2;color:var(--danger)';
-      else echo 'background:#fffbeb;color:#92400e';
-    ?>"><?=$statusLabels[$s]??ucfirst($s)?></span>
   </div>
 
-  <?php $currentStatus = $booking['status'] ?? ''; ?>
-
   <?php if ($currentStatus === 'pending_supplier_response'): ?>
-  <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:4px;">
-    <svg style="flex-shrink:0;margin-top:2px;color:#d97706" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  <div class="gp-info-box">
+    <div class="gp-info-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+    </div>
     <div>
-      <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:2px;">Waiting for supplier confirmation</div>
-      <div style="font-size:12px;color:#b45309;">Your booking request has been sent. The supplier has up to 48 hours to accept or decline. You will be notified when they respond.</div>
+      <div class="gp-info-title">Waiting for supplier confirmation</div>
+      <div class="gp-info-copy">Your booking request has been sent. The supplier has up to 48 hours to accept or decline. You will be notified when they respond.</div>
     </div>
   </div>
   <?php endif; ?>
 
   <?php if ($currentStatus === 'pending_payment' && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
-  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:4px;">
-    <svg style="flex-shrink:0;margin-top:2px;color:#16a34a" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  <div class="gp-info-box">
+    <div class="gp-info-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>
+    </div>
     <div>
-      <div style="font-weight:700;font-size:13px;color:#166534;margin-bottom:2px;">Supplier accepted — please complete payment</div>
-      <div style="font-size:12px;color:#15803d;">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
+      <div class="gp-info-title">Supplier accepted — please complete payment</div>
+      <div class="gp-info-copy">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
     </div>
   </div>
   <?php endif; ?>
@@ -335,114 +508,35 @@ a{color:inherit;text-decoration:none}
     $remainingPaymentsList = $remainingPayments ?? [];
   ?>
 
-  <?php
-    $journeyStatus = strtolower((string)($booking['status'] ?? ''));
-    $journeyIsCancellation = in_array($journeyStatus, ['cancellation_requested', 'cancelled'], true);
-    $journeyIsReplacement = !empty($pendingReplacement);
-    $journeyTone = $journeyIsCancellation ? 'cancel' : ($journeyIsReplacement ? 'replacement' : 'normal');
-    $journeyStatusLabel = $statusLabels[$journeyStatus] ?? ucfirst(str_replace('_', ' ', $journeyStatus ?: 'booking placed'));
-
-    if ($journeyIsReplacement) {
-        $journeySteps = [
-            'Booking Confirmed',
-            'Supplier Replacement Proposed',
-            'Difference Payment Required',
-            'Replacement Approved',
-            'Updated Booking Confirmed',
-        ];
-        $replacementStatus = strtolower((string)($pendingReplacement['status'] ?? ''));
-        $replacementDelta = (float)($pendingReplacement['price_delta'] ?? 0);
-        $journeyCurrent = 1;
-        if ($replacementDelta > 0) $journeyCurrent = 2;
-        if (in_array($replacementStatus, ['approved', 'accepted'], true)) $journeyCurrent = 3;
-        if (in_array($replacementStatus, ['confirmed', 'completed'], true)) $journeyCurrent = 4;
-        $journeyCopy = 'Your confirmed booking is being updated with a replacement supplier.';
-    } elseif ($journeyIsCancellation) {
-        $supplierInitiatedJourney = false;
-        foreach ($suppliers as $sup) {
-            if (($sup['status'] ?? '') === 'supplier_cancellation_requested') { $supplierInitiatedJourney = true; break; }
-        }
-        $journeySteps = [
-            'Booking Placed',
-            $supplierInitiatedJourney ? 'Supplier Requests Cancellation' : 'Cancellation Requested',
-            'Cancelled',
-        ];
-        $journeyCurrent = $journeyStatus === 'cancelled' ? 2 : 1;
-        $journeyCopy = $supplierInitiatedJourney
-            ? 'Your supplier has requested to cancel this booking. Admin will review and process your refund.'
-            : 'Your cancellation progress is shown here in soft red for clarity.';
-    } else {
-        $journeySteps = [
-            'Booking Placed',
-            'Deposit Paid',
-            'Booking Confirmed',
-            'Remaining Payment',
-            'Fully Paid',
-            'Service Completed',
-        ];
-        if ($journeyStatus === 'completed') {
-            $journeyCurrent = 5;
-        } elseif ($journeyStatus === 'finalized') {
-            $journeyCurrent = 4;
-        } elseif ($journeyStatus === 'pending_final_payment') {
-            $journeyCurrent = 3;
-        } elseif ($journeyStatus === 'confirmed') {
-            if ($hasRemainingBalance) {
-                $journeyCurrent = 3; // Highlight "Remaining Payment" as current
-            } else {
-                $journeyCurrent = 3;
-            }
-        } elseif (in_array($journeyStatus, ['payment_submitted', 'pending_admin', 'paid'], true)) {
-            $journeyCurrent = 1;
-        } elseif ($journeyStatus === 'pending_payment') {
-            $journeyCurrent = 0;
-        } else {
-            $journeyCurrent = 0;
-        }
-        $journeyCopy = 'Follow each milestone from booking placement through completion.';
-    }
-  ?>
-  <section class="gp-journey-card<?= $journeyTone === 'cancel' ? ' is-cancel' : '' ?>" aria-label="Booking Journey">
-    <div class="gp-journey-head">
-      <div>
-        <div class="gp-journey-kicker">Booking Journey</div>
-        <div class="gp-journey-title"><?= $h($journeyTone === 'replacement' ? 'Replacement supplier flow' : ($journeyTone === 'cancel' ? 'Cancellation flow' : 'Normal booking flow')) ?></div>
-        <div class="gp-journey-copy"><?= $h($journeyCopy) ?></div>
-      </div>
-      <span class="gp-journey-status"><?= $h($journeyStatusLabel) ?></span>
-    </div>
-    <div class="gp-journey-steps">
-      <?php foreach ($journeySteps as $stepIndex => $stepLabel): ?>
-        <?php
-          $stepClass = $stepIndex < $journeyCurrent ? 'is-complete' : ($stepIndex === $journeyCurrent ? 'is-current' : 'is-upcoming');
-          $stepState = $stepIndex < $journeyCurrent ? 'Completed' : ($stepIndex === $journeyCurrent ? 'Current' : 'Upcoming');
-        ?>
-        <div class="gp-journey-step <?= $stepClass ?>">
-          <div class="gp-journey-dot" aria-hidden="true"><?= $stepIndex < $journeyCurrent ? '✓' : ($stepIndex + 1) ?></div>
-          <div class="gp-journey-text">
-            <div class="gp-journey-label"><?= $h($stepLabel) ?></div>
-            <div class="gp-journey-state"><?= $h($stepState) ?></div>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </section>
-
   <div class="gp-layout">
     <!-- LEFT: Timeline -->
     <div class="gp-col">
-      <div class="gp-card">
-        <div class="gp-card-h">Status Timeline</div>
+      <div class="gp-card gp-status-card">
+        <div class="gp-card-h">Status History</div>
         <div class="gp-card-b">
           <?php if (!empty($logs)): ?>
           <div class="gp-timeline">
             <?php foreach ($logs as $l):
               $isLast = $l === end($logs);
               $isCurrent = $l['new_status'] === ($booking['status']??'');
+              $logStatus = strtolower((string)($l['new_status'] ?? ''));
+              if (str_contains($logStatus, 'payment')) {
+                $statusIcon = '<path d="M3 7h18v10H3z"/><path d="M3 10h18"/><path d="M7 15h3"/>';
+              } elseif (str_contains($logStatus, 'cancel')) {
+                $statusIcon = '<circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/>';
+              } elseif ($logStatus === 'completed') {
+                $statusIcon = '<path d="M12 2l2.8 6.2 6.7.7-5 4.5 1.4 6.6L12 16.6 6.1 20l1.4-6.6-5-4.5 6.7-.7z"/>';
+              } elseif (in_array($logStatus, ['confirmed', 'paid'], true)) {
+                $statusIcon = '<path d="M20 7L10 17l-5-5"/>';
+              } elseif (str_contains($logStatus, 'pending') || str_contains($logStatus, 'review')) {
+                $statusIcon = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
+              } else {
+                $statusIcon = '<path d="M8 3v4"/><path d="M16 3v4"/><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16"/>';
+              }
             ?>
             <div class="gp-tl-item">
               <div class="gp-tl-dot <?=$isCurrent?'current':($isLast?'past':'past')?>">
-                <?php if ($isCurrent): ?>●<?php else: ?>●<?php endif; ?>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $statusIcon ?></svg>
               </div>
               <div class="gp-tl-c">
                 <div class="gp-tl-t"><?=ucfirst(str_replace('_',' ',$l['new_status']??''))?></div>
@@ -457,76 +551,104 @@ a{color:inherit;text-decoration:none}
         </div>
       </div>
 
-      <div class="gp-card">
+      <div class="gp-card gp-event-card">
         <div class="gp-card-h">Event Details</div>
         <div class="gp-card-b">
-          <?php foreach ($eventDetails as $ed): ?>
-          <div class="gp-field">
-            <span class="gp-field-l">Date</span>
-            <span class="gp-field-v"><?=$h(date('l, d M Y',strtotime($ed['event_date']?:'now')))?></span>
-          </div>
-          <div class="gp-field">
-            <span class="gp-field-l">Time</span>
-            <span class="gp-field-v"><?=$h(date('g:i A',strtotime($ed['start_time']?:'09:00')))?> — <?=$h(date('g:i A',strtotime($ed['end_time']?:'17:00')))?></span>
-          </div>
-          <?php if (!empty($ed['guest_count'])): ?>
-          <div class="gp-field"><span class="gp-field-l">Guests</span><span class="gp-field-v"><?=(int)$ed['guest_count']?></span></div>
-          <?php endif; ?>
-          <?php if (!empty($ed['location'])): ?>
-          <div class="gp-field"><span class="gp-field-l">Venue</span><span class="gp-field-v"><?=$h($ed['location'])?></span></div>
-          <?php endif; ?>
-          <?php if (!empty($ed['contact_phone'])): ?>
-          <div class="gp-field"><span class="gp-field-l">Contact Phone</span><span class="gp-field-v"><?=$h($ed['contact_phone'])?></span></div>
-          <?php endif; ?>
-          <?php if (!empty($ed['special_requests'])): ?>
-          <div class="gp-field">
-            <span class="gp-field-l">Special Requests</span>
-            <span class="gp-field-v quote">"<?=$h($ed['special_requests'])?>"</span>
-          </div>
-          <?php endif; ?>
-          <?php endforeach; ?>
-          <?php if (empty($eventDetails)): ?>
-          <div style="color:var(--muted);font-size:13px;">No event details provided</div>
+          <?php if (!empty($items)): ?>
+            <?php foreach ($items as $idx => $item): ?>
+              <?php
+                $itemId = (int)($item['id'] ?? 0);
+                $ed = $eventDetailsByItem[$itemId] ?? ($eventDetails[$idx] ?? $fallbackEventDetail);
+                $eventDateRaw = $ed['event_date'] ?? ($item['booking_date'] ?? null);
+                $startRaw = $ed['start_time'] ?? ($item['start_time'] ?? null);
+                $endRaw = $ed['end_time'] ?? ($item['end_time'] ?? null);
+                $hallName = trim((string)($item['venue_room_name'] ?? ''));
+                $venueName = trim((string)($item['venue_name'] ?? ''));
+                $location = trim((string)($ed['location'] ?? ''));
+                $venueText = $location !== '' ? $location : trim($hallName . ($venueName !== '' ? ' · ' . $venueName : ''));
+                $category = trim((string)($item['category_name'] ?? 'Service'));
+                $supplier = trim((string)($item['supplier_name'] ?? 'Golden Promise'));
+                $packagePlan = $packageSchedules[$itemId] ?? [];
+              ?>
+              <section class="gp-service-detail-panel <?= $idx === 0 ? 'active' : '' ?>" data-service-panel="<?= $itemId ?>" aria-label="<?= $h($item['service_name'] ?? 'Service') ?> details">
+                <div>
+                  <div class="gp-service-detail-title"><?= $h($item['service_name'] ?? 'Wedding Service') ?></div>
+                  <div class="gp-service-detail-meta"><?= $h($category) ?> · <?= $h($supplier) ?></div>
+                </div>
+                <div class="gp-service-detail-grid">
+                  <?php if (!empty($eventDateRaw)): ?>
+                  <div class="gp-field">
+                    <span class="gp-field-l">Date</span>
+                    <span class="gp-field-v"><?= $h(date('l, d M Y', strtotime((string)$eventDateRaw))) ?></span>
+                  </div>
+                  <?php endif; ?>
+                  <?php if (!empty($startRaw) || !empty($endRaw)): ?>
+                  <div class="gp-field">
+                    <span class="gp-field-l">Time</span>
+                    <span class="gp-field-v">
+                      <?= !empty($startRaw) ? $h(date('g:i A', strtotime((string)$startRaw))) : 'TBD' ?>
+                      <?php if (!empty($endRaw)): ?> — <?= $h(date('g:i A', strtotime((string)$endRaw))) ?><?php endif; ?>
+                    </span>
+                  </div>
+                  <?php endif; ?>
+                  <?php if (!empty($ed['guest_count'])): ?>
+                  <div class="gp-field"><span class="gp-field-l">Guests</span><span class="gp-field-v"><?=(int)$ed['guest_count']?></span></div>
+                  <?php endif; ?>
+                  <?php if ($venueText !== ''): ?>
+                  <div class="gp-field"><span class="gp-field-l">Venue</span><span class="gp-field-v"><?=$h($venueText)?></span></div>
+                  <?php endif; ?>
+                  <?php if (!empty($ed['contact_phone'])): ?>
+                  <div class="gp-field"><span class="gp-field-l">Contact Phone</span><span class="gp-field-v"><?=$h($ed['contact_phone'])?></span></div>
+                  <?php endif; ?>
+                  <div class="gp-field"><span class="gp-field-l">Status</span><span class="gp-field-v"><?= $h(ucfirst($item['status'] ?? 'pending')) ?></span></div>
+                </div>
+                <?php if (!empty($ed['special_requests'])): ?>
+                <div class="gp-field">
+                  <span class="gp-field-l">Special Requests</span>
+                  <span class="gp-field-v quote">"<?=$h($ed['special_requests'])?>"</span>
+                </div>
+                <?php endif; ?>
+
+                <?php if (!empty($packagePlan)): ?>
+                <section class="gp-package-plan" aria-label="<?= $h($item['service_name'] ?? 'Package') ?> event plan">
+                  <div class="gp-package-plan-head">
+                    <div>
+                      <div class="gp-package-plan-title">Included service plan</div>
+                      <div class="gp-package-plan-copy">Your included services are arranged for the selected event date.</div>
+                    </div>
+                    <span class="gp-package-plan-count"><?= count($packagePlan) ?> service<?= count($packagePlan) === 1 ? '' : 's' ?></span>
+                  </div>
+                  <div class="gp-event-plan-list">
+                    <?php foreach ($packagePlan as $event): ?>
+                      <?php
+                        $start = !empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD';
+                        $end = !empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '';
+                        $hall = trim((string)($event['venue_room_name'] ?? ''));
+                      ?>
+                      <div class="gp-event-plan-item">
+                        <div class="gp-event-plan-time"><?= $h($start) ?></div>
+                        <div>
+                          <div class="gp-event-plan-service"><?= $h($event['service_name'] ?? 'Package service') ?></div>
+                          <div class="gp-event-plan-meta">
+                            <?= $h($event['category_name'] ?? 'Service') ?>
+                            · <?= $h($event['supplier_name'] ?? 'Golden Promise') ?>
+                            <?php if ($end !== ''): ?> · Until <?= $h($end) ?><?php endif; ?>
+                          </div>
+                          <?php if ($hall !== ''): ?>
+                            <span class="gp-event-plan-hall"><?= $h($hall) ?></span>
+                          <?php endif; ?>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                </section>
+                <?php endif; ?>
+              </section>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div style="color:var(--muted);font-size:13px;">No service details provided</div>
           <?php endif; ?>
 
-          <?php foreach ($items as $item): ?>
-            <?php
-              $packagePlan = $packageSchedules[(int)($item['id'] ?? 0)] ?? [];
-              if (empty($packagePlan)) continue;
-            ?>
-            <section class="gp-package-plan" aria-label="<?= $h($item['service_name'] ?? 'Package') ?> event plan">
-              <div class="gp-package-plan-head">
-                <div>
-                  <div class="gp-package-plan-title"><?= $h($item['service_name'] ?? 'Package') ?></div>
-                  <div class="gp-package-plan-copy">Your included services are automatically arranged for the selected event date.</div>
-                </div>
-                <span class="gp-package-plan-count"><?= count($packagePlan) ?> service<?= count($packagePlan) === 1 ? '' : 's' ?></span>
-              </div>
-              <div class="gp-event-plan-list">
-                <?php foreach ($packagePlan as $event): ?>
-                  <?php
-                    $start = !empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD';
-                    $end = !empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '';
-                    $hall = trim((string)($event['venue_room_name'] ?? ''));
-                  ?>
-                  <div class="gp-event-plan-item">
-                    <div class="gp-event-plan-time"><?= $h($start) ?></div>
-                    <div>
-                      <div class="gp-event-plan-service"><?= $h($event['service_name'] ?? 'Package service') ?></div>
-                      <div class="gp-event-plan-meta">
-                        <?= $h($event['category_name'] ?? 'Service') ?>
-                        · <?= $h($event['supplier_name'] ?? 'Golden Promise') ?>
-                        <?php if ($end !== ''): ?> · Until <?= $h($end) ?><?php endif; ?>
-                      </div>
-                      <?php if ($hall !== ''): ?>
-                        <span class="gp-event-plan-hall"><?= $h($hall) ?></span>
-                      <?php endif; ?>
-                    </div>
-                  </div>
-                <?php endforeach; ?>
-              </div>
-            </section>
-          <?php endforeach; ?>
         </div>
       </div>
     </div>
@@ -534,40 +656,34 @@ a{color:inherit;text-decoration:none}
     <!-- RIGHT: Items -->
     <div class="gp-col">
       <div class="gp-card">
-        <div class="gp-card-h">Services</div>
-        <table class="gp-items-table">
-          <thead><tr><th>Service</th><th>Status</th><th>Amount</th></tr></thead>
-          <tbody>
-            <?php foreach ($items as $item):
+        <div class="gp-card-h">Order Summary</div>
+        <div class="gp-card-b">
+          <div class="gp-order-list" role="listbox" aria-label="Booked services">
+            <?php foreach ($items as $idx => $item):
               $p=(float)($item['price']??0);
-              $hallName = trim((string)($item['venue_room_name'] ?? ''));
-              $venueName = trim((string)($item['venue_name'] ?? ''));
+              $itemId = (int)($item['id'] ?? 0);
+              $thumb = trim((string)($item['thumbnail_url'] ?? ''));
+              if ($thumb !== '' && !preg_match('#^(https?:)?//#', $thumb) && $thumb[0] !== '/') {
+                  $thumb = URLROOT . '/' . ltrim($thumb, '/');
+              }
             ?>
-            <tr>
-              <td>
-                <div class="gp-item-name"><?=$h($item['service_name']??'Service')?></div>
-                <?php if (!empty($item['addon_package_name'])): ?>
-                  <div class="gp-item-sub">Add-on for <?=$h($item['addon_package_name'])?></div>
+            <button class="gp-order-item <?= $idx === 0 ? 'active' : '' ?>" type="button" data-service-select="<?= $itemId ?>" role="option" aria-selected="<?= $idx === 0 ? 'true' : 'false' ?>">
+              <span class="gp-order-thumb">
+                <?php if ($thumb !== ''): ?>
+                  <img src="<?= $h($thumb) ?>" alt="">
+                <?php else: ?>
+                  <?= $idx + 1 ?>
                 <?php endif; ?>
-                <?php if ($hallName !== ''): ?>
-                <div class="gp-item-detail">Hall: <?=$h($hallName . ($venueName !== '' ? ' · ' . $venueName : ''))?></div>
-                <?php endif; ?>
-                <div class="gp-item-detail">
-                  <?php if ($item['start_time']??''): ?>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  <?=$h(date('g:i A',strtotime($item['start_time'])))?>
-                  <?php endif; ?>
-                  <?php if ($item['supplier_name']??''): ?>
-                  &middot; <?=$h($item['supplier_name'])?>
-                  <?php endif; ?>
-                </div>
-              </td>
-              <td><span class="gp-item-status" style="<?=($item['status']??'')==='accepted'?'background:#f0fdf4;color:#166534':(($item['status']??'')==='cancelled'?'background:#fef2f2;color:var(--danger)':'background:#fffbeb;color:#92400e')?>"><?=ucfirst($item['status']??'pending')?></span></td>
-              <td style="font-weight:600"><?=$money($p)?></td>
-            </tr>
+              </span>
+              <span>
+                <span class="gp-order-name"><?= $h($item['service_name'] ?? 'Service') ?></span>
+                <span class="gp-order-sub">Qty: 1<?= !empty($item['addon_package_name']) ? ' · Add-on for ' . $h($item['addon_package_name']) : '' ?></span>
+              </span>
+              <span class="gp-order-price"><?= $money($p) ?></span>
+            </button>
             <?php endforeach; ?>
-          </tbody>
-        </table>
+          </div>
+        </div>
         <div class="gp-summary">
           <?php
           $summaryTotal = (float)($booking['total_amount'] ?? 0);
@@ -576,15 +692,66 @@ a{color:inherit;text-decoration:none}
           $summaryPaid = (float)($booking['paid_amount'] ?? 0);
           $summaryBalance = max(0, $summaryTotal - $summaryPaid);
           ?>
-          <div class="gp-summary-r"><span>Booking total</span><span><?=$money($summaryTotal)?></span></div>
-          <div class="gp-summary-r"><span>Deposit (<?=$depositPercent?>%)</span><span><?=$money($summaryDeposit)?></span></div>
+          <div class="gp-summary-r"><span>Deposit paid (<?=$depositPercent?>%)</span><span><?=$money($summaryPaid)?></span></div>
           <?php if ($summaryFee > 0): ?>
           <div class="gp-summary-r"><span>Platform fee (<?=rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.')?>%)</span><span><?=$money($summaryFee)?></span></div>
           <?php endif; ?>
-          <div class="gp-summary-r" style="color:var(--plum);font-weight:600;"><span>Amount paid</span><span><?=$money($summaryPaid)?></span></div>
-          <div class="gp-summary-r balance" style="color:var(--muted);font-size:12px;"><span>Balance due</span><span><?=$money($summaryBalance)?></span></div>
+          <div class="gp-summary-r balance"><span>Balance due</span><span><?=$money($summaryBalance)?></span></div>
+          <div class="gp-summary-r total"><span>Total</span><span><?=$money($summaryTotal)?></span></div>
         </div>
       </div>
+
+      <?php if ($hasRemainingBalance): ?>
+      <div class="gp-info-box" style="margin-bottom:0;">
+        <div class="gp-info-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="gp-info-title">Remaining Balance Details</div>
+          <div class="gp-info-copy">Complete your final payment to finish this booking.</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+          <?php if ($eventDateDisplay): ?>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule);font-size:13px;">
+            <span style="color:var(--muted);font-weight:600;">Due Date (Event Date)</span>
+            <span style="font-weight:700;color:#b8924a;"><?= date('M d, Y', strtotime($eventDateDisplay)) ?></span>
+          </div>
+          <?php endif; ?>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule);font-size:13px;">
+            <span style="color:var(--muted);font-weight:600;">Remaining Balance</span>
+            <span style="font-weight:700;color:var(--plum);"><?= $money($summaryBalance) ?></span>
+          </div>
+          <?php if (!empty($remainingPaymentsList)): ?>
+          <div style="padding-top:8px;">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Payment History</div>
+            <?php foreach ($remainingPaymentsList as $rp): ?>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px;">
+              <div>
+                <span style="font-weight:600;"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
+                <?php if (($rp['bank_name'] ?? '') !== ''): ?>
+                <span style="color:var(--muted);margin-left:8px;"><?= $h($rp['bank_name']) ?></span>
+                <?php endif; ?>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-weight:700;"><?= $money($rp['paid_amount'] ?? $rp['amount']) ?></span>
+                <?php
+                  $rpStatus = $rp['status'] ?? 'pending';
+                  $rpColors = [
+                    'success' => ['bg' => '#f0fdf4', 'color' => '#166534', 'label' => 'Verified'],
+                    'pending' => ['bg' => '#fffbeb', 'color' => '#92400e', 'label' => 'Under Review'],
+                    'failed'  => ['bg' => '#fef2f2', 'color' => '#991b1b', 'label' => 'Rejected'],
+                  ];
+                  $rpSt = $rpColors[$rpStatus] ?? $rpColors['pending'];
+                ?>
+                <span style="background:<?= $rpSt['bg'] ?>;color:<?= $rpSt['color'] ?>;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;"><?= $rpSt['label'] ?></span>
+              </div>
+            </div>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
 
       <?php if (!empty($vouchers)): ?>
       <div class="gp-card">
@@ -688,69 +855,10 @@ a{color:inherit;text-decoration:none}
   <?php endif; ?>
 
   <div class="gp-bottom-actions">
-    <a class="gp-btn-sm" href="<?=URLROOT?>/booking/myBookings">Back to Bookings</a>
     <?php if (!empty($vouchers)): ?>
     <a class="gp-btn-sm" href="<?=URLROOT?>/booking/vouchers">View All Vouchers</a>
     <?php endif; ?>
-    <?php if (in_array($booking['status']??'', ['draft', 'pending_payment']) && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
-    <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Proceed to Payment</a>
-    <?php elseif (($booking['status']??'') === 'pending_supplier_response'): ?>
-    <span class="gp-btn-sm" style="cursor:default;opacity:0.6;" title="Payment available after supplier confirms">Awaiting Supplier Response</span>
-    <?php endif; ?>
-    <?php if ($hasRemainingBalance && !$hasPendingRemaining): ?>
-    <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance (<?= $money($summaryBalance) ?>)</a>
-    <?php elseif ($hasRemainingBalance && $hasPendingRemaining): ?>
-    <span class="gp-btn-sm" style="cursor:default;opacity:0.6;">Remaining Payment Under Review</span>
-    <?php endif; ?>
 
-    <?php if ($hasRemainingBalance): ?>
-    <div class="gp-card" style="margin-top:12px;">
-      <div class="gp-card-h">Remaining Balance Details</div>
-      <div class="gp-card-b" style="gap:10px;">
-        <?php if ($eventDateDisplay): ?>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px;">
-          <span style="color:var(--muted);font-weight:600;">Due Date (Event Date)</span>
-          <span style="font-weight:700;color:#b8924a;"><?= date('M d, Y', strtotime($eventDateDisplay)) ?></span>
-        </div>
-        <?php endif; ?>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13px;">
-          <span style="color:var(--muted);font-weight:600;">Remaining Balance</span>
-          <span style="font-weight:700;color:var(--plum);"><?= $money($summaryBalance) ?></span>
-        </div>
-        <?php if (!empty($remainingPaymentsList)): ?>
-        <div style="padding-top:8px;">
-          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Payment History</div>
-          <?php foreach ($remainingPaymentsList as $rp): ?>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px;">
-            <div>
-              <span style="font-weight:600;"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
-              <?php if (($rp['bank_name'] ?? '') !== ''): ?>
-              <span style="color:var(--muted);margin-left:8px;"><?= $h($rp['bank_name']) ?></span>
-              <?php endif; ?>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-weight:700;"><?= $money($rp['paid_amount'] ?? $rp['amount']) ?></span>
-              <?php
-                $rpStatus = $rp['status'] ?? 'pending';
-                $rpColors = [
-                  'success' => ['bg' => '#f0fdf4', 'color' => '#166534', 'label' => 'Verified'],
-                  'pending' => ['bg' => '#fffbeb', 'color' => '#92400e', 'label' => 'Under Review'],
-                  'failed'  => ['bg' => '#fef2f2', 'color' => '#991b1b', 'label' => 'Rejected'],
-                ];
-                $rpSt = $rpColors[$rpStatus] ?? $rpColors['pending'];
-              ?>
-              <span style="background:<?= $rpSt['bg'] ?>;color:<?= $rpSt['color'] ?>;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;"><?= $rpSt['label'] ?></span>
-            </div>
-          </div>
-          <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-      </div>
-    </div>
-    <?php endif; ?>
-    <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
-    <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
-    <?php endif; ?>
     <?php if (($booking['status'] ?? '') === 'cancellation_requested'): ?>
       <?php
       $supplierApproved = false;
@@ -902,6 +1010,20 @@ a{color:inherit;text-decoration:none}
 </main>
 <script>
 document.addEventListener('click',(e)=>{const btn=e.target.closest('.gp-profile-btn');if(btn){const x=btn.getAttribute('aria-expanded')==='true';document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));btn.setAttribute('aria-expanded',String(!x));return}document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'))});
+
+document.querySelectorAll('[data-service-select]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const id = button.dataset.serviceSelect;
+    document.querySelectorAll('[data-service-select]').forEach((item) => {
+      const active = item === button;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-service-panel]').forEach((panel) => {
+      panel.classList.toggle('active', panel.dataset.servicePanel === id);
+    });
+  });
+});
 
 function updateCharCount(id, val, max) {
   const el = document.getElementById(id);

@@ -1319,6 +1319,10 @@ class Booking extends Controller
 
         $bookings = $this->bookingModel->getCustomerBookings($this->userId, $filter, $perPage, $offset);
         $totalCount = $this->bookingModel->getCustomerBookingsCount($this->userId, $filter);
+        $bookingStatusCounts = ['all' => $this->bookingModel->getCustomerBookingsCount($this->userId, 'all')];
+        foreach (['pending_payment', 'paid', 'confirmed', 'completed', 'cancelled', 'cancellation_requested'] as $statusKey) {
+            $bookingStatusCounts[$statusKey] = $this->bookingModel->getCustomerBookingsCount($this->userId, $statusKey);
+        }
 
         // Enrich each booking with items count, booking ref, and refund info
         $enriched = [];
@@ -1338,6 +1342,7 @@ class Booking extends Controller
             'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
             'totalCount' => $totalCount,
             'perPage' => $perPage,
+            'bookingStatusCounts' => $bookingStatusCounts,
         ]);
     }
 

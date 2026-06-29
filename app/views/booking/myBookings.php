@@ -1,6 +1,7 @@
 <?php
 $bookings = $bookings ?? [];
 $activeFilter = $activeFilter ?? 'all';
+$bookingStatusCounts = $bookingStatusCounts ?? [];
 
 $statusLabels = [
     'draft' => 'Draft', 'pending_payment' => 'Pending Payment', 'payment_submitted' => 'Verifying Payment',
@@ -24,7 +25,10 @@ $plain = function ($v) {
 };
 $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
 
-$getCountByStatus = function ($status) use ($bookings) {
+$getCountByStatus = function ($status) use ($bookings, $bookingStatusCounts) {
+    if (array_key_exists($status, $bookingStatusCounts)) {
+        return (int)$bookingStatusCounts[$status];
+    }
     return count(array_filter($bookings, fn($b) => $b['status'] === $status));
 };
 ?>
@@ -62,16 +66,86 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-header-nav a:hover { color: var(--plum); background: rgba(107,68,89,0.08); }
 .gp-header-actions { display: flex; align-items: center; gap: 10px; }
 
-.gp-page { position: relative; z-index: 1; flex: 1; padding: 52px var(--pad-x) 80px; max-width: 900px; margin: 0 auto; width: 100%; }
-.gp-page-head { margin-bottom: 32px; opacity: 0; animation: fadeUp 0.7s var(--ease-expo) 0.1s forwards; }
-.gp-page-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
-.gp-page-eyebrow::before { content: ''; display: block; width: 24px; height: 1px; background: var(--gold); }
-.gp-page-title { font-family: var(--font-d); font-size: clamp(34px, 5vw, 52px); font-weight: 600; line-height: 0.92; letter-spacing: -0.02em; }
-.gp-page-title em { font-style: italic; color: var(--plum-lt); }
-.gp-page-subtitle { font-size: 14px; color: var(--muted); margin-top: 10px; }
+.gp-page {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    padding: 0 var(--pad-x) 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+.gp-page-head{
+    position:relative;
+    display:grid;
+    place-items:center;
+    min-height:220px;
+    margin-top:-92px;
+    margin-bottom:36px;
+    padding:0 24px;
+    overflow:hidden;
+    text-align:center;
+    border-radius:0 0 28px 28px;
+    width:100vw;
+    margin-left:calc(50% - 50vw);
+    margin-right:calc(50% - 50vw);
+
+    background:#e9ddd0;
+}
+
+.gp-page-head::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+        linear-gradient(rgba(0, 0, 0, 0.52),rgba(0, 0, 0, 0.47)),
+        url("<?= URLROOT ?>/app/views/main/images/bookingBanner.png") center center/cover no-repeat;
+
+    transform:scale(1.08);
+    filter:blur(3px);
+}
+
+.gp-page-head::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(to bottom,
+        rgba(249,241,233,.08),
+        rgba(249,241,233,.18));
+}
+
+.gp-page-head>*{
+    position:relative;
+    z-index:2;
+}
+
+.gp-page-title{
+    font-family:var(--font-d);
+    font-size:clamp(34px,4vw,58px);
+    font-weight:700;
+    color:#fffaf5;
+    margin-top:92px;
+    line-height:1.05;
+}
+
+.gp-page-eyebrow{
+    margin-top:14px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:rgba(255,248,239,.92);
+}
+
+.gp-page-subtitle{
+    margin-top:10px;
+    color:#fff;
+    font-size:14px;
+    opacity:.9;
+}
 
 .gp-filters { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; overflow-x: auto; padding-bottom: 4px; }
-.gp-filter { padding: 6px 16px; border-radius: 999px; border: 1px solid var(--rule-strong); background: transparent; font-size: 12px; font-weight: 600; color: var(--text2); transition: all 0.2s; white-space: nowrap; text-decoration: none; }
+.gp-filter { padding: 6px 16px; border-radius: 9px; border: 1px solid var(--rule-strong); background: transparent; font-size: 12px; font-weight: 600; color: var(--text2); transition: all 0.2s; white-space: nowrap; text-decoration: none; }
 .gp-filter:hover { border-color: var(--plum); color: var(--plum); }
 .gp-filter.active { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 
@@ -80,7 +154,9 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-card + .gp-card { margin-top: 12px; }
 
 .gp-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.gp-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .gp-card-service { font-family: var(--font-d); font-size: 18px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.gp-card-service-count { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; background: rgba(184,146,74,.14); border: 1px solid rgba(184,146,74,.24); color: #8a682d; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
 .gp-card-supplier { font-size: 12px; color: var(--plum-lt); margin-top: 2px; }
 .gp-card-date { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
 .gp-card-status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
@@ -147,14 +223,18 @@ button { font-family: var(--font-b); cursor: pointer; }
 
 <main class="gp-page">
   <div class="gp-page-head">
-    <div class="gp-page-eyebrow">Your Weddings</div>
-    <h1 class="gp-page-title">My <em>Bookings</em></h1>
-    <p class="gp-page-subtitle">Track the status of your wedding services.</p>
-  </div>
+    <h1 class="gp-page-title">My Bookings</h1>
+
+    <div class="gp-page-eyebrow">
+        TRACK YOUR WEDDING JOURNEY
+    </div>
+
+    
+</div>
 
   <div class="gp-filters">
     <?php foreach ($filterLabels as $key => $label):
-      $count = $key === 'all' ? count($bookings) : $getCountByStatus($key);
+      $count = $key === 'all' ? ($bookingStatusCounts['all'] ?? count($bookings)) : $getCountByStatus($key);
     ?>
       <a class="gp-filter <?= $activeFilter === $key ? 'active' : '' ?>"
          href="<?= URLROOT ?>/booking/myBookings?status=<?= $key ?>">
@@ -184,7 +264,12 @@ button { font-family: var(--font-b); cursor: pointer; }
       <div class="gp-card-top">
         <div>
           <?php if ($firstItem): ?>
-            <div class="gp-card-service"><?= $h($firstItem['service_name'] ?? 'Wedding Service') ?></div>
+            <div class="gp-card-title-row">
+              <div class="gp-card-service"><?= $h($firstItem['service_name'] ?? 'Wedding Service') ?></div>
+              <?php if ($itemCount > 1): ?>
+                <span class="gp-card-service-count"><?= $itemCount ?> Services Included</span>
+              <?php endif; ?>
+            </div>
             <div class="gp-card-supplier"><?= $h($firstHall !== '' ? 'Hall: ' . $firstHall : ($firstItem['supplier_name'] ?? '')) ?></div>
           <?php else: ?>
             <div class="gp-card-service">Wedding Booking</div>
@@ -192,7 +277,6 @@ button { font-family: var(--font-b); cursor: pointer; }
           <div class="gp-card-date">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Ref: <?= $h($b['booking_ref'] ?? '') ?>
-            <?php if ($itemCount > 1): ?> &middot; +<?= $itemCount - 1 ?> more service<?= $itemCount > 2 ? 's' : '' ?><?php endif; ?>
           </div>
         </div>
         <span class="gp-card-status-badge <?= $statusColors[$b['status']] ?? 'bg-gray-100 text-gray-600' ?>">

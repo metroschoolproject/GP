@@ -74,7 +74,10 @@ class WishlistModel
     public function getWishlistCount(int $userId): int
     {
         $this->db->dbquery(
-            "SELECT COUNT(*) AS cnt FROM favorites WHERE user_id = :uid AND item_type = 'service'"
+            "SELECT COUNT(*) AS cnt
+             FROM favorites
+             WHERE user_id = :uid
+               AND item_type IN ('service', 'package')"
         );
         $this->db->dbbind(':uid', $userId);
         $row = $this->db->getsingledata();
@@ -90,17 +93,22 @@ class WishlistModel
             "SELECT c.*, COUNT(f.id) AS item_count
              FROM wishlist_collections c
              LEFT JOIN favorites f ON f.collection_id = c.id
-             WHERE c.user_id = :uid
+                AND f.user_id = :favorite_uid
+                AND f.item_type IN ('service', 'package')
+             WHERE c.user_id = :collection_uid
              GROUP BY c.id
              ORDER BY c.sort_order ASC, c.created_at ASC"
         );
-        $this->db->dbbind(':uid', $userId);
+        $this->db->dbbind(':favorite_uid', $userId);
+        $this->db->dbbind(':collection_uid', $userId);
         $collections = $this->db->getmultidata() ?: [];
 
         // "All Saved" count (items with no collection)
         $this->db->dbquery(
             "SELECT COUNT(*) AS cnt FROM favorites
-             WHERE user_id = :uid AND item_type = 'service' AND collection_id IS NULL"
+             WHERE user_id = :uid
+               AND item_type IN ('service', 'package')
+               AND collection_id IS NULL"
         );
         $this->db->dbbind(':uid', $userId);
         $allCount = (int)(($this->db->getsingledata())['cnt'] ?? 0);
@@ -116,14 +124,14 @@ class WishlistModel
     }
 
     /**
-     * Get the full wishlist — items with service details, grouped/ filterable by collection.
+     * Get the full wishlist — services and packages, grouped/filterable by collection.
      * Returns ['collections' => [...], 'items' => [...], 'total' => int]
      */
     public function getUserWishlist(int $userId, ?int $collectionId = null): array
     {
         $collections = $this->getCollections($userId);
 
-        $where  = "f.user_id = :uid AND f.item_type = 'service'";
+        $where  = "f.user_id = :uid AND f.item_type IN ('service', 'package')";
         $params = [':uid' => $userId];
 
         if ($collectionId !== null) {
@@ -133,41 +141,49 @@ class WishlistModel
 
         $sql = "
             SELECT
-                f.id                 AS favorite_id,
+                f.id AS favorite_id,
                 f.item_type,
-                f.item_id            AS service_id,
+                f.item_id,
+                CASE WHEN f.item_type = 'service' THEN f.item_id ELSE NULL END AS service_id,
+                CASE WHEN f.item_type = 'package' THEN f.item_id ELSE NULL END AS package_id,
                 f.collection_id,
                 f.notes,
-                f.created_at         AS saved_at,
-                s.name               AS service_name,
-                s.description        AS service_description,
-                s.price,
-                s.price_min,
-                s.price_max,
-                s.thumbnail_url      AS image,
-                s.booking_type,
-                s.duration_minutes,
-                s.pricing_unit,
-                s.is_active,
-                s.supplier_id,
-                COALESCE(sup.shop_name, u.name) AS supplier_name,
-                COALESCE(cat.name, 'Service') AS category,
-                COALESCE(cat.slug, '') AS category_slug,
-                COALESCE(avg_reviews.rating, 0) AS rating,
-                COALESCE(avg_reviews.review_count, 0) AS review_count
+                f.created_at AS saved_at,
+                CASE WHEN f.item_type = 'package' THEN p.name ELSE s.name END AS service_name,
+                CASE WHEN f.item_type = 'package' THEN p.description ELSE s.description END AS service_description,
+                CASE WHEN f.item_type = 'package' THEN p.base_price ELSE s.price END AS price,
+                CASE WHEN f.item_type = 'package' THEN p.base_price ELSE s.price_min END AS price_min,
+                CASE WHEN f.item_type = 'package' THEN p.base_price ELSE s.price_max END AS price_max,
+                CASE WHEN f.item_type = 'package' THEN p.image_url ELSE s.thumbnail_url END AS image,
+                CASE WHEN f.item_type = 'package' THEN 'package' ELSE s.booking_type END AS booking_type,
+                CASE WHEN f.item_type = 'package' THEN 0 ELSE s.duration_minutes END AS duration_minutes,
+                CASE WHEN f.item_type = 'package' THEN 'package' ELSE s.pricing_unit END AS pricing_unit,
+                CASE WHEN f.item_type = 'package' THEN p.is_active ELSE s.is_active END AS is_active,
+                CASE WHEN f.item_type = 'package' THEN NULL ELSE s.supplier_id END AS supplier_id,
+                CASE WHEN f.item_type = 'package' THEN 'Golden Promise' ELSE COALESCE(sup.shop_name, u.name) END AS supplier_name,
+                CASE WHEN f.item_type = 'package' THEN 'Package' ELSE COALESCE(cat.name, 'Service') END AS category,
+                CASE WHEN f.item_type = 'package' THEN 'package' ELSE COALESCE(cat.slug, '') END AS category_slug,
+                p.slug AS package_slug,
+                CASE WHEN f.item_type = 'package' THEN 0 ELSE COALESCE(avg_reviews.rating, 0) END AS rating,
+                CASE WHEN f.item_type = 'package' THEN 0 ELSE COALESCE(avg_reviews.review_count, 0) END AS review_count
             FROM favorites f
-            LEFT JOIN services s        ON s.id = f.item_id
-            LEFT JOIN categories cat    ON cat.id = s.category_id
-            LEFT JOIN suppliers sup     ON sup.user_id = s.supplier_id
-            LEFT JOIN users u          ON u.user_id = s.supplier_id
+            LEFT JOIN services s ON f.item_type = 'service' AND s.id = f.item_id
+            LEFT JOIN categories cat ON cat.id = s.category_id
+            LEFT JOIN suppliers sup ON sup.user_id = s.supplier_id
+            LEFT JOIN users u ON u.user_id = s.supplier_id
+            LEFT JOIN packages p ON f.item_type = 'package' AND p.package_id = f.item_id
             LEFT JOIN (
                 SELECT service_id,
                        AVG(rating) AS rating,
-                       COUNT(*)    AS review_count
+                       COUNT(*) AS review_count
                 FROM reviews
                 GROUP BY service_id
             ) avg_reviews ON avg_reviews.service_id = s.id
             WHERE {$where}
+              AND (
+                (f.item_type = 'service' AND s.id IS NOT NULL)
+                OR (f.item_type = 'package' AND p.package_id IS NOT NULL)
+              )
             ORDER BY f.created_at DESC
         ";
 

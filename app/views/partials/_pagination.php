@@ -79,13 +79,13 @@ $end   = min($currentPage * $perPage, $totalCount);
         <?php if ($currentPage > 1): ?>
         <a href="?page=<?= $currentPage - 1 . $h($paramStr) ?>"
            class="<?= $cls['btn'] ?>" aria-label="Previous page">
-            <i data-lucide="chevron-left" class="h-3 w-3"></i>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
         </a>
         <?php else: ?>
         <span class="<?= $cls['btn'] ?><?= $cls['btnDis'] ? ' ' . $cls['btnDis'] : '' ?>"
               style="<?= $cls['btnDis'] ? '' : 'opacity:.35;pointer-events:none' ?>"
               aria-disabled="true">
-            <i data-lucide="chevron-left" class="h-3 w-3"></i>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
         </span>
         <?php endif; ?>
 
@@ -113,13 +113,13 @@ $end   = min($currentPage * $perPage, $totalCount);
         <?php if ($currentPage < $totalPages): ?>
         <a href="?page=<?= $currentPage + 1 . $h($paramStr) ?>"
            class="<?= $cls['btn'] ?>" aria-label="Next page">
-            <i data-lucide="chevron-right" class="h-3 w-3"></i>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </a>
         <?php else: ?>
         <span class="<?= $cls['btn'] ?><?= $cls['btnDis'] ? ' ' . $cls['btnDis'] : '' ?>"
               style="<?= $cls['btnDis'] ? '' : 'opacity:.35;pointer-events:none' ?>"
               aria-disabled="true">
-            <i data-lucide="chevron-right" class="h-3 w-3"></i>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </span>
         <?php endif; ?>
     </div>

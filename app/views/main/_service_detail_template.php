@@ -822,33 +822,63 @@ button, input, select, textarea { font-family: var(--font-sans); }
 .tb-profile-menu-item--danger svg { color: var(--danger); }
 .tb-profile-menu-item--danger:hover { background: rgba(185,75,75,0.08); }
 
-.package-context-strip {
-  position: relative;
-  z-index: 4;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
-  padding: 92px clamp(18px, 4vw, 56px) 18px;
+./* Outer container */
+.package-context-strip{
+    margin: 20px 0 18px;
 }
-.package-context-inner {
-  max-width: 1180px;
-  margin: 0 auto;
-  display: grid;
-  gap: 12px;
+
+/* Keep content aligned with page */
+.package-context-inner{
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 14px;   /* Was 32px */
 }
-.package-breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+
+/* Floating breadcrumb */
+.package-breadcrumb{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 8px 16px;
+
+    background: #fbf3ea;
+    border: 1px solid #efe2d3;
+    border-radius: 6px;
+
+    font-size: 13px;
+    font-weight: 500;
 }
-.package-breadcrumb a {
-  color: var(--wine);
+
+/* Links */
+.package-breadcrumb a{
+    color: #6e6258;
+    text-decoration: none;
+    transition: .25s;
 }
-.package-breadcrumb-sep {
-  color: var(--muted-light);
+
+.package-breadcrumb a:hover{
+    color: #8c6b42;
+}
+
+/* Separator */
+.package-breadcrumb-sep{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 2px;
+
+    color: #c8b29b;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Current page */
+.package-current{
+    color: #b78655;
+    font-weight: 700;
 }
 .package-banner {
   display: flex;
@@ -3314,27 +3344,20 @@ body:has(.gp-package-notice) .booking-grid {
 <?php if ($isPackageContext): ?>
 <section class="package-context-strip" aria-label="Package context">
   <div class="package-context-inner">
+
     <nav class="package-breadcrumb" aria-label="Breadcrumb">
       <a href="<?= URLROOT ?>/customerServices/packages">Packages</a>
-      <span class="package-breadcrumb-sep">/</span>
+      <span class="package-breadcrumb-sep">&rsaquo;</span>
       <a href="<?= $h($packageDetailUrl) ?>"><?= $h($packageName) ?></a>
-      <span class="package-breadcrumb-sep">/</span>
+      <span class="package-breadcrumb-sep">&rsaquo;</span>
       <span><?= $h($service['name'] ?? 'Service detail') ?></span>
     </nav>
-    <div class="package-banner">
-      <div class="package-banner-copy">
-        <strong>Part of <?= $h($packageName) ?></strong>
-        <span>This service is being reviewed inside your wedding package. Package pricing and assigned selections are shown here.</span>
-      </div>
-      <a class="package-banner-link" href="<?= $h($packageDetailUrl) ?>">
-        View package details
-        <i data-lucide="arrow-right" size="14"></i>
-      </a>
-    </div>
+
+    <!-- package-banner removed -->
+
   </div>
 </section>
 <?php endif; ?>
-
 <!-- ─── PAGE SHELL ───────────────────────────────── -->
 <main class="page-shell">
 

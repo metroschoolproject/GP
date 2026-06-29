@@ -20,6 +20,7 @@ $moneyRange = function ($item) use ($money) {
 };
 
 $detailUrl = fn($id) => URLROOT . '/customerServices/detail/' . (int)$id;
+$packageDetailUrl = fn($slug) => URLROOT . '/customerServices/packageDetail/' . rawurlencode((string)$slug);
 $wishlistPageUrl = URLROOT . '/main/wishlist';
 ?>
 <!DOCTYPE html>
@@ -192,6 +193,118 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .wl-card-btn:hover{background:var(--c-red);color:#fcf8f5;border-color:var(--c-red)}
 
+/* Package favorites use the same visual language as package cards. */
+.wl-card.is-package{
+  align-items:center;
+  min-height:470px;
+  padding:12px;
+  border:1px solid rgba(201,193,187,.58);
+  border-radius:24px;
+  background:#fff8ef;
+  box-shadow:0 18px 42px rgba(63,36,26,.13);
+  text-align:center;
+}
+.wl-card.is-package:hover{transform:translateY(-7px);box-shadow:0 24px 52px rgba(63,36,26,.17)}
+.wl-card.is-package .wl-card-img{
+  width:100%;
+  height:250px;
+  aspect-ratio:auto;
+  border-radius:18px;
+  background:#f5e8d9;
+}
+.wl-card.is-package .wl-card-body{
+  width:100%;
+  padding:18px 4px 4px;
+  align-items:center;
+}
+.wl-card.is-package .wl-card-sup,
+.wl-card.is-package .wl-card-meta,
+.wl-card.is-package .wl-card-unit{display:none}
+.wl-card.is-package .wl-card-name{
+  margin:0 0 8px;
+  color:#211d1a;
+  font-family:var(--font-body);
+  font-size:18px;
+  font-weight:800;
+  line-height:1.25;
+  text-align:center;
+}
+.wl-card-desc{
+  display:none;
+}
+.wl-card.is-package .wl-card-desc{
+  display:-webkit-box;
+  max-width:300px;
+  margin:0 auto 12px;
+  overflow:hidden;
+  color:#6f625a;
+  font-size:13px;
+  font-weight:500;
+  line-height:1.6;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.wl-card.is-package .wl-card-foot{
+  flex-direction:column;
+  align-items:center;
+  width:100%;
+  gap:14px;
+  margin-top:auto;
+  padding-top:0;
+  border-top:0;
+}
+.wl-card.is-package .wl-card-price{
+  color:#7E4F65;
+  font-family:var(--font-body);
+  font-size:18px;
+  font-weight:800;
+  text-align:center;
+}
+.wl-card.is-package .wl-card-btn{
+  justify-content:space-between;
+  width:100%;
+  min-height:54px;
+  padding:7px 8px 7px 24px;
+  border:0;
+  border-radius:18px;
+  background:#6D4C5B;
+  color:#fff8ef;
+  font-size:16px;
+  font-weight:800;
+}
+.wl-card.is-package .wl-card-btn::after{
+  content:'↗';
+  display:grid;
+  place-items:center;
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:#fff8ef;
+  color:#6D4C5B;
+  font-size:18px;
+  line-height:1;
+}
+.wl-card.is-package .wl-card-heart{
+  top:26px;
+  right:26px;
+  background:rgba(255,248,239,.94);
+  color:#e55b5b;
+  box-shadow:0 8px 18px rgba(63,36,26,.14);
+}
+.wl-card.is-package .wl-card-badge{
+  top:26px;
+  left:26px;
+  padding:6px 12px;
+  background:#f0dfe7;
+  color:#7E4F65;
+  font-weight:800;
+}
+.wl-card.is-package .wl-card-tools{
+  width:100%;
+  margin-top:12px;
+  padding:10px 0 0;
+}
+
 /* ── CARD OVERLAYS ── */
 .wl-card-heart{
   position:absolute;top:12px;right:12px;z-index:5;
@@ -278,10 +391,10 @@ button,input,select{font-family:var(--font-body);outline:none}
   <div class="wl-page-head">
     <div>
       <h1 class="wl-page-title">My Wishlist</h1>
-      <span class="wl-page-count"><?= $total ?> saved service<?= $total !== 1 ? 's' : '' ?></span>
+      <span class="wl-page-count"><?= $total ?> saved item<?= $total !== 1 ? 's' : '' ?></span>
     </div>
     <?php if ($total > 0): ?>
-    <a class="wl-card-btn" href="<?= URLROOT ?>/customerServices/service">Browse more services</a>
+    <a class="wl-card-btn" href="<?= URLROOT ?>/customerServices/packages">Browse packages</a>
     <?php endif; ?>
   </div>
 
@@ -335,37 +448,45 @@ button,input,select{font-family:var(--font-body);outline:none}
       <?php if (empty($items)): ?>
         <div class="wl-empty">
           <div class="wl-empty-icon">💝</div>
-          <h3><?= $activeCollection !== null ? 'This collection is empty' : 'No saved services yet' ?></h3>
+          <h3><?= $activeCollection !== null ? 'This collection is empty' : 'No saved items yet' ?></h3>
           <p>
             <?php if ($activeCollection !== null): ?>
               Move items here or start browsing to fill it up.
             <?php else: ?>
-              Start browsing our services and tap the heart to save your favorites — your wedding dream team is just a few clicks away.
+              Start browsing services or packages and tap the heart to save your favorites — your wedding dream team is just a few clicks away.
             <?php endif; ?>
           </p>
-          <a class="wl-empty-btn" href="<?= URLROOT ?>/customerServices/service">
-            Browse services <span style="font-size:16px">→</span>
+          <a class="wl-empty-btn" href="<?= URLROOT ?>/customerServices/packages">
+            Browse packages <span style="font-size:16px">→</span>
           </a>
         </div>
       <?php else: ?>
       <div class="wl-grid">
         <?php foreach ($items as $item):
           $favId   = (int)($item['favorite_id'] ?? 0);
+          $itemType = (string)($item['item_type'] ?? 'service');
+          $itemId = (int)($item['item_id'] ?? $item['service_id'] ?? $item['package_id'] ?? 0);
           $svcId   = (int)($item['service_id'] ?? 0);
           $svcName = $item['service_name'] ?? 'Unknown service';
           $svcImg  = trim((string)($item['image'] ?? ''));
           $svcCat  = $item['category'] ?? 'Service';
           $svcSup  = $item['supplier_name'] ?? 'Supplier';
+          $svcDesc = trim((string)($item['service_description'] ?? ''));
           $svcNote = $item['notes'] ?? '';
           $isActive = (bool)($item['is_active'] ?? true);
           $hasImage = $svcImg !== '';
           $colId = $item['collection_id'] ?? null;
           $ratingVal = (float)($item['rating'] ?? 0);
           $reviewCnt = (int)($item['review_count'] ?? 0);
-          $bookingLabel = ($item['booking_type'] ?? 'fullday') === 'slot' ? 'Per session' : (($item['booking_type'] ?? '') === 'flexible' ? 'Flexible' : 'Full day');
+          $isPackageItem = $itemType === 'package';
+          $packageSlug = trim((string)($item['package_slug'] ?? ''));
+          $itemHref = $isPackageItem
+              ? ($packageSlug !== '' ? $packageDetailUrl($packageSlug) : URLROOT . '/customerServices/packages')
+              : $detailUrl($svcId);
+          $bookingLabel = $isPackageItem ? 'Package' : (($item['booking_type'] ?? 'fullday') === 'slot' ? 'Per session' : (($item['booking_type'] ?? '') === 'flexible' ? 'Flexible' : 'Full day'));
         ?>
-          <article class="wl-card" id="wlCard-<?= $favId ?>">
-            <button class="wl-card-heart is-saved" data-favorite-id="<?= $favId ?>" data-item-type="service" data-item-id="<?= $svcId ?>" aria-label="Remove from wishlist" onclick="toggleWishlist(this, <?= $favId ?>, 'service', <?= $svcId ?>)">♥</button>
+          <article class="wl-card <?= $isPackageItem ? 'is-package' : '' ?>" id="wlCard-<?= $favId ?>">
+            <button class="wl-card-heart is-saved" data-favorite-id="<?= $favId ?>" data-item-type="<?= $h($itemType) ?>" data-item-id="<?= $itemId ?>" aria-label="Remove from wishlist" onclick="toggleWishlist(this, <?= $favId ?>, '<?= $h($itemType) ?>', <?= $itemId ?>)">♥</button>
 
             <?php if (!$isActive): ?>
               <span class="wl-card-badge wl-card-badge--unavailable">Currently unavailable</span>
@@ -373,7 +494,7 @@ button,input,select{font-family:var(--font-body);outline:none}
               <span class="wl-card-badge"><?= $h($svcCat) ?></span>
             <?php endif; ?>
 
-            <a class="wl-card-img" href="<?= $h($detailUrl($svcId)) ?>" tabindex="-1" aria-hidden="true">
+            <a class="wl-card-img" href="<?= $h($itemHref) ?>" tabindex="-1" aria-hidden="true">
               <?php if ($hasImage): ?>
                 <img src="<?= $h($svcImg) ?>" alt="<?= $h($svcName) ?>" loading="lazy">
               <?php else: ?>
@@ -384,6 +505,9 @@ button,input,select{font-family:var(--font-body);outline:none}
             <div class="wl-card-body">
               <div class="wl-card-sup"><?= $h($svcSup) ?></div>
               <h3 class="wl-card-name"><?= $h($svcName) ?></h3>
+              <?php if ($svcDesc !== ''): ?>
+                <p class="wl-card-desc"><?= $h($svcDesc) ?></p>
+              <?php endif; ?>
               <div class="wl-card-meta">
                 <span>⭐ <?= $ratingVal > 0 ? number_format($ratingVal, 1) : 'New' ?></span>
                 <span>💬 <?= $reviewCnt ?></span>
@@ -396,7 +520,7 @@ button,input,select{font-family:var(--font-body);outline:none}
                   <span class="wl-card-price"><?= $moneyRange($item) ?></span>
                   <span class="wl-card-unit"><?= $h($bookingLabel) ?></span>
                 </div>
-                <a class="wl-card-btn" href="<?= $h($detailUrl($svcId)) ?>">View</a>
+                <a class="wl-card-btn" href="<?= $h($itemHref) ?>"><?= $isPackageItem ? 'View Package' : 'View' ?></a>
               </div>
 
               <!-- Move-to & notes -->

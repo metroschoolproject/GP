@@ -327,32 +327,31 @@ textarea { font-family: var(--sans); }
 }
 
 /* ─── Page header ─────────────────────────── */
-.gp-page-head {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 300px;
-  margin-top: -92px;
-  margin-bottom: 34px;
-  padding: 0 24px;
-  overflow: hidden;
-  text-align: center;
+.gp-page-head{
+    position:relative;
+    display:grid;
+    place-items:center;
+    min-height:220px;
+    margin-top:-92px;
+    margin-bottom:36px;
+    padding:0 24px;
+    overflow:hidden;
+    text-align:center;
+    border-radius:0 0 28px 28px;
+    width:100vw;
+    margin-left:calc(50% - 50vw);
+    margin-right:calc(50% - 50vw);
 
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-
-  background: #e9ddd0;
-  opacity: 0;
-  animation: fadeUp 0.8s var(--ease) 0.05s forwards;
+    background:#e9ddd0;
 }
+
 
 .gp-page-head::before {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(rgba(44, 26, 34, 0.28), rgba(44, 26, 34, 0.28)),
+    linear-gradient(rgba(27, 16, 21, 0.55), rgba(0, 0, 0, 0.39)),
     url("<?= URLROOT ?>/app/views/main/images/imageBanner2.jpg") center center / cover no-repeat;
   transform: scale(1.03);
   filter: blur(3px);
@@ -372,10 +371,11 @@ textarea { font-family: var(--sans); }
   z-index: 2;
 }
 .gp-page-title {
-  font-family: var(--serif);
-  font-size: clamp(34px, 4vw, 52px);
-  font-weight: 700;
-  color: #2f022a;
+  font-family: 'Playfair Display', serif;
+font-weight: 700;
+  font-size: clamp(34px, 4vw, 58px);
+  
+  color: #fffaf5;
   line-height: 1.05;
   letter-spacing: 0;
   margin-top: 92px;
