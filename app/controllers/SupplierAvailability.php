@@ -13,7 +13,7 @@ class SupplierAvailability extends SupplierControllerSupport
             $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
         }
 
-        $service = $this->serviceManagementModel->getServiceById($serviceId, (int)$supplier['supplier_id']);
+        $service = $this->serviceManagementModel->getServiceDetail((int)$supplier['supplier_id'], $serviceId);
         $wasActive = $service && ($service['status'] ?? 'inactive') !== 'inactive';
 
         $availability = $this->serviceManagementModel->saveWeeklyAvailability(
