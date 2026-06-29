@@ -51,7 +51,7 @@ a{color:inherit;text-decoration:none}
 .gp-header-nav a{padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text2);transition:all .22s}
 .gp-header-nav a:hover{color:var(--plum);background:rgba(107,68,89,0.08)}
 .gp-header-actions{display:flex;align-items:center;gap:10px}
-.gp-btn-sm{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;border:1px solid var(--rule-strong);font-size:11px;font-weight:600;color:var(--text2);transition:all .2s;text-decoration:none}
+.gp-btn-sm{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:10px;border:1px solid var(--rule-strong);font-size:11px;font-weight:700;color:var(--text2);transition:all .2s;text-decoration:none}
 .gp-btn-sm:hover{border-color:var(--plum);color:var(--plum)}
 .gp-btn-sm.primary{background:var(--plum);color:#fcf8f5;border-color:var(--plum)}
 .gp-btn-sm.primary:hover{background:var(--plum-dk)}
@@ -84,7 +84,7 @@ a{color:inherit;text-decoration:none}
 .gp-detail-topbar-actions .gp-btn-sm.primary{background:var(--plum);color:#fffaf5;border-color:var(--plum)}
 .gp-detail-topbar-actions .gp-btn-sm.danger{background:rgba(252,248,245,.68)}
 .gp-detail-topbar-actions .gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
-.gp-detail-back{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:8px 14px;border-radius:999px;border:1px solid rgba(178,143,110,.26);background:rgba(252,248,245,.52);color:var(--muted);font-size:12px;font-weight:700;transition:all .18s}
+.gp-detail-back{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:8px 14px;border-radius:10px;border:1px solid rgba(178,143,110,.26);background:rgba(252,248,245,.52);color:var(--muted);font-size:12px;font-weight:700;transition:all .18s}
 .gp-detail-back:hover{border-color:var(--plum);color:var(--plum);background:rgba(252,248,245,.84)}
 .gp-head{display:none}
 .gp-head h1{font-family:var(--font-d);font-size:28px;font-weight:600}
@@ -97,33 +97,33 @@ a{color:inherit;text-decoration:none}
 .gp-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden}
 .gp-status-card{order:2}
 .gp-event-card{order:1}
-.gp-card-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:rgba(42, 31, 44, 0.9);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color: #faf0e1}
+.gp-card-h{padding:12px 18px;border-bottom:1px solid var(--rule);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--plum)}
 .gp-card-b{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
 .gp-info-box{background:rgba(252,248,245,.78);border:1px solid rgba(184,146,74,.28);border-radius:14px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;box-shadow:0 10px 24px rgba(26,17,24,.035)}
 .gp-info-icon{flex-shrink:0;display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(184,146,74,.14);color:var(--gold)}
 .gp-info-title{font-weight:800;font-size:13px;color:var(--plum);margin-bottom:2px}
 .gp-info-copy{font-size:12px;color:var(--text2);line-height:1.55}
 .gp-info-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.gp-journey-card{margin:0 0 18px;padding:20px 28px 24px;background:rgba(252,248,245,.88);border:1px solid rgba(178,143,110,.18);border-radius:18px;box-shadow:0 12px 30px rgba(26,17,24,.04)}
+.gp-journey-card{margin:0 0 18px;padding:20px 24px 22px;background:var(--card);border:1px solid var(--rule);border-radius:12px;box-shadow:0 1px 3px rgba(52,35,43,.04)}
 .gp-journey-card.is-cancel{background:rgba(255,247,246,.82);border-color:rgba(185,75,75,.16)}
-.gp-journey-head{display:block;margin-bottom:22px}
-.gp-journey-ref{font-family:var(--font-b);font-size:16px;font-weight:800;color:var(--text);line-height:1.25}
-.gp-journey-flow{margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#a58c7d}
-.gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;margin-top:4px;padding:7px 13px;border-radius:999px;background:#efe2e3;color:#6b4459;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em}
+.gp-journey-head{display:block;margin-bottom:18px}
+.gp-journey-ref{font-family:var(--font-b);font-size:15px;font-weight:700;color:var(--text);line-height:1.25}
+.gp-journey-flow{margin-top:4px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;margin-top:4px;padding:6px 12px;border-radius:999px;background:#efe2e3;color:#6b4459;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
 .gp-journey-card.is-cancel .gp-journey-status{background:rgba(185,75,75,.09);color:var(--danger)}
-.gp-journey-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:0;max-width:none;margin:0}
+.gp-journey-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:0;max-width:none;margin:0}
 .gp-journey-step{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
-.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:calc(50% + 20px);right:calc(-50% + 20px);top:20px;height:2px;background:#eadcc8;z-index:0}
-.gp-journey-card.is-cancel .gp-journey-step:not(:last-child)::after{background:rgba(185,75,75,.18)}
-.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:2px solid #eadacc;background:#fffaf7;color:#a58c7d;font-size:12px;font-weight:800;box-shadow:0 0 0 6px rgba(252,248,245,.92)}
-.gp-journey-step.is-complete .gp-journey-dot{border-color:#dbc08f;background:var(--plum);color:#fffaf3}
-.gp-journey-step.is-current .gp-journey-dot{border-color:#dbc08f;background:var(--plum);color:#fffaf3;box-shadow:0 0 0 8px rgba(107,68,89,.08)}
-.gp-journey-card.is-cancel .gp-journey-step.is-complete .gp-journey-dot{border-color:#d79a92;background:#d79a92;color:#fffaf3}
-.gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-dot{border-color:var(--danger);background:var(--danger);color:#fffaf3;box-shadow:0 0 0 5px rgba(185,75,75,.10)}
-.gp-journey-text{position:relative;z-index:1;min-width:0;padding-top:8px}
-.gp-journey-label{font-size:11px;font-weight:800;color:var(--text);line-height:1.25}
-.gp-journey-state{margin-top:2px;font-size:8px;font-weight:800;color:#ad9b94;text-transform:uppercase;letter-spacing:.08em}
-.gp-journey-step.is-current .gp-journey-label{color:var(--plum)}
+.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:calc(50% + 16px);right:calc(-50% + 16px);top:16px;height:1px;background:var(--rule);z-index:0}
+.gp-journey-card.is-cancel .gp-journey-step:not(:last-child)::after{background:rgba(185,75,75,.16)}
+.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border-radius:50%;border:2px solid var(--rule);background:var(--card);color:var(--muted);font-size:11px;font-weight:700}
+.gp-journey-step.is-complete .gp-journey-dot{border-color:#6b9e7e;background:#3d6b4f;color:#fff}
+.gp-journey-step.is-current .gp-journey-dot{border-color:var(--plum);background:var(--plum);color:#fff;box-shadow:0 0 0 4px rgba(107,68,89,.12)}
+.gp-journey-card.is-cancel .gp-journey-step.is-complete .gp-journey-dot{border-color:#d79a92;background:#d79a92;color:#fff}
+.gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-dot{border-color:var(--danger);background:var(--danger);color:#fff;box-shadow:0 0 0 4px rgba(185,75,75,.12)}
+.gp-journey-text{position:relative;z-index:1;min-width:0;padding-top:6px}
+.gp-journey-label{font-size:11px;font-weight:600;color:var(--text);line-height:1.25}
+.gp-journey-state{margin-top:1px;font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.gp-journey-step.is-current .gp-journey-label{color:var(--plum);font-weight:700}
 .gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-label{color:var(--danger)}
 .gp-service-detail-panel{display:none}
 .gp-service-detail-panel.active{display:flex;flex-direction:column;gap:12px}
@@ -207,10 +207,21 @@ a{color:inherit;text-decoration:none}
 .gp-flash-error{background:#fdecea;color:#c62828;border:1px solid #ef9a9a;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 .gp-edit-form{margin-top:12px;display:none}
 
+/* ── Payment Proof Pill ── */
+.gp-proof-pill{border:1px solid var(--rule);border-radius:10px;background:var(--card);overflow:hidden;box-shadow:0 1px 3px rgba(52,35,43,.04)}
+.gp-proof-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;border:0;background:transparent;font-family:var(--font-b);cursor:pointer;text-align:left;transition:background .15s}
+.gp-proof-toggle:hover{background:rgba(107,68,89,.03)}
+.gp-proof-icon{flex-shrink:0;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:rgba(184,146,74,.12);color:var(--gold)}
+.gp-proof-label{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap}
+.gp-proof-meta{font-size:12px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gp-proof-chevron{flex-shrink:0;margin-left:auto;display:grid;place-items:center;color:var(--muted);transition:transform .2s}
+.gp-proof-toggle[aria-expanded="true"] .gp-proof-chevron{transform:rotate(180deg)}
+.gp-proof-detail{padding:0 16px 14px}
+.gp-proof-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 16px}
+
 @media(max-width:900px){.gp-layout{grid-template-columns:1fr}.gp-detail-topbar{align-items:flex-start;flex-direction:column}.gp-detail-topbar-actions{justify-content:flex-start}.gp-journey-steps{max-width:100%}}
 @media(max-width:768px){.gp-service-detail-grid{grid-template-columns:1fr}.gp-order-item{grid-template-columns:54px minmax(0,1fr);align-items:start}.gp-order-price{grid-column:2;font-size:13px}}
-@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:16px;padding:18px 14px 20px}.gp-journey-head{grid-template-columns:1fr;margin-bottom:20px}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:20px;right:auto;top:40px;bottom:-20px;width:2px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px}.gp-order-thumb{width:54px;height:54px}}
-</style>
+@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:12px;padding:18px 14px 20px}.gp-journey-head{grid-template-columns:1fr;margin-bottom:20px}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:16px;right:auto;top:32px;bottom:-20px;width:1px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px}.gp-order-thumb{width:54px;height:54px}}</style>
 </head><body>
 
 <?php $gpNavActive = 'bookings'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
@@ -415,10 +426,10 @@ a{color:inherit;text-decoration:none}
               </div>
               <?php if (!$proofSubmitted): ?>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$repl['id'] ?>" style="background:#6d4c5b;color:#fff;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">Approve &amp; Pay →</a>
+                <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$repl['id'] ?>" style="background:#6d4c5b;color:#fff;padding:8px 16px;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none">Approve &amp; Pay →</a>
                 <form method="POST" action="<?=URLROOT?>/booking/rejectReplacement/<?= (int)$repl['id'] ?>" style="margin:0" onsubmit="return confirm('Decline this replacement? Admin will find another option.')">
                   <input type="hidden" name="csrf_token" value="<?= $h(csrf_token()) ?>">
-                  <button type="submit" style="background:#fff;color:#991b1b;border:1px solid #fecaca;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer">Decline</button>
+                  <button type="submit" style="background:#fff;color:#991b1b;border:1px solid #fecaca;padding:8px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">Decline</button>
                 </form>
               </div>
               <?php else: ?>
@@ -468,31 +479,47 @@ a{color:inherit;text-decoration:none}
   <?php endif; ?>
 
   <?php if ($currentStatus === 'payment_submitted'): ?>
-  <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:16px 20px;margin-bottom:4px;">
-    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:<?= !empty($depositPayment) ? '12px' : '0' ?>">
-      <svg style="flex-shrink:0;margin-top:2px;color:#d97706" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <div>
-        <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:2px;">Payment proof submitted — under review</div>
-        <div style="font-size:12px;color:#b45309;">Our team is reviewing your transfer details. We'll notify you once verified (usually within a few hours). No action needed from you right now.</div>
-      </div>
-    </div>
+  <?php
+    $proofBank = !empty($depositPayment['bank_name']) ? $depositPayment['bank_name'] : '';
+    $proofRef = !empty($depositPayment['transaction_ref']) ? $depositPayment['transaction_ref'] : '';
+    $proofAmount = !empty($depositPayment['paid_amount']) ? number_format((float)$depositPayment['paid_amount'], 0) . ' MMK' : '';
+    $proofDate = !empty($depositPayment['paid_at']) ? date('M j', strtotime($depositPayment['paid_at'])) : '';
+    $proofMetaParts = array_filter([$proofBank, $proofAmount, $proofDate]);
+    $proofMeta = !empty($proofMetaParts) ? implode(' · ', $proofMetaParts) : '';
+  ?>
+  <div class="gp-proof-pill" id="paymentProofPill" style="margin-bottom:4px;">
+    <button class="gp-proof-toggle" type="button" onclick="toggleProofDetails()" aria-expanded="false">
+      <span class="gp-proof-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </span>
+      <span class="gp-proof-label">Payment under review</span>
+      <?php if ($proofMeta !== ''): ?>
+      <span class="gp-proof-meta"><?= $h($proofMeta) ?></span>
+      <?php endif; ?>
+      <span class="gp-proof-chevron" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </button>
     <?php if (!empty($depositPayment)): ?>
-    <div style="border-top:1px solid #fcd34d;padding-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px 16px;">
-      <?php if (!empty($depositPayment['bank_name'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Bank / Method</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h($depositPayment['bank_name']) ?></div></div>
-      <?php endif; ?>
-      <?php if (!empty($depositPayment['transaction_ref'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Payment reference</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
-      <?php endif; ?>
-      <?php if (!empty($depositPayment['paid_amount'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
-      <?php endif; ?>
-      <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Includes Platform Fee</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div></div>
-      <?php endif; ?>
-      <?php if (!empty($depositPayment['paid_at'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transfer Date</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
-      <?php endif; ?>
+    <div class="gp-proof-detail" id="proofDetail" style="display:none;">
+      <div class="gp-proof-detail-grid">
+        <?php if (!empty($depositPayment['paid_at'])): ?>
+        <div><div class="gp-field-l">Transfer Date</div><div class="gp-field-v"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['bank_name'])): ?>
+        <div><div class="gp-field-l">Bank / Method</div><div class="gp-field-v"><?= $h($depositPayment['bank_name']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['transaction_ref'])): ?>
+        <div><div class="gp-field-l">Reference</div><div class="gp-field-v" style="font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['paid_amount'])): ?>
+        <div><div class="gp-field-l">Amount Sent</div><div class="gp-field-v"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
+        <?php endif; ?>
+        <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
+        <div><div class="gp-field-l">Platform Fee (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div><div class="gp-field-v"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK</div></div>
+        <?php endif; ?>
+      </div>
+      <div class="gp-info-copy" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--rule);">Our team is reviewing your transfer. No action needed from you right now.</div>
     </div>
     <?php endif; ?>
   </div>
@@ -1010,6 +1037,8 @@ a{color:inherit;text-decoration:none}
 </main>
 <script>
 document.addEventListener('click',(e)=>{const btn=e.target.closest('.gp-profile-btn');if(btn){const x=btn.getAttribute('aria-expanded')==='true';document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));btn.setAttribute('aria-expanded',String(!x));return}document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'))});
+
+function toggleProofDetails(){const btn=document.querySelector('.gp-proof-toggle');const detail=document.getElementById('proofDetail');if(!btn||!detail)return;const open=btn.getAttribute('aria-expanded')==='true';btn.setAttribute('aria-expanded',open?'false':'true');detail.style.display=open?'none':'block';}
 
 document.querySelectorAll('[data-service-select]').forEach((button) => {
   button.addEventListener('click', () => {
