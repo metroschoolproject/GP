@@ -128,8 +128,10 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--primary);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
 .btn-ghost:hover{background:var(--primary-soft)}
 .btn-sm{height:30px;padding:0 12px;font-size:11px}
-.btn-danger{color:var(--danger)!important}
-.btn-danger:hover{background:var(--danger-bg)!important}
+.btn-danger{color:var(--danger)!important;border-color:var(--danger)!important}
+.btn-danger:hover{background:var(--danger-bg)!important;border-color:var(--danger)!important}
+.btn-danger-fill.btn-primary{background:var(--danger)!important;border-color:var(--danger)!important}
+.btn-danger-fill.btn-primary:hover{background:#7F1D1D!important;border-color:#7F1D1D!important}
 
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
 .badge-active{background:#ECFDF5;color:#065F46}
@@ -634,9 +636,9 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                 </div>
               </div>
               <?php if ($isDraft): ?>
-                <form class="included-remove" method="POST"
+                <form class="included-remove remove-item-form" method="POST"
                       action="<?= URLROOT ?>/admin/packageRemoveItem/<?= (int)$item['id'] ?>"
-                      onsubmit="return confirm('Remove this service from the package?')">
+                      data-service-name="<?= $h($item['service_name'] ?? 'This service') ?>">
                   <button class="btn-ghost btn-sm btn-danger" type="submit">Remove</button>
                 </form>
               <?php endif; ?>
@@ -710,13 +712,21 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                   <small><?= $isGuestPriced ? $money($itemPkgPrice / $quantity) . ' per guest' : 'Included package rate' ?></small>
                 </div>
                 <div class="included-price">
-                  <span>Customize price</span>
-                  <?php if ($itemCustPrice > $itemPkgPrice): ?>
-                    <strong><?= $money($itemCustPrice) ?></strong>
-                    <small><?= $isGuestPriced ? $money($itemCustPrice / $quantity) . ' per guest' : 'Customer custom rate' ?></small>
+                  <span>Package slot (per booking)</span>
+                  <?php $itemMaxConcurrent = (int)($item['item_max_concurrent'] ?? 0); ?>
+                  <?php if ($isDraft): ?>
+                    <form class="guest-form" method="POST"
+                          action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>"
+                          style="margin-top:5px">
+                      <input class="guest-input" type="number" name="max_concurrent" min="0" max="65535" step="1"
+                             value="<?= $itemMaxConcurrent ?>" aria-label="Package slot limit"
+                             style="width:80px!important">
+                      <button class="btn-ghost btn-sm" type="submit">Update</button>
+                    </form>
+                    <small style="margin-top:6px;display:block"><?= $itemMaxConcurrent > 0 ? $itemMaxConcurrent . ' bookings per slot' : '0 = use service default' ?></small>
                   <?php else: ?>
-                    <strong>Same rate</strong>
-                    <small>Matches package price</small>
+                    <strong><?= $itemMaxConcurrent > 0 ? $itemMaxConcurrent : 'Default' ?></strong>
+                    <small><?= $itemMaxConcurrent > 0 ? 'Bookings per time slot' : 'Uses service default capacity' ?></small>
                   <?php endif; ?>
                 </div>
               </div>
@@ -1018,6 +1028,31 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
 </div><!-- /admin-pkg-page -->
 
+<?php if ($isDraft): ?>
+  <div class="publish-modal" id="removeItemModal" aria-hidden="true">
+    <div class="publish-modal-backdrop" data-close-remove-modal></div>
+    <section class="publish-modal-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="removeModalTitle" aria-describedby="removeModalDescription">
+      <div class="publish-modal-body">
+        <div class="publish-modal-icon" style="background:var(--danger-bg);color:var(--danger)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </div>
+        <h2 class="publish-modal-title" id="removeModalTitle">Remove service?</h2>
+        <p class="publish-modal-copy" id="removeModalDescription">
+          <strong id="removeItemName"></strong> will be removed from this package.
+        </p>
+      </div>
+      <div class="publish-modal-actions">
+        <button class="btn-ghost" type="button" data-close-remove-modal>Cancel</button>
+        <button class="btn-primary btn-danger-fill" id="confirmRemoveItem" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Remove
+        </button>
+      </div>
+    </section>
+  </div>
+<?php endif; ?>
+
 <?php if (!$isDraft): ?>
   <div class="publish-modal" id="editConfirmModal" aria-hidden="true">
     <div class="publish-modal-backdrop" data-close-edit-modal></div>
@@ -1074,6 +1109,54 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
 <script>
 (function () {
+  /* ── Remove-item confirmation ──────────────────────────────────────── */
+  const removeModal = document.getElementById('removeItemModal');
+  const removeItemName = document.getElementById('removeItemName');
+  const confirmRemoveButton = document.getElementById('confirmRemoveItem');
+  let pendingRemoveForm = null;
+
+  function openRemoveModal(serviceName, form) {
+    if (!removeModal) return;
+    pendingRemoveForm = form;
+    if (removeItemName) removeItemName.textContent = serviceName;
+    removeModal.classList.add('is-open');
+    removeModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    confirmRemoveButton?.focus();
+  }
+
+  function closeRemoveModal() {
+    if (!removeModal) return;
+    removeModal.classList.remove('is-open');
+    removeModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    pendingRemoveForm = null;
+  }
+
+  document.querySelectorAll('.remove-item-form').forEach(form => {
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      openRemoveModal(form.dataset.serviceName || 'This service', form);
+    });
+  });
+
+  confirmRemoveButton?.addEventListener('click', () => {
+    if (!pendingRemoveForm) return;
+    confirmRemoveButton.disabled = true;
+    confirmRemoveButton.textContent = 'Removing…';
+    pendingRemoveForm.submit();
+  });
+
+  removeModal?.querySelectorAll('[data-close-remove-modal]').forEach(element => {
+    element.addEventListener('click', closeRemoveModal);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && removeModal?.classList.contains('is-open')) {
+      closeRemoveModal();
+    }
+  });
+
   /* ── Edit confirmation ─────────────────────────────────────────────── */
   const editForm = document.getElementById('editPackageForm');
   const editModal = document.getElementById('editConfirmModal');

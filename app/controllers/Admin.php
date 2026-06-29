@@ -1778,17 +1778,24 @@ class Admin extends Controller
         }
         $quantity = max(1, (int)($_POST['quantity'] ?? 1));
         $isHallUpdate = array_key_exists('hall_id', $_POST);
+        $isConcurrentUpdate = array_key_exists('max_concurrent', $_POST) && !$isHallUpdate;
         $updated = false;
-        if ($isHallUpdate) {
+        if ($isConcurrentUpdate) {
+            $updated = $packageModel->updatePackageItemConcurrent((int)$itemId, (int)$_POST['max_concurrent']);
+        } elseif ($isHallUpdate) {
             $updated = $packageModel->updatePackageItemHall((int)$itemId, (int)$_POST['hall_id']);
         } else {
             $updated = $packageModel->updatePackageItemQuantity((int)$itemId, $quantity);
         }
-        if ($updated && $packageId > 0) {
+        if ($updated && $packageId > 0 && !$isConcurrentUpdate) {
             $this->refreshPackageBasePrice($packageModel, $packageId);
         }
 
-        if ($isHallUpdate) {
+        if ($isConcurrentUpdate) {
+            $_SESSION['admin_flash'] = $updated
+                ? 'Package slot limit updated.'
+                : 'Could not update slot limit. Please try again.';
+        } elseif ($isHallUpdate) {
             $_SESSION['admin_flash'] = $updated
                 ? 'Hall assignment updated successfully and base price recalculated.'
                 : 'Could not update hall assignment. The room may not belong to this service.';

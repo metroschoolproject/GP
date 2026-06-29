@@ -837,6 +837,25 @@ class PlatformPackage
         return $this->db->dbexecute();
     }
 
+    public function updatePackageItemConcurrent($itemId, $maxConcurrent)
+    {
+        if (!$this->hasPackageItemConcurrentColumn()) {
+            return false;
+        }
+
+        $value = max(0, min(65535, (int)$maxConcurrent));
+        $this->db->dbquery(
+            'UPDATE package_items
+             SET max_concurrent = :mc
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':mc', $value > 0 ? $value : null, $value > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $this->db->dbbind(':id', (int)$itemId);
+
+        return $this->db->dbexecute();
+    }
+
     public function getAttireItemsForService($serviceId)
     {
         $this->db->dbquery(
