@@ -79,8 +79,7 @@ define('CATEGORY_DEFAULT_TIMES', [
 ]);
 
 /**
- * Category IDs that allow slot-based (time-specific) booking.
+ * Category slugs that allow slot-based (time-specific) booking.
  * All other categories are forced to 'fullday' booking type.
- * Only Venue supports choosing specific time slots.
  */
-define('SLOT_BOOKING_CATEGORIES', ['venue', 'makeup & hair']);
+define('SLOT_BOOKING_CATEGORIES', ['venue', 'makeup & hair', 'decoration', 'studio']);
