@@ -1700,6 +1700,10 @@ class SupplierServiceManager
             return $data;
         }
 
+        if (!array_key_exists('decoration_styles', $data)) {
+            return $data;
+        }
+
         $styles = is_array($data['decoration_styles'] ?? null) ? $data['decoration_styles'] : [];
         $prices = [];
         foreach ($styles as $style) {
@@ -1727,6 +1731,10 @@ class SupplierServiceManager
     private function applyCarItemPriceRange($data)
     {
         if (strtolower((string)($data['category'] ?? '')) !== 'car') {
+            return $data;
+        }
+
+        if (!array_key_exists('car_items', $data)) {
             return $data;
         }
 
@@ -1758,6 +1766,10 @@ class SupplierServiceManager
     {
         $category = strtolower((string)($data['category'] ?? ''));
         if (!in_array($category, ['cake', 'food_drinks', 'food & drinks'], true)) {
+            return $data;
+        }
+
+        if (!array_key_exists('food_items', $data)) {
             return $data;
         }
 
@@ -2814,6 +2826,10 @@ class SupplierServiceManager
             return;
         }
 
+        if (!array_key_exists('decoration_styles', $data)) {
+            return;
+        }
+
         $styles = is_array($data['decoration_styles'] ?? null) ? $data['decoration_styles'] : [];
         $hasPhoto = $this->hasDecorationStylePhotoColumn();
 
@@ -2972,6 +2988,10 @@ class SupplierServiceManager
             return;
         }
 
+        if (!array_key_exists('food_items', $data)) {
+            return;
+        }
+
         $items = is_array($data['food_items'] ?? null) ? $data['food_items'] : [];
 
         try {
@@ -3047,6 +3067,10 @@ class SupplierServiceManager
     private function saveCarItems(int $serviceId, array $data): void
     {
         if (strtolower((string)($data['category'] ?? '')) !== 'car') {
+            return;
+        }
+
+        if (!array_key_exists('car_items', $data)) {
             return;
         }
 

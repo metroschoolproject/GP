@@ -901,12 +901,11 @@ function serviceFormPayload(prefix, category) {
     min_lead_days: minLeadDays,
     default_start_time: document.getElementById(prefix + 'DefaultStartTime')?.value || null,
     default_end_time: document.getElementById(prefix + 'DefaultEndTime')?.value || null,
-    rooms,
-    decoration_styles: isDecoration ? collectDecorationStyles(prefix) : [],
-    food_items: isFood ? collectFoodItems(isCake ? prefix + 'FoodItemsList' : prefix + 'CateringItemsList') : [],
     rental_pricing: isRental ? collectRentalPricing(prefix) : null,
-    attire_items: isRental ? collectAttireItems(prefix) : [],
-    attire_items_replace: isRental,
+    ...(isVenue ? { rooms, rooms_replace: true } : {}),
+    ...(isDecoration ? { decoration_styles: collectDecorationStyles(prefix) } : {}),
+    ...(isFood ? { food_items: collectFoodItems(isCake ? prefix + 'FoodItemsList' : prefix + 'CateringItemsList') } : {}),
+    ...(isRental ? { attire_items: collectAttireItems(prefix), attire_items_replace: true } : {}),
   };
 }
 
@@ -1615,11 +1614,10 @@ async function updateService() {
     min_lead_days: minLeadDays,
     default_start_time: document.getElementById('esDefaultStartTime')?.value || null,
     default_end_time: document.getElementById('esDefaultEndTime')?.value || null,
-    rooms: isVenueUpd ? collectVenueRooms('es') : [],
-    rooms_replace: isVenueUpd,
-    decoration_styles: isDecoUpd ? collectDecorationStyles('es') : [],
-    food_items: isFoodUpd ? collectFoodItems(isCakeUpd ? 'esFoodItemsList' : 'esCateringItemsList') : [],
     rental_pricing: isRentalUpd ? collectRentalPricing('es') : null,
+    ...(isVenueUpd ? { rooms: collectVenueRooms('es'), rooms_replace: true } : {}),
+    ...(isDecoUpd ? { decoration_styles: collectDecorationStyles('es') } : {}),
+    ...(isFoodUpd ? { food_items: collectFoodItems(isCakeUpd ? 'esFoodItemsList' : 'esCateringItemsList') } : {}),
   };
   try {
     const result = await apiRequest(serviceManagementUrls.serviceUpdate + editingSvcId, payload);
