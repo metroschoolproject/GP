@@ -378,84 +378,160 @@ $dashboardContent = function () use (
     font-weight: 600;
   }
 
-  /* ── Summary Strip ── */
-  .bkd-strip {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+  /* ── Summary Card ── */
+  .bkd-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     background: var(--bkd-surface);
     border: 1px solid var(--bkd-border);
     border-radius: 12px;
-    padding: 12px 16px;
     margin-bottom: 16px;
-    flex-wrap: wrap;
     box-shadow: 0 1px 3px rgba(52,35,43,.04);
+    overflow: hidden;
   }
-  .bkd-strip-item {
+  .bkd-summary-side {
+    padding: 18px 22px;
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 14px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .bkd-summary-side--left {
     border-right: 1px solid var(--bkd-border-light);
   }
-  .bkd-strip-item:last-child { border-right: 0; }
-  .bkd-strip-label {
-    font-size: 10px;
+  .bkd-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .bkd-summary-label {
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .08em;
+    letter-spacing: .06em;
     color: var(--bkd-muted);
   }
-  .bkd-strip-value {
+  .bkd-summary-value {
     font-size: 14px;
     font-weight: 700;
     color: var(--bkd-text);
     white-space: nowrap;
   }
-  .bkd-strip-value.is-success { color: var(--bkd-success-text); }
-  .bkd-strip-value.is-danger { color: var(--bkd-danger-text); }
+  .bkd-summary-divider {
+    border: 0;
+    border-top: 1px dashed var(--bkd-border-light);
+    margin: 0;
+  }
+  .bkd-summary-grand .bkd-summary-label {
+    font-size: 12px;
+    color: var(--bkd-text);
+  }
+  .bkd-summary-grand .bkd-summary-value {
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .bkd-summary-side--right {
+    background: #fdf9f5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+  }
+  .bkd-summary-paid .bkd-summary-value {
+    color: var(--bkd-success-text);
+  }
+  .bkd-summary-balance .bkd-summary-value {
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .bkd-summary-balance .bkd-summary-value.is-danger { color: var(--bkd-danger-text); }
+  .bkd-summary-balance .bkd-summary-value.is-success { color: var(--bkd-success-text); }
+  .bkd-summary-meta {
+    display: flex;
+    gap: 16px;
+    padding-top: 10px;
+    border-top: 1px solid var(--bkd-border-light);
+  }
+  .bkd-summary-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--bkd-muted);
+  }
+  .bkd-summary-meta-item strong {
+    color: var(--bkd-text);
+    font-weight: 700;
+  }
 
   /* ── Step Progress ── */
   .bkd-steps {
     display: flex;
-    background: var(--bkd-surface);
-    border: 1px solid var(--bkd-border);
-    border-radius: 12px;
-    overflow: hidden;
+    padding: 8px 4px 4px;
     margin-bottom: 16px;
-    box-shadow: 0 1px 3px rgba(52,35,43,.04);
   }
   .bkd-step {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 12px 14px;
-    border-right: 1px solid var(--bkd-border-light);
+    gap: 6px;
+    position: relative;
+  }
+  .bkd-step-head {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .bkd-step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--bkd-border-light);
+  }
+  .bkd-step-line.is-filled {
+    background: var(--bkd-success-text);
+  }
+  .bkd-step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800;
+    background: var(--bkd-neutral-bg);
+    color: var(--bkd-muted);
+    border: 2px solid var(--bkd-border-light);
+    flex-shrink: 0;
+    transition: all .2s;
+  }
+  .bkd-step.is-done .bkd-step-num {
+    background: var(--bkd-success-text);
+    border-color: var(--bkd-success-text);
+    color: #fff;
+  }
+  .bkd-step.is-current .bkd-step-num {
+    background: var(--bkd-primary);
+    border-color: var(--bkd-primary);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(109,76,91,.15);
+  }
+  .bkd-step-label {
     font-size: 11px;
     font-weight: 700;
     color: var(--bkd-muted);
-    background: var(--bkd-soft);
+    text-align: center;
   }
-  .bkd-step:last-child { border-right: 0; }
-  .bkd-step.is-done { color: var(--bkd-success-text); background: #f0fdf4; }
-  .bkd-step.is-current {
-    color: var(--bkd-primary);
-    background: #fdf9f5;
-    box-shadow: inset 0 -3px 0 var(--bkd-primary);
+  .bkd-step.is-done .bkd-step-label { color: var(--bkd-success-text); }
+  .bkd-step.is-current .bkd-step-label { color: var(--bkd-primary); }
+  .bkd-step-badge {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--bkd-primary);
+    padding: 1px 7px;
+    border-radius: 999px;
   }
-  .bkd-step-num {
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 800;
-    background: var(--bkd-border-light);
-    color: var(--bkd-muted);
-    flex-shrink: 0;
-  }
-  .bkd-step.is-done .bkd-step-num { background: var(--bkd-success-text); color: #fff; }
-  .bkd-step.is-current .bkd-step-num { background: var(--bkd-primary); color: #fff; }
-  .bkd-step-sub { font-size: 9px; font-weight: 600; opacity: .7; }
 
   /* ── Priority Action Card ── */
   .bkd-action {
@@ -466,9 +542,9 @@ $dashboardContent = function () use (
     margin-bottom: 16px;
     box-shadow: 0 4px 16px rgba(52,35,43,.06);
   }
-  .bkd-action--urgent { border-top: 4px solid var(--bkd-warn-border); }
-  .bkd-action--success { border-top: 4px solid var(--bkd-success-border); }
-  .bkd-action--danger { border-top: 4px solid var(--bkd-danger-border); }
+  .bkd-action--urgent { }
+  .bkd-action--success { }
+  .bkd-action--danger { }
   .bkd-action-head {
     display: flex;
     align-items: center;
@@ -489,72 +565,109 @@ $dashboardContent = function () use (
   .bkd-action-icon--neutral { background: var(--bkd-neutral-bg); color: var(--bkd-neutral-text); }
   .bkd-action-title { font-size: 14px; font-weight: 700; color: var(--bkd-text); }
   .bkd-action-sub { font-size: 11px; color: var(--bkd-muted); font-weight: 600; margin-top: 1px; }
-  .bkd-action-body { padding: 20px; }
+  .bkd-action-body { padding: 16px 20px; }
 
-  /* ── Payment proof layout ── */
-  .bkd-pay-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 20px;
-    align-items: start;
+  /* ── Payment proof: compact inline ── */
+  .bkd-pay-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
   }
-  .bkd-proof-link {
-    display: block;
+  .bkd-pay-thumb {
+    width: 48px; height: 48px;
+    border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--bkd-border);
-    border-radius: 10px;
     background: var(--bkd-surface);
+    flex-shrink: 0;
     text-decoration: none;
     transition: box-shadow .12s;
   }
-  .bkd-proof-link:hover { box-shadow: 0 2px 8px rgba(28,25,23,.08); }
-  .bkd-proof-link img {
-    width: 100%;
-    max-height: 260px;
-    object-fit: contain;
-    background: #FFFFFF;
+  .bkd-pay-thumb:hover { box-shadow: 0 2px 8px rgba(28,25,23,.1); }
+  .bkd-pay-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bkd-pay-thumb--file {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--bkd-primary);
   }
-  .bkd-proof-file {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    min-height: 120px; color: var(--bkd-primary); font-size: 12px; font-weight: 700; gap: 6px;
-  }
-  .bkd-proof-file svg { width: 28px; height: 28px; }
-
-  /* ── KV grid ── */
-  .bkd-kv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .bkd-kv {
-    border: 1px solid var(--bkd-border-light);
-    border-radius: 10px;
+  .bkd-pay-thumb--file svg { width: 18px; height: 18px; }
+  .bkd-pay-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 8px;
     background: var(--bkd-soft);
-    padding: 12px;
+    border: 1px solid var(--bkd-border-light);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
   }
-  .bkd-kv-label {
-    font-size: 10px; font-weight: 700; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--bkd-muted); margin-bottom: 4px;
+  .bkd-pay-chip-label {
+    color: var(--bkd-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: .06em;
   }
-  .bkd-kv-value { color: var(--bkd-text); font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
-  .bkd-kv-sub { margin-top: 2px; color: var(--bkd-body); font-size: 11px; font-weight: 600; }
+  .bkd-pay-chip-value {
+    color: var(--bkd-text);
+    font-weight: 700;
+  }
+  .bkd-pay-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--bkd-border-light);
+    flex-shrink: 0;
+  }
 
-  /* ── Progress bar ── */
-  .bkd-progress { height: 6px; border-radius: 999px; background: var(--bkd-soft); overflow: hidden; margin-top: 12px; }
-  .bkd-progress span { display: block; height: 100%; border-radius: 999px; background: var(--bkd-primary); transition: width .4s ease; }
+  /* ── Inline progress bar ── */
+  .bkd-progress-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bkd-progress-inline-bar {
+    width: 60px; height: 5px;
+    border-radius: 999px;
+    background: var(--bkd-soft);
+    overflow: hidden;
+  }
+  .bkd-progress-inline-bar span {
+    display: block; height: 100%; border-radius: 999px;
+    background: var(--bkd-primary);
+    transition: width .4s ease;
+  }
+  .bkd-progress-inline-pct {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--bkd-muted);
+  }
 
-  /* ── Review form ── */
-  .bkd-review-form {
+  /* ── Review actions: inline ── */
+  .bkd-review-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--bkd-border-light);
+  }
+  .bkd-review-bar input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    height: 36px;
     border: 1px solid var(--bkd-border);
-    border-radius: 10px;
-    background: #faf8f5;
-    padding: 14px;
-    margin-top: 16px;
+    border-radius: 8px;
+    background: var(--bkd-surface);
+    padding: 0 12px;
+    color: var(--bkd-text);
+    font: inherit;
+    font-size: 12px;
+    outline: none;
   }
-  .bkd-review-form textarea {
-    width: 100%; min-height: 60px;
-    border: 1px solid var(--bkd-border); border-radius: 10px;
-    background: var(--bkd-surface); padding: 10px 12px;
-    color: var(--bkd-text); font: inherit; font-size: 12px; outline: none; resize: vertical;
-  }
-  .bkd-review-form textarea:focus { border-color: var(--bkd-primary); }
-  .bkd-review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .bkd-review-bar input[type="text"]:focus { border-color: var(--bkd-primary); }
+  .bkd-review-bar input[type="text"]::placeholder { color: var(--bkd-muted); }
 
   /* ── Buttons ── */
   .bkd-btn {
@@ -762,13 +875,12 @@ $dashboardContent = function () use (
   /* ── Responsive ── */
   @media (max-width: 900px) {
     .admin-booking-detail-outlet { padding: 16px; }
-    .bkd-pay-grid { grid-template-columns: 1fr; }
-    .bkd-strip { flex-direction: column; align-items: flex-start; }
-    .bkd-strip-item { border-right: 0; padding: 4px 0; }
-    .bkd-steps { flex-direction: column; }
-    .bkd-step { border-right: 0; border-bottom: 1px solid var(--bkd-border-light); }
-    .bkd-step:last-child { border-bottom: 0; }
-    .bkd-kv-grid { grid-template-columns: 1fr; }
+    .bkd-pay-row { gap: 8px; }
+    .bkd-summary { grid-template-columns: 1fr; }
+    .bkd-summary-side--left { border-right: 0; border-bottom: 1px solid var(--bkd-border-light); }
+    .bkd-steps { overflow-x: auto; gap: 2px; }
+    .bkd-step-num { width: 28px; height: 28px; font-size: 11px; }
+    .bkd-step-label { font-size: 10px; }
     .bkd-top { flex-direction: column; align-items: flex-start; }
   }
 </style>
@@ -843,51 +955,63 @@ $dashboardContent = function () use (
     </div>
   </div>
 
-  <!-- ── Summary Strip ── -->
-  <div class="bkd-strip">
-    <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Service total</span>
-      <span class="bkd-strip-value"><?= $money($totalAmount) ?></span>
-    </div>
-    <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Platform fee (<?= $platformFeePercent ?>%)</span>
-      <span class="bkd-strip-value"><?= $money($expectedPlatformFee) ?></span>
-    </div>
-    <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Grand total</span>
-      <span class="bkd-strip-value"><?= $money($totalAmount + $expectedPlatformFee) ?></span>
-    </div>
-    <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Customer paid</span>
-      <span class="bkd-strip-value is-success" id="booking-paid-value"><?= $money($paidAmount) ?></span>
-    </div>
-    <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Balance due</span>
-      <span class="bkd-strip-value <?= $balanceDue > 0 ? 'is-danger' : 'is-success' ?>" id="booking-balance-value"><?= $money($balanceDue) ?></span>
-    </div>
-    <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Items</span>
-      <span class="bkd-strip-value"><?= count($items) ?></span>
-    </div>
-    <div class="bkd-strip-item">
-      <span class="bkd-strip-label">Created</span>
-      <span class="bkd-strip-value" style="font-size:12px"><?= $h($createdAt) ?></span>
-    </div>
-  </div>
-
   <!-- ── Step Progress ── -->
   <div class="bkd-steps">
+    <?php
+      $prevDone = false;
+      $totalSteps = count($steps);
+    ?>
     <?php foreach ($steps as $num => $step): ?>
       <?php
         $isDone = $num < $currentStep || ($num === $currentStep && $currentStep === 6);
         $isCur = $num === $currentStep && $currentStep < 6;
         $stepClass = $isDone ? 'is-done' : ($isCur ? 'is-current' : '');
+        $showLine = $num > 1;
       ?>
       <div class="bkd-step <?= $stepClass ?>">
-        <span class="bkd-step-num"><?= $isDone ? '✓' : $num ?></span>
-        <span><?= $step['label'] ?><?= $isCur ? '<br><span class="bkd-step-sub">Current</span>' : '' ?></span>
+        <div class="bkd-step-head">
+          <?php if ($showLine): ?><div class="bkd-step-line <?= $prevDone ? 'is-filled' : '' ?>"></div><?php endif; ?>
+          <span class="bkd-step-num"><?= $isDone ? '<i data-lucide="check" style="width:14px;height:14px"></i>' : $num ?></span>
+          <?php if ($num < $totalSteps): ?><div class="bkd-step-line <?= $isDone ? 'is-filled' : '' ?>"></div><?php endif; ?>
+        </div>
+        <span class="bkd-step-label"><?= $step['label'] ?></span>
+        <?php if ($isCur): ?><span class="bkd-step-badge">Current</span><?php endif; ?>
       </div>
+      <?php $prevDone = $isDone; ?>
     <?php endforeach; ?>
+  </div>
+
+  <!-- ── Summary Card ── -->
+  <div class="bkd-summary">
+    <div class="bkd-summary-side bkd-summary-side--left">
+      <div class="bkd-summary-row">
+        <span class="bkd-summary-label">Service total</span>
+        <span class="bkd-summary-value"><?= $money($totalAmount) ?></span>
+      </div>
+      <div class="bkd-summary-row">
+        <span class="bkd-summary-label">Platform fee (<?= $platformFeePercent ?>%)</span>
+        <span class="bkd-summary-value"><?= $money($expectedPlatformFee) ?></span>
+      </div>
+      <hr class="bkd-summary-divider">
+      <div class="bkd-summary-row bkd-summary-grand">
+        <span class="bkd-summary-label">Grand total</span>
+        <span class="bkd-summary-value"><?= $money($totalAmount + $expectedPlatformFee) ?></span>
+      </div>
+    </div>
+    <div class="bkd-summary-side bkd-summary-side--right">
+      <div class="bkd-summary-row bkd-summary-paid">
+        <span class="bkd-summary-label">Customer paid</span>
+        <span class="bkd-summary-value" id="booking-paid-value"><?= $money($paidAmount) ?></span>
+      </div>
+      <div class="bkd-summary-row bkd-summary-balance">
+        <span class="bkd-summary-label">Balance due</span>
+        <span class="bkd-summary-value <?= $balanceDue > 0 ? 'is-danger' : 'is-success' ?>" id="booking-balance-value"><?= $money($balanceDue) ?></span>
+      </div>
+      <div class="bkd-summary-meta">
+        <span class="bkd-summary-meta-item"><i data-lucide="package" style="width:13px;height:13px"></i> <strong><?= count($items) ?></strong> item<?= count($items) !== 1 ? 's' : '' ?></span>
+        <span class="bkd-summary-meta-item"><i data-lucide="calendar" style="width:13px;height:13px"></i> Created <strong><?= $h($createdAt) ?></strong></span>
+      </div>
+    </div>
   </div>
 
   <!-- ── Priority Action Area ── -->
@@ -902,54 +1026,47 @@ $dashboardContent = function () use (
       </div>
     </div>
     <div class="bkd-action-body">
-      <div class="bkd-pay-grid">
-        <div>
-          <?php if ($slipPath !== ''): ?>
-            <a href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" class="bkd-proof-link">
-              <?php if ($isImageSlip): ?>
-                <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip">
-              <?php else: ?>
-                <span class="bkd-proof-file"><i data-lucide="file-text"></i> Open uploaded document</span>
-              <?php endif; ?>
-            </a>
-          <?php else: ?>
-            <div class="bkd-empty">No payment proof uploaded.</div>
-          <?php endif; ?>
+      <div class="bkd-pay-row">
+        <?php if ($slipPath !== ''): ?>
+          <a href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" class="bkd-pay-thumb <?= !$isImageSlip ? 'bkd-pay-thumb--file' : '' ?>">
+            <?php if ($isImageSlip): ?>
+              <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip">
+            <?php else: ?>
+              <i data-lucide="file-text"></i>
+            <?php endif; ?>
+          </a>
+        <?php endif; ?>
+        <div class="bkd-pay-chip">
+          <span class="bkd-pay-chip-label">Sent</span>
+          <span class="bkd-pay-chip-value"><?= $money($sentAmount) ?></span>
         </div>
-        <div>
-          <div class="bkd-kv-grid" style="grid-template-columns:1fr 1fr">
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Sent</div>
-              <div class="bkd-kv-value"><?= $money($sentAmount) ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Expected</div>
-              <div class="bkd-kv-value"><?= $money($isRemainingPaymentStage ? $balanceDue : $expectedPayment) ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Type</div>
-              <div class="bkd-kv-value"><?= $isRemainingPaymentStage ? 'Remaining Balance' : 'Deposit + Fee' ?></div>
-            </div>
-            <div class="bkd-kv">
-              <div class="bkd-kv-label">Method</div>
-              <div class="bkd-kv-value"><?= $h($paymentMethod ?: '-') ?></div>
-            </div>
-          </div>
-          <div class="bkd-progress">
+        <div class="bkd-pay-chip">
+          <span class="bkd-pay-chip-label">Expected</span>
+          <span class="bkd-pay-chip-value"><?= $money($isRemainingPaymentStage ? $balanceDue : $expectedPayment) ?></span>
+        </div>
+        <div class="bkd-pay-sep"></div>
+        <div class="bkd-pay-chip">
+          <span class="bkd-pay-chip-value"><?= $isRemainingPaymentStage ? 'Remaining' : 'Deposit + Fee' ?></span>
+        </div>
+        <div class="bkd-pay-chip">
+          <span class="bkd-pay-chip-value"><?= $h($paymentMethod ?: '-') ?></span>
+        </div>
+        <div class="bkd-pay-sep"></div>
+        <div class="bkd-progress-inline">
+          <div class="bkd-progress-inline-bar">
             <span id="payment-progress-bar" style="width:<?= min(100, max(0, $paidPercent)) ?>%"></span>
           </div>
+          <span class="bkd-progress-inline-pct"><?= $paidPercent ?>%</span>
         </div>
       </div>
-      <form id="payment-review-form" class="bkd-review-form" data-booking-id="<?= $bookingId ?>">
-        <textarea name="note" placeholder="Admin note (optional)"></textarea>
-        <div class="bkd-review-actions">
-          <button class="bkd-btn reject-payment-btn" type="button" style="width:100%;justify-content:center;background:#c4677a;color:#fff;border:1px solid #c4677a;font-weight:800">
-            <i data-lucide="x-circle"></i> Reject
-          </button>
-          <button class="bkd-btn verify-payment-btn" type="button" style="width:100%;justify-content:center;background:#3d6b4f;color:#fff;border:1px solid #6b9e7e;font-weight:800">
-            <i data-lucide="circle-check"></i> Verify
-          </button>
-        </div>
+      <form id="payment-review-form" class="bkd-review-bar" data-booking-id="<?= $bookingId ?>">
+        <input type="text" name="note" placeholder="Add a note (optional)">
+        <button class="bkd-btn reject-payment-btn" type="button" style="background:#c4677a;color:#fff;border:1px solid #c4677a;font-weight:800">
+          <i data-lucide="x-circle"></i> Reject
+        </button>
+        <button class="bkd-btn verify-payment-btn" type="button" style="background:#3d6b4f;color:#fff;border:1px solid #6b9e7e;font-weight:800">
+          <i data-lucide="circle-check"></i> Verify
+        </button>
       </form>
       <div id="payment-email-result" style="margin-top:8px;font-size:11px;color:var(--bkd-muted);font-weight:600"></div>
     </div>
@@ -1530,7 +1647,7 @@ $dashboardContent = function () use (
 
   async function handlePaymentReview(form, approve) {
     var bookingId = form.dataset.bookingId;
-    var note = form.querySelector('textarea[name="note"]').value;
+    var note = (form.querySelector('input[name="note"]') || form.querySelector('textarea[name="note"]') || {}).value || '';
     var endpoint = approve
       ? '<?= URLROOT ?>/admin/verifyPaymentPost'
       : '<?= URLROOT ?>/admin/rejectPaymentSlipPost';
