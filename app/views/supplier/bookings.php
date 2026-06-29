@@ -69,74 +69,63 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
         </div>
     </div>
 
+    <!-- ── Summary row ──────────────────────────────────────────── -->
+    <?php
+        $summaryItems = [
+            ['label' => 'TOTAL BOOKINGS', 'value' => number_format($totalCount), 'class' => '', 'sub' => 'All time'],
+            ['label' => 'PENDING', 'value' => $pendingCount, 'class' => $pendingCount > 0 ? 'danger' : '', 'sub' => 'Awaiting response'],
+            ['label' => 'CONFIRMED', 'value' => $confirmedCount, 'class' => 'success', 'sub' => 'Upcoming events'],
+            ['label' => 'COMPLETED', 'value' => $completedCount, 'class' => '', 'sub' => 'Successfully delivered'],
+        ];
+    ?>
+    <div class="bk-kpi-row">
+        <?php foreach ($summaryItems as $item): ?>
+        <div class="bk-kpi">
+            <div class="bk-kpi-label"><?= $h($item['label']) ?></div>
+            <div class="bk-kpi-value <?= $h($item['class']) ?>"><?= $h($item['value']) ?></div>
+            <div class="bk-kpi-sub"><?= $h($item['sub']) ?></div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+
     <!-- ── Main section ──────────────────────────────────────────── -->
     <div class="bk-section">
 
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px;border-bottom:1px solid #ead8c7">
-            <div>
-                <h2 style="margin:0;color:#6d4c5b;font-size:14px;font-weight:750;letter-spacing:-.015em">Booking queue</h2>
-                <p style="margin-top:3px;color:#A8A29E;font-size:11px">Your bookings across all statuses</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid #ead8c7">
+            <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:28px;height:28px;border-radius:.75rem;background:#eddecc;display:flex;align-items:center;justify-content:center;color:#6d4c5b"><i data-lucide="calendar-check" style="width:16px;height:16px"></i></div>
+                <span style="font-size:13px;font-weight:700;color:#111827">Booking records</span>
             </div>
-            <span style="color:#A8A29E;font-size:11px;font-weight:650"><?= number_format($totalCount) ?> records</span>
-        </div>
-
-        <!-- Pending alert banner -->
-        <?php if ($pendingCount > 0): ?>
-        <div class="bk-pending-banner">
-            <i data-lucide="alert-circle" class="bk-pb-icon h-4 w-4"></i>
-            <div>
-                <p class="bk-pb-title"><?= $pendingCount ?> booking<?= $pendingCount !== 1 ? 's' : '' ?> waiting for your response</p>
-                <p class="bk-pb-sub">Respond within 24 hours to maintain a good acceptance rate</p>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- Toolbar: filters + search -->
-        <div class="bk-toolbar">
-            <div class="bk-filter-group">
-                <?php foreach ($filters as $key => $f):
-                    $filterUrl = URLROOT . '/supplier/bookings?status=' . $h($key);
-                    if ($searchQuery) {
-                        $filterUrl .= '&search=' . urlencode($searchQuery);
-                    }
-                    $isActive = $activeFilter === $key;
-                    $activeClass = $isActive ? 'bk-pill-active-' . $h($key) : '';
-                    $label = $h($f['label']);
-                    if ($key === 'pending' && $pendingCount > 0) {
-                        $label .= ' (' . $pendingCount . ')';
-                    }
-                ?>
-                <a href="<?= $filterUrl ?>" class="bk-pill <?= $activeClass ?>">
-                    <?= $label ?>
-                </a>
+            <?php
+                $filterOptions = [];
+                foreach ($filters as $key => $f) {
+                    $params = [];
+                    if ($key !== 'all') $params['status'] = $key;
+                    $url = URLROOT . '/supplier/bookings' . (!empty($params) ? '?' . http_build_query($params) : '');
+                    $count = 0;
+                    if ($key === 'all') $count = $totalCount;
+                    elseif ($key === 'pending') $count = $pendingCount;
+                    elseif ($key === 'confirmed') $count = $confirmedCount;
+                    elseif ($key === 'completed') $count = $completedCount;
+                    elseif ($key === 'rejected') $count = (int)($stats['rejected_count'] ?? 0);
+                    $filterOptions[] = ['url' => $url, 'label' => $f['label'], 'count' => $count, 'key' => $key];
+                }
+            ?>
+            <select class="bk-status-filter" onchange="if(this.value)window.location.href=this.value">
+                <?php foreach ($filterOptions as $opt): ?>
+                <option value="<?= $h($opt['url']) ?>" <?= $activeFilter === $opt['key'] ? 'selected' : '' ?>>
+                    <?= $h($opt['label']) ?> (<?= $opt['count'] ?>)
+                </option>
                 <?php endforeach; ?>
-            </div>
-            <form method="get" class="bk-search-wrap">
-                <input type="hidden" name="status" value="<?= $h($activeFilter) ?>">
-                <i data-lucide="search"></i>
-                <input type="text" name="search" placeholder="Search bookings…"
-                       value="<?= $h($searchQuery) ?>" class="bk-search-input" aria-label="Search bookings">
-            </form>
+            </select>
         </div>
 
         <!-- ── Booking table ───────────────────────────────────────── -->
         <?php if (empty($bookings)): ?>
             <div class="bk-empty">
                 <div class="bk-empty-icon"><i data-lucide="calendar-x"></i></div>
-                <p class="bk-empty-title">
-                    <?= $searchQuery ? 'No results for "' . $h($searchQuery) . '"' : 'No bookings found' ?>
-                </p>
-                <p class="bk-empty-sub">
-                    <?= $searchQuery
-                        ? 'Try a different name or booking reference.'
-                        : 'Incoming customer bookings will appear here.' ?>
-                </p>
-                <?php if ($searchQuery): ?>
-                <a href="<?= URLROOT ?>/supplier/bookings?status=<?= $h($activeFilter) ?>"
-                   class="bk-btn bk-btn-view mt-4 inline-flex">
-                    <i data-lucide="x"></i> Clear search
-                </a>
-                <?php endif; ?>
+                <p class="bk-empty-title">No bookings found</p>
+                <p class="bk-empty-sub">Incoming customer bookings will appear here.</p>
             </div>
         <?php else: ?>
             <div style="overflow-x:auto">
@@ -226,16 +215,9 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
                             <!-- Actions -->
                             <td class="bk-right">
                                 <div class="bk-actions">
-                                    <?php if ($bStatus === 'pending'): ?>
-                                    <button type="button" class="bk-btn bk-btn-accept-sm bk-quick-accept"
-                                            data-booking-id="<?= $bookingId ?>" title="Accept">
-                                        <i data-lucide="check"></i> Accept
-                                    </button>
-                                    <?php endif; ?>
                                     <a class="bk-btn bk-btn-view"
                                        href="<?= URLROOT ?>/supplier/bookingDetail/<?= $bookingId ?>">
-                                        <i data-lucide="<?= $bStatus === 'pending' ? 'clipboard-check' : 'eye' ?>"></i>
-                                        <?= $bStatus === 'pending' ? 'Review' : 'View' ?>
+                                        <i data-lucide="eye"></i> View
                                     </a>
                                 </div>
                             </td>
@@ -248,9 +230,6 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
             <!-- Pagination -->
             <?php if ($totalPages > 1):
                 $pageParams = 'status=' . $h($activeFilter);
-                if ($searchQuery) {
-                    $pageParams .= '&search=' . urlencode($searchQuery);
-                }
             ?>
             <div class="bk-pagination">
                 <span class="bk-page-info">
@@ -294,47 +273,7 @@ $dashboardContent = function () use ($bookings, $stats, $activeFilter, $filters,
 
 </section>
 
-<script>
-/* Quick accept from card */
-document.querySelectorAll('.bk-quick-accept').forEach(function(btn) {
-    btn.addEventListener('click', async function(e) {
-        e.preventDefault();
-        var bookingId = btn.dataset.bookingId;
-        if (!bookingId) return;
-        btn.disabled = true;
-        btn.innerHTML = '<svg style="width:13px;height:13px;animation:spin .6s linear infinite" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6" stroke-dasharray="30" stroke-dashoffset="10"/></svg> Accepting…';
-        var formData = new FormData();
-        formData.append('booking_id', bookingId);
-        formData.append('action', 'accept');
-        formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-        try {
-            var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
-            var data = await resp.json().catch(function() { return {}; });
-            if (data.success) {
-                supToastSuccess('Booking accepted successfully!');
-                setTimeout(function() { window.location.reload(); }, 1200);
-                return;
-            }
-            supToastError(data.error || 'Could not accept booking. Please try again.');
-        } catch (err) {
-            supToastError('Network error. Please try again.');
-        }
-        btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="check"></i> Accept';
-        if (window.lucide) lucide.createIcons();
-    });
-});
-
-/* Quick decline from card — redirect to detail for reason */
-document.querySelectorAll('.bk-quick-decline').forEach(function(btn) {
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        var bookingId = btn.dataset.bookingId;
-        if (bookingId) window.location.href = '<?= URLROOT ?>/supplier/bookingDetail/' + bookingId;
-    });
-});
-</script>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<script></script>
 <?php
 };
 ?>
