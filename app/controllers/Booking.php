@@ -2922,21 +2922,24 @@ class Booking extends Controller
 
         $bookingId = (int)($_POST['booking_id'] ?? 0);
         $reason = trim($_POST['reason'] ?? '');
-        $refundDeposit = !empty($_POST['refund_deposit']);
 
         if ($bookingId <= 0 || $reason === '') {
             $this->jsonResponse(['error' => 'Please provide a reason.'], 400);
         }
 
-        if (!$this->bookingModel->adminCancelBooking($bookingId, $reason, $adminId, $refundDeposit)) {
+        $refundAmount = $this->bookingModel->adminCancelBooking($bookingId, $reason, $adminId);
+        if ($refundAmount === false) {
             $this->jsonResponse(['error' => 'Could not cancel booking.'], 500);
         }
 
         // Notify customer
+        $refundMsg = $refundAmount > 0
+            ? ' A refund of ' . number_format($refundAmount, 0) . ' MMK will be processed.'
+            : '';
         $this->notificationModel->notifyBookingCustomer(
             $bookingId,
             'Booking Cancelled by Admin',
-            'Your booking has been cancelled by the administrator. Reason: ' . $reason . ($refundDeposit ? ' Your deposit will be refunded.' : ''),
+            'Your booking has been cancelled by the administrator. Reason: ' . $reason . $refundMsg,
             'booking'
         );
 

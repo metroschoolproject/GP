@@ -1450,18 +1450,35 @@ $dashboardContent = function () use (
   <div class="bkd-bottom">
     <div class="bkd-bottom-left">
       <?php if ($canCancel): ?>
+        <?php
+          $refundAmount = $refundEstimate ? (float)$refundEstimate[0] : 0;
+          $refundPolicy = $refundEstimate ? (string)$refundEstimate[1] : '';
+        ?>
         <form id="admin-cancel-form" class="bkd-cancel-form" style="display:contents">
           <input type="hidden" name="booking_id" value="<?= $bookingId ?>">
           <button class="bkd-btn bkd-btn--danger" type="button" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.style.display='none'">
             <i data-lucide="ban"></i> Cancel booking
           </button>
           <div style="display:none">
+            <?php if ($refundAmount > 0): ?>
+              <div style="border:1px solid #e6c9a0;border-radius:8px;background:#fcf3e6;padding:10px 12px;margin-bottom:8px;font-size:11px;color:#9a6a22">
+                <div style="font-weight:700;font-size:12px;margin-bottom:4px">
+                  <i data-lucide="wallet" style="width:13px;height:13px;vertical-align:-2px"></i>
+                  Refund: <?= $h($money($refundAmount)) ?>
+                </div>
+                <div><?= $h($refundPolicy) ?></div>
+              </div>
+            <?php else: ?>
+              <div style="border:1px solid var(--bkd-danger-border);border-radius:8px;background:#fbeaea;padding:10px 12px;margin-bottom:8px;font-size:11px;color:#a23a3a">
+                <div style="font-weight:700;font-size:12px">
+                  <i data-lucide="wallet" style="width:13px;height:13px;vertical-align:-2px"></i>
+                  No refund
+                </div>
+                <div><?= $h($refundPolicy ?: 'No payment recorded or refund policy does not apply.') ?></div>
+              </div>
+            <?php endif; ?>
             <textarea name="reason" required placeholder="Cancellation reason…" style="width:100%;min-height:50px;padding:8px;border:1px solid var(--bkd-danger-border);border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;margin-bottom:8px"></textarea>
-            <label class="bkd-cancel-check">
-              <input type="checkbox" name="refund_deposit" value="1" id="refund-deposit-cb">
-              Queue refund for processing
-            </label>
-            <button class="bkd-btn bkd-btn--danger" type="submit" style="margin-top:8px;width:100%;justify-content:center">
+            <button class="bkd-btn bkd-btn--danger" type="submit" style="width:100%;justify-content:center">
               <i data-lucide="ban"></i> Confirm cancellation
             </button>
           </div>
@@ -1787,10 +1804,9 @@ $dashboardContent = function () use (
   if (cancelForm) {
     cancelForm.addEventListener('submit', async function(event){
       event.preventDefault();
-      var refundCb = document.getElementById('refund-deposit-cb');
-      var refundAmt = '<?= $refundEstimate ? $money($refundEstimate[0]) : '' ?>';
+      var refundAmt = '<?= $refundEstimate && (float)$refundEstimate[0] > 0 ? $money($refundEstimate[0]) : '' ?>';
       var msg = 'Are you sure you want to cancel this booking? This cannot be undone.';
-      if (refundCb && refundCb.checked && refundAmt) {
+      if (refundAmt) {
         msg += '\n\nA refund of ' + refundAmt + ' will be queued for processing.';
       }
       if (!confirm(msg)) return;

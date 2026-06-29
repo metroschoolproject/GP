@@ -3198,9 +3198,10 @@ class BookingModel
     /**
      * Admin: cancel a booking.
      */
-    public function adminCancelBooking(int $bookingId, string $reason, int $adminId, bool $refundDeposit): bool
+    public function adminCancelBooking(int $bookingId, string $reason, int $adminId): float|false
     {
         $this->db->beginTransaction();
+        $refundAmount = 0.0;
         try {
         $this->db->dbquery(
             "UPDATE bookings SET status = 'cancelled', approved_by = :admin_id, approved_at = NOW()
@@ -3213,26 +3214,26 @@ class BookingModel
             throw new RuntimeException('Booking cannot be cancelled from its current state.');
         }
 
-        if ($refundDeposit) {
-            // Calculate refund amount based on cancellation timing policy
-            $refundCalc = $this->calculateRefund($bookingId);
+        // Auto-calculate refund based on cancellation timing policy
+        $refundCalc = $this->calculateRefund($bookingId);
 
-            // Fallback: sum all successful payments if calculateRefund fails
-            if ($refundCalc === false) {
-                $this->db->dbquery(
-                    "SELECT COALESCE(SUM(COALESCE(paid_amount, amount)), 0) AS total
-                     FROM payments
-                     WHERE booking_id = :bid AND status = 'success'"
-                );
-                $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-                $refundAmount = (float) ($this->db->getsingledata()['total'] ?? 0);
-                $policyReason = 'Manual refund by admin (policy calculation unavailable)';
-            } else {
-                $refundAmount = $refundCalc[0];
-                $policyReason = $refundCalc[1];
-            }
+        // Fallback: sum all successful payments if calculateRefund fails
+        if ($refundCalc === false) {
+            $this->db->dbquery(
+                "SELECT COALESCE(SUM(COALESCE(paid_amount, amount)), 0) AS total
+                 FROM payments
+                 WHERE booking_id = :bid AND status = 'success'"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $refundAmount = (float) ($this->db->getsingledata()['total'] ?? 0);
+            $policyReason = 'Manual refund by admin (policy calculation unavailable)';
+        } else {
+            $refundAmount = (float)$refundCalc[0];
+            $policyReason = (string)$refundCalc[1];
+        }
 
-            // Create a refund queue entry so admin can track and process it
+        // Queue refund if amount > 0
+        if ($refundAmount > 0) {
             $this->db->dbquery(
                 "INSERT INTO refunds (booking_id, amount, reason, policy_reason, status, requested_by, requested_at)
                  VALUES (:bid, :amount, :reason, :policy, 'pending', :admin_id, NOW())"
@@ -3244,7 +3245,6 @@ class BookingModel
             $this->db->dbbind(':admin_id', $adminId, PDO::PARAM_INT);
             $this->db->dbexecute();
 
-            // Audit row so the refund request is traceable
             $this->logStatusChange(
                 $bookingId,
                 'cancelled',
@@ -3277,7 +3277,7 @@ class BookingModel
         $this->logStatusChange($bookingId, null, 'cancelled', $adminId, 'Cancelled by admin: ' . $reason);
 
         $this->db->commit();
-        return true;
+        return $refundAmount;
         } catch (Throwable $e) {
             $this->db->rollBack();
             error_log('Booking cancellation failed: ' . $e->getMessage());
