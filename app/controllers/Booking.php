@@ -562,16 +562,33 @@ class Booking extends Controller
                     // Deduplicate: one slot per service, using preferred_time if available
                     $preferredTime = trim($_POST['preferred_time'][$i] ?? '');
                     $packageSchedule = $this->deduplicatePackageSchedule($packageSchedule, $preferredTime);
-                    if ($this->bookingModel->reservePackageServiceSlots($bookingId, $pkgDate, $packageSchedule) === false) {
+
+                    // Retry once on failure: the pre-flight check (outside the
+                    // transaction) confirmed availability, so a failure here is
+                    // likely a race where another request grabbed the last slot
+                    // between the pre-flight and this reservation. Re-fetching
+                    // the schedule picks up the updated slot state.
+                    $pkgId = (int)($item['item_id'] ?? 0);
+                    $reserved = $this->bookingModel->reservePackageServiceSlots(
+                        $bookingId, $pkgDate, $packageSchedule
+                    );
+                    if ($reserved === false) {
+                        $packageSchedule = $this->cartModel->getPackageEventSchedule($pkgId, $pkgDate);
+                        if (!empty($packageSchedule)) {
+                            $packageSchedule = $this->deduplicatePackageSchedule($packageSchedule, $preferredTime);
+                            $reserved = $this->bookingModel->reservePackageServiceSlots(
+                                $bookingId, $pkgDate, $packageSchedule
+                            );
+                        }
+                    }
+
+                    if ($reserved === false) {
                         $fail = $this->bookingModel->getLastUnavailableService();
                         if (!$fail) {
-                            // Not an availability conflict (e.g. the slot-reservation
-                            // write failed) — route to the generic 500 handler rather
-                            // than emit a 422 with an empty unavailable list.
                             throw new RuntimeException('Could not reserve package service slots.');
                         }
                         $fail['alternatives'] = $this->cartModel->findAlternativePackageDates(
-                            (int)($item['item_id'] ?? 0),
+                            $pkgId,
                             (int)$fail['service_id'],
                             $pkgDate
                         );

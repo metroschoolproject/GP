@@ -533,6 +533,18 @@ class BookingModel
         foreach ($packageSchedule as $event) {
             if (($event['booking_type'] ?? '') === 'slot') {
                 $svcId = (int)($event['service_id'] ?? 0);
+
+                // Skip services already reserved for this booking (idempotent retry support)
+                $this->db->dbquery(
+                    "SELECT 1 FROM booking_slot_reservations
+                     WHERE booking_id = :bid AND service_id = :sid AND source = 'package'
+                     LIMIT 1"
+                );
+                $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+                $this->db->dbbind(':sid', $svcId, PDO::PARAM_INT);
+                if ($this->db->getsingledata()) {
+                    continue;
+                }
                 $svcConcurrent = $this->getServiceConcurrent($svcId);
 
                 // Per-package override: a package_item.max_concurrent > 0 caps how
