@@ -2100,6 +2100,15 @@ input[type="date"]:invalid {
                   <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
                 <?php endif; ?>
 
+                <?php if ($isPackageItem): ?>
+                  <label class="gp-detail-label" for="preferred-time-<?= $i ?>" style="margin-top:10px;">Wedding time</label>
+                  <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
+                         name="preferred_time[<?= $i ?>]"
+                         value="10:00" required
+                         style="max-width:160px;">
+                  <div class="gp-input-note">We will schedule each service before this time.</div>
+                <?php endif; ?>
+
                 <?php if ($isFulldayItem):
                   // Three-layer time resolution for fullday items
                   $categoryId = (int)($item['category_id'] ?? 0);
@@ -3312,6 +3321,8 @@ async function loadPackageSchedule(packageId, date, index) {
   index = String(index);
   const container = document.getElementById('package-schedule-' + index);
   if (!container) return;
+  const preferredTimeInput = document.getElementById('preferred-time-' + index);
+  const preferredTime = preferredTimeInput ? preferredTimeInput.value : '';
   if (!date) {
     packageScheduleState.set(index, { status: 'empty', date: '' });
     container.dataset.packageScheduleState = 'empty';
@@ -3326,7 +3337,7 @@ async function loadPackageSchedule(packageId, date, index) {
     const response = await fetch('<?= URLROOT ?>/booking/getPackageSchedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ package_id: packageId, date })
+      body: JSON.stringify({ package_id: packageId, date, preferred_time: preferredTime })
     });
     const data = await response.json();
     if (!response.ok || !data.success) {
@@ -3407,6 +3418,12 @@ document.querySelectorAll('.gp-item-card[data-package-id]').forEach(card => {
   dateInput.addEventListener('change', () => {
     loadPackageSchedule(card.dataset.packageId, dateInput.value, index);
   });
+  const prefTimeInput = document.getElementById('preferred-time-' + index);
+  if (prefTimeInput) {
+    prefTimeInput.addEventListener('change', () => {
+      if (dateInput.value) loadPackageSchedule(card.dataset.packageId, dateInput.value, index);
+    });
+  }
   if (dateInput.value) {
     loadPackageSchedule(card.dataset.packageId, dateInput.value, index);
   }

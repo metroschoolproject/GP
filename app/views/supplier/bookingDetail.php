@@ -129,7 +129,7 @@ $dashboardContent = function () use (
     $customerName, $customerEmail, $customerPhone, $customerInitial,
     $packageSchedules, $isPackage, $declineCutoffDays, $myServiceRows,
     $cancellationReason, $paymentHistory, $activeReplacement, $refund,
-    $isCancelledOrReplaced
+    $isCancelledOrReplaced, $supplierPaidFraction
 ) {
     $eventTime = trim($formatTime($firstStart) . ($firstEnd ? ' – ' . $formatTime($firstEnd) : ''), ' –');
     $needsResponse = $supplierStatus === 'pending';

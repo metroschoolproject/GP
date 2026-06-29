@@ -284,6 +284,7 @@ CREATE TABLE `event_details` (
   `booking_id` bigint(20) DEFAULT NULL,
   `booking_item_id` bigint(20) DEFAULT NULL,
   `event_date` date DEFAULT NULL,
+  `preferred_time` time DEFAULT NULL,
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,
   `guest_count` int(11) DEFAULT NULL,

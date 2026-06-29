@@ -478,13 +478,14 @@ class BookingModel
             
             $this->db->dbquery(
                 "INSERT INTO event_details
-                    (booking_id, booking_item_id, event_date, start_time, end_time, 
+                    (booking_id, booking_item_id, event_date, preferred_time, start_time, end_time,
                     guest_count, location, contact_phone, special_requests, contact_name)
-                VALUES (:bid, :biid, :edate, :stime, :etime, :guests, :location, :phone, :notes, :cname)"
+                VALUES (:bid, :biid, :edate, :ptime, :stime, :etime, :guests, :location, :phone, :notes, :cname)"
             );
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
             $this->db->dbbind(':biid', $bookingItemId, PDO::PARAM_INT);
             $this->db->dbbind(':edate', $item['event_date'] ?? null);
+            $this->db->dbbind(':ptime', !empty($item['preferred_time']) ? $item['preferred_time'] : null);
             $this->db->dbbind(':stime', $item['start_time'] ?? null);
             $this->db->dbbind(':etime', $item['end_time'] ?? null);
             $this->db->dbbind(':guests', !empty($item['guest_count']) ? (int)$item['guest_count'] : null, PDO::PARAM_INT);
@@ -1068,6 +1069,40 @@ class BookingModel
     {
         $this->db->dbquery(
             "SELECT * FROM event_details WHERE booking_id = :bid ORDER BY id ASC"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Returns schedule entries built from actual reserved slots for a booking.
+     * Each entry includes service/supplier/category metadata so it can be used
+     * directly in the booking detail view without the full slot expansion.
+     */
+    public function getReservedSlotSchedule(int $bookingId): array
+    {
+        $this->db->dbquery(
+            "SELECT bsr.slot_id,
+                    bsr.service_id,
+                    bsr.package_item_id,
+                    sts.start_time,
+                    sts.end_time,
+                    s.name AS service_name,
+                    s.booking_type,
+                    c.id AS category_id,
+                    c.name AS category_name,
+                    COALESCE(pi.default_supplier_id, s.supplier_id) AS supplier_id,
+                    COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name,
+                    vr.name AS venue_room_name
+             FROM booking_slot_reservations bsr
+             INNER JOIN service_time_slots sts ON sts.id = bsr.slot_id
+             INNER JOIN services s ON s.id = bsr.service_id
+             LEFT JOIN package_items pi ON pi.id = bsr.package_item_id
+             LEFT JOIN categories c ON c.id = COALESCE(pi.category_id, s.category_id)
+             LEFT JOIN suppliers sup ON sup.supplier_id = COALESCE(pi.default_supplier_id, s.supplier_id)
+             LEFT JOIN venue_rooms vr ON vr.id = pi.venue_room_id
+             WHERE bsr.booking_id = :bid AND bsr.released_at IS NULL
+             ORDER BY sts.start_time ASC, s.name ASC"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
         return $this->db->getmultidata();

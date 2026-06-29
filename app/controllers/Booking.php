@@ -65,6 +65,8 @@ class Booking extends Controller
     {
         $packageSchedules = [];
         $bookingId = (int)($items[0]['booking_id'] ?? 0);
+
+        // Fetch active supplier lines (for metadata enrichment)
         $activePackageLines = [];
         if ($bookingId > 0) {
             foreach ($this->bookingModel->getBookingSuppliers($bookingId) as $supplierLine) {
@@ -79,6 +81,21 @@ class Booking extends Controller
                 ) {
                     $activePackageLines[$packageItemId] = $supplierLine;
                 }
+            }
+        }
+
+        // Fetch reserved slots directly from the database (accurate even if service schedules changed)
+        $reservedSlotEntries = $bookingId > 0
+            ? $this->bookingModel->getReservedSlotSchedule($bookingId)
+            : [];
+        // Group reserved entries by package_item_id
+        $reservedByPackageItem = [];
+        $reservedPackageItemIds = [];
+        foreach ($reservedSlotEntries as $entry) {
+            $pid = (int)($entry['package_item_id'] ?? 0);
+            if ($pid > 0) {
+                $reservedByPackageItem[$pid][] = $entry;
+                $reservedPackageItemIds[$pid] = true;
             }
         }
 
@@ -101,10 +118,13 @@ class Booking extends Controller
                 continue;
             }
 
+            // Start with the full schedule (needed for non-slot services and enrichment)
             $schedule = $this->cartModel->getPackageEventSchedule(
                 (int)($item['item_id'] ?? 0),
                 $eventDate
             );
+
+            // Enrich entries with live supplier data
             foreach ($schedule as &$serviceEvent) {
                 $packageItemId = (int)($serviceEvent['package_item_id'] ?? 0);
                 $liveLine = $activePackageLines[$packageItemId] ?? null;
@@ -122,6 +142,51 @@ class Booking extends Controller
                 $serviceEvent['is_replacement'] = !empty($liveLine['replacement_request_id']);
             }
             unset($serviceEvent);
+
+            // Replace slot-type services with actual reserved slots, one entry per service
+            if (!empty($reservedByPackageItem)) {
+                $filtered = [];
+                $seenSlotPackageItems = [];
+                foreach ($schedule as $entry) {
+                    $pid = (int)($entry['package_item_id'] ?? 0);
+                    $isSlot = ($entry['booking_type'] ?? '') === 'slot';
+                    if ($isSlot && isset($reservedByPackageItem[$pid])) {
+                        if (!isset($seenSlotPackageItems[$pid])) {
+                            $seenSlotPackageItems[$pid] = true;
+                            $liveLine = $activePackageLines[$pid] ?? [];
+                            $slots = $reservedByPackageItem[$pid];
+                            // Group into one entry per service with full time range
+                            $sorted = $slots;
+                            usort($sorted, static fn($a, $b) => strcmp($a['start_time'], $b['start_time']));
+                            $first = $sorted[0];
+                            $last = $sorted[count($sorted) - 1];
+                            $filtered[] = [
+                                'package_item_id'  => $pid,
+                                'service_id'       => (int)($liveLine['service_id'] ?? $first['service_id'] ?? 0),
+                                'service_name'     => $liveLine['service_name'] ?? $first['service_name'] ?? '',
+                                'supplier_id'      => (int)($liveLine['supplier_id'] ?? $first['supplier_id'] ?? 0),
+                                'supplier_name'    => $liveLine['shop_name'] ?? $first['supplier_name'] ?? '',
+                                'category_id'      => (int)($liveLine['category_id'] ?? $first['category_id'] ?? 0),
+                                'category_name'    => $liveLine['category_name'] ?? $first['category_name'] ?? '',
+                                'booking_type'     => 'slot',
+                                'start_time'       => $first['start_time'],
+                                'end_time'         => $last['end_time'],
+                                'venue_room_name'  => $first['venue_room_name'] ?? '',
+                                'item_price'       => (float)($liveLine['item_price'] ?? 0),
+                                'supplier_status'  => $liveLine['status'] ?? 'pending',
+                                'is_replacement'   => !empty($liveLine['replacement_request_id']),
+                            ];
+                        }
+                    } else {
+                        $filtered[] = $entry;
+                    }
+                }
+                $schedule = $filtered;
+            }
+
+            usort($schedule, static fn(array $a, array $b): int =>
+                strcmp((string)($a['start_time'] ?? ''), (string)($b['start_time'] ?? ''))
+            );
             $packageSchedules[(int)($item['id'] ?? 0)] = $schedule;
         }
 
@@ -233,6 +298,7 @@ class Booking extends Controller
             $itemLocation = trim($_POST['item_location'][$i] ?? '');
             $itemPhone = trim($_POST['item_contact_phone'][$i] ?? '');
             $itemContactName = trim($_POST['item_contact_name'][$i] ?? '');
+            $itemPreferredTime = trim($_POST['preferred_time'][$i] ?? '');
             $itemName = $item['service_name'] ?? 'Service';
             $itemMaxBooking = max(1, (int)($item['item_max_booking'] ?? 9999));
             $minLeadDays = max(0, (int)($item['min_lead_days'] ?? 0));
@@ -248,6 +314,8 @@ class Booking extends Controller
                     $itemDate
                 );
                 if (!empty($packageSchedule)) {
+                    // Deduplicate to one slot per service using preferred_time
+                    $packageSchedule = $this->deduplicatePackageSchedule($packageSchedule, $itemPreferredTime);
                     $starts = array_column($packageSchedule, 'start_time');
                     $ends = array_column($packageSchedule, 'end_time');
                     sort($starts);
@@ -310,6 +378,7 @@ class Booking extends Controller
             // from the parent package at display time.
             $itemsData[] = [
                 'event_date' => $itemDate,
+                'preferred_time' => $itemPreferredTime,
                 'start_time' => $itemStartTime,
                 'end_time' => $itemEndTime,
                 'guest_count' => $itemGuests,
@@ -370,8 +439,12 @@ class Booking extends Controller
                 continue;
             }
             $pkgId = (int)($item['item_id'] ?? 0);
-            // Full schedule for all services in this package
-            $schedule = $this->cartModel->getPackageEventSchedule($pkgId, $pkgDate);
+            // Full schedule for all services in this package, deduplicated to one per service
+            $preferredTime = trim($_POST['preferred_time'][$i] ?? '');
+            $schedule = $this->deduplicatePackageSchedule(
+                $this->cartModel->getPackageEventSchedule($pkgId, $pkgDate),
+                $preferredTime
+            );
             $services = [];
             foreach ($schedule as $s) {
                 $isAvailable = (bool)($s['is_available'] ?? false);
@@ -486,6 +559,9 @@ class Booking extends Controller
                     $pkgDate
                 );
                 if (!empty($packageSchedule)) {
+                    // Deduplicate: one slot per service, using preferred_time if available
+                    $preferredTime = trim($_POST['preferred_time'][$i] ?? '');
+                    $packageSchedule = $this->deduplicatePackageSchedule($packageSchedule, $preferredTime);
                     if ($this->bookingModel->reservePackageServiceSlots($bookingId, $pkgDate, $packageSchedule) === false) {
                         $fail = $this->bookingModel->getLastUnavailableService();
                         if (!$fail) {
@@ -1173,6 +1249,7 @@ class Booking extends Controller
         $input = json_decode(file_get_contents('php://input'), true);
         $packageId = (int)($input['package_id'] ?? 0);
         $date = trim((string)($input['date'] ?? ''));
+        $preferredTime = trim((string)($input['preferred_time'] ?? ''));
         $selectedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
 
         if ($packageId <= 0 || !$selectedDate) {
@@ -1200,21 +1277,53 @@ class Booking extends Controller
             ], 422);
         }
 
-        // Deduplicate: keep one entry per service (first available slot, or
-        // first slot if none are available) so the customer sees each package
-        // service exactly once instead of every possible time slot.
-        $deduplicated = [];
-        $seen = [];
+        // Deduplicate: keep one entry per service. For slot-type services,
+        // pick the slot closest to (but not after) the preferred_time.
+        // For non-slot services, keep the first entry.
+        $preferredSeconds = 0;
+        if ($preferredTime !== '' && preg_match('/^\d{2}:\d{2}/', $preferredTime)) {
+            $parts = explode(':', $preferredTime);
+            $preferredSeconds = ((int)$parts[0]) * 3600 + ((int)$parts[1]) * 60;
+        }
+
+        $grouped = [];
         foreach ($fullSchedule as $row) {
             $key = (int)($row['service_id'] ?? 0);
-            if (!isset($seen[$key])) {
-                $seen[$key] = $row;
-            } elseif (!empty($row['is_available']) && empty($seen[$key]['is_available'])) {
-                // Prefer an available slot over an unavailable one
-                $seen[$key] = $row;
-            }
+            $grouped[$key][] = $row;
         }
-        $schedule = array_values($seen);
+
+        $schedule = [];
+        foreach ($grouped as $serviceId => $rows) {
+            if (count($rows) === 1 || ($rows[0]['booking_type'] ?? '') !== 'slot') {
+                $schedule[] = $rows[0];
+                continue;
+            }
+
+            // Slot-type service with multiple possible slots: pick best match for preferred_time
+            $best = null;
+            $bestScore = PHP_INT_MAX;
+            foreach ($rows as $row) {
+                $slotStart = (string)($row['start_time'] ?? '');
+                if ($slotStart === '') continue;
+                $parts = explode(':', $slotStart);
+                $slotSeconds = ((int)$parts[0]) * 3600 + ((int)$parts[1]) * 60;
+
+                // Score: prefer slots that start at or before preferred_time.
+                // Negative diff = slot is before preferred (good, prep services).
+                // Positive diff = slot is after preferred (less ideal).
+                // Heavily penalize unavailable slots.
+                $diff = $slotSeconds - $preferredSeconds;
+                $score = abs($diff);
+                if ($diff > 0) $score += 7200; // penalty for slots after preferred time
+                if (empty($row['is_available'])) $score += 100000; // heavy penalty for unavailable
+
+                if ($score < $bestScore) {
+                    $bestScore = $score;
+                    $best = $row;
+                }
+            }
+            $schedule[] = $best ?? $rows[0];
+        }
 
         // Recalculate overall start/end from the deduplicated schedule
         $starts = array_column($schedule, 'start_time');
@@ -1228,6 +1337,55 @@ class Booking extends Controller
             'start_time' => $starts[0] ?? null,
             'end_time' => $ends[0] ?? null,
         ]);
+    }
+
+    /**
+     * Deduplicate a package schedule to one entry per service.
+     * For slot-type services, picks the slot closest to (but not after) preferred_time.
+     */
+    private function deduplicatePackageSchedule(array $schedule, string $preferredTime = ''): array
+    {
+        $preferredSeconds = 0;
+        if ($preferredTime !== '' && preg_match('/^\d{2}:\d{2}/', $preferredTime)) {
+            $parts = explode(':', $preferredTime);
+            $preferredSeconds = ((int)$parts[0]) * 3600 + ((int)$parts[1]) * 60;
+        }
+
+        $grouped = [];
+        foreach ($schedule as $row) {
+            $key = (int)($row['service_id'] ?? 0);
+            $grouped[$key][] = $row;
+        }
+
+        $result = [];
+        foreach ($grouped as $serviceId => $rows) {
+            if (count($rows) === 1 || ($rows[0]['booking_type'] ?? '') !== 'slot') {
+                $result[] = $rows[0];
+                continue;
+            }
+
+            $best = null;
+            $bestScore = PHP_INT_MAX;
+            foreach ($rows as $row) {
+                $slotStart = (string)($row['start_time'] ?? '');
+                if ($slotStart === '') continue;
+                $parts = explode(':', $slotStart);
+                $slotSeconds = ((int)$parts[0]) * 3600 + ((int)$parts[1]) * 60;
+
+                $diff = $slotSeconds - $preferredSeconds;
+                $score = abs($diff);
+                if ($diff > 0) $score += 7200;
+                if (empty($row['is_available'])) $score += 100000;
+
+                if ($score < $bestScore) {
+                    $bestScore = $score;
+                    $best = $row;
+                }
+            }
+            $result[] = $best ?? $rows[0];
+        }
+
+        return $result;
     }
 
     private function isGuestPricedService(array $item): bool
