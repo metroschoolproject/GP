@@ -1454,35 +1454,9 @@ $dashboardContent = function () use (
           $refundAmount = $refundEstimate ? (float)$refundEstimate[0] : 0;
           $refundPolicy = $refundEstimate ? (string)$refundEstimate[1] : '';
         ?>
-        <form id="admin-cancel-form" class="bkd-cancel-form" style="display:contents">
-          <input type="hidden" name="booking_id" value="<?= $bookingId ?>">
-          <button class="bkd-btn bkd-btn--danger" type="button" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.style.display='none'">
-            <i data-lucide="ban"></i> Cancel booking
-          </button>
-          <div style="display:none">
-            <?php if ($refundAmount > 0): ?>
-              <div style="border:1px solid #e6c9a0;border-radius:8px;background:#fcf3e6;padding:10px 12px;margin-bottom:8px;font-size:11px;color:#9a6a22">
-                <div style="font-weight:700;font-size:12px;margin-bottom:4px">
-                  <i data-lucide="wallet" style="width:13px;height:13px;vertical-align:-2px"></i>
-                  Refund: <?= $h($money($refundAmount)) ?>
-                </div>
-                <div><?= $h($refundPolicy) ?></div>
-              </div>
-            <?php else: ?>
-              <div style="border:1px solid var(--bkd-danger-border);border-radius:8px;background:#fbeaea;padding:10px 12px;margin-bottom:8px;font-size:11px;color:#a23a3a">
-                <div style="font-weight:700;font-size:12px">
-                  <i data-lucide="wallet" style="width:13px;height:13px;vertical-align:-2px"></i>
-                  No refund
-                </div>
-                <div><?= $h($refundPolicy ?: 'No payment recorded or refund policy does not apply.') ?></div>
-              </div>
-            <?php endif; ?>
-            <textarea name="reason" required placeholder="Cancellation reason…" style="width:100%;min-height:50px;padding:8px;border:1px solid var(--bkd-danger-border);border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;margin-bottom:8px"></textarea>
-            <button class="bkd-btn bkd-btn--danger" type="submit" style="width:100%;justify-content:center">
-              <i data-lucide="ban"></i> Confirm cancellation
-            </button>
-          </div>
-        </form>
+        <button class="bkd-btn bkd-btn--danger" type="button" id="cancel-booking-btn">
+          <i data-lucide="ban"></i> Cancel booking
+        </button>
       <?php endif; ?>
     </div>
     <div class="bkd-bottom-right">
@@ -1496,6 +1470,49 @@ $dashboardContent = function () use (
       </a>
     </div>
   </div>
+
+  <!-- Cancel Booking confirmation modal -->
+  <?php if ($canCancel): ?>
+  <div class="bkd-modal-backdrop" id="cancel-modal">
+    <div class="bkd-modal">
+      <div class="bkd-modal-head">
+        <div class="bkd-modal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <h3 class="bkd-modal-title">Cancel this booking?</h3>
+        <p class="bkd-modal-copy">This action cannot be undone. The booking will be permanently cancelled and all suppliers will be notified.</p>
+      </div>
+      <div class="bkd-modal-body">
+        <?php if ($refundAmount > 0): ?>
+          <div style="border:1px solid #d4a853;border-radius:10px;background:#fdf8ef;padding:12px 14px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#9a6a22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+              <span style="font-size:13px;font-weight:800;color:#7a5a1e">Refund: <?= $h($money($refundAmount)) ?></span>
+            </div>
+            <div style="font-size:11px;color:#9a6a22;line-height:1.5"><?= $h($refundPolicy) ?></div>
+          </div>
+        <?php else: ?>
+          <div style="border:1px solid var(--bkd-danger-border);border-radius:10px;background:var(--bkd-danger-bg);padding:12px 14px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--bkd-danger-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style="font-size:13px;font-weight:800;color:var(--bkd-danger-text)">No refund</span>
+            </div>
+            <div style="font-size:11px;color:var(--bkd-danger-text);line-height:1.5"><?= $h($refundPolicy ?: 'No payment recorded or refund policy does not apply.') ?></div>
+          </div>
+        <?php endif; ?>
+        <label class="bkd-modal-label">Cancellation reason</label>
+        <textarea id="cancel-reason-input" placeholder="Enter the reason for cancelling this booking…" required></textarea>
+        <div class="bkd-modal-error" id="cancel-reason-error">Please provide a cancellation reason.</div>
+      </div>
+      <div class="bkd-modal-actions">
+        <button type="button" class="bkd-btn bkd-btn--ghost" id="cancel-modal-dismiss">Keep booking</button>
+        <button type="button" class="bkd-btn bkd-btn--danger" id="cancel-modal-confirm">
+          <i data-lucide="ban"></i> Cancel booking
+        </button>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <!-- Mark Completed confirmation -->
   <?php if ($canMarkCompleted): ?>
@@ -1800,24 +1817,64 @@ $dashboardContent = function () use (
   }
 
   /* Cancel booking */
-  var cancelForm = document.getElementById('admin-cancel-form');
-  if (cancelForm) {
-    cancelForm.addEventListener('submit', async function(event){
-      event.preventDefault();
-      var refundAmt = '<?= $refundEstimate && (float)$refundEstimate[0] > 0 ? $money($refundEstimate[0]) : '' ?>';
-      var msg = 'Are you sure you want to cancel this booking? This cannot be undone.';
-      if (refundAmt) {
-        msg += '\n\nA refund of ' + refundAmt + ' will be queued for processing.';
-      }
-      if (!confirm(msg)) return;
-      var cancelData = new FormData(cancelForm);
-      cancelData.set('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-      var response = await fetch('<?= URLROOT ?>/admin/bookingCancel', { method: 'POST', body: cancelData });
-      var data = await response.json().catch(function(){ return {}; });
-      if (data.success) window.location.reload();
-      else showToast(data.error || 'Could not cancel booking.', 'error');
+  (function(){
+    var cancelBtn = document.getElementById('cancel-booking-btn');
+    var modal = document.getElementById('cancel-modal');
+    if (!cancelBtn || !modal) return;
+
+    var dismissBtn = document.getElementById('cancel-modal-dismiss');
+    var confirmBtn = document.getElementById('cancel-modal-confirm');
+    var reasonInput = document.getElementById('cancel-reason-input');
+    var reasonError = document.getElementById('cancel-reason-error');
+
+    function openModal() {
+      modal.classList.add('is-open');
+      reasonInput.value = '';
+      reasonError.classList.remove('show');
+      setTimeout(function(){ reasonInput.focus(); }, 120);
+    }
+    function closeModal() {
+      modal.classList.remove('is-open');
+    }
+
+    cancelBtn.addEventListener('click', openModal);
+    dismissBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(e){
+      if (e.target === modal) closeModal();
     });
-  }
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+    });
+
+    confirmBtn.addEventListener('click', async function(){
+      var reason = reasonInput.value.trim();
+      if (!reason) {
+        reasonError.classList.add('show');
+        reasonInput.focus();
+        return;
+      }
+      reasonError.classList.remove('show');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Cancelling…';
+
+      var fd = new FormData();
+      fd.append('booking_id', '<?= $bookingId ?>');
+      fd.append('reason', reason);
+      fd.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+      try {
+        var resp = await fetch('<?= URLROOT ?>/admin/bookingCancel', { method: 'POST', body: fd });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (data.success) window.location.reload();
+        else { showToast(data.error || 'Could not cancel booking.', 'error'); confirmBtn.disabled = false; confirmBtn.innerHTML = '<i data-lucide="ban"></i> Cancel booking'; if (window.lucide) lucide.createIcons(); }
+      } catch(e) {
+        showToast('Network error. Please try again.', 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i data-lucide="ban"></i> Cancel booking';
+        if (window.lucide) lucide.createIcons();
+      }
+    });
+  })();
 
   /* Show all logs toggle */
   var showAllBtn = document.getElementById('show-all-logs');
