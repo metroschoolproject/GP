@@ -2954,6 +2954,16 @@ class Booking extends Controller
             'booking'
         );
 
+        // Email suppliers
+        $booking = $this->bookingModel->getBookingById($bookingId);
+        $suppliers = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
+        if ($booking && !empty($suppliers)) {
+            $emailService = new EmailService();
+            foreach ($suppliers as $supplier) {
+                $emailService->sendSupplierBookingCancelled($supplier, $booking, $reason, $refundAmount);
+            }
+        }
+
         $this->jsonResponse([
             'success' => true,
             'message' => 'Booking cancelled successfully.',

@@ -858,6 +858,47 @@ HTML;
         }
     }
 
+    public function sendSupplierBookingCancelled(array $supplier, array $booking, string $reason, float $refundAmount = 0): bool
+    {
+        if (empty($supplier['email'])) return false;
+        try {
+            $this->mailer->clearAddresses();
+            $this->mailer->addAddress($supplier['email'], $supplier['name'] ?? $supplier['shop_name'] ?? 'Supplier');
+            $this->mailer->isHTML(true);
+            $this->mailer->Subject = 'Booking Cancelled — #' . $booking['id'];
+            $supplierUrl = URLROOT . '/supplier/bookingDetail/' . $booking['id'];
+            $supplierName = htmlspecialchars($supplier['shop_name'] ?? $supplier['name'] ?? 'Supplier', ENT_QUOTES);
+            $reasonHtml = htmlspecialchars($reason, ENT_QUOTES);
+            $refundHtml = $refundAmount > 0
+                ? '<p style="margin:10px 0 0;color:#065F46;font-weight:600;">A refund of ' . number_format($refundAmount, 0) . ' MMK will be processed for the customer.</p>'
+                : '';
+            $this->mailer->Body = <<<HTML
+    <div style="font-family:Poppins,sans-serif;max-width:600px;margin:0 auto;color:#333;">
+      <div style="background:#8b3a4a;padding:30px;border-radius:8px 8px 0 0;color:white;text-align:center;">
+        <h1 style="margin:0;font-size:22px;">Booking Cancelled</h1>
+        <p style="margin:8px 0 0;opacity:.85;">Booking #{$booking['id']}</p>
+      </div>
+      <div style="padding:30px;background:#faf6f1;border-radius:0 0 8px 8px;">
+        <p>Dear {$supplierName},</p>
+        <p>Booking <strong>#{$booking['id']}</strong> has been cancelled by the administrator.</p>
+        <div style="background:white;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #8b3a4a;">
+          <p style="margin:0 0 10px 0;color:#999;font-size:12px;">REASON</p>
+          <p style="margin:0;color:#8b3a4a;">{$reasonHtml}</p>
+        </div>
+        {$refundHtml}
+        <p>Please disregard any pending work for this booking.</p>
+        <p><a href="{$supplierUrl}" style="display:inline-block;padding:12px 30px;background:#8b3a4a;color:white;text-decoration:none;border-radius:4px;font-weight:bold;">View Booking</a></p>
+      </div>
+    </div>
+    HTML;
+            $this->mailer->AltBody = "Booking #{$booking['id']} has been cancelled by the administrator. Reason: {$reason}. View: {$supplierUrl}";
+            return $this->mailer->send();
+        } catch (Exception $e) {
+            error_log('Email send error (admin cancel supplier): ' . $e->getMessage());
+            return false;
+        }
+    }
+
     /**
      * Send password change notification email.
      */

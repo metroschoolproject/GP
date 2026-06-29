@@ -522,6 +522,12 @@ $dashboardContent = function () use (
   }
   .bkd-step.is-done .bkd-step-label { color: var(--bkd-success-text); }
   .bkd-step.is-current .bkd-step-label { color: var(--bkd-primary); }
+  .bkd-steps--cancelled .bkd-step:not(.is-cancelled) { opacity: .4; }
+  .bkd-steps--cancelled .bkd-step:not(.is-cancelled) .bkd-step-num {
+    background: var(--bkd-surface); color: var(--bkd-muted); border-color: var(--bkd-border-light);
+  }
+  .bkd-steps--cancelled .bkd-step:not(.is-cancelled) .bkd-step-label { color: var(--bkd-muted); }
+  .bkd-steps--cancelled .bkd-step:not(.is-cancelled) .bkd-step-line { background: var(--bkd-border-light); }
   .bkd-step-badge {
     font-size: 9px;
     font-weight: 800;
@@ -962,15 +968,15 @@ $dashboardContent = function () use (
   </div>
 
   <!-- ── Step Progress ── -->
-  <div class="bkd-steps">
+  <div class="bkd-steps <?= $isCancelled ? 'bkd-steps--cancelled' : '' ?>">
     <?php
       $prevDone = false;
       $totalSteps = count($steps);
     ?>
     <?php foreach ($steps as $num => $step): ?>
       <?php
-        $isDone = $num < $currentStep || ($num === $currentStep && $currentStep === 6);
-        $isCur = $num === $currentStep && $currentStep < 6;
+        $isDone = !$isCancelled && ($num < $currentStep || ($num === $currentStep && $currentStep === 6));
+        $isCur = !$isCancelled && ($num === $currentStep && $currentStep < 6);
         $stepClass = $isDone ? 'is-done' : ($isCur ? 'is-current' : '');
         $showLine = $num > 1;
       ?>
@@ -985,6 +991,17 @@ $dashboardContent = function () use (
       </div>
       <?php $prevDone = $isDone; ?>
     <?php endforeach; ?>
+    <?php if ($isCancelled): ?>
+      <div class="bkd-step is-cancelled">
+        <div class="bkd-step-head">
+          <div class="bkd-step-line"></div>
+          <span class="bkd-step-num" style="background:var(--bkd-danger-bg);color:var(--bkd-danger-text);border-color:var(--bkd-danger-border)">
+            <i data-lucide="x" style="width:14px;height:14px"></i>
+          </span>
+        </div>
+        <span class="bkd-step-label" style="color:var(--bkd-danger-text);font-weight:800">Cancelled</span>
+      </div>
+    <?php endif; ?>
   </div>
 
   <!-- ── Summary Card ── -->
