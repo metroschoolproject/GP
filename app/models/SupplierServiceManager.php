@@ -657,7 +657,7 @@ class SupplierServiceManager
         $isVenue = $category === 'venue';
         $isDecoration = $category === 'decoration';
         $isCake = $category === 'cake';
-        $isCatering = $category === 'food_drinks';
+        $isCatering = in_array($category, ['food_drinks', 'food & drinks'], true);
         $isFood = $isCake || $isCatering;
         $isRental = in_array($category, ['attire'], true);
         $isCar = $category === 'car';
@@ -1800,7 +1800,7 @@ class SupplierServiceManager
             'venue_rooms' => !empty($service['venue_id']) ? $this->getVenueRooms((int)$service['venue_id']) : [],
             'attire_items' => $category === 'attire' ? $this->getAttireItems((int)$service['id']) : [],
             'decoration_styles' => $category === 'decoration' ? $this->getDecorationStyles((int)$service['id']) : [],
-            'food_items' => in_array($category, ['cake', 'food_drinks'], true) ? $this->getFoodItems((int)$service['id'], $category) : [],
+            'food_items' => in_array($category, ['cake', 'food_drinks', 'food & drinks'], true) ? $this->getFoodItems((int)$service['id'], $category) : [],
             'car_items' => $category === 'car' ? $this->getCarItems((int)$service['id']) : [],
             'rental_pricing' => in_array($category, ['attire'], true) ? $this->getRentalPricing((int)$service['id']) : null,
         ];
@@ -2923,9 +2923,9 @@ class SupplierServiceManager
 
     private function categoryToFoodType(string $category): string
     {
-        return match ($category) {
+        return match (strtolower($category)) {
             'cake' => 'cake',
-            'food_drinks' => 'catering',
+            'food_drinks', 'food & drinks' => 'catering',
             'food' => 'catering', // legacy fallback
             default => '',
         };
