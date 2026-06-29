@@ -210,6 +210,7 @@ class PlatformPackage
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
                     pi.max_concurrent AS item_max_concurrent,
+                    svc.max_concurrent_package AS service_max_concurrent_package,
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,
@@ -1252,6 +1253,7 @@ class PlatformPackage
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
                     pi.max_concurrent AS item_max_concurrent,
+                    svc.max_concurrent_package AS service_max_concurrent_package,
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,
@@ -1360,7 +1362,8 @@ class PlatformPackage
                     ' . $this->packageCustomizePriceSql() . ' AS customize_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
-                    pi.max_concurrent AS item_max_concurrent
+                    pi.max_concurrent AS item_max_concurrent,
+                    svc.max_concurrent_package AS service_max_concurrent_package
              FROM package_items pi
              INNER JOIN packages p ON p.package_id = pi.package_id
              LEFT JOIN services svc ON svc.id = pi.service_id
