@@ -1453,9 +1453,17 @@ $dashboardContent = function () use (
         <?php
           $refundAmount = $refundEstimate ? (float)$refundEstimate[0] : 0;
           $refundPolicy = $refundEstimate ? (string)$refundEstimate[1] : '';
+          $isCustomerRequest = $bookingStatus === 'cancellation_requested';
+          $isSupplierRequest = $bookingStatus === 'supplier_cancellation_requested';
         ?>
         <button class="bkd-btn bkd-btn--danger" type="button" id="cancel-booking-btn">
-          <i data-lucide="ban"></i> Cancel booking
+          <?php if ($isCustomerRequest): ?>
+            <i data-lucide="user-minus"></i> Approve Customer Cancellation
+          <?php elseif ($isSupplierRequest): ?>
+            <i data-lucide="user-minus"></i> Approve Supplier Cancellation
+          <?php else: ?>
+            <i data-lucide="ban"></i> Cancel booking
+          <?php endif; ?>
         </button>
       <?php endif; ?>
     </div>
@@ -1479,8 +1487,24 @@ $dashboardContent = function () use (
         <div class="bkd-modal-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         </div>
-        <h3 class="bkd-modal-title">Cancel this booking?</h3>
-        <p class="bkd-modal-copy">This action cannot be undone. The booking will be permanently cancelled and all suppliers will be notified.</p>
+        <h3 class="bkd-modal-title">
+          <?php if ($isCustomerRequest): ?>
+            Approve customer cancellation?
+          <?php elseif ($isSupplierRequest): ?>
+            Approve supplier cancellation?
+          <?php else: ?>
+            Cancel this booking?
+          <?php endif; ?>
+        </h3>
+        <p class="bkd-modal-copy">
+          <?php if ($isCustomerRequest): ?>
+            The customer has requested to cancel this booking. Approving will cancel the booking and process any applicable refund.
+          <?php elseif ($isSupplierRequest): ?>
+            The supplier has requested to cancel this booking. Approving will cancel the booking and process a full refund for the customer.
+          <?php else: ?>
+            This action cannot be undone. The booking will be permanently cancelled and all suppliers will be notified.
+          <?php endif; ?>
+        </p>
       </div>
       <div class="bkd-modal-body">
         <?php if ($refundAmount > 0): ?>
@@ -1501,13 +1525,26 @@ $dashboardContent = function () use (
           </div>
         <?php endif; ?>
         <label class="bkd-modal-label">Cancellation reason</label>
-        <textarea id="cancel-reason-input" placeholder="Enter the reason for cancelling this booking…" required></textarea>
+        <textarea id="cancel-reason-input" placeholder="<?= $isCustomerRequest ? 'Reason for approving the customer\'s cancellation request…' : ($isSupplierRequest ? 'Reason for approving the supplier\'s cancellation request…' : 'Enter the reason for cancelling this booking…') ?>" required></textarea>
         <div class="bkd-modal-error" id="cancel-reason-error">Please provide a cancellation reason.</div>
       </div>
       <div class="bkd-modal-actions">
-        <button type="button" class="bkd-btn bkd-btn--ghost" id="cancel-modal-dismiss">Keep booking</button>
-        <button type="button" class="bkd-btn bkd-btn--danger" id="cancel-modal-confirm">
-          <i data-lucide="ban"></i> Cancel booking
+        <button type="button" class="bkd-btn bkd-btn--ghost" id="cancel-modal-dismiss">
+          <?php if ($isCustomerRequest || $isSupplierRequest): ?>
+            Keep booking
+          <?php else: ?>
+            Go back
+          <?php endif; ?>
+        </button>
+        <button type="button" class="bkd-btn bkd-btn--danger" id="cancel-modal-confirm"
+                data-label="<?= $isCustomerRequest || $isSupplierRequest ? 'Approve Cancellation' : 'Cancel booking' ?>"
+                data-icon="<?= $isCustomerRequest || $isSupplierRequest ? 'check' : 'ban' ?>"
+                data-loading="<?= $isCustomerRequest || $isSupplierRequest ? 'Approving…' : 'Cancelling…' ?>">
+          <?php if ($isCustomerRequest || $isSupplierRequest): ?>
+            <i data-lucide="check"></i> Approve Cancellation
+          <?php else: ?>
+            <i data-lucide="ban"></i> Cancel booking
+          <?php endif; ?>
         </button>
       </div>
     </div>
@@ -1855,7 +1892,7 @@ $dashboardContent = function () use (
       }
       reasonError.classList.remove('show');
       confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Cancelling…';
+      confirmBtn.textContent = confirmBtn.dataset.loading || 'Processing…';
 
       var fd = new FormData();
       fd.append('booking_id', '<?= $bookingId ?>');
@@ -1866,11 +1903,17 @@ $dashboardContent = function () use (
         var resp = await fetch('<?= URLROOT ?>/admin/bookingCancel', { method: 'POST', body: fd });
         var data = await resp.json().catch(function(){ return {}; });
         if (data.success) window.location.reload();
-        else { showToast(data.error || 'Could not cancel booking.', 'error'); confirmBtn.disabled = false; confirmBtn.innerHTML = '<i data-lucide="ban"></i> Cancel booking'; if (window.lucide) lucide.createIcons(); }
+        else { showToast(data.error || 'Could not cancel booking.', 'error'); resetConfirmBtn(); }
       } catch(e) {
         showToast('Network error. Please try again.', 'error');
+        resetConfirmBtn();
+      }
+
+      function resetConfirmBtn() {
         confirmBtn.disabled = false;
-        confirmBtn.innerHTML = '<i data-lucide="ban"></i> Cancel booking';
+        var label = confirmBtn.dataset.label || 'Cancel booking';
+        var icon = confirmBtn.dataset.icon || 'ban';
+        confirmBtn.innerHTML = '<i data-lucide="' + icon + '"></i> ' + label;
         if (window.lucide) lucide.createIcons();
       }
     });
