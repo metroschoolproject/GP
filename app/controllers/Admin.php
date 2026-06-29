@@ -2116,6 +2116,11 @@ class Admin extends Controller
         $beforeVerification = $bookingModel->getBookingById($bookingId);
         $beforeStatus = (string)($beforeVerification['status'] ?? '');
 
+        if ($beforeStatus === 'cancelled') {
+            $this->jsonResponse(['error' => 'This booking has been cancelled. Payment cannot be verified.'], 400);
+            return;
+        }
+
         // Determine if this is a deposit or remaining payment verification.
         // Check both the booking status AND whether a pending remaining payment
         // exists — handles legacy bookings where status wasn't updated to
