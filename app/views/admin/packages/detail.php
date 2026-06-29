@@ -840,6 +840,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                       data-category-name="<?= $h($svc['category_name'] ?? 'this category') ?>"
                       data-guest-priced="<?= $isGuestPricedSvc ? '1' : '0' ?>"
                       data-attire="<?= $isAttireSvc ? '1' : '0' ?>"
+                      data-booking-type="<?= $h($svc['booking_type'] ?? 'fullday') ?>"
                       data-room-count="<?= count($hallOptionsByService[$svcId] ?? []) ?>"
                       data-attire-count="<?= $attireCount ?>"
                       data-deco-count="<?= count($decoOptionsByService[$svcId] ?? []) ?>">
@@ -1005,9 +1006,9 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
         <!-- ── Per-item concurrency override ─────────────────────────── -->
         <div id="itemConcurrentRow" class="guest-count-row" style="display:none">
-          <label for="itemConcurrentInput">Package bookings per slot</label>
+          <label for="itemConcurrentInput" id="itemConcurrentLabel">Package bookings per slot</label>
           <input id="itemConcurrentInput" type="number" name="max_concurrent" min="0" max="65535" step="1" value="0">
-          <span class="guest-count-note">Optional capacity override for this included service in the same generated time slot. 0 = use the supplier service default.</span>
+          <span class="guest-count-note" id="itemConcurrentNote">Optional capacity override for this included service in the same generated time slot. 0 = use the supplier service default.</span>
         </div>
 
         <!-- Confirm / Add button -->
@@ -1630,8 +1631,17 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
     /* show per-item concurrency override for all services */
     const itemConcurrentRow = document.getElementById('itemConcurrentRow');
+    const itemConcurrentLabel = document.getElementById('itemConcurrentLabel');
+    const itemConcurrentNote = document.getElementById('itemConcurrentNote');
     if (itemConcurrentRow) {
       itemConcurrentRow.style.display = hasVal ? 'flex' : 'none';
+      if (hasVal) {
+        const bookingType = (opt.dataset.bookingType || 'fullday');
+        const isSlot = bookingType === 'slot';
+        const unit = isSlot ? 'per slot' : 'per day';
+        if (itemConcurrentLabel) itemConcurrentLabel.textContent = isSlot ? 'Package bookings per slot' : 'Package bookings per day';
+        if (itemConcurrentNote) itemConcurrentNote.textContent = 'Optional capacity override for this included service ' + (isSlot ? 'in the same generated time slot.' : 'on the same day.') + ' 0 = use the supplier service default.';
+      }
     }
 
     if (hasVal) {

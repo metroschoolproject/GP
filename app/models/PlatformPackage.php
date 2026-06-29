@@ -915,6 +915,7 @@ class PlatformPackage
                     services.price_min,
                     services.price_max,
                     services.thumbnail_url,
+                    services.booking_type,
                     services.category_id,
                     categories.name AS category_name,
                     categories.slug AS category_slug,
