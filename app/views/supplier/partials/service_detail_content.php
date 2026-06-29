@@ -30,6 +30,8 @@ if (!empty($attentionItems[0]['label'])) {
     $reviewAttentionTab = 'availability';
   } elseif (strpos($attentionLabel, 'hall') !== false || strpos($attentionLabel, 'pricing') !== false) {
     $reviewAttentionTab = ($isRental || $isVenue) ? 'catalog' : 'overview';
+  } elseif (strpos($attentionLabel, 'menu') !== false || strpos($attentionLabel, 'cake') !== false || strpos($attentionLabel, 'car') !== false) {
+    $reviewAttentionTab = 'catalog';
   }
 }
 ?>
@@ -96,6 +98,14 @@ if (!empty($attentionItems[0]['label'])) {
       <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="catalog">
         <i class="ti ti-sparkles"></i><span>Styles</span><small><?= count($decorationStyles) ?></small>
       </button>
+      <?php elseif (in_array(strtolower((string)$serviceCategoryRaw), ['food & drinks', 'cake'], true)): ?>
+      <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="catalog">
+        <i class="ti ti-tools-kitchen"></i><span>Items</span><small><?= count($foodItems) ?></small>
+      </button>
+      <?php elseif ($isCar): ?>
+      <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="catalog">
+        <i class="ti ti-car"></i><span>Cars</span><small><?= count($carItems) ?></small>
+      </button>
       <?php endif; ?>
       <button type="button" class="sd-workspace-tab" role="tab" aria-selected="false" data-service-tab="availability">
         <i class="ti ti-calendar-week"></i><span>Availability</span><small><?= (int)$openDaysCount ?>/7</small>
@@ -112,6 +122,8 @@ if (!empty($attentionItems[0]['label'])) {
 
   <!-- ═══════════════ WORKSPACE ═══════════════ -->
   <?php $isDecoration = strtolower((string)$serviceCategoryRaw) === 'decoration'; ?>
+  <?php $isCar = strtolower((string)$serviceCategoryRaw) === 'car'; ?>
+  <?php $isFoodOrCake = in_array(strtolower((string)$serviceCategoryRaw), ['food & drinks', 'cake'], true); ?>
   <div class="sd-workspace sd-tabbed-workspace <?= $isRental ? 'is-attire-workspace' : ($isDecoration ? 'is-deco-workspace' : '') ?>">
 
     <!-- ═══ MAIN COLUMN ═══ -->
@@ -484,6 +496,54 @@ if (!empty($attentionItems[0]['label'])) {
       </div>
       <?php endif; ?>
 
+      <!-- === FOOD ITEMS (Food & Drinks / Cake only) === -->
+      <?php if ($isFoodOrCake): ?>
+      <div class="sd-card sd-food-manager-card sd-anim-card-3" data-service-panel="catalog">
+        <div class="sd-card-head">
+          <div>
+            <div class="sd-card-title"><?= strtolower((string)$serviceCategoryRaw) === 'cake' ? 'Cake items' : 'Menu items' ?></div>
+            <div class="sd-card-sub"><?= strtolower((string)$serviceCategoryRaw) === 'cake' ? 'Add cakes with photos and pricing' : 'Add menu items with photos and pricing' ?></div>
+          </div>
+          <div class="sd-head-actions">
+            <span id="foodItemCount" class="sd-badge"><?= count($foodItems) ?> <?= count($foodItems) === 1 ? 'item' : 'items' ?></span>
+            <button type="button" class="btn btn-primary btn-sm" id="addFoodItemBtn"><i class="ti ti-plus" style="font-size:13px"></i> Add item</button>
+          </div>
+        </div>
+        <div class="sd-card-body">
+          <div id="foodItemMessage" class="sd-message error" style="display:none"></div>
+          <div id="foodItemGrid" class="sd-food-items"></div>
+        </div>
+        <div class="sd-card-foot">
+          <span class="sd-food-save-note">Your edits stay in this workspace until you save.</span>
+          <button type="button" class="btn btn-primary btn-sm" id="saveFoodItemsBtn"><i class="ti ti-check" style="font-size:12px"></i> Save items</button>
+        </div>
+      </div>
+      <?php endif; ?>
+
+      <!-- === CAR ITEMS (Car only) === -->
+      <?php if ($isCar): ?>
+      <div class="sd-card sd-car-manager-card sd-anim-card-3" data-service-panel="catalog">
+        <div class="sd-card-head">
+          <div>
+            <div class="sd-card-title">Cars</div>
+            <div class="sd-card-sub">Add cars with photos and daily pricing</div>
+          </div>
+          <div class="sd-head-actions">
+            <span id="carItemCount" class="sd-badge"><?= count($carItems) ?> <?= count($carItems) === 1 ? 'car' : 'cars' ?></span>
+            <button type="button" class="btn btn-primary btn-sm" id="addCarItemBtn"><i class="ti ti-plus" style="font-size:13px"></i> Add car</button>
+          </div>
+        </div>
+        <div class="sd-card-body">
+          <div id="carItemMessage" class="sd-message error" style="display:none"></div>
+          <div id="carItemGrid" class="sd-car-items"></div>
+        </div>
+        <div class="sd-card-foot">
+          <span class="sd-car-save-note">Your edits stay in this workspace until you save.</span>
+          <button type="button" class="btn btn-primary btn-sm" id="saveCarItemsBtn"><i class="ti ti-check" style="font-size:12px"></i> Save cars</button>
+        </div>
+      </div>
+      <?php endif; ?>
+
       <!-- === SERVICE INFO === -->
       <div class="sd-card sd-service-info-card sd-anim-card-5 is-active" data-service-panel="overview">
         <div class="sd-card-head">
@@ -517,6 +577,24 @@ if (!empty($attentionItems[0]['label'])) {
           <div class="sd-info-row">
             <span class="sd-info-key">Pricing</span>
             <span class="sd-info-val">Set per dress</span>
+          </div>
+          <?php elseif ($isFoodOrCake): ?>
+          <div class="sd-info-row">
+            <span class="sd-info-key"><?= strtolower((string)$serviceCategoryRaw) === 'cake' ? 'Cake items' : 'Menu items' ?></span>
+            <span class="sd-info-val" id="serviceInfoFoodCount"><?= count($foodItems) ?></span>
+          </div>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Pricing</span>
+            <span class="sd-info-val">Set per <?= strtolower((string)$serviceCategoryRaw) === 'cake' ? 'cake' : 'item' ?></span>
+          </div>
+          <?php elseif ($isCar): ?>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Cars</span>
+            <span class="sd-info-val" id="serviceInfoCarCount"><?= count($carItems) ?></span>
+          </div>
+          <div class="sd-info-row">
+            <span class="sd-info-key">Pricing</span>
+            <span class="sd-info-val">Set per car</span>
           </div>
           <?php else: ?>
           <div class="sd-info-row">
