@@ -211,6 +211,7 @@ class PlatformPackage
                     ' . $this->packageQuantitySql() . ' AS quantity,
                     pi.max_concurrent AS item_max_concurrent,
                     svc.max_concurrent_package AS service_max_concurrent_package,
+                    svc.booking_type,
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,

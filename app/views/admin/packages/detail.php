@@ -704,26 +704,29 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                   <small><?= $isGuestPriced ? $money($itemPkgPrice / $quantity) . ' per guest' : 'Included package rate' ?></small>
                 </div>
                 <div class="included-price">
-                  <span>Package slot (per booking)</span>
                   <?php
+                    $itemBookingType = ($item['booking_type'] ?? '') === 'slot' ? 'slot' : 'day';
+                    $perUnit = $itemBookingType === 'slot' ? 'per slot' : 'per day';
+                    $panelLabel = $itemBookingType === 'slot' ? 'Package slot (per booking)' : 'Package bookings per day';
                     $itemMaxConcurrent = (int)($item['item_max_concurrent'] ?? 0);
                     $svcMaxConcurrentPkg = (int)($item['service_max_concurrent_package'] ?? 0);
                     $effectiveCap = $itemMaxConcurrent > 0 ? $itemMaxConcurrent : $svcMaxConcurrentPkg;
                     $supplierLabel = $svcMaxConcurrentPkg > 0
-                        ? 'Supplier allows ' . $svcMaxConcurrentPkg . ' per slot'
+                        ? 'Supplier allows ' . $svcMaxConcurrentPkg . ' ' . $perUnit
                         : 'Supplier has no package limit set';
                   ?>
+                  <span><?= $panelLabel ?></span>
                   <?php if ($isDraft): ?>
                     <small style="display:block;margin-bottom:5px;color:var(--muted);font-size:10px"><?= $supplierLabel ?></small>
                     <form class="guest-form" method="POST"
                           action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>"
                           style="margin-top:0">
                       <input class="guest-input" type="number" name="max_concurrent" min="0" max="65535" step="1"
-                             value="<?= $itemMaxConcurrent ?>" aria-label="Package slot limit"
+                             value="<?= $itemMaxConcurrent ?>" aria-label="Package booking limit"
                              style="width:80px!important">
                       <button class="btn-ghost btn-sm" type="submit">Update</button>
                     </form>
-                    <small style="margin-top:6px;display:block"><?= $itemMaxConcurrent > 0 ? 'Override: ' . $itemMaxConcurrent . ' bookings per slot' : '0 = no override (uses supplier default)' ?></small>
+                    <small style="margin-top:6px;display:block"><?= $itemMaxConcurrent > 0 ? 'Override: ' . $itemMaxConcurrent . ' bookings ' . $perUnit : '0 = no override (uses supplier default)' ?></small>
                   <?php else: ?>
                     <strong><?= $effectiveCap > 0 ? $effectiveCap : '—' ?></strong>
                     <small><?= $supplierLabel ?><?= $itemMaxConcurrent > 0 ? ' · Admin override: ' . $itemMaxConcurrent : ' · No override' ?></small>
