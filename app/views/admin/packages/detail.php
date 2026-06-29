@@ -55,29 +55,25 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
   $isDraft = (($package['status'] ?? '') === 'draft');
   $isPublished = (($package['status'] ?? '') === 'published');
 
-  // Helper: build rental pricing display for attire items
+  // Helper: build rental pricing display for attire items (package prices only)
   $rentalPricingHtml = function ($item) use ($money, $h) {
     $borrowPkg = (float)($item['borrow_package_price'] ?? $item['borrow_price'] ?? 0);
-    $borrowCust = (float)($item['borrow_customize_price'] ?? $item['borrow_price'] ?? $borrowPkg);
     $buyPkg = (float)($item['buy_package_price'] ?? $item['buy_price'] ?? 0);
-    $buyCust = (float)($item['buy_customize_price'] ?? $item['buy_price'] ?? $buyPkg);
     $returnDays = (int)($item['return_days'] ?? 0);
     $html = '';
-    if ($borrowPkg > 0 || $borrowCust > 0) {
+    if ($borrowPkg > 0) {
       $html .= '<div class="rental-option">'
             . '<div class="rental-option-head"><strong>Borrow</strong>'
             . ($returnDays > 0 ? '<span>Return in ' . $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . '</span>' : '')
             . '</div><div class="rental-price-row">'
-            . '<span>Package <b>' . ($borrowPkg > 0 ? $money($borrowPkg) : '—') . '</b></span>'
-            . '<span>Custom <b>' . ($borrowCust > 0 ? $money(max($borrowPkg, $borrowCust)) : '—') . '</b></span>'
+            . '<span>Package <b>' . $money($borrowPkg) . '</b></span>'
             . '</div></div>';
     }
-    if ($buyPkg > 0 || $buyCust > 0) {
+    if ($buyPkg > 0) {
       $html .= '<div class="rental-option buy">'
             . '<div class="rental-option-head"><strong>Buy</strong></div>'
             . '<div class="rental-price-row">'
-            . '<span>Package <b>' . ($buyPkg > 0 ? $money($buyPkg) : '—') . '</b></span>'
-            . '<span>Custom <b>' . ($buyCust > 0 ? $money(max($buyPkg, $buyCust)) : '—') . '</b></span>'
+            . '<span>Package <b>' . $money($buyPkg) . '</b></span>'
             . '</div></div>';
     }
     return $html !== '' ? $html : '<span class="service-meta">—</span>';
@@ -204,7 +200,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 .rental-option-head strong{color:var(--primary);font-size:11px}
 .rental-option.buy .rental-option-head strong{color:#067647}
 .rental-option-head span{color:var(--muted);font-size:9px}
-.rental-price-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rental-price-row{display:flex;gap:8px}
 .rental-price-row span{color:var(--muted);font-size:9px}
 .rental-price-row b{display:block;margin-top:2px;color:var(--text);font-size:11px}
 .included-prices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
