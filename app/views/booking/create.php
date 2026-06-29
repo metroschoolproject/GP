@@ -2138,21 +2138,16 @@ input[type="date"]:invalid {
                   $minDateDisplay = $minDate->format('M j, Y');
                   $isFulldayItem = ($itemBookingType === 'fullday');
                 ?>
-                <label class="gp-detail-label" for="slot-date-<?= $i ?>"><?= $isPackageItem ? 'Select event date' : 'Select date' ?></label>
-                <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
-                       name="item_date[<?= $i ?>]"
-                       min="<?= $minDateStr ?>"
-                       <?php if (!$isFulldayItem): ?>
-                       data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
-                       <?php endif; ?>
-                       data-min-lead-days="<?= $minLeadDays ?>"
-                       data-index="<?= $i ?>" required>
-                <?php if ($minLeadDays > 0): ?>
-                  <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
-                <?php endif; ?>
-
                 <?php if ($isPackageItem): ?>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                      <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select event date</label>
+                      <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+                             name="item_date[<?= $i ?>]"
+                             min="<?= $minDateStr ?>"
+                             data-min-lead-days="<?= $minLeadDays ?>"
+                             data-index="<?= $i ?>" required>
+                    </div>
                     <div>
                       <label class="gp-detail-label" for="preferred-time-<?= $i ?>">Wedding time</label>
                       <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
@@ -2161,7 +2156,21 @@ input[type="date"]:invalid {
                              style="max-width:160px;">
                     </div>
                   </div>
-                  <div class="gp-input-note">We will schedule each service before this time.</div>
+                  <?php if ($minLeadDays > 0): ?>
+                    <div class="gp-input-note" style="margin-top:6px;">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
+                  <?php endif; ?>
+                  <div class="gp-input-note">We will schedule each service before your wedding time.</div>
+                <?php else: ?>
+                  <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select date</label>
+                  <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+                         name="item_date[<?= $i ?>]"
+                         min="<?= $minDateStr ?>"
+                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+                         data-min-lead-days="<?= $minLeadDays ?>"
+                         data-index="<?= $i ?>" required>
+                  <?php if ($minLeadDays > 0): ?>
+                    <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
+                  <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if ($isFulldayItem):
