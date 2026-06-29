@@ -2690,7 +2690,10 @@ class Booking extends Controller
         $packageSchedules = $this->buildPackageSchedules($items, $eventDetails);
 
         $refund = $this->bookingModel->getBookingRefund($bookingId);
-        $refundEstimate = $this->bookingModel->calculateRefund($bookingId);
+        // Show appropriate refund estimate based on who would be cancelling
+        $currentStatus = (string)($booking['status'] ?? '');
+        $estimateCancelledBy = $currentStatus === 'cancellation_requested' ? 'customer' : 'admin';
+        $refundEstimate = $this->bookingModel->calculateRefund($bookingId, $estimateCancelledBy);
 
         $this->view('admin/bookingDetail', [
             'booking' => $booking,

@@ -3203,6 +3203,11 @@ class BookingModel
         $this->db->beginTransaction();
         $refundAmount = 0.0;
         try {
+        // Fetch current status BEFORE cancelling so we can determine who initiated
+        $this->db->dbquery("SELECT status FROM bookings WHERE id = :bid LIMIT 1");
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $currentStatus = (string)(($this->db->getsingledata()['status'] ?? ''));
+
         $this->db->dbquery(
             "UPDATE bookings SET status = 'cancelled', approved_by = :admin_id, approved_at = NOW()
              WHERE id = :bid AND status NOT IN ('cancelled','completed')"
@@ -3214,8 +3219,19 @@ class BookingModel
             throw new RuntimeException('Booking cannot be cancelled from its current state.');
         }
 
-        // Auto-calculate refund based on cancellation timing policy
-        $refundCalc = $this->calculateRefund($bookingId);
+        // Determine who caused the cancellation:
+        // - cancellation_requested = customer initiated (supplier already approved)
+        // - supplier_cancellation_requested = supplier initiated
+        // - anything else = admin initiated directly
+        if ($currentStatus === 'cancellation_requested') {
+            $cancelledBy = 'customer';
+        } elseif ($currentStatus === 'supplier_cancellation_requested') {
+            $cancelledBy = 'supplier';
+        } else {
+            $cancelledBy = 'admin';
+        }
+
+        $refundCalc = $this->calculateRefund($bookingId, $cancelledBy);
 
         // Fallback: sum all successful payments if calculateRefund fails
         if ($refundCalc === false) {
@@ -4892,12 +4908,14 @@ class BookingModel
     }
 
     /**
-     * Calculate refund amount based on cancellation timing and policy.
-     * Returns [refund_amount, policy_reason]
+     * Calculate refund amount based on who cancelled and how far before the event.
+     *
+     * @param int    $bookingId
+     * @param string $cancelledBy  'customer', 'supplier', or 'admin'
+     * @return array|false  [amount, policyReason] or false on error
      */
-    public function calculateRefund(int $bookingId): array|false
+    public function calculateRefund(int $bookingId, string $cancelledBy = 'customer'): array|false
     {
-        // Get booking and event date
         $this->db->dbquery(
             "SELECT b.total_amount, b.paid_amount, ed.event_date
              FROM bookings b
@@ -4912,22 +4930,25 @@ class BookingModel
         }
 
         $paidAmount = (float)($booking['paid_amount'] ?? 0);
+
+        // Supplier or admin fault: full refund regardless of timing
+        if ($cancelledBy === 'supplier') {
+            return [$paidAmount, 'Full refund — cancellation initiated by supplier'];
+        }
+        if ($cancelledBy === 'admin') {
+            return [$paidAmount, 'Full refund — cancellation initiated by admin'];
+        }
+
+        // Customer-initiated: time-based penalty policy
         $eventDate = $booking['event_date'] ? strtotime($booking['event_date']) : 0;
-        $now = time();
+        $daysUntilEvent = $eventDate ? (int)(($eventDate - time()) / 86400) : 999;
 
-        // Calculate days until event
-        $daysUntilEvent = $eventDate ? (int)(($eventDate - $now) / 86400) : 999;
-
-        // Refund Policy
         if ($daysUntilEvent >= 7) {
-            // More than 7 days: Full refund
-            return [$paidAmount, 'Full refund - cancelled 7+ days before event'];
+            return [$paidAmount, 'Full refund — cancelled 7+ days before event'];
         } elseif ($daysUntilEvent >= 2) {
-            // 2-7 days: 50% refund
-            return [$paidAmount * 0.50, '50% refund - cancelled 2-7 days before event'];
+            return [$paidAmount * 0.50, '50% refund — cancelled 2-7 days before event'];
         } else {
-            // Less than 2 days: No refund (non-refundable)
-            return [0, 'No refund - cancelled less than 2 days before event'];
+            return [0, 'No refund — cancelled less than 2 days before event'];
         }
     }
 
