@@ -1,6 +1,7 @@
 <?php
 $bookings = $bookings ?? [];
 $activeFilter = $activeFilter ?? 'all';
+$bookingStatusCounts = $bookingStatusCounts ?? [];
 
 $statusLabels = [
     'draft' => 'Draft', 'pending_payment' => 'Pending Payment', 'payment_submitted' => 'Verifying Payment',
@@ -24,7 +25,10 @@ $plain = function ($v) {
 };
 $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
 
-$getCountByStatus = function ($status) use ($bookings) {
+$getCountByStatus = function ($status) use ($bookings, $bookingStatusCounts) {
+    if (array_key_exists($status, $bookingStatusCounts)) {
+        return (int)$bookingStatusCounts[$status];
+    }
     return count(array_filter($bookings, fn($b) => $b['status'] === $status));
 };
 ?>
@@ -150,7 +154,9 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-card + .gp-card { margin-top: 12px; }
 
 .gp-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.gp-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .gp-card-service { font-family: var(--font-d); font-size: 18px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.gp-card-service-count { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; background: rgba(184,146,74,.14); border: 1px solid rgba(184,146,74,.24); color: #8a682d; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
 .gp-card-supplier { font-size: 12px; color: var(--plum-lt); margin-top: 2px; }
 .gp-card-date { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
 .gp-card-status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
@@ -228,7 +234,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 
   <div class="gp-filters">
     <?php foreach ($filterLabels as $key => $label):
-      $count = $key === 'all' ? count($bookings) : $getCountByStatus($key);
+      $count = $key === 'all' ? ($bookingStatusCounts['all'] ?? count($bookings)) : $getCountByStatus($key);
     ?>
       <a class="gp-filter <?= $activeFilter === $key ? 'active' : '' ?>"
          href="<?= URLROOT ?>/booking/myBookings?status=<?= $key ?>">
@@ -258,7 +264,12 @@ button { font-family: var(--font-b); cursor: pointer; }
       <div class="gp-card-top">
         <div>
           <?php if ($firstItem): ?>
-            <div class="gp-card-service"><?= $h($firstItem['service_name'] ?? 'Wedding Service') ?></div>
+            <div class="gp-card-title-row">
+              <div class="gp-card-service"><?= $h($firstItem['service_name'] ?? 'Wedding Service') ?></div>
+              <?php if ($itemCount > 1): ?>
+                <span class="gp-card-service-count"><?= $itemCount ?> Services Included</span>
+              <?php endif; ?>
+            </div>
             <div class="gp-card-supplier"><?= $h($firstHall !== '' ? 'Hall: ' . $firstHall : ($firstItem['supplier_name'] ?? '')) ?></div>
           <?php else: ?>
             <div class="gp-card-service">Wedding Booking</div>
@@ -266,7 +277,6 @@ button { font-family: var(--font-b); cursor: pointer; }
           <div class="gp-card-date">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Ref: <?= $h($b['booking_ref'] ?? '') ?>
-            <?php if ($itemCount > 1): ?> &middot; +<?= $itemCount - 1 ?> more service<?= $itemCount > 2 ? 's' : '' ?><?php endif; ?>
           </div>
         </div>
         <span class="gp-card-status-badge <?= $statusColors[$b['status']] ?? 'bg-gray-100 text-gray-600' ?>">

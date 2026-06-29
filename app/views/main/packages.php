@@ -15,7 +15,8 @@ $money = fn($v) => 'MMK ' . number_format((float)$v, 0);
 
 $activeCategory = $_GET['category'] ?? ($filters['category'] ?? 'all');
 $activeSort     = $_GET['sort'] ?? ($filters['sort'] ?? 'featured');
-$showFilteredResults = ($activeCategory !== 'all' || $activeSort !== 'featured');
+$hasPackageTypeFilter = $activeCategory !== 'all';
+$hasPriceFilter = $activeSort !== 'featured';
 $resetUrl = URLROOT . '/customerServices/packages';
 $packageHeroImages = [
     URLROOT . '/app/views/main/images/heroPackage1.png',
@@ -48,30 +49,30 @@ foreach ($packages as $pkg) {
     $packagesByTier[$tierKey][] = $pkg;
 }
 
-// Frontend-only filtering for this page. This does not change backend logic or validation.
-$filteredPackages = $packages;
+$sortPackageList = static function (array &$list) use ($activeSort): void {
+    if (!in_array($activeSort, ['price_low', 'price_high'], true)) {
+        return;
+    }
+    usort($list, function ($a, $b) use ($activeSort) {
+        $priceA = (float)($a['package_price'] ?? $a['base_price'] ?? 0);
+        $priceB = (float)($b['package_price'] ?? $b['base_price'] ?? 0);
+        return $activeSort === 'price_low' ? ($priceA <=> $priceB) : ($priceB <=> $priceA);
+    });
+};
 
-if ($activeCategory !== 'all') {
-    $filteredPackages = array_filter($filteredPackages, function ($pkg) use ($activeCategory, $inferPackageTier) {
+foreach ($packagesByTier as $tierKey => $tierPackages) {
+    $sortPackageList($tierPackages);
+    $packagesByTier[$tierKey] = $tierPackages;
+}
+
+$visiblePackages = $packages;
+if ($hasPackageTypeFilter) {
+    $visiblePackages = array_filter($visiblePackages, function ($pkg) use ($activeCategory, $inferPackageTier) {
         return $inferPackageTier((array)$pkg) === $activeCategory;
     });
 }
-
-if ($activeSort === 'price_low') {
-    usort($filteredPackages, function ($a, $b) {
-        $priceA = (float)($a['package_price'] ?? $a['base_price'] ?? 0);
-        $priceB = (float)($b['package_price'] ?? $b['base_price'] ?? 0);
-        return $priceA <=> $priceB;
-    });
-}
-
-if ($activeSort === 'price_high') {
-    usort($filteredPackages, function ($a, $b) {
-        $priceA = (float)($a['package_price'] ?? $a['base_price'] ?? 0);
-        $priceB = (float)($b['package_price'] ?? $b['base_price'] ?? 0);
-        return $priceB <=> $priceA;
-    });
-}
+$visiblePackages = array_values($visiblePackages);
+$sortPackageList($visiblePackages);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -735,59 +736,66 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 }
 .gp-package-type-sections {
   display: grid;
-  gap: 18px;
+  gap: 44px;
   max-width: 1440px;
   margin: 58px auto 0;
 }
 .gp-package-type-section {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  align-items: center;
+  gap: 42px;
   min-height: auto;
-  padding: 36px 0;
+  padding: 34px 0;
 }
 .gp-package-type-intro{
     display:flex;
+    flex-direction:column;
     justify-content:center;
-    align-items:center;
-
-    width:100vw;
-    margin-left:calc(50% - 50vw);
-    margin-right:calc(50% - 50vw);
-    margin-bottom:32px;
-
-    height:70px;
-    padding:0;
-
-    background:#6D4C5B;
-
+    align-items:flex-start;
+    min-height:360px;
+    margin:0;
+    padding:24px 10px 24px 0;
+    background:transparent;
     border:none;
     border-radius:0;
+    text-align:left;
 }
 
 .gp-package-type-title{
     margin:0;
-
     font-family:'Playfair Display', serif;
-    font-size:34px;
-    font-weight:500;
-    line-height:1;
-
-    color:#fdf9f5;   /* light text */
-    letter-spacing:.02em;
+    font-size:clamp(44px, 4.6vw, 68px);
+    font-weight:700;
+    line-height:.95;
+    color:#211d1a;
+    letter-spacing:0;
 }
-.gp-package-type-label,
-.gp-package-type-copy,
-.gp-package-type-carousel-head{
-    display:none;
+.gp-package-type-label{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:20px;
+    color:#9A687F;
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:.20em;
+    text-transform:uppercase;
 }
-
+.gp-package-type-label::before{
+    content:'';
+    width:48px;
+    height:2px;
+    background:rgba(154,104,127,.32);
+}
 .gp-package-type-copy{
-    margin-top:14px;
-    max-width:520px;
-
+    display:block;
+    margin-top:16px;
+    max-width:310px;
     font-size:15px;
-    line-height:1.7;
-
-    color:#8c7668;
+    line-height:1.65;
+    color:#6f625a;
+    font-weight:700;
 }
 
 .gp-package-type-list {
@@ -818,9 +826,9 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 .gp-package-type-carousel-head {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 0;
-  margin: 16px 0 0;
+  margin: 24px 0 0;
 }
 .gp-package-type-nav {
   display: inline-flex;
@@ -855,12 +863,12 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   overflow: hidden;
   min-width: 0;
   min-height: 470px;
-  padding: 28px 0 0px;
+  padding: 18px 0 0;
   grid-row: 1;
 }
 .gp-package-type-track{
     display:flex;
-    justify-content:center;
+    justify-content:flex-start;
     gap:28px;
 }
 
@@ -1162,6 +1170,10 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   max-width: 1280px;
   margin: 18px auto 0;
   padding-top: 36px;
+}
+.gp-tier-grid.is-filtered {
+  grid-template-columns: minmax(280px, 420px);
+  justify-content: center;
 }
 .gp-tier-card {
   position: relative;
@@ -1585,9 +1597,33 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   .gp-package-type-sections { gap: 32px; }
   .gp-package-type-section {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 18px;
     min-height: auto;
     padding: 28px 0;
+  }
+  .gp-package-type-intro {
+    min-height: auto;
+    padding: 0;
+    align-items: center;
+    text-align: center;
+  }
+  .gp-package-type-label {
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .gp-package-type-label::before {
+    width: 38px;
+  }
+  .gp-package-type-copy {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .gp-package-type-carousel-head {
+    justify-content: center;
+  }
+  .gp-package-type-track {
+    justify-content: center;
   }
   .gp-package-type-card {
     flex-basis: min(72vw, 230px);
@@ -1741,44 +1777,69 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
     <?php endif; ?>
   </div>
   <?php endif; ?>
-<?php if ($showFilteredResults): ?>
-<section class="gp-tier-showcase gp-filtered-package-results" aria-label="Package results">
-  <div class="gp-package-type-viewport gp-filtered-package-viewport">
-    <div class="gp-package-type-track gp-filtered-package-track">
-      <?php if (empty($filteredPackages)): ?>
-        <div class="gp-package-type-empty">No packages match your selected filter.</div>
-      <?php else: ?>
-        <?php foreach ($filteredPackages as $pkg): ?>
-          <?php $pkgImage = trim((string)($pkg['image_url'] ?? '')); ?>
-          <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>">
+  <!-- STATIC PACKAGE TIERS -->
+  <?php if ($hasPriceFilter): ?>
+  <section class="gp-tier-showcase gp-filtered-package-results" aria-label="Package results">
+    <div class="gp-package-type-viewport gp-filtered-package-viewport">
+      <div class="gp-package-type-track gp-filtered-package-track">
+        <?php if (empty($visiblePackages)): ?>
+          <div class="gp-package-type-empty">No packages match your selected filter.</div>
+        <?php else: ?>
+          <?php foreach ($visiblePackages as $pkg): ?>
+            <?php $pkgImage = trim((string)($pkg['image_url'] ?? '')); ?>
+            <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>">
+
   <span class="gp-package-type-image">
     <?php if ($pkgImage !== ''): ?>
       <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy">
     <?php endif; ?>
 
-    <button 
-      class="gp-heart"
-      type="button"
-      aria-label="Add to wishlist"
-      data-item-type="package"
-      data-item-id="<?= (int)($pkg['id'] ?? $pkg['package_id'] ?? 0) ?>"
-      data-saved="0">
-      ♡
-    </button>
+     <button 
+    class="gp-heart"
+    type="button"
+    aria-label="Add to wishlist"
+    data-item-type="package"
+    data-item-id="<?= (int)($pkg['id'] ?? $pkg['package_id'] ?? 0) ?>"
+    data-saved="0">
+    ♡
+  </button>
+
+    <span class="gp-service-count-tag">
+      <?= count($pkg['services'] ?? []) ?: 5 ?> Services
+    </span>
   </span>
-        <?php endforeach; ?>
-      <?php endif; ?>
-    </div>
+
+  <h4><?= $h($pkg['name'] ?? '') ?></h4>
+
+  <p><?= $h($pkg['tagline'] ?? $pkg['description'] ?? '') ?></p>
+
+  <div class="gp-package-type-meta">
+    <span class="gp-package-type-price">
+      <?= $money($pkg['package_price'] ?? $pkg['base_price'] ?? 0) ?>
+    </span>
+
+    <span class="gp-card-book">
+      Book Now
+      <span class="gp-card-book-icon">
+        <i data-lucide="arrow-up-right"></i>
+      </span>
+    </span>
   </div>
-</section>
-<?php endif; ?>
-  <!-- STATIC PACKAGE TIERS -->
-   <?php if (!$showFilteredResults): ?>
+
+</a>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </div>
+    </div>
+  </section>
+  <?php else: ?>
   <section class="gp-tier-showcase" aria-label="Package tiers">
+    <?php if (!$hasPackageTypeFilter): ?>
     <div class="gp-tier-top">
       <h2 class="gp-tier-heading">Our <strong>Packages</strong></h2>
     </div>
-    <div class="gp-tier-grid">
+    <div class="gp-tier-grid <?= $activeCategory !== 'all' ? 'is-filtered' : '' ?>">
+      <?php if ($activeCategory === 'all' || $activeCategory === 'standard'): ?>
       <article class="gp-tier-card gp-tier-card--standard gp-reveal" data-tier-card="standard">
         <div class="gp-tier-panel">
           <div>
@@ -1795,6 +1856,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
           <li>Perfect for intimate weddings</li>
         </ul>
       </article>
+      <?php endif; ?>
+      <?php if ($activeCategory === 'all' || $activeCategory === 'luxury'): ?>
       <article class="gp-tier-card gp-tier-card--luxury gp-reveal gp-reveal-d1" data-tier-card="luxury">
         <div class="gp-tier-panel">
           <div>
@@ -1811,6 +1874,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
           <li>Designed for an elegant luxury wedding</li>
         </ul>
       </article>
+      <?php endif; ?>
+      <?php if ($activeCategory === 'all' || $activeCategory === 'premium'): ?>
       <article class="gp-tier-card gp-tier-card--premium gp-reveal gp-reveal-d2" data-tier-card="premium">
         <div class="gp-tier-panel">
           <div>
@@ -1827,7 +1892,9 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
           <li>Great for a full wedding celebration</li>
         </ul>
       </article>
+      <?php endif; ?>
     </div>
+    <?php endif; ?>
 
     <div class="gp-package-type-sections" aria-label="Package type details">
       <?php
@@ -1836,15 +1903,19 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
           'premium' => ['Full Celebration', 'A fuller package for couples who want guest experience and details handled together.'],
           'luxury' => ['Grand Experience', 'The highest level package with elevated styling and top-tier supplier coordination.'],
         ];
-        $typeOrder = ['standard', 'premium', 'luxury'];
+        $typeOrder = array_key_exists($activeCategory, $packageTierLabels)
+          ? [$activeCategory]
+          : ['standard', 'premium', 'luxury'];
       ?>
       <?php foreach ($typeOrder as $sectionIndex => $tierKey): ?>
       <?php $tierPackageCount = count($packagesByTier[$tierKey]); ?>
       <section class="gp-package-type-section gp-reveal gp-reveal-d<?= min($sectionIndex, 2) ?>" id="package-<?= $h($tierKey) ?>" aria-label="<?= $h($packageTierLabels[$tierKey]) ?> details" data-tier-section="<?= $h($tierKey) ?>">
        <div class="gp-package-type-intro">
+  <span class="gp-package-type-label"><?= $h($packageTierLabels[$tierKey]) ?></span>
   <h3 class="gp-package-type-title">
-    <?= $h($packageTierLabels[$tierKey]) ?>
+    <?= $h($typeSectionCopy[$tierKey][0] ?? $packageTierLabels[$tierKey]) ?>
   </h3>
+  <p class="gp-package-type-copy"><?= $h($typeSectionCopy[$tierKey][1] ?? '') ?></p>
 
   <div class="gp-package-type-carousel-head">
     <div class="gp-package-type-nav" <?= $tierPackageCount > 3 ? '' : 'hidden' ?> aria-label="<?= $h($packageTierLabels[$tierKey]) ?> package navigation">
