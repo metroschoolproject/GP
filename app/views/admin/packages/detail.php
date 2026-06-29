@@ -60,23 +60,19 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
     $borrowPkg = (float)($item['borrow_package_price'] ?? $item['borrow_price'] ?? 0);
     $buyPkg = (float)($item['buy_package_price'] ?? $item['buy_price'] ?? 0);
     $returnDays = (int)($item['return_days'] ?? 0);
-    $html = '';
+    $cols = [];
     if ($borrowPkg > 0) {
-      $html .= '<div class="rental-option">'
-            . '<div class="rental-option-head"><strong>Borrow</strong>'
-            . ($returnDays > 0 ? '<span>Return in ' . $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . '</span>' : '')
-            . '</div><div class="rental-price-row">'
-            . '<span>Package <b>' . $money($borrowPkg) . '</b></span>'
-            . '</div></div>';
+      $cols[] = '<span>Borrow <b>' . $money($borrowPkg) . '</b>'
+              . ($returnDays > 0 ? ' <small>Return in ' . $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . '</small>' : '')
+              . '</span>';
     }
     if ($buyPkg > 0) {
-      $html .= '<div class="rental-option buy">'
-            . '<div class="rental-option-head"><strong>Buy</strong></div>'
-            . '<div class="rental-price-row">'
-            . '<span>Package <b>' . $money($buyPkg) . '</b></span>'
-            . '</div></div>';
+      $cols[] = '<span>Buy <b>' . $money($buyPkg) . '</b></span>';
     }
-    return $html !== '' ? $html : '<span class="service-meta">—</span>';
+    if (!empty($cols)) {
+      return '<div class="rental-price-row">' . implode('', $cols) . '</div>';
+    }
+    return '<span class="service-meta">—</span>';
   };
 
   $addableServices = array_filter($serviceOptions, function ($svc) use ($includedServiceIds) {
