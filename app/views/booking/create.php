@@ -395,10 +395,10 @@ font-weight: 700;
   top: -4px;
 }
 .gp-page-subtitle {
-  display: none;
-  margin-top: 0;
-  font-size: 13px;
-  color: var(--mist);
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+  color: rgba(255, 248, 239, 0.85);
   font-weight: 400;
 }
 
@@ -427,6 +427,65 @@ font-weight: 700;
   flex: 1;
   height: 1px;
   background: var(--rule);
+}
+
+/* ─── Package details grid (C1) ──────────── */
+.gp-details-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+.gp-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.gp-details-grid .gp-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ─── Card completion indicator ──────────── */
+.gp-card-status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+}
+.gp-card-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.3s var(--ease);
+  white-space: nowrap;
+}
+.gp-card-status-pill.is-empty {
+  background: var(--mauve-xs);
+  color: var(--mauve);
+  border: 1px solid rgba(140,95,114,0.18);
+}
+.gp-card-status-pill.is-done {
+  background: var(--sage-xs);
+  color: var(--sage);
+  border: 1px solid rgba(122,156,130,0.25);
+}
+
+/* ─── Attention pulse ────────────────────── */
+@keyframes gp-attention-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(140,95,114,0.3); }
+  50%  { box-shadow: 0 0 0 8px rgba(140,95,114,0.08); }
+  100% { box-shadow: 0 0 0 0 rgba(140,95,114,0); }
+}
+.gp-attention-hint {
+  animation: gp-attention-pulse 1.5s ease 2;
+  border-color: var(--mauve-lt) !important;
 }
 
 /* ─── Cards (shared) ─────────────────────── */
@@ -1047,72 +1106,66 @@ font-weight: 700;
 .error { font-size: 13px; color: var(--danger); padding: 6px 0; }
 
 .gp-package-schedule {
-  margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
-.gp-package-schedule.is-missing .gp-package-summary,
 .gp-package-schedule.is-missing .loading,
 .gp-package-schedule.is-missing .error {
   border-color: var(--danger);
 }
-.gp-package-summary {
-  padding: 10px 12px;
-  border: 1px solid var(--rule-md);
-  border-radius: var(--r-sm);
-  background: var(--parchment);
-  color: var(--ink);
-  font-size: 12px;
-}
-.gp-package-summary strong {
-  display: block;
-  margin-bottom: 2px;
-  font-size: 13px;
-}
 .gp-package-timeline {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
+  border: 1px solid var(--rule-md);
+  border-radius: var(--r-md);
+  overflow: hidden;
 }
 .gp-package-service-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 12px;
-  border: 1px solid var(--rule-md);
-  border-radius: var(--r-sm);
+  padding: 10px 14px;
   background: var(--ivory);
+  transition: background 0.15s;
+}
+.gp-package-service-row:not(:last-child) {
+  border-bottom: 1px solid var(--rule);
+}
+.gp-package-service-row:hover {
+  background: var(--mauve-xs);
 }
 .gp-package-service-row.is-full {
-  border-color: rgba(174, 64, 64, 0.35);
-  background: rgba(174, 64, 64, 0.06);
+  background: rgba(174, 64, 64, 0.04);
 }
 .gp-package-service-main {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 .gp-package-service-name {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ink);
 }
 .gp-package-service-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--mist);
 }
 .gp-package-status {
   justify-self: end;
-  padding: 4px 8px;
+  padding: 3px 8px;
   border-radius: var(--r-pill);
   background: rgba(55, 126, 92, 0.1);
   color: #377e5c;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 650;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 .gp-package-service-row.is-full .gp-package-status {
   background: rgba(174, 64, 64, 0.1);
@@ -1939,6 +1992,10 @@ input[type="date"]:invalid {
 	                 <?php if (($item['item_type'] ?? '') === 'package'): ?>data-package-id="<?= (int)($item['item_id'] ?? 0) ?>"<?php endif; ?>
 	                 <?php if ($isVenue): ?>data-is-venue="true"<?php endif; ?>>
 
+          <div class="gp-card-status" data-status-for="<?= $i ?>">
+            <span class="gp-card-status-pill is-empty">Not filled</span>
+          </div>
+
           <div class="gp-item-header">
             <a class="gp-item-thumb" href="<?= URLROOT ?>/customerServices/detail/<?= (int)($item['item_id'] ?? 0) ?>"
                tabindex="-1" aria-hidden="true">
@@ -2027,12 +2084,6 @@ input[type="date"]:invalid {
 	                <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($slotStart) ?>">
 	                <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($slotEnd) ?>">
 
-	                <?php if (($item['item_type'] ?? '') === 'package'): ?>
-	                  <div class="gp-package-schedule" id="package-schedule-<?= $i ?>" aria-live="polite" data-package-schedule-state="empty">
-	                    <p class="loading">Loading the package timeline…</p>
-	                  </div>
-	                <?php endif; ?>
-
 	                <!-- Hidden slot selector -->
                 <div class="gp-slot-selector hidden" id="slot-selector-<?= $i ?>">
                   <?php
@@ -2101,11 +2152,15 @@ input[type="date"]:invalid {
                 <?php endif; ?>
 
                 <?php if ($isPackageItem): ?>
-                  <label class="gp-detail-label" for="preferred-time-<?= $i ?>" style="margin-top:10px;">Wedding time</label>
-                  <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
-                         name="preferred_time[<?= $i ?>]"
-                         value="10:00" required
-                         style="max-width:160px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">
+                    <div>
+                      <label class="gp-detail-label" for="preferred-time-<?= $i ?>">Wedding time</label>
+                      <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
+                             name="preferred_time[<?= $i ?>]"
+                             value="10:00" required
+                             style="max-width:160px;">
+                    </div>
+                  </div>
                   <div class="gp-input-note">We will schedule each service before this time.</div>
                 <?php endif; ?>
 
@@ -2132,11 +2187,6 @@ input[type="date"]:invalid {
 	                      <?= $isPackageItem ? 'Package service times are managed automatically after you choose the event date' : 'Full-day booking — time is managed automatically' ?>
 	                    <?php endif; ?>
                   </div>
-	                  <?php if (($item['item_type'] ?? '') === 'package'): ?>
-	                    <div class="gp-package-schedule" id="package-schedule-<?= $i ?>" aria-live="polite" data-package-schedule-state="empty">
-	                      <p class="loading">Choose the event date. We will build the included-service timeline automatically.</p>
-	                    </div>
-                  <?php endif; ?>
                 <?php else: ?>
                   <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
                   <div class="gp-slots-container" id="slots-<?= $i ?>">
@@ -2146,11 +2196,78 @@ input[type="date"]:invalid {
               <?php endif; ?>
             </fieldset>
 
-            <!-- Customise drawer -->
+            <?php if ($isPackageItem): ?>
+            <!-- Included Services + Your Details (package layout) -->
+            <fieldset class="gp-slot-fieldset">
+              <legend class="gp-fieldset-legend">Included services</legend>
+              <div class="gp-package-schedule" id="package-schedule-<?= $i ?>" aria-live="polite" data-package-schedule-state="empty">
+                <p class="loading">Loading the package timeline...</p>
+              </div>
+            </fieldset>
+
+            <div class="gp-details-section">
+              <div class="gp-fieldset-legend" style="margin-bottom:12px;">Your details</div>
+              <div class="gp-details-grid">
+                <div class="gp-detail-field">
+                  <label class="gp-detail-label is-required" for="guests-<?= $i ?>"><?= $h($quantityLabel) ?></label>
+                  <div class="gp-detail-stepper">
+                    <button class="gp-stepper-btn" type="button" data-stepper="minus" data-target="guests-<?= $i ?>" aria-label="Decrease">−</button>
+                    <input class="gp-detail-input gp-stepper-input" type="number" id="guests-<?= $i ?>"
+                           name="item_guests[<?= $i ?>]" min="0" max="<?= $itemMaxBooking ?>"
+                           data-max-booking="<?= $itemMaxBooking ?>"
+                           value="<?= $isVenue && $venueRoomCapacity > 0 ? min((int)$venueRoomCapacity, $itemMaxBooking) : '' ?>"
+                           <?php if ($isVenue && $venueRoomCapacity > 0): ?>data-venue-filled="true"<?php endif; ?>
+                           placeholder="Required">
+                    <button class="gp-stepper-btn" type="button" data-stepper="plus" data-target="guests-<?= $i ?>" aria-label="Increase">+</button>
+                  </div>
+                  <?php if ($isVenue && $venueRoomCapacity > 0): ?>
+                    <div class="gp-input-note">Max: <strong><?= (int)$venueRoomCapacity ?></strong> guests</div>
+                  <?php else: ?>
+                    <div class="gp-input-note">Suggested max: <strong><?= $itemMaxBooking ?></strong></div>
+                  <?php endif; ?>
+                  <div class="gp-input-note is-limit-warning" data-limit-message-for="guests-<?= $i ?>">This supplier can accept up to <?= $itemMaxBooking ?> for this booking.</div>
+                </div>
+                <div class="gp-detail-field">
+                  <label class="gp-detail-label is-required" for="location-<?= $i ?>">Location / venue room</label>
+                  <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
+                         name="item_location[<?= $i ?>]"
+                         value="<?= $h($venueLocation) ?>"
+                         <?php if ($venueLocation !== ''): ?>data-venue-filled="true"<?php endif; ?>
+                         placeholder="e.g. Ballroom A">
+                </div>
+                <div class="gp-detail-field">
+                  <label class="gp-detail-label is-required" for="contact-name-<?= $i ?>">Contact name</label>
+                  <input class="gp-detail-input" type="text" id="contact-name-<?= $i ?>"
+                         name="item_contact_name[<?= $i ?>]"
+                         value="<?= $h($user['name'] ?? '') ?>"
+                         placeholder="Full name">
+                </div>
+                <div class="gp-detail-field">
+                  <label class="gp-detail-label is-required" for="contact-phone-<?= $i ?>">Contact phone</label>
+                  <input class="gp-detail-input" type="tel" id="contact-phone-<?= $i ?>"
+                         name="item_contact_phone[<?= $i ?>]"
+                         value="<?= $h($user['phone'] ?? '') ?>"
+                         placeholder="09xxxxxxxxx"
+                         inputmode="numeric" pattern="[0-9 ]{10,15}"
+                         minlength="10" maxlength="15"
+                         title="Phone number must be 10 to 11 digits.">
+                </div>
+                <div class="gp-detail-field" style="grid-column: 1 / -1;">
+                  <label class="gp-detail-label" for="notes-<?= $i ?>">Special requests / notes</label>
+                  <textarea class="gp-detail-textarea" id="notes-<?= $i ?>"
+                            name="item_notes[<?= $i ?>]"
+                            placeholder="Any notes for the whole package event..."
+                            data-autogrow></textarea>
+                </div>
+              </div>
+            </div>
+
+            <?php else: ?>
+            <!-- Service details drawer (non-package items) -->
             <details class="gp-service-drawer" open>
               <summary>
 	                <span>Service details</span>
-	                <span class="gp-drawer-hint"><?= $isPackageItem ? 'Shared guest count, location, contact and notes for this package' : 'Required contact, guests, room and notes' ?></span>
+	                <span class="gp-drawer-hint">Required contact, guests, room and notes</span>
               </summary>
 
               <fieldset class="gp-overrides-fieldset">
@@ -2175,7 +2292,7 @@ input[type="date"]:invalid {
                     <div class="gp-input-note is-limit-warning" data-limit-message-for="guests-<?= $i ?>">This supplier can accept up to <?= $itemMaxBooking ?> for this booking.</div>
                   </div>
                   <div class="gp-detail-field">
-	                    <label class="gp-detail-label is-required" for="location-<?= $i ?>"><?= $isPackageItem ? 'Event location / venue room' : 'Location / Venue room' ?></label>
+	                    <label class="gp-detail-label is-required" for="location-<?= $i ?>">Location / Venue room</label>
                     <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
                            name="item_location[<?= $i ?>]"
                            value="<?= $h($venueLocation) ?>"
@@ -2207,12 +2324,13 @@ input[type="date"]:invalid {
 	                    <label class="gp-detail-label" for="notes-<?= $i ?>">Special requests / notes</label>
 	                    <textarea class="gp-detail-textarea" id="notes-<?= $i ?>"
 	                              name="item_notes[<?= $i ?>]"
-	                              placeholder="<?= $isPackageItem ? 'Any notes for the whole package event…' : 'Any specific requirements for this service…' ?>"
+	                              placeholder="Any specific requirements for this service..."
 	                              data-autogrow></textarea>
                   </div>
                 </div>
               </fieldset>
             </details>
+            <?php endif; ?>
 
           </div>
         </article>
@@ -2605,6 +2723,57 @@ const packageScheduleState = new Map();
   });
   updateBookingPricing();
 
+  /* ─── Form element (needed by card status + submission) ── */
+  const form = document.getElementById('booking-form');
+
+  /* ─── Card completion statuses ──────────── */
+  function updateCardStatuses() {
+    document.querySelectorAll('.gp-item-card').forEach((card, index) => {
+      const pill = card.querySelector('.gp-card-status-pill');
+      if (!pill) return;
+      const fd = new FormData(form);
+      const itemDate = fieldValue(fd, 'item_date[' + index + ']');
+      const itemPhone = fieldValue(fd, 'item_contact_phone[' + index + ']');
+      const itemLocation = fieldValue(fd, 'item_location[' + index + ']');
+      const itemGuests = numberValue(fd, 'item_guests[' + index + ']');
+      const isComplete = itemDate && itemPhone && itemLocation && itemGuests > 0;
+      pill.classList.toggle('is-done', isComplete);
+      pill.classList.toggle('is-empty', !isComplete);
+      pill.textContent = isComplete ? '✓ Complete' : 'Not filled';
+    });
+  }
+
+  // Listen to all form input changes (debounced)
+  let _statusTimer;
+  form.addEventListener('input', function () {
+    clearTimeout(_statusTimer);
+    _statusTimer = setTimeout(updateCardStatuses, 200);
+  });
+  form.addEventListener('change', function () {
+    clearTimeout(_statusTimer);
+    _statusTimer = setTimeout(updateCardStatuses, 100);
+  });
+
+  // Initial call
+  updateCardStatuses();
+
+  // Attention pulse on first empty date field
+  (function highlightFirstIncomplete() {
+    const itemCards = document.querySelectorAll('.gp-item-card');
+    for (const card of itemCards) {
+      const idx = card.dataset.priceIndex;
+      const dateInput = card.querySelector('[name="item_date[' + idx + ']"]');
+      if (dateInput && !dateInput.value) {
+        const delay = Math.max(0, parseInt(card.dataset.index || 0)) * 80 + 600;
+        setTimeout(() => {
+          dateInput.classList.add('gp-attention-hint');
+          setTimeout(() => dateInput.classList.remove('gp-attention-hint'), 3200);
+        }, delay);
+        break;
+      }
+    }
+  })();
+
   /* ─── Auto-grow textareas ─────────────────── */
   document.querySelectorAll('[data-autogrow]').forEach(ta => {
     ta.addEventListener('input', function () {
@@ -2622,7 +2791,6 @@ const packageScheduleState = new Map();
   }
 
   /* ─── Form submission ─────────────────────── */
-  const form = document.getElementById('booking-form');
   const submitBtn = document.getElementById('submit-btn');
   const bookingReminder = document.getElementById('booking-reminder');
   const originalSubmitHtml = submitBtn.innerHTML;
@@ -3371,10 +3539,6 @@ async function loadPackageSchedule(packageId, date, index) {
     container.dataset.packageScheduleState = scheduleReady ? 'ready' : 'unavailable';
 
     container.innerHTML = `
-      <div class="gp-package-summary">
-        <strong>Automatically managed package timeline</strong>
-        ${packageTime(data.start_time)} – ${packageTime(data.end_time)}
-      </div>
       <div class="gp-package-timeline">
       ${schedule.map(item => {
         const isSlot = item.booking_type === 'slot';
