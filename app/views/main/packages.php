@@ -697,107 +697,136 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   box-shadow: 0 2px 6px rgba(107,114,128,0.22);
 }
 
-/* ─── HERO DATE PICKER ──────────────────────────────── */
-.gp-datepicker {
-  width: min(380px, 100%);
-  margin: 18px auto 0;
-  background: rgba(255,248,239,0.92);
-  border: 1px solid rgba(154,104,127,0.18);
-  border-radius: 14px;
-  padding: 16px 18px 12px;
-  backdrop-filter: blur(8px);
+/* ─── HERO DATE PICKER (service-detail style) ──────── */
+.gp-pkg-date-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
 }
-.gp-datepicker-header {
+.venue-date-input-wrap {
+  position: relative;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 248, 239, .28);
+  border-radius: 8px;
+  background: rgba(255, 248, 239, .14);
+  color: #FFF8EF;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+  transition: background .15s, border-color .15s;
+}
+.venue-date-input-wrap:hover {
+  background: rgba(255, 248, 239, .24);
+  border-color: rgba(255, 248, 239, .42);
+}
+.venue-date-input-wrap input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.venue-date-display {
+  min-width: 68px;
+  pointer-events: none;
+  font-size: 13px;
+  font-weight: 700;
+}
+.venue-date-icon,
+.venue-date-chevron {
+  flex: 0 0 auto;
+  pointer-events: none;
+  color: rgba(255, 248, 239, .72);
+  width: 14px !important;
+  height: 14px !important;
+  stroke-width: 2.2;
+}
+.venue-date-chevron {
+  margin-left: auto;
+}
+.gp-calendar-popover {
+  position: fixed;
+  z-index: 10010;
+  width: min(250px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid rgba(63, 36, 26, .14);
+  border-radius: 10px;
+  background: rgba(255, 248, 239, .98);
+  box-shadow: 0 24px 60px rgba(63, 36, 26, .18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.gp-calendar-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 12px;
+  color: #3F241A;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 9px;
 }
-.gp-datepicker-title {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2d2226;
-  margin: 0;
-}
-.gp-datepicker-nav {
-  width: 30px; height: 30px;
-  border: 1px solid rgba(154,104,127,0.22);
-  border-radius: 8px;
-  background: rgba(245,232,217,0.7);
+.gp-calendar-nav {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #7A4E3D;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  color: #6b5b60;
-  transition: background .15s, color .15s;
 }
-.gp-datepicker-nav:hover { background: rgba(154,104,127,0.14); color: #2d2226; }
-.gp-datepicker-nav svg { width: 15px; height: 15px; }
-.gp-datepicker-grid {
+.gp-calendar-nav:hover {
+  background: rgba(63, 36, 26, .08);
+}
+.gp-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 3px;
 }
-.gp-datepicker-dow {
-  text-align: center;
-  font-size: .7rem;
-  font-weight: 700;
-  color: #9a8a90;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  padding: 3px 0 5px;
-}
-.gp-datepicker-day {
-  aspect-ratio: 1;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .8rem;
-  font-weight: 500;
-  color: #4b3a3f;
-  cursor: pointer;
-  transition: background .12s, color .12s, transform .12s;
-}
-.gp-datepicker-day:hover {
-  background: rgba(154,104,127,0.16);
-  color: #2d2226;
-}
-.gp-datepicker-day--empty { visibility: hidden; pointer-events: none; }
-.gp-datepicker-day--past {
-  color: #c4b8bc;
-  cursor: default;
-}
-.gp-datepicker-day--past:hover { background: transparent; color: #c4b8bc; }
-.gp-datepicker-day--today {
-  outline: 1.5px solid rgba(154,104,127,0.35);
-  outline-offset: -1.5px;
-}
-.gp-datepicker-day--selected {
-  background: #6D4C5B;
-  color: #fff8ef;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(109,76,91,0.28);
-}
-.gp-datepicker-day--selected:hover {
-  background: #7E4F65;
-  color: #fff8ef;
-}
-.gp-datepicker-clear {
-  display: inline-block;
-  margin-top: 10px;
-  padding: 5px 14px;
-  border: 1px solid rgba(154,104,127,0.22);
-  border-radius: 999px;
-  background: transparent;
-  color: #7a6255;
+.gp-calendar-day-name,
+.gp-calendar-day {
+  display: grid;
+  place-items: center;
+  height: 24px;
+  color: #6F5448;
   font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background .15s, color .15s;
 }
-.gp-datepicker-clear:hover {
-  background: rgba(154,104,127,0.12);
-  color: #4b3a3f;
+.gp-calendar-day-name {
+  color: rgba(63, 36, 26, .52);
+  font-weight: 800;
+}
+.gp-calendar-day {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+.gp-calendar-day:hover {
+  background: rgba(122, 78, 61, .12);
+}
+.gp-calendar-day.is-selected {
+  background: #3F241A;
+  color: #FFF8EF;
+}
+.gp-calendar-day.is-today:not(.is-selected) {
+  outline: 1px solid rgba(63, 36, 26, .28);
+}
+.gp-calendar-day.is-disabled {
+  color: rgba(63, 36, 26, .24);
+  cursor: not-allowed;
 }
 
 .gp-tier-showcase {
@@ -1852,27 +1881,24 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
         </form>
       </section>
 
-      <!-- Date picker calendar -->
-      <div class="gp-datepicker" id="pkg-datepicker" data-current-date="<?= $h($filters['date'] ?? '') ?>">
-        <div class="gp-datepicker-header">
-          <button type="button" class="gp-datepicker-nav" id="dp-prev" aria-label="Previous month">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h3 class="gp-datepicker-title" id="dp-title"></h3>
-          <button type="button" class="gp-datepicker-nav" id="dp-next" aria-label="Next month">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-        </div>
-        <div class="gp-datepicker-grid" id="dp-grid">
-          <span class="gp-datepicker-dow">Mon</span>
-          <span class="gp-datepicker-dow">Tue</span>
-          <span class="gp-datepicker-dow">Wed</span>
-          <span class="gp-datepicker-dow">Thu</span>
-          <span class="gp-datepicker-dow">Fri</span>
-          <span class="gp-datepicker-dow">Sat</span>
-          <span class="gp-datepicker-dow">Sun</span>
-        </div>
-      </div>
+      <!-- Date picker (small dropdown) -->
+      <?php
+        $selectedDateVal = $filters['date'] ?? '';
+        $todayStr = date('Y-m-d');
+        $maxDateStr = date('Y-m-d', strtotime('+18 months'));
+        $dateDisplay = $selectedDateVal !== '' ? date('M j, Y', strtotime($selectedDateVal)) : 'Select date';
+      ?>
+      <form class="gp-pkg-date-form" method="GET" action="<?= URLROOT ?>/customerServices/packages">
+        <input type="hidden" name="q" value="<?= $h($filters['search'] ?? '') ?>">
+        <input type="hidden" name="category" value="<?= $h($activeCategory) ?>">
+        <input type="hidden" name="sort" value="<?= $h($activeSort) ?>">
+        <span class="venue-date-input-wrap">
+          <i class="venue-date-icon" data-lucide="calendar-days"></i>
+          <span class="venue-date-display"><?= $h($dateDisplay) ?></span>
+          <i class="venue-date-chevron" data-lucide="chevron-down"></i>
+          <input class="gp-calendar-input" type="date" name="date" value="<?= $h($selectedDateVal) ?>" min="<?= $h($todayStr) ?>" max="<?= $h($maxDateStr) ?>" aria-label="Filter by date">
+        </span>
+      </form>
 
     </div>
   </section>
@@ -2419,121 +2445,152 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 </script>
 
+<div class="gp-calendar-popover" id="gpCalendarPopover" hidden></div>
+
 <script>
-(function() {
-  const picker = document.getElementById('pkg-datepicker');
-  if (!picker) return;
+document.addEventListener('DOMContentLoaded', function() {
+  var gpCalendar = document.getElementById('gpCalendarPopover');
+  var gpCalendarInput = null;
+  var gpCalendarMonth = null;
 
-  const grid = document.getElementById('dp-grid');
-  const titleEl = document.getElementById('dp-title');
-  const prevBtn = document.getElementById('dp-prev');
-  const nextBtn = document.getElementById('dp-next');
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const baseUrl = '<?= URLROOT ?>/customerServices/packages';
-
-  const urlParams = new URLSearchParams(window.location.search);
-  let selectedDate = picker.dataset.currentDate || '';
-
-  const now = new Date();
-  let currentYear = now.getFullYear();
-  let currentMonth = now.getMonth();
-
-  // If a date is already selected, start on that month
-  if (selectedDate) {
-    const parts = selectedDate.split('-');
-    currentYear = parseInt(parts[0], 10);
-    currentMonth = parseInt(parts[1], 10) - 1;
+  function formatDateValue(date) {
+    var year = date.getFullYear();
+    var month = String(date.getMonth() + 1).padStart(2, '0');
+    var day = String(date.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
   }
 
-  function pad(n) { return String(n).padStart(2, '0'); }
+  function parseDateValue(value) {
+    if (!value) return null;
+    var parts = value.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
 
-  function render() {
-    titleEl.textContent = monthNames[currentMonth] + ' ' + currentYear;
+  function updateCalendarDisplay(input) {
+    var display = input.closest('.venue-date-input-wrap')?.querySelector('.venue-date-display');
+    if (!display) return;
+    if (!input.value) { display.textContent = 'Select date'; return; }
+    var parsed = parseDateValue(input.value);
+    display.textContent = parsed ? parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date';
+  }
 
-    // Remove old day cells
-    grid.querySelectorAll('.gp-datepicker-day').forEach(function(el) { el.remove(); });
+  function positionCalendar(anchor) {
+    if (!gpCalendar || !anchor) return;
+    var rect = anchor.getBoundingClientRect();
+    var width = Math.min(250, window.innerWidth - 32);
+    var left = Math.max(16, Math.min(rect.left, window.innerWidth - width - 16));
+    gpCalendar.style.width = width + 'px';
+    gpCalendar.style.left = left + 'px';
+    gpCalendar.style.top = (rect.bottom + 10) + 'px';
+  }
 
-    var firstDow = new Date(currentYear, currentMonth, 1).getDay();
-    var startOffset = (firstDow + 6) % 7; // Mon=0
-    var daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  function renderCalendar() {
+    if (!gpCalendar || !gpCalendarInput || !gpCalendarMonth) return;
+    var monthStart = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth(), 1);
+    var selectedValue = gpCalendarInput.value;
+    var todayValue = formatDateValue(new Date());
+    var minValue = gpCalendarInput.min || '';
+    var maxValue = gpCalendarInput.max || '';
+    var daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+    var leadingBlanks = monthStart.getDay();
+    var monthTitle = monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    var dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
+    var html = '<div class="gp-calendar-head">' +
+      '<button class="gp-calendar-nav" type="button" data-cal-prev aria-label="Previous month"><i data-lucide="chevron-left" size="16"></i></button>' +
+      '<span>' + monthTitle + '</span>' +
+      '<button class="gp-calendar-nav" type="button" data-cal-next aria-label="Next month"><i data-lucide="chevron-right" size="16"></i></button>' +
+      '</div><div class="gp-calendar-grid">';
 
-    // Empty offset cells
-    for (var i = 0; i < startOffset; i++) {
-      var empty = document.createElement('span');
-      empty.className = 'gp-datepicker-day gp-datepicker-day--empty';
-      grid.appendChild(empty);
+    dayNames.forEach(function(day) { html += '<div class="gp-calendar-day-name">' + day + '</div>'; });
+    for (var i = 0; i < leadingBlanks; i++) html += '<span></span>';
+    for (var day = 1; day <= daysInMonth; day++) {
+      var value = formatDateValue(new Date(monthStart.getFullYear(), monthStart.getMonth(), day));
+      var disabled = (minValue && value < minValue) || (maxValue && value > maxValue);
+      var classes = ['gp-calendar-day'];
+      if (value === selectedValue) classes.push('is-selected');
+      if (value === todayValue) classes.push('is-today');
+      if (disabled) classes.push('is-disabled');
+      html += '<button class="' + classes.join(' ') + '" type="button" data-date="' + value + '"' + (disabled ? ' disabled' : '') + '>' + day + '</button>';
     }
-
-    for (var d = 1; d <= daysInMonth; d++) {
-      var dateStr = currentYear + '-' + pad(currentMonth + 1) + '-' + pad(d);
-      var el = document.createElement('span');
-      el.textContent = d;
-      el.className = 'gp-datepicker-day';
-
-      var dateObj = new Date(dateStr + 'T00:00:00');
-      var isPast = dateObj < today;
-      var isToday = dateObj.getTime() === today.getTime();
-      var isSelected = dateStr === selectedDate;
-
-      if (isPast) {
-        el.classList.add('gp-datepicker-day--past');
-      } else {
-        if (isToday) el.classList.add('gp-datepicker-day--today');
-        if (isSelected) el.classList.add('gp-datepicker-day--selected');
-        el.addEventListener('click', (function(ds) {
-          return function() { selectDate(ds); };
-        })(dateStr));
-      }
-      grid.appendChild(el);
-    }
-
-    // Disable prev if showing current month
-    var isCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth();
-    prevBtn.disabled = isCurrentMonth;
-    prevBtn.style.opacity = isCurrentMonth ? '.35' : '1';
+    html += '</div>';
+    gpCalendar.innerHTML = html;
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [gpCalendar] });
   }
 
-  function selectDate(date) {
-    selectedDate = date;
-    var params = new URLSearchParams(window.location.search);
-    params.set('date', date);
-    // Remove page param if present
-    params.delete('page');
-    window.location.href = baseUrl + '?' + params.toString();
+  function openCalendar(input) {
+    gpCalendarInput = input;
+    gpCalendarMonth = parseDateValue(input.value) || parseDateValue(input.min) || new Date();
+    renderCalendar();
+    gpCalendar.hidden = false;
+    positionCalendar(input.closest('.venue-date-input-wrap') || input);
   }
 
-  // Add clear button if a date is selected
-  if (selectedDate) {
-    var clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'gp-datepicker-clear';
-    clearBtn.textContent = '✕ Clear date filter';
-    clearBtn.addEventListener('click', function() {
-      var params = new URLSearchParams(window.location.search);
-      params.delete('date');
-      params.delete('page');
-      window.location.href = baseUrl + (params.toString() ? '?' + params.toString() : '');
+  document.querySelectorAll('.gp-calendar-input').forEach(function(input) {
+    updateCalendarDisplay(input);
+    input.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      openCalendar(input);
     });
-    picker.appendChild(clearBtn);
-  }
-
-  prevBtn.addEventListener('click', function() {
-    currentMonth--;
-    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-    render();
+    input.addEventListener('focus', function() { openCalendar(input); });
   });
 
-  nextBtn.addEventListener('click', function() {
-    currentMonth++;
-    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-    render();
+  document.querySelectorAll('.venue-date-input-wrap').forEach(function(wrap) {
+    var input = wrap.querySelector('.gp-calendar-input');
+    if (!input) return;
+    wrap.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      openCalendar(input);
+    });
   });
 
-  render();
-})();
+  gpCalendar?.addEventListener('click', function(event) {
+    event.stopPropagation();
+    var prev = event.target.closest('[data-cal-prev]');
+    var next = event.target.closest('[data-cal-next]');
+    var day = event.target.closest('[data-date]');
+    if (prev) {
+      gpCalendarMonth = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth() - 1, 1);
+      renderCalendar();
+      return;
+    }
+    if (next) {
+      gpCalendarMonth = new Date(gpCalendarMonth.getFullYear(), gpCalendarMonth.getMonth() + 1, 1);
+      renderCalendar();
+      return;
+    }
+    if (day && gpCalendarInput) {
+      gpCalendarInput.value = day.dataset.date;
+      updateCalendarDisplay(gpCalendarInput);
+      gpCalendar.hidden = true;
+      // Submit the form to filter packages by date
+      if (gpCalendarInput.form) {
+        if (typeof gpCalendarInput.form.requestSubmit === 'function') gpCalendarInput.form.requestSubmit();
+        else gpCalendarInput.form.submit();
+      }
+    }
+  });
+  gpCalendar?.addEventListener('mousedown', function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+
+  document.addEventListener('click', function(event) {
+    if (!gpCalendar || gpCalendar.hidden) return;
+    if (event.target.closest('.gp-calendar-popover') || event.target.closest('.venue-date-input-wrap')) return;
+    gpCalendar.hidden = true;
+  });
+
+  window.addEventListener('resize', function() {
+    if (!gpCalendar?.hidden && gpCalendarInput) positionCalendar(gpCalendarInput.closest('.venue-date-input-wrap') || gpCalendarInput);
+  });
+  window.addEventListener('scroll', function() {
+    if (gpCalendar && !gpCalendar.hidden) gpCalendar.hidden = true;
+  }, { passive: true });
+});
 </script>
 
 <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
