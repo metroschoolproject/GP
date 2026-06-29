@@ -697,36 +697,32 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   box-shadow: 0 2px 6px rgba(107,114,128,0.22);
 }
 
-/* ─── HERO DATE PICKER (service-detail style) ──────── */
-.gp-pkg-date-form {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 14px;
-}
+/* ─── HERO DATE PICKER (inline filter) ──────── */
 .venue-date-input-wrap {
   position: relative;
-  min-height: 36px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 248, 239, .28);
+  justify-content: space-between;
+  min-height: 40px;
+  min-width: 142px;
+  max-width: 190px;
+  width: 100%;
+  padding: 9px 14px 9px 16px;
+  border: 0.5px solid rgba(118,90,70,.20);
   border-radius: 8px;
-  background: rgba(255, 248, 239, .14);
-  color: #FFF8EF;
-  padding: 0 12px;
+  background-color: rgba(245,232,217,.90);
+  color: #765a46;
   font-size: 13px;
   font-weight: 700;
+  box-shadow: 0 10px 24px rgba(43,31,24,.12);
   cursor: pointer;
+  gap: 12px;
   overflow: hidden;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
-  transition: background .15s, border-color .15s;
+  transition: border-color 0.2s, background-color 0.2s;
 }
 .venue-date-input-wrap:hover {
-  background: rgba(255, 248, 239, .24);
-  border-color: rgba(255, 248, 239, .42);
+  background-color: #FFF8EF;
+  border-color: rgba(154,104,127,.36);
 }
 .venue-date-input-wrap input {
   position: absolute;
@@ -737,22 +733,12 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   cursor: pointer;
 }
 .venue-date-display {
-  min-width: 68px;
   pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 700;
-}
-.venue-date-icon,
-.venue-date-chevron {
-  flex: 0 0 auto;
-  pointer-events: none;
-  color: rgba(255, 248, 239, .72);
-  width: 14px !important;
-  height: 14px !important;
-  stroke-width: 2.2;
-}
-.venue-date-chevron {
-  margin-left: auto;
 }
 .gp-calendar-popover {
   position: fixed;
@@ -1813,7 +1799,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   .gp-search-field-boutique input,
   .gp-search-field-boutique select,
   .gp-pkg-select-wrap,
-  .gp-pkg-select-trigger {
+  .gp-pkg-select-trigger,
+  .venue-date-input-wrap {
     width: 100%;
     max-width: none;
   }
@@ -1849,9 +1836,10 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
       <p>From venue styling to bridal beauty, explore thoughtfully curated wedding packages made to suit your vision, style, and budget.</p>
       <section class="gp-search-boutique gp-reveal" aria-label="Search and filter">
         <form class="gp-search-panel" method="GET" action="<?= URLROOT ?>/customerServices/packages">
+          <input type="hidden" name="q" value="<?= $h($filters['search'] ?? '') ?>">
           <div class="gp-search-rows">
             <div class="gp-search-row-fields">
-              
+
               <div class="gp-search-filter-row">
                 <div class="gp-search-field-boutique">
                   <label for="f-category">Package Types</label>
@@ -1861,7 +1849,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 <option value="standard" <?= $activeCategory === 'standard' ? 'selected' : '' ?>>Standard</option>
 <option value="premium" <?= $activeCategory === 'premium' ? 'selected' : '' ?>>Premium</option>
 <option value="luxury" <?= $activeCategory === 'luxury' ? 'selected' : '' ?>>Luxury</option>
-                      
+
                     </select>
                   </span>
                 </div>
@@ -1875,30 +1863,24 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 </select>
                   </span>
                 </div>
+                <?php
+                  $selectedDateVal = $filters['date'] ?? '';
+                  $todayStr = date('Y-m-d');
+                  $maxDateStr = date('Y-m-d', strtotime('+18 months'));
+                  $dateDisplay = $selectedDateVal !== '' ? date('M j, Y', strtotime($selectedDateVal)) : 'Select date';
+                ?>
+                <div class="gp-search-field-boutique">
+                  <span class="venue-date-input-wrap">
+                    <i data-lucide="calendar-days" style="width:13px;height:13px;color:#9A687F;pointer-events:none;flex-shrink:0;"></i>
+                    <span class="venue-date-display"><?= $h($dateDisplay) ?></span>
+                    <input class="gp-calendar-input" type="date" name="date" value="<?= $h($selectedDateVal) ?>" min="<?= $h($todayStr) ?>" max="<?= $h($maxDateStr) ?>" aria-label="Filter by date">
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </form>
       </section>
-
-      <!-- Date picker (small dropdown) -->
-      <?php
-        $selectedDateVal = $filters['date'] ?? '';
-        $todayStr = date('Y-m-d');
-        $maxDateStr = date('Y-m-d', strtotime('+18 months'));
-        $dateDisplay = $selectedDateVal !== '' ? date('M j, Y', strtotime($selectedDateVal)) : 'Select date';
-      ?>
-      <form class="gp-pkg-date-form" method="GET" action="<?= URLROOT ?>/customerServices/packages">
-        <input type="hidden" name="q" value="<?= $h($filters['search'] ?? '') ?>">
-        <input type="hidden" name="category" value="<?= $h($activeCategory) ?>">
-        <input type="hidden" name="sort" value="<?= $h($activeSort) ?>">
-        <span class="venue-date-input-wrap">
-          <i class="venue-date-icon" data-lucide="calendar-days"></i>
-          <span class="venue-date-display"><?= $h($dateDisplay) ?></span>
-          <i class="venue-date-chevron" data-lucide="chevron-down"></i>
-          <input class="gp-calendar-input" type="date" name="date" value="<?= $h($selectedDateVal) ?>" min="<?= $h($todayStr) ?>" max="<?= $h($maxDateStr) ?>" aria-label="Filter by date">
-        </span>
-      </form>
 
     </div>
   </section>
