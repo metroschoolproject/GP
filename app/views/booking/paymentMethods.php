@@ -8,9 +8,10 @@ $balance = (float)($balance ?? 0);
 $bookingRef = $bookingRef ?? '';
 
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
-$platformFee = (float)($platformFee ?? 0);
+$deposit = (int)round($deposit);
+$platformFee = (int)round((float)($platformFee ?? 0));
 $platformFeePercent = (float)($platformFeePercent ?? get_platform_fee_percent());
-$depositWithFee = (float)($depositWithFee ?? $deposit);
+$depositWithFee = (int)round((float)($depositWithFee ?? $deposit));
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {

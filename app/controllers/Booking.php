@@ -687,9 +687,9 @@ class Booking extends Controller
             return;
         }
 
-        $expectedDeposit = round((float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100), 2);
-        $platformFee = round((float)$booking['total_amount'] * (get_platform_fee_percent() / 100), 2);
-        $totalDue = round($expectedDeposit + $platformFee, 2);
+        $expectedDeposit = (int)round((float)$booking['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100));
+        $platformFee = (int)round((float)$booking['total_amount'] * (get_platform_fee_percent() / 100));
+        $totalDue = $expectedDeposit + $platformFee;
         if (abs($paidAmount - $totalDue) > 0.01) {
             $_SESSION['booking_payment_flash'] = 'The payment amount must include the deposit (' . number_format($expectedDeposit, 0) . ' MMK) + platform fee (' . number_format($platformFee, 0) . ' MMK).';
             redirect('booking/pay/' . $bookingId);
