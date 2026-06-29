@@ -156,6 +156,7 @@ class SupplierServiceManager
     {
         $data = $this->applyVenueRoomPriceRange($data);
         $data = $this->applyDecorationStylePriceRange($data);
+        $data = $this->applyFoodItemPriceRange($data);
         $data = $this->applyCarItemPriceRange($data);
         $data = $this->applyRentalPriceRange($data);
         $categoryId = $this->findOrCreateCategory($data['category'] ?? 'Others');
@@ -205,6 +206,7 @@ class SupplierServiceManager
 
         $data = $this->applyVenueRoomPriceRange($data);
         $data = $this->applyDecorationStylePriceRange($data);
+        $data = $this->applyFoodItemPriceRange($data);
         $data = $this->applyCarItemPriceRange($data);
         $data = $this->applyRentalPriceRange($data);
         $categoryId = $this->findOrCreateCategory($data['category'] ?? $service['category'] ?? 'Others');
@@ -1729,6 +1731,37 @@ class SupplierServiceManager
         }
 
         $items = is_array($data['car_items'] ?? null) ? $data['car_items'] : [];
+        $prices = [];
+        foreach ($items as $item) {
+            if (!is_array($item) || trim((string)($item['name'] ?? '')) === '') {
+                continue;
+            }
+
+            $price = max(0, (float)($item['package_price'] ?? $item['price'] ?? 0));
+            if ($price > 0) {
+                $prices[] = $price;
+            }
+        }
+
+        if (!empty($prices)) {
+            $data['price'] = min($prices);
+            $data['price_min'] = min($prices);
+            $data['price_max'] = max($prices);
+            $data['package_price'] = $data['price_min'];
+            $data['customize_price'] = $data['price_max'];
+        }
+
+        return $data;
+    }
+
+    private function applyFoodItemPriceRange($data)
+    {
+        $category = strtolower((string)($data['category'] ?? ''));
+        if (!in_array($category, ['cake', 'food_drinks', 'food & drinks'], true)) {
+            return $data;
+        }
+
+        $items = is_array($data['food_items'] ?? null) ? $data['food_items'] : [];
         $prices = [];
         foreach ($items as $item) {
             if (!is_array($item) || trim((string)($item['name'] ?? '')) === '') {
