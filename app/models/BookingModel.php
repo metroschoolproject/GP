@@ -906,7 +906,10 @@ class BookingModel
     public function getBookingById(int $bookingId): array|false
     {
         $this->db->dbquery(
-            "SELECT b.*, u.name AS customer_name, u.email AS customer_email, u.phone AS customer_phone
+            "SELECT b.*, u.name AS customer_name, u.email AS customer_email, u.phone AS customer_phone,
+                    u.address AS customer_address, u.avatar AS customer_avatar, u.status AS customer_status,
+                    u.created_at AS customer_created_at, u.last_login AS customer_last_login,
+                    u.is_online AS customer_is_online
              FROM bookings b
              LEFT JOIN users u ON b.user_id = u.user_id
              WHERE b.id = :id
@@ -1856,7 +1859,7 @@ class BookingModel
         $this->db->dbquery(
             "UPDATE booking_suppliers
                 SET status = 'needs_replacement', declined_at = NOW()
-              WHERE id = :id AND status = 'confirmed'"
+              WHERE id = :id AND status IN ('confirmed', 'pending')"
         );
         $this->db->dbbind(':id', $bookingSupplierId, PDO::PARAM_INT);
         $this->db->dbexecute();
@@ -3688,6 +3691,26 @@ class BookingModel
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
             $supplierRows = $this->db->getmultidata() ?: [];
 
+            // Package bookings with verified payment: auto-confirm non-responsive
+            // suppliers instead of cancelling — the customer already paid.
+            if ($this->isPackageBooking($bookingId) && $this->isPaymentVerified($bookingId)) {
+                $this->autoConfirmAllSuppliers($bookingId);
+                $this->updateStatus($bookingId, 'confirmed');
+                $this->generateVouchers($bookingId);
+                $this->logStatusChange($bookingId, 'pending_supplier_response', 'confirmed', null, 'Auto-confirmed: supplier response deadline passed (payment already verified)');
+
+                // Still track missed responses for supplier accountability
+                foreach ($supplierRows as $sRow) {
+                    $supplierId = (int)$sRow['supplier_id'];
+                    if ($supplierId > 0) {
+                        $this->incrementMissedResponseCount($supplierId, $bookingId);
+                    }
+                }
+
+                $count++;
+                continue;
+            }
+
             $this->db->dbquery(
                 "UPDATE bookings SET status = 'cancelled' WHERE id = :id LIMIT 1"
             );
@@ -4348,17 +4371,10 @@ class BookingModel
             return false;
         }
 
-        // For package bookings: auto-confirm all suppliers and advance to confirmed.
-        // Booking type is derived from booking_items; not every schema has a
-        // booking_type column on the bookings table.
+        // For package bookings: require supplier acceptance before confirming.
         if ($this->isPackageBooking($bookingId)) {
-            $this->autoConfirmAllSuppliers($bookingId);
-            $confirmedStatus = $this->normalizeBookingStatus('confirmed');
-            $this->db->dbquery("UPDATE bookings SET status = :status WHERE id = :id LIMIT 1");
-            $this->db->dbbind(':status', $confirmedStatus);
-            $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);
-            $this->db->dbexecute();
-            $this->generateVouchers($bookingId);
+            $this->updateStatus($bookingId, 'pending_supplier_response');
+            $this->setSupplierResponseDeadline($bookingId, '+24 hours');
         }
 
         return true;

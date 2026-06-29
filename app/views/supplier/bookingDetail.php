@@ -312,7 +312,7 @@ $dashboardContent = function () use (
             </div>
           <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
             <div class="sup-response-text">New booking request — customer is requesting your services</div>
-            <div class="sup-response-sub">Please accept or decline within 48 hours. No payment has been collected yet.</div>
+            <div class="sup-response-sub">Please accept or decline within 24 hours.<?php if ($paymentStatus === 'verified' || $paymentStatus === 'paid'): ?> Payment has been verified.<?php else: ?> No payment has been collected yet.<?php endif; ?></div>
           <?php else: ?>
             <div class="sup-response-text">This booking requires your response</div>
             <div class="sup-response-sub">Accept or decline to update the booking status.</div>

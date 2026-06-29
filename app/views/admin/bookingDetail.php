@@ -784,6 +784,12 @@ $dashboardContent = function () use (
   .bkd-cust-name { font-size: 13px; font-weight: 700; color: var(--bkd-text); }
   .bkd-cust-detail { font-size: 11px; color: var(--bkd-muted); margin-top: 2px; }
 
+  /* ── Key-Value grid (customer info) ── */
+  .bkd-kv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .bkd-kv { border: 1px solid var(--bkd-border-light); border-radius: 8px; padding: 8px 10px; background: #fdfaf6; }
+  .bkd-kv-label { display: block; font-size: 9px; font-weight: 700; color: var(--bkd-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .bkd-kv-value { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: var(--bkd-text); }
+
   /* ── Timeline ── */
   .bkd-timeline { display: grid; }
   .bkd-timeline-item { display: grid; grid-template-columns: 16px 1fr; gap: 8px; }
@@ -1341,18 +1347,62 @@ $dashboardContent = function () use (
     </details>
 
     <!-- Customer -->
-    <details class="bkd-section">
+    <details class="bkd-section" open>
       <summary>
         <i data-lucide="user-circle" style="width:16px;height:16px;color:var(--bkd-primary)"></i>
         Customer
       </summary>
       <div class="bkd-section-body">
+        <?php
+          $custStatus = strtolower((string)($booking['customer_status'] ?? ''));
+          $custDeleted = !empty($booking['deleted_at']);
+          $statusMeta = static function ($s, $deleted) {
+              if ($deleted) return ['Deleted', '#8c3941', 'trash-2'];
+              return match ($s) {
+                  'active' => ['Active', '#4f7c69', 'circle-check'],
+                  'suspended' => ['Suspended', '#b7792f', 'pause-circle'],
+                  'banned' => ['Banned', '#b94b4b', 'ban'],
+                  'locked' => ['Locked', '#7b5c69', 'lock'],
+                  default => [ucfirst($s ?: 'Unknown'), '#7b5c69', 'circle'],
+              };
+          };
+          [$statusLabel, $statusColor, $statusIcon] = $statusMeta($custStatus, $custDeleted);
+          $isOnline = !empty($booking['customer_is_online']);
+        ?>
         <div class="bkd-cust">
           <div class="bkd-avatar"><?= $h($custInitials) ?></div>
-          <div>
-            <div class="bkd-cust-name"><?= $h($custName) ?></div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div class="bkd-cust-name"><?= $h($custName) ?></div>
+              <span style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:9px;font-weight:800;text-transform:uppercase;color:<?= $h($statusColor) ?>;background:color-mix(in srgb,<?= $h($statusColor) ?> 11%,white)">
+                <i data-lucide="<?= $h($statusIcon) ?>" style="width:10px;height:10px"></i>
+                <?= $h($statusLabel) ?>
+              </span>
+              <?php if ($isOnline): ?>
+                <span style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:9px;font-weight:700;color:#3c6b51;background:#eef7f1">
+                  <span style="width:6px;height:6px;border-radius:50%;background:#3c6b51"></span>
+                  Online
+                </span>
+              <?php endif; ?>
+            </div>
             <div class="bkd-cust-detail"><?= $h($booking['customer_email'] ?? '—') ?></div>
             <div class="bkd-cust-detail"><?= $h($booking['customer_phone'] ?? '—') ?></div>
+            <?php if (!empty($booking['customer_address'])): ?>
+              <div class="bkd-cust-detail" style="margin-top:4px">
+                <i data-lucide="map-pin" style="width:12px;height:12px;vertical-align:-2px;opacity:.5"></i>
+                <?= $h($booking['customer_address']) ?>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+        <div class="bkd-kv-grid" style="margin-top:14px">
+          <div class="bkd-kv">
+            <span class="bkd-kv-label">Member Since</span>
+            <span class="bkd-kv-value"><?= $h($booking['customer_created_at'] ? date('M j, Y', strtotime($booking['customer_created_at'])) : '—') ?></span>
+          </div>
+          <div class="bkd-kv">
+            <span class="bkd-kv-label">Last Login</span>
+            <span class="bkd-kv-value"><?= $h($booking['customer_last_login'] ? date('M j, Y g:i A', strtotime($booking['customer_last_login'])) : '—') ?></span>
           </div>
         </div>
       </div>

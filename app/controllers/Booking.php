@@ -2042,11 +2042,16 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Booking not found'], 404);
         }
 
-        // Lazy-expire: if deadline passed, auto-cancel before supplier can respond
+        // Lazy-expire: if deadline passed, auto-cancel or auto-confirm before supplier can respond
         if (($booking['status'] ?? '') === 'pending_supplier_response'
             && !empty($booking['supplier_response_deadline'])
             && strtotime($booking['supplier_response_deadline']) < time()) {
             $this->bookingModel->expireOverdueBookingRequests();
+            // Re-fetch to see what happened (cancelled for custom, auto-confirmed for paid packages)
+            $booking = $this->bookingModel->getBookingById($bookingId);
+            if (($booking['status'] ?? '') === 'confirmed') {
+                $this->jsonResponse(['error' => 'The response deadline has passed. This booking has been automatically confirmed.'], 410);
+            }
             $this->jsonResponse(['error' => 'The response deadline has passed. This booking has been automatically cancelled.'], 410);
         }
 
@@ -2101,13 +2106,12 @@ class Booking extends Controller
         $rowId = (int)$matchingRows[0]['id'];
         $supplierRow = $matchingRows[0];
 
-        // A decline on a CONFIRMED package booking does not cancel the booking —
-        // it opens an admin-driven supplier replacement instead (see
-        // .claude/plans/admin-supplier-replacement-on-decline.md). The custom
-        // pre-payment flow keeps the original cancel behaviour.
+        // A decline on a package booking with verified payment does not cancel
+        // the booking — it opens an admin-driven supplier replacement instead.
+        // Custom pre-payment bookings keep the original cancel behaviour.
         $isReplaceFlow = $action === 'decline'
-            && !$isPendingSupplierResponse
-            && $this->bookingModel->isPackageBooking($bookingId);
+            && $this->bookingModel->isPackageBooking($bookingId)
+            && (!$isPendingSupplierResponse || $this->bookingModel->isPaymentVerified($bookingId));
 
         // Rules for a supplier self-declining a confirmed package booking:
         // reason is mandatory, and it must be far enough before the event that
@@ -2142,6 +2146,11 @@ class Booking extends Controller
                 $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
             }
             $this->bookingModel->logStatusChange($bookingId, null, 'supplier_needs_replacement', null, 'Supplier declined; awaiting admin replacement');
+            // Advance booking out of pending_supplier_response
+            if ($isPendingSupplierResponse) {
+                $this->bookingModel->updateStatus($bookingId, 'suppliers_responding');
+                $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'suppliers_responding', null, 'Supplier declined; admin replacement needed');
+            }
         } else {
             $newStatus = $action === 'accept' ? 'confirmed' : 'rejected';
             $itemStatus = $action === 'accept' ? 'accepted' : 'cancelled';
@@ -2177,34 +2186,64 @@ class Booking extends Controller
             if ($action === 'accept') {
                 // Advance booking only once ALL suppliers have accepted
                 if ($this->bookingModel->allSuppliersAccepted($bookingId)) {
-                    $this->bookingModel->updateStatus($bookingId, 'pending_payment');
-                    $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'pending_payment', null, 'All suppliers accepted');
-                    $this->notificationModel->notifyBookingCustomer(
-                        $bookingId,
-                        'Supplier Accepted — Please Pay',
-                        $shopName . ' accepted your booking request. Please complete your ' . BOOKING_DEPOSIT_PERCENT . '% deposit to confirm.',
-                        'booking'
-                    );
+                    // Package bookings: payment is already verified → confirm directly
+                    if ($this->bookingModel->isPackageBooking($bookingId) && $this->bookingModel->isPaymentVerified($bookingId)) {
+                        $this->bookingModel->updateStatus($bookingId, 'confirmed');
+                        $this->bookingModel->generateVouchers($bookingId);
+                        $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'confirmed', null, 'All suppliers accepted — booking confirmed');
+                        $this->notificationModel->notifyBookingCustomer(
+                            $bookingId,
+                            'Booking Confirmed',
+                            'All suppliers accepted your booking. Your booking is now confirmed!',
+                            'booking'
+                        );
+                    } else {
+                        $this->bookingModel->updateStatus($bookingId, 'pending_payment');
+                        $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'pending_payment', null, 'All suppliers accepted');
+                        $this->notificationModel->notifyBookingCustomer(
+                            $bookingId,
+                            'Supplier Accepted — Please Pay',
+                            $shopName . ' accepted your booking request. Please complete your ' . BOOKING_DEPOSIT_PERCENT . '% deposit to confirm.',
+                            'booking'
+                        );
+                    }
                     if (!empty($customerInfo['email'])) {
                         $emailService = new EmailService();
                         $emailService->sendSupplierAccepted($customerInfo, $shopName, $firstItemName, $firstItemDate, $bookingId);
                     }
                 }
             } elseif ($action === 'decline') {
-                $this->bookingModel->updateStatus($bookingId, 'cancelled');
-                $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'cancelled', null, 'Supplier declined');
-                $this->bookingModel->releaseBookingSlots($bookingId);
-                $this->bookingModel->releaseAttireItems($bookingId);
-                $this->bookingModel->cancelAllSuppliers($bookingId);
-                $this->notificationModel->notifyBookingCustomer(
-                    $bookingId,
-                    'Booking Request Declined',
-                    $shopName . ' is unavailable for your requested dates. Please search for another supplier.',
-                    'booking'
-                );
-                if (!empty($customerInfo['email'])) {
-                    $emailService = new EmailService();
-                    $emailService->sendSupplierDeclined($customerInfo, $shopName, $firstItemName, $firstItemDate, $bookingId);
+                // Package bookings with verified payment use replacement flow (handled above)
+                if ($isReplaceFlow) {
+                    $this->notificationModel->notifyAdmins(
+                        'Supplier Replacement Needed',
+                        $shopName . ' declined booking #' . $bookingId . '. Please choose a replacement supplier.',
+                        'booking',
+                        'booking',
+                        $bookingId
+                    );
+                    $this->notificationModel->notifyBookingCustomer(
+                        $bookingId,
+                        'Arranging a Replacement',
+                        $shopName . ' is unavailable for your date. We are arranging a replacement for you — no action needed right now.',
+                        'booking'
+                    );
+                } else {
+                    $this->bookingModel->updateStatus($bookingId, 'cancelled');
+                    $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'cancelled', null, 'Supplier declined');
+                    $this->bookingModel->releaseBookingSlots($bookingId);
+                    $this->bookingModel->releaseAttireItems($bookingId);
+                    $this->bookingModel->cancelAllSuppliers($bookingId);
+                    $this->notificationModel->notifyBookingCustomer(
+                        $bookingId,
+                        'Booking Request Declined',
+                        $shopName . ' is unavailable for your requested dates. Please search for another supplier.',
+                        'booking'
+                    );
+                    if (!empty($customerInfo['email'])) {
+                        $emailService = new EmailService();
+                        $emailService->sendSupplierDeclined($customerInfo, $shopName, $firstItemName, $firstItemDate, $bookingId);
+                    }
                 }
             }
 
