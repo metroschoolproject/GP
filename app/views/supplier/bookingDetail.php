@@ -210,13 +210,16 @@ $dashboardContent = function () use (
         ?? $items[0]['category_name']
         ?? ''
     );
-    $assignmentDate = (string)($primarySchedule['event_date'] ?? $firstDate);
-    $assignmentStart = (string)($primarySchedule['start_time'] ?? $firstStart);
-    $assignmentEnd = (string)($primarySchedule['end_time'] ?? $firstEnd);
+    // Use customer-entered event details (from event_details) as primary source,
+    // fall back to package schedule only when event_details has no data.
+    $assignmentDate = (string)($firstDate ?: ($primarySchedule['event_date'] ?? ''));
+    $assignmentStart = (string)($firstStart ?: ($primarySchedule['start_time'] ?? ''));
+    $assignmentEnd = (string)($firstEnd ?: ($primarySchedule['end_time'] ?? ''));
+    // Venue: always prefer customer-entered address over venue room names
     $assignmentVenue = trim((string)(
-        $primarySchedule['venue_room_name']
-        ?? $items[0]['venue_room_name']
-        ?? $firstLocation
+        $firstLocation
+        ?: ($primarySchedule['venue_room_name'] ?? '')
+        ?: ($items[0]['venue_room_name'] ?? '')
     ));
     $assignmentStatusLabel = $needsResponse
         ? 'Awaiting your response'
@@ -283,7 +286,7 @@ $dashboardContent = function () use (
       </div>
     </div>
 
-    <!-- Response bar — inline, no yellow background -->
+    <!-- Response required notice (no actions - those are on assignments page) -->
     <?php if ($needsResponse):
         $isReplacementAssignment = !empty($activeReplacement);
         $replOrigSupplier = $isReplacementAssignment ? trim((string)($activeReplacement['old_shop_name'] ?? $activeReplacement['old_supplier_name'] ?? '')) : '';
@@ -305,51 +308,23 @@ $dashboardContent = function () use (
             <div class="sup-response-text">You've been assigned as a replacement</div>
             <div class="sup-response-sub">
               <?php if ($replOrigSupplier !== ''): ?>
-                <?= $h($replOrigSupplier) ?><?php if ($replOrigService !== ''): ?>'s <?= $h($replOrigService) ?><?php endif; ?> is no longer available. Please accept or decline this replacement assignment.
+                <?= $h($replOrigSupplier) ?><?php if ($replOrigService !== ''): ?>'s <?= $h($replOrigService) ?><?php endif; ?> is no longer available.
               <?php else: ?>
-                A previous supplier declined this booking. Please accept or decline this replacement assignment.
+                A previous supplier declined this booking.
               <?php endif; ?>
+              <a href="<?= URLROOT ?>/supplier/assignments" style="color:var(--primary);text-decoration:underline;font-weight:600">Go to Assignments to respond</a>
             </div>
           <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
             <div class="sup-response-text">New booking request — customer is requesting your services</div>
-            <div class="sup-response-sub">Please accept or decline within 24 hours.<?php if ($paymentStatus === 'verified' || $paymentStatus === 'paid'): ?> Payment has been verified.<?php else: ?> No payment has been collected yet.<?php endif; ?></div>
+            <div class="sup-response-sub">
+              <?php if ($paymentStatus === 'verified' || $paymentStatus === 'paid'): ?>Payment has been verified.<?php else: ?>No payment has been collected yet.<?php endif; ?>
+              <a href="<?= URLROOT ?>/supplier/assignments" style="color:var(--primary);text-decoration:underline;font-weight:600">Go to Assignments to accept or decline</a>
+            </div>
           <?php else: ?>
             <div class="sup-response-text">This booking requires your response</div>
-            <div class="sup-response-sub">Accept or decline to update the booking status.</div>
+            <div class="sup-response-sub"><a href="<?= URLROOT ?>/supplier/assignments" style="color:var(--primary);text-decoration:underline;font-weight:600">Go to Assignments to respond</a></div>
           <?php endif; ?>
         </div>
-      </div>
-      <div class="sup-response-actions">
-        <button type="button" class="booking-action sup-btn sup-btn--accept" data-action="accept">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-          <?php if ($isReplacementAssignment): ?>
-            Accept Assignment
-          <?php elseif ($hasMultipleServices && $hasPendingServices): ?>
-            Accept All Services
-          <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
-            Accept Request
-          <?php else: ?>
-            Accept
-          <?php endif; ?>
-        </button>
-        <button type="button" class="booking-action sup-btn sup-btn--decline" data-action="decline">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-          <?php if ($isReplacementAssignment): ?>
-            Decline Assignment
-          <?php elseif ($hasMultipleServices && $hasPendingServices): ?>
-            Decline All Services
-          <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
-            Decline Request
-          <?php else: ?>
-            Decline
-          <?php endif; ?>
-        </button>
-        <?php if (!$isReplacementAssignment && $bookingStatus !== 'pending_supplier_response'): ?>
-        <button type="button" id="reschedule-btn" class="sup-btn sup-btn--ghost">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 2v2M11 2v2M2 7h12"/></svg>
-          Propose reschedule
-        </button>
-        <?php endif; ?>
       </div>
     </div>
     <?php endif; ?>
@@ -469,56 +444,6 @@ $dashboardContent = function () use (
       </div>
       <span class="sup-assignment-status"><?= $h($assignmentStatusLabel) ?></span>
     </div>
-    <?php if ($hasMultipleServices): ?>
-    <div class="sup-assignment-services-list">
-      <?php foreach ($assignedServices as $svc):
-        $svcBsid = $svc['booking_supplier_id'];
-        $svcDetail = null;
-        foreach ($myServiceRows as $sr) {
-            if ((int)$sr['id'] === $svcBsid) { $svcDetail = $sr; break; }
-        }
-        $svcItem = null;
-        foreach ($items as $it) {
-            if ((int)($it['service_id'] ?? 0) === (int)($svcDetail['service_id'] ?? 0) && empty($it['package_booking_item_id'])) {
-                $svcItem = $it; break;
-            }
-        }
-        $svcItemId = $svcItem ? (int)$svcItem['id'] : 0;
-        $svcD = $svcItemId > 0 ? ($detailByItem[$svcItemId] ?? []) : [];
-        $svcDate = (string)($svcD['event_date'] ?? $firstDate);
-        $svcStart = (string)($svcD['start_time'] ?? '');
-        $svcEnd = (string)($svcD['end_time'] ?? '');
-        $svcBookingType = $svcItem ? ($svcItem['booking_type'] ?? 'fullday') : ($svcDetail['booking_type'] ?? 'fullday');
-        $svcTimeDisplay = $svcBookingType === 'fullday' ? 'Full day' : $h(trim($formatTime($svcStart) . ($svcEnd !== '' ? ' – ' . $formatTime($svcEnd) : '')) ?: '');
-      ?>
-        <div class="sup-assignment-service-card">
-          <div class="sup-assignment-service-info">
-            <strong><?= $h($svc['name']) ?></strong>
-            <span class="sup-assignment-service-meta">
-              <?= $h($svc['category'] !== '' ? $svc['category'] : 'Service') ?>
-              <?php if ($svcDate !== ''): ?> · <?= $h($formatDate($svcDate)) ?><?php endif; ?>
-              <?php if ($svcTimeDisplay !== ''): ?> · <?= $svcTimeDisplay ?><?php endif; ?>
-            </span>
-          </div>
-          <div class="sup-assignment-service-right">
-            <span class="sup-badge <?= $statusBadgeClass($svc['status']) ?>"><?= $h(ucfirst($svc['status'])) ?></span>
-            <?php if ($needsResponse && $svc['status'] === 'pending'): ?>
-              <div class="sup-assignment-service-actions">
-                <button type="button" class="sup-btn sup-btn--accept sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svcBsid ?>" data-action="accept">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-                  Accept
-                </button>
-                <button type="button" class="sup-btn sup-btn--decline sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svcBsid ?>" data-action="decline">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-                  Decline
-                </button>
-              </div>
-            <?php endif; ?>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-    <?php endif; ?>
     <?php $isDayBased = ($primarySchedule['booking_type'] ?? '') === 'fullday'; ?>
     <div class="sup-assignment-facts">
       <div class="sup-assignment-fact">
@@ -749,75 +674,6 @@ $dashboardContent = function () use (
         <?php endif; ?>
       </div>
     </div>
-  <?php endif; ?>
-
-  <?php if (!empty($declinableRows) && !$needsResponse && empty($isCancelledOrReplaced)): ?>
-  <details class="sup-secondary-action">
-    <summary>Can’t fulfill this assignment?</summary>
-    <div class="sup-selfdecline">
-      <div class="sup-selfdecline-head">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
-        <div>
-          <div class="sup-response-text">Decline a specific service</div>
-          <?php if ($isPackage): ?>
-            <div class="sup-response-sub">Admin will arrange another supplier. Available until <?= (int)$declineCutoffDays ?> days before the event.</div>
-          <?php else: ?>
-            <div class="sup-response-sub">The customer will be notified and the booking will be cancelled. Available until <?= (int)$declineCutoffDays ?> days before the event.</div>
-          <?php endif; ?>
-        </div>
-      </div>
-      <ul class="sup-selfdecline-list">
-        <?php foreach ($declinableRows as $row): ?>
-          <li class="sup-selfdecline-item">
-            <div class="sup-selfdecline-svc">
-              <strong><?= $h($row['service_name'] ?? 'Service') ?></strong>
-              <?php if (!empty($row['category_name'])): ?><span><?= $h($row['category_name']) ?></span><?php endif; ?>
-            </div>
-            <button type="button" class="sup-btn sup-btn--decline selfdecline-btn"
-                    data-bsid="<?= (int)$row['id'] ?>"
-                    data-svc="<?= $h($row['service_name'] ?? 'this service') ?>">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-              Can't fulfill
-            </button>
-          </li>
-        <?php endforeach; ?>
-      </ul>
-    </div>
-  </details>
-  <?php endif; ?>
-
-  <?php if ($supplierCancellationRequested): ?>
-  <div class="sup-response-bar" style="background:#fffbeb;border-color:#fde68a">
-    <div class="sup-response-info">
-      <div class="sup-response-icon" style="color:#d97706">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
-      </div>
-      <div>
-        <div class="sup-response-text">Cancellation request submitted</div>
-        <div class="sup-response-sub">Admin will review your request and process the refund. The customer has been notified.</div>
-      </div>
-    </div>
-  </div>
-  <?php endif; ?>
-
-  <?php if ($canRequestCancellation && empty($isCancelledOrReplaced)): ?>
-  <details class="sup-secondary-action">
-    <summary>Need to cancel this booking?</summary>
-    <div class="sup-selfdecline">
-      <div class="sup-selfdecline-head">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
-        <div>
-          <div class="sup-response-text">Request booking cancellation</div>
-          <div class="sup-response-sub">The customer and admin will be notified. Admin will review and process the refund.</div>
-        </div>
-      </div>
-      <button type="button" class="sup-btn sup-btn--decline" id="supplier-cancel-btn"
-              style="margin-top:10px">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-        Request Cancellation
-      </button>
-    </div>
-  </details>
   <?php endif; ?>
 
   <details class="sup-booking-details">
@@ -1225,89 +1081,6 @@ $dashboardContent = function () use (
     </div>
   </div>
 
-  <!-- ── Decline (self-decline → replacement) Modal ── -->
-  <div id="decline-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="decline-modal-title">
-    <div class="sup-modal">
-      <div class="sup-modal-head">
-        <h2 id="decline-modal-title" class="sup-modal-title">Can’t fulfill this service</h2>
-        <button type="button" class="decline-close sup-modal-close" aria-label="Close">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-        </button>
-      </div>
-      <form id="decline-form">
-        <div class="sup-modal-body">
-          <p class="sup-response-sub" style="margin-bottom:14px">
-            The customer keeps the booking. Admin will assign another supplier to this service.
-          </p>
-          <div class="sup-field" style="margin-bottom:0">
-            <label class="sup-label" for="dec-reason">Reason <span style="color:var(--sup-danger-text)">*</span></label>
-            <textarea id="dec-reason" name="reason" rows="3" required minlength="10" maxlength="500" placeholder="e.g., Already booked for this date, schedule conflict, equipment unavailable" class="sup-textarea"></textarea>
-            <span class="sup-char-count" id="dec-char-count">0 / 500</span>
-          </div>
-        </div>
-        <div class="sup-modal-foot">
-          <button type="button" class="decline-close sup-btn sup-btn--ghost">Cancel</button>
-          <button type="submit" class="sup-btn sup-btn--decline">Confirm decline</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Cancellation decline modal -->
-  <div id="cancel-decline-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="cancel-decline-modal-title">
-    <div class="sup-modal">
-      <div class="sup-modal-head">
-        <h2 id="cancel-decline-modal-title" class="sup-modal-title">Decline Cancellation Request</h2>
-        <button type="button" class="cancel-decline-close sup-modal-close" aria-label="Close">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-        </button>
-      </div>
-      <form id="cancel-decline-form">
-        <div class="sup-modal-body">
-          <p class="sup-response-sub" style="margin-bottom:14px">
-            The booking will remain active. The customer and admin will be notified of your decision.
-          </p>
-          <div class="sup-field" style="margin-bottom:0">
-            <label class="sup-label" for="cancel-dec-reason">Reason for declining <span style="color:var(--sup-danger-text)">*</span></label>
-            <textarea id="cancel-dec-reason" name="reason" rows="3" required placeholder="e.g. Work already started, materials purchased" class="sup-textarea"></textarea>
-          </div>
-        </div>
-        <div class="sup-modal-foot">
-          <button type="button" class="cancel-decline-close sup-btn sup-btn--ghost">Cancel</button>
-          <button type="submit" class="sup-btn sup-btn--decline">Submit decline</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Supplier Request Cancellation Modal -->
-  <div id="supplier-cancel-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="supplier-cancel-modal-title">
-    <div class="sup-modal">
-      <div class="sup-modal-head">
-        <h2 id="supplier-cancel-modal-title" class="sup-modal-title">Request Booking Cancellation</h2>
-        <button type="button" class="supplier-cancel-close sup-modal-close" aria-label="Close">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-        </button>
-      </div>
-      <form id="supplier-cancel-form">
-        <div class="sup-modal-body">
-          <p class="sup-response-sub" style="margin-bottom:14px">
-            The customer and admin will be notified of your cancellation request. Admin will review and process any applicable refund.
-          </p>
-          <div class="sup-field" style="margin-bottom:0">
-            <label class="sup-label" for="supplier-cancel-reason">Reason for cancellation <span style="color:var(--sup-danger-text)">*</span></label>
-            <textarea id="supplier-cancel-reason" name="reason" rows="3" required minlength="10" maxlength="500" placeholder="e.g., Unforeseen circumstances, double booking, unable to fulfill" class="sup-textarea"></textarea>
-            <span class="sup-char-count" id="supplier-cancel-char-count">0 / 500</span>
-          </div>
-        </div>
-        <div class="sup-modal-foot">
-          <button type="button" class="supplier-cancel-close sup-btn sup-btn--ghost">Cancel</button>
-          <button type="submit" class="sup-btn sup-btn--decline">Submit cancellation request</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
 </div>
 
 <script>
@@ -1441,266 +1214,6 @@ $dashboardContent = function () use (
         } else {
           supToastError(data.error || 'Could not send reschedule proposal.');
         }
-      } catch (err) {
-        supToastError('Network error. Please try again.');
-      }
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = original;
-    });
-  }
-
-  /* ── Accept / Decline ── */
-  document.querySelectorAll('.booking-action').forEach(function(button){
-    button.addEventListener('click', async function(){
-      button.disabled = true;
-      var original = button.innerHTML;
-      button.innerHTML = 'Updating…';
-
-      var formData = new FormData();
-      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
-      formData.append('action', button.dataset.action);
-      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-
-      try {
-        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
-        var data = await resp.json().catch(function(){ return {}; });
-        if (data.success) {
-          supToastSuccess(button.dataset.action === 'accept' ? 'Booking accepted!' : 'Booking declined.');
-          setTimeout(function() { window.location.reload(); }, 1200);
-          return;
-        }
-        supToastError(data.error || 'Could not update booking.');
-      } catch (err) {
-        supToastError('Network error. Please try again.');
-      }
-      button.disabled = false;
-      button.innerHTML = original;
-    });
-  });
-
-  /* ── Per-service accept/decline buttons (multi-service assignments) ── */
-  document.querySelectorAll('.service-accept-btn').forEach(function(button){
-    button.addEventListener('click', async function(){
-      var bsId = button.dataset.bookingSupplierId;
-      var action = button.dataset.action;
-      if (!bsId) return;
-
-      var row = button.closest('.sup-assignment-service-item');
-      var btns = row ? row.querySelectorAll('.service-accept-btn') : [];
-      btns.forEach(function(b){ b.disabled = true; });
-      var original = button.innerHTML;
-      button.innerHTML = 'Updating…';
-
-      var formData = new FormData();
-      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
-      formData.append('booking_supplier_id', bsId);
-      formData.append('action', action);
-      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-
-      try {
-        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
-        var data = await resp.json().catch(function(){ return {}; });
-        if (data.success) {
-          supToastSuccess(action === 'accept' ? 'Service accepted!' : 'Service declined.');
-          setTimeout(function() { window.location.reload(); }, 1200);
-          return;
-        }
-        supToastError(data.error || 'Could not update service.');
-      } catch (err) {
-        supToastError('Network error. Please try again.');
-      }
-      btns.forEach(function(b){ b.disabled = false; });
-      button.innerHTML = original;
-    });
-  });
-
-  /* ── Self-decline per service (confirmed package → replacement) ── */
-  var declineModal = document.getElementById('decline-modal');
-  var declineBtns  = document.querySelectorAll('.selfdecline-btn');
-  var declineForm  = document.getElementById('decline-form');
-  var declineTitle = document.getElementById('decline-modal-title');
-  var declineTarget = null;
-
-  if (declineModal && declineForm && declineBtns.length) {
-    /* Character counter for decline textarea */
-    var decReason = document.getElementById('dec-reason');
-    var decCharCount = document.getElementById('dec-char-count');
-    if (decReason && decCharCount) {
-      decReason.addEventListener('input', function() {
-        var len = decReason.value.length;
-        decCharCount.textContent = len + ' / 500';
-        decCharCount.classList.toggle('is-over', len > 500);
-      });
-    }
-
-    declineBtns.forEach(function(btn){
-      btn.addEventListener('click', function(){
-        declineTarget = btn.dataset.bsid || '';
-        if (declineTitle) declineTitle.textContent = 'Decline “' + (btn.dataset.svc || 'this service') + '”';
-        document.getElementById('dec-reason').value = '';
-        if (decCharCount) decCharCount.textContent = '0 / 500';
-        declineModal.classList.add('is-open');
-        if (decReason) decReason.focus();
-      });
-    });
-    document.querySelectorAll('.decline-close').forEach(function(b){
-      b.addEventListener('click', function(){ declineModal.classList.remove('is-open'); });
-    });
-    declineModal.addEventListener('click', function(e){ if (e.target === declineModal) declineModal.classList.remove('is-open'); });
-
-    declineForm.addEventListener('submit', async function(e){
-      e.preventDefault();
-      var reason = (document.getElementById('dec-reason').value || '').trim();
-      if (!reason || reason.length < 10) { supToastWarning('Please provide a reason (at least 10 characters).'); return; }
-      if (!declineTarget) { supToastWarning('No service selected.'); return; }
-
-      var submitBtn = declineForm.querySelector('button[type="submit"]');
-      var original = submitBtn.innerHTML;
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = 'Submitting…';
-
-      var formData = new FormData();
-      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
-      formData.append('booking_supplier_id', declineTarget);
-      formData.append('action', 'decline');
-      formData.append('reason', reason);
-      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-
-      try {
-        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
-        var data = await resp.json().catch(function(){ return {}; });
-        if (data.success) {
-          supToastSuccess('Service declined. Admin will arrange a replacement.');
-          setTimeout(function() { window.location.reload(); }, 1200);
-          return;
-        }
-        supToastError(data.error || 'Could not submit your decline.');
-      } catch (err) {
-        supToastError('Network error. Please try again.');
-      }
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = original;
-    });
-  }
-
-  /* ── Cancellation review (approve / decline) ── */
-  var cancelDeclineModal = document.getElementById('cancel-decline-modal');
-  var cancelDeclineForm = document.getElementById('cancel-decline-form');
-  var cancellationBtns = document.querySelectorAll('.cancellation-review-btn');
-
-  if (cancellationBtns.length) {
-    cancellationBtns.forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var action = btn.dataset.action;
-        if (action === 'decline') {
-          // Open modal to get reason
-          document.getElementById('cancel-dec-reason').value = '';
-          if (cancelDeclineModal) cancelDeclineModal.classList.add('is-open');
-        } else {
-          // Approve directly
-          submitCancellationReview('approve', '');
-        }
-      });
-    });
-
-    // Close modal handlers
-    if (cancelDeclineModal) {
-      document.querySelectorAll('.cancel-decline-close').forEach(function(b) {
-        b.addEventListener('click', function() { cancelDeclineModal.classList.remove('is-open'); });
-      });
-      cancelDeclineModal.addEventListener('click', function(e) { if (e.target === cancelDeclineModal) cancelDeclineModal.classList.remove('is-open'); });
-    }
-
-    // Decline form submit
-    if (cancelDeclineForm) {
-      cancelDeclineForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var reason = (document.getElementById('cancel-dec-reason').value || '').trim();
-        if (!reason) { supToastWarning('Please enter a reason.'); return; }
-        submitCancellationReview('decline', reason);
-        if (cancelDeclineModal) cancelDeclineModal.classList.remove('is-open');
-      });
-    }
-  }
-
-  async function submitCancellationReview(action, reason) {
-    var formData = new FormData();
-    formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
-    formData.append('action', action);
-    formData.append('reason', reason);
-    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-
-    try {
-      var resp = await fetch('<?= URLROOT ?>/supplier/bookingCancellationRespond', { method: 'POST', body: formData });
-      var data = await resp.json().catch(function(){ return {}; });
-      if (data.success) {
-        supToastSuccess(action === 'approve' ? 'Cancellation approved.' : 'Cancellation declined.');
-        setTimeout(function() { window.location.reload(); }, 1200);
-        return;
-      }
-      supToastError(data.error || 'Could not process your response.');
-    } catch (err) {
-      supToastError('Network error. Please try again.');
-    }
-  }
-
-  /* ── Supplier request cancellation ── */
-  var supplierCancelBtn   = document.getElementById('supplier-cancel-btn');
-  var supplierCancelModal = document.getElementById('supplier-cancel-modal');
-  var supplierCancelForm  = document.getElementById('supplier-cancel-form');
-
-  if (supplierCancelBtn && supplierCancelModal && supplierCancelForm) {
-    var scReason = document.getElementById('supplier-cancel-reason');
-    var scCharCount = document.getElementById('supplier-cancel-char-count');
-
-    if (scReason && scCharCount) {
-      scReason.addEventListener('input', function() {
-        scCharCount.textContent = scReason.value.length + ' / 500';
-      });
-    }
-
-    supplierCancelBtn.addEventListener('click', function() {
-      scReason.value = '';
-      if (scCharCount) scCharCount.textContent = '0 / 500';
-      supplierCancelModal.classList.add('is-open');
-      scReason.focus();
-    });
-
-    document.querySelectorAll('.supplier-cancel-close').forEach(function(b) {
-      b.addEventListener('click', function() { supplierCancelModal.classList.remove('is-open'); });
-    });
-    supplierCancelModal.addEventListener('click', function(e) {
-      if (e.target === supplierCancelModal) supplierCancelModal.classList.remove('is-open');
-    });
-
-    supplierCancelForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      var reason = (scReason.value || '').trim();
-      if (!reason || reason.length < 10) {
-        supToastWarning('Please provide a reason (at least 10 characters).');
-        return;
-      }
-
-      var submitBtn = supplierCancelForm.querySelector('button[type="submit"]');
-      var original = submitBtn.innerHTML;
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = 'Submitting…';
-
-      var formData = new FormData();
-      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
-      formData.append('reason', reason);
-      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-
-      try {
-        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRequestCancellation', { method: 'POST', body: formData });
-        var data = await resp.json().catch(function(){ return {}; });
-        if (data.success) {
-          supplierCancelModal.classList.remove('is-open');
-          supToastSuccess('Cancellation request submitted. Admin will review.');
-          setTimeout(function() { window.location.reload(); }, 1500);
-          return;
-        }
-        supToastError(data.error || 'Could not submit cancellation request.');
       } catch (err) {
         supToastError('Network error. Please try again.');
       }

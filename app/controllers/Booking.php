@@ -1859,24 +1859,62 @@ class Booking extends Controller
 
         $assignments = $this->bookingModel->getSupplierAssignments($supplierId);
 
-        // Enrich with booking refs and split into pending vs confirmed
-        $pendingAssignments = [];
-        $activeAssignments = [];
-        foreach ($assignments as &$a) {
-            $a['booking_ref'] = $this->bookingModel->generateBookingRef((int)$a['booking_id']);
+        // Group by booking_id so each card shows all assigned services
+        $grouped = [];
+        foreach ($assignments as $a) {
+            $bid = (int)$a['booking_id'];
+            if (!isset($grouped[$bid])) {
+                $grouped[$bid] = [
+                    'booking_id' => $bid,
+                    'booking_ref' => $this->bookingModel->generateBookingRef($bid),
+                    'booking_status' => $a['booking_status'] ?? '',
+                    'customer_name' => $a['customer_name'] ?? 'Customer',
+                    'event_date' => $a['event_date'] ?? '',
+                    'venue' => $a['venue'] ?? '',
+                    'total_amount' => (float)($a['total_amount'] ?? 0),
+                    'paid_amount' => (float)($a['paid_amount'] ?? 0),
+                    'payment_status' => $a['payment_status'] ?? 'pending',
+                    'supplier_response_deadline' => $a['supplier_response_deadline'] ?? '',
+                    'services' => [],
+                    'has_pending' => false,
+                    'has_replacement' => false,
+                ];
+            }
+            $grouped[$bid]['services'][] = [
+                'booking_supplier_id' => (int)$a['booking_supplier_id'],
+                'service_name' => $a['assigned_service_name'] ?? 'Service',
+                'category_name' => $a['category_name'] ?? '',
+                'supplier_status' => $a['supplier_status'] ?? 'pending',
+                'replacement_id' => (int)($a['replacement_id'] ?? 0),
+                'original_supplier_name' => $a['original_supplier_name'] ?? '',
+                'original_service_name' => $a['original_service_name'] ?? '',
+                'price_delta' => (float)($a['price_delta'] ?? 0),
+                'requires_customer_approval' => !empty($a['requires_customer_approval']),
+            ];
             if (($a['supplier_status'] ?? '') === 'pending') {
-                $pendingAssignments[] = $a;
-            } else {
-                $activeAssignments[] = $a;
+                $grouped[$bid]['has_pending'] = true;
+            }
+            if (!empty($a['replacement_id'])) {
+                $grouped[$bid]['has_replacement'] = true;
             }
         }
-        unset($a);
+
+        // Split into pending (has pending services) vs active (all confirmed)
+        $pendingAssignments = [];
+        $activeAssignments = [];
+        foreach ($grouped as $booking) {
+            if ($booking['has_pending']) {
+                $pendingAssignments[] = $booking;
+            } else {
+                $activeAssignments[] = $booking;
+            }
+        }
 
         require_once APPROOT . '/controllers/SupplierControllerSupport.php';
         $this->view('supplier/assignments', [
             'pendingAssignments' => $pendingAssignments,
             'activeAssignments' => $activeAssignments,
-            'assignments' => $assignments,
+            'assignments' => $grouped,
             'supplierId' => $supplierId,
         ]);
     }
@@ -2602,6 +2640,11 @@ class Booking extends Controller
         $sort = trim($_GET['sort'] ?? 'event_asc');
         $dateFrom = trim($_GET['date_from'] ?? '');
         $dateTo = trim($_GET['date_to'] ?? '');
+        $typeFilter = trim($_GET['type'] ?? '');
+        $allowedTypes = ['', 'all', 'package', 'package_addons', 'supplier_package', 'custom', 'mixed'];
+        if (!in_array($typeFilter, $allowedTypes, true)) {
+            $typeFilter = '';
+        }
         $allowedSorts = ['event_asc', 'event_desc', 'created_desc', 'created_asc', 'total_desc', 'total_asc'];
         if (!in_array($sort, $allowedSorts, true)) {
             $sort = 'event_asc';
@@ -2618,7 +2661,7 @@ class Booking extends Controller
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
 
-        $totalCount = $this->bookingModel->getAllBookingsCount($filter, $search, $dateFrom, $dateTo);
+        $totalCount = $this->bookingModel->getAllBookingsCount($filter, $search, $dateFrom, $dateTo, $typeFilter ?: null);
         $totalPages = max(1, (int)ceil($totalCount / $perPage));
         $page = min($page, $totalPages);
         $offset = ($page - 1) * $perPage;
@@ -2629,7 +2672,8 @@ class Booking extends Controller
             $offset,
             $sort,
             $dateFrom,
-            $dateTo
+            $dateTo,
+            $typeFilter ?: null
         );
         $stats = $this->bookingModel->getAdminStats();
 
@@ -2653,6 +2697,7 @@ class Booking extends Controller
             'sort' => $sort,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
+            'typeFilter' => $typeFilter,
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalCount' => $totalCount,

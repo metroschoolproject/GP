@@ -1221,7 +1221,7 @@
   }
   .sup-assignment-service-card {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
     width: 100%;
@@ -1238,7 +1238,7 @@
   .sup-assignment-service-info {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     min-width: 0;
     flex: 1;
   }
@@ -1246,20 +1246,19 @@
     font-weight: 650;
     font-size: 13.5px;
     color: #3d2a33;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .sup-assignment-service-meta {
     font-size: 11px;
     color: #9a7d6d;
     letter-spacing: .01em;
+    line-height: 1.4;
   }
   .sup-assignment-service-right {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     flex-shrink: 0;
+    padding-top: 2px;
   }
   .sup-assignment-service-actions {
     display: flex;

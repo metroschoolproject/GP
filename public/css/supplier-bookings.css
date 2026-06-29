@@ -663,6 +663,22 @@
 .asn-services { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; }
 .asn-service-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: #F5F0F2; color: #6d4c5b; font-size: 10px; font-weight: 700; }
 
+/* ── Service rows within cards ── */
+.asn-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.asn-services-list { margin-top: 12px; border-top: 1px solid #eddecc; padding-top: 8px; }
+.asn-service-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f5ede5; }
+.asn-service-row:last-child { border-bottom: 0; }
+.asn-service-info { flex: 1; min-width: 0; }
+.asn-service-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.asn-service-name { font-size: 13px; font-weight: 650; color: #3d2a33; }
+.asn-service-cat { font-size: 11px; color: #9a7d6d; }
+.asn-service-replacement { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #7b5c69; margin-top: 2px; }
+.asn-service-replacement svg { color: #a58b96; }
+.asn-service-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.asn-service-status { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+.asn-service-status--confirmed { background: #ECFDF5; color: #065f46; }
+.asn-service-status--pending { background: #FFFBEB; color: #92400e; }
+
 /* ── Replacement context banner ── */
 .asn-replacement-info { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; padding: 10px 13px; border: 1px solid #dedbea; border-radius: 10px; background: #f8f7fc; font-size: 11px; line-height: 1.5; color: #665d78; }
 .asn-replacement-info svg { width: 15px; height: 15px; flex: 0 0 15px; margin-top: 1px; color: #4f46a5; }
@@ -693,7 +709,7 @@
 .asn-response-btn--accept:hover:not(:disabled) { background: #047857; }
 .asn-response-btn--decline { background: #fff; color: #991b1b; border: 1px solid #fecaca; }
 .asn-response-btn--decline:hover:not(:disabled) { background: #FEF2F2; }
-.asn-response-deadline { font-size: 10px; color: #92400e; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.asn-response-deadline { font-size: 10px; color: #92400e; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eddecc; }
 .asn-response-deadline svg { width: 12px; height: 12px; }
 
 /* ── Response status pill ── */
