@@ -2594,6 +2594,37 @@ const packageScheduleState = new Map();
       }
     }
 
+    /* ─── Persist booking form drafts to sessionStorage ─── */
+    const DRAFT_FIELDS = ['item_guests', 'item_location', 'item_contact_name', 'item_contact_phone', 'item_notes'];
+    const DRAFT_VALUE_KEYS = ['guests', 'location', 'contactName', 'contactPhone', 'notes'];
+
+    function saveBookingDrafts() {
+      const cards = document.querySelectorAll('.gp-item-card[data-service-id]');
+      if (!cards.length) return;
+      const drafts = [];
+      cards.forEach(card => {
+        const serviceId = String(card.dataset.serviceId || '');
+        if (!serviceId) return;
+        const values = {};
+        DRAFT_FIELDS.forEach((fieldPrefix, idx) => {
+          const field = card.querySelector(`[name^="${fieldPrefix}["]`);
+          values[DRAFT_VALUE_KEYS[idx]] = field ? field.value : '';
+        });
+        drafts.push({ serviceId, values });
+      });
+      try {
+        if (drafts.length) sessionStorage.setItem(modalDraftStorageKey, JSON.stringify(drafts));
+        else sessionStorage.removeItem(modalDraftStorageKey);
+      } catch (error) { /* quota exceeded — ignore */ }
+    }
+
+    document.getElementById('booking-form')?.addEventListener('input', function (e) {
+      if (DRAFT_FIELDS.some(prefix => (e.target.name || '').startsWith(prefix + '['))) {
+        saveBookingDrafts();
+      }
+    });
+    window.addEventListener('pagehide', saveBookingDrafts);
+
     const syncFields = (source, selector) => {
       const value = source.value.trim();
       if (!value) return;
@@ -3195,6 +3226,7 @@ const packageScheduleState = new Map();
       .then(r => r.json())
       .then(data => {
         if (data.success && data.redirect) {
+          try { sessionStorage.removeItem('gpBookingDetailDrafts'); } catch (error) {}
           window.location.href = data.redirect;
         } else if (Array.isArray(data.unavailable) && data.unavailable.length) {
           showUnavailablePanel(data.packageServices || [], data.unavailable, data.allAvailableDates || {});
