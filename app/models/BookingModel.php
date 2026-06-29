@@ -4238,9 +4238,9 @@ class BookingModel
             return false;
         }
         $totalAmount = (float)($pendingPayment['total_amount'] ?? 0);
-        $expectedDeposit = round($totalAmount * (BOOKING_DEPOSIT_PERCENT / 100), 2);
-        $expectedPlatformFee = round($totalAmount * (get_platform_fee_percent() / 100), 2);
-        $expectedPayment = round($expectedDeposit + $expectedPlatformFee, 2);
+        $expectedDeposit = (int)round($totalAmount * (BOOKING_DEPOSIT_PERCENT / 100));
+        $expectedPlatformFee = (int)round($totalAmount * (get_platform_fee_percent() / 100));
+        $expectedPayment = (float)($expectedDeposit + $expectedPlatformFee);
         $submittedAmount = (float)($pendingPayment['submitted_amount'] ?? 0);
         if ($expectedPayment <= 0) {
             $this->paymentVerificationError = 'Booking total is invalid, so the expected payment cannot be calculated.';
