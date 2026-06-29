@@ -1299,6 +1299,7 @@ img { display: block; max-width: 100%; }
 @media (max-width: 480px) {
   :root { --pad-x: 16px; }
 }
+
 </style>
 </head>
 <body>
@@ -1326,6 +1327,7 @@ img { display: block; max-width: 100%; }
         <form class="gp-package-cart-form gp-package-hero-form" method="POST" action="<?= URLROOT ?>/cart/addPackage">
           <input type="hidden" name="package_id" value="<?= (int)($package['package_id'] ?? 0) ?>">
           <input type="hidden" name="price" value="<?= $packageCustomerPrice ?>">
+          <input type="hidden" name="selected_date" class="pkg-selected-date" value="">
           <button class="gp-package-cart-btn" type="submit">
             <span>Book now</span>
             <span class="gc-book-btn-icon" aria-hidden="true">
@@ -1523,5 +1525,6 @@ document.getElementById('authRequiredModal').addEventListener('click', function(
   if (e.target === this) closeAuthModal();
 });
 </script>
+
 </body>
 </html>

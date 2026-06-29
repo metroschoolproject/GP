@@ -697,6 +697,109 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   box-shadow: 0 2px 6px rgba(107,114,128,0.22);
 }
 
+/* ─── HERO DATE PICKER ──────────────────────────────── */
+.gp-datepicker {
+  width: min(380px, 100%);
+  margin: 18px auto 0;
+  background: rgba(255,248,239,0.92);
+  border: 1px solid rgba(154,104,127,0.18);
+  border-radius: 14px;
+  padding: 16px 18px 12px;
+  backdrop-filter: blur(8px);
+}
+.gp-datepicker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.gp-datepicker-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d2226;
+  margin: 0;
+}
+.gp-datepicker-nav {
+  width: 30px; height: 30px;
+  border: 1px solid rgba(154,104,127,0.22);
+  border-radius: 8px;
+  background: rgba(245,232,217,0.7);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #6b5b60;
+  transition: background .15s, color .15s;
+}
+.gp-datepicker-nav:hover { background: rgba(154,104,127,0.14); color: #2d2226; }
+.gp-datepicker-nav svg { width: 15px; height: 15px; }
+.gp-datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.gp-datepicker-dow {
+  text-align: center;
+  font-size: .7rem;
+  font-weight: 700;
+  color: #9a8a90;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 3px 0 5px;
+}
+.gp-datepicker-day {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  font-weight: 500;
+  color: #4b3a3f;
+  cursor: pointer;
+  transition: background .12s, color .12s, transform .12s;
+}
+.gp-datepicker-day:hover {
+  background: rgba(154,104,127,0.16);
+  color: #2d2226;
+}
+.gp-datepicker-day--empty { visibility: hidden; pointer-events: none; }
+.gp-datepicker-day--past {
+  color: #c4b8bc;
+  cursor: default;
+}
+.gp-datepicker-day--past:hover { background: transparent; color: #c4b8bc; }
+.gp-datepicker-day--today {
+  outline: 1.5px solid rgba(154,104,127,0.35);
+  outline-offset: -1.5px;
+}
+.gp-datepicker-day--selected {
+  background: #6D4C5B;
+  color: #fff8ef;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(109,76,91,0.28);
+}
+.gp-datepicker-day--selected:hover {
+  background: #7E4F65;
+  color: #fff8ef;
+}
+.gp-datepicker-clear {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 5px 14px;
+  border: 1px solid rgba(154,104,127,0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: #7a6255;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.gp-datepicker-clear:hover {
+  background: rgba(154,104,127,0.12);
+  color: #4b3a3f;
+}
+
 .gp-tier-showcase {
   position: relative;
   z-index: 5;
@@ -1748,6 +1851,29 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
           </div>
         </form>
       </section>
+
+      <!-- Date picker calendar -->
+      <div class="gp-datepicker" id="pkg-datepicker" data-current-date="<?= $h($filters['date'] ?? '') ?>">
+        <div class="gp-datepicker-header">
+          <button type="button" class="gp-datepicker-nav" id="dp-prev" aria-label="Previous month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h3 class="gp-datepicker-title" id="dp-title"></h3>
+          <button type="button" class="gp-datepicker-nav" id="dp-next" aria-label="Next month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="gp-datepicker-grid" id="dp-grid">
+          <span class="gp-datepicker-dow">Mon</span>
+          <span class="gp-datepicker-dow">Tue</span>
+          <span class="gp-datepicker-dow">Wed</span>
+          <span class="gp-datepicker-dow">Thu</span>
+          <span class="gp-datepicker-dow">Fri</span>
+          <span class="gp-datepicker-dow">Sat</span>
+          <span class="gp-datepicker-dow">Sun</span>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -1773,6 +1899,12 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
     <span class="gp-filter-chip-boutique">
       <?= $h($activeCategory) ?>
       <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?q=<?= $h($filters['search'] ?? '') ?>&sort=<?= $h($activeSort) ?>" aria-label="Clear category">✕</a>
+    </span>
+    <?php endif; ?>
+    <?php if (!empty($filters['date'])): ?>
+    <span class="gp-filter-chip-boutique">
+      📅 <?= $h($filters['date']) ?>
+      <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?q=<?= $h($filters['search'] ?? '') ?>&category=<?= $h($activeCategory) ?>&sort=<?= $h($activeSort) ?>" aria-label="Clear date">✕</a>
     </span>
     <?php endif; ?>
   </div>
@@ -2286,6 +2418,124 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 })();
 </script>
+
+<script>
+(function() {
+  const picker = document.getElementById('pkg-datepicker');
+  if (!picker) return;
+
+  const grid = document.getElementById('dp-grid');
+  const titleEl = document.getElementById('dp-title');
+  const prevBtn = document.getElementById('dp-prev');
+  const nextBtn = document.getElementById('dp-next');
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const baseUrl = '<?= URLROOT ?>/customerServices/packages';
+
+  const urlParams = new URLSearchParams(window.location.search);
+  let selectedDate = picker.dataset.currentDate || '';
+
+  const now = new Date();
+  let currentYear = now.getFullYear();
+  let currentMonth = now.getMonth();
+
+  // If a date is already selected, start on that month
+  if (selectedDate) {
+    const parts = selectedDate.split('-');
+    currentYear = parseInt(parts[0], 10);
+    currentMonth = parseInt(parts[1], 10) - 1;
+  }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function render() {
+    titleEl.textContent = monthNames[currentMonth] + ' ' + currentYear;
+
+    // Remove old day cells
+    grid.querySelectorAll('.gp-datepicker-day').forEach(function(el) { el.remove(); });
+
+    var firstDow = new Date(currentYear, currentMonth, 1).getDay();
+    var startOffset = (firstDow + 6) % 7; // Mon=0
+    var daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Empty offset cells
+    for (var i = 0; i < startOffset; i++) {
+      var empty = document.createElement('span');
+      empty.className = 'gp-datepicker-day gp-datepicker-day--empty';
+      grid.appendChild(empty);
+    }
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dateStr = currentYear + '-' + pad(currentMonth + 1) + '-' + pad(d);
+      var el = document.createElement('span');
+      el.textContent = d;
+      el.className = 'gp-datepicker-day';
+
+      var dateObj = new Date(dateStr + 'T00:00:00');
+      var isPast = dateObj < today;
+      var isToday = dateObj.getTime() === today.getTime();
+      var isSelected = dateStr === selectedDate;
+
+      if (isPast) {
+        el.classList.add('gp-datepicker-day--past');
+      } else {
+        if (isToday) el.classList.add('gp-datepicker-day--today');
+        if (isSelected) el.classList.add('gp-datepicker-day--selected');
+        el.addEventListener('click', (function(ds) {
+          return function() { selectDate(ds); };
+        })(dateStr));
+      }
+      grid.appendChild(el);
+    }
+
+    // Disable prev if showing current month
+    var isCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth();
+    prevBtn.disabled = isCurrentMonth;
+    prevBtn.style.opacity = isCurrentMonth ? '.35' : '1';
+  }
+
+  function selectDate(date) {
+    selectedDate = date;
+    var params = new URLSearchParams(window.location.search);
+    params.set('date', date);
+    // Remove page param if present
+    params.delete('page');
+    window.location.href = baseUrl + '?' + params.toString();
+  }
+
+  // Add clear button if a date is selected
+  if (selectedDate) {
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'gp-datepicker-clear';
+    clearBtn.textContent = '✕ Clear date filter';
+    clearBtn.addEventListener('click', function() {
+      var params = new URLSearchParams(window.location.search);
+      params.delete('date');
+      params.delete('page');
+      window.location.href = baseUrl + (params.toString() ? '?' + params.toString() : '');
+    });
+    picker.appendChild(clearBtn);
+  }
+
+  prevBtn.addEventListener('click', function() {
+    currentMonth--;
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    render();
+  });
+
+  nextBtn.addEventListener('click', function() {
+    currentMonth++;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    render();
+  });
+
+  render();
+})();
+</script>
+
 <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

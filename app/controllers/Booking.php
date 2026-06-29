@@ -1179,8 +1179,8 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Invalid package or event date'], 400);
         }
 
-        $schedule = $this->cartModel->getPackageEventSchedule($packageId, $date);
-        if (empty($schedule)) {
+        $fullSchedule = $this->cartModel->getPackageEventSchedule($packageId, $date);
+        if (empty($fullSchedule)) {
             $this->jsonResponse([
                 'success' => false,
                 'error' => 'No package services are available to schedule.',
@@ -1188,7 +1188,7 @@ class Booking extends Controller
         }
 
         $requiredLeadDays = 0;
-        foreach ($schedule as $service) {
+        foreach ($fullSchedule as $service) {
             $requiredLeadDays = max($requiredLeadDays, (int)($service['min_lead_days'] ?? 0));
         }
         $earliestDate = (new DateTimeImmutable('today'))->add(new DateInterval('P' . $requiredLeadDays . 'D'));
@@ -1200,6 +1200,23 @@ class Booking extends Controller
             ], 422);
         }
 
+        // Deduplicate: keep one entry per service (first available slot, or
+        // first slot if none are available) so the customer sees each package
+        // service exactly once instead of every possible time slot.
+        $deduplicated = [];
+        $seen = [];
+        foreach ($fullSchedule as $row) {
+            $key = (int)($row['service_id'] ?? 0);
+            if (!isset($seen[$key])) {
+                $seen[$key] = $row;
+            } elseif (!empty($row['is_available']) && empty($seen[$key]['is_available'])) {
+                // Prefer an available slot over an unavailable one
+                $seen[$key] = $row;
+            }
+        }
+        $schedule = array_values($seen);
+
+        // Recalculate overall start/end from the deduplicated schedule
         $starts = array_column($schedule, 'start_time');
         $ends = array_column($schedule, 'end_time');
         sort($starts);
@@ -1718,21 +1735,39 @@ class Booking extends Controller
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $isAssociated = false;
         $isCancelledOrReplaced = false;
+        $myStatuses = [];
+        $firstActiveRowId = 0;
         foreach ($suppliers as $s) {
-            if ((int)$s['supplier_id'] === $supplierId) {
-                $supplierStatusValue = (string)($s['status'] ?? '');
-                if (in_array($supplierStatusValue, ['replaced', 'rejected', 'cancelled'], true)) {
-                    $isCancelledOrReplaced = true;
-                    // Allow viewing but mark as cancelled/replaced
-                    $currentSupplierStatus = $supplierStatusValue;
-                    $currentSupplierRowId = (int)$s['id'];
-                    $isAssociated = true;
-                } else {
-                    $isAssociated = true;
-                    $currentSupplierStatus = $supplierStatusValue;
-                    $currentSupplierRowId = (int)$s['id'];
+            if ((int)$s['supplier_id'] !== $supplierId) {
+                continue;
+            }
+            $isAssociated = true;
+            $supplierStatusValue = (string)($s['status'] ?? '');
+            $myStatuses[] = $supplierStatusValue;
+            if (in_array($supplierStatusValue, ['replaced', 'rejected', 'cancelled'], true)) {
+                $isCancelledOrReplaced = true;
+                $currentSupplierStatus = $supplierStatusValue;
+                $currentSupplierRowId = (int)$s['id'];
+            } else {
+                if ($firstActiveRowId <= 0) {
+                    $firstActiveRowId = (int)$s['id'];
                 }
-                break;
+                $currentSupplierStatus = $supplierStatusValue;
+                $currentSupplierRowId = (int)$s['id'];
+            }
+        }
+        // When supplier has multiple rows, use the "worst" active status:
+        // pending > confirmed (pending needs action first)
+        if (count($myStatuses) > 1) {
+            if (in_array('pending', $myStatuses, true)) {
+                $currentSupplierStatus = 'pending';
+                $isCancelledOrReplaced = false;
+            } elseif (in_array('confirmed', $myStatuses, true)) {
+                $currentSupplierStatus = 'confirmed';
+                $isCancelledOrReplaced = false;
+            }
+            if ($firstActiveRowId > 0) {
+                $currentSupplierRowId = $firstActiveRowId;
             }
         }
 
@@ -1861,35 +1896,35 @@ class Booking extends Controller
 
         // A supplier may have several service rows on one booking (one per
         // package service line). When the UI targets a specific service it
-        // sends booking_supplier_id; otherwise we act on the supplier's first
-        // row (custom pre-payment flow, where the booking is single-service).
+        // sends booking_supplier_id; otherwise we act on ALL of the supplier's
+        // rows so that a single "Accept" covers every service they provide.
         $rowIdParam = (int)($_POST['booking_supplier_id'] ?? 0);
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
-        $rowId = 0;
+        $matchingRows = [];
         $shopName = '';
-        $supplierRow = [];
         foreach ($suppliers as $s) {
             if ((int)$s['supplier_id'] !== $supplierId) {
                 continue;
             }
             if ($rowIdParam > 0) {
                 if ((int)$s['id'] === $rowIdParam) {
-                    $rowId = (int)$s['id'];
-                    $shopName = $s['shop_name'] ?? 'A supplier';
-                    $supplierRow = $s;
+                    $matchingRows[] = $s;
+                    $shopName = $shopName ?: ($s['shop_name'] ?? 'A supplier');
                     break;
                 }
                 continue;
             }
-            $rowId = (int)$s['id'];
-            $shopName = $s['shop_name'] ?? 'A supplier';
-            $supplierRow = $s;
-            break;
+            $matchingRows[] = $s;
+            $shopName = $shopName ?: ($s['shop_name'] ?? 'A supplier');
         }
 
-        if ($rowId <= 0) {
+        if (empty($matchingRows)) {
             $this->jsonResponse(['error' => 'Not associated with this booking'], 403);
         }
+
+        // Use the first row for primary logic; all rows are processed below
+        $rowId = (int)$matchingRows[0]['id'];
+        $supplierRow = $matchingRows[0];
 
         // A decline on a CONFIRMED package booking does not cancel the booking —
         // it opens an admin-driven supplier replacement instead (see
@@ -1937,11 +1972,19 @@ class Booking extends Controller
             $itemStatus = $action === 'accept' ? 'accepted' : 'cancelled';
 
             $allowedSupplierStates = $action === 'decline' ? ['pending', 'confirmed'] : ['pending'];
-            if (!$this->bookingModel->updateSupplierStatus($rowId, $newStatus, $allowedSupplierStates)) {
+            $anyUpdated = false;
+            foreach ($matchingRows as $row) {
+                if ($this->bookingModel->updateSupplierStatus((int)$row['id'], $newStatus, $allowedSupplierStates)) {
+                    $anyUpdated = true;
+                }
+            }
+            if (!$anyUpdated) {
                 $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
             }
 
-            $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus);
+            // When targeting a specific service, only update that booking_item
+            $targetServiceId = $rowIdParam > 0 ? (int)($matchingRows[0]['service_id'] ?? 0) : 0;
+            $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus, $targetServiceId);
             $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, 'Supplier ' . $action . 'ed booking');
         }
 
@@ -3121,8 +3164,14 @@ class Booking extends Controller
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
 
-        $payments = $this->bookingModel->getSupplierPaymentHistory($supplierId, $perPage, $offset);
-        $totalCount = $this->bookingModel->getSupplierPaymentHistoryCount($supplierId);
+        $filters = [
+            'status' => trim((string)($_GET['status'] ?? '')),
+            'type'   => trim((string)($_GET['type'] ?? '')),
+            'escrow' => trim((string)($_GET['escrow'] ?? '')),
+       ];
+
+        $payments = $this->bookingModel->getSupplierPaymentHistory($supplierId, $perPage, $offset, $filters);
+        $totalCount = $this->bookingModel->getSupplierPaymentHistoryCount($supplierId, $filters);
         $totalPages = (int)ceil($totalCount / $perPage);
 
         // Summary stats
@@ -3151,6 +3200,7 @@ class Booking extends Controller
             'totalFees' => $totalFees,
             'approvedCount' => $approvedCount,
             'pendingCount' => $pendingCount,
+            'filters' => $filters,
         ]);
     }
 

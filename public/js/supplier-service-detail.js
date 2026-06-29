@@ -277,100 +277,189 @@ async function deleteServiceMedia(mediaId) {
   }
 }
 
-let decorationStyleCounter = 0;
+let decoDrafts = [];
+let activeDecoIndex = 0;
 
-function decorationStyleCardHtml(style = {}) {
-  const uid = ++decorationStyleCounter;
-  const photoUrl = style.photo_url || '';
-  const photoPreview = photoUrl
-    ? `<img src="${escapeHtml(photoUrl)}" alt="Decoration style photo">`
-    : '<i class="ti ti-photo"></i><span>Style photo</span>';
+function normalizeDecoStyle(style = {}) {
+  return {
+    id: style.id || 0,
+    name: style.name || '',
+    price: style.price ?? '',
+    customize_price: style.customize_price ?? '',
+    photo_url: style.photo_url || ''
+  };
+}
+
+function decoHasPrice(item) {
+  return parseFloat(item.price || '0') > 0;
+}
+
+function decoOfferLabel(item) {
+  const price = parseFloat(item.price || '0');
+  const customize = parseFloat(item.customize_price || '0');
+  if (price > 0 && customize > 0 && price !== customize) return formatMoney(price) + ' / ' + formatMoney(customize);
+  if (price > 0) return formatMoney(price);
+  if (customize > 0) return formatMoney(customize);
+  return 'No price set';
+}
+
+function decoNavHtml() {
+  return decoDrafts.map((item, index) => {
+    const itemName = item.name.trim() || `New style ${index + 1}`;
+    const photo = item.photo_url
+      ? `<img src="${escapeHtml(item.photo_url)}" alt="">`
+      : '<i class="ti ti-palette"></i>';
+    const ready = decoHasPrice(item);
+
+    return `
+      <button type="button" class="sd-deco-nav-item ${index === activeDecoIndex ? 'is-active' : ''}" data-deco-index="${index}" aria-pressed="${index === activeDecoIndex}">
+        <span class="sd-deco-nav-thumb ${item.photo_url ? '' : 'is-empty'}">${photo}</span>
+        <span class="sd-deco-nav-copy">
+          <strong>${escapeHtml(itemName)}</strong>
+          <small>${escapeHtml(decoOfferLabel(item))}</small>
+        </span>
+        <span class="sd-deco-nav-status ${ready ? 'is-ready' : ''}" title="${ready ? 'Price added' : 'Price needed'}"></span>
+      </button>
+    `;
+  }).join('');
+}
+
+function decoEditorHtml(item, index) {
+  const itemName = item.name.trim() || `New style ${index + 1}`;
+  const photoPreview = item.photo_url
+    ? `<img src="${escapeHtml(item.photo_url)}" alt="${escapeHtml(itemName)} photo">`
+    : '<i class="ti ti-photo-plus"></i><strong>Add the style photo</strong><span>A clear photo works best</span>';
 
   return `
-    <div class="sd-decoration-style-card">
-      <input type="hidden" class="decoration-style-photo-url" value="${escapeHtml(photoUrl)}">
-      <div class="sd-decoration-style-photo">
-        <label class="sd-decoration-style-preview ${photoUrl ? '' : 'is-empty'}" for="decorationStylePhoto${uid}">
-          ${photoPreview}
-        </label>
-        <input id="decorationStylePhoto${uid}" type="file" accept="image/*" class="decoration-style-photo-input" style="display:none">
+    <aside class="sd-deco-wardrobe">
+      <div class="sd-deco-wardrobe-head">
+        <div>
+          <span>Your collection</span>
+          <strong>${decoDrafts.length} ${decoDrafts.length === 1 ? 'style' : 'styles'}</strong>
+        </div>
       </div>
-      <div class="sd-decoration-style-fields">
-        <div class="sd-hall-fg full"><label>Style name</label><input class="sd-hall-input decoration-style-name" value="${escapeHtml(style.name || '')}" placeholder="e.g. Balloon arch"></div>
-        <div class="sd-hall-fg full"><label>Price</label><input type="number" min="0" step="0.01" class="sd-hall-input decoration-style-price" value="${style.price ?? ''}" placeholder="MMK"></div>
+      <div class="sd-deco-nav-list">${decoNavHtml()}</div>
+      <button type="button" class="sd-deco-add-card" data-deco-add><i class="ti ti-plus"></i> Add another style</button>
+    </aside>
+    <section class="sd-deco-editor">
+      <div class="sd-deco-editor-head">
+        <div>
+          <span class="sd-deco-editor-kicker">Editing style ${index + 1}</span>
+          <h3>${escapeHtml(itemName)}</h3>
+        </div>
+        <button type="button" class="btn btn-icon btn-danger-ghost btn-sm" data-deco-remove="${index}" title="Remove this style" style="margin-left:auto"><i class="ti ti-trash" style="font-size:13px"></i></button>
       </div>
-      <button type="button" class="btn btn-icon btn-danger-ghost btn-sm sd-decoration-style-remove" title="Remove style"><i class="ti ti-trash" style="font-size:13px"></i></button>
-    </div>
+      <div class="sd-deco-editor-body">
+        <div class="sd-deco-photo-area">
+          <label class="sd-deco-photo-preview ${item.photo_url ? '' : 'is-empty'}" for="decoEditorPhoto">
+            ${photoPreview}
+          </label>
+          <input id="decoEditorPhoto" type="file" accept="image/*" data-deco-photo-input style="display:none">
+          <label class="sd-deco-photo-btn" for="decoEditorPhoto">
+            <i class="ti ti-upload" style="font-size:13px"></i>
+            <span>${item.photo_url ? 'Change photo' : 'Upload photo'}</span>
+          </label>
+        </div>
+        <div class="sd-deco-fields">
+          <div class="sd-hall-fg full"><label>Style name</label><input class="sd-hall-input" data-deco-field="name" value="${escapeHtml(item.name || '')}" placeholder="e.g. Balloon arch"></div>
+          <div class="sd-hall-fg full"><label>Package price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-deco-field="price" value="${escapeHtml(item.price)}" placeholder="0"><span>MMK</span></div></div>
+          <div class="sd-hall-fg full"><label>Customize price</label><div class="sd-attire-money-input"><input type="number" min="0" step="0.01" class="sd-hall-input" data-deco-field="customize_price" value="${escapeHtml(item.customize_price)}" placeholder="0"><span>MMK</span></div></div>
+        </div>
+      </div>
+    </section>
   `;
 }
 
 function updateDecorationStyleCount() {
-  const count = document.querySelectorAll('.sd-decoration-style-card').length;
+  const count = decoDrafts.length;
   const badge = document.getElementById('decorationStyleCount');
   if (badge) badge.textContent = count + ' ' + (count === 1 ? 'style' : 'styles');
 }
 
-function renderDecorationStyles(styles = []) {
+function renderDecorationStyles(styles = null) {
   const grid = document.getElementById('decorationStyleGrid');
   if (!grid) return;
-  const rows = styles.length ? styles : [{}];
-  grid.innerHTML = rows.map(style => decorationStyleCardHtml(style)).join('');
+  if (Array.isArray(styles)) {
+    decoDrafts = (styles.length ? styles : [{}]).map(normalizeDecoStyle);
+    activeDecoIndex = 0;
+  }
+  if (!decoDrafts.length) decoDrafts = [normalizeDecoStyle()];
+  activeDecoIndex = Math.max(0, Math.min(activeDecoIndex, decoDrafts.length - 1));
+  grid.innerHTML = decoEditorHtml(decoDrafts[activeDecoIndex], activeDecoIndex);
   updateDecorationStyleCount();
 }
 
 function addDecorationStyle() {
-  const grid = document.getElementById('decorationStyleGrid');
-  if (!grid) return;
-  grid.insertAdjacentHTML('beforeend', decorationStyleCardHtml());
-  updateDecorationStyleCount();
+  decoDrafts.push(normalizeDecoStyle());
+  activeDecoIndex = decoDrafts.length - 1;
+  renderDecorationStyles();
+  document.querySelector('[data-deco-field="name"]')?.focus();
+}
+
+function removeDecorationStyle(index) {
+  if (decoDrafts.length <= 1) {
+    decoDrafts[0] = normalizeDecoStyle();
+  } else {
+    decoDrafts.splice(index, 1);
+    if (activeDecoIndex >= decoDrafts.length) activeDecoIndex = decoDrafts.length - 1;
+  }
+  renderDecorationStyles();
 }
 
 function collectDecorationStyles() {
-  return Array.from(document.querySelectorAll('.sd-decoration-style-card')).map(card => ({
-    name: card.querySelector('.decoration-style-name')?.value.trim() || '',
-    price: parseFloat(card.querySelector('.decoration-style-price')?.value || '0') || 0,
-    photo_url: card.querySelector('.decoration-style-photo-url')?.value || null
+  return decoDrafts.map(item => ({
+    id: item.id || 0,
+    name: item.name.trim(),
+    price: parseFloat(item.price || '0') || 0,
+    customize_price: parseFloat(item.customize_price || '0') || 0,
+    photo_url: item.photo_url || null
   })).filter(style => style.name !== '');
 }
 
 document.getElementById('addDecorationStyleBtn')?.addEventListener('click', addDecorationStyle);
 
 document.getElementById('decorationStyleGrid')?.addEventListener('click', event => {
-  const removeButton = event.target.closest('.sd-decoration-style-remove');
-  if (!removeButton) return;
-  const grid = document.getElementById('decorationStyleGrid');
-  const card = removeButton.closest('.sd-decoration-style-card');
-  if (!grid || !card) return;
-
-  if (grid.querySelectorAll('.sd-decoration-style-card').length <= 1) {
-    card.querySelectorAll('input').forEach(input => { input.value = ''; });
-    const preview = card.querySelector('.sd-decoration-style-preview');
-    if (preview) {
-      preview.classList.add('is-empty');
-      preview.innerHTML = '<i class="ti ti-photo"></i><span>Style photo</span>';
-    }
-  } else {
-    card.remove();
+  const navItem = event.target.closest('[data-deco-index]');
+  if (navItem) {
+    activeDecoIndex = Number(navItem.dataset.decoIndex);
+    renderDecorationStyles();
+    return;
   }
+  if (event.target.closest('[data-deco-add]')) {
+    addDecorationStyle();
+    return;
+  }
+  const removeBtn = event.target.closest('[data-deco-remove]');
+  if (removeBtn) {
+    removeDecorationStyle(Number(removeBtn.dataset.decoRemove));
+    return;
+  }
+});
 
-  updateDecorationStyleCount();
+document.getElementById('decorationStyleGrid')?.addEventListener('input', event => {
+  const field = event.target.closest('[data-deco-field]');
+  if (!field || !decoDrafts[activeDecoIndex]) return;
+  decoDrafts[activeDecoIndex][field.dataset.decoField] = field.value;
+
+  const grid = document.getElementById('decorationStyleGrid');
+  const title = grid?.querySelector('.sd-deco-editor-head h3');
+  if (field.dataset.decoField === 'name' && title) {
+    title.textContent = field.value.trim() || `New style ${activeDecoIndex + 1}`;
+  }
+  const navList = grid?.querySelector('.sd-deco-nav-list');
+  if (navList) navList.innerHTML = decoNavHtml();
 });
 
 document.getElementById('decorationStyleGrid')?.addEventListener('change', async event => {
-  const input = event.target.closest('.decoration-style-photo-input');
+  const input = event.target.closest('[data-deco-photo-input]');
   if (!input || !input.files?.[0]) return;
-
-  const card = input.closest('.sd-decoration-style-card');
-  const hidden = card?.querySelector('.decoration-style-photo-url');
-  const preview = card?.querySelector('.sd-decoration-style-preview');
 
   try {
     const dataUrl = await fileToDataUrl(input.files[0]);
-    if (hidden) hidden.value = dataUrl;
-    if (preview) {
-      preview.classList.remove('is-empty');
-      preview.innerHTML = `<img src="${dataUrl}" alt="Decoration style photo preview">`;
+    if (decoDrafts[activeDecoIndex]) {
+      decoDrafts[activeDecoIndex].photo_url = dataUrl;
     }
+    renderDecorationStyles();
   } catch (error) {
     showMessage('decorationStyleMessage', 'Could not read style photo. Please try another image.');
   } finally {
@@ -410,14 +499,18 @@ document.getElementById('saveDecorationStylesBtn')?.addEventListener('click', as
 
 renderDecorationStyles(Array.isArray(serviceDetailConfig.decorationStyles) ? serviceDetailConfig.decorationStyles : []);
 
-// ── FOOD ITEMS (CAKES) ────────────────────────────────────────────
+// ── FOOD ITEMS (CAKES & CATERING) ────────────────────────────────────
 let foodItemCounter = 0;
+const _foodCategory = (serviceDetailConfig.servicePayloadBase?.category || '').toLowerCase();
+const _isCakeDetail = _foodCategory === 'cake';
+const _isCateringDetail = _foodCategory === 'food & drinks';
+const _foodItemLabel = _isCakeDetail ? 'Cake' : (_isCateringDetail ? 'Menu item' : 'Item');
 
 function foodItemCardHtml(item = {}) {
   const uid = ++foodItemCounter;
   const photoUrl = item.photo_url || '';
   const photoPreview = photoUrl
-    ? `<img src="${escapeHtml(photoUrl)}" alt="Cake photo">`
+    ? `<img src="${escapeHtml(photoUrl)}" alt="${_foodItemLabel} photo">`
     : '<i class="ti ti-photo"></i><span>Photo</span>';
 
   return `
@@ -430,10 +523,10 @@ function foodItemCardHtml(item = {}) {
         <input id="foodItemPhoto${uid}" type="file" accept="image/*" class="food-item-photo-input" style="display:none">
       </div>
       <div class="sd-food-item-fields">
-        <div class="sd-hall-fg full"><label>Cake name</label><input class="sd-hall-input food-item-name" value="${escapeHtml(item.name || '')}" placeholder="e.g. Chocolate Wedding Cake"></div>
-        <div class="sd-hall-fg full"><label>Description</label><input class="sd-hall-input food-item-description" value="${escapeHtml(item.description || '')}" placeholder="e.g. 3-tier, serves 100"></div>
-        <div class="sd-hall-fg"><label>Package price</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-package-price" value="${item.package_price ?? item.price ?? ''}" placeholder="MMK"></div>
-        <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-customize-price" value="${item.customize_price ?? item.price ?? ''}" placeholder="MMK"></div>
+        <div class="sd-hall-fg full"><label>${_foodItemLabel} name</label><input class="sd-hall-input food-item-name" value="${escapeHtml(item.name || '')}" placeholder="e.g. ${_isCakeDetail ? 'Chocolate Wedding Cake' : 'Premium Buffet Set'}"></div>
+        <div class="sd-hall-fg full"><label>Description</label><input class="sd-hall-input food-item-description" value="${escapeHtml(item.description || '')}" placeholder="${_isCakeDetail ? 'e.g. 3-tier, serves 100' : 'e.g. Appetizer, main course, dessert'}"></div>
+        <div class="sd-hall-fg"><label>Package price${_isCateringDetail ? ' (per person)' : ''}</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-package-price" value="${item.package_price ?? item.price ?? ''}" placeholder="MMK"></div>
+        <div class="sd-hall-fg"><label>Customize price${_isCateringDetail ? ' (per person)' : ''}</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-customize-price" value="${item.customize_price ?? item.price ?? ''}" placeholder="MMK"></div>
       </div>
       <button type="button" class="btn btn-icon btn-danger-ghost btn-sm sd-food-item-remove" title="Remove"><i class="ti ti-trash" style="font-size:13px"></i></button>
     </div>
@@ -522,10 +615,10 @@ document.getElementById('saveFoodItemsBtn')?.addEventListener('click', async () 
   try {
     const items = collectFoodItems();
     if (!items.length) {
-      throw new Error('Add at least one cake item with a name.');
+      throw new Error('Add at least one ' + _foodItemLabel.toLowerCase() + ' with a name.');
     }
     if (items.some(item => item.price <= 0)) {
-      throw new Error('Each cake item needs a price greater than zero.');
+      throw new Error('Each ' + _foodItemLabel.toLowerCase() + ' needs a price greater than zero.');
     }
 
     const result = await jsonPost(urls.serviceUpdate, {
@@ -541,7 +634,7 @@ document.getElementById('saveFoodItemsBtn')?.addEventListener('click', async () 
     serviceDetailConfig.servicePayloadBase.price_max = savedService.price_max ?? serviceDetailConfig.servicePayloadBase.price_max;
     renderFoodItems(savedItems);
     updateServiceInfoFromService(savedService);
-    showMessage('foodItemMessage', 'Cake items saved.', true);
+    showMessage('foodItemMessage', _foodItemLabel + 's saved.', true);
   } catch (error) {
     showMessage('foodItemMessage', error.message);
   }

@@ -79,6 +79,7 @@ $paidTotal = (float)($booking['paid_amount'] ?? 0);
 $paidFraction = $bookingTotal > 0 ? min(1, $paidTotal / $bookingTotal) : 0;
 $supplierPaid = $supplierTotal * $paidFraction;
 $supplierRemaining = max(0, $supplierTotal - $supplierPaid);
+$supplierPaidFraction = $supplierTotal > 0 ? min(1, $supplierPaid / $supplierTotal) : 0;
 $paymentStatus = strtolower((string)($booking['payment_status'] ?? 'pending'));
 
 /* ── Lead time countdown ── */
@@ -133,6 +134,21 @@ $dashboardContent = function () use (
     $eventTime = trim($formatTime($firstStart) . ($firstEnd ? ' – ' . $formatTime($firstEnd) : ''), ' –');
     $needsResponse = $supplierStatus === 'pending';
     $myServiceRows = $myServiceRows ?? [];
+
+    // Determine multi-service state early (used in response bar + assignment section)
+    $assignedServiceKeys = [];
+    $hasPendingServices = false;
+    foreach ($myServiceRows as $row) {
+        $k = ($row['service_name'] ?? '') . '|' . ($row['category_name'] ?? '');
+        if (!isset($assignedServiceKeys[$k])) {
+            $assignedServiceKeys[$k] = true;
+        }
+        if (($row['status'] ?? '') === 'pending') {
+            $hasPendingServices = true;
+        }
+    }
+    $hasMultipleServices = count($assignedServiceKeys) > 1;
+
     $hasPackageSchedule = false;
     foreach ($packageSchedules as $scheduleRows) {
         if (!empty($scheduleRows)) {
@@ -306,11 +322,27 @@ $dashboardContent = function () use (
       <div class="sup-response-actions">
         <button type="button" class="booking-action sup-btn sup-btn--accept" data-action="accept">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-          <?= $isReplacementAssignment ? 'Accept Assignment' : ($bookingStatus === 'pending_supplier_response' ? 'Accept Request' : 'Accept') ?>
+          <?php if ($isReplacementAssignment): ?>
+            Accept Assignment
+          <?php elseif ($hasMultipleServices && $hasPendingServices): ?>
+            Accept All Services
+          <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
+            Accept Request
+          <?php else: ?>
+            Accept
+          <?php endif; ?>
         </button>
         <button type="button" class="booking-action sup-btn sup-btn--decline" data-action="decline">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-          <?= $isReplacementAssignment ? 'Decline Assignment' : ($bookingStatus === 'pending_supplier_response' ? 'Decline Request' : 'Decline') ?>
+          <?php if ($isReplacementAssignment): ?>
+            Decline Assignment
+          <?php elseif ($hasMultipleServices && $hasPendingServices): ?>
+            Decline All Services
+          <?php elseif ($bookingStatus === 'pending_supplier_response'): ?>
+            Decline Request
+          <?php else: ?>
+            Decline
+          <?php endif; ?>
         </button>
         <?php if (!$isReplacementAssignment && $bookingStatus !== 'pending_supplier_response'): ?>
         <button type="button" id="reschedule-btn" class="sup-btn sup-btn--ghost">
@@ -343,10 +375,10 @@ $dashboardContent = function () use (
             <?php endif; ?>
           </div>
           <div class="sup-response-sub" style="margin-top:4px;opacity:.7">Your response will be sent to the customer and admin for review.</div>
-          <?php if ($bookingTotal > 0): ?>
+          <?php if ($supplierTotal > 0): ?>
           <div style="margin-top:6px;display:flex;gap:16px;font-size:11px;font-weight:600;color:var(--sup-text,#6d4c5b)">
-            <span>Booking total: <?= $money($bookingTotal) ?></span>
-            <?php if ($paidTotal > 0): ?><span>Paid: <?= $money($paidTotal) ?></span><?php endif; ?>
+            <span>Your total: <?= $money($supplierTotal) ?></span>
+            <?php if ($supplierPaid > 0): ?><span>Paid: <?= $money($supplierPaid) ?></span><?php endif; ?>
           </div>
           <?php endif; ?>
         </div>
@@ -405,20 +437,94 @@ $dashboardContent = function () use (
 
   </header>
 
+  <?php
+    // Collect unique non-addon services assigned to this supplier from myServiceRows
+    $assignedServices = [];
+    $seenSvcKeys = [];
+    foreach ($myServiceRows as $row) {
+        $svcName = $row['service_name'] ?? 'Service';
+        $catName = $row['category_name'] ?? '';
+        $key = $svcName . '|' . $catName;
+        if (!isset($seenSvcKeys[$key])) {
+            $seenSvcKeys[$key] = true;
+            $assignedServices[] = [
+                'name' => $svcName,
+                'category' => $catName,
+                'status' => $row['status'] ?? 'pending',
+                'booking_supplier_id' => (int)$row['id'],
+            ];
+        }
+    }
+  ?>
   <section class="sup-assignment" aria-labelledby="supplier-assignment-title">
     <div class="sup-assignment-head">
       <div>
         <p class="sup-assignment-kicker">Your assignment</p>
-        <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= $h($assignmentName) ?></h2>
-        <?php if ($assignmentCategory !== ''): ?><div class="sup-assignment-category"><?= $h($assignmentCategory) ?></div><?php endif; ?>
+        <?php if ($hasMultipleServices): ?>
+          <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= count($assignedServices) ?> services assigned</h2>
+        <?php else: ?>
+          <h2 class="sup-assignment-title" id="supplier-assignment-title"><?= $h($assignmentName) ?></h2>
+          <?php if ($assignmentCategory !== ''): ?><div class="sup-assignment-category"><?= $h($assignmentCategory) ?></div><?php endif; ?>
+        <?php endif; ?>
       </div>
       <span class="sup-assignment-status"><?= $h($assignmentStatusLabel) ?></span>
     </div>
+    <?php if ($hasMultipleServices): ?>
+    <div class="sup-assignment-services-list">
+      <?php foreach ($assignedServices as $svc):
+        $svcBsid = $svc['booking_supplier_id'];
+        $svcDetail = null;
+        foreach ($myServiceRows as $sr) {
+            if ((int)$sr['id'] === $svcBsid) { $svcDetail = $sr; break; }
+        }
+        $svcItem = null;
+        foreach ($items as $it) {
+            if ((int)($it['service_id'] ?? 0) === (int)($svcDetail['service_id'] ?? 0) && empty($it['package_booking_item_id'])) {
+                $svcItem = $it; break;
+            }
+        }
+        $svcItemId = $svcItem ? (int)$svcItem['id'] : 0;
+        $svcD = $svcItemId > 0 ? ($detailByItem[$svcItemId] ?? []) : [];
+        $svcDate = (string)($svcD['event_date'] ?? $firstDate);
+        $svcStart = (string)($svcD['start_time'] ?? '');
+        $svcEnd = (string)($svcD['end_time'] ?? '');
+        $svcBookingType = $svcItem ? ($svcItem['booking_type'] ?? 'fullday') : ($svcDetail['booking_type'] ?? 'fullday');
+        $svcTimeDisplay = $svcBookingType === 'fullday' ? 'Full day' : $h(trim($formatTime($svcStart) . ($svcEnd !== '' ? ' – ' . $formatTime($svcEnd) : '')) ?: '');
+      ?>
+        <div class="sup-assignment-service-card">
+          <div class="sup-assignment-service-info">
+            <strong><?= $h($svc['name']) ?></strong>
+            <span class="sup-assignment-service-meta">
+              <?= $h($svc['category'] !== '' ? $svc['category'] : 'Service') ?>
+              <?php if ($svcDate !== ''): ?> · <?= $h($formatDate($svcDate)) ?><?php endif; ?>
+              <?php if ($svcTimeDisplay !== ''): ?> · <?= $svcTimeDisplay ?><?php endif; ?>
+            </span>
+          </div>
+          <div class="sup-assignment-service-right">
+            <span class="sup-badge <?= $statusBadgeClass($svc['status']) ?>"><?= $h(ucfirst($svc['status'])) ?></span>
+            <?php if ($needsResponse && $svc['status'] === 'pending'): ?>
+              <div class="sup-assignment-service-actions">
+                <button type="button" class="sup-btn sup-btn--accept sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svcBsid ?>" data-action="accept">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
+                  Accept
+                </button>
+                <button type="button" class="sup-btn sup-btn--decline sup-btn--sm service-accept-btn" data-booking-supplier-id="<?= $svcBsid ?>" data-action="decline">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                  Decline
+                </button>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+    <?php $isDayBased = ($primarySchedule['booking_type'] ?? '') === 'fullday'; ?>
     <div class="sup-assignment-facts">
       <div class="sup-assignment-fact">
-        <small>Date & time</small>
+        <small><?= $isDayBased ? 'Day' : 'Date & time' ?></small>
         <strong><?= $h($formatDate($assignmentDate)) ?></strong>
-        <span><?= $h(trim($formatTime($assignmentStart) . ($assignmentEnd !== '' ? ' – ' . $formatTime($assignmentEnd) : '')) ?: 'Time not set') ?></span>
+        <span><?= $isDayBased ? 'Full day' : $h(trim($formatTime($assignmentStart) . ($assignmentEnd !== '' ? ' – ' . $formatTime($assignmentEnd) : '')) ?: 'Time not set') ?></span>
       </div>
       <div class="sup-assignment-fact">
         <small>Venue</small>
@@ -443,8 +549,8 @@ $dashboardContent = function () use (
 
   <?php
     // ── Payment confidence strip ──
-    $depositAmount = $bookingTotal * (BOOKING_DEPOSIT_PERCENT / 100);
-    $depositCollected = $paidTotal >= $depositAmount;
+    $depositAmount = $supplierTotal * (BOOKING_DEPOSIT_PERCENT / 100);
+    $depositCollected = $supplierPaid >= $depositAmount;
     $fullyPaid = $paymentStatus === 'paid';
 
     // Find earliest successful payment date
@@ -482,25 +588,25 @@ $dashboardContent = function () use (
         </div>
         <div class="sup-payment-confidence-stat <?= $depositCollected ? 'sup-payment-confidence-stat--highlight' : '' ?>">
           <small>Customer has paid</small>
-          <strong><?= $money($paidTotal) ?></strong>
+          <strong><?= $money($supplierPaid) ?></strong>
         </div>
         <div class="sup-payment-confidence-stat">
           <small>Remaining</small>
-          <strong><?= $money(max(0, $bookingTotal - $paidTotal)) ?></strong>
+          <strong><?= $money($supplierRemaining) ?></strong>
         </div>
       </div>
 
       <div class="sup-payment-confidence-bar-wrap">
         <div class="sup-payment-confidence-bar">
-          <div class="sup-payment-confidence-bar-fill" style="width:<?= max(0, min(100, $paidFraction * 100)) ?>%"></div>
+          <div class="sup-payment-confidence-bar-fill" style="width:<?= max(0, min(100, $supplierPaidFraction * 100)) ?>%"></div>
         </div>
         <span class="sup-payment-confidence-bar-label">
           <?php if ($fullyPaid): ?>
             Fully paid
           <?php elseif ($depositCollected): ?>
-            <?= round($paidFraction * 100) ?>% deposited
+            <?= round($supplierPaidFraction * 100) ?>% deposited
           <?php else: ?>
-            <?= round($paidFraction * 100) ?>% paid
+            <?= round($supplierPaidFraction * 100) ?>% paid
           <?php endif; ?>
         </span>
       </div>
@@ -863,8 +969,12 @@ $dashboardContent = function () use (
                   'category' => $timelineEvent['category_name'] ?? 'Service',
                   'supplier' => $timelineEvent['supplier_name'] ?? 'Golden Promise',
                   'guests' => $scheduleGuests > 0 ? number_format($scheduleGuests) : 'Not specified',
-                  'start' => !empty($timelineEvent['start_time']) ? date('g:i A', strtotime($timelineEvent['start_time'])) : 'TBD',
-                  'end' => !empty($timelineEvent['end_time']) ? date('g:i A', strtotime($timelineEvent['end_time'])) : 'TBD',
+                  'start' => ($timelineEvent['booking_type'] ?? '') === 'fullday'
+                      ? 'Day'
+                      : (!empty($timelineEvent['start_time']) ? date('g:i A', strtotime($timelineEvent['start_time'])) : 'TBD'),
+                  'end' => ($timelineEvent['booking_type'] ?? '') === 'fullday'
+                      ? ''
+                      : (!empty($timelineEvent['end_time']) ? date('g:i A', strtotime($timelineEvent['end_time'])) : 'TBD'),
                   'venue' => $timelineEvent['venue_room_name'] ?? 'Not specified',
                   'isMine' => (int)($timelineEvent['supplier_id'] ?? 0) === $supplierId
                       || in_array($timelineServiceId, $ownTimelineServiceIds, true),
@@ -899,9 +1009,11 @@ $dashboardContent = function () use (
                       'supplier' => $event['supplier_name'] ?? 'Golden Promise',
                       'guests' => $scheduleGuests > 0 ? number_format($scheduleGuests) : 'Not specified',
                       'date' => $formatDate($event['event_date'] ?? $firstDate),
-                      'time' => (!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD')
-                          . ' – '
-                          . (!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : 'TBD'),
+                      'time' => ($event['booking_type'] ?? '') === 'fullday'
+                          ? 'Full day'
+                          : ((!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD')
+                              . ' – '
+                              . (!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : 'TBD')),
                       'venue' => $event['venue_room_name'] ?? ($firstLocation !== '' ? $firstLocation : 'Not specified'),
                       'contact' => $scheduleContact !== '' ? $scheduleContact : $customerName,
                       'phone' => $schedulePhone !== '' ? $schedulePhone : ($customerPhone !== '' ? $customerPhone : 'Not provided'),
@@ -925,8 +1037,12 @@ $dashboardContent = function () use (
                   </td>
                   <td style="color:var(--sup-body);font-size:12px"><?= $h($event['supplier_name'] ?? 'Golden Promise') ?></td>
                   <td><span class="sup-timeline-guest"><?= $scheduleGuests > 0 ? number_format($scheduleGuests) : '—' ?></span></td>
-                  <td style="font-weight:700"><?= $h(!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD') ?></td>
-                  <td style="font-weight:700"><?= $h(!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '—') ?></td>
+                  <?php if (($event['booking_type'] ?? '') === 'fullday'): ?>
+                    <td style="font-weight:700" colspan="2">Day</td>
+                  <?php else: ?>
+                    <td style="font-weight:700"><?= $h(!empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD') ?></td>
+                    <td style="font-weight:700"><?= $h(!empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '—') ?></td>
+                  <?php endif; ?>
                   <td style="color:var(--sup-muted);font-size:12px">
                     <?= $h($event['venue_room_name'] ?? '—') ?>
                     <?php if ($isOwnTimelineService): ?><span class="sup-service-more">View detail →</span><?php endif; ?>
@@ -1033,7 +1149,7 @@ $dashboardContent = function () use (
       <div class="sup-payment-fact"><small>Remaining</small><strong><?= $money($supplierRemaining) ?></strong></div>
     </div>
     <div class="sup-payment-track" aria-label="Payment progress">
-      <div class="sup-payment-fill" style="width:<?= max(0, min(100, $paidFraction * 100)) ?>%"></div>
+      <div class="sup-payment-fill" style="width:<?= max(0, min(100, $supplierPaidFraction * 100)) ?>%"></div>
     </div>
   </div>
   </div>
@@ -1244,7 +1360,7 @@ $dashboardContent = function () use (
           event.category || 'Service',
           event.supplier || 'Golden Promise',
           event.guests && event.guests !== 'Not specified' ? event.guests + ' guests' : 'Guests not specified',
-          (event.start || 'TBD') + ' – ' + (event.end || 'TBD'),
+          event.start === 'Day' ? 'Full day' : ((event.start || 'TBD') + ' – ' + (event.end || 'TBD')),
           event.venue || ''
         ].filter(Boolean).join(' · ');
         copy.appendChild(service);
@@ -1358,6 +1474,42 @@ $dashboardContent = function () use (
         supToastError('Network error. Please try again.');
       }
       button.disabled = false;
+      button.innerHTML = original;
+    });
+  });
+
+  /* ── Per-service accept/decline buttons (multi-service assignments) ── */
+  document.querySelectorAll('.service-accept-btn').forEach(function(button){
+    button.addEventListener('click', async function(){
+      var bsId = button.dataset.bookingSupplierId;
+      var action = button.dataset.action;
+      if (!bsId) return;
+
+      var row = button.closest('.sup-assignment-service-item');
+      var btns = row ? row.querySelectorAll('.service-accept-btn') : [];
+      btns.forEach(function(b){ b.disabled = true; });
+      var original = button.innerHTML;
+      button.innerHTML = 'Updating…';
+
+      var formData = new FormData();
+      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+      formData.append('booking_supplier_id', bsId);
+      formData.append('action', action);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+      try {
+        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (data.success) {
+          supToastSuccess(action === 'accept' ? 'Service accepted!' : 'Service declined.');
+          setTimeout(function() { window.location.reload(); }, 1200);
+          return;
+        }
+        supToastError(data.error || 'Could not update service.');
+      } catch (err) {
+        supToastError('Network error. Please try again.');
+      }
+      btns.forEach(function(b){ b.disabled = false; });
       button.innerHTML = original;
     });
   });

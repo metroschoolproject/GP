@@ -245,32 +245,33 @@
   .sup-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
   .sup-btn:disabled { cursor: wait; opacity: .55; }
   .sup-btn--accept  {
-    background: var(--sup-success-text);
+    background: #6d4c5b;
     color: #FFFFFF;
-    border: 1px solid var(--sup-success-border);
+    border: 1px solid #5a3d4b;
   }
   .sup-btn--accept:hover {
-    background: #047857;
-    box-shadow: 0 2px 8px rgba(5, 150, 105, .25);
+    background: #5a3d4b;
+    box-shadow: 0 2px 8px rgba(109, 76, 91, .25);
   }
   .sup-btn--decline {
     background: var(--sup-surface);
-    color: var(--sup-text);
-    border: 1px solid var(--sup-border);
+    color: #7b5c69;
+    border: 1px solid #dfcec1;
   }
   .sup-btn--decline:hover {
-    background: var(--sup-danger-bg);
-    color: var(--sup-danger-text);
-    border-color: var(--sup-danger-border);
+    background: #fdf5f5;
+    color: #9b2c2c;
+    border-color: #e8b4b4;
   }
   .sup-btn--ghost {
     background: var(--sup-surface);
     color: var(--sup-muted);
-    border: 1px solid var(--sup-border);
+    border: 1px solid #dfcec1;
   }
   .sup-btn--ghost:hover {
-    background: var(--sup-primary-soft);
+    background: #faf6f8;
     color: var(--sup-primary);
+    border-color: #cdb5bf;
   }
 
   /* ── Badges ── */
@@ -1212,6 +1213,69 @@
     font-size: 11px;
     font-weight: 700;
   }
+  .sup-assignment-services-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-top: 1px solid #eee0d5;
+  }
+  .sup-assignment-service-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 24px;
+    border-bottom: 1px solid #eee0d5;
+    transition: background .15s;
+  }
+  .sup-assignment-service-card:last-child {
+    border-bottom: 0;
+  }
+  .sup-assignment-service-card:hover {
+    background: #fdf9f6;
+  }
+  .sup-assignment-service-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+  }
+  .sup-assignment-service-info strong {
+    font-weight: 650;
+    font-size: 13.5px;
+    color: #3d2a33;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sup-assignment-service-meta {
+    font-size: 11px;
+    color: #9a7d6d;
+    letter-spacing: .01em;
+  }
+  .sup-assignment-service-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .sup-assignment-service-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .sup-btn--sm {
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    gap: 4px;
+    border-radius: 8px;
+  }
+  .sup-btn--sm svg {
+    width: 12px;
+    height: 12px;
+  }
   .sup-assignment-status {
     display: inline-flex;
     align-items: center;
@@ -1450,24 +1514,29 @@
     outline-offset: 2px;
   }
   .sup-btn--accept {
-    border-color: #08715a;
-    background: #08715a;
+    border-color: #5a3d4b;
+    background: #6d4c5b;
   }
-  .sup-btn--accept:hover { background: #075f4c; box-shadow: none; }
-  .sup-btn--decline,
+  .sup-btn--accept:hover { background: #5a3d4b; box-shadow: 0 2px 8px rgba(109, 76, 91, .2); }
+  .sup-btn--decline {
+    border-color: #dfcec1;
+    background: #fff;
+    color: #7b5c69;
+  }
+  .sup-btn--decline:hover {
+    border-color: #e8b4b4;
+    background: #fdf5f5;
+    color: #9b2c2c;
+  }
   .sup-btn--ghost {
     border-color: #dfcec1;
     background: #fff;
-    color: #6d4c5b;
-  }
-  .sup-btn--decline:hover {
-    border-color: #dc9f9f;
-    background: #fff7f7;
-    color: #9b2c2c;
+    color: #b79c8b;
   }
   .sup-btn--ghost:hover {
     border-color: #cdb5bf;
     background: #faf6f8;
+    color: #6d4c5b;
   }
   .sup-response-bar {
     margin-top: 14px;
@@ -1724,6 +1793,17 @@
     .sup-service-detail-list { grid-template-columns: 1fr; }
     .sup-service-detail:nth-child(even) { padding-left: 0; }
     .sup-field-row { grid-template-columns: 1fr; }
+    .sup-assignment-service-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .sup-assignment-service-right {
+      width: 100%;
+      justify-content: space-between;
+    }
   }
 
   /* ── Payment confidence strip ── */

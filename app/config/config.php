@@ -77,3 +77,10 @@ define('CATEGORY_DEFAULT_TIMES', [
      8 => ['start' => '08:00:00', 'end' => '10:00:00'], // Invitation & Gifts
      7 => ['start' => '10:00:00', 'end' => '18:00:00'], // Others (fallback)
 ]);
+
+/**
+ * Category IDs that allow slot-based (time-specific) booking.
+ * All other categories are forced to 'fullday' booking type.
+ * Only Venue supports choosing specific time slots.
+ */
+define('SLOT_BOOKING_CATEGORIES', [6]); // Venue

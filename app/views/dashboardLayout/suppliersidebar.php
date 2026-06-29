@@ -571,3 +571,4 @@ if (!function_exists('dashboard_supplier_path_matches')) {
         </div>
     <?php endif; ?>
 </main>
+<script>if (window.lucide) lucide.createIcons();</script>

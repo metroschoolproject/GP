@@ -104,6 +104,15 @@ class BookingModel
                LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id"
             : '';
 
+        $decoJoin = $hasDesignColumns
+            ? 'LEFT JOIN decoration_styles ds ON ds.id = ci.decoration_style_id'
+            : '';
+        $decoPriceExpr = $hasDesignColumns
+            ? "CASE WHEN ci.decoration_style_id IS NOT NULL AND ds.id IS NOT NULL THEN COALESCE(ds.customize_price, ds.package_price, ds.price) END"
+            : 'NULL';
+
+        $agentFeeMultiplier = 1 + (get_platform_fee_percent() / 100);
+
         $this->db->dbquery(
             "INSERT INTO booking_items (booking_id, item_type{$sourceInsertColumn}, item_id, booking_date, price,
                     item_name, supplier_name, category_name, thumbnail_url,
@@ -111,8 +120,8 @@ class BookingModel
             SELECT :bid, ci.item_type{$sourceSelectColumn}, ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
-                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
-                        ELSE COALESCE(ci.price, s.price_min, s.price, {$supplierPackagePrice}, 0)
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0) * {$agentFeeMultiplier}
+                        ELSE COALESCE({$decoPriceExpr}, ci.price, s.price_min, s.price, {$supplierPackagePrice}, 0)
                     END,
                     COALESCE(s.name, p.name, {$supplierPackageName}),
                     COALESCE(sup.shop_name, {$supplierPackageShop}, 'Golden Promise'),
@@ -125,6 +134,7 @@ class BookingModel
             LEFT JOIN services s ON ci.item_id = s.id AND ci.item_type = 'service'
             LEFT JOIN packages p ON ci.item_id = p.package_id AND ci.item_type = 'package'
             {$supplierPackageJoin}
+            {$decoJoin}
             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
             LEFT JOIN categories cat ON s.category_id = cat.id
             LEFT JOIN attire_rental_options aro ON aro.id = ci.rental_option_id
@@ -2637,7 +2647,7 @@ class BookingModel
     /**
      * Update booking item status by supplier.
      */
-    public function updateBookingItemsStatusBySupplier(int $bookingId, int $supplierId, string $status): bool
+    public function updateBookingItemsStatusBySupplier(int $bookingId, int $supplierId, string $status, int $serviceId = 0): bool
     {
         $hasSupplierPackages = $this->tableExists('supplier_packages');
         $hasSupplierPackageItems = $this->tableExists('supplier_package_items');
@@ -2658,6 +2668,8 @@ class BookingModel
                     )"
             : '';
 
+        $serviceFilter = $serviceId > 0 ? 'AND bi.item_id = :service_id AND bi.item_type = \'service\'' : '';
+
         $this->db->dbquery(
             "UPDATE booking_items bi
              LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
@@ -2675,7 +2687,8 @@ class BookingModel
                           AND pi.default_supplier_id = :sid3
                     )
                     {$supplierPackageItemsCondition}
-               )"
+               )
+               {$serviceFilter}"
         );
         $this->db->dbbind(':status', $status);
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
@@ -2686,6 +2699,9 @@ class BookingModel
         $this->db->dbbind(':sid3', $supplierId, PDO::PARAM_INT);
         if ($hasSupplierPackageItems) {
             $this->db->dbbind(':sid4', $supplierId, PDO::PARAM_INT);
+        }
+        if ($serviceId > 0) {
+            $this->db->dbbind(':service_id', $serviceId, PDO::PARAM_INT);
         }
 
         return $this->db->dbexecute();
@@ -5049,8 +5065,24 @@ class BookingModel
      * Get all payment transactions related to a supplier's bookings (deposits, remaining, full).
      * This is the supplier's payment history — what customers paid toward their services.
      */
-    public function getSupplierPaymentHistory(int $supplierId, int $limit = 20, int $offset = 0): array
+    public function getSupplierPaymentHistory(int $supplierId, int $limit = 20, int $offset = 0, array $filters = []): array
     {
+        $where = "p.type IN ('deposit','remaining','full','payout')";
+        $params = [[':sid1', $supplierId, PDO::PARAM_INT]];
+
+        if (!empty($filters['status']) && in_array($filters['status'], ['success', 'pending', 'failed'], true)) {
+            $where .= ' AND p.status = :status';
+            $params[] = [':status', $filters['status'], PDO::PARAM_STR];
+        }
+        if (!empty($filters['type']) && in_array($filters['type'], ['deposit', 'remaining', 'full', 'payout'], true)) {
+            $where .= ' AND p.type = :type';
+            $params[] = [':type', $filters['type'], PDO::PARAM_STR];
+        }
+        if (!empty($filters['escrow']) && in_array($filters['escrow'], ['held', 'released', 'refunded'], true)) {
+            $where .= ' AND p.escrow_status = :escrow';
+            $params[] = [':escrow', $filters['escrow'], PDO::PARAM_STR];
+        }
+
         $this->db->dbquery(
             "SELECT p.id, p.booking_id, p.amount, p.platform_fee, p.supplier_amount,
                     p.type, p.status, p.escrow_status, p.method, p.created_at, p.paid_at,
@@ -5059,25 +5091,41 @@ class BookingModel
              JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid1
              JOIN bookings b ON b.id = p.booking_id
              JOIN users u ON u.user_id = b.user_id
-             WHERE p.type IN ('deposit','remaining','full')
+             WHERE {$where}
              ORDER BY p.created_at DESC
              LIMIT :limit OFFSET :offset"
         );
-        $this->db->dbbind(':sid1', $supplierId, PDO::PARAM_INT);
+        foreach ($params as $pv) { $this->db->dbbind($pv[0], $pv[1], $pv[2]); }
         $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
         $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
         return $this->db->getmultidata();
     }
 
-    public function getSupplierPaymentHistoryCount(int $supplierId): int
+    public function getSupplierPaymentHistoryCount(int $supplierId, array $filters = []): int
     {
+        $where = "p.type IN ('deposit','remaining','full','payout')";
+        $params = [[':sid', $supplierId, PDO::PARAM_INT]];
+
+        if (!empty($filters['status']) && in_array($filters['status'], ['success', 'pending', 'failed'], true)) {
+            $where .= ' AND p.status = :status';
+            $params[] = [':status', $filters['status'], PDO::PARAM_STR];
+        }
+        if (!empty($filters['type']) && in_array($filters['type'], ['deposit', 'remaining', 'full', 'payout'], true)) {
+            $where .= ' AND p.type = :type';
+            $params[] = [':type', $filters['type'], PDO::PARAM_STR];
+        }
+        if (!empty($filters['escrow']) && in_array($filters['escrow'], ['held', 'released', 'refunded'], true)) {
+            $where .= ' AND p.escrow_status = :escrow';
+            $params[] = [':escrow', $filters['escrow'], PDO::PARAM_STR];
+        }
+
         $this->db->dbquery(
             "SELECT COUNT(DISTINCT p.id)
              FROM payments p
              JOIN booking_suppliers bs ON bs.booking_id = p.booking_id AND bs.supplier_id = :sid
-             WHERE p.type IN ('deposit','remaining','full')"
+             WHERE {$where}"
         );
-        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        foreach ($params as $pv) { $this->db->dbbind($pv[0], $pv[1], $pv[2]); }
         $row = $this->db->getsingledata();
         return (int)($row['COUNT(DISTINCT p.id)'] ?? 0);
     }

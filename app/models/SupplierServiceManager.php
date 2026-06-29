@@ -93,7 +93,8 @@ class SupplierServiceManager
                          services.min_lead_days,
                          ' . $defaultTimeFields . '
                          ' . $venueSelectFields . '
-                         categories.name AS category
+                         categories.name AS category,
+                         categories.slug AS category_slug
                   FROM services
                   LEFT JOIN categories ON categories.id = services.category_id
                   ' . $venueJoin . '
@@ -530,6 +531,7 @@ class SupplierServiceManager
                     services.max_concurrent_package,
                     services.max_concurrent_customize,
                     services.min_lead_days,
+                    services.category_id,
                     ' . $defaultTimeFields . '
                     ' . $venueSelectFields . '
                     categories.name AS category
@@ -649,7 +651,9 @@ class SupplierServiceManager
         $category = strtolower((string)($service['category'] ?? ''));
         $isVenue = $category === 'venue';
         $isDecoration = $category === 'decoration';
-        $isFood = $category === 'food';
+        $isCake = $category === 'cake';
+        $isCatering = $category === 'food_drinks';
+        $isFood = $isCake || $isCatering;
         $isRental = in_array($category, ['attire'], true);
         $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'] : [];
         $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
@@ -714,11 +718,20 @@ class SupplierServiceManager
             if (!$this->hasOpenWeeklySchedule($weekly)) {
                 $missing[] = 'Save your availability schedule with at least one available day.';
             }
-        } elseif ($category === 'food') {
+        } elseif ($isCake) {
             $foodItems = is_array($service['food_items'] ?? null) ? $service['food_items'] : [];
             $validFood = array_filter($foodItems, fn($f) => trim((string)($f['name'] ?? '')) !== '' && (float)($f['package_price'] ?? $f['price'] ?? 0) > 0);
             if (empty($validFood)) {
                 $missing[] = 'Add at least one cake item with a name and price.';
+            }
+            if (!$this->hasOpenWeeklySchedule($weekly)) {
+                $missing[] = 'Save your availability schedule with at least one available day.';
+            }
+        } elseif ($isCatering) {
+            $foodItems = is_array($service['food_items'] ?? null) ? $service['food_items'] : [];
+            $validFood = array_filter($foodItems, fn($f) => trim((string)($f['name'] ?? '')) !== '' && (float)($f['package_price'] ?? $f['price'] ?? 0) > 0);
+            if (empty($validFood)) {
+                $missing[] = 'Add at least one menu item with a name and per-person price.';
             }
             if (!$this->hasOpenWeeklySchedule($weekly)) {
                 $missing[] = 'Save your availability schedule with at least one available day.';
@@ -774,7 +787,8 @@ class SupplierServiceManager
 
     public function saveWeeklyAvailability($supplierId, $serviceId, $data)
     {
-        if (!$this->getServiceById($serviceId, $supplierId)) {
+        $service = $this->getServiceById($serviceId, $supplierId);
+        if (!$service) {
             return null;
         }
 
@@ -786,6 +800,11 @@ class SupplierServiceManager
 
         $maxConcurrentPackage = max(0, min(20, (int)($data['max_concurrent_package'] ?? 0)));
         $maxConcurrentCustomize = max(0, min(20, (int)($data['max_concurrent_customize'] ?? 0)));
+
+        // Determine booking type based on category (only Venue uses slot booking)
+        $categoryId = (int)($service['category_id'] ?? 0);
+        $slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : [6];
+        $bookingType = in_array($categoryId, $slotCategories, true) ? 'slot' : 'fullday';
 
         $this->db->dbquery(
             'UPDATE services
@@ -805,7 +824,7 @@ class SupplierServiceManager
         $this->db->dbbind(':max_concurrent_package', $maxConcurrentPackage);
         $this->db->dbbind(':max_concurrent_customize', $maxConcurrentCustomize);
         $this->db->dbbind(':min_lead_days', $minLeadDays);
-        $this->db->dbbind(':booking_type', 'slot');
+        $this->db->dbbind(':booking_type', $bookingType);
         $this->db->dbbind(':id', (int)$serviceId);
         $this->db->dbbind(':supplier_id', (int)$supplierId);
         $this->db->dbexecute();
@@ -1537,7 +1556,11 @@ class SupplierServiceManager
         }
         $this->db->dbbind(':thumbnail_url', $data['img'] ?? $data['thumbnail_url'] ?? null);
         $this->db->dbbind(':is_active', ($data['status'] ?? 'active') === 'inactive' ? 0 : 1);
-        $this->db->dbbind(':booking_type', ($data['booking_type'] ?? '') === 'slot' || !empty($data['timeslot']) ? 'slot' : 'fullday');
+        // Only allow slot-based booking for categories in SLOT_BOOKING_CATEGORIES
+        $slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : [6];
+        $isSlotRequest = ($data['booking_type'] ?? '') === 'slot' || !empty($data['timeslot']);
+        $bookingType = ($isSlotRequest && in_array($categoryId, $slotCategories, true)) ? 'slot' : 'fullday';
+        $this->db->dbbind(':booking_type', $bookingType);
         $this->db->dbbind(':duration_minutes', !empty($data['duration_minutes']) ? (int)$data['duration_minutes'] : null);
         $this->db->dbbind(':pricing_unit', $data['pricing_unit'] ?? 'per_session');
         $this->db->dbbind(':max_concurrent', max(1, min(65535, (int)($data['capacity'] ?? $data['max_concurrent'] ?? 1))));
@@ -1711,6 +1734,7 @@ class SupplierServiceManager
             'package_price' => $priceMin,
             'customize_price' => $priceMax,
             'category' => $service['category'] ?: 'Others',
+            'category_slug' => $service['category_slug'] ?? '',
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
             'publish_status' => $service['publish_status'] ?? 'draft',
             'desc' => html_entity_decode($service['description'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
@@ -1729,7 +1753,7 @@ class SupplierServiceManager
             'venue_rooms' => !empty($service['venue_id']) ? $this->getVenueRooms((int)$service['venue_id']) : [],
             'attire_items' => $category === 'attire' ? $this->getAttireItems((int)$service['id']) : [],
             'decoration_styles' => $category === 'decoration' ? $this->getDecorationStyles((int)$service['id']) : [],
-            'food_items' => $category === 'food' ? $this->getFoodItems((int)$service['id']) : [],
+            'food_items' => in_array($category, ['cake', 'food_drinks'], true) ? $this->getFoodItems((int)$service['id'], $category) : [],
             'rental_pricing' => in_array($category, ['attire'], true) ? $this->getRentalPricing((int)$service['id']) : null,
         ];
     }
@@ -2809,16 +2833,28 @@ class SupplierServiceManager
 
     // ── Food Items ──────────────────────────────────────────────
 
-    private function getFoodItems(int $serviceId): array
+    private function getFoodItems(int $serviceId, string $category = ''): array
     {
+        $foodType = $this->categoryToFoodType($category);
         try {
-            $this->db->dbquery(
-                'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
-                 FROM food_items
-                 WHERE service_id = :service_id
-                 ORDER BY sort_order ASC, id ASC'
-            );
-            $this->db->dbbind(':service_id', $serviceId);
+            if ($foodType !== '') {
+                $this->db->dbquery(
+                    'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
+                     FROM food_items
+                     WHERE service_id = :service_id AND food_type = :food_type
+                     ORDER BY sort_order ASC, id ASC'
+                );
+                $this->db->dbbind(':service_id', $serviceId);
+                $this->db->dbbind(':food_type', $foodType);
+            } else {
+                $this->db->dbquery(
+                    'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
+                     FROM food_items
+                     WHERE service_id = :service_id
+                     ORDER BY sort_order ASC, id ASC'
+                );
+                $this->db->dbbind(':service_id', $serviceId);
+            }
         } catch (Throwable $e) {
             return [];
         }
@@ -2837,18 +2873,30 @@ class SupplierServiceManager
         }, $this->db->getmultidata());
     }
 
+    private function categoryToFoodType(string $category): string
+    {
+        return match ($category) {
+            'cake' => 'cake',
+            'food_drinks' => 'catering',
+            'food' => 'catering', // legacy fallback
+            default => '',
+        };
+    }
+
     private function saveFoodItems(int $serviceId, array $data): void
     {
         $category = strtolower((string)($data['category'] ?? ''));
-        if ($category !== 'food') {
+        $foodType = $this->categoryToFoodType($category);
+        if ($foodType === '') {
             return;
         }
 
         $items = is_array($data['food_items'] ?? null) ? $data['food_items'] : [];
 
         try {
-            $this->db->dbquery('DELETE FROM food_items WHERE service_id = :service_id');
+            $this->db->dbquery('DELETE FROM food_items WHERE service_id = :service_id AND food_type = :food_type');
             $this->db->dbbind(':service_id', $serviceId);
+            $this->db->dbbind(':food_type', $foodType);
             $this->db->dbexecute();
         } catch (Throwable $e) {
             return;
@@ -2865,11 +2913,12 @@ class SupplierServiceManager
             $packagePrice = max(0, (float)($item['package_price'] ?? $item['price'] ?? 0));
             $customizePrice = max($packagePrice, (float)($item['customize_price'] ?? $item['price'] ?? $packagePrice));
             $photoUrl = trim((string)($item['photo_url'] ?? ''));
-            $pricingModel = in_array($item['pricing_model'] ?? '', ['per_person'], true) ? 'per_person' : 'flat';
+            // Force pricing model based on category: cake=flat, catering=per_person
+            $pricingModel = $foodType === 'cake' ? 'flat' : 'per_person';
 
             $this->db->dbquery(
-                'INSERT INTO food_items (service_id, name, description, price, package_price, customize_price, photo_url, pricing_model, sort_order)
-                 VALUES (:service_id, :name, :description, :price, :package_price, :customize_price, :photo_url, :pricing_model, :sort_order)'
+                'INSERT INTO food_items (service_id, name, description, price, package_price, customize_price, photo_url, pricing_model, food_type, sort_order)
+                 VALUES (:service_id, :name, :description, :price, :package_price, :customize_price, :photo_url, :pricing_model, :food_type, :sort_order)'
             );
             $this->db->dbbind(':service_id', $serviceId);
             $this->db->dbbind(':name', $name);
@@ -2879,6 +2928,7 @@ class SupplierServiceManager
             $this->db->dbbind(':customize_price', number_format($customizePrice, 2, '.', ''), PDO::PARAM_STR);
             $this->db->dbbind(':photo_url', $photoUrl !== '' ? $photoUrl : null);
             $this->db->dbbind(':pricing_model', $pricingModel);
+            $this->db->dbbind(':food_type', $foodType);
             $this->db->dbbind(':sort_order', $sort++, PDO::PARAM_INT);
             $this->db->dbexecute();
         }
