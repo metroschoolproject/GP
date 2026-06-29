@@ -327,8 +327,30 @@ class CustomerServiceCatalog
         $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate, $formatted['min_lead_days']) : [];
         $formatted['decoration_styles'] = strtolower((string)$formatted['category']) === 'decoration' ? $this->getDecorationStyles($serviceId) : [];
         $catSlug = strtolower((string)$formatted['category_slug']);
-        $formatted['food_items'] = in_array($catSlug, ['cake', 'food_drinks'], true) ? $this->getFoodItems($serviceId, $catSlug) : [];
+        $catName = strtolower((string)$formatted['category']);
+        $formatted['food_items'] = in_array($catSlug, ['cake', 'food_drinks'], true) || in_array($catName, ['cake', 'food & drinks'], true)
+            ? $this->getFoodItems($serviceId, $catSlug)
+            : [];
         $formatted['attire_items'] = strtolower((string)$formatted['category']) === 'attire' ? $this->getAttireItemsWithRentalOptions($serviceId) : [];
+        $formatted['car_items'] = $catName === 'car' ? $this->getCarItems($serviceId) : [];
+
+        // Backfill service-level price range from items if missing
+        if (($formatted['price_min'] ?? 0) <= 0) {
+            $itemPrices = [];
+            foreach (['food_items', 'decoration_styles', 'car_items'] as $itemKey) {
+                foreach (($formatted[$itemKey] ?? []) as $item) {
+                    $p = (float)($item['package_price'] ?? $item['price'] ?? 0);
+                    if ($p > 0) $itemPrices[] = $p;
+                }
+            }
+            if (!empty($itemPrices)) {
+                $formatted['price_min'] = min($itemPrices);
+                $formatted['price_max'] = max($itemPrices);
+                $formatted['package_price'] = $formatted['price_min'];
+                $formatted['customize_price'] = $formatted['price_max'];
+                $formatted['display_price'] = $formatted['price_max'];
+            }
+        }
         $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted, $selectedDate);
 
         require_once APPROOT . '/models/ReviewModel.php';
@@ -890,9 +912,9 @@ class CustomerServiceCatalog
 
     private function getFoodItems($serviceId, string $category = ''): array
     {
-        $foodType = match ($category) {
+        $foodType = match (strtolower($category)) {
             'cake' => 'cake',
-            'food_drinks' => 'catering',
+            'food_drinks', 'food & drinks' => 'catering',
             'food' => 'catering',
             default => '',
         };
@@ -929,6 +951,33 @@ class CustomerServiceCatalog
                 'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
                 'photo_url' => trim((string)($row['photo_url'] ?? '')),
                 'pricing_model' => $row['pricing_model'] ?? 'flat',
+            ];
+        }, $this->db->getmultidata());
+    }
+
+    private function getCarItems(int $serviceId): array
+    {
+        try {
+            $this->db->dbquery(
+                'SELECT id, name, description, price, package_price, customize_price, photo_url
+                 FROM car_items
+                 WHERE service_id = :service_id
+                 ORDER BY sort_order ASC, id ASC'
+            );
+            $this->db->dbbind(':service_id', $serviceId);
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        return array_map(function ($row) {
+            return [
+                'id' => (int)($row['id'] ?? 0),
+                'name' => $row['name'] ?? '',
+                'description' => $row['description'] ?? '',
+                'price' => (float)($row['price'] ?? 0),
+                'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
+                'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
+                'photo_url' => trim((string)($row['photo_url'] ?? '')),
             ];
         }, $this->db->getmultidata());
     }
