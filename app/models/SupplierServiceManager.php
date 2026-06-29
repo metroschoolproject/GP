@@ -534,7 +534,8 @@ class SupplierServiceManager
                     services.category_id,
                     ' . $defaultTimeFields . '
                     ' . $venueSelectFields . '
-                    categories.name AS category
+                    categories.name AS category,
+                    categories.slug AS category_slug
              FROM services
              LEFT JOIN categories ON categories.id = services.category_id
              ' . $venueJoin . '
@@ -801,10 +802,10 @@ class SupplierServiceManager
         $maxConcurrentPackage = max(0, min(20, (int)($data['max_concurrent_package'] ?? 0)));
         $maxConcurrentCustomize = max(0, min(20, (int)($data['max_concurrent_customize'] ?? 0)));
 
-        // Determine booking type based on category (only Venue uses slot booking)
-        $categoryId = (int)($service['category_id'] ?? 0);
-        $slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : [6];
-        $bookingType = in_array($categoryId, $slotCategories, true) ? 'slot' : 'fullday';
+        // Determine booking type based on category slug
+        $categorySlug = strtolower(trim((string)($service['category_slug'] ?? ($service['category'] ?? ''))));
+        $slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : ['venue'];
+        $bookingType = in_array($categorySlug, $slotCategories, true) ? 'slot' : 'fullday';
 
         $this->db->dbquery(
             'UPDATE services
@@ -1557,9 +1558,10 @@ class SupplierServiceManager
         $this->db->dbbind(':thumbnail_url', $data['img'] ?? $data['thumbnail_url'] ?? null);
         $this->db->dbbind(':is_active', ($data['status'] ?? 'active') === 'inactive' ? 0 : 1);
         // Only allow slot-based booking for categories in SLOT_BOOKING_CATEGORIES
-        $slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : [6];
+        $categorySlug = strtolower(trim((string)($data['category'] ?? '')));
+        $slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : ['venue'];
         $isSlotRequest = ($data['booking_type'] ?? '') === 'slot' || !empty($data['timeslot']);
-        $bookingType = ($isSlotRequest && in_array($categoryId, $slotCategories, true)) ? 'slot' : 'fullday';
+        $bookingType = ($isSlotRequest && in_array($categorySlug, $slotCategories, true)) ? 'slot' : 'fullday';
         $this->db->dbbind(':booking_type', $bookingType);
         $this->db->dbbind(':duration_minutes', !empty($data['duration_minutes']) ? (int)$data['duration_minutes'] : null);
         $this->db->dbbind(':pricing_unit', $data['pricing_unit'] ?? 'per_session');
@@ -1734,6 +1736,7 @@ class SupplierServiceManager
             'package_price' => $priceMin,
             'customize_price' => $priceMax,
             'category' => $service['category'] ?: 'Others',
+            'category_id' => (int)($service['category_id'] ?? 0),
             'category_slug' => $service['category_slug'] ?? '',
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
             'publish_status' => $service['publish_status'] ?? 'draft',

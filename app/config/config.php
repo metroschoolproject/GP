@@ -83,4 +83,4 @@ define('CATEGORY_DEFAULT_TIMES', [
  * All other categories are forced to 'fullday' booking type.
  * Only Venue supports choosing specific time slots.
  */
-define('SLOT_BOOKING_CATEGORIES', [6]); // Venue
+define('SLOT_BOOKING_CATEGORIES', ['venue', 'makeup & hair']);

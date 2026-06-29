@@ -99,9 +99,9 @@ foreach ($weeklyRows as $row) {
 $serviceCategoryRaw = $service['category'] ?? 'Others';
 $isVenue = strtolower((string)$serviceCategoryRaw) === 'venue';
 $isRental = in_array(strtolower((string)$serviceCategoryRaw), ['attire'], true);
-$serviceCategoryId = (int)($service['category_id'] ?? 0);
-$slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : [6];
-$isSlotBooking = in_array($serviceCategoryId, $slotCategories, true);
+$serviceCategorySlug = strtolower(trim((string)($service['category_slug'] ?? '')));
+$slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : ['venue'];
+$isSlotBooking = in_array($serviceCategorySlug, $slotCategories, true);
 $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 $serviceDescriptionRaw = trim((string)($service['desc'] ?? $service['description'] ?? ''));
 $servicePackagePrice = (float)($service['price_min'] ?? $service['package_price'] ?? $service['price'] ?? 0);
@@ -149,7 +149,7 @@ $overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $ser
 $overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
 $serviceManageUrl = URLROOT . '/supplier/services';
 
-$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $foodItems, $attireItems, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $maxConcurrentPackage, $maxConcurrentCustomize, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $isSlotBooking, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $serviceStatusUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $serviceManageUrl) {
+$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceCategorySlug, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $foodItems, $attireItems, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $maxConcurrentPackage, $maxConcurrentCustomize, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $isSlotBooking, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $serviceStatusUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $serviceManageUrl) {
 ?>
 <?php
 $serviceDetailCssVersion = file_exists(APPROOT . '/../public/css/supplier-service-detail.css') ? filemtime(APPROOT . '/../public/css/supplier-service-detail.css') : time();
