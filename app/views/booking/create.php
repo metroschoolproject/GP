@@ -2595,35 +2595,61 @@ const packageScheduleState = new Map();
     }
 
     /* ─── Persist booking form drafts to sessionStorage ─── */
-    const DRAFT_FIELDS = ['item_guests', 'item_location', 'item_contact_name', 'item_contact_phone', 'item_notes'];
+    const DRAFT_FIELD_PREFIXES = ['item_guests', 'item_location', 'item_contact_name', 'item_contact_phone', 'item_notes'];
     const DRAFT_VALUE_KEYS = ['guests', 'location', 'contactName', 'contactPhone', 'notes'];
 
     function saveBookingDrafts() {
       const cards = document.querySelectorAll('.gp-item-card[data-service-id]');
       if (!cards.length) return;
       const drafts = [];
-      cards.forEach(card => {
+      cards.forEach(function (card) {
         const serviceId = String(card.dataset.serviceId || '');
         if (!serviceId) return;
         const values = {};
-        DRAFT_FIELDS.forEach((fieldPrefix, idx) => {
-          const field = card.querySelector(`[name^="${fieldPrefix}["]`);
+        DRAFT_FIELD_PREFIXES.forEach(function (prefix, idx) {
+          const field = card.querySelector('[name^="' + prefix + '["]');
           values[DRAFT_VALUE_KEYS[idx]] = field ? field.value : '';
         });
-        drafts.push({ serviceId, values });
+        drafts.push({ serviceId: serviceId, values: values });
       });
       try {
         if (drafts.length) sessionStorage.setItem(modalDraftStorageKey, JSON.stringify(drafts));
         else sessionStorage.removeItem(modalDraftStorageKey);
-      } catch (error) { /* quota exceeded — ignore */ }
+      } catch (e) {}
     }
 
-    document.getElementById('booking-form')?.addEventListener('input', function (e) {
-      if (DRAFT_FIELDS.some(prefix => (e.target.name || '').startsWith(prefix + '['))) {
-        saveBookingDrafts();
+    function isDraftField(name) {
+      if (!name) return false;
+      for (var k = 0; k < DRAFT_FIELD_PREFIXES.length; k++) {
+        if (name.indexOf(DRAFT_FIELD_PREFIXES[k] + '[') === 0) return true;
       }
+      return false;
+    }
+
+    var draftSaveTimer = null;
+    function scheduleDraftSave() {
+      if (draftSaveTimer) return;
+      draftSaveTimer = setTimeout(function () {
+        draftSaveTimer = null;
+        saveBookingDrafts();
+      }, 200);
+    }
+
+    var bookingForm = document.getElementById('booking-form');
+    if (bookingForm) {
+      bookingForm.addEventListener('input', function (e) {
+        if (isDraftField(e.target.name)) scheduleDraftSave();
+      });
+      bookingForm.addEventListener('change', function (e) {
+        if (isDraftField(e.target.name)) scheduleDraftSave();
+      });
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') saveBookingDrafts();
     });
-    window.addEventListener('pagehide', saveBookingDrafts);
+    window.addEventListener('beforeunload', saveBookingDrafts);
+
+    saveBookingDrafts();
 
     const syncFields = (source, selector) => {
       const value = source.value.trim();
