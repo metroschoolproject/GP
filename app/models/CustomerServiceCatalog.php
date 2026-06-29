@@ -326,7 +326,8 @@ class CustomerServiceCatalog
         $formatted['selected_date'] = $selectedDate ?: '';
         $formatted['venue_rooms'] = strtolower((string)$formatted['category']) === 'venue' ? $this->getVenueRooms($serviceId, $selectedDate, $formatted['min_lead_days']) : [];
         $formatted['decoration_styles'] = strtolower((string)$formatted['category']) === 'decoration' ? $this->getDecorationStyles($serviceId) : [];
-        $formatted['food_items'] = strtolower((string)$formatted['category']) === 'food' ? $this->getFoodItems($serviceId) : [];
+        $catSlug = strtolower((string)$formatted['category_slug']);
+        $formatted['food_items'] = in_array($catSlug, ['cake', 'food_drinks'], true) ? $this->getFoodItems($serviceId, $catSlug) : [];
         $formatted['attire_items'] = strtolower((string)$formatted['category']) === 'attire' ? $this->getAttireItemsWithRentalOptions($serviceId) : [];
         $formatted['availability'] = $this->getServiceAvailability($serviceId, $formatted, $selectedDate);
 
@@ -887,16 +888,33 @@ class CustomerServiceCatalog
         }, $this->db->getmultidata());
     }
 
-    private function getFoodItems($serviceId): array
+    private function getFoodItems($serviceId, string $category = ''): array
     {
+        $foodType = match ($category) {
+            'cake' => 'cake',
+            'food_drinks' => 'catering',
+            'food' => 'catering',
+            default => '',
+        };
         try {
-            $this->db->dbquery(
-                'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
-                 FROM food_items
-                 WHERE service_id = :service_id
-                 ORDER BY sort_order ASC, id ASC'
-            );
-            $this->db->dbbind(':service_id', (int)$serviceId);
+            if ($foodType !== '') {
+                $this->db->dbquery(
+                    'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
+                     FROM food_items
+                     WHERE service_id = :service_id AND food_type = :food_type
+                     ORDER BY sort_order ASC, id ASC'
+                );
+                $this->db->dbbind(':service_id', (int)$serviceId);
+                $this->db->dbbind(':food_type', $foodType);
+            } else {
+                $this->db->dbquery(
+                    'SELECT id, name, description, price, package_price, customize_price, photo_url, pricing_model
+                     FROM food_items
+                     WHERE service_id = :service_id
+                     ORDER BY sort_order ASC, id ASC'
+                );
+                $this->db->dbbind(':service_id', (int)$serviceId);
+            }
         } catch (Throwable $e) {
             return [];
         }

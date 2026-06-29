@@ -327,6 +327,18 @@
       <div id="csFoodItemsList" class="space-y-3"></div>
     </div>
 
+    <!-- Card: Catering Menu Items -->
+    <div id="csCateringExtras" class="create-card hidden-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="create-card-title" style="margin-bottom:0;padding-bottom:0;border-bottom:0">Menu Items <span style="font-weight:400;font-size:12px;color:#9ca3af">(per person pricing)</span></div>
+        <button type="button" onclick="addFoodItem('cs-catering')" class="room-add">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+          Add menu item
+        </button>
+      </div>
+      <div id="csCateringItemsList" class="space-y-3"></div>
+    </div>
+
     <!-- Card: Rental Pricing -->
     <div id="csRentalExtras" class="create-card hidden-section">
       <div class="create-card-title">Rental Pricing</div>
@@ -475,13 +487,22 @@
         <div id="esStylesList" class="space-y-2"></div>
       </div>
 
-      <!-- Food extras -->
+      <!-- Food extras (Cake) -->
       <div id="esFoodExtras" class="create-card hidden" style="margin-bottom:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div class="create-card-title" style="margin-bottom:0;padding-bottom:0;border-bottom:0">Cake Items</div>
           <button type="button" onclick="addFoodItem('es')" class="room-add">+ Add cake</button>
         </div>
         <div id="esFoodItemsList" class="space-y-3"></div>
+      </div>
+
+      <!-- Food extras (Catering) -->
+      <div id="esCateringExtras" class="create-card hidden" style="margin-bottom:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="create-card-title" style="margin-bottom:0;padding-bottom:0;border-bottom:0">Menu Items <span style="font-weight:400;font-size:12px;color:#9ca3af">(per person pricing)</span></div>
+          <button type="button" onclick="addFoodItem('es-catering')" class="room-add">+ Add menu item</button>
+        </div>
+        <div id="esCateringItemsList" class="space-y-3"></div>
       </div>
 
       <!-- Rental extras -->

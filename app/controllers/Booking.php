@@ -1179,8 +1179,8 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Invalid package or event date'], 400);
         }
 
-        $schedule = $this->cartModel->getPackageEventSchedule($packageId, $date);
-        if (empty($schedule)) {
+        $fullSchedule = $this->cartModel->getPackageEventSchedule($packageId, $date);
+        if (empty($fullSchedule)) {
             $this->jsonResponse([
                 'success' => false,
                 'error' => 'No package services are available to schedule.',
@@ -1188,7 +1188,7 @@ class Booking extends Controller
         }
 
         $requiredLeadDays = 0;
-        foreach ($schedule as $service) {
+        foreach ($fullSchedule as $service) {
             $requiredLeadDays = max($requiredLeadDays, (int)($service['min_lead_days'] ?? 0));
         }
         $earliestDate = (new DateTimeImmutable('today'))->add(new DateInterval('P' . $requiredLeadDays . 'D'));
@@ -1200,6 +1200,23 @@ class Booking extends Controller
             ], 422);
         }
 
+        // Deduplicate: keep one entry per service (first available slot, or
+        // first slot if none are available) so the customer sees each package
+        // service exactly once instead of every possible time slot.
+        $deduplicated = [];
+        $seen = [];
+        foreach ($fullSchedule as $row) {
+            $key = (int)($row['service_id'] ?? 0);
+            if (!isset($seen[$key])) {
+                $seen[$key] = $row;
+            } elseif (!empty($row['is_available']) && empty($seen[$key]['is_available'])) {
+                // Prefer an available slot over an unavailable one
+                $seen[$key] = $row;
+            }
+        }
+        $schedule = array_values($seen);
+
+        // Recalculate overall start/end from the deduplicated schedule
         $starts = array_column($schedule, 'start_time');
         $ends = array_column($schedule, 'end_time');
         sort($starts);

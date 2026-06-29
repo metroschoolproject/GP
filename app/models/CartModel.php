@@ -958,6 +958,213 @@ class CartModel
         return $alternatives;
     }
 
+    /**
+     * Return per-day availability for every date in a given month, for all
+     * slot-type services in a package.  Uses bulk queries so it is efficient
+     * enough for a calendar widget (3-4 queries total regardless of day count).
+     *
+     * Each day entry: {date, status, services_available, services_total}
+     *   status: 'available' | 'partial' | 'full' | 'closed'
+     */
+    public function getPackageMonthAvailability(int $packageId, string $yearMonth): array
+    {
+        // 1. Get slot-type services in this package
+        $this->db->dbquery(
+            "SELECT pi.service_id, s.max_concurrent, s.duration_minutes, s.buffer_minutes
+             FROM package_items pi
+             INNER JOIN services s ON s.id = pi.service_id
+             WHERE pi.package_id = :pid
+               AND pi.service_id IS NOT NULL
+               AND pi.deleted_at IS NULL
+               AND s.booking_type = 'slot'"
+        );
+        $this->db->dbbind(':pid', $packageId, PDO::PARAM_INT);
+        $slotServices = $this->db->getmultidata();
+
+        // If no slot-type services, every day is available (fullday services
+        // are always "managed" / available).
+        $firstDay = $yearMonth . '-01';
+        $daysInMonth = (int)date('t', strtotime($firstDay));
+        if (empty($slotServices)) {
+            $result = [];
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $date = $yearMonth . '-' . str_pad($d, 2, '0', STR_PAD_LEFT);
+                $result[] = [
+                    'date' => $date,
+                    'status' => 'available',
+                    'services_available' => 0,
+                    'services_total' => 0,
+                ];
+            }
+            return $result;
+        }
+
+        $serviceIds = array_map('intval', array_column($slotServices, 'service_id'));
+        $serviceMeta = [];
+        foreach ($slotServices as $svc) {
+            $sid = (int)$svc['service_id'];
+            $serviceMeta[$sid] = [
+                'max_concurrent' => max(1, (int)($svc['max_concurrent'] ?? 1)),
+                'duration' => max(15, (int)($svc['duration_minutes'] ?? 180)),
+                'buffer' => max(0, (int)($svc['buffer_minutes'] ?? 0)),
+            ];
+        }
+
+        // Build named-parameter IN clause (e.g. ":sid_0,:sid_1,:sid_2")
+        $inParams = [];
+        foreach ($serviceIds as $i => $sid) {
+            $inParams[] = ':sid_' . $i;
+        }
+        $inClause = implode(',', $inParams);
+
+        $startDate = $yearMonth . '-01';
+        $endDate = $yearMonth . '-' . str_pad($daysInMonth, 2, '0', STR_PAD_LEFT);
+
+        // 2. Bulk-load weekly schedules for all services
+        $this->db->dbquery(
+            "SELECT service_id, day_of_week, open_time, close_time
+             FROM service_schedules
+             WHERE service_id IN ({$inClause})
+               AND is_available = 1"
+        );
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid, PDO::PARAM_INT);
+        }
+        $weeklySchedules = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $weeklySchedules[(int)$row['service_id']][(int)$row['day_of_week']] = $row;
+        }
+
+        // 3. Bulk-load date overrides for the month
+        $this->db->dbquery(
+            "SELECT service_id, date, type, open_time, close_time
+             FROM service_availability
+             WHERE service_id IN ({$inClause})
+               AND date BETWEEN :start AND :end"
+        );
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid, PDO::PARAM_INT);
+        }
+        $this->db->dbbind(':start', $startDate);
+        $this->db->dbbind(':end', $endDate);
+        $dateOverrides = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $dateOverrides[(int)$row['service_id']][(string)$row['date']] = $row;
+        }
+
+        // 4. Bulk-load all time_slots for the month
+        $this->db->dbquery(
+            "SELECT service_id, date, start_time,
+                    confirmed_count, confirmed_package_count,
+                    max_concurrent, max_concurrent_package,
+                    status
+             FROM service_time_slots
+             WHERE service_id IN ({$inClause})
+               AND date BETWEEN :start AND :end"
+        );
+        foreach ($serviceIds as $i => $sid) {
+            $this->db->dbbind(':sid_' . $i, $sid, PDO::PARAM_INT);
+        }
+        $this->db->dbbind(':start', $startDate);
+        $this->db->dbbind(':end', $endDate);
+        $timeSlots = [];
+        foreach ($this->db->getmultidata() as $row) {
+            $timeSlots[(int)$row['service_id']][(string)$row['date']][(string)$row['start_time']] = $row;
+        }
+
+        // 5. Evaluate each day
+        $result = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $date = $yearMonth . '-' . str_pad($d, 2, '0', STR_PAD_LEFT);
+            $isPast = strtotime($date) < strtotime('today');
+            $dow = (int)date('N', strtotime($date)); // 1=Mon..7=Sun (matches service_schedules)
+
+            if ($isPast) {
+                $result[] = [
+                    'date' => $date,
+                    'status' => 'closed',
+                    'services_available' => 0,
+                    'services_total' => count($serviceIds),
+                ];
+                continue;
+            }
+
+            $availableCount = 0;
+            $totalServices = count($serviceIds);
+
+            foreach ($serviceIds as $sid) {
+                $sid = (int)$sid;
+                $meta = $serviceMeta[$sid];
+
+                // Check override first, then weekly schedule
+                $override = $dateOverrides[$sid][$date] ?? null;
+                if ($override) {
+                    if (($override['type'] ?? '') === 'unavailable') {
+                        continue; // service closed on this date
+                    }
+                    $openTime = $override['open_time'] ?: '09:00:00';
+                    $closeTime = $override['close_time'] ?: '17:00:00';
+                } elseif (isset($weeklySchedules[$sid][$dow])) {
+                    $sched = $weeklySchedules[$sid][$dow];
+                    $openTime = $sched['open_time'];
+                    $closeTime = $sched['close_time'];
+                } else {
+                    continue; // no schedule = closed
+                }
+
+                // Generate candidate slots
+                $slots = $this->buildSlots($date, $openTime, $closeTime, $meta['duration'], $meta['buffer']);
+                if (empty($slots)) {
+                    continue;
+                }
+
+                // Check stored slots for availability
+                $stored = $timeSlots[$sid][$date] ?? [];
+                $hasAvailable = false;
+                foreach ($slots as $slot) {
+                    $storedRow = $stored[$slot['start_time']] ?? null;
+                    $isSlotPast = !$this->isFutureSlot($date, $slot['start_time']);
+                    if ($isSlotPast) continue;
+
+                    $capacity = $storedRow ? (int)$storedRow['max_concurrent'] : $meta['max_concurrent'];
+                    $confirmed = $storedRow ? (int)$storedRow['confirmed_count'] : 0;
+                    $status = $storedRow['status'] ?? 'available';
+                    $available = max(0, $capacity - $confirmed);
+
+                    $pkgCap = $storedRow ? (int)($storedRow['max_concurrent_package'] ?? 0) : 0;
+                    $pkgConfirmed = $storedRow ? max(0, (int)($storedRow['confirmed_package_count'] ?? 0)) : 0;
+                    $availPkg = $pkgCap > 0 ? max(0, $pkgCap - $pkgConfirmed) : $available;
+
+                    if ($status === 'available' && $available > 0 && $availPkg > 0) {
+                        $hasAvailable = true;
+                        break;
+                    }
+                }
+
+                if ($hasAvailable) {
+                    $availableCount++;
+                }
+            }
+
+            if ($availableCount === $totalServices) {
+                $status = 'available';
+            } elseif ($availableCount > 0) {
+                $status = 'partial';
+            } else {
+                $status = 'full';
+            }
+
+            $result[] = [
+                'date' => $date,
+                'status' => $status,
+                'services_available' => $availableCount,
+                'services_total' => $totalServices,
+            ];
+        }
+
+        return $result;
+    }
+
     private function getPackageServiceSlotAvailability(
         int $serviceId,
         string $eventDate,
@@ -1141,13 +1348,15 @@ class CartModel
             ? "CASE WHEN ci.decoration_style_id IS NOT NULL AND ds.id IS NOT NULL THEN COALESCE(ds.customize_price, ds.package_price, ds.price) END"
             : 'NULL';
 
+        $agentFeeMultiplier = 1 + (get_platform_fee_percent() / 100);
+
         $this->db->dbquery(
             "SELECT ci.id AS cart_item_id,
                     ci.item_type,
                     ci.item_id,
                     ci.selected_date,
                     CASE
-                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price)
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0) * {$agentFeeMultiplier}
                         ELSE COALESCE({$decoPriceExpr}, ci.price)
                     END AS cart_price,
                     ci.slot_id, 
@@ -1296,10 +1505,12 @@ class CartModel
             ? "CASE WHEN ci.decoration_style_id IS NOT NULL AND ds.id IS NOT NULL THEN COALESCE(ds.customize_price, ds.package_price, ds.price) END"
             : 'NULL';
 
+        $agentFeeMultiplier = 1 + (get_platform_fee_percent() / 100);
+
         $this->db->dbquery(
             "SELECT COALESCE(SUM(
                 CASE
-                    WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
+                    WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0) * {$agentFeeMultiplier}
                     ELSE COALESCE({$decoPriceExpr}, ci.price, s.price_min, s.price, 0)
                 END
              ), 0) AS total

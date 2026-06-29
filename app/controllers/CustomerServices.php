@@ -162,17 +162,19 @@ class CustomerServices extends Controller
         $search = trim($_GET['q'] ?? '');
         $sort = trim($_GET['sort'] ?? 'featured');
         $category = trim($_GET['category'] ?? 'all');
+        $date = $this->validDate($_GET['date'] ?? '') ?: '';
         $filters = [
             'search' => $search,
             'sort' => $sort,
             'category' => $category,
+            'date' => $date,
         ];
 
         $packageTypes = $packageModel->getPackageTypes($filters);
         $categories = $packageModel->getPackageCategories($filters);
 
         // Check active filters
-        $hasActiveFilters = $search !== '' || $category !== 'all';
+        $hasActiveFilters = $search !== '' || $category !== 'all' || $date !== '';
 
         // Cart count for header badge
         $cartCount = 0;
@@ -247,6 +249,28 @@ class CustomerServices extends Controller
             'package' => $package,
             'cartCount' => $cartCount,
         ]);
+    }
+
+    /**
+     * AJAX endpoint: return per-day availability for a package in a given month.
+     * POST {package_id, month}  →  {days: [{date, status, ...}]}
+     */
+    public function packageAvailability(): void
+    {
+        header('Content-Type: application/json');
+
+        $raw = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $packageId = (int)($raw['package_id'] ?? 0);
+        $month = trim((string)($raw['month'] ?? '')); // e.g. "2026-07"
+
+        if ($packageId <= 0 || !preg_match('/^\d{4}-\d{2}$/', $month)) {
+            echo json_encode(['error' => 'Invalid package or month']);
+            return;
+        }
+
+        $cartModel = $this->model('CartModel');
+        $days = $cartModel->getPackageMonthAvailability($packageId, $month);
+        echo json_encode(['days' => $days]);
     }
 
     private function filtersFromRequest()

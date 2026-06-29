@@ -194,8 +194,10 @@ $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['
 $isDecorationCategory = strtolower(trim((string)($service['category_slug'] ?? ''))) === 'decoration'
     || strtolower(trim((string)($service['category'] ?? ''))) === 'decoration';
 $foodItems = is_array($service['food_items'] ?? null) ? $service['food_items'] : [];
-$isFoodCategory = strtolower(trim((string)($service['category_slug'] ?? ''))) === 'food'
-    || strtolower(trim((string)($service['category'] ?? ''))) === 'food';
+$_foodCatSlug = strtolower(trim((string)($service['category_slug'] ?? '')));
+$isCakeCategory = $_foodCatSlug === 'cake';
+$isCateringCategory = $_foodCatSlug === 'food_drinks';
+$isFoodCategory = $isCakeCategory || $isCateringCategory;
 $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 $rentalOptions = [];
 if ($isRentalCategory) {
@@ -3432,7 +3434,7 @@ body:has(.gp-package-notice) .booking-grid {
   </a>
 <?php elseif ($isFoodCategory && !empty($foodItems)): ?>
   <a class="product-action-primary" id="bookNowBtn" href="#availability">
-    Choose a menu item
+    <?= $isCakeCategory ? 'Choose a cake' : 'Choose a menu item' ?>
   </a>
 <?php else: ?>
   <a class="product-action-primary" id="bookNowBtn" href="<?= URLROOT ?>/cart">
@@ -3507,7 +3509,7 @@ body:has(.gp-package-notice) .booking-grid {
   <section class="booking-section <?= $isVenue ? 'is-venue-booking' : '' ?>" id="<?= $isVenue ? 'available-halls' : 'availability' ?>" data-aos="fade-up" data-aos-duration="800">
     <div class="booking-grid <?= ($isVenue && $selectedDate === '') || (!$isVenue && $selectedDate === $todayDate && !$selectedDateHasBookOption) ? 'is-date-pending' : '' ?>">
       <div class="availability-list">
-        <?php if (($isVenue || $isFoodCategory) && !$isRentalCategory): ?>
+        <?php if (($isVenue || $isCateringCategory) && !$isRentalCategory): ?>
           <div class="guest-count-bar" id="guestCountBar">
             <label for="guestCountInput" class="guest-count-label">
               <i data-lucide="users" size="16"></i>
@@ -3774,11 +3776,11 @@ body:has(.gp-package-notice) .booking-grid {
           <?php endif; ?>
         <?php elseif ($isFoodCategory && !empty($foodItems)): ?>
           <div class="venue-halls-heading">
-            <h2 class="section-title">Menu Items</h2>
+            <h2 class="section-title"><?= $isCakeCategory ? 'Cake Items' : 'Menu Items' ?></h2>
           </div>
           <?php if ($selectedDate === ''): ?>
             <div class="empty-state venue-date-prompt">
-              <span>Choose a wedding date above to see which menu items are available.</span>
+              <span>Choose a wedding date above to see which <?= $isCakeCategory ? 'cakes' : 'menu items' ?> are available.</span>
             </div>
           <?php elseif (!$selectedDateHasBookOption): ?>
             <div class="empty-state"><i data-lucide="calendar-x" size="22"></i>Not available on your selected date. Please choose a different date.</div>
@@ -3983,7 +3985,7 @@ body:has(.gp-package-notice) .booking-grid {
           <?php endif; ?>
           <?php if ($isFoodCategory && !empty($foodItems)): ?>
             <div class="summary-line">
-              Selected item
+              <?= $isCakeCategory ? 'Selected cake' : 'Selected menu item' ?>
               <span id="selectedFoodItem">Choose a date first</span>
             </div>
           <?php endif; ?>

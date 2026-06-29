@@ -50,19 +50,25 @@ class Cart extends Controller
             // Don't redirect — let the user see the cart with the item
         }
 
-        // Process guest cart cookie items after login
+        // Process guest cart cookie items after login — only when the DB
+        // cart is empty so stale cookie items never pollute an active cart.
         if ($this->userId && hasGuestCart()) {
-            $guestItems = getGuestCartItems();
-            clearGuestCart();
-            foreach ($guestItems as $gItem) {
-                // Skip if already in DB cart (duplicate check)
-                $addonPackageId = (int)($gItem['addon_package_id'] ?? 0);
-                if ($addonPackageId > 0) {
-                    $packageCartItem = $this->cartModel->findPackageCartItem($this->userId, $addonPackageId);
-                    if (!$packageCartItem) continue; // Skip addon if package not in cart
-                    $gItem['package_cart_item_id'] = (int)$packageCartItem['cart_item_id'];
+            $existingItems = $this->cartModel->getCartItems($this->userId);
+            if (empty($existingItems)) {
+                $guestItems = getGuestCartItems();
+                clearGuestCart();
+                foreach ($guestItems as $gItem) {
+                    $addonPackageId = (int)($gItem['addon_package_id'] ?? 0);
+                    if ($addonPackageId > 0) {
+                        $packageCartItem = $this->cartModel->findPackageCartItem($this->userId, $addonPackageId);
+                        if (!$packageCartItem) continue;
+                        $gItem['package_cart_item_id'] = (int)$packageCartItem['cart_item_id'];
+                    }
+                    $this->cartModel->addItem($this->userId, $gItem);
                 }
-                $this->cartModel->addItem($this->userId, $gItem);
+            } else {
+                // DB cart already has items — discard stale guest cookie
+                clearGuestCart();
             }
         }
 
@@ -273,11 +279,17 @@ class Cart extends Controller
         $package = $packageModel->getPackageById($packageId);
         $packagePrice = $package ? (float)($package['package_price'] ?? $package['base_price'] ?? 0) : 0;
 
+        $selectedDate = trim((string)($_POST['selected_date'] ?? ''));
+        if ($selectedDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
+            $selectedDate = '';
+        }
+
         $itemData = [
             'item_type' => 'package',
             'item_id' => $packageId,
             'price' => $packagePrice > 0 ? $packagePrice : (!empty($_POST['price']) ? (float)$_POST['price'] : null),
             'source' => 'package',
+            'selected_date' => $selectedDate !== '' ? $selectedDate : null,
         ];
 
         if (!$this->userId) {

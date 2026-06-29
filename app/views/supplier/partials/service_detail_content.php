@@ -220,7 +220,7 @@ if (!empty($attentionItems[0]['label'])) {
 
           <!-- Controls row -->
           <div class="sd-avail-controls">
-            <?php if (!$isRental): ?>
+            <?php if (!$isRental && $isSlotBooking): ?>
             <div class="sd-avail-field">
               <label>Slot duration</label>
               <select id="availabilityDuration">
@@ -253,20 +253,20 @@ if (!empty($attentionItems[0]['label'])) {
               </select>
               <span class="sd-field-hint">Gap between back-to-back bookings</span>
             </div>
-            <?php endif; // !isRental ?>
+            <?php endif; // !isRental && isSlotBooking ?>
 	            <?php if (!$isVenue): ?>
 	            <div class="sd-avail-field">
-	              <label>Max bookings per slot</label>
+	              <label>Max bookings per <?= $isSlotBooking ? 'slot' : 'day' ?></label>
 	              <input id="availabilityConcurrent" type="number" min="1" value="<?= (int)$maxConcurrent ?>">
-	              <span class="sd-field-hint">How many customers can book the same time</span>
+	              <span class="sd-field-hint">How many customers can book the same <?= $isSlotBooking ? 'time' : 'day' ?></span>
 	            </div>
 	            <div class="sd-avail-field">
-	              <label>Package limit per slot</label>
+	              <label>Package limit per <?= $isSlotBooking ? 'slot' : 'day' ?></label>
 	              <input id="availabilityConcurrentPackage" type="number" min="0" value="<?= (int)$maxConcurrentPackage ?>">
 	              <span class="sd-field-hint">Max admin package bookings. 0 = no separate limit</span>
 	            </div>
 	            <div class="sd-avail-field">
-	              <label>Custom limit per slot</label>
+	              <label>Custom limit per <?= $isSlotBooking ? 'slot' : 'day' ?></label>
 	              <input id="availabilityConcurrentCustomize" type="number" min="0" value="<?= (int)$maxConcurrentCustomize ?>">
 	              <span class="sd-field-hint">Max custom bookings. 0 = no separate limit</span>
 	            </div>
@@ -537,7 +537,7 @@ if (!empty($attentionItems[0]['label'])) {
               </span>
             </span>
           </div>
-          <?php if (!$isRental): ?>
+          <?php if (!$isRental && $isSlotBooking): ?>
           <div class="sd-info-row">
             <span class="sd-info-key">Slot duration</span>
             <span class="sd-info-val"><?= $h($durationLabel($slotDuration)) ?></span>
@@ -558,7 +558,7 @@ if (!empty($attentionItems[0]['label'])) {
             </div>
           <?php elseif (!$isRental): ?>
             <div class="sd-info-row">
-              <span class="sd-info-key">Max bookings per slot</span>
+              <span class="sd-info-key">Max bookings per <?= $isSlotBooking ? 'slot' : 'day' ?></span>
               <span class="sd-info-val" id="serviceInfoConcurrent"><?= (int)$maxConcurrent ?></span>
             </div>
           <?php endif; ?>

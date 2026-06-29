@@ -437,9 +437,6 @@
   .left-6 {
     left: calc(var(--spacing) * 6);
   }
-  .left-auto {
-    left: auto;
-  }
   .isolate {
     isolation: isolate;
   }
@@ -695,9 +692,6 @@
   }
   .min-h-10 {
     min-height: calc(var(--spacing) * 10);
-  }
-  .min-h-28 {
-    min-height: calc(var(--spacing) * 28);
   }
   .min-h-48 {
     min-height: calc(var(--spacing) * 48);
@@ -1353,8 +1347,8 @@
   .bg-app-primary {
     background-color: #6d4c5b;
   }
-  .bg-app-primary\/10 {
-    background-color: color-mix(in oklab, #6d4c5b 10%, transparent);
+  .bg-app-primary\/15 {
+    background-color: color-mix(in oklab, #6d4c5b 15%, transparent);
   }
   .bg-app-ring {
     background-color: #e8d7ca;
@@ -2267,6 +2261,9 @@
   .ring-app-primary {
     --tw-ring-color: #6d4c5b;
   }
+  .ring-app-primary\/30 {
+    --tw-ring-color: color-mix(in oklab, #6d4c5b 30%, transparent);
+  }
   .ring-offset-1 {
     --tw-ring-offset-width: 1px;
     --tw-ring-offset-shadow: var(--tw-ring-inset,) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
@@ -2859,16 +2856,6 @@
     @media (width < 640px) {
       --tw-tracking: 0.14em;
       letter-spacing: 0.14em;
-    }
-  }
-  .sm\:right-0 {
-    @media (width >= 40rem) {
-      right: calc(var(--spacing) * 0);
-    }
-  }
-  .sm\:left-auto {
-    @media (width >= 40rem) {
-      left: auto;
     }
   }
   .sm\:grid-cols-2 {

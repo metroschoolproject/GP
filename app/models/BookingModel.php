@@ -111,6 +111,8 @@ class BookingModel
             ? "CASE WHEN ci.decoration_style_id IS NOT NULL AND ds.id IS NOT NULL THEN COALESCE(ds.customize_price, ds.package_price, ds.price) END"
             : 'NULL';
 
+        $agentFeeMultiplier = 1 + (get_platform_fee_percent() / 100);
+
         $this->db->dbquery(
             "INSERT INTO booking_items (booking_id, item_type{$sourceInsertColumn}, item_id, booking_date, price,
                     item_name, supplier_name, category_name, thumbnail_url,
@@ -118,7 +120,7 @@ class BookingModel
             SELECT :bid, ci.item_type{$sourceSelectColumn}, ci.item_id,
                     CONCAT(ci.selected_date, ' ', COALESCE(ci.start_time, '00:00:00')),
                     CASE
-                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0)
+                        WHEN ci.item_type = 'package' THEN COALESCE(p.base_price, ci.price, 0) * {$agentFeeMultiplier}
                         ELSE COALESCE({$decoPriceExpr}, ci.price, s.price_min, s.price, {$supplierPackagePrice}, 0)
                     END,
                     COALESCE(s.name, p.name, {$supplierPackageName}),

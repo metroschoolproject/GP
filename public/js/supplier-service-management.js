@@ -1,5 +1,5 @@
 // ── DATA ──────────────────────────────────────────────────────
-const ICON  = { Venue:'🏛️', Accessories:'✨', Dress:'👗', Decoration:'🌸', Food:'🍽️', Package:'🎀', Studio:'📸', Makeup:'💄', Photography:'📸', Catering:'🍽️', Decor:'🌸', Music:'🎵', Others:'✨' };
+const ICON  = { Venue:'🏛️', Accessories:'✨', Dress:'👗', Decoration:'🌸', Cake:'🎂', 'Food & Drinks':'🍽️', Package:'🎀', Studio:'📸', Makeup:'💄', Photography:'📸', Catering:'🍽️', Decor:'🌸', Music:'🎵', Others:'✨' };
 
 const serviceManagementConfig = window.serviceManagementConfig || {};
 const serviceManagementUrls = serviceManagementConfig.urls || {};
@@ -58,6 +58,7 @@ function normalizeServiceItem(item) {
     price_min: priceMin,
     price_max: priceMax,
     category: item.category || 'Others',
+    category_slug: item.category_slug || '',
     status: item.status === 'inactive' ? 'inactive' : 'active',
     desc: item.desc || item.description || '',
     img: item.img || item.thumbnail_url || '',
@@ -84,14 +85,26 @@ function normalizePackageItem(item) {
 
 let services = (serviceManagementConfig.initialData?.services || []).map(normalizeServiceItem).filter(Boolean);
 let packages = (serviceManagementConfig.initialData?.packages || []).map(normalizePackageItem).filter(Boolean);
-let serviceCategories = (serviceManagementConfig.initialData?.categories || [])
-  .map(category => category.name || category)
-  .filter(Boolean);
+let serviceCategoriesRaw = (serviceManagementConfig.initialData?.categories || []).filter(Boolean);
+let serviceCategories = serviceCategoriesRaw.map(c => c.name || c).filter(Boolean);
+function slugify(str) {
+  return (str || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+function getCategorySlug(name) {
+  const cat = serviceCategoriesRaw.find(c => (c.name || c) === name);
+  if (cat) return cat.slug || slugify(cat.name || '');
+  return slugify(name);
+}
+function getCategoryName(slug) {
+  const cat = serviceCategoriesRaw.find(c => c.slug === slug);
+  return cat ? (cat.name || '') : '';
+}
 let pagingMeta = serviceManagementConfig.initialData?.meta || {};
 let isLoadingMore = false;
 
 if (!serviceCategories.length) {
-  serviceCategories = ['Accessories', 'Decoration', 'Dress', 'Food', 'Package', 'Studio', 'Venue'];
+  serviceCategories = ['Accessories', 'Cake', 'Decoration', 'Dress', 'Food & Drinks', 'Package', 'Studio', 'Venue'];
+  serviceCategoriesRaw = serviceCategories.map(name => ({ name, slug: name.toLowerCase().replace(/\s*&\s*/g, '_').replace(/\s+/g, '_') }));
 }
 
 function escapeHtml(value) {
@@ -483,10 +496,10 @@ function validateVenueRooms(prefix) {
   return true;
 }
 
-// ── FOOD ITEMS (CAKES) ──────────────────────────────────────
+// ── FOOD ITEMS (CAKES & CATERING) ───────────────────────────
 let foodItemCounter = 0;
 
-function foodItemRowHtml(prefix, item = {}) {
+function foodItemRowHtml(itemClass, item = {}) {
   const uid = ++foodItemCounter;
   const name = escapeHtml(item.name || '');
   const desc = escapeHtml(item.description || '');
@@ -500,7 +513,7 @@ function foodItemRowHtml(prefix, item = {}) {
     ? `<img src="${escapeHtml(photoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`
     : `<span style="font-size:11px;color:#aaa">Photo</span>`;
   return `
-    <div class="${prefix}-food-item" style="background:var(--fm-surface-warm);border:1px solid var(--fm-border);border-radius:var(--fm-radius);padding:14px 16px">
+    <div class="${itemClass}" style="background:var(--fm-surface-warm);border:1px solid var(--fm-border);border-radius:var(--fm-radius);padding:14px 16px">
       <div style="display:grid;grid-template-columns:80px minmax(0,1fr);gap:12px;align-items:start">
         <input type="hidden" class="food-photo-data" id="${photoDataId}" value="${escapeHtml(photoUrl)}">
         <label for="${photoInputId}" id="${photoPreviewId}" style="display:flex;align-items:center;justify-content:center;width:80px;height:60px;border:1.5px dashed #d1c9c0;border-radius:6px;cursor:pointer;overflow:hidden;background:#faf8f5">${photoPreviewHtml}</label>
@@ -513,15 +526,23 @@ function foodItemRowHtml(prefix, item = {}) {
       <div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;align-items:center;margin-top:10px">
         <input type="number" min="0" step="0.01" value="${packagePrice}" placeholder="Package price" class="fm-input food-package-price" style="font-size:12px;padding:6px 8px"/>
         <input type="number" min="0" step="0.01" value="${customizePrice}" placeholder="Customize price" class="fm-input food-customize-price" style="font-size:12px;padding:6px 8px"/>
-        <button type="button" onclick="removeFoodItem(this,'${prefix}')" class="room-row-remove" title="Remove">&times;</button>
+        <button type="button" onclick="removeFoodItem(this,'${itemClass}')" class="room-row-remove" title="Remove">&times;</button>
       </div>
     </div>
   `;
 }
 
-function collectFoodItems(prefix) {
-  const rows = Array.from(document.querySelectorAll('.' + prefix + '-food-item'));
-  return rows.map(row => ({
+function collectFoodItems(listId) {
+  const list = document.getElementById(listId);
+  if (!list) return [];
+  const rows = Array.from(list.querySelectorAll('[class*="food-item"]'));
+  // Filter to only rows that belong to this specific list (by checking class match)
+  const itemClass = listId === 'csFoodItemsList' || listId === 'esFoodItemsList'
+    ? (listId.startsWith('cs') ? 'cs-food-item' : 'es-food-item')
+    : (listId.startsWith('cs') ? 'cs-catering-item' : 'es-catering-item');
+  const filtered = Array.from(list.querySelectorAll('.' + itemClass));
+  const targetRows = filtered.length ? filtered : rows;
+  return targetRows.map(row => ({
     name: row.querySelector('.food-name')?.value.trim() || '',
     description: row.querySelector('.food-description')?.value.trim() || '',
     price: parseFloat(row.querySelector('.food-package-price')?.value || '0') || 0,
@@ -531,24 +552,25 @@ function collectFoodItems(prefix) {
   })).filter(s => s.name !== '');
 }
 
-function renderFoodItems(prefix, items = []) {
-  const list = document.getElementById(prefix + 'FoodItemsList');
+function renderFoodItems(listId, itemClass, items = []) {
+  const list = document.getElementById(listId);
   if (!list) return;
   const rows = items.length ? items : [{}];
-  list.innerHTML = rows.map(s => foodItemRowHtml(prefix, s)).join('');
+  list.innerHTML = rows.map(s => foodItemRowHtml(itemClass, s)).join('');
 }
 
-function addFoodItem(prefix) {
-  const list = document.getElementById(prefix + 'FoodItemsList');
+function addFoodItem(listId, itemClass) {
+  const list = document.getElementById(listId);
   if (!list) return;
-  list.insertAdjacentHTML('beforeend', foodItemRowHtml(prefix));
+  list.insertAdjacentHTML('beforeend', foodItemRowHtml(itemClass));
 }
 
-function removeFoodItem(btn, prefix) {
-  const list = document.getElementById(prefix + 'FoodItemsList');
-  const row = btn.closest('.' + prefix + '-food-item');
-  if (!list || !row) return;
-  if (list.querySelectorAll('.' + prefix + '-food-item').length <= 1) {
+function removeFoodItem(btn, itemClass) {
+  const row = btn.closest('.' + itemClass);
+  if (!row) return;
+  const list = row.parentElement;
+  if (!list) return;
+  if (list.querySelectorAll('.' + itemClass).length <= 1) {
     row.querySelectorAll('input').forEach(i => { if (i.type !== 'hidden') i.value = ''; });
     return;
   }
@@ -569,11 +591,12 @@ function onFoodItemPhotoChange(input, dataId, previewId) {
   reader.readAsDataURL(file);
 }
 
-function validateFoodItems(prefix) {
-  const items = collectFoodItems(prefix);
-  if (!items.length) { showToast('Add at least one cake item with a name.', 'error'); return false; }
+function validateFoodItems(listId, label) {
+  label = label || 'item';
+  const items = collectFoodItems(listId);
+  if (!items.length) { showToast('Add at least one ' + label + ' with a name.', 'error'); return false; }
   const missingPrice = items.find(s => s.price <= 0);
-  if (missingPrice) { showToast('Each cake item needs a price greater than zero.', 'error'); return false; }
+  if (missingPrice) { showToast('Each ' + label + ' needs a price greater than zero.', 'error'); return false; }
   return true;
 }
 
@@ -704,8 +727,9 @@ function validateRentalPricing(prefix) {
 
 // ── CATEGORY-SPECIFIC SECTION TOGGLE ─────────────────────────
 function onOthersCategoryChange(category) {
-  const isDecoration = category === 'Decoration';
-  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire') || category === 'Attire';
+  const slug = getCategorySlug(category);
+  const isDecoration = slug === 'decoration';
+  var isRental = slug === 'dress' || slug === 'accessories' || slug === 'attire';
   document.getElementById('oStandardPriceFields')?.classList.toggle('hidden', isDecoration || isRental);
   document.getElementById('oDecorationExtras')?.classList.toggle('hidden', !isDecoration);
   document.getElementById('oRentalExtras')?.classList.toggle('hidden', !isRental);
@@ -849,10 +873,13 @@ function validateDefaultEventTime(prefix) {
 }
 
 function serviceFormPayload(prefix, category) {
-  const isVenue = category === 'Venue';
-  const isDecoration = category === 'Decoration';
-  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire');
-  const isFood = category === 'Food';
+  const slug = getCategorySlug(category);
+  const isVenue = slug === 'venue';
+  const isDecoration = slug === 'decoration';
+  var isRental = slug === 'dress' || slug === 'accessories' || slug === 'attire';
+  const isCake = slug === 'cake';
+  const isCatering = slug === 'food_drinks';
+  const isFood = isCake || isCatering;
   const rooms = isVenue ? collectVenueRooms(prefix) : [];
   const priceRange = isVenue ? venueRoomPriceRange(prefix) : (isDecoration || isRental || isFood ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload(prefix));
   const minLeadDaysEl = document.getElementById(prefix + 'MinLeadDays');
@@ -876,7 +903,7 @@ function serviceFormPayload(prefix, category) {
     default_end_time: document.getElementById(prefix + 'DefaultEndTime')?.value || null,
     rooms,
     decoration_styles: isDecoration ? collectDecorationStyles(prefix) : [],
-    food_items: isFood ? collectFoodItems(prefix) : [],
+    food_items: isFood ? collectFoodItems(isCake ? prefix + 'FoodItemsList' : prefix + 'CateringItemsList') : [],
     rental_pricing: isRental ? collectRentalPricing(prefix) : null,
     attire_items: isRental ? collectAttireItems(prefix) : [],
     attire_items_replace: isRental,
@@ -995,16 +1022,30 @@ function selectCreateCategory(cat) {
 }
 
 function toggleCategoryFields(category) {
-  var isVenue = category === 'Venue';
-  var isDecoration = category === 'Decoration';
-  var isRental = (category === 'Dress' || category === 'Accessories' || category === 'Attire');
-  var isFood = category === 'Food';
+  var slug = getCategorySlug(category);
+  var isVenue = slug === 'venue';
+  var isDecoration = slug === 'decoration';
+  var isRental = slug === 'dress' || slug === 'accessories' || slug === 'attire';
+
+  // Update "Bookings per" label based on booking type (only Venue uses time slots)
+  var capacityLabel = document.querySelector('label[for="csCapacity"]');
+  var capacityHint = capacityLabel ? capacityLabel.nextElementSibling : null;
+  if (capacityLabel) {
+    capacityLabel.textContent = isVenue ? 'Bookings per time slot' : 'Bookings per day';
+  }
+  if (capacityHint && capacityHint.classList.contains('create-hint')) {
+    capacityHint.textContent = isVenue ? 'How many bookings you can handle in the same slot.' : 'How many bookings you can handle in the same day.';
+  }
+  var isCake = slug === 'cake';
+  var isCatering = slug === 'food_drinks';
+  var isFood = isCake || isCatering;
 
   var standard = document.getElementById('csStandardPriceFields');
   var venueExtras = document.getElementById('csVenueExtras');
   var decoExtras = document.getElementById('csDecorationExtras');
   var rentalExtras = document.getElementById('csRentalExtras');
-  var foodExtras = document.getElementById('csFoodExtras');
+  var cakeExtras = document.getElementById('csFoodExtras');
+  var cateringExtras = document.getElementById('csCateringExtras');
   var attireList = document.getElementById('csAttireItemsList');
 
   if (standard) standard.classList.toggle('hidden-section', isVenue || isDecoration || isRental || isFood);
@@ -1016,10 +1057,18 @@ function toggleCategoryFields(category) {
   if (venueExtras) venueExtras.classList.toggle('hidden-section', !isVenue);
   if (decoExtras) decoExtras.classList.toggle('hidden-section', !isDecoration);
   if (rentalExtras) rentalExtras.classList.toggle('hidden-section', !isRental);
-  if (foodExtras) foodExtras.classList.toggle('hidden-section', !isFood);
+  if (cakeExtras) cakeExtras.classList.toggle('hidden-section', !isCake);
+  if (cateringExtras) cateringExtras.classList.toggle('hidden-section', !isCatering);
 
   if (isDecoration && !document.querySelectorAll('.cs-style-row').length) renderDecorationStyles('cs');
-  if (isFood && !document.querySelectorAll('.cs-food-item').length) renderFoodItems('cs');
+  if (isCake) {
+    var cakeList = document.getElementById('csFoodItemsList');
+    if (cakeList && !cakeList.querySelectorAll('.cs-food-item').length) renderFoodItems('csFoodItemsList', 'cs-food-item');
+  }
+  if (isCatering) {
+    var catList = document.getElementById('csCateringItemsList');
+    if (catList && !catList.querySelectorAll('.cs-catering-item').length) renderFoodItems('csCateringItemsList', 'cs-catering-item');
+  }
 }
 
 function onCreateCategoryChange(value) {
@@ -1061,14 +1110,17 @@ async function saveCreateService() {
   var name = document.getElementById('csName').value.trim();
   if (!name) { showToast('Please fill in the service name.', 'error'); document.getElementById('csName').focus(); return; }
   if (!validateDefaultEventTime('cs')) return;
+  var catSlug = getCategorySlug(category);
 
-  if (category === 'Venue') {
+  if (catSlug === 'venue') {
     if (!validateVenueRooms('cs')) return;
-  } else if (category === 'Decoration') {
+  } else if (catSlug === 'decoration') {
     if (!validateDecorationStyles('cs')) return;
-  } else if (category === 'Food') {
-    if (!validateFoodItems('cs')) return;
-  } else if (category === 'Dress' || category === 'Accessories' || category === 'Attire') {
+  } else if (catSlug === 'cake') {
+    if (!validateFoodItems('csFoodItemsList', 'cake item')) return;
+  } else if (catSlug === 'food_drinks') {
+    if (!validateFoodItems('csCateringItemsList', 'menu item')) return;
+  } else if (catSlug === 'dress' || catSlug === 'accessories' || catSlug === 'attire') {
     if (!validateAttireItems('cs')) return;
   } else {
     var priceMin = parseFloat(document.getElementById('csPriceMin').value);
@@ -1488,15 +1540,20 @@ function openEditService(id) {
   else resetImgBox('esImgBox', true);
   const venueExtras = document.getElementById('esVenueExtras');
   const decoExtras = document.getElementById('esDecorationExtras');
-  const foodExtras = document.getElementById('esFoodExtras');
+  const cakeExtras = document.getElementById('esFoodExtras');
+  const cateringExtras = document.getElementById('esCateringExtras');
   const rentalExtras = document.getElementById('esRentalExtras');
-  const isVenueEdit = item.category === 'Venue';
-  const isDecoEdit = item.category === 'Decoration';
-  const isFoodEdit = item.category === 'Food';
-  const isRentalEdit = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
+  const editSlug = item.category_slug || getCategorySlug(item.category);
+  const isVenueEdit = editSlug === 'venue';
+  const isDecoEdit = editSlug === 'decoration';
+  const isCakeEdit = editSlug === 'cake';
+  const isCateringEdit = editSlug === 'food_drinks';
+  const isFoodEdit = isCakeEdit || isCateringEdit;
+  const isRentalEdit = editSlug === 'dress' || editSlug === 'accessories' || editSlug === 'attire';
   venueExtras?.classList.toggle('hidden', !isVenueEdit);
   decoExtras?.classList.toggle('hidden', !isDecoEdit);
-  foodExtras?.classList.toggle('hidden', !isFoodEdit);
+  cakeExtras?.classList.toggle('hidden', !isCakeEdit);
+  cateringExtras?.classList.toggle('hidden', !isCateringEdit);
   rentalExtras?.classList.toggle('hidden', !isRentalEdit);
   document.getElementById('esServicePriceFields')?.classList.toggle('hidden', isVenueEdit || isDecoEdit || isFoodEdit || isRentalEdit);
   document.getElementById('esDefaultTimeRow')?.classList.toggle('hidden', isVenueEdit);
@@ -1509,8 +1566,11 @@ function openEditService(id) {
   if (isDecoEdit) {
     renderDecorationStyles('es', item.decoration_styles || []);
   }
-  if (isFoodEdit) {
-    renderFoodItems('es', item.food_items || []);
+  if (isCakeEdit) {
+    renderFoodItems('esFoodItemsList', 'es-food-item', item.food_items || []);
+  }
+  if (isCateringEdit) {
+    renderFoodItems('esCateringItemsList', 'es-catering-item', item.food_items || []);
   }
   if (isRentalEdit) {
     const rp = item.rental_pricing || {};
@@ -1524,15 +1584,19 @@ function openEditService(id) {
 }
 async function updateService() {
   const item=services.find(s=>s.id===editingSvcId); if (!item) return;
-  const isVenueUpd = item.category === 'Venue';
-  const isDecoUpd = item.category === 'Decoration';
-  const isFoodUpd = item.category === 'Food';
-  const isRentalUpd = item.category === 'Dress' || item.category === 'Accessories' || item.category === 'Attire';
+  const updSlug = item.category_slug || getCategorySlug(item.category);
+  const isVenueUpd = updSlug === 'venue';
+  const isDecoUpd = updSlug === 'decoration';
+  const isCakeUpd = updSlug === 'cake';
+  const isCateringUpd = updSlug === 'food_drinks';
+  const isFoodUpd = isCakeUpd || isCateringUpd;
+  const isRentalUpd = updSlug === 'dress' || updSlug === 'accessories' || updSlug === 'attire';
   if (!isVenueUpd && !isDecoUpd && !isFoodUpd && !isRentalUpd && !isPriceRangeValid('es')) { showToast('Customize price must be ≥ package price.', 'error'); return; }
   if (!validateDefaultEventTime('es')) return;
   if (isVenueUpd && !validateVenueRooms('es')) return;
   if (isDecoUpd && !validateDecorationStyles('es')) return;
-  if (isFoodUpd && !validateFoodItems('es')) return;
+  if (isCakeUpd && !validateFoodItems('esFoodItemsList', 'cake item')) return;
+  if (isCateringUpd && !validateFoodItems('esCateringItemsList', 'menu item')) return;
   const priceRange = isVenueUpd ? venueRoomPriceRange('es') : (isDecoUpd || isFoodUpd || isRentalUpd ? { price: 0, price_min: 0, price_max: 0, package_price: 0, customize_price: 0 } : priceRangePayload('es'));
   const minLeadDaysEl = document.getElementById('esMinLeadDays');
   const minLeadDaysValue = minLeadDaysEl ? minLeadDaysEl.value.trim() : '';
@@ -1554,7 +1618,7 @@ async function updateService() {
     rooms: isVenueUpd ? collectVenueRooms('es') : [],
     rooms_replace: isVenueUpd,
     decoration_styles: isDecoUpd ? collectDecorationStyles('es') : [],
-    food_items: isFoodUpd ? collectFoodItems('es') : [],
+    food_items: isFoodUpd ? collectFoodItems(isCakeUpd ? 'esFoodItemsList' : 'esCateringItemsList') : [],
     rental_pricing: isRentalUpd ? collectRentalPricing('es') : null,
   };
   try {

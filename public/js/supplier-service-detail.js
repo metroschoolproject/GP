@@ -499,14 +499,18 @@ document.getElementById('saveDecorationStylesBtn')?.addEventListener('click', as
 
 renderDecorationStyles(Array.isArray(serviceDetailConfig.decorationStyles) ? serviceDetailConfig.decorationStyles : []);
 
-// ── FOOD ITEMS (CAKES) ────────────────────────────────────────────
+// ── FOOD ITEMS (CAKES & CATERING) ────────────────────────────────────
 let foodItemCounter = 0;
+const _foodCategory = (serviceDetailConfig.servicePayloadBase?.category || '').toLowerCase();
+const _isCakeDetail = _foodCategory === 'cake';
+const _isCateringDetail = _foodCategory === 'food & drinks';
+const _foodItemLabel = _isCakeDetail ? 'Cake' : (_isCateringDetail ? 'Menu item' : 'Item');
 
 function foodItemCardHtml(item = {}) {
   const uid = ++foodItemCounter;
   const photoUrl = item.photo_url || '';
   const photoPreview = photoUrl
-    ? `<img src="${escapeHtml(photoUrl)}" alt="Cake photo">`
+    ? `<img src="${escapeHtml(photoUrl)}" alt="${_foodItemLabel} photo">`
     : '<i class="ti ti-photo"></i><span>Photo</span>';
 
   return `
@@ -519,10 +523,10 @@ function foodItemCardHtml(item = {}) {
         <input id="foodItemPhoto${uid}" type="file" accept="image/*" class="food-item-photo-input" style="display:none">
       </div>
       <div class="sd-food-item-fields">
-        <div class="sd-hall-fg full"><label>Cake name</label><input class="sd-hall-input food-item-name" value="${escapeHtml(item.name || '')}" placeholder="e.g. Chocolate Wedding Cake"></div>
-        <div class="sd-hall-fg full"><label>Description</label><input class="sd-hall-input food-item-description" value="${escapeHtml(item.description || '')}" placeholder="e.g. 3-tier, serves 100"></div>
-        <div class="sd-hall-fg"><label>Package price</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-package-price" value="${item.package_price ?? item.price ?? ''}" placeholder="MMK"></div>
-        <div class="sd-hall-fg"><label>Customize price</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-customize-price" value="${item.customize_price ?? item.price ?? ''}" placeholder="MMK"></div>
+        <div class="sd-hall-fg full"><label>${_foodItemLabel} name</label><input class="sd-hall-input food-item-name" value="${escapeHtml(item.name || '')}" placeholder="e.g. ${_isCakeDetail ? 'Chocolate Wedding Cake' : 'Premium Buffet Set'}"></div>
+        <div class="sd-hall-fg full"><label>Description</label><input class="sd-hall-input food-item-description" value="${escapeHtml(item.description || '')}" placeholder="${_isCakeDetail ? 'e.g. 3-tier, serves 100' : 'e.g. Appetizer, main course, dessert'}"></div>
+        <div class="sd-hall-fg"><label>Package price${_isCateringDetail ? ' (per person)' : ''}</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-package-price" value="${item.package_price ?? item.price ?? ''}" placeholder="MMK"></div>
+        <div class="sd-hall-fg"><label>Customize price${_isCateringDetail ? ' (per person)' : ''}</label><input type="number" min="0" step="0.01" class="sd-hall-input food-item-customize-price" value="${item.customize_price ?? item.price ?? ''}" placeholder="MMK"></div>
       </div>
       <button type="button" class="btn btn-icon btn-danger-ghost btn-sm sd-food-item-remove" title="Remove"><i class="ti ti-trash" style="font-size:13px"></i></button>
     </div>
@@ -611,10 +615,10 @@ document.getElementById('saveFoodItemsBtn')?.addEventListener('click', async () 
   try {
     const items = collectFoodItems();
     if (!items.length) {
-      throw new Error('Add at least one cake item with a name.');
+      throw new Error('Add at least one ' + _foodItemLabel.toLowerCase() + ' with a name.');
     }
     if (items.some(item => item.price <= 0)) {
-      throw new Error('Each cake item needs a price greater than zero.');
+      throw new Error('Each ' + _foodItemLabel.toLowerCase() + ' needs a price greater than zero.');
     }
 
     const result = await jsonPost(urls.serviceUpdate, {
@@ -630,7 +634,7 @@ document.getElementById('saveFoodItemsBtn')?.addEventListener('click', async () 
     serviceDetailConfig.servicePayloadBase.price_max = savedService.price_max ?? serviceDetailConfig.servicePayloadBase.price_max;
     renderFoodItems(savedItems);
     updateServiceInfoFromService(savedService);
-    showMessage('foodItemMessage', 'Cake items saved.', true);
+    showMessage('foodItemMessage', _foodItemLabel + 's saved.', true);
   } catch (error) {
     showMessage('foodItemMessage', error.message);
   }
