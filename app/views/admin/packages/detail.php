@@ -488,8 +488,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
       </div>
       <?php endif; ?>
       <div style="display:flex;gap:10px;margin-top:20px">
-        <form method="POST" action="<?= URLROOT ?>/admin/packageStartEdit/<?= (int)$package['package_id'] ?>"
-              onsubmit="return confirm('Enter edit mode? A draft copy will be created. The live package stays visible to customers while you edit.')">
+        <form id="editPackageForm" method="POST" action="<?= URLROOT ?>/admin/packageStartEdit/<?= (int)$package['package_id'] ?>">
           <button class="btn-primary" type="submit">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Edit Package
@@ -1019,6 +1018,31 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
 </div><!-- /admin-pkg-page -->
 
+<?php if (!$isDraft): ?>
+  <div class="publish-modal" id="editConfirmModal" aria-hidden="true">
+    <div class="publish-modal-backdrop" data-close-edit-modal></div>
+    <section class="publish-modal-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="editModalTitle" aria-describedby="editModalDescription">
+      <div class="publish-modal-body">
+        <div class="publish-modal-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <h2 class="publish-modal-title" id="editModalTitle">Enter edit mode?</h2>
+        <p class="publish-modal-copy" id="editModalDescription">
+          A draft copy of <strong><?= $h($package['name'] ?? 'this package') ?></strong> will be created. The live package stays visible to customers while you edit.
+        </p>
+      </div>
+      <div class="publish-modal-actions">
+        <button class="btn-ghost" type="button" data-close-edit-modal>Cancel</button>
+        <button class="btn-primary" id="confirmEditPackage" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit package
+        </button>
+      </div>
+    </section>
+  </div>
+<?php endif; ?>
+
 <?php if ($isDraft): ?>
   <div class="publish-modal" id="publishPackageModal" aria-hidden="true">
     <div class="publish-modal-backdrop" data-close-publish-modal></div>
@@ -1050,6 +1074,54 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
 <script>
 (function () {
+  /* ── Edit confirmation ─────────────────────────────────────────────── */
+  const editForm = document.getElementById('editPackageForm');
+  const editModal = document.getElementById('editConfirmModal');
+  const confirmEditButton = document.getElementById('confirmEditPackage');
+  let editConfirmed = false;
+  let editTrigger = null;
+
+  function openEditModal() {
+    if (!editModal) return;
+    editTrigger = document.activeElement;
+    editModal.classList.add('is-open');
+    editModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    confirmEditButton?.focus();
+  }
+
+  function closeEditModal() {
+    if (!editModal) return;
+    editModal.classList.remove('is-open');
+    editModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    editTrigger?.focus();
+  }
+
+  editForm?.addEventListener('submit', event => {
+    if (editConfirmed) return;
+    event.preventDefault();
+    openEditModal();
+  });
+
+  confirmEditButton?.addEventListener('click', () => {
+    if (!editForm) return;
+    editConfirmed = true;
+    confirmEditButton.disabled = true;
+    confirmEditButton.textContent = 'Opening…';
+    editForm.requestSubmit();
+  });
+
+  editModal?.querySelectorAll('[data-close-edit-modal]').forEach(element => {
+    element.addEventListener('click', closeEditModal);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && editModal?.classList.contains('is-open')) {
+      closeEditModal();
+    }
+  });
+
   /* ── Publish confirmation ───────────────────────────────────────────── */
   const publishForm = document.getElementById('publishPackageForm');
   const publishModal = document.getElementById('publishPackageModal');
