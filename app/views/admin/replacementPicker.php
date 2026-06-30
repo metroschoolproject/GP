@@ -54,6 +54,7 @@ $dashboardContent = function () use (
   table.cand td{padding:12px 14px;border-bottom:1px solid #f0e6da;font-size:12.5px}
   .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
   .pill.auto{background:#ECFDF5;color:#065F46}
+  .pill.upgrade{background:#EFF6FF;color:#1E40AF}
   .pill.appr{background:#FFFBEB;color:#92400E}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 15px;border:1px solid var(--primary);border-radius:.65rem;background:var(--primary);color:#fff;font-family:inherit;font-size:11.5px;font-weight:800;cursor:pointer;box-shadow:0 2px 6px rgba(109,76,91,.15);transition:background .15s,box-shadow .15s,transform .15s}
   .btn:hover{background:var(--primary-hover);box-shadow:0 5px 14px rgba(109,76,91,.2);transform:translateY(-1px)}
@@ -156,7 +157,7 @@ $dashboardContent = function () use (
     </div>
   <?php else: ?>
     <div class="panel">
-      <div class="eyebrow" style="margin-bottom:10px">Available replacements &middot; same category, free on the date &middot; over-budget allowed (customer approves the extra)</div>
+      <div class="eyebrow" style="margin-bottom:10px">Available replacements &middot; same category, free on the date &middot; upgrades within +<?= (int)$maxUpchargePct ?>% are absorbed by the platform</div>
       <?php if (empty($candidates)): ?>
         <div class="empty">No eligible suppliers in this category are free on the wedding date.<br>Try cancelling this item with a refund instead.</div>
       <?php else: ?>
@@ -183,6 +184,8 @@ $dashboardContent = function () use (
               <td>
                 <?php if ($needs): ?>
                   <span class="pill appr">Customer approves + pays</span>
+                <?php elseif (!empty($c['within_cap_upgrade'])): ?>
+                  <span class="pill upgrade">Auto (platform absorbs upgrade)</span>
                 <?php else: ?>
                   <span class="pill auto">Auto (platform absorbs)</span>
                 <?php endif; ?>

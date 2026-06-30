@@ -2262,10 +2262,11 @@ class BookingModel
         foreach ($rows as &$row) {
             $price = (float)($row['price'] ?? 0);
             $row['price_delta'] = round($price - $oldPrice, 2);
-            $row['needs_customer_approval'] = $price > $oldPrice;
-            // Flag candidates beyond the soft upcharge cap so the UI can warn,
-            // but they remain selectable.
+            // Three-tier logic: beyond cap needs customer approval + payment;
+            // within cap is auto-assigned with platform absorbing the upgrade.
             $row['over_cap'] = $ceiling !== null && $price > $ceiling;
+            $row['needs_customer_approval'] = $row['over_cap'];
+            $row['within_cap_upgrade'] = $price > $oldPrice && !$row['over_cap'];
         }
         unset($row);
         return $rows;
@@ -2278,7 +2279,8 @@ class BookingModel
     {
         $allowed = [
             'new_supplier_id','new_service_id','new_price','price_delta',
-            'requires_customer_approval','customer_approved_at','proposed_at','delta_payment_id',
+            'requires_customer_approval','customer_approved_at','customer_opt_out_deadline',
+            'proposed_at','delta_payment_id',
             'status','chosen_by_admin_id','assigned_at','resolved_at','rejected_service_ids',
         ];
         $sets = [];
@@ -2667,6 +2669,141 @@ class BookingModel
     }
 
     /**
+     * Customer opts out of an auto-assigned (cheaper/same) replacement within
+     * the 48-hour window. Reverses performReplacementSwap atomically.
+     */
+    public function rejectAutoAssignedReplacement(int $replacementId, int $userId): array|false
+    {
+        $replacement = $this->getReplacementForCustomer($replacementId);
+        if (
+            !$replacement
+            || (int)$replacement['user_id'] !== $userId
+            || ($replacement['status'] ?? '') !== 'assigned'
+            || empty($replacement['requires_customer_approval'])
+            || empty($replacement['customer_opt_out_deadline'])
+            || strtotime((string)$replacement['customer_opt_out_deadline']) < time()
+        ) {
+            return false;
+        }
+
+        $bookingId  = (int)$replacement['booking_id'];
+        $newServiceId = (int)($replacement['new_service_id'] ?? 0);
+        $oldSupplierRow = (int)($replacement['booking_supplier_id'] ?? 0);
+
+        $this->db->beginTransaction();
+        try {
+            // 1. Mark the new booking_suppliers row as cancelled.
+            $this->db->dbquery(
+                "UPDATE booking_suppliers
+                    SET status = 'cancelled'
+                  WHERE booking_id = :bid
+                    AND service_id = :sid
+                    AND status IN ('pending', 'confirmed')
+                    AND replaced_by_id IS NULL
+                  ORDER BY id DESC LIMIT 1"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbbind(':sid', $newServiceId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+
+            // 2. Restore the old booking_suppliers row to needs_replacement.
+            if ($oldSupplierRow > 0) {
+                $this->db->dbquery(
+                    "UPDATE booking_suppliers
+                        SET status = 'needs_replacement', replaced_by_id = NULL
+                      WHERE id = :id AND status = 'replaced'"
+                );
+                $this->db->dbbind(':id', $oldSupplierRow, PDO::PARAM_INT);
+                $this->db->dbexecute();
+            }
+
+            // 3. Release the new supplier's slot reservation.
+            $this->db->dbquery(
+                "SELECT bsr.id AS reservation_id, bsr.slot_id
+                   FROM booking_slot_reservations bsr
+                  WHERE bsr.booking_id = :bid
+                    AND bsr.service_id = :sid
+                    AND bsr.released_at IS NULL
+                  ORDER BY bsr.id DESC LIMIT 1"
+            );
+            $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+            $this->db->dbbind(':sid', $newServiceId, PDO::PARAM_INT);
+            $newSlot = $this->db->getsingledata();
+            if ($newSlot) {
+                $this->db->dbquery(
+                    "UPDATE booking_slot_reservations
+                        SET released_at = NOW()
+                      WHERE id = :id AND released_at IS NULL"
+                );
+                $this->db->dbbind(':id', (int)$newSlot['reservation_id'], PDO::PARAM_INT);
+                $this->db->dbexecute();
+                if ($this->db->rowcount() === 1) {
+                    $this->releaseServiceSlot((int)$newSlot['slot_id'], 'package');
+                }
+            }
+
+            // 4. Re-activate the old supplier's slot reservation.
+            $oldServiceId = (int)($replacement['old_service_id'] ?? 0);
+            if ($oldServiceId > 0) {
+                $this->db->dbquery(
+                    "SELECT bsr.id AS reservation_id, bsr.slot_id
+                       FROM booking_slot_reservations bsr
+                      WHERE bsr.booking_id = :bid
+                        AND bsr.service_id = :sid
+                        AND bsr.released_at IS NOT NULL
+                      ORDER BY bsr.id DESC LIMIT 1"
+                );
+                $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+                $this->db->dbbind(':sid', $oldServiceId, PDO::PARAM_INT);
+                $oldSlot = $this->db->getsingledata();
+                if ($oldSlot) {
+                    $this->db->dbquery(
+                        "UPDATE booking_slot_reservations
+                            SET released_at = NULL
+                          WHERE id = :id"
+                    );
+                    $this->db->dbbind(':id', (int)$oldSlot['reservation_id'], PDO::PARAM_INT);
+                    $this->db->dbexecute();
+                    $this->reserveServiceSlot((int)$oldSlot['slot_id'], 'package');
+                }
+            }
+
+            // 5. Reset the replacement row.
+            $this->appendRejectedService($replacementId, $newServiceId);
+            $this->db->dbquery(
+                "UPDATE booking_supplier_replacements
+                    SET status = 'rejected_by_customer',
+                        new_supplier_id = NULL, new_service_id = NULL,
+                        new_price = NULL, price_delta = NULL,
+                        requires_customer_approval = 0,
+                        customer_opt_out_deadline = NULL,
+                        assigned_at = NULL
+                  WHERE id = :id AND status = 'assigned'"
+            );
+            $this->db->dbbind(':id', $replacementId, PDO::PARAM_INT);
+            $this->db->dbexecute();
+            if ($this->db->rowcount() !== 1) {
+                throw new RuntimeException('Replacement already handled.');
+            }
+
+            $this->logStatusChange(
+                $bookingId,
+                null,
+                'replacement_opted_out',
+                $userId,
+                'Customer opted out of auto-assigned replacement within 48h window'
+            );
+
+            $this->db->commit();
+            return $replacement;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log('Customer opt-out rejection failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Attach the customer's bank-transfer proof to a pending replacement-delta
      * payment. Stays 'pending' until an admin verifies it (which finalizes the
      * swap). Returns true on success.
@@ -2777,7 +2914,8 @@ class BookingModel
                     r.old_price,
                     r.decline_reason,
                     r.proposed_at, r.resolved_at, r.created_at,
-                    r.customer_approved_at,
+                    r.customer_approved_at, r.requires_customer_approval,
+                    r.customer_opt_out_deadline,
                     sp_old.shop_name AS old_shop_name,
                     sp_new.shop_name AS new_shop_name,
                     svc_new.name AS new_service_name,
@@ -4109,6 +4247,19 @@ class BookingModel
             $requeued++;
             $bookingIds[] = $bookingId;
         }
+
+        // C) Customer opt-out window expired — clear the deadline so the UI
+        //    stops showing the opt-out affordance.
+        $this->db->dbquery(
+            "UPDATE booking_supplier_replacements
+                SET customer_opt_out_deadline = NULL,
+                    requires_customer_approval = 0
+              WHERE status = 'assigned'
+                AND requires_customer_approval = 1
+                AND customer_opt_out_deadline IS NOT NULL
+                AND customer_opt_out_deadline < NOW()"
+        );
+        $this->db->dbexecute();
 
         return ['requeued' => $requeued, 'booking_ids' => array_values(array_unique($bookingIds))];
     }

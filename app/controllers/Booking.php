@@ -963,7 +963,13 @@ class Booking extends Controller
         }
         $this->requireCsrf(false);
         $replacementId = (int)($replacementId ?: ($_POST['replacement_id'] ?? 0));
-        $replacement = $this->bookingModel->rejectReplacementByCustomer($replacementId, (int)$this->userId);
+
+        // Try the opt-out path first (assigned + 48h window), then the
+        // existing pending-customer path.
+        $replacement = $this->bookingModel->rejectAutoAssignedReplacement($replacementId, (int)$this->userId);
+        if (!$replacement) {
+            $replacement = $this->bookingModel->rejectReplacementByCustomer($replacementId, (int)$this->userId);
+        }
         if (!$replacement) {
             $_SESSION['booking_payment_flash'] = 'This replacement proposal can no longer be rejected.';
             redirect('booking/myBookings');
@@ -971,15 +977,15 @@ class Booking extends Controller
         $bookingId = (int)$replacement['booking_id'];
         $this->notificationModel->notifyAdmins(
             'Replacement Re-pick Needed',
-            'The customer rejected the pricier replacement for booking #' . $bookingId . '. Please choose another option.',
+            'The customer declined the replacement for booking #' . $bookingId . '. Please choose another option.',
             'booking',
             'booking',
             $bookingId
         );
         $this->notificationModel->notifyBookingCustomer(
             $bookingId,
-            'Replacement Proposal Declined',
-            'We will look for another replacement option. No payment was taken.',
+            'Replacement Declined',
+            'We will look for another replacement option.',
             'booking'
         );
         redirect('booking/detail/' . $bookingId);
@@ -3033,9 +3039,13 @@ class Booking extends Controller
 
     /**
      * Admin assigns a chosen candidate (AJAX POST).
-     *  - same/cheaper price -> swap immediately (platform absorbs).
-     *  - pricier (within cap) -> propose to customer + create delta payment;
-     *    the swap is finalized when admin verifies that delta payment.
+     *
+     * Three-tier logic:
+     *  1. Cheaper/same  -> auto-swap + customer gets 48 h opt-out window.
+     *  2. Pricier, within the upcharge cap -> platform absorbs the difference,
+     *     auto-swap at old price, customer notified (no opt-out).
+     *  3. Pricier, beyond cap -> propose to customer; swap finalises after
+     *     they pay the delta and admin verifies.
      */
     public function adminAssignReplacement(): void
     {
@@ -3055,9 +3065,6 @@ class Booking extends Controller
             $this->jsonResponse(['error' => 'Replacement not open for assignment'], 409);
         }
 
-        // Validate the chosen service is a real candidate (category, date,
-        // availability). Price is not capped — over-budget picks are allowed and
-        // routed to the customer-approval (propose + pay delta) path below.
         $candidates = $this->bookingModel->findReplacementCandidates($replacementId);
         $chosen = null;
         foreach ($candidates as $c) {
@@ -3074,6 +3081,9 @@ class Booking extends Controller
         $oldPrice  = (float)($replacement['old_price'] ?? 0);
         $newPrice  = (float)($chosen['price'] ?? 0);
         $delta     = round($newPrice - $oldPrice, 2);
+        $cap       = defined('MAX_REPLACEMENT_UPCHARGE_PCT') ? (float)MAX_REPLACEMENT_UPCHARGE_PCT : 25.0;
+        $ceiling   = $oldPrice * (1 + $cap / 100);
+        $beyondCap = $newPrice > $ceiling;
 
         // Record the pick.
         $this->bookingModel->updateReplacement($replacementId, [
@@ -3084,9 +3094,13 @@ class Booking extends Controller
             'chosen_by_admin_id' => $adminId,
         ]);
 
+        // ── Tier 1: cheaper or same — auto-swap, customer gets 48h opt-out ──
         if ($delta <= 0) {
-            // Auto-swap; platform absorbs any saving.
-            $this->bookingModel->updateReplacement($replacementId, ['requires_customer_approval' => 0]);
+            $optOutDeadline = date('Y-m-d H:i:s', strtotime('+48 hours'));
+            $this->bookingModel->updateReplacement($replacementId, [
+                'requires_customer_approval' => 1,
+                'customer_opt_out_deadline' => $optOutDeadline,
+            ]);
             if (!$this->bookingModel->performReplacementSwap($replacementId, false)) {
                 $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
             }
@@ -3105,14 +3119,43 @@ class Booking extends Controller
             $this->notificationModel->notifyBookingCustomer(
                 $bookingId,
                 'Replacement Arranged',
-                ($chosen['shop_name'] ?? 'A new supplier') . ' has been assigned to your booking at no extra cost.',
+                ($chosen['shop_name'] ?? 'A new supplier') . ' has been assigned to your booking at no extra cost. ' .
+                'You have 48 hours to request a different supplier if you prefer.',
                 'booking'
             );
-            $this->jsonResponse(['success' => true, 'mode' => 'auto', 'message' => 'Replacement assigned.']);
+            $this->jsonResponse(['success' => true, 'mode' => 'auto_opt_out', 'message' => 'Replacement assigned. Customer has 48h to opt out.']);
             return;
         }
 
-        // Pricier: propose to customer + open a pending delta payment.
+        // ── Tier 2: pricier but within cap — platform absorbs the upgrade ──
+        if (!$beyondCap) {
+            $this->bookingModel->updateReplacement($replacementId, ['requires_customer_approval' => 0]);
+            if (!$this->bookingModel->performReplacementSwap($replacementId, false)) {
+                $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
+            }
+            $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
+            $newSupplierUserId = $this->bookingModel->getSupplierUserId((int)$chosen['supplier_id']);
+            if ($newSupplierUserId > 0) {
+                $this->notificationModel->notifyUser(
+                    $newSupplierUserId,
+                    'New Package Booking — Please Respond',
+                    'You have been assigned to a package booking as a replacement. Please accept or decline within 24 hours.',
+                    'booking',
+                    'booking',
+                    $bookingId
+                );
+            }
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Replacement Upgraded',
+                ($chosen['shop_name'] ?? 'A new supplier') . ' has been assigned to your booking as an upgrade at no extra cost.',
+                'booking'
+            );
+            $this->jsonResponse(['success' => true, 'mode' => 'auto', 'message' => 'Platform absorbed the upgrade. Replacement assigned.']);
+            return;
+        }
+
+        // ── Tier 3: beyond cap — customer must approve and pay the delta ──
         $paymentId = $this->bookingModel->createReplacementDeltaPayment($bookingId, $delta);
         $this->bookingModel->updateReplacement($replacementId, [
             'requires_customer_approval' => 1,
