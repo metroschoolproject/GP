@@ -461,6 +461,13 @@ class Booking extends Controller
                         (int)$s['service_id'],
                         $pkgDate
                     );
+                    $unavailable[] = [
+                        'service_id'   => $srv['service_id'],
+                        'service_name' => $srv['service_name'],
+                        'date'         => $pkgDate,
+                        'message'      => $srv['message'],
+                        'alternatives' => $srv['alternatives'],
+                    ];
                 }
                 $services[] = $srv;
             }
@@ -470,15 +477,6 @@ class Booking extends Controller
                 'date' => $pkgDate,
                 'services' => $services,
             ];
-
-            foreach ($this->cartModel->getUnavailablePackageServices($pkgId, $pkgDate) as $u) {
-                $u['alternatives'] = $this->cartModel->findAlternativePackageDates(
-                    $pkgId,
-                    (int)$u['service_id'],
-                    $pkgDate
-                );
-                $unavailable[] = $u;
-            }
         }
         if (!empty($unavailable)) {
             // Find dates where ALL package services are available simultaneously
@@ -1192,6 +1190,7 @@ class Booking extends Controller
         $input = json_decode(file_get_contents('php://input'), true);
         $serviceId = (int)($input['service_id'] ?? 0);
         $date = trim($input['date'] ?? '');
+        $context = trim($input['context'] ?? '');
         
         if ($serviceId <= 0 || empty($date)) {
             $this->jsonResponse(['error' => 'Invalid input'], 400);
@@ -1229,7 +1228,7 @@ class Booking extends Controller
             return;
         }
 
-        $slots = $this->cartModel->getAvailableSlotsForServiceDate($serviceId, $date);
+        $slots = $this->cartModel->getAvailableSlotsForServiceDate($serviceId, $date, $context);
         
         if (empty($slots)) {
             $this->jsonResponse([
