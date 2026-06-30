@@ -229,11 +229,15 @@ class UploadService
         $uploadsRoot = dirname(APPROOT) . '/public/uploads';
         $dir = $absoluteDir;
         while ($dir && strpos($dir, $uploadsRoot) === 0 && $dir !== $uploadsRoot) {
-            @chmod($dir, 0777);
+            if (!is_writable($dir)) {
+                @chmod($dir, 0777);
+            }
             $dir = dirname($dir);
         }
-        @chmod($uploadsRoot, 0777);
-        return true;
+        if (!is_writable($uploadsRoot)) {
+            @chmod($uploadsRoot, 0777);
+        }
+        return is_writable($absoluteDir);
     }
 
     private function createOptimizedImageVariant($sourcePath, $targetDir, $basename, $mimeType, $maxWidth, $maxHeight)
