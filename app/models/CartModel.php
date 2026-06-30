@@ -1382,7 +1382,14 @@ class CartModel
                     COALESCE(cat.id, package_cat.id) AS category_id,
                     
                     p.slug AS package_slug,
-                    
+
+                    -- Admin-set guest count for the package (from guest-priced package_items)
+                    (SELECT pi2.quantity FROM package_items pi2
+                     WHERE pi2.package_id = p.package_id
+                       AND pi2.deleted_at IS NULL
+                       AND pi2.quantity_type = 'guests'
+                     ORDER BY pi2.id ASC LIMIT 1) AS package_guest_count,
+
                     -- Venue location for booking auto-fill
                     v.location AS service_location,
                     s.id AS service_id,

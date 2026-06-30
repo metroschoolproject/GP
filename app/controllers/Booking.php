@@ -359,7 +359,7 @@ class Booking extends Controller
                 }
                 if ($itemGuests <= 0) {
                     $currentItemErrors[] = 'Guest count is required';
-                } elseif ($itemGuests > $itemMaxBooking) {
+                } elseif (($item['item_type'] ?? '') !== 'package' && $itemGuests > $itemMaxBooking) {
                     $currentItemErrors[] = 'This supplier can accept up to ' . $itemMaxBooking . ' for this booking.';
                 }
             }
@@ -2638,6 +2638,15 @@ class Booking extends Controller
         $filter = trim($_GET['status'] ?? 'all');
         $search = trim($_GET['search'] ?? '');
         $sort = trim($_GET['sort'] ?? 'event_asc');
+
+        // If the search query looks like a booking ID, redirect directly to the booking detail page
+        if ($search !== '' && ctype_digit($search)) {
+            $booking = $this->bookingModel->getBookingById((int)$search);
+            if ($booking) {
+                redirect('admin/bookingDetail/' . (int)$search);
+                return;
+            }
+        }
         $dateFrom = trim($_GET['date_from'] ?? '');
         $dateTo = trim($_GET['date_to'] ?? '');
         $typeFilter = trim($_GET['type'] ?? '');
@@ -2727,6 +2736,41 @@ class Booking extends Controller
 
         $items = $this->bookingModel->getBookingItems($bookingId);
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+
+        // Include package items whose default_supplier_id is NULL (managed by Golden Promise).
+        // These aren't inserted into booking_suppliers during booking creation, but
+        // should still appear in the admin's supplier assignment view.
+        $assignedPackageItemIds = [];
+        foreach ($suppliers as $s) {
+            $pid = (int)($s['package_item_id'] ?? 0);
+            if ($pid > 0) {
+                $assignedPackageItemIds[$pid] = true;
+            }
+        }
+        $unassignedPackageItems = $this->bookingModel->getUnassignedPackageItems($bookingId);
+        foreach ($unassignedPackageItems as $pkgItem) {
+            $pkgItemId = (int)($pkgItem['package_item_id'] ?? 0);
+            if ($pkgItemId > 0 && !isset($assignedPackageItemIds[$pkgItemId])) {
+                $suppliers[] = [
+                    'id' => 0,
+                    'booking_id' => $bookingId,
+                    'supplier_id' => null,
+                    'service_id' => $pkgItem['service_id'] ?? null,
+                    'category_id' => $pkgItem['category_id'] ?? null,
+                    'package_item_id' => $pkgItemId,
+                    'item_price' => null,
+                    'status' => 'managed',
+                    'shop_name' => 'Golden Promise',
+                    'service_name' => $pkgItem['service_name'] ?? 'Package service',
+                    'category_name' => $pkgItem['category_name'] ?? '',
+                    'thumbnail_url' => null,
+                    'replacement_request_id' => null,
+                    'replacement_status' => null,
+                    'originated_replacement_request_id' => null,
+                ];
+            }
+        }
+
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $logs = $this->bookingModel->getStatusLogs($bookingId);
         $payments = $this->bookingModel->getBookingPayments($bookingId);

@@ -2217,6 +2217,17 @@ input[type="date"]:invalid {
             <div class="gp-details-section">
               <div class="gp-fieldset-legend" style="margin-bottom:12px;">Your details</div>
               <div class="gp-details-grid">
+                <?php $pkgGuestCount = (int)($item['package_guest_count'] ?? 0); ?>
+                <?php if ($pkgGuestCount > 0): ?>
+                <div class="gp-detail-field">
+                  <label class="gp-detail-label"><?= $h($quantityLabel) ?></label>
+                  <input type="hidden" name="item_guests[<?= $i ?>]" value="<?= $pkgGuestCount ?>">
+                  <div class="gp-detail-input" style="background:#f9fafb;cursor:default;opacity:.85;">
+                    <strong><?= number_format($pkgGuestCount) ?></strong>
+                    <span class="gp-input-note" style="display:inline;margin-left:6px;">Set by package</span>
+                  </div>
+                </div>
+                <?php else: ?>
                 <div class="gp-detail-field">
                   <label class="gp-detail-label is-required" for="guests-<?= $i ?>"><?= $h($quantityLabel) ?></label>
                   <div class="gp-detail-stepper">
@@ -2236,6 +2247,7 @@ input[type="date"]:invalid {
                   <?php endif; ?>
                   <div class="gp-input-note is-limit-warning" data-limit-message-for="guests-<?= $i ?>">This supplier can accept up to <?= $itemMaxBooking ?> for this booking.</div>
                 </div>
+                <?php endif; ?>
                 <div class="gp-detail-field">
                   <label class="gp-detail-label is-required" for="location-<?= $i ?>">Location / venue room</label>
                   <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
