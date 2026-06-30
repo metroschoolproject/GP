@@ -1837,7 +1837,8 @@ class BookingModel
                     r.price_delta,
                     r.requires_customer_approval,
                     osup.shop_name AS original_supplier_name,
-                    os.name AS original_service_name
+                    os.name AS original_service_name,
+                    bs.decline_reason
              FROM booking_suppliers bs
              INNER JOIN bookings b ON bs.booking_id = b.id
              LEFT JOIN users u ON b.user_id = u.user_id
@@ -1850,7 +1851,7 @@ class BookingModel
              LEFT JOIN suppliers osup ON osup.supplier_id = r.old_supplier_id
              LEFT JOIN services os ON os.id = r.old_service_id
              WHERE bs.supplier_id = :sid
-               AND bs.status IN ('pending', 'confirmed', 'in_progress')
+               AND bs.status IN ('pending', 'confirmed', 'in_progress', 'decline_requested')
                AND b.status NOT IN ('draft', 'pending_payment', 'cancelled')
              GROUP BY b.id, bs.id
              ORDER BY
@@ -1912,6 +1913,54 @@ class BookingModel
             $this->db->dbbind(':current_' . $index, $allowedStatus);
         }
 
+        $this->db->dbexecute();
+        return $this->db->rowcount() === 1;
+    }
+
+    /**
+     * Supplier requests a decline for a package booking within the cutoff window.
+     * Sets status to 'decline_requested' and stores the reason for admin review.
+     */
+    public function requestSupplierDecline(int $bookingSupplierId, string $reason): bool
+    {
+        $this->db->dbquery(
+            "UPDATE booking_suppliers
+                SET status = 'decline_requested', decline_reason = :reason, declined_at = NOW()
+              WHERE id = :id AND status IN ('confirmed', 'pending')"
+        );
+        $this->db->dbbind(':id', $bookingSupplierId, PDO::PARAM_INT);
+        $this->db->dbbind(':reason', $reason !== '' ? $reason : null);
+        $this->db->dbexecute();
+        return $this->db->rowcount() === 1;
+    }
+
+    /**
+     * Admin approves a decline request — transitions to needs_replacement
+     * so the existing replacement flow kicks in.
+     */
+    public function approveDeclineRequest(int $bookingSupplierId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE booking_suppliers
+                SET status = 'needs_replacement'
+              WHERE id = :id AND status = 'decline_requested'"
+        );
+        $this->db->dbbind(':id', $bookingSupplierId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        return $this->db->rowcount() === 1;
+    }
+
+    /**
+     * Admin rejects a decline request — reverts to pending.
+     */
+    public function rejectDeclineRequest(int $bookingSupplierId): bool
+    {
+        $this->db->dbquery(
+            "UPDATE booking_suppliers
+                SET status = 'pending', decline_reason = NULL, declined_at = NULL
+              WHERE id = :id AND status = 'decline_requested'"
+        );
+        $this->db->dbbind(':id', $bookingSupplierId, PDO::PARAM_INT);
         $this->db->dbexecute();
         return $this->db->rowcount() === 1;
     }

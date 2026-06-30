@@ -708,6 +708,10 @@
 .asn-response-btn--accept:hover:not(:disabled) { background: #7b5c69; }
 .asn-response-btn--decline { background: #FFFFFF; color: #6d4c5b; border: 1px solid #ead8c7; }
 .asn-response-btn--decline:hover:not(:disabled) { background: #eddecc; }
+.asn-response-btn--decline:disabled { color: #b79c8b; border-color: #eddecc; cursor: not-allowed; opacity: 0.6; }
+.asn-response-btn--request-decline { background: #FFFFFF; color: #92400e; border: 1px solid #fde68a; display: inline-flex; align-items: center; gap: 5px; }
+.asn-response-btn--request-decline:hover:not(:disabled) { background: #fef3c7; }
+.asn-service-status--decline-requested { background: #FFFBEB; color: #92400e; display: inline-flex; align-items: center; gap: 5px; }
 .asn-response-deadline { font-size: 10px; color: #92400e; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
 .asn-response-deadline svg { width: 12px; height: 12px; }
 

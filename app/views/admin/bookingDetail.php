@@ -205,8 +205,8 @@ $badgeClass = static function (string $status): string {
 
 $supplierStatusDot = static function (string $status): string {
     return match (strtolower($status)) {
-        'confirmed', 'accepted' => 'bkd-dot--success',
-        'pending', 'pending_supplier_response', 'needs_replacement' => 'bkd-dot--warn',
+        'confirmed', 'accepted', 'managed' => 'bkd-dot--success',
+        'pending', 'pending_supplier_response', 'needs_replacement', 'decline_requested' => 'bkd-dot--warn',
         'rejected', 'cancelled' => 'bkd-dot--danger',
         default => 'bkd-dot--neutral',
     };
@@ -1267,24 +1267,40 @@ $dashboardContent = function () use (
                 $serviceName = (string)($supplier['service_name'] ?? $supplier['category_name'] ?? 'Unspecified');
                 $replacementTarget = $suppliersById[(int)($supplier['replaced_by_id'] ?? 0)] ?? null;
                 $isNeedsReplacement = $sStatus === 'needs_replacement';
+                $isDeclineRequested = $sStatus === 'decline_requested';
                 $isReplaced = $sStatus === 'replaced';
                 $isReplacement = ($replacementSourceById[(int)($supplier['id'] ?? 0)] ?? null) !== null;
                 $replacementRequestId = (int)($supplier['originated_replacement_request_id'] ?? $supplier['replacement_request_id'] ?? 0);
                 $stateLabel = $isNeedsReplacement ? 'Needs replacement'
+                    : ($isDeclineRequested ? 'Decline requested'
                     : ($isReplaced ? 'Replaced'
                     : ($isReplacement ? 'Replacement assigned'
-                    : ucwords(str_replace('_', ' ', $sStatus))));
+                    : ($sStatus === 'managed' ? 'Platform managed'
+                    : ucwords(str_replace('_', ' ', $sStatus))))));
               ?>
-              <div class="bkd-sup-row" style="<?= $isNeedsReplacement ? 'border-color:#e8b66f;background:#fff8ed' : ($isReplaced ? 'opacity:.6' : '') ?>">
+              <div class="bkd-sup-row" data-booking-supplier-id="<?= (int)($supplier['id'] ?? 0) ?>" data-booking-id="<?= (int)($booking['id'] ?? 0) ?>" style="<?= ($isNeedsReplacement || $isDeclineRequested) ? 'border-color:#e8b66f;background:#fff8ed' : ($isReplaced ? 'opacity:.6' : '') ?>">
                 <span class="bkd-dot <?= $supplierStatusDot($sStatus) ?>"></span>
                 <div class="bkd-sup-info">
                   <div class="bkd-sup-name"><?= $h($sName) ?></div>
                   <div class="bkd-sup-sub"><?= $h($stateLabel) ?></div>
                   <div class="bkd-sup-svc"><?= $h($serviceName) ?></div>
+                  <?php if ($isDeclineRequested && !empty($supplier['decline_reason'])): ?>
+                    <div class="bkd-sup-svc" style="color:#92400e;margin-top:4px;font-style:italic">Reason: <?= $h($supplier['decline_reason']) ?></div>
+                  <?php endif; ?>
                   <?php if ($isNeedsReplacement && $replacementRequestId > 0): ?>
                     <a href="<?= URLROOT ?>/admin/replacementPicker/<?= $replacementRequestId ?>" style="display:inline-block;margin-top:6px;font-size:10px;font-weight:800;color:var(--bkd-warn-text);text-decoration:underline">
                       Choose replacement →
                     </a>
+                  <?php endif; ?>
+                  <?php if ($isDeclineRequested): ?>
+                    <div style="display:flex;gap:6px;margin-top:8px">
+                      <button type="button" class="bkd-decline-approve-btn" data-booking-supplier-id="<?= (int)($supplier['id'] ?? 0) ?>" data-booking-id="<?= (int)($booking['id'] ?? 0) ?>" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;background:#6d4c5b;color:#fff;border:none;cursor:pointer">
+                        Approve decline
+                      </button>
+                      <button type="button" class="bkd-decline-reject-btn" data-booking-supplier-id="<?= (int)($supplier['id'] ?? 0) ?>" data-booking-id="<?= (int)($booking['id'] ?? 0) ?>" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;background:#fff;color:#6d4c5b;border:1px solid #ead8c7;cursor:pointer">
+                        Reject
+                      </button>
+                    </div>
                   <?php endif; ?>
                   <?php if ($isReplaced && $replacementTarget): ?>
                     <div class="bkd-sup-svc" style="color:var(--bkd-muted)">Replaced by: <?= $h($replacementTarget['shop_name'] ?? 'Replacement') ?></div>
@@ -2042,6 +2058,48 @@ $dashboardContent = function () use (
   if (rpModal) {
     rpModal.addEventListener('click', function(e) { if (e.target === rpModal) closeRefundProcessModal(); });
   }
+
+  /* ── Decline request approve/reject ── */
+  document.querySelectorAll('.bkd-decline-approve-btn, .bkd-decline-reject-btn').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      var action = btn.classList.contains('bkd-decline-approve-btn') ? 'approve' : 'reject';
+      var bsid = btn.dataset.bookingSupplierId;
+      var bid = btn.dataset.bookingId;
+      if (!bsid || !bid) return;
+
+      var confirmMsg = action === 'approve'
+        ? 'Approve this decline request? A replacement supplier will need to be arranged.'
+        : 'Reject this decline request? The supplier status will revert to pending.';
+      if (!confirm(confirmMsg)) return;
+
+      btn.disabled = true;
+      btn.textContent = action === 'approve' ? 'Approving…' : 'Rejecting…';
+
+      var formData = new FormData();
+      formData.append('booking_supplier_id', bsid);
+      formData.append('booking_id', bid);
+      formData.append('action', action);
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+      try {
+        var resp = await fetch('<?= URLROOT ?>/admin/declineRequestRespond', { method: 'POST', body: formData });
+        var data = await resp.json().catch(function() { return {}; });
+
+        if (data.success) {
+          alert(data.message || (action === 'approve' ? 'Decline approved.' : 'Decline request rejected.'));
+          location.reload();
+        } else {
+          alert(data.error || 'Could not process. Please try again.');
+          btn.disabled = false;
+          btn.textContent = action === 'approve' ? 'Approve decline' : 'Reject';
+        }
+      } catch (err) {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = action === 'approve' ? 'Approve decline' : 'Reject';
+      }
+    });
+  });
 
   lucide.createIcons();
 })();

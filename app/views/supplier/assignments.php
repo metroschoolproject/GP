@@ -141,11 +141,23 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
                                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
                                     Accept
                                 </button>
+                                <?php if (!empty($a['decline_blocked'])): ?>
+                                <button type="button" class="asn-response-btn asn-response-btn--request-decline asn-respond-btn" data-action="request_decline" data-bsid="<?= $svcBsid ?>">
+                                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v6M8 11h.01"/><circle cx="8" cy="8" r="6"/></svg>
+                                    Request decline
+                                </button>
+                                <?php else: ?>
                                 <button type="button" class="asn-response-btn asn-response-btn--decline asn-respond-btn" data-action="decline" data-bsid="<?= $svcBsid ?>">
                                     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
                                     Decline
                                 </button>
+                                <?php endif; ?>
                             </div>
+                            <?php elseif ($svcStatus === 'decline_requested'): ?>
+                            <span class="asn-service-status asn-service-status--decline-requested">
+                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><path d="M8 1v6M8 11h.01"/><circle cx="8" cy="8" r="6"/></svg>
+                                Decline requested
+                            </span>
                             <?php else: ?>
                             <span class="asn-service-status <?= $svcStatus === 'confirmed' ? 'asn-service-status--confirmed' : 'asn-service-status--pending' ?>"><?= $h(ucfirst($svcStatus)) ?></span>
                             <?php endif; ?>
@@ -338,13 +350,18 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
 
             if (!bookingId || !bsid) return;
 
-            /* For decline, open modal instead of confirm() */
-            if (action === 'decline') {
+            /* For decline or request_decline, open modal instead of confirm() */
+            if (action === 'decline' || action === 'request_decline') {
                 pendingDeclineBtn = button;
                 declineModal.dataset.bookingId = bookingId;
                 declineModal.dataset.bsid = bsid;
                 declineReason.value = '';
                 charCount.textContent = '0 / 500';
+                /* Update modal title for request_decline */
+                var title = document.getElementById('asn-decline-title');
+                if (title) title.textContent = action === 'request_decline' ? 'Request Decline' : 'Decline Assignment';
+                var submitBtn = declineForm.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.textContent = action === 'request_decline' ? 'Submit request' : 'Confirm decline';
                 declineModal.classList.add('is-open');
                 declineReason.focus();
                 return;
@@ -365,7 +382,8 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
             }
             declineModal.classList.remove('is-open');
             if (pendingDeclineBtn) {
-                await submitResponse(pendingDeclineBtn, declineModal.dataset.bookingId, declineModal.dataset.bsid, 'decline', reason);
+                var action = pendingDeclineBtn.dataset.action || 'decline';
+                await submitResponse(pendingDeclineBtn, declineModal.dataset.bookingId, declineModal.dataset.bsid, action, reason);
             }
         });
     }
@@ -373,7 +391,8 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
     async function submitResponse(button, bookingId, bsid, action, reason) {
         button.disabled = true;
         var original = button.innerHTML;
-        button.innerHTML = action === 'accept' ? 'Accepting…' : 'Declining…';
+        var loadingText = action === 'accept' ? 'Accepting…' : (action === 'request_decline' ? 'Submitting…' : 'Declining…');
+        button.innerHTML = loadingText;
 
         var formData = new FormData();
         formData.append('booking_id', bookingId);
@@ -393,7 +412,8 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
             }
 
             if (data.success) {
-                supToastSuccess(action === 'accept' ? 'Assignment accepted!' : 'Assignment declined.');
+                var msg = action === 'accept' ? 'Assignment accepted!' : (action === 'request_decline' ? 'Decline request submitted!' : 'Assignment declined.');
+                supToastSuccess(msg);
                 markServiceResolved(button, action);
                 return;
             }
@@ -414,8 +434,13 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
         var actionsWrap = button.closest('.asn-service-actions');
         if (actionsWrap) {
             var badge = document.createElement('span');
-            badge.className = 'asn-service-status ' + (action === 'accept' ? 'asn-service-status--confirmed' : 'asn-service-status--pending');
-            badge.textContent = action === 'accept' ? 'Accepted' : 'Declined';
+            if (action === 'request_decline') {
+                badge.className = 'asn-service-status asn-service-status--decline-requested';
+                badge.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><path d="M8 1v6M8 11h.01"/><circle cx="8" cy="8" r="6"/></svg> Decline requested';
+            } else {
+                badge.className = 'asn-service-status ' + (action === 'accept' ? 'asn-service-status--confirmed' : 'asn-service-status--pending');
+                badge.textContent = action === 'accept' ? 'Accepted' : 'Declined';
+            }
             actionsWrap.replaceWith(badge);
             return;
         }

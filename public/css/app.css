@@ -867,6 +867,12 @@
   .min-w-36 {
     min-width: calc(var(--spacing) * 36);
   }
+  .min-w-\[44px\] {
+    min-width: 44px;
+  }
+  .min-w-\[130px\] {
+    min-width: 130px;
+  }
   .min-w-full {
     min-width: 100%;
   }
@@ -1010,6 +1016,9 @@
   }
   .gap-6 {
     gap: calc(var(--spacing) * 6);
+  }
+  .gap-8 {
+    gap: calc(var(--spacing) * 8);
   }
   .gap-\[4px\] {
     gap: 4px;

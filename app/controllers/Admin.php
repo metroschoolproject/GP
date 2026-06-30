@@ -2,6 +2,7 @@
 
 require_once APPROOT . '/services/UploadService.php';
 require_once APPROOT . '/services/EmailService.php';
+require_once APPROOT . '/services/SupplierKpiService.php';
 require_once APPROOT . '/controllers/Booking.php';
 
 class Admin extends Controller
@@ -770,6 +771,13 @@ class Admin extends Controller
         return call_user_func_array([$bookingController, 'adminVerifyReplacementPayment'], func_get_args());
     }
 
+    public function declineRequestRespond()
+    {
+        $this->requireCsrf();
+        $bookingController = new Booking();
+        return $bookingController->supplierDeclineRequestRespond();
+    }
+
     public function markBookingReceived()
     {
         $this->requireCsrf();
@@ -908,6 +916,9 @@ class Admin extends Controller
             $paymentStatus
         );
 
+        $kpiService = new SupplierKpiService($this->model('BookingModel'), $this->model('ReviewModel'));
+        $supplierScores = $kpiService->calculateKpiForList($suppliers);
+
         $this->view('admin/suppliers', [
             'suppliers' => $suppliers,
             'status' => $status,
@@ -921,6 +932,7 @@ class Admin extends Controller
             'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
             'totalCount' => $totalCount,
             'perPage' => $perPage,
+            'supplierScores' => $supplierScores,
         ]);
     }
 
@@ -944,6 +956,9 @@ class Admin extends Controller
         // Get supplier fee payment info if exists
         $supplierFeePayment = $this->paymentModel->getLatestSupplierFeePayment((int)$supplierId);
 
+        $kpiService = new SupplierKpiService($this->model('BookingModel'), $this->model('ReviewModel'));
+        $kpi = $kpiService->calculateSupplierKpi((int)$supplierId);
+
         $this->view('admin/supplier_review', [
             'supplier' => $supplier,
             'message' => $_SESSION['admin_flash'] ?? '',
@@ -953,6 +968,7 @@ class Admin extends Controller
             'recentBookings' => $this->supplierProfileModel->getSupplierRecentBookings((int)$supplierId, 5),
             'supplierReviews' => $this->supplierProfileModel->getSupplierReviews((int)$supplierId, 5),
             'supplierWarnings' => $this->supplierProfileModel->getSupplierWarnings((int)$supplierId),
+            'kpi' => $kpi,
         ]);
         unset($_SESSION['admin_flash']);
     }

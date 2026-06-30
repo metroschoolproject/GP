@@ -1889,14 +1889,32 @@ class Booking extends Controller
                 'original_service_name' => $a['original_service_name'] ?? '',
                 'price_delta' => (float)($a['price_delta'] ?? 0),
                 'requires_customer_approval' => !empty($a['requires_customer_approval']),
+                'decline_reason' => $a['decline_reason'] ?? '',
             ];
-            if (($a['supplier_status'] ?? '') === 'pending') {
+            if (in_array($a['supplier_status'] ?? '', ['pending', 'decline_requested'], true)) {
                 $grouped[$bid]['has_pending'] = true;
             }
             if (!empty($a['replacement_id'])) {
                 $grouped[$bid]['has_replacement'] = true;
             }
         }
+
+        // Mark bookings where decline is blocked (package booking within cutoff window)
+        $today = new DateTimeImmutable('today');
+        foreach ($grouped as $bid => &$booking) {
+            $booking['decline_blocked'] = false;
+            if (!empty($booking['event_date'])) {
+                $eventTs = DateTimeImmutable::createFromFormat('!Y-m-d', substr($booking['event_date'], 0, 10));
+                if ($eventTs) {
+                    $daysUntil = (int)$today->diff($eventTs)->format('%r%a');
+                    if ($daysUntil < self::PACKAGE_DECLINE_CUTOFF_DAYS
+                        && $this->bookingModel->isPackageBooking($bid)) {
+                        $booking['decline_blocked'] = true;
+                    }
+                }
+            }
+        }
+        unset($booking);
 
         // Split into pending (has pending services) vs active (all confirmed)
         $pendingAssignments = [];
@@ -2067,10 +2085,10 @@ class Booking extends Controller
         }
 
         $bookingId = (int)($_POST['booking_id'] ?? 0);
-        $action = trim($_POST['action'] ?? ''); // 'accept' or 'decline'
+        $action = trim($_POST['action'] ?? ''); // 'accept', 'decline', or 'request_decline'
         $declineReason = trim($_POST['reason'] ?? '');
 
-        if ($bookingId <= 0 || !in_array($action, ['accept', 'decline'], true)) {
+        if ($bookingId <= 0 || !in_array($action, ['accept', 'decline', 'request_decline'], true)) {
             $this->jsonResponse(['error' => 'Invalid request'], 400);
         }
 
@@ -2142,6 +2160,47 @@ class Booking extends Controller
         // Use the first row for primary logic; all rows are processed below
         $rowId = (int)$matchingRows[0]['id'];
         $supplierRow = $matchingRows[0];
+
+        // Handle "request decline" — supplier wants to decline but is within the
+        // cutoff window. This submits a request for admin approval instead.
+        if ($action === 'request_decline') {
+            if (!$this->bookingModel->isPackageBooking($bookingId)) {
+                $this->jsonResponse(['error' => 'Request decline is only available for package bookings.'], 400);
+                return;
+            }
+            if ($declineReason === '') {
+                $this->jsonResponse(['error' => 'Please provide a reason for your decline request.'], 422);
+                return;
+            }
+
+            $anyUpdated = false;
+            foreach ($matchingRows as $row) {
+                if ($this->bookingModel->requestSupplierDecline((int)$row['id'], $declineReason)) {
+                    $anyUpdated = true;
+                }
+            }
+            if (!$anyUpdated) {
+                $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
+                return;
+            }
+
+            $this->bookingModel->logStatusChange($bookingId, null, 'decline_requested', null, 'Supplier requested decline (within cutoff window)');
+
+            $this->notificationModel->notifyAdmins(
+                'Decline Request Received',
+                $shopName . ' has requested to decline booking #' . $bookingId . '. Reason: ' . $declineReason,
+                'booking',
+                'booking',
+                $bookingId
+            );
+
+            $this->jsonResponse([
+                'success' => true,
+                'new_status' => 'decline_requested',
+                'message' => 'Decline request submitted. Admin will review and respond.',
+            ]);
+            return;
+        }
 
         // A decline on a package booking with verified payment does not cancel
         // the booking — it opens an admin-driven supplier replacement instead.
@@ -2386,6 +2445,109 @@ class Booking extends Controller
                 ? 'Booking accepted!'
                 : ($isReplaceFlow ? 'Declined. A replacement will be arranged.' : 'Booking declined.'),
         ]);
+    }
+
+    /**
+     * Admin approves or rejects a supplier's decline request.
+     * POST: booking_supplier_id, action ('approve'|'reject')
+     */
+    public function supplierDeclineRequestRespond(): void
+    {
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $bookingSupplierId = (int)($_POST['booking_supplier_id'] ?? 0);
+        $action = trim($_POST['action'] ?? '');
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+
+        if ($bookingSupplierId <= 0 || !in_array($action, ['approve', 'reject'], true)) {
+            $this->jsonResponse(['error' => 'Invalid request'], 400);
+        }
+
+        $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+        $supplierRow = null;
+        foreach ($suppliers as $s) {
+            if ((int)$s['id'] === $bookingSupplierId) {
+                $supplierRow = $s;
+                break;
+            }
+        }
+        if (!$supplierRow) {
+            $this->jsonResponse(['error' => 'Supplier row not found'], 404);
+        }
+
+        $shopName = $supplierRow['shop_name'] ?? 'A supplier';
+
+        if ($action === 'approve') {
+            if (!$this->bookingModel->approveDeclineRequest($bookingSupplierId)) {
+                $this->jsonResponse(['error' => 'Could not process. Status may have changed.'], 409);
+                return;
+            }
+
+            // Now trigger the replacement flow (same as a normal decline)
+            $declineReason = $supplierRow['decline_reason'] ?? '';
+            $replacementId = $this->bookingModel->createReplacementRequest($bookingId, $supplierRow, $declineReason);
+            $this->bookingModel->updateStatus($bookingId, 'replacement_pending');
+            $this->bookingModel->logStatusChange($bookingId, 'confirmed', 'replacement_pending', null, 'Admin approved decline request from ' . $shopName);
+
+            $this->notificationModel->notifyAdmins(
+                'Supplier Replacement Needed',
+                $shopName . ' decline approved for booking #' . $bookingId . '. Please choose a replacement supplier.',
+                'booking',
+                'booking',
+                $bookingId
+            );
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Arranging a Replacement',
+                $shopName . ' is unavailable for your date. We are arranging a replacement for you — no action needed right now.',
+                'booking'
+            );
+            $supplierUserId = $this->bookingModel->getSupplierUserId((int)($supplierRow['supplier_id'] ?? 0));
+            if ($supplierUserId) {
+                $this->notificationModel->notifyUser(
+                    $supplierUserId,
+                    'Decline Request Approved',
+                    'Your decline request for booking #' . $bookingId . ' has been approved.',
+                    'booking',
+                    'booking',
+                    $bookingId
+                );
+            }
+
+            $this->jsonResponse([
+                'success' => true,
+                'replacement_id' => $replacementId,
+                'message' => 'Decline request approved. Replacement flow initiated.',
+            ]);
+        } else {
+            // Reject the decline request — revert to pending
+            if (!$this->bookingModel->rejectDeclineRequest($bookingSupplierId)) {
+                $this->jsonResponse(['error' => 'Could not process. Status may have changed.'], 409);
+                return;
+            }
+
+            $this->bookingModel->logStatusChange($bookingId, null, 'decline_request_rejected', null, 'Admin rejected decline request from ' . $shopName);
+
+            $supplierUserId = $this->bookingModel->getSupplierUserId((int)($supplierRow['supplier_id'] ?? 0));
+            if ($supplierUserId) {
+                $this->notificationModel->notifyUser(
+                    $supplierUserId,
+                    'Decline Request Rejected',
+                    'Your decline request for booking #' . $bookingId . ' has been rejected. Please proceed with the booking as scheduled.',
+                    'booking',
+                    'booking',
+                    $bookingId
+                );
+            }
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Decline request rejected. Supplier status reverted to pending.',
+            ]);
+        }
     }
 
     /**
