@@ -356,6 +356,58 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
 
             </div><!-- end stat cards inner -->
 
+            <?php if ($kpi): ?>
+            <!-- Quality Scorecard -->
+            <div class="<?= $dashboardCardClass ?> supplier-admin-animate" style="animation-delay:.25s">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="supplier-admin-icon" style="background:#f5f1ec;color:#6d4c5b">
+                            <i data-lucide="gauge" class="h-4 w-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="supplier-admin-section-title">Quality Scorecard</h3>
+                            <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Your performance across all dimensions</p>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-extrabold tracking-wide uppercase" style="color:<?= $kpi['tier_color'] ?>;background:<?= $kpi['tier_color'] ?>1A">
+                        <?= htmlspecialchars($kpi['tier_label'], ENT_QUOTES, 'UTF-8') ?>
+                    </span>
+                </div>
+                <div class="flex items-center gap-8 flex-wrap">
+                    <?php
+                        $_sc = $kpi['score'];
+                        $_ci = 2 * M_PI * 34;
+                        $_of = $_ci - ($_sc / 100) * $_ci;
+                    ?>
+                    <div class="relative flex-shrink-0" style="width:88px;height:88px">
+                        <svg width="88" height="88" viewBox="0 0 88 88" style="transform:rotate(-90deg)">
+                            <circle cx="44" cy="44" r="34" fill="none" stroke-width="6" stroke="#eddecc" />
+                            <circle cx="44" cy="44" r="34" fill="none" stroke-width="6" stroke-linecap="round"
+                                stroke="<?= $kpi['tier_color'] ?>"
+                                stroke-dasharray="<?= round($_ci, 2) ?>"
+                                stroke-dashoffset="<?= round($_of, 2) ?>" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl font-extrabold leading-none" style="color:#6d4c5b"><?= $_sc ?></span>
+                            <span class="text-[9px] font-bold uppercase tracking-widest mt-0.5" style="color:#A8A29E">/ 100</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 grid gap-3" style="min-width:260px">
+                        <?php foreach ($kpi['dimensions'] as $_dim): ?>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[11px] font-bold min-w-[130px]" style="color:#7b5c69"><?= htmlspecialchars($_dim['name'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <div class="flex-1 h-2 rounded-full overflow-hidden" style="background:#eddecc">
+                                <?php $_pct = $_dim['max'] > 0 ? round(($_dim['score'] / $_dim['max']) * 100) : 0; ?>
+                                <div class="h-full rounded-full transition-all" style="width:<?= $_pct ?>%;background:<?= $kpi['tier_color'] ?>cc"></div>
+                            </div>
+                            <span class="text-xs font-extrabold min-w-[44px] text-right" style="color:#6d4c5b"><?= $_dim['score'] ?>/<span class="font-semibold" style="color:#A8A29E"><?= $_dim['max'] ?></span></span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- CHARTS: two columns -->
             <div class="supplier-admin-charts">
 

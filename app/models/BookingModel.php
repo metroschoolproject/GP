@@ -4789,6 +4789,20 @@ class BookingModel
     }
 
     /**
+     * Check if a booking has any pending payment (deposit or remaining) awaiting verification.
+     */
+    public function hasPendingPayment(int $bookingId): bool
+    {
+        $this->db->dbquery(
+            "SELECT 1 FROM payments
+              WHERE booking_id = :bid AND type IN ('deposit','remaining') AND status IN ('pending','processing')
+              LIMIT 1"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return (bool)$this->db->getsingledata();
+    }
+
+    /**
      * Get all remaining balance payments for a booking (successful + pending).
      */
     public function getRemainingPayments(int $bookingId): array

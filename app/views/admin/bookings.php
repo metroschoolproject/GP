@@ -6,6 +6,7 @@ $search = $search ?? '';
 $sort = $sort ?? 'event_asc';
 $dateFrom = $dateFrom ?? '';
 $dateTo = $dateTo ?? '';
+$typeFilter = $typeFilter ?? '';
 $currentPage = max(1, (int)($currentPage ?? 1));
 $totalPages = max(1, (int)($totalPages ?? 1));
 $totalCount = max(0, (int)($totalCount ?? count($bookings)));
@@ -82,6 +83,7 @@ $dashboardContent = function () use (
     $sort,
     $dateFrom,
     $dateTo,
+    $typeFilter,
     $filters,
     $filterCounts,
     $summaryItems,
@@ -206,6 +208,14 @@ $dashboardContent = function () use (
         <option value="total_desc" <?= $sort === 'total_desc' ? 'selected' : '' ?>>Total · highest</option>
         <option value="total_asc" <?= $sort === 'total_asc' ? 'selected' : '' ?>>Total · lowest</option>
       </select>
+      <select class="control-input sort-select" name="type" aria-label="Filter by booking type">
+        <option value="">All types</option>
+        <option value="package" <?= $typeFilter === 'package' ? 'selected' : '' ?>>Package</option>
+        <option value="package_addons" <?= $typeFilter === 'package_addons' ? 'selected' : '' ?>>Package + Add-ons</option>
+        <option value="supplier_package" <?= $typeFilter === 'supplier_package' ? 'selected' : '' ?>>Supplier Package</option>
+        <option value="custom" <?= $typeFilter === 'custom' ? 'selected' : '' ?>>Custom Services</option>
+        <option value="mixed" <?= $typeFilter === 'mixed' ? 'selected' : '' ?>>Mixed</option>
+      </select>
       <div class="date-range">
         <input class="control-input date-input" type="date" name="date_from" value="<?= $h($dateFrom) ?>" aria-label="Event date from">
         <input class="control-input date-input" type="date" name="date_to" value="<?= $h($dateTo) ?>" aria-label="Event date to">
@@ -214,13 +224,18 @@ $dashboardContent = function () use (
         <i data-lucide="sliders-horizontal" class="h-3.5 w-3.5" aria-hidden="true"></i>
         Apply
       </button>
-      <?php if ($dateFrom !== '' || $dateTo !== '' || $sort !== 'event_asc'): ?>
+      <?php if ($dateFrom !== '' || $dateTo !== '' || $sort !== 'event_asc' || $typeFilter !== ''): ?>
         <a class="btn-ghost" href="<?= URLROOT ?>/admin/bookings<?= $activeFilter !== 'all' ? '?status=' . urlencode($activeFilter) : '' ?>">Reset</a>
       <?php endif; ?>
       <?php if ($search !== ''): ?>
         <div class="active-filter-note">
           <i data-lucide="search" aria-hidden="true"></i>
-          Showing results for "<?= $h($search) ?>" — <a href="<?= URLROOT ?>/admin/bookings<?= $activeFilter !== 'all' ? '?status=' . urlencode($activeFilter) : '' ?>" style="color:var(--primary);text-decoration:underline">clear search</a>
+          Showing results for "<?= $h($search) ?>" — <a href="<?= URLROOT ?>/admin/bookings<?php
+            $clearParams = [];
+            if ($activeFilter !== 'all') $clearParams[] = 'status=' . urlencode($activeFilter);
+            if ($typeFilter !== '') $clearParams[] = 'type=' . urlencode($typeFilter);
+            echo $clearParams ? '?' . implode('&', $clearParams) : '';
+          ?>" style="color:var(--primary);text-decoration:underline">clear search</a>
         </div>
       <?php endif; ?>
     </form>

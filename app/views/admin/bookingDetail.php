@@ -47,6 +47,8 @@ $bookingStatusForPayment = (string)($booking['status'] ?? '');
 // Check if there's a pending remaining payment — handles legacy bookings
 // where status wasn't updated to 'pending_final_payment'.
 $hasPendingRemainingPayment = !empty(array_filter($payments, static fn($p) => ($p['type'] ?? '') === 'remaining' && ($p['status'] ?? '') === 'pending'));
+$hasPendingDepositPayment = !empty(array_filter($payments, static fn($p) => ($p['type'] ?? '') === 'deposit' && ($p['status'] ?? '') === 'pending'));
+$hasPendingPayment = $hasPendingRemainingPayment || $hasPendingDepositPayment;
 $isRemainingPaymentStage = $bookingStatusForPayment === 'pending_final_payment' || $hasPendingRemainingPayment;
 $relevantType = $isRemainingPaymentStage ? 'remaining' : 'deposit';
 $typePayments = array_values(array_filter($payments, static fn($p) => ($p['type'] ?? '') === $relevantType));
@@ -294,7 +296,9 @@ $dashboardContent = function () use (
     $visibleLogs,
     $refund,
     $refundEstimate,
-    $isRemainingPaymentStage
+    $isRemainingPaymentStage,
+    $hasPendingRemainingPayment,
+    $hasPendingPayment
 ) {
     $bookingId = (int)($booking['id'] ?? 0);
     $createdAt = $dateOnly($booking['created_at'] ?? null);
@@ -904,7 +908,7 @@ $dashboardContent = function () use (
     $isPaymentSubmitted = $bookingStatus === 'payment_submitted' || $paymentStatus === 'pending';
     $isConfirmed = in_array($bookingStatus, ['confirmed', 'paid', 'finalized', 'completed'], true);
     $isCancelled = in_array($bookingStatus, ['cancelled', 'cancellation_requested'], true);
-    $canCancel = !in_array($bookingStatus, ['cancelled', 'completed'], true);
+    $canCancel = !in_array($bookingStatus, ['cancelled', 'completed'], true) && !$hasPendingPayment;
     $canMarkCompleted = in_array($bookingStatus, ['finalized', 'in_progress'], true);
 
     // Step progress
@@ -1498,6 +1502,12 @@ $dashboardContent = function () use (
             <i data-lucide="ban"></i> Cancel booking
           <?php endif; ?>
         </button>
+      <?php endif; ?>
+      <?php if ($hasPendingPayment): ?>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#92400e;background:#FFFBEB;border:1px solid #fde68a;border-radius:6px;padding:4px 10px">
+          <i data-lucide="lock" style="width:13px;height:13px"></i>
+          Verify payment proof before cancelling
+        </span>
       <?php endif; ?>
     </div>
     <div class="bkd-bottom-right">

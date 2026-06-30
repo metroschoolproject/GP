@@ -2958,6 +2958,7 @@ class Booking extends Controller
             'depositPercent' => BOOKING_DEPOSIT_PERCENT,
             'refund' => $refund ?: null,
             'refundEstimate' => $refundEstimate ?: null,
+            'hasPendingRemaining' => $this->bookingModel->hasPendingRemainingPayment($bookingId),
         ]);
     }
 
@@ -3178,6 +3179,10 @@ class Booking extends Controller
 
         if ($bookingId <= 0 || $reason === '') {
             $this->jsonResponse(['error' => 'Please provide a reason.'], 400);
+        }
+
+        if ($this->bookingModel->hasPendingPayment($bookingId)) {
+            $this->jsonResponse(['error' => 'Cannot cancel — a payment proof is awaiting verification. Please verify or reject it first.'], 422);
         }
 
         $refundAmount = $this->bookingModel->adminCancelBooking($bookingId, $reason, $adminId);

@@ -254,7 +254,7 @@ class CartModel
         return $this->db->getsingledata();
     }
 
-    public function getAvailableSlotsForServiceDate(int $serviceId, string $date): array
+    public function getAvailableSlotsForServiceDate(int $serviceId, string $date, string $context = ''): array
     {
         $date = $this->normalizeDate($date);
         if (!$date || strtotime($date) < strtotime(date('Y-m-d'))) {
@@ -328,6 +328,14 @@ class CartModel
             $availCustomize = $customCap > 0 ? max(0, $customCap - $customConfirmed) : $available;
 
             if ($status !== 'available' || $available <= 0) {
+                continue;
+            }
+
+            // Context-specific pool filtering: skip slots whose dedicated pool is exhausted
+            if ($context === 'package' && $pkgCap > 0 && $availPackage <= 0) {
+                continue;
+            }
+            if ($context === 'customize' && $customCap > 0 && $availCustomize <= 0) {
                 continue;
             }
 

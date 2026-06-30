@@ -1961,7 +1961,18 @@ input[type="date"]:invalid {
             || str_contains($categoryText, 'make up')
             || str_contains($serviceNameText, 'makeup')
 	            || str_contains($serviceNameText, 'make up');
-	          $addonPackageName = trim((string)($item['addon_package_name'] ?? ''));
+          $isBeforeWedding = str_contains($categoryText, 'makeup')
+            || str_contains($categoryText, 'make up')
+            || str_contains($categoryText, 'beauty')
+            || str_contains($categoryText, 'hair')
+            || str_contains($categoryText, 'bridal')
+            || str_contains($categoryText, 'esthetic')
+            || str_contains($categoryText, 'spa')
+            || str_contains($serviceNameText, 'makeup')
+            || str_contains($serviceNameText, 'make up')
+            || str_contains($serviceNameText, 'hair')
+            || str_contains($serviceNameText, 'bridal');
+          $addonPackageName = trim((string)($item['addon_package_name'] ?? ''));
           $itemBookingType = $item['booking_type'] ?? 'fullday';
           $isPackageItem = ($item['item_type'] ?? '') === 'package';
           $itemMaxBooking = max(1, (int)($item['item_max_booking'] ?? 9999));
@@ -2167,6 +2178,7 @@ input[type="date"]:invalid {
                          min="<?= $minDateStr ?>"
                          data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
                          data-min-lead-days="<?= $minLeadDays ?>"
+                         data-before-wedding="<?= $isBeforeWedding ? 'yes' : 'no' ?>"
                          data-index="<?= $i ?>" required>
                   <?php if ($minLeadDays > 0): ?>
                     <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
@@ -2197,8 +2209,21 @@ input[type="date"]:invalid {
 	                    <?php endif; ?>
                   </div>
                 <?php else: ?>
-                  <label class="gp-detail-label" style="margin-top:10px;">Available time slots</label>
-                  <div class="gp-slots-container" id="slots-<?= $i ?>">
+                  <div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:end;margin-top:10px;">
+                    <div>
+                      <label class="gp-detail-label" for="preferred-time-<?= $i ?>">Wedding time</label>
+                      <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
+                             name="preferred_time[<?= $i ?>]"
+                             value="10:00"
+                             data-slot-index="<?= $i ?>"
+                             style="max-width:140px;">
+                    </div>
+                    <div>
+                      <label class="gp-detail-label" style="margin:0;">Time slots (auto-suggested<?= $isBeforeWedding ? ' before' : ' around' ?> wedding time)</label>
+                      <div class="gp-input-note" style="margin-top:0;">Select a date to see available slots</div>
+                    </div>
+                  </div>
+                  <div class="gp-slots-container" id="slots-<?= $i ?>" style="margin-top:10px;">
                     <p class="loading">Select a date to see available slots</p>
                   </div>
                 <?php endif; ?>
@@ -3487,7 +3512,7 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 /* ─── Fetch available slots ───────────────── */
-async function loadSlots(serviceId, date, index) {
+async function loadSlots(serviceId, date, index, preferredTime) {
   const container = document.getElementById('slots-' + index);
   if (!date) { container.innerHTML = '<p class="loading">Select a date first</p>'; return; }
 
@@ -3507,10 +3532,13 @@ async function loadSlots(serviceId, date, index) {
 
   container.innerHTML = '<p class="loading">Loading available slots…</p>';
   try {
+    // Determine booking context from the card's item type for correct pool filtering
+    const card = document.querySelector(`.gp-item-card[data-price-index="${index}"]`);
+    const context = card?.dataset.itemType === 'package' ? 'package' : '';
     const res = await fetch('<?= URLROOT ?>/booking/getAvailableSlots', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service_id: serviceId, date: date })
+      body: JSON.stringify({ service_id: serviceId, date: date, context: context })
     });
     const data = await res.json();
     if (!data.success) {
@@ -3518,17 +3546,60 @@ async function loadSlots(serviceId, date, index) {
       return;
     }
     if (data.slots && data.slots.length > 0) {
+      // Smart select based on service category and preferred (wedding) time
+      let bestIdx = 0;
+      if (preferredTime) {
+        const prefParts = preferredTime.split(':');
+        const prefSec = parseInt(prefParts[0]) * 3600 + parseInt(prefParts[1]) * 60;
+        const dateInput = document.querySelector(`input[type="date"][data-index="${index}"]`);
+        const isBeforeWedding = dateInput?.dataset.beforeWedding === 'yes';
+
+        if (isBeforeWedding) {
+          // Makeup/Hair/Beauty: prefer the latest slot that starts at or before wedding time
+          let bestDiff = Infinity;
+          data.slots.forEach((slot, idx) => {
+            const startStr = String(slot.start_time || '');
+            const startParts = startStr.split(':');
+            const startSec = parseInt(startParts[0]) * 3600 + parseInt(startParts[1]) * 60;
+            const diff = prefSec - startSec;          // positive = slot is before wedding
+            if (diff >= 0 && diff < bestDiff) {        // slot at or before preferred
+              bestDiff = diff;
+              bestIdx = idx;
+            }
+          });
+        } else {
+          // Photography/Videography/Other: prefer the closest slot to wedding time
+          let bestScore = Infinity;
+          data.slots.forEach((slot, idx) => {
+            const startStr = String(slot.start_time || '');
+            const startParts = startStr.split(':');
+            const startSec = parseInt(startParts[0]) * 3600 + parseInt(startParts[1]) * 60;
+            const diff = startSec - prefSec;
+            let score = Math.abs(diff);
+            if (diff < 0) score += 1800;     // small penalty for slots before wedding
+            if (score < bestScore) {
+              bestScore = score;
+              bestIdx = idx;
+            }
+          });
+        }
+      }
       container.innerHTML = data.slots.map((slot, idx) => `
         <label class="gp-slot-option">
           <input type="radio" name="item_start_time[${index}]"
                  value="${slot.start_time}"
                  data-end-time="${slot.end_time}"
-                 ${idx === 0 ? 'checked' : ''}>
+                 ${idx === bestIdx ? 'checked' : ''}>
           <input type="hidden" name="item_end_time[${index}]" class="end-time-hidden-${index}"
                  value="${slot.end_time}">
-          <span>${slot.display}${slot.available > 0 ? ' · ' + slot.available + ' available' : ''}</span>
+          <span>${slot.display}${(() => { const n = context === 'package' ? (slot.available_package ?? slot.available) : slot.available; return n > 0 ? ' · ' + n + ' available' : ''; })()}</span>
         </label>
       `).join('');
+      // Sync end-time hidden field to match the pre-selected slot
+      const checkedRadio = container.querySelector(`input[name="item_start_time[${index}"]:checked`);
+      if (checkedRadio) {
+        document.querySelector('.end-time-hidden-' + index).value = checkedRadio.dataset.endTime;
+      }
       document.querySelectorAll(`input[name="item_start_time[${index}]"]`).forEach(radio => {
         radio.addEventListener('change', function() {
           if (this.checked) {
@@ -3645,13 +3716,47 @@ async function loadPackageSchedule(packageId, date, index) {
   }
 }
 
+/* Helper: read wedding time for a given slot index */
+function getPreferredTime(index) {
+  const el = document.getElementById('preferred-time-' + index);
+  return el ? el.value : '';
+}
+
 document.querySelectorAll('[data-service-id]').forEach(input => {
   input.addEventListener('change', function() {
-    loadSlots(this.dataset.serviceId, this.value, this.dataset.index);
+    const idx = this.dataset.index;
+    const prefTime = getPreferredTime(idx);
+    loadSlots(this.dataset.serviceId, this.value, idx, prefTime);
+
+    // Propagate selected date to other unfilled individual services
+    const pickedDate = this.value;
+    if (!pickedDate) return;
+    document.querySelectorAll('[data-service-id]').forEach(other => {
+      if (other === this) return;
+      if (other.value) return;             // already has a date
+      const card = other.closest('.gp-item-card');
+      if (card && card.dataset.packageId) return;  // skip package date inputs
+      other.value = pickedDate;
+      updateCalendarDisplay(other);
+      const otherPrefTime = getPreferredTime(other.dataset.index);
+      loadSlots(other.dataset.serviceId, pickedDate, other.dataset.index, otherPrefTime);
+    });
   });
   if (input.value) {
-    loadSlots(input.dataset.serviceId, input.value, input.dataset.index);
+    const prefTime = getPreferredTime(input.dataset.index);
+    loadSlots(input.dataset.serviceId, input.value, input.dataset.index, prefTime);
   }
+});
+
+/* Re-load slots when wedding time changes (individual services only) */
+document.querySelectorAll('[data-slot-index]').forEach(input => {
+  input.addEventListener('change', function() {
+    const idx = this.dataset.slotIndex;
+    const dateInput = document.querySelector(`input[type="date"][data-index="${idx}"]`);
+    const serviceId = dateInput?.dataset.serviceId;
+    if (!dateInput || !dateInput.value || !serviceId) return;
+    loadSlots(serviceId, dateInput.value, idx, this.value);
+  });
 });
 
 document.querySelectorAll('.gp-item-card[data-package-id]').forEach(card => {

@@ -7,6 +7,7 @@ require_once APPROOT . '/controllers/SupplierAvailability.php';
 require_once APPROOT . '/controllers/SupplierNotifications.php';
 require_once APPROOT . '/controllers/Booking.php';
 require_once APPROOT . '/services/EmailService.php';
+require_once APPROOT . '/services/SupplierKpiService.php';
 
 class Supplier extends SupplierControllerSupport
 {
@@ -209,11 +210,16 @@ class Supplier extends SupplierControllerSupport
         }
 
         $supplier = $access['supplier'];
+        $supplierId = (int)$supplier['supplier_id'];
+
+        $kpiService = new SupplierKpiService($this->model('BookingModel'), $this->model('ReviewModel'));
+        $kpi = $kpiService->calculateSupplierKpi($supplierId);
 
         $this->view('supplier/dashboard', [
             'supplier' => $supplier,
             'payment' => $access['payment'],
-            'dashboardData' => $this->supplierProfileModel->getDashboardData((int)$supplier['supplier_id']),
+            'dashboardData' => $this->supplierProfileModel->getDashboardData($supplierId),
+            'kpi' => $kpi,
         ]);
     }
 
