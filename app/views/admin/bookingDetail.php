@@ -229,6 +229,9 @@ foreach ($suppliers as $supplier) {
     }
 }
 
+// Suppliers awaiting admin replacement
+$needsReplacementSuppliers = array_values(array_filter($suppliers, fn($s) => ($s['status'] ?? '') === 'needs_replacement'));
+
 $logDot = static function (string $status): string {
     return match (strtolower($status)) {
         'confirmed', 'completed', 'paid' => 'bkd-dot--success',
@@ -291,6 +294,7 @@ $dashboardContent = function () use (
     $supplierStatusDot,
     $suppliersById,
     $replacementSourceById,
+    $needsReplacementSuppliers,
     $logDot,
     $showAllLogs,
     $visibleLogs,
@@ -1042,6 +1046,44 @@ $dashboardContent = function () use (
   </div>
 
   <!-- ── Priority Action Area ── -->
+  <?php if (!empty($needsReplacementSuppliers)): ?>
+  <!-- Supplier needs replacement — urgent -->
+  <div class="bkd-action bkd-action--urgent" style="border-color:#e8b66f;background:#fffdf7">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--warn"><i data-lucide="user-x"></i></div>
+      <div>
+        <div class="bkd-action-title">Supplier<?= count($needsReplacementSuppliers) > 1 ? 's' : '' ?> Declined — Replacement Needed</div>
+        <div class="bkd-action-sub"><?= count($needsReplacementSuppliers) ?> service<?= count($needsReplacementSuppliers) > 1 ? 's' : '' ?> require<?= count($needsReplacementSuppliers) === 1 ? 's' : '' ?> a new supplier assignment</div>
+      </div>
+    </div>
+    <div class="bkd-action-body">
+      <?php foreach ($needsReplacementSuppliers as $nr): ?>
+        <?php
+          $nrService = $h($nr['service_name'] ?? $nr['category_name'] ?? 'Service');
+          $nrReason  = $nr['decline_reason'] ?? '';
+          $nrReplId  = (int)($nr['originated_replacement_request_id'] ?? $nr['replacement_request_id'] ?? 0);
+        ?>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;background:#fff8ed;border:1px solid #f0ddb0;border-radius:.6rem;margin-bottom:8px">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:13px;font-weight:700;color:#92400e"><?= $nrService ?></div>
+            <?php if ($nrReason !== ''): ?>
+              <div style="font-size:11.5px;color:#a16207;margin-top:3px;font-style:italic">Reason: <?= $h($nrReason) ?></div>
+            <?php endif; ?>
+          </div>
+          <?php if ($nrReplId > 0): ?>
+            <a href="<?= URLROOT ?>/admin/replacementPicker/<?= $nrReplId ?>" class="bkd-btn" style="flex-shrink:0;height:30px;padding:0 12px;font-size:11px;font-weight:800;background:var(--bkd-primary);color:#fff;border:none;border-radius:.5rem;cursor:pointer;text-decoration:none">
+              Choose replacement
+            </a>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+      <?php if (!empty($needsReplacementSuppliers[0]['originated_replacement_request_id'] ?? $needsReplacementSuppliers[0]['replacement_request_id'] ?? 0)): ?>
+        <div style="margin-top:6px;font-size:11px;color:var(--bkd-muted)">Pick a replacement supplier from the same category. You'll be notified if the new supplier accepts.</div>
+      <?php endif; ?>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <?php if ($isPaymentSubmitted): ?>
   <!-- Payment submitted — needs review -->
   <div class="bkd-action bkd-action--urgent">
@@ -1288,12 +1330,12 @@ $dashboardContent = function () use (
                   <div class="bkd-sup-name"><?= $h($sName) ?></div>
                   <div class="bkd-sup-sub"><?= $h($stateLabel) ?></div>
                   <div class="bkd-sup-svc"><?= $h($serviceName) ?></div>
-                  <?php if ($isDeclineRequested && !empty($supplier['decline_reason'])): ?>
+                  <?php if (($isDeclineRequested || $isNeedsReplacement) && !empty($supplier['decline_reason'])): ?>
                     <div class="bkd-sup-svc" style="color:#92400e;margin-top:4px;font-style:italic">Reason: <?= $h($supplier['decline_reason']) ?></div>
                   <?php endif; ?>
                   <?php if ($isNeedsReplacement && $replacementRequestId > 0): ?>
-                    <a href="<?= URLROOT ?>/admin/replacementPicker/<?= $replacementRequestId ?>" style="display:inline-block;margin-top:6px;font-size:10px;font-weight:800;color:var(--bkd-warn-text);text-decoration:underline">
-                      Choose replacement →
+                    <a href="<?= URLROOT ?>/admin/replacementPicker/<?= $replacementRequestId ?>" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:5px 12px;border-radius:6px;background:var(--bkd-primary);color:#fff;font-size:11px;font-weight:800;text-decoration:none">
+                      <i data-lucide="user-plus" style="width:13px;height:13px"></i> Choose replacement
                     </a>
                   <?php endif; ?>
                   <?php if ($isDeclineRequested): ?>

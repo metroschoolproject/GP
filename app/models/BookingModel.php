@@ -1176,7 +1176,15 @@ class BookingModel
                           AND sd.type = 'cover_photo'
                         ORDER BY sd.id DESC
                         LIMIT 1
-                    ) AS thumbnail_url
+                    ) AS thumbnail_url,
+                    COALESCE(bs.decline_reason, (
+                        SELECT repl.decline_reason
+                        FROM booking_supplier_replacements repl
+                        WHERE repl.booking_supplier_id = bs.id
+                          AND repl.decline_reason IS NOT NULL
+                        ORDER BY repl.id DESC
+                        LIMIT 1
+                    )) AS decline_reason
              FROM booking_suppliers bs
              LEFT JOIN suppliers sup ON bs.supplier_id = sup.supplier_id
              LEFT JOIN services svc ON svc.id = bs.service_id
@@ -1970,16 +1978,37 @@ class BookingModel
      * confirmed package booking). Unlike a plain 'rejected', this keeps the
      * booking alive so the platform can swap in another supplier.
      */
-    public function markSupplierNeedsReplacement(int $bookingSupplierId): bool
+    public function markSupplierNeedsReplacement(int $bookingSupplierId, string $reason = ''): bool
     {
         $this->db->dbquery(
             "UPDATE booking_suppliers
-                SET status = 'needs_replacement', declined_at = NOW()
+                SET status = 'needs_replacement', declined_at = NOW(),
+                    decline_reason = :reason
               WHERE id = :id AND status IN ('confirmed', 'pending')"
         );
+        $this->db->dbbind(':reason', $reason !== '' ? $reason : null, $reason !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $this->db->dbbind(':id', $bookingSupplierId, PDO::PARAM_INT);
         $this->db->dbexecute();
         return $this->db->rowcount() === 1;
+    }
+
+    /**
+     * Find suppliers in 'needs_replacement' status that have no corresponding
+     * booking_supplier_replacements row (legacy data from before the fix).
+     * Returns full booking_suppliers rows needed by createReplacementRequest().
+     */
+    public function findSuppliersNeedingReplacementRequests(): array
+    {
+        $this->db->dbquery(
+            "SELECT bs.*
+             FROM booking_suppliers bs
+             WHERE bs.status = 'needs_replacement'
+               AND NOT EXISTS (
+                   SELECT 1 FROM booking_supplier_replacements r
+                   WHERE r.booking_supplier_id = bs.id
+               )"
+        );
+        return $this->db->getmultidata();
     }
 
     /**

@@ -2238,15 +2238,23 @@ class Booking extends Controller
             $this->bookingModel->logStatusChange($bookingId, null, 'replacement_declined', null, 'Replacement supplier declined; re-pick needed');
         } elseif ($isReplaceFlow) {
             $newStatus = 'needs_replacement';
-            if (!$this->bookingModel->markSupplierNeedsReplacement($rowId)) {
+            if (!$this->bookingModel->markSupplierNeedsReplacement($rowId, $declineReason)) {
                 $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
             }
+            $this->bookingModel->createReplacementRequest($bookingId, $supplierRow, $declineReason);
             $this->bookingModel->logStatusChange($bookingId, null, 'supplier_needs_replacement', null, 'Supplier declined; awaiting admin replacement');
             // Advance booking out of pending_supplier_response
             if ($isPendingSupplierResponse) {
                 $this->bookingModel->updateStatus($bookingId, 'suppliers_responding');
                 $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'suppliers_responding', null, 'Supplier declined; admin replacement needed');
             }
+            $this->notificationModel->notifyAdmins(
+                'Supplier Replacement Needed',
+                $shopName . ' declined booking #' . $bookingId . '. Please choose a replacement supplier.',
+                'booking',
+                'booking',
+                $bookingId
+            );
         } else {
             $newStatus = $action === 'accept' ? 'confirmed' : 'rejected';
             $itemStatus = $action === 'accept' ? 'accepted' : 'cancelled';
@@ -2898,6 +2906,16 @@ class Booking extends Controller
         $items = $this->bookingModel->getBookingItems($bookingId);
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
 
+        // Backfill: create missing replacement requests for legacy data
+        foreach ($suppliers as $s) {
+            if (($s['status'] ?? '') === 'needs_replacement'
+                && empty($s['originated_replacement_request_id'])) {
+                $this->bookingModel->createReplacementRequest($bookingId, $s, $s['decline_reason'] ?? null);
+            }
+        }
+        // Re-fetch after backfill so originated_replacement_request_id is populated
+        $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
+
         // Include package items whose default_supplier_id is NULL (managed by Golden Promise).
         // These aren't inserted into booking_suppliers during booking creation, but
         // should still appear in the admin's supplier assignment view.
@@ -2970,6 +2988,18 @@ class Booking extends Controller
     public function adminReplacementQueue(): void
     {
         $this->requireRole('admin');
+
+        // Backfill: create missing replacement requests for legacy data
+        // where suppliers were marked needs_replacement but no request was created.
+        $missingRows = $this->bookingModel->findSuppliersNeedingReplacementRequests();
+        foreach ($missingRows as $row) {
+            $this->bookingModel->createReplacementRequest(
+                (int)$row['booking_id'],
+                $row,
+                $row['decline_reason'] ?? null
+            );
+        }
+
         $replacements = $this->bookingModel->getPendingReplacements();
         foreach ($replacements as &$r) {
             $r['booking_ref'] = $this->bookingModel->generateBookingRef((int)$r['booking_id']);
