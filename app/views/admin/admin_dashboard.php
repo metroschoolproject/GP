@@ -467,10 +467,10 @@
                     <i data-lucide="badge-dollar-sign" class="h-4 w-4" style="color:#be123c"></i>
                 </div>
                 <p class="stat-label">Total Revenue</p>
-                <h2 id="totalRevenue" class="section-title dashboard-fact mt-1.5 text-2xl" style="color:#6d4c5b">$63,400</h2>
+                <h2 id="totalRevenue" class="section-title dashboard-fact mt-1.5 text-2xl" style="color:#6d4c5b">Ks 63,400</h2>
                 <hr class="divider mt-4 mb-3">
                 <p class="stat-label">Avg Customer Spend</p>
-                <p id="avgSpend" class="dashboard-fact mt-1 text-base font-bold" style="color:#6d4c5b">$200</p>
+                <p id="avgSpend" class="dashboard-fact mt-1 text-base font-bold" style="color:#6d4c5b">Ks 200</p>
             </div>
 
             <!-- Total Bookings -->
@@ -533,7 +533,7 @@
                 <div class="mb-4 flex items-center justify-between">
                     <div>
                         <h2 class="section-title" style="font-size:13px;color:#6d4c5b">Revenue Trend</h2>
-                        <p class="mt-0.5" style="font-size:11px;color:#A8A29E">Performance across selected packages</p>
+                        <p class="mt-0.5" style="font-size:11px;color:#A8A29E">Performance of selected packages</p>
                     </div>
                     <span class="inline-flex items-center gap-1 rounded-full border border-app-gold/20 bg-app-gold-soft px-2.5 py-1 text-[10px] font-bold text-app-gold">
                         <span id="peakPeriodLabel">PEAK DAY:</span> <span id="peakMonthTag" class="ml-1">--</span>
@@ -671,7 +671,7 @@
         let currentFilter = "week";
         let adminCalSelectedDate = null;
 
-        function currency(value) { return `MMK ${value.toLocaleString()}`; }
+        function currency(value) { return `Ks ${value.toLocaleString()}`; }
         function formatDateInputValue(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -768,6 +768,7 @@
                 data: {
                     labels: data.revenueLabels,
                     datasets: [{
+                        label: "Revenue",
                         data: data.revenueSales,
                         borderColor: "#6d4c5b",
                         backgroundColor: "rgba(154, 104, 127, 0.08)",
@@ -790,7 +791,21 @@
                         x: { from: 0 },
                         y: { from: (ctx) => ctx.chart.scales.y.getPixelForValue(0) }
                     },
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                color: "#78716C",
+                                font: { size: 11, weight: "600", family: "DM Sans" },
+                                boxWidth: 12,
+                                boxHeight: 2,
+                                usePointStyle: false,
+                                padding: 16
+                            }
+                        }
+                    },
                     scales: {
                         x: {
                             grid: { display: false },
@@ -809,7 +824,7 @@
                             border: { display: false },
                             title: {
                                 display: true,
-                                text: "Sales",
+                                text: "Revenue (Ks)",
                                 color: "#A8A29E",
                                 font: { size: 11, weight: "700", family: "DM Sans" },
                                 padding: { bottom: 8 }
@@ -817,7 +832,7 @@
                             ticks: {
                                 color: "#A8A29E",
                                 font: { size: 10, weight: "500", family: "DM Sans" },
-                                callback: (v) => `$${v / 1000}k`
+                                callback: (v) => v >= 1000 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : v.toLocaleString()
                             }
                         }
                     }

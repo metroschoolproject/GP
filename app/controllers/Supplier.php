@@ -467,6 +467,198 @@ class Supplier extends SupplierControllerSupport
         ]);
     }
 
+    /**
+     * AJAX endpoint — global search across supplier data.
+     * GET supplier/globalSearch?q=keyword
+     */
+    public function globalSearch()
+    {
+        header('Content-Type: application/json');
+
+        $userId = (int)($_SESSION['session_uid'] ?? 0);
+        if (!$userId) {
+            echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+            return;
+        }
+
+        $supplier = $this->supplierProfileModel->getByUserId($userId);
+        if (!$supplier || empty($supplier['supplier_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Not a supplier']);
+            return;
+        }
+
+        $supplierId = (int)$supplier['supplier_id'];
+        $query = trim($_GET['q'] ?? '');
+
+        if (mb_strlen($query) < 2) {
+            echo json_encode(['status' => 'success', 'results' => [], 'query' => $query]);
+            return;
+        }
+
+        $search = '%' . $query . '%';
+        $results = [];
+        $db = new Database();
+
+        // 1. Services
+        $db->dbquery(
+            "SELECT s.id, s.name, s.publish_status, s.is_active, c.name AS category_name
+             FROM services s
+             LEFT JOIN categories c ON s.category_id = c.id
+             WHERE s.supplier_id = :sid AND (s.name LIKE :q OR s.description LIKE :q2)
+             ORDER BY s.name LIMIT 5"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $services = $db->getmultidata();
+        foreach ($services as $svc) {
+            $statusLabel = $svc['is_active'] ? ($svc['publish_status'] ?? 'draft') : 'inactive';
+            $results[] = [
+                'type' => 'service',
+                'icon' => 'briefcase-business',
+                'title' => $svc['name'],
+                'subtitle' => ($svc['category_name'] ?? 'Service') . ' · ' . ucfirst($statusLabel),
+                'url' => URLROOT . '/supplier/serviceDetail/' . $svc['id'],
+            ];
+        }
+
+        // 2. Bookings (by customer name, phone, booking ref, item name)
+        $db->dbquery(
+            "SELECT DISTINCT b.id, b.created_at, b.status AS booking_status,
+                    u.name AS customer_name, u.phone AS customer_phone,
+                    (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
+             FROM bookings b
+             INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
+             LEFT JOIN users u ON b.user_id = u.user_id
+             LEFT JOIN booking_items bi ON bi.booking_id = b.id
+             WHERE bs.supplier_id = :sid
+               AND (u.name LIKE :q OR u.phone LIKE :q2 OR CONCAT('BK', b.id) LIKE :q3
+                    OR bi.item_name LIKE :q4 OR bi.supplier_name LIKE :q5)
+             ORDER BY b.created_at DESC LIMIT 8"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $db->dbbind(':q3', $search);
+        $db->dbbind(':q4', $search);
+        $db->dbbind(':q5', $search);
+        $bookings = $db->getmultidata();
+        foreach ($bookings as $bk) {
+            $subtitle = $bk['customer_name'] ?? 'Customer';
+            if (!empty($bk['event_date'])) {
+                $subtitle .= ' · ' . date('M d, Y', strtotime($bk['event_date']));
+            }
+            $results[] = [
+                'type' => 'booking',
+                'icon' => 'calendar-check',
+                'title' => 'BK' . $bk['id'] . ' — ' . ucfirst(str_replace('_', ' ', $bk['booking_status'] ?? '')),
+                'subtitle' => $subtitle,
+                'url' => URLROOT . '/supplier/bookingDetail/' . $bk['id'],
+            ];
+        }
+
+        // 3. Payments (by transaction ref, method, type)
+        $db->dbquery(
+            "SELECT p.id, p.booking_id, p.amount, p.type, p.status, p.method, p.transaction_ref, p.created_at
+             FROM payments p
+             WHERE p.supplier_id = :sid
+               AND (p.transaction_ref LIKE :q OR p.method LIKE :q2 OR p.type LIKE :q3)
+             ORDER BY p.created_at DESC LIMIT 5"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $db->dbbind(':q3', $search);
+        $payments = $db->getmultidata();
+        foreach ($payments as $pay) {
+            $payType = ucfirst(str_replace('_', ' ', $pay['type'] ?? ''));
+            $results[] = [
+                'type' => 'payment',
+                'icon' => 'banknote',
+                'title' => $payType . ' — ' . number_format((float)$pay['amount'], 0) . ' MMK',
+                'subtitle' => ($pay['transaction_ref'] ?: 'No ref') . ' · ' . ucfirst($pay['status'] ?? ''),
+                'url' => URLROOT . '/supplier/paymentHistory',
+            ];
+        }
+
+        // 4. Refunds (by reason, status)
+        $db->dbquery(
+            "SELECT r.booking_id, r.amount, r.reason, r.status, r.completed_at, b.id AS bid
+             FROM refunds r
+             INNER JOIN bookings b ON r.booking_id = b.id
+             INNER JOIN booking_suppliers bs ON b.id = bs.booking_id
+             WHERE bs.supplier_id = :sid AND (r.reason LIKE :q OR r.status LIKE :q2)
+             GROUP BY r.booking_id
+             ORDER BY r.completed_at DESC LIMIT 5"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $refunds = $db->getmultidata();
+        foreach ($refunds as $ref) {
+            $results[] = [
+                'type' => 'refund',
+                'icon' => 'wallet',
+                'title' => 'Refund — ' . number_format((float)$ref['amount'], 0) . ' MMK',
+                'subtitle' => ucfirst($ref['status'] ?? '') . ($ref['reason'] ? ' · ' . mb_substr($ref['reason'], 0, 50) : ''),
+                'url' => URLROOT . '/supplier/bookingDetail/' . $ref['booking_id'],
+            ];
+        }
+
+        // 5. Reviews (by comment)
+        $db->dbquery(
+            "SELECT r.id, r.booking_id, r.rating, r.comment, r.created_at,
+                    u.name AS customer_name
+             FROM reviews r
+             LEFT JOIN users u ON r.customer_id = u.user_id
+             WHERE r.supplier_id = :sid AND r.comment LIKE :q
+             ORDER BY r.created_at DESC LIMIT 5"
+        );
+        $db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $db->dbbind(':q', $search);
+        $reviews = $db->getmultidata();
+        foreach ($reviews as $rev) {
+            $results[] = [
+                'type' => 'review',
+                'icon' => 'star',
+                'title' => ($rev['customer_name'] ?? 'Customer') . ' — ' . $rev['rating'] . '★',
+                'subtitle' => mb_substr(strip_tags($rev['comment'] ?? ''), 0, 80),
+                'url' => URLROOT . '/supplier/reviews',
+            ];
+        }
+
+        // 6. Notifications (by title, message)
+        $db->dbquery(
+            "SELECT n.id, n.title, n.message, n.type, n.reference_type, n.reference_id, n.created_at
+             FROM notifications n
+             WHERE n.user_id = :uid AND (n.title LIKE :q OR n.message LIKE :q2)
+             ORDER BY n.created_at DESC LIMIT 5"
+        );
+        $db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $notifs = $db->getmultidata();
+        $notifUrlMap = [
+            'booking' => URLROOT . '/supplier/bookingDetail/',
+            'service' => URLROOT . '/supplier/serviceDetail/',
+        ];
+        foreach ($notifs as $n) {
+            $notifUrl = URLROOT . '/supplier/notifications';
+            if (!empty($n['reference_type']) && !empty($n['reference_id']) && isset($notifUrlMap[$n['reference_type']])) {
+                $notifUrl = $notifUrlMap[$n['reference_type']] . $n['reference_id'];
+            }
+            $results[] = [
+                'type' => 'notification',
+                'icon' => 'bell',
+                'title' => $n['title'] ?? 'Notification',
+                'subtitle' => mb_substr(strip_tags($n['message'] ?? ''), 0, 80),
+                'url' => $notifUrl,
+            ];
+        }
+
+        echo json_encode(['status' => 'success', 'results' => $results, 'query' => $query]);
+    }
+
     private function saveSupplierDocumentOrRespond($saved, array &$data, $field, $documentType, $label, $isAjax)
     {
         $fileUrl = $this->uploadService->storeSupplierDocument(

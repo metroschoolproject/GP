@@ -354,11 +354,9 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 </div>
             </div>
 
-            </div><!-- end stat cards inner -->
-
             <?php if ($kpi): ?>
             <!-- Quality Scorecard -->
-            <div class="<?= $dashboardCardClass ?> supplier-admin-animate" style="animation-delay:.25s">
+            <div class="<?= $dashboardCardClass ?> supplier-admin-animate sm:col-span-3" style="animation-delay:.25s">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
                         <div class="supplier-admin-icon" style="background:#f5f1ec;color:#6d4c5b">

@@ -316,7 +316,7 @@ class Admin extends Controller
             case 'today':
                 $labels = [];
                 for ($h = 1; $h <= 24; $h++) {
-                    $labels[] = sprintf('%dhr', $h);
+                    $labels[] = sprintf('%d:00', $h);
                 }
                 $db->dbquery(
                     "SELECT HOUR(created_at) AS period,
@@ -330,7 +330,7 @@ class Admin extends Controller
                 $db->dbbind(':date', $today);
                 $rows = $db->getmultidata();
                 $sales = $this->padSeries(24, $rows, 'period');
-                $peakLabel = 'PEAK HOUR:';
+                $peakLabel = 'Peak Hour:';
                 break;
 
             case 'week':
@@ -348,7 +348,7 @@ class Admin extends Controller
                 $db->dbbind(':monday', $monday);
                 $rows = $db->getmultidata();
                 $sales = $this->padSeries(7, $rows, 'period');
-                $peakLabel = 'PEAK DAY:';
+                $peakLabel = 'Peak Day:';
                 break;
 
             case 'month':
@@ -370,7 +370,7 @@ class Admin extends Controller
                 $db->dbbind(':ym', date('Y-m', $now));
                 $rows = $db->getmultidata();
                 $sales = $this->padSeries(4, $rows, 'period');
-                $peakLabel = 'PEAK WEEK:';
+                $peakLabel = 'Peak Week:';
                 break;
 
             case 'year':
@@ -387,13 +387,13 @@ class Admin extends Controller
                 $db->dbbind(':year', date('Y', $now));
                 $rows = $db->getmultidata();
                 $sales = $this->padSeries(12, $rows, 'period');
-                $peakLabel = 'PEAK MONTH:';
+                $peakLabel = 'Peak Month:';
                 break;
 
             default:
                 $labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
                 $sales = array_fill(0, 7, 0);
-                $peakLabel = 'PEAK DAY:';
+                $peakLabel = 'Peak Day:';
         }
 
         $maxVal = !empty($sales) ? max($sales) : 0;
@@ -3123,6 +3123,226 @@ class Admin extends Controller
         session_destroy();
 
         echo json_encode(['ok' => true, 'redirect' => URLROOT . '/']);
+    }
+
+    /**
+     * AJAX endpoint — global search across all admin data.
+     * GET admin/globalSearch?q=keyword
+     */
+    public function globalSearch()
+    {
+        header('Content-Type: application/json');
+
+        $userId = (int)($_SESSION['session_uid'] ?? 0);
+        if (!$userId) {
+            echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+            return;
+        }
+
+        $query = trim($_GET['q'] ?? '');
+        if (mb_strlen($query) < 2) {
+            echo json_encode(['status' => 'success', 'results' => [], 'query' => $query]);
+            return;
+        }
+
+        $search = '%' . $query . '%';
+        $results = [];
+        $db = new Database();
+
+        // 1. Bookings (customer name, phone, booking ref, item name)
+        $db->dbquery(
+            "SELECT DISTINCT b.id, b.status AS booking_status, b.created_at,
+                    u.name AS customer_name, u.phone AS customer_phone,
+                    (SELECT event_date FROM event_details WHERE booking_id = b.id LIMIT 1) AS event_date
+             FROM bookings b
+             LEFT JOIN users u ON b.user_id = u.user_id
+             LEFT JOIN booking_items bi ON bi.booking_id = b.id
+             WHERE u.name LIKE :q OR u.phone LIKE :q2 OR CONCAT('BK', b.id) LIKE :q3
+                   OR bi.item_name LIKE :q4 OR bi.supplier_name LIKE :q5
+             ORDER BY b.created_at DESC LIMIT 8"
+        );
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $db->dbbind(':q3', $search);
+        $db->dbbind(':q4', $search);
+        $db->dbbind(':q5', $search);
+        $bookings = $db->getmultidata();
+        foreach ($bookings as $bk) {
+            $subtitle = $bk['customer_name'] ?? 'Customer';
+            if (!empty($bk['event_date'])) {
+                $subtitle .= ' · ' . date('M d, Y', strtotime($bk['event_date']));
+            }
+            $results[] = [
+                'type' => 'booking',
+                'icon' => 'calendar-check',
+                'title' => 'BK' . $bk['id'] . ' — ' . ucfirst(str_replace('_', ' ', $bk['booking_status'] ?? '')),
+                'subtitle' => $subtitle,
+                'url' => URLROOT . '/admin/bookingDetail/' . $bk['id'],
+            ];
+        }
+
+        // 2. Suppliers (shop name, owner name, email)
+        $db->dbquery(
+            "SELECT s.supplier_id, s.shop_name, s.status, u.name AS owner_name, u.email AS owner_email
+             FROM suppliers s
+             LEFT JOIN users u ON s.user_id = u.user_id
+             WHERE s.shop_name LIKE :q OR u.name LIKE :q2 OR u.email LIKE :q3
+             ORDER BY s.created_at DESC LIMIT 5"
+        );
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $db->dbbind(':q3', $search);
+        $suppliers = $db->getmultidata();
+        foreach ($suppliers as $sup) {
+            $results[] = [
+                'type' => 'supplier',
+                'icon' => 'store',
+                'title' => $sup['shop_name'] ?? 'Supplier',
+                'subtitle' => ($sup['owner_name'] ?? '') . ' · ' . ucfirst($sup['status'] ?? ''),
+                'url' => URLROOT . '/admin/supplier/' . $sup['supplier_id'],
+            ];
+        }
+
+        // 3. Customers (name, email, phone)
+        $db->dbquery(
+            "SELECT u.user_id, u.name, u.email, u.phone, u.status
+             FROM users u
+             INNER JOIN user_roles ur ON u.user_id = ur.user_id
+             INNER JOIN roles r ON ur.role_id = r.id
+             WHERE r.name = 'customer'
+               AND (u.name LIKE :q OR u.email LIKE :q2 OR u.phone LIKE :q3)
+             ORDER BY u.created_at DESC LIMIT 5"
+        );
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $db->dbbind(':q3', $search);
+        $customers = $db->getmultidata();
+        foreach ($customers as $cust) {
+            $results[] = [
+                'type' => 'customer',
+                'icon' => 'user',
+                'title' => $cust['name'] ?? 'Customer',
+                'subtitle' => ($cust['email'] ?? '') . ($cust['phone'] ? ' · ' . $cust['phone'] : ''),
+                'url' => URLROOT . '/admin/customer/' . $cust['user_id'],
+            ];
+        }
+
+        // 4. Payments (transaction ref, method, type)
+        $db->dbquery(
+            "SELECT p.id, p.booking_id, p.amount, p.type, p.status, p.method, p.transaction_ref, p.created_at
+             FROM payments p
+             WHERE p.transaction_ref LIKE :q OR p.method LIKE :q2 OR p.type LIKE :q3
+             ORDER BY p.created_at DESC LIMIT 5"
+        );
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $db->dbbind(':q3', $search);
+        $payments = $db->getmultidata();
+        foreach ($payments as $pay) {
+            $payType = ucfirst(str_replace('_', ' ', $pay['type'] ?? ''));
+            $results[] = [
+                'type' => 'payment',
+                'icon' => 'banknote',
+                'title' => $payType . ' — ' . number_format((float)$pay['amount'], 0) . ' MMK',
+                'subtitle' => ($pay['transaction_ref'] ?: 'No ref') . ' · ' . ucfirst($pay['status'] ?? ''),
+                'url' => URLROOT . '/admin/payments?status=all',
+            ];
+        }
+
+        // 5. Refunds (reason, status)
+        $db->dbquery(
+            "SELECT r.booking_id, r.amount, r.reason, r.status, r.completed_at
+             FROM refunds r
+             WHERE r.reason LIKE :q OR r.status LIKE :q2
+             ORDER BY r.completed_at DESC LIMIT 5"
+        );
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $refunds = $db->getmultidata();
+        foreach ($refunds as $ref) {
+            $results[] = [
+                'type' => 'refund',
+                'icon' => 'wallet',
+                'title' => 'Refund — ' . number_format((float)$ref['amount'], 0) . ' MMK',
+                'subtitle' => ucfirst($ref['status'] ?? '') . ($ref['reason'] ? ' · ' . mb_substr($ref['reason'], 0, 50) : ''),
+                'url' => URLROOT . '/admin/refundQueue',
+            ];
+        }
+
+        // 6. Services (name, description)
+        $db->dbquery(
+            "SELECT s.id, s.name, s.publish_status, s.is_active, c.name AS category_name,
+                    sup.shop_name
+             FROM services s
+             LEFT JOIN categories c ON s.category_id = c.id
+             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
+             WHERE s.name LIKE :q OR s.description LIKE :q2
+             ORDER BY s.name LIMIT 5"
+        );
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $services = $db->getmultidata();
+        foreach ($services as $svc) {
+            $results[] = [
+                'type' => 'service',
+                'icon' => 'briefcase-business',
+                'title' => $svc['name'],
+                'subtitle' => ($svc['shop_name'] ?? '') . ' · ' . ($svc['category_name'] ?? 'Service'),
+                'url' => URLROOT . '/admin/service/' . $svc['id'],
+            ];
+        }
+
+        // 7. Packages (name, description)
+        $db->dbquery(
+            "SELECT p.package_id, p.name, p.status, p.base_price
+             FROM packages p
+             WHERE p.name LIKE :q OR p.description LIKE :q2
+             ORDER BY p.name LIMIT 5"
+        );
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $packages = $db->getmultidata();
+        foreach ($packages as $pkg) {
+            $results[] = [
+                'type' => 'package',
+                'icon' => 'package',
+                'title' => $pkg['name'],
+                'subtitle' => number_format((float)$pkg['base_price'], 0) . ' MMK · ' . ucfirst($pkg['status'] ?? ''),
+                'url' => URLROOT . '/admin/packages',
+            ];
+        }
+
+        // 8. Notifications (title, message)
+        $db->dbquery(
+            "SELECT n.id, n.title, n.message, n.type, n.reference_type, n.reference_id, n.created_at
+             FROM notifications n
+             WHERE n.user_id = :uid AND (n.title LIKE :q OR n.message LIKE :q2)
+             ORDER BY n.created_at DESC LIMIT 5"
+        );
+        $db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        $db->dbbind(':q', $search);
+        $db->dbbind(':q2', $search);
+        $notifs = $db->getmultidata();
+        $notifUrlMap = [
+            'booking' => URLROOT . '/admin/bookingDetail/',
+            'supplier' => URLROOT . '/admin/supplier/',
+            'service' => URLROOT . '/admin/service/',
+        ];
+        foreach ($notifs as $n) {
+            $notifUrl = URLROOT . '/admin/notifications';
+            if (!empty($n['reference_type']) && !empty($n['reference_id']) && isset($notifUrlMap[$n['reference_type']])) {
+                $notifUrl = $notifUrlMap[$n['reference_type']] . $n['reference_id'];
+            }
+            $results[] = [
+                'type' => 'notification',
+                'icon' => 'bell',
+                'title' => $n['title'] ?? 'Notification',
+                'subtitle' => mb_substr(strip_tags($n['message'] ?? ''), 0, 80),
+                'url' => $notifUrl,
+            ];
+        }
+
+        echo json_encode(['status' => 'success', 'results' => $results, 'query' => $query]);
     }
 
 }
