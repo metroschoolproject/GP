@@ -27,15 +27,16 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
 
 <div class="asn-page">
     <header class="asn-header">
-        <p class="asn-kicker">Supplier workspace</p>
-        <h1 class="asn-title">My Assignments</h1>
-        <p class="asn-subtitle">Bookings where your services are assigned. Respond to new requests and prepare for upcoming events.</p>
-        <?php $totalCount = count($assignments); ?>
-        <span class="asn-count">
-            <span class="asn-count-dot"></span>
-            <?= $totalCount ?> assignment<?= $totalCount === 1 ? '' : 's' ?>
-        </span>
-        <div class="bk-nav-group" style="margin-top:12px">
+        <div class="asn-header-left">
+            <p class="asn-kicker">Assignments</p>
+            <h1 class="asn-title">My Assignments</h1>
+            <?php $totalCount = count($assignments); ?>
+            <span class="asn-count">
+                <span class="asn-count-dot"></span>
+                <?= $totalCount ?> assignment<?= $totalCount === 1 ? '' : 's' ?>
+            </span>
+        </div>
+        <div class="bk-nav-group">
             <a href="<?= URLROOT ?>/supplier/bookings" class="bk-nav-link">
                 <i data-lucide="list"></i>
                 List view
@@ -93,86 +94,82 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
                     }
                 }
             ?>
-                <article class="asn-card asn-card--pending" data-booking-id="<?= $bookingId ?>">
-                    <div class="asn-card-left">
-                        <div class="asn-card-header">
-                            <div>
-                                <div class="asn-card-ref"><?= $h($ref) ?></div>
-                                <div class="asn-card-customer"><?= $h($customer) ?></div>
-                            </div>
-                            <?php if ($countdownLabel !== ''): ?>
-                            <span class="asn-countdown <?= $countdownClass ?>">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
-                                <?= $countdownLabel ?>
-                            </span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="asn-card-facts">
-                            <span class="asn-fact">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 2v2M11 2v2M2 7h12"/></svg>
-                                <strong><?= $h($formatDate($eventDate)) ?></strong>
-                            </span>
-                            <?php if ($venue !== ''): ?>
-                            <span class="asn-fact">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14s-5-4.5-5-7.5a5 5 0 0110 0C13 9.5 8 14 8 14z"/><circle cx="8" cy="6.5" r="1.5"/></svg>
-                                <?= $h($venue) ?>
-                            </span>
-                            <?php endif; ?>
-                            <span class="asn-fact">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6h12"/></svg>
-                                <?= $money($totalAmount) ?>
-                            </span>
-                        </div>
-
-                        <!-- Service rows -->
-                        <div class="asn-services-list">
-                            <?php foreach ($services as $svc):
-                                $svcBsid = $svc['booking_supplier_id'];
-                                $isRepl = $svc['replacement_id'] > 0;
-                            ?>
-                            <div class="asn-service-row" data-bsid="<?= $svcBsid ?>">
-                                <div class="asn-service-info">
-                                    <div class="asn-service-name-row">
-                                        <span class="asn-service-name"><?= $h($svc['service_name']) ?></span>
-                                        <span class="asn-service-cat"><?= $h($svc['category_name']) ?></span>
-                                    </div>
-                                    <?php if ($isRepl && $svc['original_supplier_name'] !== ''): ?>
-                                    <div class="asn-service-replacement">
-                                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:10px;height:10px"><path d="M2 8a6 6 0 0110-4.5M14 8a6 6 0 01-10 4.5"/><path d="M12 2v3H9M4 14v-3h3"/></svg>
-                                        Replacement for <?= $h($svc['original_supplier_name']) ?>
-                                    </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="asn-service-actions">
-                                    <button type="button" class="asn-response-btn asn-response-btn--accept asn-respond-btn" data-action="accept" data-bsid="<?= $svcBsid ?>">
-                                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-                                        Accept
-                                    </button>
-                                    <button type="button" class="asn-response-btn asn-response-btn--decline asn-respond-btn" data-action="decline" data-bsid="<?= $svcBsid ?>">
-                                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-                                        Decline
-                                    </button>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-
-                        <?php if ($deadlineDays !== null): ?>
-                        <div class="asn-response-deadline">
+                <article class="asn-card" data-booking-id="<?= $bookingId ?>">
+                    <div class="asn-card-top">
+                        <span class="asn-card-ref"><?= $h($ref) ?></span>
+                        <span class="asn-card-customer"><?= $h($customer) ?></span>
+                        <?php if ($countdownLabel !== ''): ?>
+                        <span class="asn-countdown <?= $countdownClass ?>">
                             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
-                            <?php if ($deadlineDays <= 0): ?>
-                                Response overdue
-                            <?php else: ?>
-                                <?= $deadlineDays ?> day<?= $deadlineDays === 1 ? '' : 's' ?> to respond
-                            <?php endif; ?>
-                        </div>
+                            <?= $countdownLabel ?>
+                        </span>
                         <?php endif; ?>
                     </div>
-                    <div class="asn-card-right">
-                        <span class="asn-response-pill asn-response-pill--awaiting">
-                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:11px;height:11px"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
-                            Awaiting response
-                        </span>
+                    <div class="asn-card-meta">
+                        <span><strong><?= $h($formatDate($eventDate)) ?></strong></span>
+                        <?php if ($venue !== ''): ?>
+                        <span class="asn-card-meta-sep">·</span>
+                        <span><?= $h($venue) ?></span>
+                        <?php endif; ?>
+                        <span class="asn-card-meta-sep">·</span>
+                        <span><?= $money($totalAmount) ?></span>
+                    </div>
+
+                    <div class="asn-services-list">
+                        <?php foreach ($services as $svc):
+                            $svcBsid = $svc['booking_supplier_id'];
+                            $svcStatus = $svc['supplier_status'] ?? 'pending';
+                            $isRepl = $svc['replacement_id'] > 0;
+                            $isPending = $svcStatus === 'pending';
+                        ?>
+                        <div class="asn-service-row" data-bsid="<?= $svcBsid ?>">
+                            <div class="asn-service-info">
+                                <div class="asn-service-name-row">
+                                    <span class="asn-service-name"><?= $h($svc['service_name']) ?></span>
+                                    <span class="asn-service-cat"><?= $h($svc['category_name']) ?></span>
+                                </div>
+                                <?php if ($isRepl && $svc['original_supplier_name'] !== ''): ?>
+                                <div class="asn-service-replacement">
+                                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:10px;height:10px"><path d="M2 8a6 6 0 0110-4.5M14 8a6 6 0 01-10 4.5"/><path d="M12 2v3H9M4 14v-3h3"/></svg>
+                                    Replacement for <?= $h($svc['original_supplier_name']) ?>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($isPending): ?>
+                            <div class="asn-service-actions">
+                                <button type="button" class="asn-response-btn asn-response-btn--accept asn-respond-btn" data-action="accept" data-bsid="<?= $svcBsid ?>">
+                                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
+                                    Accept
+                                </button>
+                                <button type="button" class="asn-response-btn asn-response-btn--decline asn-respond-btn" data-action="decline" data-bsid="<?= $svcBsid ?>">
+                                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                                    Decline
+                                </button>
+                            </div>
+                            <?php else: ?>
+                            <span class="asn-service-status <?= $svcStatus === 'confirmed' ? 'asn-service-status--confirmed' : 'asn-service-status--pending' ?>"><?= $h(ucfirst($svcStatus)) ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="asn-card-bottom">
+                        <div class="asn-card-bottom-left">
+                            <?php if ($deadlineDays !== null): ?>
+                            <span class="asn-response-deadline">
+                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+                                <?php if ($deadlineDays <= 0): ?>
+                                    Response overdue
+                                <?php else: ?>
+                                    <?= $deadlineDays ?> day<?= $deadlineDays === 1 ? '' : 's' ?> to respond
+                                <?php endif; ?>
+                            </span>
+                            <?php endif; ?>
+                            <span class="asn-response-pill asn-response-pill--awaiting">
+                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:11px;height:11px"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+                                Awaiting response
+                            </span>
+                        </div>
                         <a href="<?= URLROOT ?>/supplier/bookingDetail/<?= $bookingId ?>" class="asn-view-btn">
                             View details
                             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4l4 4-4 4"/></svg>
@@ -220,56 +217,47 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
                 elseif ($paymentStatus === 'partial' || $paidAmount > 0) { $paymentClass = 'asn-payment-pill--partial'; $paymentLabel = 'Deposit paid'; }
             ?>
                 <article class="asn-card" data-booking-id="<?= $bookingId ?>">
-                    <div class="asn-card-left">
-                        <div class="asn-card-header">
-                            <div>
-                                <div class="asn-card-ref"><?= $h($ref) ?></div>
-                                <div class="asn-card-customer"><?= $h($customer) ?></div>
-                            </div>
-                            <?php if ($countdownLabel !== ''): ?>
-                            <span class="asn-countdown <?= $countdownClass ?>">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
-                                <?= $countdownLabel ?>
-                            </span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="asn-card-facts">
-                            <span class="asn-fact">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 2v2M11 2v2M2 7h12"/></svg>
-                                <strong><?= $h($formatDate($eventDate)) ?></strong>
-                            </span>
-                            <?php if ($venue !== ''): ?>
-                            <span class="asn-fact">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 14s-5-4.5-5-7.5a5 5 0 0110 0C13 9.5 8 14 8 14z"/><circle cx="8" cy="6.5" r="1.5"/></svg>
-                                <?= $h($venue) ?>
-                            </span>
-                            <?php endif; ?>
-                            <span class="asn-fact">
-                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6h12"/></svg>
-                                <?= $money($totalAmount) ?>
-                            </span>
-                        </div>
-
-                        <!-- Service rows -->
-                        <div class="asn-services-list">
-                            <?php foreach ($services as $svc):
-                                $svcStatus = $svc['supplier_status'] ?? 'confirmed';
-                                $statusClass = $svcStatus === 'confirmed' ? 'asn-service-status--confirmed' : 'asn-service-status--pending';
-                            ?>
-                            <div class="asn-service-row">
-                                <div class="asn-service-info">
-                                    <div class="asn-service-name-row">
-                                        <span class="asn-service-name"><?= $h($svc['service_name']) ?></span>
-                                        <span class="asn-service-cat"><?= $h($svc['category_name']) ?></span>
-                                    </div>
-                                </div>
-                                <span class="asn-service-status <?= $statusClass ?>"><?= $h(ucfirst($svcStatus)) ?></span>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
+                    <div class="asn-card-top">
+                        <span class="asn-card-ref"><?= $h($ref) ?></span>
+                        <span class="asn-card-customer"><?= $h($customer) ?></span>
+                        <?php if ($countdownLabel !== ''): ?>
+                        <span class="asn-countdown <?= $countdownClass ?>">
+                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+                            <?= $countdownLabel ?>
+                        </span>
+                        <?php endif; ?>
                     </div>
-                    <div class="asn-card-right">
-                        <span class="asn-payment-pill <?= $paymentClass ?>"><?= $paymentLabel ?></span>
+                    <div class="asn-card-meta">
+                        <span><strong><?= $h($formatDate($eventDate)) ?></strong></span>
+                        <?php if ($venue !== ''): ?>
+                        <span class="asn-card-meta-sep">·</span>
+                        <span><?= $h($venue) ?></span>
+                        <?php endif; ?>
+                        <span class="asn-card-meta-sep">·</span>
+                        <span><?= $money($totalAmount) ?></span>
+                    </div>
+
+                    <div class="asn-services-list">
+                        <?php foreach ($services as $svc):
+                            $svcStatus = $svc['supplier_status'] ?? 'confirmed';
+                            $statusClass = $svcStatus === 'confirmed' ? 'asn-service-status--confirmed' : 'asn-service-status--pending';
+                        ?>
+                        <div class="asn-service-row">
+                            <div class="asn-service-info">
+                                <div class="asn-service-name-row">
+                                    <span class="asn-service-name"><?= $h($svc['service_name']) ?></span>
+                                    <span class="asn-service-cat"><?= $h($svc['category_name']) ?></span>
+                                </div>
+                            </div>
+                            <span class="asn-service-status <?= $statusClass ?>"><?= $h(ucfirst($svcStatus)) ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="asn-card-bottom">
+                        <div class="asn-card-bottom-left">
+                            <span class="asn-payment-pill <?= $paymentClass ?>"><?= $paymentLabel ?></span>
+                        </div>
                         <a href="<?= URLROOT ?>/supplier/bookingDetail/<?= $bookingId ?>" class="asn-view-btn">
                             View details
                             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4l4 4-4 4"/></svg>
@@ -295,7 +283,7 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
         </div>
         <form id="asn-decline-form">
             <div class="asn-modal-body">
-                <p style="font-size:12px;color:#7b5c69;margin-bottom:14px;line-height:1.5">
+                <p style="font-size:13px;color:#7b5c69;margin-bottom:14px;line-height:1.5">
                     The customer and admin will be notified. Please provide a reason for declining.
                 </p>
                 <div class="asn-field" style="margin-bottom:0">
@@ -397,9 +385,16 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
         try {
             var resp = await fetch('<?= URLROOT ?>/supplier/bookingRespond', { method: 'POST', body: formData });
             var data = await resp.json().catch(function() { return {}; });
+
+            /* 409 = already handled — show resolved state instead of error */
+            if (resp.status === 409) {
+                markServiceResolved(button, action);
+                return;
+            }
+
             if (data.success) {
                 supToastSuccess(action === 'accept' ? 'Assignment accepted!' : 'Assignment declined.');
-                setTimeout(function() { window.location.reload(); }, 1200);
+                markServiceResolved(button, action);
                 return;
             }
             supToastError(data.error || 'Could not update. Please try again.');
@@ -408,6 +403,57 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
         }
         button.disabled = false;
         button.innerHTML = original;
+    }
+
+    function markServiceResolved(button, action) {
+        var serviceRow = button.closest('.asn-service-row');
+        var card = button.closest('.asn-card');
+        var section = button.closest('.asn-section');
+
+        /* Replace action buttons with a resolved badge */
+        var actionsWrap = button.closest('.asn-service-actions');
+        if (actionsWrap) {
+            var badge = document.createElement('span');
+            badge.className = 'asn-service-status ' + (action === 'accept' ? 'asn-service-status--confirmed' : 'asn-service-status--pending');
+            badge.textContent = action === 'accept' ? 'Accepted' : 'Declined';
+            actionsWrap.replaceWith(badge);
+            return;
+        }
+
+        /* Fallback: fade out the row if no actions wrapper found */
+        if (serviceRow) {
+            serviceRow.style.transition = 'opacity .25s';
+            serviceRow.style.opacity = '0';
+            setTimeout(function() { serviceRow.remove(); }, 260);
+        }
+
+        setTimeout(function() {
+            if (card && !card.querySelector('.asn-service-row')) {
+                card.style.transition = 'opacity .3s, transform .3s';
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(-8px)';
+                setTimeout(function() { card.remove(); updateCounts(section); }, 310);
+            } else {
+                updateCounts(section);
+            }
+        }, 300);
+    }
+
+    function updateCounts(section) {
+        /* Update section count badge */
+        if (section) {
+            var grid = section.querySelector('.asn-grid');
+            var remaining = grid ? grid.querySelectorAll('.asn-card').length : 0;
+            var badge = section.querySelector('.asn-section-count');
+            if (badge) badge.textContent = remaining;
+            if (remaining === 0) section.remove();
+        }
+        /* Update page-level assignment count */
+        var countEl = document.querySelector('.asn-count');
+        if (countEl) {
+            var totalCards = document.querySelectorAll('.asn-grid .asn-card').length;
+            countEl.innerHTML = '<span class="asn-count-dot"></span> ' + totalCards + ' assignment' + (totalCards === 1 ? '' : 's');
+        }
     }
 })();
 </script>

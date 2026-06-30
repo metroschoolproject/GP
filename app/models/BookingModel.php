@@ -1194,6 +1194,33 @@ class BookingModel
     }
 
     /**
+     * Get package items that have no default supplier (managed by platform).
+     * These aren't inserted into booking_suppliers during booking creation.
+     */
+    public function getUnassignedPackageItems(int $bookingId): array
+    {
+        $this->db->dbquery(
+            "SELECT pi.id AS package_item_id,
+                    pi.service_id,
+                    pi.category_id,
+                    svc.name AS service_name,
+                    cat.name AS category_name
+             FROM booking_items bi
+             INNER JOIN package_items pi
+                 ON pi.package_id = bi.item_id
+                AND bi.item_type = 'package'
+                AND pi.deleted_at IS NULL
+             LEFT JOIN services svc ON svc.id = pi.service_id
+             LEFT JOIN categories cat ON cat.id = pi.category_id
+             WHERE bi.booking_id = :bid
+               AND pi.default_supplier_id IS NULL
+               AND pi.service_id IS NOT NULL"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    /**
      * Get booking payments.
      */
     public function getBookingPayments(int $bookingId): array
@@ -1451,7 +1478,8 @@ class BookingModel
         int $offset = 0,
         string $sort = 'event_asc',
         ?string $dateFrom = null,
-        ?string $dateTo = null
+        ?string $dateTo = null,
+        ?string $typeFilter = null
     ): array
     {
         $sql = "SELECT b.*, u.name AS customer_name, u.email AS customer_email, u.phone AS customer_phone,
@@ -1509,6 +1537,25 @@ class BookingModel
             $sql .= ")";
         }
 
+        if ($typeFilter && $typeFilter !== 'all') {
+            $hasPackage = "EXISTS (SELECT 1 FROM booking_items t1 WHERE t1.booking_id = b.id AND t1.item_type IN ('package','supplier_package'))";
+            $hasStandalone = "EXISTS (SELECT 1 FROM booking_items t2 WHERE t2.booking_id = b.id AND t2.item_type = 'service' AND (t2.package_booking_item_id IS NULL OR t2.package_booking_item_id = 0))";
+            $hasAddon = "EXISTS (SELECT 1 FROM booking_items t3 WHERE t3.booking_id = b.id AND t3.item_type = 'service' AND t3.package_booking_item_id IS NOT NULL AND t3.package_booking_item_id > 0)";
+
+            if ($typeFilter === 'package') {
+                $sql .= " AND {$hasPackage} AND NOT {$hasStandalone}";
+            } elseif ($typeFilter === 'package_addons') {
+                $sql .= " AND {$hasPackage} AND {$hasAddon}";
+            } elseif ($typeFilter === 'supplier_package') {
+                $sql .= " AND EXISTS (SELECT 1 FROM booking_items t4 WHERE t4.booking_id = b.id AND t4.item_type = 'supplier_package')
+                         AND NOT EXISTS (SELECT 1 FROM booking_items t5 WHERE t5.booking_id = b.id AND t5.item_type = 'package')";
+            } elseif ($typeFilter === 'custom') {
+                $sql .= " AND NOT {$hasPackage} AND {$hasStandalone}";
+            } elseif ($typeFilter === 'mixed') {
+                $sql .= " AND {$hasPackage} AND {$hasStandalone}";
+            }
+        }
+
         $orderBy = match ($sort) {
             'event_desc' => '(event_date IS NULL) ASC, event_date DESC, event_start_time DESC, b.id DESC',
             'created_desc' => 'b.created_at DESC, b.id DESC',
@@ -1539,7 +1586,8 @@ class BookingModel
         ?string $statusFilter = null,
         ?string $search = null,
         ?string $dateFrom = null,
-        ?string $dateTo = null
+        ?string $dateTo = null,
+        ?string $typeFilter = null
     ): int
     {
         $sql = "SELECT COUNT(*) AS total FROM bookings b
@@ -1588,6 +1636,25 @@ class BookingModel
                 $params[':date_to'] = $dateTo;
             }
             $sql .= ")";
+        }
+
+        if ($typeFilter && $typeFilter !== 'all') {
+            $hasPackage = "EXISTS (SELECT 1 FROM booking_items t1 WHERE t1.booking_id = b.id AND t1.item_type IN ('package','supplier_package'))";
+            $hasStandalone = "EXISTS (SELECT 1 FROM booking_items t2 WHERE t2.booking_id = b.id AND t2.item_type = 'service' AND (t2.package_booking_item_id IS NULL OR t2.package_booking_item_id = 0))";
+            $hasAddon = "EXISTS (SELECT 1 FROM booking_items t3 WHERE t3.booking_id = b.id AND t3.item_type = 'service' AND t3.package_booking_item_id IS NOT NULL AND t3.package_booking_item_id > 0)";
+
+            if ($typeFilter === 'package') {
+                $sql .= " AND {$hasPackage} AND NOT {$hasStandalone}";
+            } elseif ($typeFilter === 'package_addons') {
+                $sql .= " AND {$hasPackage} AND {$hasAddon}";
+            } elseif ($typeFilter === 'supplier_package') {
+                $sql .= " AND EXISTS (SELECT 1 FROM booking_items t4 WHERE t4.booking_id = b.id AND t4.item_type = 'supplier_package')
+                         AND NOT EXISTS (SELECT 1 FROM booking_items t5 WHERE t5.booking_id = b.id AND t5.item_type = 'package')";
+            } elseif ($typeFilter === 'custom') {
+                $sql .= " AND NOT {$hasPackage} AND {$hasStandalone}";
+            } elseif ($typeFilter === 'mixed') {
+                $sql .= " AND {$hasPackage} AND {$hasStandalone}";
+            }
         }
 
         $this->db->dbquery($sql);
@@ -1788,7 +1855,7 @@ class BookingModel
              GROUP BY b.id, bs.id
              ORDER BY
                CASE WHEN bs.status = 'pending' THEN 0 ELSE 1 END ASC,
-               MIN(ed.event_date) ASC"
+               bs.created_at DESC"
         );
         $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
         return $this->db->getmultidata() ?: [];
