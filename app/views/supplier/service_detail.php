@@ -9,6 +9,7 @@ $venueRooms = is_array($service['venue_rooms'] ?? null) ? $service['venue_rooms'
 $decorationStyles = is_array($service['decoration_styles'] ?? null) ? $service['decoration_styles'] : [];
 $foodItems = is_array($service['food_items'] ?? null) ? $service['food_items'] : [];
 $attireItems = is_array($service['attire_items'] ?? null) ? $service['attire_items'] : [];
+$carItems = is_array($service['car_items'] ?? null) ? $service['car_items'] : [];
 
 $dashboardTitle = 'Supplier';
 $dashboardCrumb = 'Service Detail';
@@ -99,9 +100,10 @@ foreach ($weeklyRows as $row) {
 $serviceCategoryRaw = $service['category'] ?? 'Others';
 $isVenue = strtolower((string)$serviceCategoryRaw) === 'venue';
 $isRental = in_array(strtolower((string)$serviceCategoryRaw), ['attire'], true);
-$serviceCategoryId = (int)($service['category_id'] ?? 0);
-$slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : [6];
-$isSlotBooking = in_array($serviceCategoryId, $slotCategories, true);
+$isCar = strtolower((string)$serviceCategoryRaw) === 'car';
+$serviceCategorySlug = strtolower(trim((string)($service['category_slug'] ?? '')));
+$slotCategories = defined('SLOT_BOOKING_CATEGORIES') ? SLOT_BOOKING_CATEGORIES : ['venue'];
+$isSlotBooking = in_array($serviceCategorySlug, $slotCategories, true);
 $rentalPricing = is_array($service['rental_pricing'] ?? null) ? $service['rental_pricing'] : [];
 $serviceDescriptionRaw = trim((string)($service['desc'] ?? $service['description'] ?? ''));
 $servicePackagePrice = (float)($service['price_min'] ?? $service['package_price'] ?? $service['price'] ?? 0);
@@ -136,6 +138,14 @@ if (!$isVenue && !$hasSavedOpenSchedule) {
 if ($isVenue && count($venueRooms) === 0) {
     $attentionItems[] = ['label' => 'Add halls', 'detail' => 'Add at least one room or hall for this venue.', 'icon' => 'ti ti-door'];
 }
+$isFoodOrCake = in_array(strtolower((string)$serviceCategoryRaw), ['food & drinks', 'cake'], true);
+if ($isFoodOrCake && count($foodItems) === 0) {
+    $itemLabel = strtolower((string)$serviceCategoryRaw) === 'cake' ? 'cake items' : 'menu items';
+    $attentionItems[] = ['label' => 'Add ' . $itemLabel, 'detail' => 'Add at least one item with a name and price.', 'icon' => 'ti ti-tools-kitchen'];
+}
+if ($isCar && count($carItems) === 0) {
+    $attentionItems[] = ['label' => 'Add cars', 'detail' => 'Add at least one car with a name and daily price.', 'icon' => 'ti ti-car'];
+}
 $isReady = empty($attentionItems);
 
 $mediaCreateUrl = URLROOT . '/supplier/serviceMediaCreate/' . $serviceId;
@@ -149,7 +159,7 @@ $overrideSaveUrl = URLROOT . '/supplier/serviceAvailabilityOverrideSave/' . $ser
 $overrideDeleteUrl = URLROOT . '/supplier/serviceAvailabilityOverrideDelete/' . $serviceId . '/';
 $serviceManageUrl = URLROOT . '/supplier/services';
 
-$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $foodItems, $attireItems, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $maxConcurrentPackage, $maxConcurrentCustomize, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $isSlotBooking, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $serviceStatusUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $serviceManageUrl) {
+$dashboardContent = function () use ($service, $serviceId, $serviceNameRaw, $serviceCategoryRaw, $serviceCategorySlug, $serviceDescriptionRaw, $servicePriceAmount, $servicePackagePrice, $serviceCustomizePrice, $serviceStatus, $serviceImage, $media, $mediaCount, $availability, $weeklyByDay, $overrideRows, $venueRooms, $decorationStyles, $foodItems, $attireItems, $carItems, $openDaysCount, $slotDuration, $bufferMinutes, $maxConcurrent, $maxConcurrentPackage, $maxConcurrentCustomize, $overrideCount, $attentionItems, $isReady, $isVenue, $isRental, $isCar, $isSlotBooking, $rentalPricing, $days, $isDayAvailable, $h, $money, $durationLabel, $formatTime, $formatDate, $mediaCreateUrl, $mediaDeleteUrl, $serviceUpdateUrl, $serviceStatusUrl, $publishRequestUrl, $publishStatusUrl, $availabilitySaveUrl, $overrideSaveUrl, $overrideDeleteUrl, $serviceManageUrl) {
 ?>
 <?php
 $serviceDetailCssVersion = file_exists(APPROOT . '/../public/css/supplier-service-detail.css') ? filemtime(APPROOT . '/../public/css/supplier-service-detail.css') : time();
@@ -184,6 +194,7 @@ $serviceDetailConfig = [
     'decorationStyles' => $decorationStyles,
     'foodItems' => $foodItems,
     'attireItems' => $attireItems,
+    'carItems' => $carItems,
 ];
 ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/supplier-service-detail.css?v=<?= $serviceDetailCssVersion ?>">
@@ -197,6 +208,7 @@ $serviceDetailConfig = [
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php $pageTitle = 'Service Detail — Golden Promise'; ?>
     <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?>
 </head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">

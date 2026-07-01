@@ -4,8 +4,8 @@ $adminName = htmlspecialchars($_SESSION['user_name'] ?? $_SESSION['session_name'
 $adminInitials = strtoupper(substr(trim($adminName) !== '' ? $adminName : 'Admin', 0, 1));
 $currentPath = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
 $paymentStatusFilter = (strpos($currentPath, 'admin/payments') !== false) ? ($_GET['status'] ?? 'pending') : '';
-$dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, suppliers...';
-$dashboardSearchAction = $dashboardSearchAction ?? URLROOT . '/admin/bookings';
+$dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, suppliers, payments...';
+$dashboardSearchEndpoint = $dashboardSearchEndpoint ?? URLROOT . '/admin/globalSearch';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'admin',
     'reviewUrl' => URLROOT . '/admin/notifications',
@@ -289,19 +289,7 @@ if (!function_exists('dashboard_admin_nav_class')) {
 </main>
 
 <script>
-    const dashboardSearch = document.getElementById('dashboard-search');
-
-    document.addEventListener('keydown', (event) => {
-        const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
-
-        if (!isShortcut || !dashboardSearch) {
-            return;
-        }
-
-        event.preventDefault();
-        dashboardSearch.focus();
-        dashboardSearch.select();
-    });
+    // Cmd+K search shortcut handled by dashboardSearch.php partial
 
     document.querySelectorAll('.admin-sidebar-group-trigger').forEach((btn) => {
         btn.addEventListener('click', () => {

@@ -483,7 +483,8 @@ document.getElementById('cashout-form')?.addEventListener('submit', async functi
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
+<head><?php $pageTitle = 'Earnings — Golden Promise'; ?>
+    <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">
     <?php require APPROOT . '/views/dashboardLayout/suppliersidebar.php'; ?>
 </body>

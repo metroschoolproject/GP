@@ -33,6 +33,7 @@ foreach($mockItems as $item) {
 }
 ?>
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title>Layout 3: Collection Rows — Golden Promise Wishlist</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>

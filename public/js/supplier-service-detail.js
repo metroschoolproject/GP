@@ -642,6 +642,147 @@ document.getElementById('saveFoodItemsBtn')?.addEventListener('click', async () 
 
 renderFoodItems(Array.isArray(serviceDetailConfig.foodItems) ? serviceDetailConfig.foodItems : []);
 
+// ── CAR ITEMS ──────────────────────────────────────────────────
+let carItemCounter = 0;
+
+function carItemCardHtml(item = {}) {
+  const uid = ++carItemCounter;
+  const photoUrl = item.photo_url || '';
+  const photoPreview = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" alt="Car photo">`
+    : '<i class="ti ti-photo"></i><span>Photo</span>';
+
+  return `
+    <div class="sd-car-item-card">
+      <input type="hidden" class="car-item-photo-url" value="${escapeHtml(photoUrl)}">
+      <div class="sd-car-item-photo">
+        <label class="sd-car-item-preview ${photoUrl ? '' : 'is-empty'}" for="carItemPhoto${uid}">
+          ${photoPreview}
+        </label>
+        <input id="carItemPhoto${uid}" type="file" accept="image/*" class="car-item-photo-input" style="display:none">
+      </div>
+      <div class="sd-car-item-fields">
+        <div class="sd-hall-fg full"><label>Car name</label><input class="sd-hall-input car-item-name" value="${escapeHtml(item.name || '')}" placeholder="e.g. Toyota Alphard"></div>
+        <div class="sd-hall-fg full"><label>Description</label><input class="sd-hall-input car-item-description" value="${escapeHtml(item.description || '')}" placeholder="e.g. Luxury sedan, chauffeur included"></div>
+        <div class="sd-hall-fg"><label>Package price (per day)</label><input type="number" min="0" step="0.01" class="sd-hall-input car-item-package-price" value="${item.package_price ?? item.price ?? ''}" placeholder="MMK"></div>
+        <div class="sd-hall-fg"><label>Customize price (per day)</label><input type="number" min="0" step="0.01" class="sd-hall-input car-item-customize-price" value="${item.customize_price ?? item.price ?? ''}" placeholder="MMK"></div>
+      </div>
+      <button type="button" class="btn btn-icon btn-danger-ghost btn-sm sd-car-item-remove" title="Remove"><i class="ti ti-trash" style="font-size:13px"></i></button>
+    </div>
+  `;
+}
+
+function updateCarItemCount() {
+  const count = document.querySelectorAll('.sd-car-item-card').length;
+  const badge = document.getElementById('carItemCount');
+  if (badge) badge.textContent = count + ' ' + (count === 1 ? 'car' : 'cars');
+}
+
+function renderCarItems(items = []) {
+  const grid = document.getElementById('carItemGrid');
+  if (!grid) return;
+  const rows = items.length ? items : [{}];
+  grid.innerHTML = rows.map(item => carItemCardHtml(item)).join('');
+  updateCarItemCount();
+}
+
+function addCarItem() {
+  const grid = document.getElementById('carItemGrid');
+  if (!grid) return;
+  grid.insertAdjacentHTML('beforeend', carItemCardHtml());
+  updateCarItemCount();
+}
+
+function collectCarItems() {
+  return Array.from(document.querySelectorAll('.sd-car-item-card')).map(card => ({
+    name: card.querySelector('.car-item-name')?.value.trim() || '',
+    description: card.querySelector('.car-item-description')?.value.trim() || '',
+    price: parseFloat(card.querySelector('.car-item-package-price')?.value || '0') || 0,
+    package_price: parseFloat(card.querySelector('.car-item-package-price')?.value || '0') || 0,
+    customize_price: parseFloat(card.querySelector('.car-item-customize-price')?.value || '0') || 0,
+    photo_url: card.querySelector('.car-item-photo-url')?.value || null
+  })).filter(item => item.name !== '');
+}
+
+document.getElementById('addCarItemBtn')?.addEventListener('click', addCarItem);
+
+document.getElementById('carItemGrid')?.addEventListener('click', event => {
+  const removeButton = event.target.closest('.sd-car-item-remove');
+  if (!removeButton) return;
+  const grid = document.getElementById('carItemGrid');
+  const card = removeButton.closest('.sd-car-item-card');
+  if (!grid || !card) return;
+
+  if (grid.querySelectorAll('.sd-car-item-card').length <= 1) {
+    card.querySelectorAll('input').forEach(input => { if (input.type !== 'hidden') input.value = ''; });
+    const preview = card.querySelector('.sd-car-item-preview');
+    if (preview) {
+      preview.classList.add('is-empty');
+      preview.innerHTML = '<i class="ti ti-photo"></i><span>Photo</span>';
+    }
+  } else {
+    card.remove();
+  }
+
+  updateCarItemCount();
+});
+
+document.getElementById('carItemGrid')?.addEventListener('change', async event => {
+  const input = event.target.closest('.car-item-photo-input');
+  if (!input || !input.files?.[0]) return;
+
+  const card = input.closest('.sd-car-item-card');
+  const hidden = card?.querySelector('.car-item-photo-url');
+  const preview = card?.querySelector('.sd-car-item-preview');
+
+  try {
+    const dataUrl = await fileToDataUrl(input.files[0]);
+    if (hidden) hidden.value = dataUrl;
+    if (preview) {
+      preview.classList.remove('is-empty');
+      preview.innerHTML = `<img src="${dataUrl}" alt="Car photo preview">`;
+    }
+  } catch (error) {
+    showMessage('carItemMessage', 'Could not read photo. Please try another image.');
+  } finally {
+    input.value = '';
+  }
+});
+
+document.getElementById('saveCarItemsBtn')?.addEventListener('click', async () => {
+  showMessage('carItemMessage', '');
+  try {
+    const items = collectCarItems();
+    if (!items.length) {
+      throw new Error('Add at least one car with a name.');
+    }
+    if (items.some(item => item.price <= 0)) {
+      throw new Error('Each car needs a daily price greater than zero.');
+    }
+
+    const result = await jsonPost(urls.serviceUpdate, {
+      ...serviceDetailConfig.servicePayloadBase,
+      min_lead_days: currentServiceMinLeadDays(),
+      car_items: items
+    });
+    const savedService = result.item || {};
+    const savedItems = Array.isArray(savedService.car_items) ? savedService.car_items : items;
+    serviceDetailConfig.carItems = savedItems;
+    serviceDetailConfig.servicePayloadBase.price = savedService.price ?? serviceDetailConfig.servicePayloadBase.price;
+    serviceDetailConfig.servicePayloadBase.price_min = savedService.price_min ?? serviceDetailConfig.servicePayloadBase.price_min;
+    serviceDetailConfig.servicePayloadBase.price_max = savedService.price_max ?? serviceDetailConfig.servicePayloadBase.price_max;
+    renderCarItems(savedItems);
+    updateServiceInfoFromService(savedService);
+    showMessage('carItemMessage', 'Cars saved.', true);
+  } catch (error) {
+    showMessage('carItemMessage', error.message);
+  }
+});
+
+renderCarItems(Array.isArray(serviceDetailConfig.carItems) ? serviceDetailConfig.carItems : []);
+
+// ── ATTIRE ITEMS ────────────────────────────────────────────────
+
 // ── ATTIRE ITEMS ────────────────────────────────────────────────
 let attireDrafts = [];
 let activeAttireIndex = 0;
@@ -1169,6 +1310,8 @@ function updateServiceInfoFromService(service = {}) {
   const rooms = Array.isArray(service.venue_rooms) ? service.venue_rooms : [];
   const infoHalls = document.getElementById('serviceInfoHalls');
   const infoVenue = document.getElementById('serviceInfoVenue');
+  const infoFoodCount = document.getElementById('serviceInfoFoodCount');
+  const infoCarCount = document.getElementById('serviceInfoCarCount');
   const infoConcurrent = document.getElementById('serviceInfoConcurrent');
   const infoMinLeadDays = document.getElementById('serviceInfoMinLeadDays');
   const infoPackagePrice = document.getElementById('serviceInfoPackagePrice');
@@ -1213,6 +1356,18 @@ function updateServiceInfoFromService(service = {}) {
     if (infoBuyCustomizePrice && buyCustomize != null) {
       infoBuyCustomizePrice.textContent = buyCustomize > 0 ? formatMoney(buyCustomize) : '—';
     }
+  }
+
+  // Update food item count in service info sidebar
+  if (infoFoodCount) {
+    const foodCount = Array.isArray(service.food_items) ? service.food_items.length : document.querySelectorAll('.sd-food-item-card').length;
+    if (foodCount > 0) infoFoodCount.textContent = String(foodCount);
+  }
+
+  // Update car item count in service info sidebar
+  if (infoCarCount) {
+    const carCount = Array.isArray(service.car_items) ? service.car_items.length : document.querySelectorAll('.sd-car-item-card').length;
+    if (carCount > 0) infoCarCount.textContent = String(carCount);
   }
 }
 

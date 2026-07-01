@@ -33,6 +33,7 @@ $summaryBalanceTop = max(0, $summaryTotalTop - $summaryPaidTop);
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title>Booking Detail — Golden Promise</title>
 <?php $v=file_exists(APPROOT.'/../public/css/app.css')?filemtime(APPROOT.'/../public/css/app.css'):time();?>
 <link rel="stylesheet" href="<?=URLROOT?>/public/css/app.css?v=<?=$v?>">
@@ -40,7 +41,7 @@ $summaryBalanceTop = max(0, $summaryTotalTop - $summaryPaidTop);
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2e4d4;--card:#fcf8f5;--rule:rgba(178,143,110,0.22);--rule-strong:rgba(178,143,110,0.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
+:root{--bg:#f2e4d4;--card:rgba(242,230,218,0.85);--card-elevated:rgba(237,223,209,0.90);--rule:rgba(178,143,110,0.22);--rule-strong:rgba(178,143,110,0.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
 a{color:inherit;text-decoration:none}
@@ -51,7 +52,7 @@ a{color:inherit;text-decoration:none}
 .gp-header-nav a{padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text2);transition:all .22s}
 .gp-header-nav a:hover{color:var(--plum);background:rgba(107,68,89,0.08)}
 .gp-header-actions{display:flex;align-items:center;gap:10px}
-.gp-btn-sm{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;border:1px solid var(--rule-strong);font-size:11px;font-weight:600;color:var(--text2);transition:all .2s;text-decoration:none}
+.gp-btn-sm{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:10px;border:1px solid var(--rule-strong);font-size:11px;font-weight:700;color:var(--text2);transition:all .2s;text-decoration:none}
 .gp-btn-sm:hover{border-color:var(--plum);color:var(--plum)}
 .gp-btn-sm.primary{background:var(--plum);color:#fcf8f5;border-color:var(--plum)}
 .gp-btn-sm.primary:hover{background:var(--plum-dk)}
@@ -64,7 +65,7 @@ a{color:inherit;text-decoration:none}
 .gp-profile-name{white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis}
 .gp-profile-chevron{opacity:.6;transition:transform .2s}
 .gp-profile-btn[aria-expanded="true"] .gp-profile-chevron{transform:rotate(180deg)}
-.gp-profile-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:180px;padding:6px;border-radius:12px;border:1px solid var(--rule);background:var(--card);box-shadow:0 12px 35px rgba(15,23,42,.1);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s var(--ease-expo)}
+.gp-profile-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:180px;padding:6px;border-radius:12px;border:1px solid var(--rule);background:var(--card);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s var(--ease-expo)}
 .gp-profile-btn[aria-expanded="true"]+.gp-profile-menu,
 .gp-profile-menu.show{opacity:1;visibility:visible;transform:translateY(0)}
 .gp-profile-menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);transition:all .15s}
@@ -72,84 +73,68 @@ a{color:inherit;text-decoration:none}
 .gp-profile-menu-item--danger{color:var(--danger)}
 .gp-profile-menu-item--danger:hover{background:rgba(185,75,75,.08)}
 
-.gp-page{position:relative;z-index:1;flex:1;padding:24px var(--pad-x) 80px;max-width:1180px;margin:0 auto;width:100%}
+.gp-page{position:relative;z-index:1;flex:1;padding:32px var(--pad-x) 96px;max-width:1180px;margin:0 auto;width:100%}
 .gp-back{margin-bottom:20px}
 .gp-back a{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);transition:color .2s}
 .gp-back a:hover{color:var(--plum)}
 
-.gp-detail-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 22px;padding-top:2px}
-.gp-detail-topbar-left{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;flex-direction:column;flex:1;min-width:0}
-.gp-detail-topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
-.gp-detail-topbar-actions .gp-btn-sm,.gp-detail-topbar-actions .gp-badge{min-height:38px;padding:9px 16px;background:rgba(252,248,245,.62);border-radius:999px;font-size:12px}
+.gp-detail-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 32px;padding-top:2px}
+.gp-detail-topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.gp-detail-topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.gp-detail-topbar-actions .gp-btn-sm,.gp-detail-topbar-actions .gp-badge{background:rgba(252,248,245,.62)}
 .gp-detail-topbar-actions .gp-btn-sm.primary{background:var(--plum);color:#fffaf5;border-color:var(--plum)}
 .gp-detail-topbar-actions .gp-btn-sm.primary,.gp-detail-topbar-actions .gp-btn-sm.is-disabled{min-width:132px;justify-content:center}
 .gp-detail-topbar-actions .gp-btn-sm.is-disabled{cursor:default;pointer-events:none;background:rgba(252,248,245,.38);border-color:rgba(178,143,110,.18);color:rgba(92,74,84,.48);backdrop-filter:blur(8px);box-shadow:inset 0 0 18px rgba(255,250,245,.36)}
 .gp-detail-topbar-actions .gp-btn-sm.danger{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
 .gp-detail-topbar-actions .gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
-.gp-detail-back{display:inline-flex;align-items:center;gap:8px;color:var(--plum);font-size:13px;font-weight:700;transition:color .18s}
-.gp-detail-back:hover{color:var(--plum-dk)}
-.gp-cancel-under-review{width:100%;margin-top:2px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:11px 15px;font-size:12.5px;color:#92400e;line-height:1.55;box-shadow:0 10px 26px rgba(146,64,14,.06)}
-.gp-cancel-under-review-reason{margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;font-size:12px;color:#a16207}
+.gp-detail-back{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:8px 14px;border-radius:10px;border:1px solid rgba(178,143,110,.26);background:rgba(252,248,245,.52);color:var(--muted);font-size:12px;font-weight:700;transition:all .18s}
+.gp-detail-back:hover{border-color:var(--plum);color:var(--plum);background:rgba(252,248,245,.84)}
 .gp-head{display:none}
 .gp-head h1{font-family:var(--font-d);font-size:28px;font-weight:600}
 .gp-head em{font-style:italic;color:var(--plum-lt)}
 .gp-badge{display:inline-flex;padding:4px 12px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 
-.gp-layout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:20px;align-items:start}
-.gp-col{display:flex;flex-direction:column;gap:16px}
+.gp-layout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:32px;align-items:start}
+.gp-col{display:flex;flex-direction:column;gap:24px}
 
-.gp-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden}
+.gp-card{background:var(--card);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.gp-card--elevated{background:var(--card-elevated);border:1px solid var(--rule-strong)}
 .gp-status-card{order:2}
 .gp-event-card{order:1}
-.gp-card-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:transparent;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--plum)}
-.gp-card-b{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
-.gp-info-box{background:rgba(252,248,245,.78);border:1px solid rgba(184,146,74,.28);border-radius:14px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;box-shadow:0 10px 24px rgba(26,17,24,.035)}
+.gp-card-h{padding:14px 24px;border-bottom:1px solid var(--rule);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--plum);background:rgba(107,68,89,.03)}
+.gp-card-b{padding:20px 24px;display:flex;flex-direction:column;gap:12px}
+.gp-info-box{background:var(--card);border:1px solid rgba(184,146,74,.24);border-radius:14px;padding:20px 24px;display:flex;align-items:flex-start;gap:16px;margin-bottom:24px}
 .gp-info-icon{flex-shrink:0;display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(184,146,74,.14);color:var(--gold)}
 .gp-info-title{font-weight:800;font-size:13px;color:var(--plum);margin-bottom:2px}
 .gp-info-copy{font-size:12px;color:var(--text2);line-height:1.55}
 .gp-info-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.gp-top-notices{margin:-8px 0 18px}
-.gp-top-notices > *{animation:gpNoticeEnter .95s var(--ease-expo) both}
-.gp-top-notices .gp-info-box,.gp-payment-review-box{background:#4e3141;border:1px solid rgba(255,250,245,.18);color:#fffaf5;box-shadow:0 18px 40px rgba(78,49,65,.18)}
-.gp-top-notices .gp-info-icon{background:rgba(255,250,245,.14);color:#fffaf5}
-.gp-top-notices .gp-info-title,.gp-top-notices .gp-info-copy,.gp-top-notices .gp-info-copy strong{color:#fffaf5}
-.gp-top-notices .gp-btn-sm{background:rgba(255,250,245,.12);border-color:rgba(255,250,245,.24);color:#fffaf5}
-.gp-payment-review-box{border-radius:14px;padding:16px 20px;margin-bottom:12px}
-.gp-payment-review-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
-.gp-payment-review-head svg{flex-shrink:0;margin-top:2px;color:#fffaf5}
-.gp-payment-review-title{font-weight:600;font-size:13px;color:#fffaf5;margin-bottom:2px}
-.gp-payment-review-copy{font-size:12px;color:rgba(255,250,245,.86);line-height:1.55}
-.gp-payment-review-grid{border-top:1px solid rgba(255,250,245,.22);padding-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px 16px}
-.gp-payment-review-label{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,250,245,.62)}
-.gp-payment-review-value{font-size:12px;font-weight:600;color:#fffaf5;margin-top:2px}
-@keyframes gpNoticeEnter{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
-.gp-journey-card{margin:0 0 18px;padding:20px 28px 24px;background:rgba(252,248,245,.88);border:1px solid rgba(178,143,110,.18);border-radius:18px;box-shadow:0 12px 30px rgba(26,17,24,.04)}
-.gp-journey-card.is-cancel{background:rgba(255,247,246,.82);border-color:rgba(185,75,75,.16)}
-.gp-journey-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
-.gp-journey-ref{font-family:var(--font-b);font-size:16px;font-weight:800;color:var(--text);line-height:1.25}
-.gp-journey-flow{margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#a58c7d}
-.gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;margin-top:4px;padding:7px 13px;border-radius:999px;background:#efe2e3;color:#6b4459;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em}
-.gp-journey-card.is-cancel .gp-journey-status{background:rgba(185,75,75,.09);color:var(--danger)}
-.gp-journey-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:0;max-width:none;margin:0}
+.gp-journey-card{margin:0 0 32px;padding:28px 32px 28px;background:var(--card-elevated);border:1px solid var(--rule-strong);border-radius:14px}
+.gp-journey-card.is-cancel{background:#fdf1ee;border-color:rgba(185,75,75,.22)}
+.gp-journey-head{display:block;margin-bottom:24px}
+.gp-journey-ref{font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--plum-dk);line-height:1.25}
+.gp-journey-flow{margin-top:4px;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;margin-top:4px;padding:7px 14px;border-radius:999px;background:#f4ebef;color:#5a3849;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+.gp-journey-card.is-cancel .gp-journey-status{background:rgba(185,75,75,.10);color:var(--danger)}
+.gp-journey-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:0;max-width:none;margin:0}
 .gp-journey-step{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
-.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:calc(50% + 20px);right:calc(-50% + 20px);top:20px;height:2px;background:#eadcc8;z-index:0}
-.gp-journey-card.is-cancel .gp-journey-step:not(:last-child)::after{background:rgba(185,75,75,.18)}
-.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:2px solid #eadacc;background:#fffaf7;color:#a58c7d;font-size:12px;font-weight:800;box-shadow:0 0 0 6px rgba(252,248,245,.92)}
-.gp-journey-step.is-complete .gp-journey-dot{border-color:#dbc08f;background:var(--plum);color:#fffaf3}
-.gp-journey-step.is-current .gp-journey-dot{border-color:#dbc08f;background:var(--plum);color:#fffaf3;box-shadow:0 0 0 8px rgba(107,68,89,.08)}
-.gp-journey-card.is-cancel .gp-journey-step.is-complete .gp-journey-dot{border-color:#d79a92;background:#d79a92;color:#fffaf3}
-.gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-dot{border-color:var(--danger);background:var(--danger);color:#fffaf3;box-shadow:0 0 0 5px rgba(185,75,75,.10)}
+.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:calc(50% + 16px);right:calc(-50% + 16px);top:16px;height:1px;background:var(--rule);z-index:0}
+.gp-journey-card.is-cancel .gp-journey-step:not(:last-child)::after{background:rgba(185,75,75,.16)}
+.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border-radius:50%;border:2px solid rgba(178,143,110,.45);background:var(--card-elevated);color:var(--muted);font-size:11px;font-weight:700}
+.gp-journey-step.is-complete .gp-journey-dot{border-color:#6b9e7e;background:#3d6b4f;color:#fff}
+.gp-journey-step.is-current .gp-journey-dot{border-color:var(--plum);background:var(--plum);color:#fff}
+.gp-journey-card.is-cancel .gp-journey-step.is-complete .gp-journey-dot{border-color:#d79a92;background:#d79a92;color:#fff}
+.gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-dot{border-color:var(--danger);background:var(--danger);color:#fff}
 .gp-journey-text{position:relative;z-index:1;min-width:0;padding-top:8px}
-.gp-journey-label{font-size:11px;font-weight:800;color:var(--text);line-height:1.25}
-.gp-journey-state{margin-top:2px;font-size:8px;font-weight:800;color:#ad9b94;text-transform:uppercase;letter-spacing:.08em}
-.gp-journey-step.is-current .gp-journey-label{color:var(--plum)}
+.gp-journey-label{font-size:11px;font-weight:600;color:var(--text);line-height:1.25}
+.gp-journey-state{margin-top:3px;font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.gp-journey-step.is-current .gp-journey-label{color:var(--plum-dk);font-weight:800;font-size:11.5px}
 .gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-label{color:var(--danger)}
 .gp-service-detail-panel{display:none}
 .gp-service-detail-panel.active{display:flex;flex-direction:column;gap:12px}
 .gp-service-detail-title{font-family:var(--font-b);font-size:19px;font-weight:600;color:var(--text);line-height:1.2}
 .gp-service-detail-meta{font-size:12px;color:var(--plum-lt);font-weight:600}
-.gp-service-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.gp-field{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px;border:1px solid rgba(178,143,110,.18);border-radius:12px;background:rgba(255,250,247,.58)}
+.gp-service-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.gp-field{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 0}
 .gp-field-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .gp-field-v{font-size:13px;color:var(--text)}
 .gp-field-v.quote{font-style:italic;color:var(--text2);padding:8px 12px;background:rgba(107,68,89,0.04);border-radius:var(--r-sm);border-left:3px solid var(--plum-lt)}
@@ -166,20 +151,15 @@ a{color:inherit;text-decoration:none}
 .gp-event-plan-meta{font-size:9px;color:var(--muted);line-height:1.45;margin-top:2px}
 .gp-event-plan-hall{display:inline-flex;margin-top:4px;padding:2px 6px;border-radius:999px;background:rgba(107,68,89,.06);color:var(--plum-lt);font-size:9px;font-weight:700}
 
-.gp-timeline{display:flex;flex-direction:column;gap:12px}
-.gp-tl-item{display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:center;padding:13px 14px;position:relative;border-radius:16px;border:1px solid rgba(178,143,110,.14);background:rgba(252,248,245,.78);box-shadow:0 10px 24px rgba(26,17,24,.035)}
-.gp-tl-item:nth-child(2n){background:rgba(184,146,74,.08)}
-.gp-tl-item:nth-child(3n){background:rgba(194,122,142,.08)}
-.gp-tl-item:nth-child(4n){background:rgba(107,68,89,.06)}
-.gp-tl-dot{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:0;flex-shrink:0;background:rgba(107,68,89,.10);color:var(--plum)}
-.gp-tl-dot svg{width:21px;height:21px;display:block}
-.gp-tl-dot.current{background:var(--plum);color:#fffaf3;animation:none}
+.gp-timeline{display:flex;flex-direction:column;gap:0}
+.gp-tl-item{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:center;padding:14px 0;position:relative}
+.gp-tl-item:not(:last-child){border-bottom:1px solid var(--rule)}
+.gp-tl-dot{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:0;flex-shrink:0;background:rgba(107,68,89,.08);color:var(--plum)}
+.gp-tl-dot svg{width:18px;height:18px;display:block}
+.gp-tl-dot.current{background:var(--plum);color:#fff}
 .gp-tl-c{padding-top:0;min-width:0}
-.gp-tl-t{font-size:14px;font-weight:800;color:var(--text);line-height:1.3}
-.gp-tl-s{font-size:12px;color:var(--plum-lt);line-height:1.4;margin-top:2px}
-.gp-tl-item:nth-child(2n) .gp-tl-s{color:#8a682d}
-.gp-tl-item:nth-child(3n) .gp-tl-s{color:var(--rose)}
-.gp-tl-item:nth-child(4n) .gp-tl-s{color:var(--plum)}
+.gp-tl-t{font-size:13px;font-weight:700;color:var(--text);line-height:1.3}
+.gp-tl-s{font-size:11px;color:var(--muted);line-height:1.4;margin-top:1px}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 
 .gp-items-table{width:100%;border-collapse:collapse}
@@ -190,28 +170,28 @@ a{color:inherit;text-decoration:none}
 .gp-item-detail{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:2px}
 .gp-item-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
 
-.gp-order-card .gp-card-b{padding:0}
-.gp-order-list{display:flex;flex-direction:column;gap:8px}
-.gp-order-item{width:100%;display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 18px;border:1px solid transparent;border-left:0;border-right:0;border-radius:0;background:transparent;text-align:left;font-family:var(--font-b);color:var(--text);transition:background .18s,border-color .18s,box-shadow .18s}
-.gp-order-item:hover{background:rgba(107,68,89,.04);border-color:rgba(107,68,89,.12)}
-.gp-order-item.active{background:rgba(184,146,74,.12);border-color:rgba(107,68,89,.28);box-shadow:0 12px 28px rgba(107,68,89,.08)}
-.gp-order-item.active .gp-order-thumb{background:var(--plum);color:#fffaf3}
-.gp-order-item.active .gp-order-name{color:var(--plum)}
-.gp-order-item.active .gp-order-price{color:var(--plum)}
-.gp-order-thumb{width:62px;height:62px;border-radius:14px;overflow:hidden;background:#f1e6dc;display:grid;place-items:center;color:var(--plum);font-size:18px;font-weight:800}
+.gp-order-list{display:flex;flex-direction:column;gap:2px}
+.gp-order-item{width:100%;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border:0;border-bottom:1px solid var(--rule);border-radius:0;background:transparent;text-align:left;font-family:var(--font-b);color:var(--text);cursor:pointer;transition:color .15s}
+.gp-order-item:last-child{border-bottom:none}
+.gp-order-item:hover{color:var(--plum)}
+.gp-order-item.active{color:var(--plum)}
+.gp-order-item.active .gp-order-thumb{background:var(--plum);color:#fff}
+.gp-order-item.active .gp-order-name{color:var(--plum);font-weight:800}
+.gp-order-item.active .gp-order-price{color:var(--plum);font-weight:800}
+.gp-order-thumb{width:48px;height:48px;border-radius:8px;overflow:hidden;background:rgba(107,68,89,.08);display:grid;place-items:center;color:var(--plum);font-size:15px;font-weight:700}
 .gp-order-thumb img{width:100%;height:100%;object-fit:cover}
-.gp-order-name{display:block;font-size:14px;font-weight:800;line-height:1.25;color:var(--text)}
-.gp-order-sub{display:block;margin-top:3px;font-size:11px;font-weight:600;color:var(--muted)}
-.gp-order-price{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap}
-.gp-summary{padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--rule)}
-.gp-summary-r{display:flex;justify-content:space-between;gap:20px;font-size:13px;color:var(--text2)}
-.gp-summary-r.total{font-size:18px;font-weight:800;color:var(--text);font-family:var(--font-b);padding-top:12px;margin-top:4px;border-top:1px solid var(--rule-strong)}
+.gp-order-name{display:block;font-size:13px;font-weight:700;line-height:1.25;color:var(--text)}
+.gp-order-sub{display:block;margin-top:2px;font-size:11px;font-weight:500;color:var(--muted)}
+.gp-order-price{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap}
+.gp-summary{padding:20px 24px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--rule);background:rgba(107,68,89,.015)}
+.gp-summary-r{display:flex;justify-content:space-between;gap:20px;font-size:12px;font-weight:500;color:var(--text2)}
+.gp-summary-r.total{font-size:16px;font-weight:700;color:var(--plum-dk);padding-top:10px;margin-top:2px;border-top:1px solid var(--rule)}
 
-.gp-bottom-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.gp-bottom-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:32px}
 
-.gp-review-section{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden;margin-top:24px}
-.gp-review-section-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:transparent;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--plum)}
-.gp-review-section-b{padding:18px}
+.gp-review-section{background:var(--card);border:1px solid var(--rule);border-radius:14px;overflow:hidden;margin-top:32px}
+.gp-review-section-h{padding:14px 24px;border-bottom:1px solid var(--rule);background:rgba(184,146,74,.12);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8a682d}
+.gp-review-section-b{padding:24px}
 .gp-star-picker{display:flex;gap:6px;margin-bottom:12px}
 .gp-star-btn{background:none;border:none;cursor:pointer;font-size:26px;color:var(--rule-strong);padding:0;line-height:1;transition:color .15s}
 .gp-star-btn.active,.gp-star-btn:hover,.gp-star-btn.hover{color:#d6a72d}
@@ -243,11 +223,37 @@ a{color:inherit;text-decoration:none}
 .gp-page .gp-order-price,
 .gp-page .gp-summary-r.total{font-weight:600!important}
 
+/* ── Payment Proof Pill ── */
+.gp-proof-pill{border:1px solid var(--rule);border-radius:14px;background:var(--card);overflow:hidden}
+.gp-proof-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:14px 24px;border:0;background:transparent;font-family:var(--font-b);cursor:pointer;text-align:left;transition:background .15s}
+.gp-proof-toggle:hover{background:rgba(107,68,89,.03)}
+.gp-proof-icon{flex-shrink:0;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:rgba(184,146,74,.12);color:var(--gold)}
+.gp-proof-label{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap}
+.gp-proof-meta{font-size:12px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gp-proof-chevron{flex-shrink:0;margin-left:auto;display:grid;place-items:center;color:var(--muted);transition:transform .2s}
+.gp-proof-toggle[aria-expanded="true"] .gp-proof-chevron{transform:rotate(180deg)}
+.gp-proof-detail{padding:0 24px 20px}
+.gp-proof-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 16px}
+
+/* ── Replacement decline modal ── */
+.gp-repl-modal{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:20px;background:rgba(26,17,24,0.38);opacity:0;pointer-events:none;transition:opacity .2s ease}
+.gp-repl-modal.is-open{opacity:1;pointer-events:auto}
+.gp-repl-dialog{width:min(100%,400px);padding:28px 24px 24px;border:1px solid var(--rule);border-radius:16px;background:var(--card);text-align:center;transform:translateY(10px) scale(0.97);transition:transform .22s var(--ease-expo)}
+.gp-repl-modal.is-open .gp-repl-dialog{transform:translateY(0) scale(1)}
+.gp-repl-icon{display:grid;place-items:center;width:48px;height:48px;margin:0 auto 16px;border-radius:50%;background:rgba(185,75,75,0.10);color:var(--danger)}
+.gp-repl-icon svg{width:22px;height:22px;stroke-width:2.2}
+.gp-repl-dialog h3{font-family:var(--font-b);font-size:17px;font-weight:800;color:var(--text);line-height:1.3;margin:0}
+.gp-repl-dialog p{margin:8px 0 0;color:var(--text2);font-size:13px;line-height:1.55}
+.gp-repl-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+.gp-repl-btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:9px;border:1px solid var(--rule-strong);font-family:var(--font-b);font-size:12px;font-weight:700;cursor:pointer;transition:all .18s}
+.gp-repl-btn.cancel{background:transparent;color:var(--text2)}
+.gp-repl-btn.cancel:hover{border-color:var(--plum);color:var(--plum)}
+.gp-repl-btn.confirm{border-color:var(--danger);background:var(--danger);color:#fffaf3}
+.gp-repl-btn.confirm:hover{background:#a33e3e;border-color:#a33e3e}
+
 @media(max-width:900px){.gp-layout{grid-template-columns:1fr}.gp-detail-topbar{align-items:flex-start;flex-direction:column}.gp-detail-topbar-actions{justify-content:flex-start}.gp-journey-steps{max-width:100%}}
-@media(max-width:768px){.gp-service-detail-grid{grid-template-columns:1fr}.gp-order-item{grid-template-columns:54px minmax(0,1fr);align-items:start}.gp-order-price{grid-column:2;font-size:13px}}
-@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:16px;padding:18px 14px 20px}.gp-journey-head{flex-direction:column;margin-bottom:20px}.gp-journey-status{align-self:flex-start}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:20px;right:auto;top:40px;bottom:-20px;width:2px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px}.gp-order-thumb{width:54px;height:54px}}
-@media (prefers-reduced-motion: reduce){.gp-top-notices > *{animation:none}}
-</style>
+@media(max-width:768px){.gp-service-detail-grid{grid-template-columns:1fr}.gp-order-item{align-items:start}.gp-order-price{grid-column:2;font-size:12px}}
+@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:12px;padding:18px 14px 20px}.gp-journey-head{grid-template-columns:1fr;margin-bottom:20px}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:16px;right:auto;top:32px;bottom:-20px;width:1px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px 0}.gp-order-thumb{width:44px;height:44px}}</style>
 </head><body>
 
 <?php $gpNavActive = 'bookings'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
@@ -496,10 +502,10 @@ a{color:inherit;text-decoration:none}
         };
     };
     ?>
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:20px">
-      <div style="padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:10px">
+    <div style="background:var(--card);border:1px solid var(--rule);border-radius:14px;overflow:hidden;margin-bottom:20px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:10px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d4c5b" stroke-width="2"><path d="M16 3l5 5-5 5M21 8H8a5 5 0 0 0 0 10h1"/></svg>
-        <strong style="font-size:14px;color:#1f2937">Service Replacement</strong>
+        <strong style="font-size:14px;color:var(--text)">Service Replacement</strong>
       </div>
       <div style="padding:0 18px">
       <?php foreach ($replacementHistory as $idx => $repl):
@@ -515,13 +521,17 @@ a{color:inherit;text-decoration:none}
         $proofSubmitted = !empty($repl['customer_approved_at']) && !empty($repl['delta_payment_slip']);
         $proposedAt = $repl['proposed_at'] ?? null;
         $createdAt = $repl['created_at'] ?? null;
+        $isOptOut = $status === 'assigned'
+            && !empty($repl['requires_customer_approval'])
+            && !empty($repl['customer_opt_out_deadline'])
+            && strtotime((string)$repl['customer_opt_out_deadline']) > time();
         $deadline = $proposedAt ? date('M d', strtotime($proposedAt . ' + 3 days')) : null;
         $daysLeft = $proposedAt ? max(0, (int)((strtotime($proposedAt) + 3*86400) - time()) / 86400) : null;
       ?>
         <div style="display:flex;gap:12px;padding:14px 0;<?= $isLast ? '' : 'border-bottom:1px solid #f3f4f6' ?>">
           <!-- Timeline dot + line -->
           <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
-            <div style="width:10px;height:10px;border-radius:50%;border:2px solid <?= $status === 'pending_customer' ? '#f59e0b' : ($status === 'rejected_by_customer' ? '#dc2626' : '#6d4c5b') ?>;background:<?= $status === 'pending_customer' ? '#fef3c7' : ($status === 'rejected_by_customer' ? '#fee2e2' : '#6d4c5b') ?>"></div>
+            <div style="width:10px;height:10px;border-radius:50%;border:2px solid <?= $status === 'pending_customer' ? '#f59e0b' : ($status === 'rejected_by_customer' ? '#dc2626' : ($isOptOut ? '#059669' : '#6d4c5b')) ?>;background:<?= $status === 'pending_customer' ? '#fef3c7' : ($status === 'rejected_by_customer' ? '#fee2e2' : ($isOptOut ? '#ecfdf5' : '#6d4c5b')) ?>"></div>
             <?php if (!$isLast): ?><div style="width:2px;flex:1;min-height:20px;background:#e5e7eb"></div><?php endif; ?>
           </div>
           <!-- Content -->
@@ -541,10 +551,10 @@ a{color:inherit;text-decoration:none}
               </div>
               <?php if (!$proofSubmitted): ?>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$repl['id'] ?>" style="background:#6d4c5b;color:#fff;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none">Approve &amp; Pay →</a>
-                <form method="POST" action="<?=URLROOT?>/booking/rejectReplacement/<?= (int)$repl['id'] ?>" style="margin:0" onsubmit="return confirm('Decline this replacement? Admin will find another option.')">
+                <a href="<?=URLROOT?>/booking/payReplacementDelta/<?= (int)$repl['id'] ?>" style="background:#6d4c5b;color:#fff;padding:8px 16px;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none">Approve &amp; Pay →</a>
+                <form method="POST" action="<?=URLROOT?>/booking/rejectReplacement/<?= (int)$repl['id'] ?>" style="margin:0" data-repl-decline>
                   <input type="hidden" name="csrf_token" value="<?= $h(csrf_token()) ?>">
-                  <button type="submit" style="background:#fff;color:#991b1b;border:1px solid #fecaca;padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer">Decline</button>
+                  <button type="button" style="background:var(--card);color:#991b1b;border:1px solid #fecaca;padding:8px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer" onclick="openReplDeclineModal(this.closest('form'),'Decline this replacement?','Admin will find another replacement option for your booking.')">Decline</button>
                 </form>
               </div>
               <?php else: ?>
@@ -552,8 +562,23 @@ a{color:inherit;text-decoration:none}
               <?php endif; ?>
             <?php elseif ($status === 'rejected_by_customer'): ?>
               <div style="font-size:12px;color:#7b5c69">You declined this replacement. Admin will find another option.</div>
-            <?php elseif ($status === 'assigned'): ?>
+            <?php elseif ($status === 'assigned'):
+            ?>
+              <?php if ($isOptOut):
+                  $optOutDeadline = date('M d, H:i', strtotime((string)$repl['customer_opt_out_deadline']));
+                  $hoursLeft = max(0, (int)((strtotime((string)$repl['customer_opt_out_deadline']) - time()) / 3600));
+              ?>
+              <div style="font-size:12px;color:#065F46">
+                <?= $h($newSupplier) ?> has been assigned at no extra cost.
+                <span style="display:inline-block;background:#ECFDF5;color:#065F46;border:1px solid #a7f3d0;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:800;margin-left:4px">Opt-out: <?= $hoursLeft ?>h left (by <?= $optOutDeadline ?>)</span>
+              </div>
+              <form method="POST" action="<?=URLROOT?>/booking/rejectReplacement/<?= (int)$repl['id'] ?>" style="margin-top:8px" data-repl-decline>
+                <input type="hidden" name="csrf_token" value="<?= $h(csrf_token()) ?>">
+                <button type="button" style="background:var(--card);color:#991b1b;border:1px solid #fecaca;padding:8px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer" onclick="openReplDeclineModal(this.closest('form'),'Request a different supplier?','This replacement will be undone and admin will find another option.')">Request different supplier</button>
+              </form>
+              <?php else: ?>
               <div style="font-size:12px;color:#1e40af"><?= $h($newSupplier) ?> has been assigned. Waiting for them to confirm.</div>
+              <?php endif; ?>
             <?php else: ?>
               <div style="font-size:12px;color:#7b5c69">Admin is finding a replacement supplier.</div>
             <?php endif; ?>
@@ -568,6 +593,77 @@ a{color:inherit;text-decoration:none}
   <div class="gp-head">
     <h1>Booking <?= $h($bookingRef) ?></h1>
   </div>
+
+  <?php if ($currentStatus === 'pending_supplier_response'): ?>
+  <div class="gp-info-box">
+    <div class="gp-info-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+    </div>
+    <div>
+      <div class="gp-info-title">Waiting for supplier confirmation</div>
+      <div class="gp-info-copy">Your booking request has been sent. The supplier has up to 48 hours to accept or decline. You will be notified when they respond.</div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($currentStatus === 'pending_payment' && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
+  <div class="gp-info-box">
+    <div class="gp-info-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>
+    </div>
+    <div>
+      <div class="gp-info-title">Supplier accepted — please complete payment</div>
+      <div class="gp-info-copy">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($currentStatus === 'payment_submitted'): ?>
+  <?php
+    $proofBank = !empty($depositPayment['bank_name']) ? $depositPayment['bank_name'] : '';
+    $proofRef = !empty($depositPayment['transaction_ref']) ? $depositPayment['transaction_ref'] : '';
+    $proofAmount = !empty($depositPayment['paid_amount']) ? number_format((float)$depositPayment['paid_amount'], 0) . ' MMK' : '';
+    $proofDate = !empty($depositPayment['paid_at']) ? date('M j', strtotime($depositPayment['paid_at'])) : '';
+    $proofMetaParts = array_filter([$proofBank, $proofAmount, $proofDate]);
+    $proofMeta = !empty($proofMetaParts) ? implode(' · ', $proofMetaParts) : '';
+  ?>
+  <div class="gp-proof-pill" id="paymentProofPill" style="margin-bottom:24px;">
+    <button class="gp-proof-toggle" type="button" onclick="toggleProofDetails()" aria-expanded="false">
+      <span class="gp-proof-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </span>
+      <span class="gp-proof-label">Payment under review</span>
+      <?php if ($proofMeta !== ''): ?>
+      <span class="gp-proof-meta"><?= $h($proofMeta) ?></span>
+      <?php endif; ?>
+      <span class="gp-proof-chevron" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </button>
+    <?php if (!empty($depositPayment)): ?>
+    <div class="gp-proof-detail" id="proofDetail" style="display:none;">
+      <div class="gp-proof-detail-grid">
+        <?php if (!empty($depositPayment['paid_at'])): ?>
+        <div><div class="gp-field-l">Transfer Date</div><div class="gp-field-v"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['bank_name'])): ?>
+        <div><div class="gp-field-l">Bank / Method</div><div class="gp-field-v"><?= $h($depositPayment['bank_name']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['transaction_ref'])): ?>
+        <div><div class="gp-field-l">Reference</div><div class="gp-field-v" style="font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['paid_amount'])): ?>
+        <div><div class="gp-field-l">Amount Sent</div><div class="gp-field-v"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
+        <?php endif; ?>
+        <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
+        <div><div class="gp-field-l">Platform Fee (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div><div class="gp-field-v"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK</div></div>
+        <?php endif; ?>
+      </div>
+      <div class="gp-info-copy" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--rule);">Our team is reviewing your transfer. No action needed from you right now.</div>
+    </div>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
 
   <?php
     // Remaining balance state — available after deposit is verified (paid, confirmed, or later)
@@ -725,7 +821,7 @@ a{color:inherit;text-decoration:none}
 
     <!-- RIGHT: Items -->
     <div class="gp-col">
-      <div class="gp-card gp-order-card">
+      <div class="gp-card gp-card--elevated">
         <div class="gp-card-h">Order Summary</div>
         <div class="gp-card-b">
           <div class="gp-order-list" role="listbox" aria-label="Booked services">
@@ -1011,8 +1107,25 @@ a{color:inherit;text-decoration:none}
     <?php endif; ?>
   </div>
 </main>
+
+<div class="gp-repl-modal" id="gpReplDeclineModal" aria-hidden="true">
+  <div class="gp-repl-dialog" role="dialog" aria-modal="true" aria-labelledby="gpReplDeclineTitle">
+    <div class="gp-repl-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    </div>
+    <h3 id="gpReplDeclineTitle"></h3>
+    <p id="gpReplDeclineText"></p>
+    <div class="gp-repl-actions">
+      <button class="gp-repl-btn cancel" type="button" data-repl-cancel>Keep it</button>
+      <button class="gp-repl-btn confirm" type="button" data-repl-confirm>Decline</button>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('click',(e)=>{const btn=e.target.closest('.gp-profile-btn');if(btn){const x=btn.getAttribute('aria-expanded')==='true';document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));btn.setAttribute('aria-expanded',String(!x));return}document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'))});
+
+function toggleProofDetails(){const btn=document.querySelector('.gp-proof-toggle');const detail=document.getElementById('proofDetail');if(!btn||!detail)return;const open=btn.getAttribute('aria-expanded')==='true';btn.setAttribute('aria-expanded',open?'false':'true');detail.style.display=open?'none':'block';}
 
 document.querySelectorAll('[data-service-select]').forEach((button) => {
   button.addEventListener('click', () => {
@@ -1078,5 +1191,46 @@ function submitEditReview(reviewId) {
     }
   }).catch(() => alert('Network error. Please try again.'));
 }
+
+/* ── Replacement decline modal ── */
+(function(){
+  const modal  = document.getElementById('gpReplDeclineModal');
+  const title  = document.getElementById('gpReplDeclineTitle');
+  const text   = document.getElementById('gpReplDeclineText');
+  const btnConfirm = modal?.querySelector('[data-repl-confirm]');
+  const btnCancel  = modal?.querySelector('[data-repl-cancel]');
+  let pendingForm = null;
+
+  window.openReplDeclineModal = function(form, titleStr, textStr) {
+    if (!modal || !form) return;
+    pendingForm = form;
+    title.textContent = titleStr;
+    text.textContent  = textStr;
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    btnCancel?.focus();
+  };
+
+  function closeModal() {
+    modal?.classList.remove('is-open');
+    modal?.setAttribute('aria-hidden', 'true');
+    pendingForm = null;
+  }
+
+  btnConfirm?.addEventListener('click', function() {
+    if (!pendingForm) return;
+    pendingForm.submit();
+  });
+
+  btnCancel?.addEventListener('click', closeModal);
+
+  modal?.addEventListener('click', function(e) {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal?.classList.contains('is-open')) closeModal();
+  });
+})();
 </script>
 </body></html>

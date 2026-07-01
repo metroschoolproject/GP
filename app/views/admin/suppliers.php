@@ -67,7 +67,8 @@ $dashboardContent = function () use (
     $currentPage,
     $totalPages,
     $totalCount,
-    $perPage
+    $perPage,
+    $supplierScores
 ) {
     $counts = [
         'all' => (int)($stats['total'] ?? 0),
@@ -180,6 +181,24 @@ $dashboardContent = function () use (
   .page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 
   @media(max-width:900px){.suppliers-page{padding:20px 16px}.sp-table-wrap{overflow-x:auto}}
+
+  /* KPI Score */
+  .sp-score{display:flex;align-items:center;gap:8px}
+  .sp-score-ring{position:relative;width:36px;height:36px}
+  .sp-score-ring svg{transform:rotate(-90deg)}
+  .sp-score-ring circle{fill:none;stroke-width:3}
+  .sp-score-ring .ring-bg{stroke:var(--border-light)}
+  .sp-score-ring .ring-fill{stroke-linecap:round;transition:stroke-dashoffset .4s}
+  .sp-score-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+  .sp-tier{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+
+  /* KPI distribution summary */
+  .kpi-summary{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border-light)}
+  .kpi-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;flex:1;max-width:300px}
+  .kpi-bar-seg{height:100%;transition:width .3s}
+  .kpi-legend{display:flex;gap:10px;flex-wrap:wrap}
+  .kpi-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--body)}
+  .kpi-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 </style>
 
 <div class="suppliers-page">
@@ -215,6 +234,35 @@ $dashboardContent = function () use (
         </div>
       </div>
 
+      <?php if (!empty($suppliers) && !empty($supplierScores)): ?>
+      <div class="kpi-summary">
+        <span style="font-size:11px;font-weight:800;color:var(--primary);white-space:nowrap">Quality:</span>
+        <div class="kpi-bar">
+          <?php
+          $tierCounts = ['platinum' => 0, 'gold' => 0, 'silver' => 0, 'bronze' => 0, 'needs_improvement' => 0];
+          foreach ($suppliers as $_s) {
+              $_sid = (int)$_s['supplier_id'];
+              $_tier = $supplierScores[$_sid]['tier'] ?? 'needs_improvement';
+              $tierCounts[$_tier]++;
+          }
+          $_total = count($suppliers) ?: 1;
+          $tierColors = ['platinum' => '#6d4c5b', 'gold' => '#b7792f', 'silver' => '#78716C', 'bronze' => '#92400E', 'needs_improvement' => '#991b1b'];
+          $tierLabels = ['platinum' => 'Plat', 'gold' => 'Gold', 'silver' => 'Silver', 'bronze' => 'Bronze', 'needs_improvement' => 'Needs'];
+          foreach ($tierCounts as $_key => $_cnt):
+              if ($_cnt === 0) continue;
+              $_pct = round(($_cnt / $_total) * 100);
+          ?>
+            <div class="kpi-bar-seg" style="width:<?= $_pct ?>%;background:<?= $tierColors[$_key] ?>"></div>
+          <?php endforeach; ?>
+        </div>
+        <div class="kpi-legend">
+          <?php foreach ($tierCounts as $_key => $_cnt): if ($_cnt === 0) continue; ?>
+            <span class="kpi-legend-item"><span class="kpi-legend-dot" style="background:<?= $tierColors[$_key] ?>"></span><?= $tierLabels[$_key] ?> (<?= $_cnt ?>)</span>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <?php endif; ?>
+
       <?php if (empty($suppliers)): ?>
         <div class="sp-empty">
           <strong>No suppliers found</strong>
@@ -230,6 +278,7 @@ $dashboardContent = function () use (
                 <th>Supplier</th>
                 <th>Category</th>
                 <th>Status</th>
+                <th>Score</th>
                 <th>Online</th>
                 <th>Last Login</th>
                 <th style="text-align:right">Action</th>
@@ -262,6 +311,32 @@ $dashboardContent = function () use (
                     <?php endif; ?>
                   </td>
                   <td><span class="sp-status" style="color:<?= $sColor ?>;background:<?= $sBg ?>"><?= $h($sLabel) ?></span></td>
+                  <td>
+                    <?php
+                      $_sid = (int)$supplier['supplier_id'];
+                      $_kpi = $supplierScores[$_sid] ?? null;
+                      if ($_kpi):
+                          $_score = $_kpi['score'];
+                          $_circ = 2 * M_PI * 14;
+                          $_off = $_circ - ($_score / 100) * $_circ;
+                    ?>
+                    <div class="sp-score">
+                      <div class="sp-score-ring">
+                        <svg width="36" height="36" viewBox="0 0 36 36">
+                          <circle class="ring-bg" cx="18" cy="18" r="14" />
+                          <circle class="ring-fill" cx="18" cy="18" r="14"
+                            stroke="<?= $_kpi['tier_color'] ?>"
+                            stroke-dasharray="<?= round($_circ, 2) ?>"
+                            stroke-dashoffset="<?= round($_off, 2) ?>" />
+                        </svg>
+                        <span class="sp-score-num"><?= $_score ?></span>
+                      </div>
+                      <span class="sp-tier" style="color:<?= $_kpi['tier_color'] ?>;background:<?= $_kpi['tier_color'] ?>1A"><?= $_kpi['tier_label'] ?></span>
+                    </div>
+                    <?php else: ?>
+                      <span style="color:#A8A29E">&mdash;</span>
+                    <?php endif; ?>
+                  </td>
                   <td>
                     <span class="sp-online">
                       <span class="sp-dot <?= $isOnline ? 'on' : 'off' ?>"></span>
@@ -302,6 +377,14 @@ $dashboardContent = function () use (
                 </div>
                 <div class="sp-grid-meta">
                   <span class="sp-status" style="color:<?= $sColor ?>;background:<?= $sBg ?>"><?= $h($sLabel) ?></span>
+                  <?php
+                    $_gsid = (int)$supplier['supplier_id'];
+                    $_gkpi = $supplierScores[$_gsid] ?? null;
+                    if ($_gkpi): ?>
+                    <span class="sp-tier" style="color:<?= $_gkpi['tier_color'] ?>;background:<?= $_gkpi['tier_color'] ?>1A">
+                      <?= $_gkpi['tier_label'] ?> <?= $_gkpi['score'] ?>
+                    </span>
+                  <?php endif; ?>
                   <span class="sp-online">
                     <span class="sp-dot <?= $isOnline ? 'on' : 'off' ?>"></span>
                     <?= $isOnline ? 'Online' : 'Offline' ?>
@@ -346,7 +429,8 @@ $dashboardContent = function () use (
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
+<head><?php $pageTitle = 'Suppliers — Admin'; ?>
+    <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns:280px 1fr">
   <?php require APPROOT . '/views/dashboardLayout/adminsidebar.php'; ?>
   <script>

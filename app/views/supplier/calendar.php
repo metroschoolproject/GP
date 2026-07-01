@@ -4,7 +4,7 @@ $services = is_array($services ?? null) ? $services : [];
 $dashboardTitle = 'Supplier';
 $dashboardCrumb = 'Calendar';
 $dashboardSearchPlaceholder = 'Search calendars...';
-$dashboardContentClass = 'bg-app-content px-6 py-6';
+$dashboardContentClass = 'bg-[#F4F1EE] px-0 py-0 overflow-y-auto';
 $dashboardBreadcrumbs = [
     ['label' => 'Dashboard', 'url' => URLROOT . '/supplier/dashboard'],
     ['label' => 'Calendar', 'url' => null],
@@ -29,26 +29,25 @@ $dashboardContent = function () use ($services, $h, $money, $calendarCssVersion,
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/supplier-service-calendar.css?v=<?= $calendarCssVersion ?>">
 <script>window.calendarOverviewConfig = <?= json_encode($overviewConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;</script>
 
-<section class="calendar-page">
-  <div class="calendar-top">
+<section class="calendar-page" style="padding:28px 32px;font-family:'Poppins',system-ui,sans-serif">
+  <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px">
     <div>
-      <div class="calendar-kicker">Supplier workspace</div>
-      <h1>Calendar</h1>
-      <p>Choose a service to manage real dates, special availability, and unavailable days.</p>
+      <p style="margin-bottom:4px;color:#b79c8b;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Supplier workspace</p>
+      <h1 style="margin:0;font-size:22px;font-weight:700;color:#111827;letter-spacing:-.3px">Calendar</h1>
     </div>
-    <a class="calendar-btn ghost" href="<?= URLROOT ?>/supplier/services ?>">
-      <i class="ti ti-briefcase"></i>
+    <a href="<?= URLROOT ?>/supplier/services ?>" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid #ead8c7;border-radius:.75rem;background:#fff;color:#6d4c5b;font-size:12px;font-weight:700;font-family:inherit;text-decoration:none;cursor:pointer;transition:background .12s">
+      <i class="ti ti-briefcase" style="font-size:14px"></i>
       Services
     </a>
   </div>
 
   <?php if (!empty($services)): ?>
-  <section class="capacity-overview">
-    <div class="capacity-overview-head">
+  <div style="background:#fff;border:1px solid #ead8c7;border-radius:.75rem;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.04);margin-bottom:20px">
+    <div style="padding:14px 20px;border-bottom:1px solid #eddecc;display:flex;align-items:center;gap:8px">
+      <div style="width:28px;height:28px;border-radius:.75rem;background:#eddecc;display:flex;align-items:center;justify-content:center;color:#6d4c5b"><i class="ti ti-calendar-event" style="font-size:14px"></i></div>
       <div>
-        <div class="calendar-kicker">All services</div>
-        <h2>Date capacity overview</h2>
-        <p>Pick a date to see remaining capacity across all your services.</p>
+        <span style="font-size:13px;font-weight:700;color:#111827">Date capacity overview</span>
+        <span style="display:block;font-size:11px;color:#b79c8b;margin-top:1px">Pick a date to see remaining capacity across all your services</span>
       </div>
     </div>
 
@@ -83,45 +82,48 @@ $dashboardContent = function () use ($services, $h, $money, $calendarCssVersion,
         </div>
       </div>
     </div>
-  </section>
+  </div>
   <?php endif; ?>
 
   <?php if (empty($services)): ?>
-    <div class="calendar-empty-panel">
-      <i class="ti ti-calendar-off"></i>
-      <h2>No service calendars yet</h2>
-      <p>Create a service first, then set weekly availability and special dates from its calendar.</p>
-      <a class="calendar-btn" href="<?= URLROOT ?>/supplier/services ?>">Go to services</a>
+    <div style="background:#fff;border:1px solid #ead8c7;border-radius:.75rem;padding:48px 20px;text-align:center;box-shadow:0 1px 2px rgba(28,25,23,.04)">
+      <i class="ti ti-calendar-off" style="font-size:32px;color:#b79c8b"></i>
+      <h2 style="margin:12px 0 6px;font-size:15px;font-weight:700;color:#111827">No service calendars yet</h2>
+      <p style="color:#b79c8b;font-size:12px;max-width:380px;margin:0 auto 16px">Create a service first, then set weekly availability and special dates from its calendar.</p>
+      <a href="<?= URLROOT ?>/supplier/services ?>" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid #ead8c7;border-radius:.75rem;background:#6d4c5b;color:#fff;font-size:12px;font-weight:700;text-decoration:none">Go to services</a>
     </div>
   <?php else: ?>
-    <div class="calendar-service-grid">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
       <?php foreach ($services as $service): ?>
         <?php
         $serviceId = (int)($service['id'] ?? 0);
         $status = ($service['status'] ?? 'inactive') === 'active' ? 'active' : 'inactive';
         ?>
-        <article class="calendar-service-card">
-          <div class="service-card-media">
+        <div style="background:#fff;border:1px solid #ead8c7;border-radius:.75rem;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.04);transition:box-shadow .15s">
+          <div style="position:relative;height:140px;overflow:hidden;background:#f7f1ec">
             <?php if (!empty($service['img'])): ?>
-              <img src="<?= $h($service['img']) ?>" alt="<?= $h($service['name'] ?? 'Service') ?>">
+              <img src="<?= $h($service['img']) ?>" alt="<?= $h($service['name'] ?? 'Service') ?>" style="width:100%;height:100%;object-fit:cover">
             <?php else: ?>
-              <div class="service-card-placeholder"><i class="ti ti-photo"></i></div>
+              <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#b79c8b"><i class="ti ti-photo" style="font-size:28px"></i></div>
             <?php endif; ?>
-            <span class="service-status <?= $status ?>"><?= $h($status) ?></span>
+            <span style="position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;background:<?= $status === 'active' ? '#ECFDF5;color:#065F46' : '#F5F5F4;color:#78716C' ?>">
+              <span style="width:6px;height:6px;border-radius:50%;background:<?= $status === 'active' ? '#10B981' : '#A8A29E' ?>"></span>
+              <?= $h($status) ?>
+            </span>
           </div>
-          <div class="service-card-body">
-            <div class="calendar-kicker"><?= $h($service['category'] ?? 'Service') ?></div>
-            <h2><?= $h($service['name'] ?? 'Untitled service') ?></h2>
-            <div class="service-card-meta">
-              <span><?= $money($service['price_min'] ?? $service['price'] ?? 0) ?></span>
-              <span><?= $h(($service['booking_type'] ?? 'fullday') === 'slot' ? 'Slots' : 'Full day') ?></span>
+          <div style="padding:14px 16px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#b79c8b;margin-bottom:4px"><?= $h($service['category'] ?? 'Service') ?></div>
+            <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:8px"><?= $h($service['name'] ?? 'Untitled service') ?></div>
+            <div style="display:flex;gap:12px;font-size:11px;color:#7b5c69;margin-bottom:12px">
+              <span style="font-weight:700"><?= $money($service['price_min'] ?? $service['price'] ?? 0) ?></span>
+              <span style="color:#b79c8b"><?= $h(($service['booking_type'] ?? 'fullday') === 'slot' ? 'Slots' : 'Full day') ?></span>
             </div>
-            <a class="calendar-btn" href="<?= URLROOT ?>/supplier/serviceCalendar/<?= $serviceId ?>">
-              <i class="ti ti-calendar"></i>
+            <a href="<?= URLROOT ?>/supplier/serviceCalendar/<?= $serviceId ?>" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:32px;border:1px solid #ead8c7;border-radius:.75rem;background:#fff;color:#6d4c5b;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;transition:background .12s">
+              <i class="ti ti-calendar" style="font-size:13px"></i>
               Open calendar
             </a>
           </div>
-        </article>
+        </div>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
@@ -134,6 +136,7 @@ $dashboardContent = function () use ($services, $h, $money, $calendarCssVersion,
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php $pageTitle = 'Calendar — Golden Promise'; ?>
     <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?>
 </head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">

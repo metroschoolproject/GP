@@ -245,7 +245,8 @@ document.getElementById('rejectForm').addEventListener('submit', function(e){
 </script>
 <?php }; ?>
 <!DOCTYPE html><html lang="en">
-<head><?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
+<head><?php $pageTitle = 'Refund Queue — Admin'; ?>
+    <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns:280px 1fr">
     <?php require APPROOT . '/views/dashboardLayout/adminsidebar.php'; ?>
 </body></html>

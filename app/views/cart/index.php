@@ -43,6 +43,7 @@ $formatTimeRange = function ($start, $end) use ($formatTime) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title>My Cart — Golden Promise</title>
 <?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php
@@ -58,7 +59,7 @@ $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(
   --bg:          #f2e4d4;
   --bg2:         #ede0cf;
   --surface:     #faf6f1;
-  --card:        #fcf8f5;
+  --card:        rgba(242,230,218,0.85);
   --rule:        rgba(178,143,110,0.22);
   --rule-strong: rgba(178,143,110,0.45);
   --plum:        #6b4459;
@@ -262,7 +263,6 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   border-radius: 12px;
   border: 1px solid var(--cream-dk);
   background: var(--white);
-  box-shadow: 0 12px 35px rgba(15,23,42,0.1);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-4px);
@@ -389,21 +389,19 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   align-items: stretch;
   position: relative;
   padding: 10px 18px 12px 10px;
-  background: rgba(255,255,255,0.94);
-  border: 1px solid rgba(255,255,255,0.78);
+  background: var(--card);
+  border: 1px solid var(--rule);
   border-radius: 16px;
   overflow: visible;
-  box-shadow: 0 18px 44px rgba(26,17,24,0.08);
   opacity: 0;
   transform: translateY(24px);
-  transition: box-shadow 0.35s var(--ease-expo), border-color 0.25s, transform 0.35s var(--ease-expo);
+  transition: border-color 0.25s, transform 0.35s var(--ease-expo);
 }
 .gp-item.visible {
   opacity: 1; transform: translateY(0);
 }
 .gp-item:hover {
-  box-shadow: 0 24px 60px rgba(26,17,24,0.12);
-  border-color: rgba(184,146,74,0.24);
+  border-color: rgba(184,146,74,0.32);
   transform: translateY(-2px);
 }
 
@@ -544,14 +542,14 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 
 .gp-package-includes {
   margin-top: 12px;
-  padding: 11px 12px 12px;
+  padding: 14px 14px 12px;
   border: 1px solid rgba(184,146,74,0.24);
   border-radius: 13px;
-  background: linear-gradient(135deg, rgba(250,246,241,0.96), rgba(232,200,130,0.10));
+  background: var(--card);
 }
 .gp-package-includes-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .gp-package-includes-title {
   display: flex; align-items: center; gap: 6px;
@@ -563,70 +561,105 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   color: var(--muted);
   font-size: 10px; font-weight: 700;
 }
+/* Timeline list */
 .gp-package-service-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 18px;
+}
+.gp-package-service-list::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  bottom: 6px;
+  width: 1.5px;
+  background: rgba(107,68,89,0.16);
 }
 .gp-package-service {
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+  padding: 0 0 18px 0;
   min-width: 0;
-  padding: 7px;
-  border: 1px solid rgba(107,68,89,0.09);
-  border-radius: 10px;
-  background: rgba(252,248,245,0.72);
+  border: 0;
+  background: transparent;
 }
-.gp-package-service-thumb {
-  display: grid; place-items: center;
-  width: 30px; height: 30px;
-  overflow: hidden;
-  border-radius: 9px;
-  background: rgba(107,68,89,0.08);
-  color: var(--plum-lt);
+.gp-package-service:last-child { padding-bottom: 0; }
+/* Timeline dot */
+.gp-package-tl-dot {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-top: 1px;
+  margin-left: -18px;
+  border: 2px solid var(--plum);
+  background: #fffaf5;
 }
-.gp-package-service-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.gp-package-service-time:not(.is-pending) ~ .gp-package-tl-dot,
+.gp-package-service[data-scheduled="true"] .gp-package-tl-dot {
+  background: var(--plum);
+  border-color: var(--plum);
+}
+.gp-package-tl-dot.is-pending {
+  border-color: var(--gold);
+  background: rgba(184,146,74,0.15);
+}
+/* Content */
+.gp-package-tl-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 .gp-package-service-name {
   overflow: hidden;
   color: var(--text);
-  font-size: 11px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
   line-height: 1.3;
   text-overflow: ellipsis; white-space: nowrap;
 }
 .gp-package-service-meta {
   overflow: hidden;
-  margin-top: 1px;
+  margin-top: 0;
   color: var(--muted);
-  font-size: 9px; font-weight: 600;
-  line-height: 1.3;
+  font-size: 10px; font-weight: 500;
+  line-height: 1.35;
   text-overflow: ellipsis; white-space: nowrap;
 }
 .gp-package-service-time {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 5px;
-  padding: 3px 7px;
+  margin-top: 2px;
+  padding: 2px 8px;
   border-radius: 999px;
   background: rgba(107,68,89,0.06);
   color: var(--plum);
   font-size: 9px;
   font-weight: 700;
-  line-height: 1.2;
-  max-width: 100%;
+  line-height: 1.3;
+  max-width: fit-content;
 }
 .gp-package-service-time.is-pending {
   background: rgba(184,146,74,0.10);
   color: #8a682d;
 }
+/* Thumb — hidden in timeline mode */
+.gp-package-service-thumb { display: none; }
 .gp-package-schedule-note {
   display: flex;
   align-items: flex-start;
   gap: 7px;
-  margin-top: 8px;
-  padding-top: 9px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid rgba(184,146,74,0.18);
   color: var(--muted);
   font-size: 10px;
@@ -915,11 +948,10 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 
 .gp-summary-card {
-  background: rgba(252,248,245,0.96);
-  border: 1px solid rgba(178,143,110,0.18);
+  background: var(--card);
+  border: 1px solid var(--rule);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 18px 52px rgba(26,17,24,0.09);
 }
 
 .gp-summary-head {
@@ -1204,7 +1236,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 .gp-guest-cart-header h2 { font-family: var(--font-d); font-size: 24px; font-weight: 600; color: var(--text); margin: 0; }
 .gp-guest-cart-header p { max-width: 380px; margin: 4px auto 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 .gp-guest-cart-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
-.gp-guest-cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid #ead8c7; border-radius: 10px; background: #fff; font-size: 13px; }
+.gp-guest-cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); font-size: 13px; }
 .gp-guest-cart-date { color: var(--muted); font-size: 12px; }
 .gp-guest-cart-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .gp-guest-cart-actions .gp-btn-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px; border: 1px solid var(--rule-strong, #ead8c7); border-radius: 999px; background: #fff; color: var(--text, #34232b); font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .14s; }
@@ -1220,8 +1252,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   padding: 18px;
   border: 1px solid rgba(184,146,74,0.42);
   border-radius: var(--r-lg);
-  background: #fffaf1;
-  box-shadow: 0 18px 44px rgba(184,146,74,0.12);
+  background: var(--card);
 }
 .gp-included-icon {
   display: grid;
@@ -1445,7 +1476,6 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   .gp-remove-btn { top: auto; right: 12px; bottom: 12px; width: 32px; height: 32px; }
   .gp-edit-toggle svg { width: 15px; height: 15px; }
   .gp-remove-btn svg { width: 14px; height: 14px; }
-  .gp-package-service-list { grid-template-columns: 1fr; }
   .gp-edit-fields {
     grid-template-columns: 1fr;
     padding: 12px 12px 56px;
@@ -1719,45 +1749,39 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             </div>
             <?php if (!empty($includedServices)): ?>
             <div class="gp-package-service-list">
-              <?php foreach ($includedServices as $service): ?>
+              <?php foreach ($includedServices as $tlIdx => $service): ?>
                 <?php
                   $schedule = $packageScheduleByItem[(int)($service['package_item_id'] ?? 0)] ?? [];
-                  $serviceImage = trim((string)($service['thumbnail_url'] ?? ''));
                   $serviceHall = trim((string)($service['venue_room_name'] ?? ''));
                   $serviceVenue = trim((string)($service['venue_name'] ?? ''));
                   $serviceDate = trim((string)($schedule['event_date'] ?? ''));
                   $serviceTime = $formatTimeRange($schedule['start_time'] ?? '', $schedule['end_time'] ?? '');
+                  $isScheduled = $serviceDate !== '' || $serviceTime !== '';
                   $serviceMeta = array_filter([
                       $service['category_name'] ?? 'Service',
                       $service['supplier_name'] ?? 'Golden Promise',
                       $serviceHall !== '' ? $serviceHall . ($serviceVenue !== '' ? ' · ' . $serviceVenue : '') : '',
                   ]);
                 ?>
-                <div class="gp-package-service">
-                  <div class="gp-package-service-thumb">
-                    <?php if ($serviceImage !== ''): ?>
-                      <img src="<?= $h($serviceImage) ?>" alt="" loading="lazy">
+                <div class="gp-package-service" data-scheduled="<?= $isScheduled ? 'true' : 'false' ?>">
+                  <div class="gp-package-tl-dot <?= !$isScheduled ? 'is-pending' : '' ?>" aria-hidden="true"></div>
+                  <div class="gp-package-tl-content">
+                    <div class="gp-package-service-name"><?= $h($service['service_name'] ?? 'Service') ?></div>
+                    <div class="gp-package-service-meta"><?= $h(implode(' · ', $serviceMeta)) ?></div>
+                    <?php if ($isScheduled): ?>
+                      <div class="gp-package-service-time">
+                        <i data-lucide="clock" style="width:9px;height:9px"></i>
+                        <?= $h(trim(($serviceDate !== '' ? $formatDate($serviceDate) : '') . ($serviceDate !== '' && $serviceTime !== '' ? ' · ' : '') . $serviceTime)) ?>
+                      </div>
                     <?php else: ?>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Z"/><path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/></svg>
+                      <div class="gp-package-service-time is-pending">
+                        <i data-lucide="calendar-clock" style="width:9px;height:9px"></i>
+                        Scheduled after event date
+                      </div>
                     <?php endif; ?>
                   </div>
-	                  <div>
-	                    <div class="gp-package-service-name"><?= $h($service['service_name'] ?? 'Service') ?></div>
-	                    <div class="gp-package-service-meta"><?= $h(implode(' · ', $serviceMeta)) ?></div>
-	                    <?php if ($serviceDate !== '' || $serviceTime !== ''): ?>
-	                      <div class="gp-package-service-time">
-	                        <i data-lucide="clock" style="width:10px;height:10px"></i>
-	                        <?= $h(trim(($serviceDate !== '' ? $formatDate($serviceDate) : '') . ($serviceDate !== '' && $serviceTime !== '' ? ' · ' : '') . $serviceTime)) ?>
-	                      </div>
-	                    <?php else: ?>
-	                      <div class="gp-package-service-time is-pending">
-	                        <i data-lucide="calendar-clock" style="width:10px;height:10px"></i>
-	                        Scheduled after event date
-	                      </div>
-	                    <?php endif; ?>
-	                  </div>
-	                </div>
-	              <?php endforeach; ?>
+                </div>
+              <?php endforeach; ?>
 	            </div>
 	            <div class="gp-package-schedule-note">
 	              <i data-lucide="calendar-days" style="width:13px;height:13px;flex-shrink:0;margin-top:1px"></i>

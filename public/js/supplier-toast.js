@@ -18,7 +18,7 @@
       '.sup-toast-dismiss{margin-left:auto;background:none;border:none;cursor:pointer;color:currentColor;opacity:.7;padding:0;flex-shrink:0;display:flex}' +
       '.sup-toast-dismiss:hover{opacity:1}' +
       '.sup-toast-dismiss svg{width:14px;height:14px}' +
-      '.sup-toast--success{background:#065f46;border-color:#059669}' +
+      '.sup-toast--success{background:#6d4c5b;border-color:#7b5c69}' +
       '.sup-toast--error{background:#991b1b;border-color:#dc2626}' +
       '.sup-toast--warning{background:#92400e;border-color:#d97706}' +
       '.sup-toast--info{background:#4f46a5;border-color:#6366f1}' +

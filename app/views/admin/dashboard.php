@@ -18,6 +18,7 @@ $dashboardContent = function () {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php $pageTitle = 'Admin Dashboard — Golden Promise'; ?>
     <?php require_once APPROOT . '/views/dashboardLayout/head.php' ?>
 </head>
 <body class="grid h-screen grid-cols-[280px_1fr] gap-0 bg-app-page">

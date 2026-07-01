@@ -254,7 +254,7 @@ class CartModel
         return $this->db->getsingledata();
     }
 
-    public function getAvailableSlotsForServiceDate(int $serviceId, string $date): array
+    public function getAvailableSlotsForServiceDate(int $serviceId, string $date, string $context = ''): array
     {
         $date = $this->normalizeDate($date);
         if (!$date || strtotime($date) < strtotime(date('Y-m-d'))) {
@@ -328,6 +328,14 @@ class CartModel
             $availCustomize = $customCap > 0 ? max(0, $customCap - $customConfirmed) : $available;
 
             if ($status !== 'available' || $available <= 0) {
+                continue;
+            }
+
+            // Context-specific pool filtering: skip slots whose dedicated pool is exhausted
+            if ($context === 'package' && $pkgCap > 0 && $availPackage <= 0) {
+                continue;
+            }
+            if ($context === 'customize' && $customCap > 0 && $availCustomize <= 0) {
                 continue;
             }
 
@@ -1382,7 +1390,14 @@ class CartModel
                     COALESCE(cat.id, package_cat.id) AS category_id,
                     
                     p.slug AS package_slug,
-                    
+
+                    -- Admin-set guest count for the package (from guest-priced package_items)
+                    (SELECT pi2.quantity FROM package_items pi2
+                     WHERE pi2.package_id = p.package_id
+                       AND pi2.deleted_at IS NULL
+                       AND pi2.quantity_type = 'guests'
+                     ORDER BY pi2.id ASC LIMIT 1) AS package_guest_count,
+
                     -- Venue location for booking auto-fill
                     v.location AS service_location,
                     s.id AS service_id,

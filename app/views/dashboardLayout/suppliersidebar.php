@@ -25,7 +25,6 @@ $servicesPathActive = strpos($currentPath, 'supplier/services') !== false
     || strpos($currentPath, 'supplier/serviceCalendar') !== false;
 $profilePathActive = strpos($currentPath, 'supplier/profile') !== false;
 $dashboardSearchPlaceholder = $dashboardSearchPlaceholder ?? 'Search bookings, services...';
-$dashboardSearchAction = $dashboardSearchAction ?? URLROOT . '/supplier/bookings';
 $notificationConfig = $notificationConfig ?? [
     'role' => 'supplier',
     'reviewUrl' => URLROOT . '/supplier/notifications',
@@ -523,17 +522,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
             }
         });
 
-        document.addEventListener('keydown', (event) => {
-            const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
-
-            if (!isShortcut || !dashboardSearch) {
-                return;
-            }
-
-            event.preventDefault();
-            dashboardSearch.focus();
-            dashboardSearch.select();
-        });
+        // Cmd+K search shortcut handled by dashboardSearch.php partial
     </script>
 
     <?php if (isset($dashboardContent) && is_callable($dashboardContent)): ?>

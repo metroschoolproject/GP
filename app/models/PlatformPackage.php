@@ -210,6 +210,8 @@ class PlatformPackage
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
                     pi.max_concurrent AS item_max_concurrent,
+                    svc.max_concurrent_package AS service_max_concurrent_package,
+                    svc.booking_type,
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,
@@ -837,6 +839,25 @@ class PlatformPackage
         return $this->db->dbexecute();
     }
 
+    public function updatePackageItemConcurrent($itemId, $maxConcurrent)
+    {
+        if (!$this->hasPackageItemConcurrentColumn()) {
+            return false;
+        }
+
+        $value = max(0, min(65535, (int)$maxConcurrent));
+        $this->db->dbquery(
+            'UPDATE package_items
+             SET max_concurrent = :mc
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':mc', $value > 0 ? $value : null, $value > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $this->db->dbbind(':id', (int)$itemId);
+
+        return $this->db->dbexecute();
+    }
+
     public function getAttireItemsForService($serviceId)
     {
         $this->db->dbquery(
@@ -894,6 +915,7 @@ class PlatformPackage
                     services.price_min,
                     services.price_max,
                     services.thumbnail_url,
+                    services.booking_type,
                     services.category_id,
                     categories.name AS category_name,
                     categories.slug AS category_slug,
@@ -956,6 +978,70 @@ class PlatformPackage
             }
             $bindings[':cat_slug'] = $category;
             $bindings[':cat_name'] = $category;
+        }
+
+        // Date availability filter — only show packages where ALL services are available
+        $dateFilter = trim((string)($filters['date'] ?? ''));
+        if ($dateFilter !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFilter)) {
+            $conditions[] = "NOT EXISTS (
+                SELECT 1 FROM package_items pi3
+                INNER JOIN services s3 ON s3.id = pi3.service_id
+                WHERE pi3.package_id = p.package_id
+                  AND pi3.service_id IS NOT NULL
+                  AND pi3.deleted_at IS NULL
+                  AND s3.is_active = 1
+                  AND (
+                    EXISTS (
+                      SELECT 1 FROM service_availability sa3
+                      WHERE sa3.service_id = pi3.service_id
+                        AND sa3.date = :avail_date
+                        AND sa3.type = 'unavailable'
+                    )
+                    OR (
+                      s3.booking_type = 'slot'
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM service_availability sa3b
+                        WHERE sa3b.service_id = pi3.service_id
+                          AND sa3b.date = :avail_date
+                          AND sa3b.type IN ('available', 'custom_hours')
+                          AND sa3b.open_time < sa3b.close_time
+                      )
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM service_schedules ss3
+                        WHERE ss3.service_id = pi3.service_id
+                          AND ss3.day_of_week = DAYOFWEEK(:avail_date)
+                          AND ss3.is_available = 1
+                          AND ss3.open_time < ss3.close_time
+                      )
+                    )
+                    OR (
+                      s3.booking_type = 'slot'
+                      AND EXISTS (
+                        SELECT 1
+                        FROM service_time_slots sts3
+                        WHERE sts3.service_id = pi3.service_id
+                          AND sts3.date = :avail_date
+                      )
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM service_time_slots sts3b
+                        WHERE sts3b.service_id = pi3.service_id
+                          AND sts3b.date = :avail_date
+                          AND sts3b.status = 'available'
+                          AND sts3b.end_time > CURTIME()
+                          AND (
+                            (sts3b.max_concurrent_package > 0
+                             AND sts3b.confirmed_package_count < sts3b.max_concurrent_package)
+                            OR (sts3b.max_concurrent_package = 0
+                             AND sts3b.confirmed_count < sts3b.max_concurrent)
+                          )
+                      )
+                    )
+                  )
+            )";
+            $bindings[':avail_date'] = $dateFilter;
         }
 
         // Sort
@@ -1169,6 +1255,7 @@ class PlatformPackage
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
                     pi.max_concurrent AS item_max_concurrent,
+                    svc.max_concurrent_package AS service_max_concurrent_package,
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,
@@ -1277,7 +1364,8 @@ class PlatformPackage
                     ' . $this->packageCustomizePriceSql() . ' AS customize_price,
                     ' . $this->packageQuantityTypeSql() . ' AS quantity_type,
                     ' . $this->packageQuantitySql() . ' AS quantity,
-                    pi.max_concurrent AS item_max_concurrent
+                    pi.max_concurrent AS item_max_concurrent,
+                    svc.max_concurrent_package AS service_max_concurrent_package
              FROM package_items pi
              INNER JOIN packages p ON p.package_id = pi.package_id
              LEFT JOIN services svc ON svc.id = pi.service_id

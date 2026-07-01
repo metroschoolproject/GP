@@ -13,7 +13,8 @@ $dashboardContentClass = 'admin-supplier-detail-outlet';
 $money = fn($v) => 'MMK ' . number_format((float)$v, 0);
 $perf = $performance ?? [];
 $supplierFeePayment = $supplierFeePayment ?? null;
-$dashboardContent = function () use ($supplier, $supplierName, $status, $warnLevel, $adminNote, $message, $money, $perf, $supplierFeePayment, $supplierServices, $recentBookings, $supplierReviews, $supplierWarnings) {
+$kpi = $kpi ?? null;
+$dashboardContent = function () use ($supplier, $supplierName, $status, $warnLevel, $adminNote, $message, $money, $perf, $supplierFeePayment, $supplierServices, $recentBookings, $supplierReviews, $supplierWarnings, $kpi) {
     $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
     $isApprovedOrVerified = in_array($status, ['approved', 'verified'], true);
     $isPending = $status === 'pending';
@@ -188,6 +189,30 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
 
   @media(max-width:1100px) { .srd-layout{grid-template-columns:1fr} .srd-rail{position:static;grid-template-columns:1fr 1fr} }
   @media(max-width:760px) { .admin-supplier-detail-outlet{padding:20px 16px} .srd-rail{grid-template-columns:1fr} .srd-perf{grid-template-columns:1fr 1fr} .srd-detail-row{grid-template-columns:1fr} }
+
+  /* KPI Scorecard */
+  .kpi-card{display:flex;align-items:center;gap:20px;margin-bottom:16px}
+  .kpi-big-ring{position:relative;width:80px;height:80px;flex-shrink:0}
+  .kpi-big-ring svg{transform:rotate(-90deg)}
+  .kpi-big-ring circle{fill:none;stroke-width:5}
+  .kpi-big-ring .ring-bg{stroke:var(--b-light)}
+  .kpi-big-ring .ring-fill{stroke-linecap:round;transition:stroke-dashoffset .6s}
+  .kpi-big-score{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .kpi-big-num{font-size:24px;font-weight:800;line-height:1;color:var(--t)}
+  .kpi-big-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--m);margin-top:2px}
+  .kpi-tier-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 12px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .kpi-dimensions{display:grid;gap:14px;flex:1}
+  .kpi-dim{display:flex;align-items:center;gap:10px}
+  .kpi-dim-label{font-size:11px;font-weight:700;color:var(--b);min-width:140px}
+  .kpi-dim-bar{flex:1;height:8px;background:var(--b-light);border-radius:4px;overflow:hidden}
+  .kpi-dim-fill{height:100%;border-radius:4px;transition:width .4s}
+  .kpi-dim-score{font-size:12px;font-weight:800;color:var(--t);min-width:50px;text-align:right}
+  .kpi-metrics{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--b-light);border-radius:.5rem;overflow:hidden}
+  .kpi-metric{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--b-light);font-size:12px}
+  .kpi-metric:nth-child(odd){border-right:1px solid var(--b-light)}
+  .kpi-metric:nth-last-child(-n+2){border-bottom:0}
+  .kpi-metric-label{color:var(--m);font-weight:600}
+  .kpi-metric-val{font-weight:700;color:var(--t);text-align:right}
 </style>
 
 <div class="srd-page">
@@ -274,6 +299,74 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
         <div class="srd-perf-stat"><div class="srd-perf-num"><?= $money($revenueEarned) ?></div><div class="srd-perf-label">Revenue</div></div>
         <div class="srd-perf-stat"><div class="srd-perf-num"><?= $avgRating > 0 ? number_format($avgRating, 1) . ' ★' : '—' ?></div><div class="srd-perf-label">Rating (<?= $reviewCount ?> reviews)</div></div>
       </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($kpi && $isApprovedOrVerified): ?>
+  <div class="srd-panel" style="margin-bottom:20px">
+    <div class="srd-panel-head">
+      <div class="srd-panel-head-left">
+        <span class="srd-panel-icon"><i data-lucide="gauge" class="h-4 w-4"></i></span>
+        <span class="srd-panel-title">Quality Scorecard</span>
+      </div>
+      <span class="kpi-tier-badge" style="color:<?= $kpi['tier_color'] ?>;background:<?= $kpi['tier_color'] ?>1A">
+        <?= $h($kpi['tier_label']) ?>
+      </span>
+    </div>
+    <div class="srd-section">
+      <div class="kpi-card">
+        <?php
+            $_score = $kpi['score'];
+            $_circ = 2 * M_PI * 30;
+            $_off = $_circ - ($_score / 100) * $_circ;
+        ?>
+        <div class="kpi-big-ring">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle class="ring-bg" cx="40" cy="40" r="30" />
+            <circle class="ring-fill" cx="40" cy="40" r="30"
+              stroke="<?= $kpi['tier_color'] ?>"
+              stroke-dasharray="<?= round($_circ, 2) ?>"
+              stroke-dashoffset="<?= round($_off, 2) ?>" />
+          </svg>
+          <div class="kpi-big-score">
+            <span class="kpi-big-num"><?= $_score ?></span>
+            <span class="kpi-big-label">/ 100</span>
+          </div>
+        </div>
+        <div class="kpi-dimensions">
+          <?php foreach ($kpi['dimensions'] as $_dim): ?>
+            <div class="kpi-dim">
+              <span class="kpi-dim-label"><?= $h($_dim['name']) ?></span>
+              <div class="kpi-dim-bar">
+                <?php $_pct = $_dim['max'] > 0 ? round(($_dim['score'] / $_dim['max']) * 100) : 0; ?>
+                <div class="kpi-dim-fill" style="width:<?= $_pct ?>%;background:<?= $kpi['tier_color'] ?>99"></div>
+              </div>
+              <span class="kpi-dim-score"><?= $_dim['score'] ?> / <?= $_dim['max'] ?></span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <details>
+        <summary style="font-size:11px;font-weight:700;color:var(--p);cursor:pointer;user-select:none;padding:4px 0">View detailed breakdown</summary>
+        <div style="margin-top:12px;display:grid;gap:14px">
+          <?php foreach ($kpi['dimensions'] as $_dim): ?>
+            <div>
+              <div style="font-size:11px;font-weight:800;color:var(--t);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">
+                <?= $h($_dim['name']) ?> (<?= $_dim['score'] ?>/<?= $_dim['max'] ?>)
+              </div>
+              <div class="kpi-metrics">
+                <?php foreach ($_dim['items'] as $_item): ?>
+                  <div class="kpi-metric">
+                    <span class="kpi-metric-label"><?= $h($_item['label']) ?></span>
+                    <span class="kpi-metric-val"><?= $_item['score'] ?>/<?= $_item['max'] ?> <span style="font-weight:400;color:var(--m);font-size:10px">(<?= $h($_item['value']) ?>)</span></span>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      </details>
     </div>
   </div>
   <?php endif; ?>
@@ -700,6 +793,7 @@ if (permInput && permBtn) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php $pageTitle = 'Supplier Review — Admin'; ?>
     <?php require_once APPROOT . '/views/dashboardLayout/head.php' ?>
 </head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">

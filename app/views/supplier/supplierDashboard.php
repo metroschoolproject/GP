@@ -102,13 +102,14 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   .supplier-dashboard-overview table tbody tr:hover {
     background: var(--supplier-admin-soft) !important;
   }
-  .supplier-dashboard-overview #weddingBookingsList > div {
+  .supplier-dashboard-overview #weddingBookingsList > a {
     border: 1px solid transparent;
     border-radius: .75rem;
     background: var(--supplier-admin-soft);
     transition: all .12s ease;
+    text-decoration: none;
   }
-  .supplier-dashboard-overview #weddingBookingsList > div:hover {
+  .supplier-dashboard-overview #weddingBookingsList > a:hover {
     border-color: var(--supplier-admin-border);
     background: #F4F1EE;
   }
@@ -150,7 +151,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   }
   .supplier-dashboard-overview .supplier-admin-upcoming #weddingBookingsList {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: .5rem;
     max-height: none;
   }
@@ -211,7 +212,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
       grid-template-columns: 1fr;
     }
     .supplier-dashboard-overview .supplier-admin-upcoming #weddingBookingsList {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
     }
   }
   @media (max-width: 900px) {
@@ -354,7 +355,57 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
                 </div>
             </div>
 
-            </div><!-- end stat cards inner -->
+            <?php if ($kpi): ?>
+            <!-- Quality Scorecard -->
+            <div class="<?= $dashboardCardClass ?> supplier-admin-animate sm:col-span-3" style="animation-delay:.25s">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="supplier-admin-icon" style="background:#f5f1ec;color:#6d4c5b">
+                            <i data-lucide="gauge" class="h-4 w-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="supplier-admin-section-title">Quality Scorecard</h3>
+                            <p class="mt-0.5 text-[11px]" style="color:#A8A29E">Your performance across all dimensions</p>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-extrabold tracking-wide uppercase" style="color:<?= $kpi['tier_color'] ?>;background:<?= $kpi['tier_color'] ?>1A">
+                        <?= htmlspecialchars($kpi['tier_label'], ENT_QUOTES, 'UTF-8') ?>
+                    </span>
+                </div>
+                <div class="flex items-center gap-8 flex-wrap">
+                    <?php
+                        $_sc = $kpi['score'];
+                        $_ci = 2 * M_PI * 34;
+                        $_of = $_ci - ($_sc / 100) * $_ci;
+                    ?>
+                    <div class="relative flex-shrink-0" style="width:88px;height:88px">
+                        <svg width="88" height="88" viewBox="0 0 88 88" style="transform:rotate(-90deg)">
+                            <circle cx="44" cy="44" r="34" fill="none" stroke-width="6" stroke="#eddecc" />
+                            <circle cx="44" cy="44" r="34" fill="none" stroke-width="6" stroke-linecap="round"
+                                stroke="<?= $kpi['tier_color'] ?>"
+                                stroke-dasharray="<?= round($_ci, 2) ?>"
+                                stroke-dashoffset="<?= round($_of, 2) ?>" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl font-extrabold leading-none" style="color:#6d4c5b"><?= $_sc ?></span>
+                            <span class="text-[9px] font-bold uppercase tracking-widest mt-0.5" style="color:#A8A29E">/ 100</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 grid gap-3" style="min-width:260px">
+                        <?php foreach ($kpi['dimensions'] as $_dim): ?>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[11px] font-bold min-w-[130px]" style="color:#7b5c69"><?= htmlspecialchars($_dim['name'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <div class="flex-1 h-2 rounded-full overflow-hidden" style="background:#eddecc">
+                                <?php $_pct = $_dim['max'] > 0 ? round(($_dim['score'] / $_dim['max']) * 100) : 0; ?>
+                                <div class="h-full rounded-full transition-all" style="width:<?= $_pct ?>%;background:<?= $kpi['tier_color'] ?>cc"></div>
+                            </div>
+                            <span class="text-xs font-extrabold min-w-[44px] text-right" style="color:#6d4c5b"><?= $_dim['score'] ?>/<span class="font-semibold" style="color:#A8A29E"><?= $_dim['max'] ?></span></span>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- CHARTS: two columns -->
             <div class="supplier-admin-charts">
@@ -621,21 +672,59 @@ window.supplierDashboardData = <?= json_encode([
     }
     el.innerHTML = bookings.map(function(r) {
       var status = r.supplier_status || 'pending';
-      var statusColor = status === 'confirmed' ? 'bg-app-soft text-app-success' : status === 'completed' ? 'bg-app-soft text-app-success' : 'bg-app-surface text-app-warning';
-      var statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
-      var dateStr = r.booking_date || '—';
-      return '<div class="flex items-center gap-2.5 rounded-xl bg-app-soft p-2.5">' +
-        '<div class="flex h-7 w-7 items-center justify-center rounded-lg bg-app-danger-soft text-app-danger shrink-0">' +
-          '<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>' +
+      var statusColors = {
+        'confirmed': 'bg-emerald-50 text-emerald-700',
+        'in_progress': 'bg-blue-50 text-blue-700',
+        'completed': 'bg-app-soft text-app-success',
+        'pending': 'bg-amber-50 text-amber-700'
+      };
+      var statusColor = statusColors[status] || 'bg-app-surface text-app-warning';
+      var statusLabel = status.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      var bookingRef = 'BK' + String(r.booking_id).padStart(3, '0');
+      var eventDate = r.event_date || r.booking_date || '—';
+      var serviceName = r.item_name || r.category_name || '';
+      var category = r.category_name || '';
+      var location = r.location || '';
+      var guestCount = r.guest_count || '';
+      var price = r.item_price ? Number(r.item_price).toLocaleString() : '';
+      var phone = r.customer_phone || r.contact_phone || '';
+
+      // Format date nicely
+      var formattedDate = eventDate;
+      if (eventDate && eventDate !== '—') {
+        try {
+          var d = new Date(eventDate + 'T00:00:00');
+          formattedDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch(e) {}
+      }
+
+      var details = [];
+      if (serviceName) details.push(serviceName);
+      if (guestCount) details.push(guestCount + ' guests');
+      if (location) details.push(location);
+
+      return '<a href="<?= URLROOT ?>/supplier/bookingDetail/' + r.booking_id + '" class="flex items-start gap-3 rounded-xl bg-app-soft p-3 transition hover:bg-app-surface hover:shadow-sm">' +
+        '<div class="flex h-9 w-9 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary shrink-0 mt-0.5">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' +
         '</div>' +
         '<div class="flex-1 min-w-0">' +
-          '<p class="text-xs font-semibold text-app-text truncate">' + (r.customer_name || 'Customer').replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</p>' +
-          '<p class="text-[10px] text-app-secondary">' + dateStr + '</p>' +
+          '<div class="flex items-center gap-2">' +
+            '<p class="text-xs font-bold text-app-text truncate">' + esc(r.customer_name || 'Customer') + '</p>' +
+            '<span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ' + statusColor + '">' + statusLabel + '</span>' +
+          '</div>' +
+          '<p class="mt-0.5 text-[11px] font-semibold text-app-primary">' + bookingRef + (category ? ' &middot; ' + esc(category) : '') + '</p>' +
+          (details.length ? '<p class="mt-0.5 text-[10px] text-app-muted truncate">' + details.map(esc).join(' &middot; ') + '</p>' : '') +
+          '<div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-app-secondary">' +
+            '<span class="inline-flex items-center gap-1"><svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' + formattedDate + '</span>' +
+            (price ? '<span class="inline-flex items-center gap-1 font-semibold text-app-text">MMK ' + price + '</span>' : '') +
+            (phone ? '<span class="inline-flex items-center gap-1"><svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/></svg>' + esc(phone) + '</span>' : '') +
+          '</div>' +
         '</div>' +
-        '<span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ' + statusColor + '">' + statusLabel + '</span>' +
-      '</div>';
+      '</a>';
     }).join("");
   }
+
+  function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
 
   var paidPayments = paymentsList.filter(function(p) { return parseFloat(p.paid) > 0; });
   var withdrawData = paidPayments.map(function(p, i) {
@@ -826,7 +915,7 @@ window.supplierDashboardData = <?= json_encode([
             ticks: {
               font: { size: 11 },
               color: MUTED_COLOR,
-              callback: function(v) { return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v; },
+              callback: function(v) { return v >= 1000 ? (v/1000).toLocaleString() + 'K' : v; },
               padding: 8
             },
             border: { display: false }

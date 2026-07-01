@@ -55,32 +55,24 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
   $isDraft = (($package['status'] ?? '') === 'draft');
   $isPublished = (($package['status'] ?? '') === 'published');
 
-  // Helper: build rental pricing display for attire items
+  // Helper: build rental pricing display for attire items (package prices only)
   $rentalPricingHtml = function ($item) use ($money, $h) {
     $borrowPkg = (float)($item['borrow_package_price'] ?? $item['borrow_price'] ?? 0);
-    $borrowCust = (float)($item['borrow_customize_price'] ?? $item['borrow_price'] ?? $borrowPkg);
     $buyPkg = (float)($item['buy_package_price'] ?? $item['buy_price'] ?? 0);
-    $buyCust = (float)($item['buy_customize_price'] ?? $item['buy_price'] ?? $buyPkg);
     $returnDays = (int)($item['return_days'] ?? 0);
-    $html = '';
-    if ($borrowPkg > 0 || $borrowCust > 0) {
-      $html .= '<div class="rental-option">'
-            . '<div class="rental-option-head"><strong>Borrow</strong>'
-            . ($returnDays > 0 ? '<span>Return in ' . $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . '</span>' : '')
-            . '</div><div class="rental-price-row">'
-            . '<span>Package <b>' . ($borrowPkg > 0 ? $money($borrowPkg) : '—') . '</b></span>'
-            . '<span>Custom <b>' . ($borrowCust > 0 ? $money(max($borrowPkg, $borrowCust)) : '—') . '</b></span>'
-            . '</div></div>';
+    $cols = [];
+    if ($borrowPkg > 0) {
+      $cols[] = '<span>Borrow <b>' . $money($borrowPkg) . '</b>'
+              . ($returnDays > 0 ? ' <small>Return in ' . $returnDays . ' ' . ($returnDays === 1 ? 'day' : 'days') . '</small>' : '')
+              . '</span>';
     }
-    if ($buyPkg > 0 || $buyCust > 0) {
-      $html .= '<div class="rental-option buy">'
-            . '<div class="rental-option-head"><strong>Buy</strong></div>'
-            . '<div class="rental-price-row">'
-            . '<span>Package <b>' . ($buyPkg > 0 ? $money($buyPkg) : '—') . '</b></span>'
-            . '<span>Custom <b>' . ($buyCust > 0 ? $money(max($buyPkg, $buyCust)) : '—') . '</b></span>'
-            . '</div></div>';
+    if ($buyPkg > 0) {
+      $cols[] = '<span>Buy <b>' . $money($buyPkg) . '</b></span>';
     }
-    return $html !== '' ? $html : '<span class="service-meta">—</span>';
+    if (!empty($cols)) {
+      return '<div class="rental-price-row">' . implode('', $cols) . '</div>';
+    }
+    return '<span class="service-meta">—</span>';
   };
 
   $addableServices = array_filter($serviceOptions, function ($svc) use ($includedServiceIds) {
@@ -128,8 +120,10 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--primary);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
 .btn-ghost:hover{background:var(--primary-soft)}
 .btn-sm{height:30px;padding:0 12px;font-size:11px}
-.btn-danger{color:var(--danger)!important}
-.btn-danger:hover{background:var(--danger-bg)!important}
+.btn-danger{color:var(--danger)!important;border-color:var(--danger)!important}
+.btn-danger:hover{background:var(--danger-bg)!important;border-color:var(--danger)!important}
+.btn-danger-fill.btn-primary{background:var(--danger)!important;border-color:var(--danger)!important}
+.btn-danger-fill.btn-primary:hover{background:#7F1D1D!important;border-color:#7F1D1D!important}
 
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
 .badge-active{background:#ECFDF5;color:#065F46}
@@ -202,7 +196,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 .rental-option-head strong{color:var(--primary);font-size:11px}
 .rental-option.buy .rental-option-head strong{color:#067647}
 .rental-option-head span{color:var(--muted);font-size:9px}
-.rental-price-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rental-price-row{display:flex;gap:8px}
 .rental-price-row span{color:var(--muted);font-size:9px}
 .rental-price-row b{display:block;margin-top:2px;color:var(--text);font-size:11px}
 .included-prices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -488,8 +482,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
       </div>
       <?php endif; ?>
       <div style="display:flex;gap:10px;margin-top:20px">
-        <form method="POST" action="<?= URLROOT ?>/admin/packageStartEdit/<?= (int)$package['package_id'] ?>"
-              onsubmit="return confirm('Enter edit mode? A draft copy will be created. The live package stays visible to customers while you edit.')">
+        <form id="editPackageForm" method="POST" action="<?= URLROOT ?>/admin/packageStartEdit/<?= (int)$package['package_id'] ?>">
           <button class="btn-primary" type="submit">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Edit Package
@@ -635,9 +628,9 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                 </div>
               </div>
               <?php if ($isDraft): ?>
-                <form class="included-remove" method="POST"
+                <form class="included-remove remove-item-form" method="POST"
                       action="<?= URLROOT ?>/admin/packageRemoveItem/<?= (int)$item['id'] ?>"
-                      onsubmit="return confirm('Remove this service from the package?')">
+                      data-service-name="<?= $h($item['service_name'] ?? 'This service') ?>">
                   <button class="btn-ghost btn-sm btn-danger" type="submit">Remove</button>
                 </form>
               <?php endif; ?>
@@ -711,13 +704,32 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                   <small><?= $isGuestPriced ? $money($itemPkgPrice / $quantity) . ' per guest' : 'Included package rate' ?></small>
                 </div>
                 <div class="included-price">
-                  <span>Customize price</span>
-                  <?php if ($itemCustPrice > $itemPkgPrice): ?>
-                    <strong><?= $money($itemCustPrice) ?></strong>
-                    <small><?= $isGuestPriced ? $money($itemCustPrice / $quantity) . ' per guest' : 'Customer custom rate' ?></small>
+                  <?php
+                    $itemBookingType = ($item['booking_type'] ?? '') === 'slot' ? 'slot' : 'day';
+                    $perUnit = $itemBookingType === 'slot' ? 'per slot' : 'per day';
+                    $panelLabel = $itemBookingType === 'slot' ? 'Package slot (per booking)' : 'Package bookings per day';
+                    $itemMaxConcurrent = (int)($item['item_max_concurrent'] ?? 0);
+                    $svcMaxConcurrentPkg = (int)($item['service_max_concurrent_package'] ?? 0);
+                    $effectiveCap = $itemMaxConcurrent > 0 ? $itemMaxConcurrent : $svcMaxConcurrentPkg;
+                    $supplierLabel = $svcMaxConcurrentPkg > 0
+                        ? 'Supplier allows ' . $svcMaxConcurrentPkg . ' ' . $perUnit
+                        : 'Supplier has no package limit set';
+                  ?>
+                  <span><?= $panelLabel ?></span>
+                  <?php if ($isDraft): ?>
+                    <small style="display:block;margin-bottom:5px;color:var(--muted);font-size:10px"><?= $supplierLabel ?></small>
+                    <form class="guest-form" method="POST"
+                          action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>"
+                          style="margin-top:0">
+                      <input class="guest-input" type="number" name="max_concurrent" min="0" max="65535" step="1"
+                             value="<?= $itemMaxConcurrent ?>" aria-label="Package booking limit"
+                             style="width:80px!important">
+                      <button class="btn-ghost btn-sm" type="submit">Update</button>
+                    </form>
+                    <small style="margin-top:6px;display:block"><?= $itemMaxConcurrent > 0 ? 'Override: ' . $itemMaxConcurrent . ' bookings ' . $perUnit : '0 = no override (uses supplier default)' ?></small>
                   <?php else: ?>
-                    <strong>Same rate</strong>
-                    <small>Matches package price</small>
+                    <strong><?= $effectiveCap > 0 ? $effectiveCap : '—' ?></strong>
+                    <small><?= $supplierLabel ?><?= $itemMaxConcurrent > 0 ? ' · Admin override: ' . $itemMaxConcurrent : ' · No override' ?></small>
                   <?php endif; ?>
                 </div>
               </div>
@@ -828,6 +840,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                       data-category-name="<?= $h($svc['category_name'] ?? 'this category') ?>"
                       data-guest-priced="<?= $isGuestPricedSvc ? '1' : '0' ?>"
                       data-attire="<?= $isAttireSvc ? '1' : '0' ?>"
+                      data-booking-type="<?= $h($svc['booking_type'] ?? 'fullday') ?>"
                       data-room-count="<?= count($hallOptionsByService[$svcId] ?? []) ?>"
                       data-attire-count="<?= $attireCount ?>"
                       data-deco-count="<?= count($decoOptionsByService[$svcId] ?? []) ?>">
@@ -993,9 +1006,9 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
         <!-- ── Per-item concurrency override ─────────────────────────── -->
         <div id="itemConcurrentRow" class="guest-count-row" style="display:none">
-          <label for="itemConcurrentInput">Package bookings per slot</label>
+          <label for="itemConcurrentInput" id="itemConcurrentLabel">Package bookings per slot</label>
           <input id="itemConcurrentInput" type="number" name="max_concurrent" min="0" max="65535" step="1" value="0">
-          <span class="guest-count-note">Optional capacity override for this included service in the same generated time slot. 0 = use the supplier service default.</span>
+          <span class="guest-count-note" id="itemConcurrentNote">Optional capacity override for this included service in the same generated time slot. 0 = use the supplier service default.</span>
         </div>
 
         <!-- Confirm / Add button -->
@@ -1018,6 +1031,56 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
   </div><!-- /card -->
 
 </div><!-- /admin-pkg-page -->
+
+<?php if ($isDraft): ?>
+  <div class="publish-modal" id="removeItemModal" aria-hidden="true">
+    <div class="publish-modal-backdrop" data-close-remove-modal></div>
+    <section class="publish-modal-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="removeModalTitle" aria-describedby="removeModalDescription">
+      <div class="publish-modal-body">
+        <div class="publish-modal-icon" style="background:var(--danger-bg);color:var(--danger)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </div>
+        <h2 class="publish-modal-title" id="removeModalTitle">Remove service?</h2>
+        <p class="publish-modal-copy" id="removeModalDescription">
+          <strong id="removeItemName"></strong> will be removed from this package.
+        </p>
+      </div>
+      <div class="publish-modal-actions">
+        <button class="btn-ghost" type="button" data-close-remove-modal>Cancel</button>
+        <button class="btn-primary btn-danger-fill" id="confirmRemoveItem" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Remove
+        </button>
+      </div>
+    </section>
+  </div>
+<?php endif; ?>
+
+<?php if (!$isDraft): ?>
+  <div class="publish-modal" id="editConfirmModal" aria-hidden="true">
+    <div class="publish-modal-backdrop" data-close-edit-modal></div>
+    <section class="publish-modal-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="editModalTitle" aria-describedby="editModalDescription">
+      <div class="publish-modal-body">
+        <div class="publish-modal-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <h2 class="publish-modal-title" id="editModalTitle">Enter edit mode?</h2>
+        <p class="publish-modal-copy" id="editModalDescription">
+          A draft copy of <strong><?= $h($package['name'] ?? 'this package') ?></strong> will be created. The live package stays visible to customers while you edit.
+        </p>
+      </div>
+      <div class="publish-modal-actions">
+        <button class="btn-ghost" type="button" data-close-edit-modal>Cancel</button>
+        <button class="btn-primary" id="confirmEditPackage" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit package
+        </button>
+      </div>
+    </section>
+  </div>
+<?php endif; ?>
 
 <?php if ($isDraft): ?>
   <div class="publish-modal" id="publishPackageModal" aria-hidden="true">
@@ -1050,6 +1113,102 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
 <script>
 (function () {
+  /* ── Remove-item confirmation ──────────────────────────────────────── */
+  const removeModal = document.getElementById('removeItemModal');
+  const removeItemName = document.getElementById('removeItemName');
+  const confirmRemoveButton = document.getElementById('confirmRemoveItem');
+  let pendingRemoveForm = null;
+
+  function openRemoveModal(serviceName, form) {
+    if (!removeModal) return;
+    pendingRemoveForm = form;
+    if (removeItemName) removeItemName.textContent = serviceName;
+    removeModal.classList.add('is-open');
+    removeModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    confirmRemoveButton?.focus();
+  }
+
+  function closeRemoveModal() {
+    if (!removeModal) return;
+    removeModal.classList.remove('is-open');
+    removeModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    pendingRemoveForm = null;
+  }
+
+  document.querySelectorAll('.remove-item-form').forEach(form => {
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      openRemoveModal(form.dataset.serviceName || 'This service', form);
+    });
+  });
+
+  confirmRemoveButton?.addEventListener('click', () => {
+    if (!pendingRemoveForm) return;
+    confirmRemoveButton.disabled = true;
+    confirmRemoveButton.textContent = 'Removing…';
+    pendingRemoveForm.submit();
+  });
+
+  removeModal?.querySelectorAll('[data-close-remove-modal]').forEach(element => {
+    element.addEventListener('click', closeRemoveModal);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && removeModal?.classList.contains('is-open')) {
+      closeRemoveModal();
+    }
+  });
+
+  /* ── Edit confirmation ─────────────────────────────────────────────── */
+  const editForm = document.getElementById('editPackageForm');
+  const editModal = document.getElementById('editConfirmModal');
+  const confirmEditButton = document.getElementById('confirmEditPackage');
+  let editConfirmed = false;
+  let editTrigger = null;
+
+  function openEditModal() {
+    if (!editModal) return;
+    editTrigger = document.activeElement;
+    editModal.classList.add('is-open');
+    editModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    confirmEditButton?.focus();
+  }
+
+  function closeEditModal() {
+    if (!editModal) return;
+    editModal.classList.remove('is-open');
+    editModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    editTrigger?.focus();
+  }
+
+  editForm?.addEventListener('submit', event => {
+    if (editConfirmed) return;
+    event.preventDefault();
+    openEditModal();
+  });
+
+  confirmEditButton?.addEventListener('click', () => {
+    if (!editForm) return;
+    editConfirmed = true;
+    confirmEditButton.disabled = true;
+    confirmEditButton.textContent = 'Opening…';
+    editForm.requestSubmit();
+  });
+
+  editModal?.querySelectorAll('[data-close-edit-modal]').forEach(element => {
+    element.addEventListener('click', closeEditModal);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && editModal?.classList.contains('is-open')) {
+      closeEditModal();
+    }
+  });
+
   /* ── Publish confirmation ───────────────────────────────────────────── */
   const publishForm = document.getElementById('publishPackageForm');
   const publishModal = document.getElementById('publishPackageModal');
@@ -1472,8 +1631,17 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
     /* show per-item concurrency override for all services */
     const itemConcurrentRow = document.getElementById('itemConcurrentRow');
+    const itemConcurrentLabel = document.getElementById('itemConcurrentLabel');
+    const itemConcurrentNote = document.getElementById('itemConcurrentNote');
     if (itemConcurrentRow) {
       itemConcurrentRow.style.display = hasVal ? 'flex' : 'none';
+      if (hasVal) {
+        const bookingType = (opt.dataset.bookingType || 'fullday');
+        const isSlot = bookingType === 'slot';
+        const unit = isSlot ? 'per slot' : 'per day';
+        if (itemConcurrentLabel) itemConcurrentLabel.textContent = isSlot ? 'Package bookings per slot' : 'Package bookings per day';
+        if (itemConcurrentNote) itemConcurrentNote.textContent = 'Optional capacity override for this included service ' + (isSlot ? 'in the same generated time slot.' : 'on the same day.') + ' 0 = use the supplier service default.';
+      }
     }
 
     if (hasVal) {
@@ -1664,6 +1832,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php $pageTitle = 'Package Detail — Admin'; ?>
     <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?>
 </head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">

@@ -8,9 +8,10 @@ $balance = (float)($balance ?? 0);
 $bookingRef = $bookingRef ?? '';
 
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
-$platformFee = (float)($platformFee ?? 0);
+$deposit = (int)round($deposit);
+$platformFee = (int)round((float)($platformFee ?? 0));
 $platformFeePercent = (float)($platformFeePercent ?? get_platform_fee_percent());
-$depositWithFee = (float)($depositWithFee ?? $deposit);
+$depositWithFee = (int)round((float)($depositWithFee ?? $deposit));
 $plain = function ($v) {
     $text = (string)$v;
     for ($i = 0; $i < 10; $i++) {
@@ -49,6 +50,7 @@ unset($_SESSION['booking_payment_flash']);
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title>Pay Deposit — Golden Promise</title>
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
