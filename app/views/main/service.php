@@ -269,7 +269,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .nav-partner{
   padding:7px 17px;
-  background:#3f241a;
+  background: #6d4c5B;
   color:#fff8ef;
   box-shadow:none;
 }
@@ -857,7 +857,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .fb-select{
   background-color:rgba(245,232,217,.82);
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6' stroke='%239A687F' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6' stroke='%236d4c5B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;
   background-position:right 12px center;
   background-size:12px 12px;

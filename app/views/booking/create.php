@@ -913,6 +913,11 @@ font-weight: 700;
   height: 100%;
   opacity: 0;
   pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.venue-date-input-wrap input::-webkit-calendar-picker-indicator {
+  display: none;
 }
 .venue-date-display {
   min-width: 0;
@@ -2088,14 +2093,19 @@ input[type="date"]:invalid {
                   $isFulldayItem = ($itemBookingType === 'fullday');
                 ?>
                 <label class="gp-detail-label" for="slot-date-<?= $i ?>"><?= $isPackageItem ? 'Select event date' : 'Select date' ?></label>
-                <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
-                       name="item_date[<?= $i ?>]"
-                       min="<?= $minDateStr ?>"
-                       <?php if (!$isFulldayItem): ?>
-                       data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
-                       <?php endif; ?>
-                       data-min-lead-days="<?= $minLeadDays ?>"
-                       data-index="<?= $i ?>" required>
+                <span class="venue-date-input-wrap" role="button" tabindex="0" aria-label="Open date calendar">
+                  <svg class="venue-date-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <span class="venue-date-display">Choose date</span>
+                  <svg class="venue-date-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                  <input class="gp-calendar-input gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+                         name="item_date[<?= $i ?>]"
+                         min="<?= $minDateStr ?>"
+                         <?php if (!$isFulldayItem): ?>
+                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+                         <?php endif; ?>
+                         data-min-lead-days="<?= $minLeadDays ?>"
+                         data-index="<?= $i ?>" required>
+                </span>
                 <?php if ($minLeadDays > 0): ?>
                   <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
                 <?php endif; ?>

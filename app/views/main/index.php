@@ -382,7 +382,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     .floating-services {
       position: fixed;
       inset: 0;
-      z-index: 55;
+      z-index: 1002;
       opacity: 0;
       pointer-events: none;
       transition: opacity 220ms ease;
@@ -1179,11 +1179,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     #reviews {
       position: relative;
-      min-height: 78vh;
+      min-height: 100vh;
+      display: grid;
+      align-items: center;
       overflow: hidden;
       background: #C8B19F;
       color: #4A342F;
-      padding: clamp(44px, 5vw, 72px) 24px;
+      padding: clamp(54px, 6vw, 86px) 24px;
       scroll-snap-align: start;
       scroll-snap-stop: always;
     }
@@ -1191,7 +1193,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     .review-cloud {
       position: relative;
       width: min(100%, 1040px);
-      min-height: 500px;
+      min-height: min(650px, calc(100vh - 120px));
       margin: 0 auto;
     }
 
@@ -1369,14 +1371,14 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     #contact {
-      min-height: 72vh;
+      min-height: 400px;
       display: grid;
       place-items: center;
-      padding: clamp(42px, 5vw, 72px) 24px;
+      padding: 24px 24px 22px 0;
       background: #2A1710;
       color: #FFF8EF;
       scroll-snap-align: start;
-      scroll-snap-stop: always;
+      scroll-snap-stop: normal;
     }
 
     .contact-card {
@@ -1575,18 +1577,18 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .site-footer {
-      min-height: 22vh;
+      min-height: 16vh;
       display: grid;
-      place-items: center;
-      padding: clamp(18px, 2.2vw, 28px) 24px 18px;
+      place-items: center start;
+      padding: clamp(14px, 1.6vw, 20px) 24px 14px 0;
       background: #2A1710;
       color: #fcf8f5;
       scroll-snap-align: start;
       scroll-snap-stop: always;
     }
 .footer-contact-card{
-    text-align:center;
-    margin-top:clamp(16px,2.2vw,24px);
+    text-align:left;
+    margin-top:clamp(10px,1.4vw,16px);
 }
 
 #footerText{
@@ -1603,9 +1605,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 .footer-icons{
     display:flex;
-    justify-content:center;
-    gap:14px;
-    margin-top:18px;
+    align-items:center;
+    justify-content:flex-start;
+    gap:12px;
+    margin-top:12px;
 }
 
 .contact-btn{
@@ -1640,10 +1643,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 }
 
     .footer-inner {
-      width: min(100%, 980px);
+      width: min(100%, 1120px);
       display: grid;
-      justify-items: center;
-      text-align: center;
+      align-content: center;
+      justify-items: start;
+      text-align: left;
     }
 
     .footer-brand {
@@ -1658,9 +1662,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     .footer-nav {
       display: flex;
-      justify-content: center;
+      align-items: center;
+      justify-content: flex-start;
       gap: clamp(28px, 7vw, 92px);
-      margin-top: clamp(14px, 2vw, 22px);
+      margin-top: 0;
       font-family: "Playfair Display", Georgia, serif;
     }
 
@@ -1720,7 +1725,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .footer-copy {
-      margin: clamp(18px, 2.4vw, 28px) 0 0;
+      margin: clamp(10px, 1.4vw, 16px) 0 0;
       color: rgba(252,248,245, 0.78);
       font-family: Arial, Helvetica, sans-serif;
       font-size: 12px;

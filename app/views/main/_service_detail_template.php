@@ -1660,17 +1660,21 @@ button, input, select, textarea { font-family: var(--font-sans); }
   min-height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid rgba(63, 36, 26, .18);
   border-radius: 6px;
   background: #FFF8EF;
   color: #3F241A;
-  padding: 0 10px;
-  font-size: 12px;
+  padding: 0 8px;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
   overflow: hidden;
   box-shadow: 0 4px 14px rgba(63, 36, 26, .06);
+}
+.venue-date-input-wrap:focus-visible {
+  outline: 2px solid rgba(140,95,114,0.28);
+  outline-offset: 2px;
 }
 
 .venue-date-input-wrap input {
@@ -1679,11 +1683,21 @@ button, input, select, textarea { font-family: var(--font-sans); }
   width: 100%;
   height: 100%;
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.venue-date-input-wrap input::-webkit-calendar-picker-indicator {
+  display: none;
 }
 
 .venue-date-display {
-  min-width: 54px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   pointer-events: none;
 }
 
@@ -1692,8 +1706,8 @@ button, input, select, textarea { font-family: var(--font-sans); }
   flex: 0 0 auto;
   pointer-events: none;
   color: #7A4E3D;
-  width: 13px !important;
-  height: 13px !important;
+  width: 12px !important;
+  height: 12px !important;
   stroke-width: 2.2;
 }
 
@@ -1735,6 +1749,12 @@ button, input, select, textarea { font-family: var(--font-sans); }
   background: transparent;
   color: #7A4E3D;
   cursor: pointer;
+}
+.gp-calendar-nav svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.2;
 }
 
 .gp-calendar-nav:hover {
@@ -3511,14 +3531,21 @@ body:has(.gp-package-notice) .booking-grid {
             <?php endif; ?>
             <div class="attire-card-prices">
               <?php if ($aiBorrowPrice !== null && $aiBorrowPrice > 0): ?>
-                <span class="attire-price-tag is-borrow"><i data-lucide="refresh-cw" size="12"></i> From <?= $money($aiBorrowPrice) ?></span>
+                <span class="attire-price-tag is-borrow">Borrow: <?= $money($aiBorrowPrice) ?></span>
               <?php endif; ?>
               <?php if ($aiBuyPrice > 0): ?>
-                <span class="attire-price-tag is-buy"><i data-lucide="shopping-bag" size="12"></i> <?= $money($aiBuyPrice) ?></span>
+                <span class="attire-price-tag is-buy">Buy: <?= $money($aiBuyPrice) ?></span>
               <?php endif; ?>
             </div>
             <?php if (!$isLockedAttire): ?>
-              <span class="attire-card-select-hint">Click to select</span>
+              <div class="attire-card-actions" aria-label="Choose <?= $h($ai['name']) ?>">
+                <?php if ($aiBorrowPrice !== null && $aiBorrowPrice > 0): ?>
+                  <button class="attire-card-action is-borrow" type="button" data-attire-action="borrow">Borrow</button>
+                <?php endif; ?>
+                <?php if ($aiBuyPrice > 0): ?>
+                  <button class="attire-card-action is-buy" type="button" data-attire-action="buy">Buy</button>
+                <?php endif; ?>
+              </div>
             <?php endif; ?>
           </div>
           <div class="attire-card-check" aria-hidden="true"><i data-lucide="check-circle" size="20"></i></div>
@@ -3558,7 +3585,7 @@ body:has(.gp-package-notice) .booking-grid {
                   <p id="attireSelectedDesc" class="attire-selected-desc"></p>
                 </div>
               </div>
-              <div class="rental-type-section">
+              <div class="rental-type-section" id="attireRentalTypeSection">
                 <div class="rental-section-label">Rental type</div>
                 <div class="rental-type-toggle" id="rentalTypeToggleMain">
                   <button type="button" class="rental-type-btn-main" data-rental-type="borrow" id="rentalBorrowBtn">
@@ -3572,13 +3599,22 @@ body:has(.gp-package-notice) .booking-grid {
                 </div>
               </div>
               <div id="borrowSection" style="display:none">
-                <div class="rental-section-label">Rental duration</div>
-                <div id="durationOptionsMain" class="duration-options-grid"></div>
-                <div id="borrowDateSection" style="display:none">
-                  <div class="rental-section-label">Pick-up date</div>
-                  <input type="date" id="borrowDateMain" class="rental-date-input">
-                  <div id="borrowDateErrorMain" class="rental-date-error" style="display:none"></div>
-                  <div id="rentalDateSummaryMain" class="rental-date-summary" style="display:none"></div>
+                <div class="attire-borrow-grid">
+                  <div>
+                    <div class="rental-section-label">Rental duration</div>
+                    <div id="durationOptionsMain" class="duration-options-grid"></div>
+                  </div>
+                  <div id="borrowDateSection" style="display:none">
+                    <div class="rental-section-label">Pick-up date</div>
+                    <span class="venue-date-input-wrap attire-date-input-wrap">
+                      <i class="venue-date-icon" data-lucide="calendar-days" size="8"></i>
+                      <span class="venue-date-display">Choose date</span>
+                      <i class="venue-date-chevron" data-lucide="chevron-down" size="8"></i>
+                      <input type="date" id="borrowDateMain" class="gp-calendar-input rental-date-input" data-placeholder="Choose date" aria-label="Pick-up date">
+                    </span>
+                    <div id="borrowDateErrorMain" class="rental-date-error" style="display:none"></div>
+                    <div id="rentalDateSummaryMain" class="rental-date-summary" style="display:none"></div>
+                  </div>
                 </div>
               </div>
               <div id="buySection" style="display:none">
@@ -4050,7 +4086,7 @@ body:has(.gp-package-notice) .booking-grid {
           <span>Platform service fee (<?= $platformFeePercent ?>%)</span>
           <strong style="font-weight:600"><?= $money($platformFeeAmount) ?></strong>
         </div>
-        <?php if (!empty($rentalOptions)): ?>
+        <?php if (!$isRentalCategory && !empty($rentalOptions)): ?>
           <div class="package-price-panel" aria-label="Dress and accessory pricing">
             <?php foreach ($rentalOptions as $option): ?>
               <div class="package-price-line">
@@ -4510,10 +4546,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const display = input.closest('.venue-date-input-wrap')?.querySelector('.venue-date-display');
     if (!display) return;
     const todayValue = formatDateValue(new Date());
-    if (input.value === todayValue) display.textContent = 'Today';
+    if (!input.value) display.textContent = input.dataset.placeholder || 'Today';
+    else if (input.value === todayValue) display.textContent = 'Today';
     else {
       const parsed = parseDateValue(input.value);
-      display.textContent = parsed ? parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today';
+      display.textContent = parsed ? parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (input.dataset.placeholder || 'Today');
     }
   }
 
@@ -4540,9 +4577,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
     let html = '<div class="gp-calendar-head">' +
-      '<button class="gp-calendar-nav" type="button" data-cal-prev aria-label="Previous month"><i data-lucide="chevron-left" size="16"></i></button>' +
+      '<button class="gp-calendar-nav" type="button" data-cal-prev aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>' +
       '<span>' + monthTitle + '</span>' +
-      '<button class="gp-calendar-nav" type="button" data-cal-next aria-label="Next month"><i data-lucide="chevron-right" size="16"></i></button>' +
+      '<button class="gp-calendar-nav" type="button" data-cal-next aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>' +
       '</div><div class="gp-calendar-grid">';
 
     dayNames.forEach(day => { html += '<div class="gp-calendar-day-name">' + day + '</div>'; });
@@ -4558,10 +4595,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     html += '</div>';
     gpCalendar.innerHTML = html;
-    lucide.createIcons({ nodes: [gpCalendar] });
   }
 
   function openCalendar(input) {
+    if (!gpCalendar || !input) return;
     gpCalendarInput = input;
     gpCalendarMonth = parseDateValue(input.value) || parseDateValue(input.min) || new Date();
     renderCalendar();
@@ -4582,7 +4619,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.venue-date-input-wrap').forEach(wrap => {
     const input = wrap.querySelector('.gp-calendar-input');
     if (!input) return;
+    if (!wrap.hasAttribute('role')) wrap.setAttribute('role', 'button');
+    if (!wrap.hasAttribute('tabindex')) wrap.setAttribute('tabindex', '0');
     wrap.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openCalendar(input);
+    });
+    wrap.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
       event.stopPropagation();
       openCalendar(input);
@@ -5359,13 +5404,13 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 .attire-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
 }
 .attire-card {
   background: var(--panel);
-  border: 2px solid var(--line-soft);
-  border-radius: var(--radius-xl);
+  border: 1.5px solid var(--line-soft);
+  border-radius: 18px;
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
@@ -5386,7 +5431,7 @@ document.addEventListener('DOMContentLoaded', () => {
   pointer-events: none;
 }
 .attire-card-media {
-  aspect-ratio: 3/4;
+  aspect-ratio: 4/3;
   background: var(--cream);
   position: relative;
   overflow: hidden;
@@ -5420,33 +5465,38 @@ document.addEventListener('DOMContentLoaded', () => {
   border-radius: var(--radius-full);
 }
 .attire-card-body {
-  padding: 16px;
+  padding: 12px;
 }
 .attire-card-name {
   font-family: var(--font-serif);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--ink);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
+  line-height: 1.2;
 }
 .attire-card-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
-  line-height: 1.5;
-  margin-bottom: 10px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .attire-card-prices {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .attire-price-tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: var(--radius-full);
 }
 .attire-price-tag.is-borrow {
@@ -5457,40 +5507,66 @@ document.addEventListener('DOMContentLoaded', () => {
   background: rgba(212, 180, 106, 0.15);
   color: var(--gold);
 }
-.attire-card-select-hint {
-  display: block;
+.attire-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   margin-top: 10px;
-  font-size: 11px;
-  font-weight: 600;
+}
+.attire-card-action {
+  min-height: 34px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: #fffaf5;
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, color .18s, transform .18s;
+}
+.attire-card-action:hover {
+  transform: translateY(-1px);
+  border-color: var(--wine);
   color: var(--wine);
-  opacity: 0;
-  transition: opacity 0.2s;
 }
-.attire-card:hover .attire-card-select-hint {
-  opacity: 1;
+.attire-card-action.is-buy {
+  background: var(--wine);
+  border-color: var(--wine);
+  color: #fffaf5;
 }
-.attire-card.is-selected .attire-card-select-hint {
-  opacity: 0;
+.attire-card-action.is-buy:hover {
+  background: #5d3445;
+  color: #fffaf5;
 }
 .attire-card-check {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  right: 10px;
   color: var(--wine);
-  background: #fff;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  background: rgba(255,250,245,.96);
+  border: 1px solid rgba(109,76,91,.18);
+  border-radius: 999px;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   opacity: 0;
-  transform: scale(0.5);
-  transition: opacity 0.2s, transform 0.2s var(--ease-spring);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-4px) scale(.86);
+  transition: opacity 0.2s, transform 0.2s var(--ease-spring), background .2s, color .2s;
+  box-shadow: 0 10px 24px rgba(63,36,26,.10);
+}
+.attire-card-check svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.4;
 }
 .attire-card.is-selected .attire-card-check {
   opacity: 1;
-  transform: scale(1);
+  transform: translateY(0) scale(1);
+  background: var(--wine);
+  color: #fffaf5;
+  border-color: var(--wine);
 }
 
 /* ── Guest Count Bar ── */
@@ -5622,23 +5698,50 @@ document.addEventListener('DOMContentLoaded', () => {
   background: var(--wine-glow);
   color: var(--wine);
 }
+.attire-borrow-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(220px, .9fr);
+  gap: 14px;
+  align-items: start;
+}
+.attire-date-input-wrap {
+  width: 100%;
+  min-height: 46px;
+  border: 1.5px solid rgba(212,180,106,.34);
+  border-radius: 14px;
+  background: #fffaf5;
+  padding: 0 14px;
+  box-shadow: 0 10px 24px rgba(63,36,26,.05);
+}
+.attire-date-input-wrap .venue-date-display {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.attire-date-input-wrap .venue-date-icon,
+.attire-date-input-wrap .venue-date-chevron {
+  color: var(--wine);
+}
 .duration-options-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 104px));
+  justify-content: start;
   gap: 8px;
   margin-bottom: 16px;
 }
 .duration-option-btn {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border: 2px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--panel);
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line-soft);
+  border-radius: 14px;
+  background: #fffaf5;
   cursor: pointer;
   font-size: 14px;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.2s, background 0.2s, box-shadow .2s;
 }
 .duration-option-btn:hover {
   border-color: var(--wine);
@@ -5646,26 +5749,36 @@ document.addEventListener('DOMContentLoaded', () => {
 .duration-option-btn.is-active {
   border-color: var(--wine);
   background: var(--wine-glow);
+  box-shadow: 0 10px 22px rgba(109,76,91,.08);
 }
 .duration-option-btn .dur-days {
-  font-weight: 600;
+  font-weight: 800;
   color: var(--ink);
+  text-align: center;
+  font-size: 12px;
 }
 .duration-option-btn .dur-price {
   font-weight: 700;
   color: var(--wine);
+  font-size: 12px;
 }
 .rental-date-input {
   width: 100%;
+  min-height: 46px;
   padding: 10px 14px;
-  border: 2px solid var(--line);
-  border-radius: var(--radius-lg);
+  border: 1.5px solid rgba(212,180,106,.34);
+  border-radius: 14px;
   font-size: 14px;
-  background: var(--panel);
-  transition: border-color 0.2s;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fffaf5;
+  box-shadow: 0 10px 24px rgba(63,36,26,.05);
+  transition: border-color 0.2s, box-shadow .2s;
+  color-scheme: light;
 }
 .rental-date-input:focus {
   border-color: var(--wine);
+  box-shadow: 0 12px 28px rgba(109,76,91,.10);
   outline: none;
 }
 .rental-date-error {
@@ -5751,6 +5864,7 @@ document.addEventListener('DOMContentLoaded', () => {
   .attire-card-name { font-size: 14px; }
   .attire-card-desc { display: none; }
   .attire-card-select-hint { display: none; }
+  .attire-borrow-grid { grid-template-columns: 1fr; }
 }
 </style>
 <script>
@@ -5836,6 +5950,7 @@ if (registerBtn) {
   const attireSelectedPhoto = document.getElementById('attireSelectedPhoto');
   const attireSelectedName = document.getElementById('attireSelectedName');
   const attireSelectedDesc = document.getElementById('attireSelectedDesc');
+  const attireRentalTypeSection = document.getElementById('attireRentalTypeSection');
   const rentalBorrowBtn = document.getElementById('rentalBorrowBtn');
   const rentalBuyBtn = document.getElementById('rentalBuyBtn');
   const borrowSection = document.getElementById('borrowSection');
@@ -5866,6 +5981,10 @@ if (registerBtn) {
   const mobileBookPrice = document.getElementById('mobileBookPrice');
   const mobileBookLabel = document.getElementById('mobileBookLabel');
   const mobileBookBtn = document.getElementById('mobileBookBtn');
+  const resetBorrowDateDisplay = () => {
+    const display = borrowDateMain?.closest('.venue-date-input-wrap')?.querySelector('.venue-date-display');
+    if (display) display.textContent = borrowDateMain?.dataset.placeholder || 'Choose date';
+  };
 
   function clearRentalState() {
     selectedRentalType = null;
@@ -5884,7 +6003,7 @@ if (registerBtn) {
     if (cartRentalOptionId) cartRentalOptionId.value = '';
   }
 
-  function selectItem(idx) {
+  function selectItem(idx, preferredType = null) {
     if (idx < 0 || idx >= attireItems.length) return;
     const item = attireItems[idx];
     selectedAttireIdx = idx;
@@ -5927,8 +6046,14 @@ if (registerBtn) {
     const hasBuyPrice = Number(item.buy_package_price) > 0;
     if (rentalBorrowBtn) rentalBorrowBtn.style.display = hasRentalOptions ? '' : 'none';
     if (rentalBuyBtn) rentalBuyBtn.style.display = hasBuyPrice ? '' : 'none';
+    if (attireRentalTypeSection) attireRentalTypeSection.style.display = preferredType ? 'none' : '';
 
     clearRentalState();
+    if (preferredType === 'borrow') {
+      window.setTimeout(() => rentalBorrowBtn?.click(), 0);
+    } else if (preferredType === 'buy') {
+      window.setTimeout(() => rentalBuyBtn?.click(), 0);
+    }
 
     // Scroll to availability section on mobile
     if (window.innerWidth < 900) {
@@ -5942,6 +6067,16 @@ if (registerBtn) {
     card.addEventListener('click', function() {
       if (this.dataset.locked === '1') return;
       selectItem(Number(this.dataset.attireIdx));
+    });
+  });
+
+  document.querySelectorAll('[data-attire-action]').forEach(btn => {
+    btn.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const card = this.closest('[data-attire-card]');
+      if (!card || card.dataset.locked === '1') return;
+      selectItem(Number(card.dataset.attireIdx), this.dataset.attireAction);
     });
   });
 
@@ -5979,7 +6114,7 @@ if (registerBtn) {
           b.className = 'duration-option-btn';
           b.dataset.optionIdx = i;
           b.dataset.optionId = opt.id;
-          b.innerHTML = `<span class="dur-days">${opt.days} day${opt.days > 1 ? 's' : ''}</span><span class="dur-price">${money(opt.price)}</span>`;
+          b.innerHTML = `<span class="dur-days">${opt.days} day${opt.days > 1 ? 's' : ''}</span>`;
           b.addEventListener('click', function() {
             selectedRentalOptionId = Number(opt.id);
             if (cartRentalOptionId) cartRentalOptionId.value = opt.id;
@@ -5994,6 +6129,7 @@ if (registerBtn) {
             today.setDate(today.getDate() + minLeadDays);
             borrowDateMain.min = today.toISOString().split('T')[0];
             borrowDateMain.value = '';
+            resetBorrowDateDisplay();
             rentalDateSummaryMain.style.display = 'none';
             borrowDateErrorMain.style.display = 'none';
 
@@ -6006,6 +6142,9 @@ if (registerBtn) {
           });
           durationOptionsMain.appendChild(b);
         });
+        if (durationOptionsMain.firstElementChild) {
+          durationOptionsMain.firstElementChild.click();
+        }
       } else if (type === 'buy') {
         buySection.style.display = 'block';
         buyPriceMain.textContent = money(item.buy_package_price);

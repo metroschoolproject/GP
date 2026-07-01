@@ -57,25 +57,30 @@ $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
   --ease-expo: cubic-bezier(0.19, 1, 0.22, 1);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: var(--font-b); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-b); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
 a { color: inherit; text-decoration: none; }
 
 .gp-orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.3; z-index: 0; pointer-events: none; }
 .gp-orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(107,68,89,0.10) 0%, transparent 70%); top: -150px; right: -80px; }
 .gp-orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(184,146,74,0.08) 0%, transparent 70%); bottom: -100px; left: -80px; }
 
-.gp-checkout { position: relative; z-index: 1; width: 100%; max-width: 540px; }
-.gp-page-head { margin-bottom: 32px; text-align: center; }
+.gp-checkout { position: relative; z-index: 1; width: 100%; max-width: 1120px; }
+.gp-page-head { margin-bottom: 32px; text-align: left; }
 .gp-page-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
 .gp-page-title { font-family: var(--font-d); font-size: clamp(32px, 4.5vw, 48px); font-weight: 600; color: var(--text); line-height: 0.92; letter-spacing: -0.02em; }
 .gp-page-title em { font-style: italic; color: var(--plum-lt); }
 
-.gp-card { background: var(--card); border-radius: var(--r-lg); border: 1px solid var(--rule); overflow: hidden; box-shadow: 0 20px 60px rgba(26,17,24,0.08); }
+.gp-checkout-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start; }
+.gp-checkout-main, .gp-checkout-side { min-width: 0; }
+.gp-checkout-side { position: sticky; top: 28px; }
 
-.gp-card-head { padding: 24px; border-bottom: 1px solid var(--rule); position: relative; }
-.gp-card-head::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--plum) 0%, var(--rose) 50%, var(--gold) 100%); }
-.gp-card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-.gp-card-title { font-family: var(--font-d); font-size: 18px; font-weight: 600; color: var(--text); }
+.gp-card { background: var(--card); border-radius: var(--r-lg); border: 1px solid rgba(184,146,74,0.38); overflow: hidden; box-shadow: 0 20px 60px rgba(26,17,24,0.08); margin-bottom: 16px; }
+.gp-checkout-side .gp-card { min-height: 420px; display: flex; flex-direction: column; }
+.gp-checkout-side .gp-card-body { flex: 1; }
+
+.gp-card-head { padding: 20px 24px; border-bottom: 1px solid var(--rule); position: relative; background: transparent; }
+.gp-card-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.gp-card-title { font-family: var(--font-b); font-size: 17px; font-weight: 600; color: var(--plum); }
 .gp-card-ref { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 .gp-card-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
@@ -88,6 +93,9 @@ a { color: inherit; text-decoration: none; }
 .gp-summary-row.deposit { color: var(--plum); font-weight: 600; }
 .gp-summary-row.balance { color: var(--muted); font-size: 12px; }
 .gp-summary-divider { height: 1px; background: var(--rule); }
+.gp-summary-highlight { padding: 18px 16px; border-radius: 12px; border: 1px solid rgba(22,101,52,0.18); background: #f0fdf4; }
+.gp-summary-highlight .gp-summary-title { color: var(--green); margin-bottom: 8px; }
+.gp-summary-amount { font-family: var(--font-b); font-size: 26px; font-weight: 600; line-height: 1.25; color: var(--text); }
 
 .gp-divider { height: 1px; background: var(--rule); }
 
@@ -119,16 +127,8 @@ a { color: inherit; text-decoration: none; }
 .gp-pay-btn:hover { background: var(--plum-dk); transform: translateY(-2px); box-shadow: 0 18px 40px rgba(107,68,89,0.32); }
 .gp-pay-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-.gp-btn-back {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  width: 100%; height: 42px; border-radius: var(--r-md);
-  border: 1px solid var(--rule-strong);
-  background: transparent; color: var(--text2);
-  font-size: 13px; font-weight: 600;
-  transition: all 0.22s;
-  margin-top: 8px;
-}
-.gp-btn-back:hover { border-color: var(--plum); color: var(--plum); }
+.gp-btn-back { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; min-width: 142px; height: 36px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(184,146,74,0.58); background: rgba(255,250,245,0.62); color: #7a5c35; font-size: 12px; font-weight: 700; transition: all 0.22s; margin-bottom: 18px; }
+.gp-btn-back:hover { background: #fffaf5; border-color: var(--gold); color: var(--plum); transform: translateY(-1px); }
 
 .gp-trust-footer { display: flex; flex-direction: column; gap: 8px; padding: 20px 24px; border-top: 1px solid var(--rule); }
 .gp-trust-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
@@ -144,6 +144,8 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 600px) {
   body { padding: 20px 16px; }
+  .gp-checkout-layout { grid-template-columns: 1fr; }
+  .gp-checkout-side { position: static; order: -1; }
   .gp-card-body { padding: 16px; }
 }
 </style>
@@ -155,97 +157,110 @@ a { color: inherit; text-decoration: none; }
 
 <div class="gp-checkout">
 
+  <a class="gp-btn-back" href="<?= URLROOT ?>/booking/create">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to confirm
+  </a>
+
   <div class="gp-page-head">
     <div class="gp-page-eyebrow">Secure Checkout</div>
     <h1 class="gp-page-title">Complete Your <em>Payment</em></h1>
   </div>
 
-  <div class="gp-card" id="payment-card">
-    <div class="gp-card-head">
-      <div class="gp-card-label">Payment Summary</div>
-      <div class="gp-card-title">Booking <?= $h($bookingRef) ?></div>
-      <div class="gp-card-ref">Deposit of <?= $depositPercent ?>% secures your date</div>
-    </div>
-
-    <div class="gp-card-body" style="position:relative;">
-
-      <!-- Overlay during processing -->
-      <div id="payment-overlay">
-        <div style="text-align:center;color:var(--plum);">
-          <div class="gp-spinner" style="border-color:rgba(107,68,89,0.2);border-top-color:var(--plum);width:32px;height:32px;margin:0 auto 12px;"></div>
-          <div style="font-weight:600;font-size:14px;">Processing payment…</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px;">Please don't close this page</div>
+  <div class="gp-checkout-layout">
+    <div class="gp-checkout-main">
+      <div class="gp-card" id="payment-card">
+        <div class="gp-card-head">
+          <div class="gp-card-title">Credit / Debit Card</div>
+          <div class="gp-card-ref">Powered by Stripe</div>
         </div>
-      </div>
 
-      <!-- Summary -->
-      <div class="gp-summary-section">
-        <div class="gp-summary-title">Your selection</div>
-        <div class="gp-summary-items">
-          <?php foreach ($items as $item):
-            $linePrice = (float)($item['price'] ?? 0);
-            $lineName  = $item['service_name'] ?? 'Service';
-            $lineHall = trim((string)($item['venue_room_name'] ?? ''));
-          ?>
-          <div class="gp-summary-row">
-            <span>
-              <?= $h($lineName) ?>
-              <?php if ($lineHall !== ''): ?>
-                <br><small style="color:var(--muted);font-size:11px;">Hall: <?= $h($lineHall) ?></small>
-              <?php endif; ?>
-            </span>
-            <span><?= $money($linePrice) ?></span>
+        <div class="gp-card-body" style="position:relative;">
+
+          <!-- Overlay during processing -->
+          <div id="payment-overlay">
+            <div style="text-align:center;color:var(--plum);">
+              <div class="gp-spinner" style="border-color:rgba(107,68,89,0.2);border-top-color:var(--plum);width:32px;height:32px;margin:0 auto 12px;"></div>
+              <div style="font-weight:600;font-size:14px;">Processing payment…</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:4px;">Please don't close this page</div>
+            </div>
           </div>
-          <?php endforeach; ?>
-          <div class="gp-summary-divider"></div>
-          <div class="gp-summary-row">
-            <span>Total</span>
-            <span><?= $money($total) ?></span>
+
+          <!-- Payment -->
+          <div class="gp-payment-section">
+            <div class="gp-payment-title">
+              <span>💳 Credit / Debit Card</span>
+            </div>
+            <form id="payment-form">
+              <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
+              <div id="stripe-card-element"></div>
+              <div id="card-errors" role="alert"></div>
+              <button class="gp-pay-btn" type="submit" id="pay-button" style="margin-top:16px;">
+                Pay Deposit — <?= $money($deposit) ?>
+              </button>
+            </form>
           </div>
-          <div class="gp-summary-row deposit">
-            <span>Today's deposit (<?= $depositPercent ?>%)</span>
-            <span><?= $money($deposit) ?></span>
+
+        </div>
+
+        <div class="gp-trust-footer">
+          <div class="gp-trust-item">
+            <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            🔒 Powered by Stripe — your card is charged immediately
           </div>
-          <div class="gp-summary-row balance">
-            <span>Balance due</span>
-            <span><?= $money($balance) ?></span>
+          <div class="gp-trust-item">
+            <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            The balance is not collected now
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="gp-divider"></div>
-
-      <!-- Payment -->
-      <div class="gp-payment-section">
-        <div class="gp-payment-title">
-          <span>💳 Credit / Debit Card</span>
+    <aside class="gp-checkout-side">
+      <div class="gp-card">
+        <div class="gp-card-head">
+          <div class="gp-card-label">Payment Summary</div>
+          <div class="gp-card-title">Booking <?= $h($bookingRef) ?></div>
+          <div class="gp-card-ref">Deposit of <?= $depositPercent ?>% secures your date</div>
         </div>
-        <form id="payment-form">
-          <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
-          <div id="stripe-card-element"></div>
-          <div id="card-errors" role="alert"></div>
-          <button class="gp-pay-btn" type="submit" id="pay-button" style="margin-top:16px;">
-            Pay Deposit — <?= $money($deposit) ?>
-          </button>
-        </form>
-        <a class="gp-btn-back" href="<?= URLROOT ?>/booking/create">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          Back to confirm
-        </a>
+        <div class="gp-card-body">
+          <!-- Summary -->
+          <div class="gp-summary-section">
+            <div class="gp-summary-title">Your selection</div>
+            <div class="gp-summary-items">
+              <?php foreach ($items as $item):
+                $linePrice = (float)($item['price'] ?? 0);
+                $lineName  = $item['service_name'] ?? 'Service';
+                $lineHall = trim((string)($item['venue_room_name'] ?? ''));
+              ?>
+              <div class="gp-summary-row">
+                <span>
+                  <?= $h($lineName) ?>
+                  <?php if ($lineHall !== ''): ?>
+                    <br><small style="color:var(--muted);font-size:11px;">Hall: <?= $h($lineHall) ?></small>
+                  <?php endif; ?>
+                </span>
+                <span><?= $money($linePrice) ?></span>
+              </div>
+              <?php endforeach; ?>
+              <div class="gp-summary-divider"></div>
+              <div class="gp-summary-row">
+                <span>Total</span>
+                <span><?= $money($total) ?></span>
+              </div>
+              <div class="gp-summary-highlight">
+                <div class="gp-summary-title">Today's Deposit (<?= $depositPercent ?>%)</div>
+                <div class="gp-summary-amount"><?= $money($deposit) ?></div>
+              </div>
+              <div class="gp-summary-row balance">
+                <span>Balance due</span>
+                <span><?= $money($balance) ?></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-    </div>
-
-    <div class="gp-trust-footer">
-      <div class="gp-trust-item">
-        <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        🔒 Powered by Stripe — your card is charged immediately
-      </div>
-      <div class="gp-trust-item">
-        <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        The balance is not collected now
-      </div>
-    </div>
+    </aside>
   </div>
 </div>
 

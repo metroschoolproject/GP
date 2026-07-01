@@ -21,6 +21,14 @@ $bankIcons = [
     'CB Bank'           => '🟢',
     'Visa / MasterCard' => '💳',
 ];
+$bankLogos = [
+    'KBZ Pay'           => URLROOT . '/app/views/main/images/kbzLogo.png',
+    'Wave Money'        => URLROOT . '/app/views/main/images/waveLogo.jpeg',
+    'AYA Pay'           => URLROOT . '/app/views/main/images/ayaLogo.png',
+    'Yoma Bank'         => URLROOT . '/app/views/main/images/yomaLogo.png',
+    'CB Bank'           => URLROOT . '/app/views/main/images/CBLogo.jpg',
+    'Visa / MasterCard' => URLROOT . '/app/views/main/images/visaLogo.png',
+];
 $flash = $_SESSION['remaining_payment_flash'] ?? '';
 unset($_SESSION['remaining_payment_flash']);
 ?>
@@ -33,60 +41,95 @@ unset($_SESSION['remaining_payment_flash']);
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <style>
-:root{--bg:#f2e4d4;--surface:#faf6f1;--card:#fcf8f5;--rule:rgba(178,143,110,.22);--plum:#6b4459;--plum-lt:#9b7289;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--green:#166534;--blue:#2563eb}
+:root{--bg:#fbeee0;--surface:#faf6f1;--card:#fcf8f5;--rule:rgba(178,143,110,.22);--rule-s:rgba(178,143,110,.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--green:#166534;--blue:#2563eb;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Poppins',system-ui,sans-serif;font-size:14px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
 a{color:inherit;text-decoration:none}
 
-.checkout{position:relative;z-index:1;width:100%;max-width:560px}
-.page-head{margin-bottom:28px;text-align:center}
+.checkout{position:relative;z-index:1;width:100%;max-width:1120px}
+.page-head{margin-bottom:28px;text-align:left}
 .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
-.page-title{font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,4vw,38px);font-weight:600;color:var(--text);line-height:.95}
+.page-title{font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,4vw,42px);font-weight:600;color:var(--text);line-height:.95;letter-spacing:-.02em}
+.page-title em{font-style:italic;color:var(--plum-lt)}
 
-.card{background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
-.card-head{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.checkout-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:22px;align-items:start}
+.checkout-main,.checkout-side{min-width:0}
+.checkout-side{position:sticky;top:28px}
+.checkout-side .card:first-child{min-height:420px;display:flex;flex-direction:column}
+.checkout-side .card:first-child .card-body{flex:1}
+.card{background:var(--card);border:1px solid rgba(184,146,74,.38);border-radius:20px;padding:0;margin-bottom:18px;box-shadow:0 20px 60px rgba(26,17,24,.08);overflow:hidden}
+.card-head{font-family:'Poppins',system-ui,sans-serif;font-size:17px;font-weight:600;color:var(--plum);padding:20px 24px;border-bottom:1px solid var(--rule);background:transparent}
+.card-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.card-subline{margin-top:5px;font-size:12px;font-weight:600;color:var(--gold)}
+.card-body{padding:22px 24px;display:flex;flex-direction:column;gap:18px}
 
-.summary-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}
-.summary-row.total{font-weight:700;color:var(--plum);border-top:1px solid var(--rule);padding-top:10px;margin-top:4px}
+.summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:6px 0;font-size:13px;color:var(--text2)}
+.summary-row strong,.summary-row span:last-child{color:var(--text);font-weight:600}
+.summary-row.total{font-weight:600;color:var(--text);border-top:1px solid var(--rule);padding-top:12px;margin-top:4px}
+.summary-highlight{padding:18px 16px;border-radius:12px;border:1px solid rgba(22,101,52,.18);background:#f0fdf4}
+.summary-highlight-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+.summary-highlight-amount{font-size:26px;font-weight:600;line-height:1.25;color:var(--text)}
+.summary-note{margin-top:auto;padding-top:14px;border-top:1px solid var(--rule);color:#8e7680;font-size:12px;line-height:1.7}
 
-.bank-grid{display:grid;gap:8px}
-.bank-option{display:flex;align-items:center;gap:12px;padding:12px 16px;border:2px solid var(--rule);border-radius:12px;cursor:pointer;transition:all .15s;background:#fff}
-.bank-option:hover{border-color:var(--plum-lt)}
-.bank-option.selected{border-color:var(--plum);background:rgba(107,68,89,.04)}
+.bank-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bank-option{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:94px;padding:10px 8px;border:2px solid var(--rule);border-radius:12px;cursor:pointer;transition:all .22s;background:transparent;text-align:center}
+.bank-option:hover{border-color:var(--plum);background:rgba(107,68,89,.05)}
+.bank-option.selected{border-color:var(--plum);background:rgba(107,68,89,.14)}
 .bank-option input{display:none}
-.bank-icon{font-size:20px;width:28px;text-align:center}
-.bank-info{flex:1}
-.bank-name{font-weight:700;font-size:13px;color:var(--text)}
-.bank-acct{font-size:12px;color:var(--muted);font-family:monospace}
-.bank-check{width:20px;height:20px;border:2px solid var(--rule);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.bank-option.selected .bank-check{border-color:var(--plum);background:var(--plum);color:#fff}
+.bank-icon{display:grid;place-items:center;width:40px;height:40px;border:0;background:transparent;border-radius:0;font-size:20px;overflow:visible}
+.bank-logo{display:block;max-width:36px;max-height:36px;width:auto;height:auto;object-fit:contain}
+.bank-info{display:grid;gap:2px;justify-items:center;min-width:0}
+.bank-name{font-weight:600;font-size:10px;color:var(--text2);line-height:1.25}
+.bank-acct{font-size:9px;color:var(--muted);font-family:monospace;line-height:1.25;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bank-check{display:none}
+.account-box{border:1px solid var(--rule-s);border-radius:var(--r-md);background:var(--surface);padding:14px 16px;display:none}
+.account-box.show{display:block}
+.account-title{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.account-rows{display:flex;flex-direction:column;gap:7px}
+.account-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;padding-bottom:7px;border-bottom:1px solid var(--rule)}
+.account-row:last-child{border-bottom:none;padding-bottom:0}
+.account-row dt{color:var(--muted);font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.account-row dd{margin:0;font-weight:600;color:var(--text);font-family:monospace;font-size:13px}
 
-.field{margin-bottom:14px}
-.field label{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.field input,.field select{width:100%;height:44px;border:1px solid var(--rule);border-radius:10px;padding:0 14px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;outline:none;transition:border-color .2s}
-.field input:focus,.field select:focus{border-color:var(--plum)}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:0}
+.field label{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.field input,.field select{width:100%;height:48px;border:1px solid var(--rule-s);border-radius:12px;padding:0 14px;font-size:13px;font-family:inherit;color:var(--text);background:var(--card);outline:none;transition:border-color .18s,box-shadow .18s,background .18s}
+.field input:focus,.field select:focus{border-color:var(--gold);background:rgba(107,68,89,.055);box-shadow:0 0 0 3px rgba(184,146,74,.12),0 8px 20px rgba(184,146,74,.08)}
+.field:hover input,.field:hover select{border-color:rgba(184,146,74,.46);background:rgba(107,68,89,.035)}
 .field input[readonly]{background:var(--surface);color:var(--muted)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 
-.btn-primary{display:flex;align-items:center;justify-content:center;width:100%;height:48px;border:0;border-radius:12px;background:var(--plum);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .2s}
-.btn-primary:hover{opacity:.9}
+.btn-primary{display:flex;align-items:center;justify-content:center;width:100%;height:50px;border:0;border-radius:var(--r-md);background:var(--plum);color:#fffaf3;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .25s;box-shadow:0 10px 28px rgba(107,68,89,.28)}
+.btn-primary:hover{background:var(--plum-dk);transform:translateY(-2px);box-shadow:0 18px 40px rgba(107,68,89,.32)}
 .btn-primary:disabled{opacity:.5;cursor:default}
 
 .flash{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#991b1b}
 
-.back-link{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:20px}
-.back-link:hover{color:var(--plum)}
+.back-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:142px;height:36px;padding:0 16px;border-radius:999px;border:1px solid rgba(184,146,74,.58);background:rgba(255,250,245,.62);color:#7a5c35;font-size:12px;font-weight:700;transition:all .22s;margin-bottom:18px}
+.back-link:hover{background:#fffaf5;border-color:var(--gold);color:var(--plum);transform:translateY(-1px)}
 
-.tip{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:14px 18px;margin-top:12px;font-size:12px;color:var(--muted);line-height:1.7}
-
-.quick-fill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--rule);border-radius:8px;background:#fff;font-size:11px;font-weight:600;color:var(--plum);cursor:pointer;transition:all .15s;margin-top:6px}
-.quick-fill:hover{border-color:var(--plum);background:rgba(107,68,89,.04)}
+.tip{background:#fffdf4;border:1px solid rgba(184,146,74,.42);border-radius:var(--r-sm);padding:12px 14px;margin-top:0;font-size:12px;color:#7a5c35;line-height:1.55;box-shadow:0 8px 20px rgba(184,146,74,.08)}
 
 .amount-hint{font-size:11px;color:var(--muted);margin-top:4px}
 .amount-error{font-size:11px;color:#991b1b;margin-top:4px;display:none}
+.file-upload{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:16px;min-height:76px;padding:12px 18px;border:1px dashed rgba(178,143,110,.58);border-radius:14px;background:#fffaf5;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
+.file-upload:hover{border-color:var(--plum);background:rgba(107,68,89,.04);box-shadow:0 8px 22px rgba(44,36,32,.06)}
+.file-upload-icon{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text);font-size:11px;font-weight:600}
+.file-upload-icon svg{width:22px;height:22px;stroke:currentColor;stroke-width:1.9}
+.file-upload-text{text-align:center;justify-self:center}
+.file-upload-text strong{display:block;font-size:13px;font-weight:500;color:var(--text);line-height:1.35;margin-bottom:3px}
+.file-upload-text small{display:block;font-size:11px;color:var(--muted);text-align:center}
+.file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);font-size:12px}
 .history-item:last-child{border-bottom:none}
 .history-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+@media(max-width:760px){
+  .checkout-layout{grid-template-columns:1fr}
+  .checkout-side{position:static;order:-1}
+  .bank-grid{grid-template-columns:repeat(2,1fr)}
+  .field-row{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -108,115 +151,177 @@ a{color:inherit;text-decoration:none}
   </div>
   <?php endif; ?>
 
-  <!-- Summary -->
-  <div class="card">
-    <div class="card-head">Booking #<?= $h($bookingRef) ?></div>
-    <div class="summary-row"><span>Booking total</span><span><?= $money($total) ?></span></div>
-    <div class="summary-row"><span>Already paid</span><span><?= $money($paid) ?></span></div>
-    <div class="summary-row total"><span>Remaining balance</span><span><?= $money($balance) ?></span></div>
-    <?php if ($eventDate): ?>
-    <div class="summary-row" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--rule);">
-      <span style="color:#b8924a;font-weight:600;">Due Date</span>
-      <span style="font-weight:700;color:#b8924a;"><?= date('M d, Y', strtotime($eventDate)) ?></span>
-    </div>
-    <?php endif; ?>
-  </div>
+  <div class="checkout-layout">
+    <div class="checkout-main">
+      <!-- Bank selection -->
+      <form method="POST" action="<?= URLROOT ?>/booking/submitRemainingPayment" enctype="multipart/form-data" id="paymentForm">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
 
-  <?php if (!empty($remainingPayments)): ?>
-  <!-- Payment History -->
-  <div class="card">
-    <div class="card-head">Payment History</div>
-    <?php foreach ($remainingPayments as $rp): ?>
-    <div class="history-item">
-      <div>
-        <span style="font-weight:600;"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
-        <?php if (($rp['bank_name'] ?? '') !== ''): ?>
-        <span style="color:var(--muted);margin-left:8px;"><?= $h($rp['bank_name']) ?></span>
-        <?php endif; ?>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-weight:700;"><?= $money($rp['paid_amount'] ?? $rp['amount']) ?></span>
-        <?php
-          $rpStatus = $rp['status'] ?? 'pending';
-          $rpColors = [
-            'success' => ['bg' => '#f0fdf4', 'color' => '#166534', 'label' => 'Verified'],
-            'pending' => ['bg' => '#fffbeb', 'color' => '#92400e', 'label' => 'Under Review'],
-            'failed'  => ['bg' => '#fef2f2', 'color' => '#991b1b', 'label' => 'Rejected'],
-          ];
-          $rpSt = $rpColors[$rpStatus] ?? $rpColors['pending'];
-        ?>
-        <span class="history-status" style="background:<?= $rpSt['bg'] ?>;color:<?= $rpSt['color'] ?>;"><?= $rpSt['label'] ?></span>
-      </div>
-    </div>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
-
-  <!-- Bank selection -->
-  <form method="POST" action="<?= URLROOT ?>/booking/submitRemainingPayment" enctype="multipart/form-data" id="paymentForm">
-    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
-    <input type="hidden" name="booking_id" value="<?= (int)($booking['id'] ?? 0) ?>">
-
-    <div class="card">
-      <div class="card-head">Transfer to Golden Promise</div>
-      <div class="bank-grid">
-        <?php foreach ($banks as $bankName => $info): ?>
-        <label class="bank-option" data-bank="<?= $h($bankName) ?>">
-          <input type="radio" name="bank_name" value="<?= $h($bankName) ?>" required>
-          <span class="bank-icon"><?= $bankIcons[$bankName] ?? '🏦' ?></span>
-          <div class="bank-info">
-            <div class="bank-name"><?= $h($bankName) ?></div>
-            <div class="bank-acct"><?= $h($info['account']) ?> — <?= $h($info['name']) ?></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-label">Payment Method</div>
+            Transfer to Golden Promise
           </div>
-          <span class="bank-check">✓</span>
-        </label>
-        <?php endforeach; ?>
-      </div>
+          <div class="card-body">
+            <div class="bank-grid">
+              <?php foreach ($banks as $bankName => $info): ?>
+              <label class="bank-option" data-bank="<?= $h($bankName) ?>">
+                <input type="radio" name="bank_name" value="<?= $h($bankName) ?>" required>
+                <span class="bank-icon">
+                  <?php if (!empty($bankLogos[$bankName])): ?>
+                    <img class="bank-logo" src="<?= $h($bankLogos[$bankName]) ?>" alt="<?= $h($bankName) ?> logo" loading="lazy">
+                  <?php else: ?>
+                    <?= $bankIcons[$bankName] ?? '🏦' ?>
+                  <?php endif; ?>
+                </span>
+                <div class="bank-info">
+                  <div class="bank-name"><?= $h($bankName) ?></div>
+                </div>
+              </label>
+              <?php endforeach; ?>
+            </div>
+
+            <?php foreach ($banks as $bankName => $info): ?>
+            <?php $safeId = preg_replace('/[^a-z0-9]/', '-', strtolower($bankName)); ?>
+            <div class="account-box" id="acct-<?= $safeId ?>">
+              <div class="account-title">Payment Details</div>
+              <dl class="account-rows">
+                <div class="account-row"><dt>Bank</dt><dd><?= $h($bankName) ?></dd></div>
+                <div class="account-row"><dt>Account Name</dt><dd><?= $h($info['name'] ?? '') ?></dd></div>
+                <div class="account-row"><dt>Account / Number</dt><dd><?= $h($info['account'] ?? '') ?></dd></div>
+              </dl>
+            </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+
+        <!-- Transfer details -->
+        <div class="card" id="remainingTransferCard" style="display:none">
+          <div class="card-head">
+            <div class="card-label">Payment Proof</div>
+            Your Transfer Details
+          </div>
+          <div class="card-body">
+            <div class="field-row">
+              <div class="field">
+                <label>Your Account Name</label>
+                <input type="text" name="account_name" placeholder="Name on your account" required>
+              </div>
+
+              <div class="field">
+                <label>Phone / Account Number</label>
+                <input type="text" name="mobile_number" placeholder="09-XXX-XXXXXXX" required>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label>Transaction Reference / ID</label>
+                <input type="text" name="transaction_ref" placeholder="e.g., TXN123456789" required>
+              </div>
+
+              <div class="field">
+                <label>Amount to Transfer</label>
+                <input type="text" name="paid_amount" id="paidAmount" placeholder="Enter amount" required
+                       inputmode="numeric"
+                       value="<?= number_format($balance, 0, '.', '') ?>">
+                <div class="amount-hint">Min: <?= $money($minPayment) ?> · Max: <?= $money($balance) ?></div>
+                <div class="amount-error" id="amountError"></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Payment Slip <span style="color:var(--danger)">*</span></label>
+              <label class="file-upload" for="remainingSlipImage">
+                <span class="file-upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 16V4"></path>
+                    <path d="m7 9 5-5 5 5"></path>
+                    <path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"></path>
+                  </svg>
+                  Upload
+                </span>
+                <span class="file-upload-text">
+                  <strong id="remainingSlipName">Drag &amp; drop or click to upload your transfer slip</strong>
+                  <small>JPG, PNG, WebP or PDF accepted</small>
+                </span>
+              </label>
+              <input class="file-input" type="file" id="remainingSlipImage" name="slip_image" accept="image/jpeg,image/png,image/webp,application/pdf" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="tip">
+          You can pay any amount you want (minimum <?= $money($minPayment) ?>) toward your remaining balance. You can make multiple payments until the full balance is paid. After submitting, our team will verify your transfer (usually within a few hours).
+        </div>
+
+        <div style="margin-top:16px">
+          <button type="submit" class="btn-primary" id="submitBtn" <?= $hasPendingRemaining ? 'disabled' : '' ?>>Submit Payment</button>
+        </div>
+      </form>
     </div>
 
-    <!-- Transfer details -->
-    <div class="card">
-      <div class="card-head">Your Transfer Details</div>
-
-      <div class="field">
-        <label>Amount to Transfer</label>
-        <input type="text" name="paid_amount" id="paidAmount" placeholder="Enter amount" required
-               inputmode="numeric"
-               value="<?= number_format($balance, 0, '.', '') ?>">
-        <div class="amount-hint">Min: <?= $money($minPayment) ?> · Max: <?= $money($balance) ?></div>
-        <div class="amount-error" id="amountError"></div>
-        <button type="button" class="quick-fill" id="payFullBtn">Pay full balance (<?= $money($balance) ?>)</button>
+    <aside class="checkout-side">
+      <!-- Summary -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-label">Payment Overview</div>
+          Booking #<?= $h($bookingRef) ?>
+          <?php if ($eventDate): ?>
+            <div class="card-subline">Due Date : <?= date('M d, Y', strtotime($eventDate)) ?></div>
+          <?php endif; ?>
+        </div>
+        <div class="card-body">
+          <div class="summary-row"><span>Booking total</span><span><?= $money($total) ?></span></div>
+          <div class="summary-row"><span>Already paid</span><span><?= $money($paid) ?></span></div>
+          <div class="summary-highlight">
+            <div class="summary-highlight-label">Amount to Transfer</div>
+            <div class="summary-highlight-amount"><?= $money($balance) ?></div>
+          </div>
+          <div class="summary-row total"><span>Remaining balance</span><span><?= $money($balance) ?></span></div>
+          <div class="summary-note">
+            Submit your remaining payment proof after transfer. Our team will verify it before marking the booking fully paid.
+          </div>
+        </div>
       </div>
 
-      <div class="field">
-        <label>Your Account Name</label>
-        <input type="text" name="account_name" placeholder="Name on your account" required>
+      <?php if (!empty($remainingPayments)): ?>
+      <!-- Payment History -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-label">Previous Transfers</div>
+          Payment History
+        </div>
+        <div class="card-body">
+          <?php foreach ($remainingPayments as $rp): ?>
+          <div class="history-item">
+            <div>
+              <span style="font-weight:600;"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
+              <?php if (($rp['bank_name'] ?? '') !== ''): ?>
+              <span style="color:var(--muted);margin-left:8px;"><?= $h($rp['bank_name']) ?></span>
+              <?php endif; ?>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-weight:700;"><?= $money($rp['paid_amount'] ?? $rp['amount']) ?></span>
+              <?php
+                $rpStatus = $rp['status'] ?? 'pending';
+                $rpColors = [
+                  'success' => ['bg' => '#f0fdf4', 'color' => '#166534', 'label' => 'Verified'],
+                  'pending' => ['bg' => '#fffbeb', 'color' => '#92400e', 'label' => 'Under Review'],
+                  'failed'  => ['bg' => '#fef2f2', 'color' => '#991b1b', 'label' => 'Rejected'],
+                ];
+                $rpSt = $rpColors[$rpStatus] ?? $rpColors['pending'];
+              ?>
+              <span class="history-status" style="background:<?= $rpSt['bg'] ?>;color:<?= $rpSt['color'] ?>;"><?= $rpSt['label'] ?></span>
+            </div>
+          </div>
+          <?php endforeach; ?>
+        </div>
       </div>
-
-      <div class="field">
-        <label>Phone / Account Number</label>
-        <input type="text" name="mobile_number" placeholder="09-XXX-XXXXXXX" required>
-      </div>
-
-      <div class="field">
-        <label>Transaction Reference / ID</label>
-        <input type="text" name="transaction_ref" placeholder="e.g., TXN123456789" required>
-      </div>
-
-      <div class="field">
-        <label>Payment Slip (JPG, PNG, WebP, or PDF)</label>
-        <input type="file" name="slip_image" accept="image/jpeg,image/png,image/webp,application/pdf" required>
-      </div>
-    </div>
-
-    <div class="tip">
-      You can pay any amount you want (minimum <?= $money($minPayment) ?>) toward your remaining balance. You can make multiple payments until the full balance is paid. After submitting, our team will verify your transfer (usually within a few hours).
-    </div>
-
-    <div style="margin-top:16px">
-      <button type="submit" class="btn-primary" id="submitBtn" <?= $hasPendingRemaining ? 'disabled' : '' ?>>Submit Payment</button>
-    </div>
-  </form>
+      <?php endif; ?>
+    </aside>
+  </div>
 </div>
 
 <script>
@@ -225,21 +330,28 @@ const minPayment = <?= $minPayment ?>;
 const amountInput = document.getElementById('paidAmount');
 const amountError = document.getElementById('amountError');
 const submitBtn = document.getElementById('submitBtn');
-const payFullBtn = document.getElementById('payFullBtn');
+const remainingSlipInput = document.getElementById('remainingSlipImage');
+const remainingSlipName = document.getElementById('remainingSlipName');
+const remainingTransferCard = document.getElementById('remainingTransferCard');
+
+function safeId(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+}
 
 // Bank selection visual toggle
 document.querySelectorAll('.bank-option').forEach(el => {
   el.addEventListener('click', () => {
     document.querySelectorAll('.bank-option').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.account-box').forEach(box => box.classList.remove('show'));
     el.classList.add('selected');
     el.querySelector('input').checked = true;
+    const box = document.getElementById('acct-' + safeId(el.dataset.bank || ''));
+    if (box) box.classList.add('show');
+    if (remainingTransferCard) {
+      remainingTransferCard.style.display = 'block';
+      remainingTransferCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   });
-});
-
-// Quick fill full balance
-payFullBtn.addEventListener('click', () => {
-  amountInput.value = Math.round(balance).toLocaleString();
-  validateAmount();
 });
 
 // Format number with commas on blur
@@ -274,6 +386,12 @@ function validateAmount() {
 }
 
 amountInput.addEventListener('input', validateAmount);
+
+if (remainingSlipInput && remainingSlipName) {
+  remainingSlipInput.addEventListener('change', function () {
+    remainingSlipName.textContent = this.files[0] ? this.files[0].name : 'Drag & drop or click to upload your transfer slip';
+  });
+}
 
 // Form submit — set clean numeric value
 document.getElementById('paymentForm').addEventListener('submit', () => {

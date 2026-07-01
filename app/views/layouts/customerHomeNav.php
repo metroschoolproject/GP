@@ -38,7 +38,7 @@ $gpNavEsc = function ($value) {
 .nav-links a:hover,.nav-links a.active{background:transparent;color:#3f2f24}
 .nav-actions{display:flex;align-items:center;gap:8px;margin-left:auto;font-family:'Playfair Display',Georgia,serif}
 .nav-partner,.nav-login{display:inline-flex;align-items:center;justify-content:center;min-height:31px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;transition:all .3s ease;letter-spacing:0.04em}
-.nav-partner{padding:8px 16px;background:#3f241a;color:#fff8ef;box-shadow:0 10px 25px rgba(63,36,26,.24)}
+.nav-partner{padding:8px 16px;background:#6d4c5B;color:#fff8ef;box-shadow:0 10px 25px rgba(63,36,26,.24)}
 .nav-partner:hover{transform:translateY(-2px);background:#4a2d22;color:#fff8ef}
 .nav-login{padding:8px 16px;background:#fff8ef;color:#3f2f24}
 .nav-login:hover{background:#f3d9a4;color:#3f2f24}

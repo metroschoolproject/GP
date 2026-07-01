@@ -77,15 +77,19 @@ a{color:inherit;text-decoration:none}
 .gp-back a{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);transition:color .2s}
 .gp-back a:hover{color:var(--plum)}
 
-.gp-detail-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 22px;padding-top:2px}
-.gp-detail-topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.gp-detail-topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-.gp-detail-topbar-actions .gp-btn-sm,.gp-detail-topbar-actions .gp-badge{background:rgba(252,248,245,.62)}
+.gp-detail-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 22px;padding-top:2px}
+.gp-detail-topbar-left{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;flex-direction:column;flex:1;min-width:0}
+.gp-detail-topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.gp-detail-topbar-actions .gp-btn-sm,.gp-detail-topbar-actions .gp-badge{min-height:38px;padding:9px 16px;background:rgba(252,248,245,.62);border-radius:999px;font-size:12px}
 .gp-detail-topbar-actions .gp-btn-sm.primary{background:var(--plum);color:#fffaf5;border-color:var(--plum)}
-.gp-detail-topbar-actions .gp-btn-sm.danger{background:rgba(252,248,245,.68)}
+.gp-detail-topbar-actions .gp-btn-sm.primary,.gp-detail-topbar-actions .gp-btn-sm.is-disabled{min-width:132px;justify-content:center}
+.gp-detail-topbar-actions .gp-btn-sm.is-disabled{cursor:default;pointer-events:none;background:rgba(252,248,245,.38);border-color:rgba(178,143,110,.18);color:rgba(92,74,84,.48);backdrop-filter:blur(8px);box-shadow:inset 0 0 18px rgba(255,250,245,.36)}
+.gp-detail-topbar-actions .gp-btn-sm.danger{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
 .gp-detail-topbar-actions .gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
-.gp-detail-back{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:8px 14px;border-radius:999px;border:1px solid rgba(178,143,110,.26);background:rgba(252,248,245,.52);color:var(--muted);font-size:12px;font-weight:700;transition:all .18s}
-.gp-detail-back:hover{border-color:var(--plum);color:var(--plum);background:rgba(252,248,245,.84)}
+.gp-detail-back{display:inline-flex;align-items:center;gap:8px;color:var(--plum);font-size:13px;font-weight:700;transition:color .18s}
+.gp-detail-back:hover{color:var(--plum-dk)}
+.gp-cancel-under-review{width:100%;margin-top:2px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:11px 15px;font-size:12.5px;color:#92400e;line-height:1.55;box-shadow:0 10px 26px rgba(146,64,14,.06)}
+.gp-cancel-under-review-reason{margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;font-size:12px;color:#a16207}
 .gp-head{display:none}
 .gp-head h1{font-family:var(--font-d);font-size:28px;font-weight:600}
 .gp-head em{font-style:italic;color:var(--plum-lt)}
@@ -97,16 +101,31 @@ a{color:inherit;text-decoration:none}
 .gp-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden}
 .gp-status-card{order:2}
 .gp-event-card{order:1}
-.gp-card-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:rgba(42, 31, 44, 0.9);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color: #faf0e1}
+.gp-card-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:transparent;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--plum)}
 .gp-card-b{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
 .gp-info-box{background:rgba(252,248,245,.78);border:1px solid rgba(184,146,74,.28);border-radius:14px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;margin-bottom:12px;box-shadow:0 10px 24px rgba(26,17,24,.035)}
 .gp-info-icon{flex-shrink:0;display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(184,146,74,.14);color:var(--gold)}
 .gp-info-title{font-weight:800;font-size:13px;color:var(--plum);margin-bottom:2px}
 .gp-info-copy{font-size:12px;color:var(--text2);line-height:1.55}
 .gp-info-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.gp-top-notices{margin:-8px 0 18px}
+.gp-top-notices > *{animation:gpNoticeEnter .95s var(--ease-expo) both}
+.gp-top-notices .gp-info-box,.gp-payment-review-box{background:#4e3141;border:1px solid rgba(255,250,245,.18);color:#fffaf5;box-shadow:0 18px 40px rgba(78,49,65,.18)}
+.gp-top-notices .gp-info-icon{background:rgba(255,250,245,.14);color:#fffaf5}
+.gp-top-notices .gp-info-title,.gp-top-notices .gp-info-copy,.gp-top-notices .gp-info-copy strong{color:#fffaf5}
+.gp-top-notices .gp-btn-sm{background:rgba(255,250,245,.12);border-color:rgba(255,250,245,.24);color:#fffaf5}
+.gp-payment-review-box{border-radius:14px;padding:16px 20px;margin-bottom:12px}
+.gp-payment-review-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+.gp-payment-review-head svg{flex-shrink:0;margin-top:2px;color:#fffaf5}
+.gp-payment-review-title{font-weight:600;font-size:13px;color:#fffaf5;margin-bottom:2px}
+.gp-payment-review-copy{font-size:12px;color:rgba(255,250,245,.86);line-height:1.55}
+.gp-payment-review-grid{border-top:1px solid rgba(255,250,245,.22);padding-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px 16px}
+.gp-payment-review-label{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,250,245,.62)}
+.gp-payment-review-value{font-size:12px;font-weight:600;color:#fffaf5;margin-top:2px}
+@keyframes gpNoticeEnter{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
 .gp-journey-card{margin:0 0 18px;padding:20px 28px 24px;background:rgba(252,248,245,.88);border:1px solid rgba(178,143,110,.18);border-radius:18px;box-shadow:0 12px 30px rgba(26,17,24,.04)}
 .gp-journey-card.is-cancel{background:rgba(255,247,246,.82);border-color:rgba(185,75,75,.16)}
-.gp-journey-head{display:block;margin-bottom:22px}
+.gp-journey-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
 .gp-journey-ref{font-family:var(--font-b);font-size:16px;font-weight:800;color:var(--text);line-height:1.25}
 .gp-journey-flow{margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#a58c7d}
 .gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;margin-top:4px;padding:7px 13px;border-radius:999px;background:#efe2e3;color:#6b4459;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em}
@@ -127,7 +146,7 @@ a{color:inherit;text-decoration:none}
 .gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-label{color:var(--danger)}
 .gp-service-detail-panel{display:none}
 .gp-service-detail-panel.active{display:flex;flex-direction:column;gap:12px}
-.gp-service-detail-title{font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--text);line-height:1.15}
+.gp-service-detail-title{font-family:var(--font-b);font-size:19px;font-weight:600;color:var(--text);line-height:1.2}
 .gp-service-detail-meta{font-size:12px;color:var(--plum-lt);font-weight:600}
 .gp-service-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .gp-field{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px;border:1px solid rgba(178,143,110,.18);border-radius:12px;background:rgba(255,250,247,.58)}
@@ -171,8 +190,9 @@ a{color:inherit;text-decoration:none}
 .gp-item-detail{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:2px}
 .gp-item-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
 
-.gp-order-list{display:flex;flex-direction:column;gap:10px}
-.gp-order-item{width:100%;display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px;border:1px solid transparent;border-radius:14px;background:transparent;text-align:left;font-family:var(--font-b);color:var(--text);transition:background .18s,border-color .18s,box-shadow .18s}
+.gp-order-card .gp-card-b{padding:0}
+.gp-order-list{display:flex;flex-direction:column;gap:8px}
+.gp-order-item{width:100%;display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 18px;border:1px solid transparent;border-left:0;border-right:0;border-radius:0;background:transparent;text-align:left;font-family:var(--font-b);color:var(--text);transition:background .18s,border-color .18s,box-shadow .18s}
 .gp-order-item:hover{background:rgba(107,68,89,.04);border-color:rgba(107,68,89,.12)}
 .gp-order-item.active{background:rgba(184,146,74,.12);border-color:rgba(107,68,89,.28);box-shadow:0 12px 28px rgba(107,68,89,.08)}
 .gp-order-item.active .gp-order-thumb{background:var(--plum);color:#fffaf3}
@@ -190,7 +210,7 @@ a{color:inherit;text-decoration:none}
 .gp-bottom-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 
 .gp-review-section{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden;margin-top:24px}
-.gp-review-section-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:rgba(184,146,74,.10);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.gp-review-section-h{padding:14px 18px;border-bottom:1px solid var(--rule);background:transparent;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--plum)}
 .gp-review-section-b{padding:18px}
 .gp-star-picker{display:flex;gap:6px;margin-bottom:12px}
 .gp-star-btn{background:none;border:none;cursor:pointer;font-size:26px;color:var(--rule-strong);padding:0;line-height:1;transition:color .15s}
@@ -206,10 +226,27 @@ a{color:inherit;text-decoration:none}
 .gp-flash-success{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 .gp-flash-error{background:#fdecea;color:#c62828;border:1px solid #ef9a9a;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 .gp-edit-form{margin-top:12px;display:none}
+.gp-page strong,
+.gp-page [style*="font-weight:700"],
+.gp-page [style*="font-weight:800"]{font-weight:600!important}
+.gp-page .gp-card-h,
+.gp-page .gp-info-title,
+.gp-page .gp-journey-ref,
+.gp-page .gp-journey-flow,
+.gp-page .gp-journey-status,
+.gp-page .gp-journey-dot,
+.gp-page .gp-journey-label,
+.gp-page .gp-journey-state,
+.gp-page .gp-service-detail-title,
+.gp-page .gp-tl-t,
+.gp-page .gp-order-name,
+.gp-page .gp-order-price,
+.gp-page .gp-summary-r.total{font-weight:600!important}
 
 @media(max-width:900px){.gp-layout{grid-template-columns:1fr}.gp-detail-topbar{align-items:flex-start;flex-direction:column}.gp-detail-topbar-actions{justify-content:flex-start}.gp-journey-steps{max-width:100%}}
 @media(max-width:768px){.gp-service-detail-grid{grid-template-columns:1fr}.gp-order-item{grid-template-columns:54px minmax(0,1fr);align-items:start}.gp-order-price{grid-column:2;font-size:13px}}
-@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:16px;padding:18px 14px 20px}.gp-journey-head{grid-template-columns:1fr;margin-bottom:20px}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:20px;right:auto;top:40px;bottom:-20px;width:2px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px}.gp-order-thumb{width:54px;height:54px}}
+@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:16px;padding:18px 14px 20px}.gp-journey-head{flex-direction:column;margin-bottom:20px}.gp-journey-status{align-self:flex-start}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:20px;right:auto;top:40px;bottom:-20px;width:2px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px}.gp-order-thumb{width:54px;height:54px}}
+@media (prefers-reduced-motion: reduce){.gp-top-notices > *{animation:none}}
 </style>
 </head><body>
 
@@ -284,6 +321,28 @@ a{color:inherit;text-decoration:none}
         }
         $journeyCopy = 'Follow each milestone from booking placement through completion.';
     }
+
+    $supplierApproved = false;
+    $supplierPending = false;
+    $supplierInitiated = false;
+    $supplierInitiatedName = '';
+    $cancelReason = '';
+    if (($booking['status'] ?? '') === 'cancellation_requested') {
+        foreach ($suppliers as $sup) {
+            if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
+            if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
+            if (($sup['status'] ?? '') === 'supplier_cancellation_requested') {
+                $supplierInitiated = true;
+                $supplierInitiatedName = $sup['shop_name'] ?? 'Your supplier';
+            }
+        }
+        foreach (array_reverse($logs ?? []) as $log) {
+            if (($log['new_status'] ?? '') === 'cancellation_requested' && !empty($log['note'])) {
+                $cancelReason = $log['note'];
+                break;
+            }
+        }
+    }
   ?>
 
   <div class="gp-detail-topbar" aria-label="Booking actions">
@@ -292,17 +351,24 @@ a{color:inherit;text-decoration:none}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           Back to Bookings
         </a>
+        <?php if (($booking['status'] ?? '') === 'cancellation_requested' && $supplierPending): ?>
+        <div class="gp-cancel-under-review">
+          <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
+          <?php if ($cancelReason): ?>
+          <div class="gp-cancel-under-review-reason"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
       </div>
       <div class="gp-detail-topbar-actions">
+        <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested'], true)): ?>
         <?php if (in_array($booking['status']??'', ['draft', 'pending_payment']) && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
-          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Proceed to Payment</a>
-        <?php elseif (($booking['status']??'') === 'pending_supplier_response'): ?>
-          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;" title="Payment available after supplier confirms">Awaiting Supplier Response</span>
+          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Payment</a>
+        <?php elseif ($heroHasRemainingBalance && !($hasPendingRemaining ?? false)): ?>
+          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Payment</a>
+        <?php else: ?>
+          <span class="gp-btn-sm is-disabled" title="Payment is not available for this booking state">Payment</span>
         <?php endif; ?>
-        <?php if ($heroHasRemainingBalance && !($hasPendingRemaining ?? false)): ?>
-          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance</a>
-        <?php elseif ($heroHasRemainingBalance && ($hasPendingRemaining ?? false)): ?>
-          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;">Remaining Payment Under Review</span>
         <?php endif; ?>
         <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
           <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
@@ -310,10 +376,89 @@ a{color:inherit;text-decoration:none}
       </div>
   </div>
 
+  <div class="gp-top-notices">
+    <?php if (in_array($currentStatus, ['paid', 'confirmed'], true) && $summaryBalanceTop > 0): ?>
+    <div class="gp-info-box">
+      <div class="gp-info-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+      <div>
+        <div class="gp-info-title">Deposit paid — complete full payment</div>
+        <div class="gp-info-copy">Your deposit has been paid. Remaining balance: <strong><?= $money($summaryBalanceTop) ?></strong>. You can pay now to complete the full payment.</div>
+        <div class="gp-info-actions">
+          <?php if (!($hasPendingRemaining ?? false)): ?>
+            <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance (<?= $money($summaryBalanceTop) ?>)</a>
+          <?php else: ?>
+            <span class="gp-btn-sm" style="cursor:default;opacity:0.78;">Remaining Payment Under Review</span>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($currentStatus === 'pending_supplier_response'): ?>
+    <div class="gp-info-box">
+      <div class="gp-info-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      </div>
+      <div>
+        <div class="gp-info-title">Waiting for supplier confirmation</div>
+        <div class="gp-info-copy">Your booking request has been sent. The supplier has up to 48 hours to accept or decline. You will be notified when they respond.</div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($currentStatus === 'pending_payment' && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
+    <div class="gp-info-box">
+      <div class="gp-info-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>
+      </div>
+      <div>
+        <div class="gp-info-title">Supplier accepted — please complete payment</div>
+        <div class="gp-info-copy">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($currentStatus === 'payment_submitted'): ?>
+    <div class="gp-payment-review-box">
+      <div class="gp-payment-review-head">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div class="gp-payment-review-title">Payment proof submitted — under review</div>
+          <div class="gp-payment-review-copy">Our team is reviewing your transfer details. We'll notify you once verified (usually within a few hours). No action needed from you right now.</div>
+        </div>
+      </div>
+      <?php if (!empty($depositPayment)): ?>
+      <div class="gp-payment-review-grid">
+        <?php if (!empty($depositPayment['bank_name'])): ?>
+        <div><div class="gp-payment-review-label">Bank / Method</div><div class="gp-payment-review-value"><?= $h($depositPayment['bank_name']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['transaction_ref'])): ?>
+        <div><div class="gp-payment-review-label">Payment reference</div><div class="gp-payment-review-value" style="font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['paid_amount'])): ?>
+        <div><div class="gp-payment-review-label">Amount Sent</div><div class="gp-payment-review-value"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
+        <?php endif; ?>
+        <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
+        <div><div class="gp-payment-review-label">Includes Platform Fee</div><div class="gp-payment-review-value"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['paid_at'])): ?>
+        <div><div class="gp-payment-review-label">Transfer Date</div><div class="gp-payment-review-value"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+  </div>
+
   <section class="gp-journey-card<?= $journeyTone === 'cancel' ? ' is-cancel' : '' ?>" aria-label="Booking Journey">
     <div class="gp-journey-head">
-      <div class="gp-journey-ref">#<?= $h($bookingRef) ?></div>
-      <div class="gp-journey-flow"><?= $h($journeyFlowLabel) ?></div>
+      <div>
+        <div class="gp-journey-ref">#<?= $h($bookingRef) ?></div>
+        <div class="gp-journey-flow"><?= $h($journeyFlowLabel) ?></div>
+      </div>
+      <div class="gp-journey-status"><?= $h($journeyStatusLabel) ?></div>
     </div>
     <div class="gp-journey-steps">
       <?php foreach ($journeySteps as $stepIndex => $stepLabel): ?>
@@ -331,25 +476,6 @@ a{color:inherit;text-decoration:none}
       <?php endforeach; ?>
     </div>
   </section>
-
-  <?php if (in_array($currentStatus, ['paid', 'confirmed'], true) && $summaryBalanceTop > 0): ?>
-  <div class="gp-info-box">
-    <div class="gp-info-icon" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
-    </div>
-    <div>
-      <div class="gp-info-title">Deposit paid — complete full payment</div>
-      <div class="gp-info-copy">Your deposit has been paid. Remaining balance: <strong><?= $money($summaryBalanceTop) ?></strong>. You can pay now to complete the full payment.</div>
-      <div class="gp-info-actions">
-        <?php if (!($hasPendingRemaining ?? false)): ?>
-          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance (<?= $money($summaryBalanceTop) ?>)</a>
-        <?php else: ?>
-          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;">Remaining Payment Under Review</span>
-        <?php endif; ?>
-      </div>
-    </div>
-  </div>
-  <?php endif; ?>
 
   <?php if (!empty($replacementHistory)): ?>
     <?php
@@ -443,61 +569,6 @@ a{color:inherit;text-decoration:none}
     <h1>Booking <?= $h($bookingRef) ?></h1>
   </div>
 
-  <?php if ($currentStatus === 'pending_supplier_response'): ?>
-  <div class="gp-info-box">
-    <div class="gp-info-icon" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-    </div>
-    <div>
-      <div class="gp-info-title">Waiting for supplier confirmation</div>
-      <div class="gp-info-copy">Your booking request has been sent. The supplier has up to 48 hours to accept or decline. You will be notified when they respond.</div>
-    </div>
-  </div>
-  <?php endif; ?>
-
-  <?php if ($currentStatus === 'pending_payment' && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
-  <div class="gp-info-box">
-    <div class="gp-info-icon" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>
-    </div>
-    <div>
-      <div class="gp-info-title">Supplier accepted — please complete payment</div>
-      <div class="gp-info-copy">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
-    </div>
-  </div>
-  <?php endif; ?>
-
-  <?php if ($currentStatus === 'payment_submitted'): ?>
-  <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:16px 20px;margin-bottom:4px;">
-    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:<?= !empty($depositPayment) ? '12px' : '0' ?>">
-      <svg style="flex-shrink:0;margin-top:2px;color:#d97706" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <div>
-        <div style="font-weight:700;font-size:13px;color:#92400e;margin-bottom:2px;">Payment proof submitted — under review</div>
-        <div style="font-size:12px;color:#b45309;">Our team is reviewing your transfer details. We'll notify you once verified (usually within a few hours). No action needed from you right now.</div>
-      </div>
-    </div>
-    <?php if (!empty($depositPayment)): ?>
-    <div style="border-top:1px solid #fcd34d;padding-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px 16px;">
-      <?php if (!empty($depositPayment['bank_name'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Bank / Method</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h($depositPayment['bank_name']) ?></div></div>
-      <?php endif; ?>
-      <?php if (!empty($depositPayment['transaction_ref'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Payment reference</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
-      <?php endif; ?>
-      <?php if (!empty($depositPayment['paid_amount'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Amount Sent</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
-      <?php endif; ?>
-      <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Includes Platform Fee</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div></div>
-      <?php endif; ?>
-      <?php if (!empty($depositPayment['paid_at'])): ?>
-      <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#b45309;">Transfer Date</div><div style="font-size:12px;font-weight:700;color:#78350f;margin-top:2px;"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
-      <?php endif; ?>
-    </div>
-    <?php endif; ?>
-  </div>
-  <?php endif; ?>
-
   <?php
     // Remaining balance state — available after deposit is verified (paid, confirmed, or later)
     $isConfirmedOrLater = in_array($currentStatus, ['paid', 'payment_verified', 'confirmed', 'pending_final_payment', 'finalized'], true);
@@ -573,7 +644,6 @@ a{color:inherit;text-decoration:none}
               <section class="gp-service-detail-panel <?= $idx === 0 ? 'active' : '' ?>" data-service-panel="<?= $itemId ?>" aria-label="<?= $h($item['service_name'] ?? 'Service') ?> details">
                 <div>
                   <div class="gp-service-detail-title"><?= $h($item['service_name'] ?? 'Wedding Service') ?></div>
-                  <div class="gp-service-detail-meta"><?= $h($category) ?> · <?= $h($supplier) ?></div>
                 </div>
                 <div class="gp-service-detail-grid">
                   <?php if (!empty($eventDateRaw)): ?>
@@ -655,7 +725,7 @@ a{color:inherit;text-decoration:none}
 
     <!-- RIGHT: Items -->
     <div class="gp-col">
-      <div class="gp-card">
+      <div class="gp-card gp-order-card">
         <div class="gp-card-h">Order Summary</div>
         <div class="gp-card-b">
           <div class="gp-order-list" role="listbox" aria-label="Booked services">
@@ -857,73 +927,6 @@ a{color:inherit;text-decoration:none}
   <div class="gp-bottom-actions">
     <?php if (!empty($vouchers)): ?>
     <a class="gp-btn-sm" href="<?=URLROOT?>/booking/vouchers">View All Vouchers</a>
-    <?php endif; ?>
-
-    <?php if (($booking['status'] ?? '') === 'cancellation_requested'): ?>
-      <?php
-      $supplierApproved = false;
-      $supplierPending = false;
-      $supplierInitiated = false;
-      $supplierInitiatedName = '';
-      foreach ($suppliers as $sup) {
-        if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
-        if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
-        if (($sup['status'] ?? '') === 'supplier_cancellation_requested') {
-          $supplierInitiated = true;
-          $supplierInitiatedName = $sup['shop_name'] ?? 'Your supplier';
-        }
-      }
-      // Find cancellation reason from status logs
-      $cancelReason = '';
-      foreach (array_reverse($logs ?? []) as $log) {
-        if (($log['new_status'] ?? '') === 'cancellation_requested' && !empty($log['note'])) {
-          $cancelReason = $log['note'];
-          break;
-        }
-      }
-      ?>
-      <?php if ($supplierInitiated): ?>
-      <div style="background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:16px 18px;margin-top:8px;color:#9a3412">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <span style="font-size:18px">⚠️</span>
-          <div>
-            <strong style="font-size:14px">Your supplier has requested to cancel this booking</strong>
-            <div style="font-size:12px;color:#c2410c;margin-top:2px"><?= $h($supplierInitiatedName) ?> is unable to fulfill this booking. Our admin team will review the request and process your refund.</div>
-          </div>
-        </div>
-        <?php if ($cancelReason): ?>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fdba74;font-size:12px">
-          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Reason from supplier</span><br>
-          <span style="font-weight:600"><?= $h($cancelReason) ?></span>
-        </div>
-        <?php endif; ?>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fdba74;font-size:12px;color:#c2410c;display:flex;align-items:center;gap:6px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          <span>You will be notified once the admin processes your refund. No action is required from you.</span>
-        </div>
-      </div>
-      <?php elseif ($supplierPending): ?>
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:8px">
-        <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
-        <?php if ($cancelReason): ?>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;font-size:12px;color:#a16207"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
-        <?php endif; ?>
-      </div>
-      <?php elseif ($supplierApproved): ?>
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;font-size:13px;color:#166534;margin-top:8px">
-        <strong>Supplier approved</strong> — Your supplier has approved the cancellation. Admin will review and process your refund.
-        <?php if ($cancelReason): ?>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0;font-size:12px;color:#15803d"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
-        <?php endif; ?>
-      </div>
-      <?php else: ?>
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;color:#1e40af;margin-top:8px">
-        <strong>Cancellation requested</strong> — Your cancellation request is being reviewed.
-        <?php if ($cancelReason): ?>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bfdbfe;font-size:12px;color:#1d4ed8"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
-        <?php endif; ?>
-      </div>
-      <?php endif; ?>
     <?php endif; ?>
 
     <!-- Refund Status (shown when booking is cancelled and refund exists) -->
