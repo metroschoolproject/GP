@@ -953,19 +953,31 @@ class SupplierProfile
     private function getUpcomingSupplierBookings($supplierId)
     {
         $this->db->dbquery(
-            'SELECT booking_suppliers.booking_id,
-                    booking_suppliers.status AS supplier_status,
-                    booking_suppliers.payout_status,
-                    booking_items.booking_date,
-                    booking_items.price,
-                    bookings.payment_status,
-                    users.name AS customer_name
-             FROM booking_suppliers
-             LEFT JOIN bookings ON bookings.id = booking_suppliers.booking_id
-             LEFT JOIN users ON users.user_id = bookings.user_id
-             LEFT JOIN booking_items ON booking_items.booking_id = booking_suppliers.booking_id
-             WHERE booking_suppliers.supplier_id = :supplier_id
-             ORDER BY booking_items.booking_date ASC, booking_suppliers.created_at DESC
+            'SELECT bs.booking_id,
+                    bs.status AS supplier_status,
+                    bs.payout_status,
+                    bs.item_price,
+                    bi.booking_date,
+                    bi.item_name,
+                    bi.category_name,
+                    b.payment_status,
+                    b.total_amount,
+                    u.name AS customer_name,
+                    u.phone AS customer_phone,
+                    ed.event_date,
+                    ed.guest_count,
+                    ed.location,
+                    ed.contact_name,
+                    ed.contact_phone
+             FROM booking_suppliers bs
+             INNER JOIN bookings b ON b.id = bs.booking_id
+             LEFT JOIN users u ON u.user_id = b.user_id
+             LEFT JOIN booking_items bi ON bi.booking_id = bs.booking_id
+                 AND (bi.item_id = bs.service_id OR bs.service_id IS NULL)
+             LEFT JOIN event_details ed ON ed.booking_id = bs.booking_id
+             WHERE bs.supplier_id = :supplier_id
+               AND bs.status IN (\'pending\', \'confirmed\', \'in_progress\')
+             ORDER BY COALESCE(ed.event_date, bi.booking_date) ASC
              LIMIT 6'
         );
         $this->db->dbbind(':supplier_id', (int)$supplierId);

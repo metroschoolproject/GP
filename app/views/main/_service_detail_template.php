@@ -355,6 +355,7 @@ $heroItems = array_values(array_filter($media, function ($m) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title><?= $h($service['name'] ?? 'Service') ?> | <?= APPNAME ?></title>
 <?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $appCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>

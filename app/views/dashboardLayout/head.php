@@ -1,7 +1,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
-    <title>Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
+    <title><?= htmlspecialchars($pageTitle ?? 'Admin Dashboard', ENT_QUOTES, 'UTF-8') ?></title>
     <?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
     <?php $dashboardCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">

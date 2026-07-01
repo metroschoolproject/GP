@@ -14,6 +14,7 @@ $expiredCount = count(array_filter($vouchers, fn($v)=>($v['status']??'')==='expi
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title>My Vouchers — Golden Promise</title>
 <?php $v=file_exists(APPROOT.'/../public/css/app.css')?filemtime(APPROOT.'/../public/css/app.css'):time();?>
 <link rel="stylesheet" href="<?=URLROOT?>/public/css/app.css?v=<?=$v?>">

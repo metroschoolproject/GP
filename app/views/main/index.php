@@ -16,6 +16,7 @@ $h = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
   <title><?= $h(APPNAME) ?></title>
   <?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
   <script src="https://cdn.tailwindcss.com"></script>

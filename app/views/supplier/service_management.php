@@ -65,6 +65,7 @@ $dashboardContent = function () use ($serviceManagementData, $initialServiceTab)
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php $pageTitle = 'Services — Golden Promise'; ?>
     <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?>
 </head>
 <body class="grid h-screen gap-0 bg-app-page" style="grid-template-columns: 280px 1fr;">

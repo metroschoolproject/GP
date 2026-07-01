@@ -314,7 +314,8 @@ document.getElementById('btnSaveNotif').addEventListener('click',function(){
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php require APPROOT . '/views/dashboardLayout/head.php'; ?></head>
+<head><?php $pageTitle = 'Settings — Golden Promise'; ?>
+    <?php require APPROOT . '/views/dashboardLayout/head.php'; ?></head>
 <body class="grid h-screen grid-cols-[280px_1fr] gap-0 bg-app-page">
   <?php require APPROOT . '/views/dashboardLayout/suppliersidebar.php'; ?>
 </body>

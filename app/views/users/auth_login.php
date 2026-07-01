@@ -3,6 +3,7 @@
 <head>
     <title>Login</title>
     <meta name="description" content="Login">
+    <link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <?php $dashboardCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>

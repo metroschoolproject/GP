@@ -201,7 +201,8 @@ $dashboardContent = function () use ($replacements, $h, $money, $dateOnly, $stat
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
+<head><?php $pageTitle = 'Replacement Queue — Admin'; ?>
+    <?php require_once APPROOT . '/views/dashboardLayout/head.php'; ?></head>
 <body class="grid h-screen grid-cols-[280px_1fr] gap-0 bg-app-page">
   <?php require APPROOT . '/views/dashboardLayout/sidebar.php'; ?>
 </body>
