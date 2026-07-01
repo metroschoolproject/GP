@@ -986,10 +986,9 @@ font-weight: 700;
 .venue-date-chevron {
   flex: 0 0 auto;
   pointer-events: none;
-  color: #7a4e3d;
-  width: 12px;
-  height: 12px;
-  stroke-width: 2.2;
+  color: #9A687F;
+  width: 13px;
+  height: 13px;
 }
 .gp-calendar-popover {
   position: fixed;
@@ -1024,11 +1023,9 @@ font-weight: 700;
   color: #7a4e3d;
   cursor: pointer;
 }
-.gp-calendar-nav svg {
+.gp-calendar-nav [data-lucide] {
   width: 14px;
   height: 14px;
-  stroke: currentColor;
-  stroke-width: 2.2;
 }
 .gp-calendar-nav:hover { background: rgba(63,36,26,0.08); }
 .gp-calendar-grid {
@@ -1882,6 +1879,7 @@ input[type="date"]:invalid {
   }
 }
 </style>
+<script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
@@ -2108,9 +2106,9 @@ input[type="date"]:invalid {
                   <div class="gp-slot-edit-field">
                     <label class="gp-detail-label" for="slot-date-<?= $i ?>">New date</label>
                     <span class="venue-date-input-wrap" role="button" tabindex="0" aria-label="Open date calendar">
-                      <svg class="venue-date-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <i data-lucide="calendar-days" class="venue-date-icon"></i>
                       <span class="venue-date-display"><?= $h($slotDate !== '' ? date('M j, Y', strtotime($slotDate)) : 'Choose date') ?></span>
-                      <svg class="venue-date-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                      <i data-lucide="chevron-down" class="venue-date-chevron" size="13"></i>
                       <input class="gp-calendar-input gp-detail-input" type="date" id="slot-date-<?= $i ?>"
     	                         name="item_date[<?= $i ?>]" value="<?= $h($slotDate) ?>"
     	                         min="<?= $minDateStr ?>"
@@ -2120,14 +2118,6 @@ input[type="date"]:invalid {
     	                         data-min-lead-days="<?= $minLeadDays ?>"
     	                         data-index="<?= $i ?>">
                     </span>
-  	                <?php if ($minLeadDays > 0): ?>
-  	                  <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
-  	                <?php endif; ?>
-  	                <?php if ($isPackageItem): ?>
-  	                  <div class="gp-input-note">
-  	                    Choose the wedding/event date once. Golden Promise will assign each included service to its planned time slot from supplier availability.
-  	                  </div>
-  	                <?php endif; ?>
                   </div>
 
                   <div class="gp-slot-edit-field is-wide">
@@ -2168,10 +2158,6 @@ input[type="date"]:invalid {
                              style="max-width:160px;">
                     </div>
                   </div>
-                  <?php if ($minLeadDays > 0): ?>
-                    <div class="gp-input-note" style="margin-top:6px;">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
-                  <?php endif; ?>
-                  <div class="gp-input-note">We will schedule each service before your wedding time.</div>
                 <?php else: ?>
                   <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select date</label>
                   <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
@@ -2181,9 +2167,6 @@ input[type="date"]:invalid {
                          data-min-lead-days="<?= $minLeadDays ?>"
                          data-before-wedding="<?= $isBeforeWedding ? 'yes' : 'no' ?>"
                          data-index="<?= $i ?>" required>
-                  <?php if ($minLeadDays > 0): ?>
-                    <div class="gp-input-note">Requires <?= $minLeadDays ?> day<?= $minLeadDays === 1 ? '' : 's' ?> advance notice (earliest: <?= $minDateDisplay ?>)</div>
-                  <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if ($isFulldayItem):
@@ -2201,14 +2184,6 @@ input[type="date"]:invalid {
                   <!-- Full-day booking: time resolved via schedule → service default → category fallback -->
 	                  <input type="hidden" name="item_start_time[<?= $i ?>]" value="<?= $h($autoStart) ?>">
 	                  <input type="hidden" name="item_end_time[<?= $i ?>]" value="<?= $h($autoEnd) ?>">
-                  <div class="gp-input-note" style="margin-top:8px;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;opacity:.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <?php if ($showTimeHint): ?>
-	                      <?= $isPackageItem ? 'Package timeline' : 'Full-day booking' ?> — estimated window: <?= $h($fmtStart) ?> – <?= $h($fmtEnd) ?>
-	                    <?php else: ?>
-	                      <?= $isPackageItem ? 'Package service times are managed automatically after you choose the event date' : 'Full-day booking — time is managed automatically' ?>
-	                    <?php endif; ?>
-                  </div>
                 <?php else: ?>
                   <div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:end;margin-top:10px;">
                     <div>
@@ -2487,36 +2462,6 @@ input[type="date"]:invalid {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
               Back to Cart
             </a>
-          </div>
-
-          <div class="gp-trust" aria-label="Assurances">
-            <div class="gp-trust-item">
-              <div class="gp-trust-icon-wrap" aria-hidden="true">
-                <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-              </div>
-              <div>
-                <div class="gp-trust-title">Secure payment</div>
-                <div class="gp-trust-copy">Processed via Stripe</div>
-              </div>
-            </div>
-            <div class="gp-trust-item">
-              <div class="gp-trust-icon-wrap" aria-hidden="true">
-                <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
-              </div>
-              <div>
-                <div class="gp-trust-title">Deposit booking</div>
-                <div class="gp-trust-copy"><?= $depositPercent ?>% locks your date</div>
-              </div>
-            </div>
-            <div class="gp-trust-item">
-              <div class="gp-trust-icon-wrap" aria-hidden="true">
-                <svg class="gp-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 14.2 7.5 19 8.2 15.5 11.7 16.4 16.5 12 14.1 7.6 16.5 8.5 11.7 5 8.2 9.8 7.5 12 3Z"/><path d="m9.6 11.8 1.5 1.5 3.2-3.5"/></svg>
-              </div>
-              <div>
-                <div class="gp-trust-title">Free cancellation</div>
-                <div class="gp-trust-copy">Within 48 hours</div>
-              </div>
-            </div>
           </div>
 
         </div>
@@ -3416,9 +3361,9 @@ function renderCalendar() {
   const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
   let html = '<div class="gp-calendar-head">' +
-    '<button class="gp-calendar-nav" type="button" data-cal-prev aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>' +
+    '<button class="gp-calendar-nav" type="button" data-cal-prev aria-label="Previous month"><i data-lucide="chevron-left" size="16"></i></button>' +
     '<span>' + monthTitle + '</span>' +
-    '<button class="gp-calendar-nav" type="button" data-cal-next aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>' +
+    '<button class="gp-calendar-nav" type="button" data-cal-next aria-label="Next month"><i data-lucide="chevron-right" size="16"></i></button>' +
     '</div><div class="gp-calendar-grid">';
 
   dayNames.forEach(day => { html += '<div class="gp-calendar-day-name">' + day + '</div>'; });
@@ -3434,6 +3379,7 @@ function renderCalendar() {
   }
   html += '</div>';
   gpCalendar.innerHTML = html;
+  if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [gpCalendar] });
 }
 
 function openCalendar(input) {
