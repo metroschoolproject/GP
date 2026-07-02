@@ -260,19 +260,21 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
    #our-services {
-  background:
+  /* background:
     linear-gradient(135deg, rgba(255,255,255,.92) 0%, rgba(248,243,237,.68) 28%, rgba(234,216,200,.98) 100%),
     radial-gradient(ellipse at 82% 20%, rgba(216,180,106,.34), transparent 44%),
     radial-gradient(ellipse at 18% 78%, rgba(111,46,54,.16), transparent 48%),
-    #F8F3ED !important;
+    #F8F3ED !important; */
+    background-color: #ead8c8;
 }
 
 #services {
-  background:
+  /* background:
     linear-gradient(145deg, rgba(255,253,252,.96) 0%, rgba(245,232,217,.62) 38%, rgba(240,223,231,.88) 100%),
     radial-gradient(ellipse at 12% 18%, rgba(216,180,106,.30), transparent 46%),
     radial-gradient(ellipse at 88% 76%, rgba(196,178,161,.38), transparent 50%),
-    #FAF7F4 !important;
+    #FAF7F4 !important; */
+    background-color:#ead8c8 ;
 }
 
     .site-header {
@@ -663,11 +665,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       min-height: 260vh;
       overflow: visible;
       padding: 0 16px;
-      background:
+      /* background:
         linear-gradient(132deg, rgba(255,255,255,.98) 0%, rgba(250,247,244,.62) 34%, rgba(248,243,237,.96) 100%),
         radial-gradient(ellipse at 80% 18%, rgba(216,180,106,.28), transparent 42%),
         radial-gradient(ellipse at 22% 82%, rgba(111,46,54,.14), transparent 50%),
-        #FFFDFC;
+        #FFFDFC; */
+        background-color: #ead8c8;
       color: #4a342f;
       scroll-snap-align: start;
       scroll-snap-stop: normal;
@@ -679,11 +682,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       top: 0;
       height: 100vh;
       overflow: hidden;
-      background:
+      /* background:
         linear-gradient(132deg, rgba(255,255,255,.98) 0%, rgba(250,247,244,.62) 34%, rgba(248,243,237,.96) 100%),
         radial-gradient(ellipse at 80% 18%, rgba(216,180,106,.28), transparent 42%),
         radial-gradient(ellipse at 22% 82%, rgba(111,46,54,.14), transparent 50%),
-        #FFFDFC;
+        #FFFDFC; */
+      background-color: #ead8c8;
+
       transform: translateZ(0);
     }
 
@@ -891,11 +896,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       position: relative;
       width: 100%;
       padding: clamp(82px, 9vw, 118px) 24px;
-      background:
+      /* background:
         linear-gradient(140deg, rgba(255,253,252,.96) 0%, rgba(248,243,237,.58) 34%, rgba(234,216,200,.94) 100%),
         radial-gradient(ellipse at 18% 20%, rgba(216,180,106,.30), transparent 44%),
         radial-gradient(ellipse at 84% 76%, rgba(111,46,54,.16), transparent 48%),
-        #F8F3ED;
+        #F8F3ED; */
+      /* background-color: #ead8c8; */
       color: #211d1a;
       scroll-snap-align: start;
     }
