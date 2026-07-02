@@ -506,6 +506,26 @@ class User
         $this->db->dbbind(':id', $userId);
         $this->db->dbexecute();
 
+        $this->db->dbquery(
+            'UPDATE suppliers
+             SET deleted_at = COALESCE(deleted_at, NOW()),
+                 status = CASE WHEN status = \'banned\' THEN status ELSE \'banned\' END,
+                 is_available = 0
+             WHERE user_id = :id'
+        );
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
+        $this->db->dbquery(
+            'UPDATE services
+             SET is_active = 0
+             WHERE supplier_id IN (
+                 SELECT supplier_id FROM suppliers WHERE user_id = :id
+             )'
+        );
+        $this->db->dbbind(':id', $userId);
+        $this->db->dbexecute();
+
         $this->clearRememberToken($userId);
         return true;
     }
