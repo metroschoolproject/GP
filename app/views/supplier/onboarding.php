@@ -80,7 +80,24 @@
             inset: 14px;
             background:
                 radial-gradient(circle at 20% 26%, rgb(255 255 255 / 0.18), transparent 28%),
-                linear-gradient(90deg, rgb(250 245 239 / 0.34), rgb(245 232 217 / 0.18));
+                linear-gradient(90deg, rgb(250 245 239 / 0.34) 0%, rgb(245 232 217 / 0.2) 62%, rgb(222 199 184 / 0.28) 100%);
+        }
+        .left-panel::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: -1px;
+            bottom: 0;
+            width: clamp(180px, 16.7vw, 330px);
+            z-index: 1;
+            pointer-events: none;
+            background: linear-gradient(
+                90deg,
+                rgb(245 232 217 / 0) 0%,
+                rgb(241 225 207 / 0.3) 20%,
+                rgb(230 207 190 / 0.64) 62%,
+                rgb(220 195 178 / 0.92) 100%
+            );
         }
         .brand,
         .supplier-flash,
@@ -92,6 +109,9 @@
             min-height: 100vh;
             border-right: 0;
             padding: 42px 60px 82px;
+        }
+        .agreement-mode .left-panel::after {
+            display: none;
         }
         .agreement-mode .right-panel {
             display: none;
@@ -212,6 +232,13 @@
             min-height: 96px;
             font-size: 16px;
             line-height: 1.55;
+        }
+        .q-input.story-input {
+            min-height: 112px;
+            background:
+                linear-gradient(135deg, rgb(255 255 255 / 0.96), rgb(245 232 217 / 0.76));
+            border-color: rgb(200 177 161 / 0.72);
+            box-shadow: 0 16px 34px rgb(109 76 91 / 0.08);
         }
         .q-input.small-input {
             font-size: 17px;
@@ -365,25 +392,159 @@
             color: var(--accent);
         }
 
-        /* ── Upload zone ── */
-        .upload-zone {
-            border: 1px dashed var(--gold);
-            border-radius: 14px;
-            padding: 24px 16px;
+        /* ── Step 4 profile material inputs ── */
+        .profile-materials {
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+            gap: 14px;
             max-width: 560px;
-            text-align: center;
+            margin: 2px 0 22px;
+        }
+        .upload-zone {
+            min-height: 176px;
+            border: 1px solid rgb(200 177 161 / 0.82);
+            border-radius: 16px;
+            padding: 14px;
             cursor: pointer;
-            transition: border-color 0.18s, background 0.18s;
-            display: block;
-            margin-bottom: 28px;
-            background: var(--paper-light);
+            transition: border-color 0.18s, background 0.18s, transform 0.18s, box-shadow 0.18s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            background:
+                linear-gradient(145deg, rgb(255 255 255 / 0.92), rgb(245 232 217 / 0.76));
+            box-shadow: 0 18px 36px rgb(109 76 91 / 0.1);
         }
-        .upload-zone:hover, .upload-zone.drag-over {
+        .upload-zone:hover,
+        .upload-zone.drag-over,
+        .upload-zone.has-file {
             border-color: var(--accent);
-            background: var(--gold-soft);
+            background:
+                linear-gradient(145deg, rgb(255 255 255 / 0.96), rgb(232 215 202 / 0.86));
+            box-shadow: 0 20px 42px rgb(109 76 91 / 0.15);
+            transform: translateY(-1px);
         }
-        .upload-zone-icon { font-size: 26px; margin-bottom: 6px; }
-        .upload-zone p { font-family: var(--ui-font); font-size: 12px; color: var(--ink-muted); line-height: 1.5; }
+        .upload-zone:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--gold-soft), 0 18px 36px rgb(109 76 91 / 0.1);
+        }
+        .upload-zone.photo-zone {
+            min-height: 210px;
+            padding: 0;
+        }
+        .photo-preview {
+            position: relative;
+            flex: 1;
+            min-height: 128px;
+            background:
+                linear-gradient(135deg, rgb(109 76 91 / 0.12), rgb(200 177 161 / 0.38)),
+                radial-gradient(circle at 74% 22%, rgb(255 255 255 / 0.58), transparent 28%);
+            overflow: hidden;
+        }
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        .upload-zone.has-file .photo-preview img {
+            display: block;
+        }
+        .photo-preview-mark {
+            position: absolute;
+            inset: 16px;
+            border: 1px dashed rgb(109 76 91 / 0.42);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            color: var(--accent);
+        }
+        .upload-zone.has-file .photo-preview-mark {
+            display: none;
+        }
+        .upload-zone-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            display: inline-grid;
+            place-items: center;
+            background: rgb(109 76 91 / 0.1);
+            color: var(--accent);
+        }
+        .upload-zone-icon svg {
+            width: 19px;
+            height: 19px;
+            stroke-width: 1.8;
+        }
+        .upload-copy {
+            padding: 12px 14px 14px;
+        }
+        .license-zone .upload-copy {
+            padding: 0;
+        }
+        .upload-kicker {
+            display: block;
+            margin-bottom: 6px;
+            font-family: var(--ui-font);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent-hover);
+        }
+        .upload-title {
+            display: block;
+            font-family: var(--ui-font);
+            font-size: 14px;
+            font-weight: 800;
+            line-height: 1.25;
+            color: var(--accent);
+        }
+        .upload-meta,
+        .file-name {
+            display: block;
+            margin-top: 5px;
+            font-family: var(--ui-font);
+            font-size: 11px;
+            line-height: 1.45;
+            color: var(--ink-muted);
+        }
+        .file-name {
+            min-height: 16px;
+            font-weight: 700;
+            color: var(--accent);
+            word-break: break-word;
+        }
+        .license-zone {
+            gap: 16px;
+        }
+        .license-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .license-lines {
+            display: grid;
+            gap: 7px;
+            margin-top: 14px;
+        }
+        .license-lines span {
+            height: 7px;
+            border-radius: 999px;
+            background: rgb(200 177 161 / 0.34);
+        }
+        .license-lines span:nth-child(2) {
+            width: 78%;
+        }
+        .license-lines span:nth-child(3) {
+            width: 52%;
+        }
+        @media (max-width: 980px) {
+            .profile-materials {
+                grid-template-columns: 1fr;
+            }
+        }
 
         /* ── Agreement ── */
         .agreement-scroll {
@@ -607,11 +768,24 @@
         .right-panel {
             position: relative;
             overflow: hidden;
-            background: var(--gold);
+            background: #bda493;
         }
 
         .right-panel::before {
-            display: none;
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: clamp(180px, 16.7vw, 330px);
+            z-index: 4;
+            pointer-events: none;
+            background: linear-gradient(
+                90deg,
+                rgb(220 195 178 / 0.92) 0%,
+                rgb(207 181 165 / 0.7) 44%,
+                rgb(189 164 147 / 0) 100%
+            );
         }
 
         .right-panel::after {
@@ -784,6 +958,8 @@
             body { overflow: auto; }
             .split { grid-template-columns: 1fr; height: auto; }
             .right-panel { height: 44vh; order: -1; }
+            .right-panel::before,
+            .left-panel::after { display: none; }
             .fate-string-divider { display: none; }
             .left-panel { padding: 48px 28px 80px; }
             .step-panel { padding: 64px 28px 80px; }
@@ -932,21 +1108,58 @@
                 <p class="hint">Profile and documents.</p>
                 <div class="field-group">
                     <label class="field-label">Business description</label>
-                    <textarea class="q-input textarea-input" name="business_description"
+                    <textarea class="q-input textarea-input story-input" name="business_description"
                               placeholder="Tell us what your business provides..." required><?= htmlspecialchars($business_description ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                 </div>
-                <label class="upload-zone" id="coverDropZone" for="coverPhotoInput">
-                    <input id="coverPhotoInput" name="cover_photo" type="file"
-                           accept="image/jpeg,image/png,image/webp" class="sr-only" required>
-                    <div class="upload-zone-icon">🖼️</div>
-                    <p id="uploadLabel">Click or drag & drop your best photo<br><span style="font-size:11px;opacity:0.7">JPG, PNG, WEBP · max 5 MB</span></p>
-                </label>
-                <label class="upload-zone" id="licenseDropZone" for="businessLicenseInput">
-                    <input id="businessLicenseInput" name="business_license" type="file"
-                           accept="image/jpeg,image/png,image/webp,application/pdf" class="sr-only" required>
-                    <div class="upload-zone-icon">📄</div>
-                    <p id="licenseLabel">Click or drag & drop your business license<br><span style="font-size:11px;opacity:0.7">PDF, JPG, PNG, WEBP · max 5 MB</span></p>
-                </label>
+                <div class="profile-materials">
+                    <label class="upload-zone photo-zone" id="coverDropZone" for="coverPhotoInput">
+                        <input id="coverPhotoInput" name="cover_photo" type="file"
+                               accept="image/jpeg,image/png,image/webp" class="sr-only" required>
+                        <div class="photo-preview" aria-hidden="true">
+                            <img id="coverPreviewImg" alt="">
+                            <div class="photo-preview-mark">
+                                <span class="upload-zone-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                                        <circle cx="8.5" cy="10.5" r="1.5"></circle>
+                                        <path d="M21 15l-4.5-4.5L9 18"></path>
+                                    </svg>
+                                </span>
+                            </div>
+                        </div>
+                        <span class="upload-copy">
+                            <span class="upload-kicker">Cover photo</span>
+                            <span class="upload-title">Choose your best business photo</span>
+                            <span class="upload-meta">JPG, PNG, WEBP · max 5 MB</span>
+                            <span class="file-name" id="uploadLabel"></span>
+                        </span>
+                    </label>
+                    <label class="upload-zone license-zone" id="licenseDropZone" for="businessLicenseInput">
+                        <input id="businessLicenseInput" name="business_license" type="file"
+                               accept="image/jpeg,image/png,image/webp,application/pdf" class="sr-only" required>
+                        <span class="license-card-top">
+                            <span class="upload-zone-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"></path>
+                                    <path d="M14 2v5h5"></path>
+                                    <path d="M9 14h6"></path>
+                                    <path d="M9 18h4"></path>
+                                </svg>
+                            </span>
+                            <span class="upload-kicker">Verification</span>
+                        </span>
+                        <span class="upload-copy">
+                            <span class="upload-title">Upload business license</span>
+                            <span class="upload-meta">PDF, JPG, PNG, WEBP · max 5 MB</span>
+                            <span class="file-name" id="licenseLabel"></span>
+                        </span>
+                        <span class="license-lines" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </span>
+                    </label>
+                </div>
                 <div class="step-error" id="err4"></div>
                 <div class="btn-row">
                     <button type="button" class="btn-next js-next">Continue</button>
@@ -1162,6 +1375,7 @@
     const coverInput = document.getElementById('coverPhotoInput');
     const coverDrop  = document.getElementById('coverDropZone');
     const uploadLabel = document.getElementById('uploadLabel');
+    const coverPreviewImg = document.getElementById('coverPreviewImg');
     const licenseInput = document.getElementById('businessLicenseInput');
     const licenseDrop = document.getElementById('licenseDropZone');
     const licenseLabel = document.getElementById('licenseLabel');
@@ -1495,13 +1709,29 @@
     });
 
     // ── File upload ──
+    function updateFileCard(input, dropZone, label, emptyText, previewImg = null) {
+        const file = input?.files?.[0];
+        dropZone?.classList.toggle('has-file', Boolean(file));
+        if (label) label.textContent = file ? file.name : emptyText;
+
+        if (!previewImg) return;
+        if (!file || !file.type.startsWith('image/')) {
+            previewImg.removeAttribute('src');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = event => {
+            previewImg.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
     coverInput?.addEventListener('change', () => {
-        const f = coverInput.files[0];
-        if (f && uploadLabel) uploadLabel.innerHTML = '✓ ' + f.name;
+        updateFileCard(coverInput, coverDrop, uploadLabel, 'No photo selected', coverPreviewImg);
     });
     licenseInput?.addEventListener('change', () => {
-        const f = licenseInput.files[0];
-        if (f && licenseLabel) licenseLabel.innerHTML = '✓ ' + f.name;
+        updateFileCard(licenseInput, licenseDrop, licenseLabel, 'No license selected');
     });
     ['dragenter','dragover'].forEach(ev => coverDrop?.addEventListener(ev, e => { e.preventDefault(); coverDrop.classList.add('drag-over'); }));
     ['dragleave','drop'].forEach(ev => coverDrop?.addEventListener(ev, e => { e.preventDefault(); coverDrop.classList.remove('drag-over'); }));
@@ -1637,6 +1867,8 @@
     const start = restoreDraft();
     current = start;
     syncCategoryNextBtn();
+    updateFileCard(coverInput, coverDrop, uploadLabel, 'No photo selected', coverPreviewImg);
+    updateFileCard(licenseInput, licenseDrop, licenseLabel, 'No license selected');
     showCategoryTiles(getSelectedCategoryChecks().length > 0);
     buildDots();
     syncAgreementMode(start);
