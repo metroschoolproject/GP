@@ -1527,5 +1527,6 @@ document.getElementById('authRequiredModal').addEventListener('click', function(
 });
 </script>
 
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body>
 </html>

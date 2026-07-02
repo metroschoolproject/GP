@@ -386,5 +386,6 @@ a { color: inherit; text-decoration: none; }
   });
 })();
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body>
 </html>

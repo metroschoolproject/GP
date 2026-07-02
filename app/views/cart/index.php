@@ -2358,6 +2358,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   }, { passive: true });
 })();
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

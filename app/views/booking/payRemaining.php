@@ -400,5 +400,6 @@ document.getElementById('paymentForm').addEventListener('submit', () => {
   amountInput.value = raw;
 });
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body>
 </html>

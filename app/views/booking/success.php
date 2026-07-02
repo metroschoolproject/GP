@@ -202,5 +202,6 @@ a { color: inherit; text-decoration: none; }
   <?php endif; ?>
 })();
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body>
 </html>

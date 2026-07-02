@@ -529,5 +529,6 @@ if (paymentForm) {
   });
 }
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body>
 </html>

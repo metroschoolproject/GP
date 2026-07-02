@@ -50,6 +50,18 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       background: #f5e8d9;
       font-family: "Playfair Display", serif;
     }
+  :root {
+  --gp-soft-bg:
+    radial-gradient(at 15% 25%, rgba(196,178,161,.28), transparent 45%),
+    radial-gradient(at 82% 12%, rgba(111,46,54,.12), transparent 38%),
+    radial-gradient(at 50% 85%, rgba(216,180,106,.15), transparent 42%),
+    #F8F3ED;
+
+  --gp-dark-bg:
+    radial-gradient(at 80% 10%, rgba(111,46,54,.18), transparent 36%),
+    radial-gradient(at 20% 90%, rgba(216,180,106,.10), transparent 38%),
+    #2A1710;
+}
 
     button,
     input,
@@ -110,20 +122,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       position: relative;
       z-index: 20;
       border-radius: 0;
-      background: #F5E8D9;
+      background: var(--gp-soft-bg);
       color: #211d1a;
     }
 
     .page-sections::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      background:
-        radial-gradient(ellipse at 16% 20%, rgba(252,248,245,0.72) 0 12%, transparent 27%),
-        radial-gradient(ellipse at 82% 10%, rgba(233,171,145,0.12), transparent 28%),
-        radial-gradient(ellipse at 52% 88%, rgba(245,232,217,0.56), transparent 44%);
-      pointer-events: none;
+      content: none;
     }
 
     .page-sections > section {
@@ -138,8 +142,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       border-radius: 0;
       background:
         url("<?= $homeImageRoot ?>/hero-bg.png") center / cover no-repeat,
-        radial-gradient(ellipse at 18% 18%, rgba(252,248,245,0.92), transparent 34%),
-        linear-gradient(180deg, #fff6ec 0%, #f5e4d7 100%);
+        conic-gradient(from 126deg at 18% 18%, rgba(255,246,236,.92), rgba(245,228,215,.7), rgba(252,234,222,.86), rgba(255,248,239,.92));
       isolation: isolate;
     }
 
@@ -255,6 +258,22 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         bottom: 84px;
       }
     }
+
+   #our-services {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.92) 0%, rgba(248,243,237,.68) 28%, rgba(234,216,200,.98) 100%),
+    radial-gradient(ellipse at 82% 20%, rgba(216,180,106,.34), transparent 44%),
+    radial-gradient(ellipse at 18% 78%, rgba(111,46,54,.16), transparent 48%),
+    #F8F3ED !important;
+}
+
+#services {
+  background:
+    linear-gradient(145deg, rgba(255,253,252,.96) 0%, rgba(245,232,217,.62) 38%, rgba(240,223,231,.88) 100%),
+    radial-gradient(ellipse at 12% 18%, rgba(216,180,106,.30), transparent 46%),
+    radial-gradient(ellipse at 88% 76%, rgba(196,178,161,.38), transparent 50%),
+    #FAF7F4 !important;
+}
 
     .site-header {
   position: fixed;
@@ -645,9 +664,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       overflow: visible;
       padding: 0 16px;
       background:
-        radial-gradient(ellipse at 15% 18%, rgba(252,248,245,0.78), transparent 32%),
-        radial-gradient(ellipse at 82% 12%, rgba(185,74,72,0.12), transparent 28%),
-        linear-gradient(135deg, #fff8ef 0%, #f8f2ec 48%, #f5e8d9 100%);
+        linear-gradient(132deg, rgba(255,255,255,.98) 0%, rgba(250,247,244,.62) 34%, rgba(248,243,237,.96) 100%),
+        radial-gradient(ellipse at 80% 18%, rgba(216,180,106,.28), transparent 42%),
+        radial-gradient(ellipse at 22% 82%, rgba(111,46,54,.14), transparent 50%),
+        #FFFDFC;
       color: #4a342f;
       scroll-snap-align: start;
       scroll-snap-stop: normal;
@@ -659,6 +679,11 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       top: 0;
       height: 100vh;
       overflow: hidden;
+      background:
+        linear-gradient(132deg, rgba(255,255,255,.98) 0%, rgba(250,247,244,.62) 34%, rgba(248,243,237,.96) 100%),
+        radial-gradient(ellipse at 80% 18%, rgba(216,180,106,.28), transparent 42%),
+        radial-gradient(ellipse at 22% 82%, rgba(111,46,54,.14), transparent 50%),
+        #FFFDFC;
       transform: translateZ(0);
     }
 
@@ -862,6 +887,124 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       transform: translateY(-52%);
     }
 
+    .home-before-book {
+      position: relative;
+      width: 100%;
+      padding: clamp(82px, 9vw, 118px) 24px;
+      background:
+        linear-gradient(140deg, rgba(255,253,252,.96) 0%, rgba(248,243,237,.58) 34%, rgba(234,216,200,.94) 100%),
+        radial-gradient(ellipse at 18% 20%, rgba(216,180,106,.30), transparent 44%),
+        radial-gradient(ellipse at 84% 76%, rgba(111,46,54,.16), transparent 48%),
+        #F8F3ED;
+      color: #211d1a;
+      scroll-snap-align: start;
+    }
+
+    .home-before-book-inner {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+    }
+
+    .home-before-book-head {
+      display: grid;
+      grid-template-columns: minmax(0, .86fr) minmax(280px, .72fr);
+      align-items: end;
+      gap: clamp(28px, 6vw, 78px);
+      margin-bottom: clamp(30px, 5vw, 52px);
+    }
+
+    .home-before-book-kicker {
+      margin: 0 0 12px;
+      color: #6D4C5B;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .34em;
+      text-transform: uppercase;
+    }
+
+    .home-before-book-title {
+      margin: 0;
+      color: #211d1a;
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: clamp(36px, 4.5vw, 66px);
+      font-weight: 500;
+      line-height: .98;
+      letter-spacing: 0;
+    }
+
+    .home-before-book-copy {
+      margin: 0;
+      color: #6f625a;
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.78;
+    }
+
+    .home-before-book-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .home-before-book-card {
+      min-height: 190px;
+      display: grid;
+      align-content: space-between;
+      gap: 18px;
+      padding: 22px;
+      border: 1px solid rgba(184, 146, 74, .46);
+      border-radius: 18px;
+      background: rgba(255, 248, 239, .42);
+      box-shadow: 0 18px 44px rgba(74, 52, 47, .10);
+      -webkit-backdrop-filter: blur(16px) saturate(1.12);
+      backdrop-filter: blur(16px) saturate(1.12);
+    }
+
+    .home-before-book-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .home-before-book-icon {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(184, 146, 74, .42);
+      background: rgba(252, 248, 245, .68);
+      color: #6D4C5B;
+    }
+
+    .home-before-book-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 1.9;
+    }
+
+    .home-before-book-card h3 {
+      margin: 0;
+      color: #211d1a;
+      font-size: 17px;
+      font-weight: 750;
+      line-height: 1.22;
+    }
+
+    .home-before-book-card p {
+      margin: 8px 0 0;
+      color: #76695f;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.62;
+    }
+
+    .home-before-book-card.is-trust {
+      background: rgba(255, 253, 249, .50);
+    }
+
     @media (max-width: 767px) {
       #how-it-works {
         min-height: auto;
@@ -914,6 +1057,19 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       .hiw-card:hover,
       .hiw-card:focus {
         transform: none;
+      }
+
+      .home-before-book {
+        padding: 64px 16px;
+      }
+
+      .home-before-book-head,
+      .home-before-book-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .home-before-book-card {
+        min-height: 168px;
       }
     }
 
@@ -1052,36 +1208,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       object-fit: cover;
       border-radius: 1rem;
       box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
-      filter: blur(0);
+      filter: none;
       transform: translateZ(0) scale(1);
-      transition:
-        filter 420ms ease,
-        opacity 420ms ease,
-        transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
-      will-change: filter, transform;
-    }
-
-    .gp-gallery-grid.gallery-photo-hovering .gp-gallery-photo img,
-    .gp-gallery-grid:has(img:hover) img {
-      filter: blur(7px) saturate(0.78);
-      opacity: 0.56;
-    }
-
-    .gp-gallery-grid.gallery-photo-hovering .gp-gallery-photo.active img,
-    .gp-gallery-grid:has(img:hover) img:hover {
-      filter: blur(0) saturate(1.08);
-      opacity: 1;
-      z-index: 6;
-    }
-
-    .gp-gallery-layer .gp-gallery-photo.active,
-    .gp-gallery-layer .gp-gallery-photo:has(img:hover) {
-      z-index: 7;
-    }
-
-    .gp-gallery-layer .gp-gallery-photo.active img,
-    .gp-gallery-layer .gp-gallery-photo:has(img:hover) img {
-      transform: translateZ(0) scale(1.045);
+      transition: none;
+      will-change: transform;
     }
 
     .gp-gallery-scaler {
@@ -1184,7 +1314,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       display: grid;
       align-items: center;
       overflow: hidden;
-      background: #C8B19F;
+      background: #754637;
       color: #4A342F;
       padding: clamp(54px, 6vw, 86px) 24px;
       scroll-snap-align: start;
@@ -1578,14 +1708,39 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .site-footer {
+      position: relative;
       min-height: 16vh;
       display: grid;
       place-items: center start;
-      padding: clamp(14px, 1.6vw, 20px) 24px 14px 0;
+      padding: clamp(104px, 8vw, 126px) 24px 14px 0;
       background: #2A1710;
       color: #fcf8f5;
       scroll-snap-align: start;
       scroll-snap-stop: always;
+    }
+
+    .footer-ribbon-divider {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 10px;
+     background-color : #6F2E36;
+      box-shadow: inset 0 -1px 0 rgba(252,248,245,.05);
+      pointer-events: none;
+      
+    }
+
+    .footer-ribbon-img {
+      position: absolute;
+      left: 50%;
+      top: 60%;
+      z-index: 2;
+      width: clamp(70px, 7vw, 110px);
+      height: auto;
+      transform: translate(-50%, -50%);
+      object-fit: contain;
+      filter: brightness(1.35) contrast(1.08) drop-shadow(0 10px 18px rgba(0,0,0,.34));
     }
 .footer-contact-card{
     text-align:left;
@@ -1644,11 +1799,19 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 }
 
     .footer-inner {
-      width: min(100%, 1120px);
+      width: min(100%, 1180px);
       display: grid;
+      grid-template-columns: minmax(260px, 0.82fr) minmax(460px, 1fr);
+      gap: clamp(34px, 7vw, 110px);
       align-content: center;
+      align-items: center;
       justify-items: start;
       text-align: left;
+    }
+
+    .footer-left {
+      display: grid;
+      justify-items: start;
     }
 
     .footer-brand {
@@ -1726,12 +1889,72 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .footer-copy {
+      grid-column: 1 / -1;
       margin: clamp(10px, 1.4vw, 16px) 0 0;
       color: rgba(252,248,245, 0.78);
       font-family: Arial, Helvetica, sans-serif;
       font-size: 12px;
       font-weight: 500;
       letter-spacing: 0.04em;
+    }
+
+    .footer-right-space {
+      justify-self: end;
+      display: grid;
+      grid-template-columns: minmax(150px, 210px) minmax(220px, 280px);
+      gap: clamp(28px, 4vw, 54px);
+      padding-left: clamp(26px, 4vw, 52px);
+      border-left: 1px solid rgba(252,248,245,.18);
+      color: rgba(252,248,245,.78);
+    }
+
+    .footer-column-title {
+      margin: 0 0 16px;
+      color: #fff8ef;
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .footer-quick-links,
+    .footer-contact-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+    }
+
+    .footer-quick-links a {
+      color: rgba(252,248,245,.76);
+      text-decoration: none;
+      transition: color .2s ease, transform .2s ease;
+    }
+
+    .footer-quick-links a:hover,
+    .footer-quick-links a:focus-visible {
+      color: #fff8ef;
+      transform: translateX(3px);
+      outline: none;
+    }
+
+    .footer-contact-list li {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 12px;
+      align-items: center;
+      min-height: 28px;
+    }
+
+    .footer-contact-list svg {
+      width: 17px;
+      height: 17px;
+      color: rgba(252,248,245,.72);
+      stroke-width: 1.8;
     }
 
     @media (max-width: 640px) {
@@ -1742,6 +1965,17 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       .footer-nav {
         gap: 18px;
         flex-wrap: wrap;
+      }
+
+      .footer-inner,
+      .footer-right-space {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-right-space {
+        justify-self: start;
+        padding-left: 0;
+        border-left: 0;
       }
 
       .footer-nav a {
@@ -2041,9 +2275,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         <div class="hero-content">
           <div class="molded-hero-card animate-[liftIn_850ms_ease_both]">
             <div class="molded-hero-copy">
-              <p id="hero-gp" class="hero-brand-title">
-                Golden Promise
-              </p>
+              
 
                <h1 class="cursive-font mx-auto max-w-[1050px] text-[clamp(72px,9vw,140px)] font-normal leading-[1.12] max-[640px]:max-w-full max-[640px]:text-[clamp(52px,14vw,90px)]">Hand in Hand, Promised</h1>
               <p class="mx-auto mt-7 max-w-[760px] text-[clamp(17px,2vw,20px)] leading-[1.7]">We design graceful wedding experiences filled with soft florals, warm candlelight, timeless details, and unforgettable emotion.</p>
@@ -2061,7 +2293,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         <div class="mx-auto grid min-h-[calc(100vh-12rem)] w-[min(100%,1240px)] grid-cols-[1fr_1fr] items-center gap-6 max-[767px]:min-h-0 max-[767px]:grid-cols-1">
           <div class="-ml-6 max-[767px]:ml-0">
             <div class="service-slide-top relative z-10 mb-5 w-[138%] max-w-none max-[767px]:mb-5 max-[767px]:w-full">
-             <h2 id="serviceTitle" class="font-serif mb-3 text-[clamp(34px,4.1vw,62px)] font-semibold leading-[1] text-[#211d1a]">Our Service</h2>
+             <h2 id="serviceTitle" class="font-serif mb-3 text-[clamp(34px,4.1vw,62px)] font-medium leading-[1] text-[#211d1a]">Our Service</h2>
               <p class="max-w-[820px] text-base leading-[1.75] text-[#6f625a]">
                 At <span id="service-gp" class="font-bold text-[#530B0A]">Golden Promise</span> we operates as a centralized hub designed to streamline the connection between customers and qualified wedding professionals, helping couples discover trusted planners, florists, photographers, caterers, stylists, entertainers, and detail-focused creative teams through one refined experience.
               </p>
@@ -2107,19 +2339,19 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
       <section id="services" class="relative z-10 min-h-[620px] w-full bg-[#F5E8D9] px-4 py-24" aria-label="Most Popular Packages">
         <div class="mx-auto mb-5 max-w-[1240px]">
-          <h2 class="font-serif text-center text-[clamp(34px,4.1vw,62px)] font-semibold leading-[1] text-[#211d1a]">Most Popular Packages</h2>
+          <h2 class="font-serif text-center text-[clamp(34px,4.1vw,62px)] font-medium leading-[1] text-[#211d1a]">Wedding Package Collections</h2>
         </div>
         <div class="mx-auto mb-8 flex max-w-[1400px] justify-end">
 
         </div>
         <div class="mx-auto flex h-[72vh] min-h-[520px] w-full max-w-[1400px] flex-col overflow-hidden md:flex-row">
           <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:hover:flex-[4]">
-            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= $homeImageRoot ?>/serviceImg1.png');"></div>
+            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg2.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Golden Vow</h2>
-              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A refined ceremony package with venue styling, florals, and graceful coordination.</p>
+              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Our Package</span>
+              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Essential Coverage</h2>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A graceful foundation for intimate weddings and carefully managed essentials.</p>
               <span data-explore-button class="explore-badge mt-5 inline-flex items-center rounded-full bg-transparent px-0.5 py-0.5 text-[#4A342F] shadow-none">
                 <span class="explore-badge-icon grid rounded-full bg-[#8A6A58] text-white shadow-[0_12px_24px_rgba(74,52,47,0.18)]">
                   <i data-lucide="arrow-right" class="h-4 w-4"></i>
@@ -2127,16 +2359,16 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                 <span class="explore-badge-label ml-0 overflow-hidden whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.24em]">Explore</span>
               </span>
             </div>
-            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Golden Vow</h3>
+            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Standard</h3>
           </a>
 
           <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
-            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= $homeImageRoot ?>/serviceImg2.png');"></div>
+            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg3.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Classic Bloom</h2>
-              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A romantic floral-focused package for couples who want soft, timeless detail.</p>
+              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Our Package</span>
+              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Grand Experience</h2>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">The highest level package with elevated styling and top-tier supplier coordination.</p>
               <span data-explore-button class="explore-badge mt-5 inline-flex items-center rounded-full bg-transparent px-0.5 py-0.5 text-[#4A342F] shadow-none">
                 <span class="explore-badge-icon grid rounded-full bg-[#8A6A58] text-white shadow-[0_12px_24px_rgba(74,52,47,0.18)]">
                   <i data-lucide="arrow-right" class="h-4 w-4"></i>
@@ -2144,16 +2376,16 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                 <span class="explore-badge-label ml-0 overflow-hidden whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.24em]">Explore</span>
               </span>
             </div>
-            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Classic Bloom</h3>
+            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Luxury</h3>
           </a>
 
           <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
-            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= $homeImageRoot ?>/serviceImg3.png');"></div>
+            <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg1.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Most Popular Package</span>
-              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Forever Suite</h2>
-              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A complete planning package covering styling, vendors, timeline, and final details.</p>
+              <span class="text-xs font-semibold uppercase tracking-[0.35em] text-white/75">Our Package</span>
+              <h2 class="font-serif-elegant mt-2 text-5xl uppercase leading-none md:text-6xl">Full Celebration</h2>
+              <p class="mt-3 text-xs font-semibold uppercase tracking-wider text-white/80">A fuller package for couples who want guest experience and details handled together.</p>
               <span data-explore-button class="explore-badge mt-5 inline-flex items-center rounded-full bg-transparent px-0.5 py-0.5 text-[#4A342F] shadow-none">
                 <span class="explore-badge-icon grid rounded-full bg-[#8A6A58] text-white shadow-[0_12px_24px_rgba(74,52,47,0.18)]">
                   <i data-lucide="arrow-right" class="h-4 w-4"></i>
@@ -2161,7 +2393,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                 <span class="explore-badge-label ml-0 overflow-hidden whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.24em]">Explore</span>
               </span>
             </div>
-            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Forever Suite</h3>
+            <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Premium</h3>
           </a>
         </div>
       </section>
@@ -2170,7 +2402,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         <div class="hiw-sticky">
           <div class="hiw-section-title">
             <p>Golden Promise Journey</p>
-            <h2>How It Works</h2>
+            <h3 class="font-serif  text-[clamp(34px,4.1vw,62px)] font-medium leading-[1] text-[#211d1a]">How It Works</h3>
+        
           </div>
 
           <div class="hiw-canvas" id="howItWorksCanvas">
@@ -2234,6 +2467,82 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         </div>
       </section>
 
+      <section class="home-before-book" aria-label="Before you book">
+        <div class="home-before-book-inner">
+          <div class="home-before-book-head">
+            <div>
+              <p class="home-before-book-kicker">Before You Book</p>
+              <h2 class="home-before-book-title">Plan with clarity before you reserve.</h2>
+            </div>
+            <p class="home-before-book-copy">
+              A calm overview of the steps, safeguards, and booking expectations before you choose a package or service for your wedding day.
+            </p>
+          </div>
+
+          <div class="home-before-book-grid">
+            <article class="home-before-book-card">
+              <div class="home-before-book-card-top">
+                <span class="home-before-book-icon" aria-hidden="true"><i data-lucide="package-check"></i></span>
+              </div>
+              <div>
+                <h3>Choose Package</h3>
+                <p>Review what is included and select the tier that matches your wedding plan.</p>
+              </div>
+            </article>
+
+            <article class="home-before-book-card">
+              <div class="home-before-book-card-top">
+                <span class="home-before-book-icon" aria-hidden="true"><i data-lucide="clipboard-list"></i></span>
+              </div>
+              <div>
+                <h3>Confirm Details</h3>
+                <p>Add your event date, guest count, venue details, and package notes.</p>
+              </div>
+            </article>
+
+            <article class="home-before-book-card">
+              <div class="home-before-book-card-top">
+                <span class="home-before-book-icon" aria-hidden="true"><i data-lucide="lock-keyhole"></i></span>
+              </div>
+              <div>
+                <h3>Reserve Securely</h3>
+                <p>Submit your deposit request within 2 hours and track supplier updates from your account.</p>
+              </div>
+            </article>
+
+            <article class="home-before-book-card is-trust">
+              <div class="home-before-book-card-top">
+                <span class="home-before-book-icon" aria-hidden="true"><i data-lucide="shield-check"></i></span>
+              </div>
+              <div>
+                <h3>Secure Booking</h3>
+                <p>Your data is protected throughout the booking and payment process.</p>
+              </div>
+            </article>
+
+            <article class="home-before-book-card is-trust">
+              <div class="home-before-book-card-top">
+                <span class="home-before-book-icon" aria-hidden="true"><i data-lucide="badge-check"></i></span>
+              </div>
+              <div>
+                <h3>Verified Suppliers</h3>
+                <p>Suppliers are reviewed so couples can plan with more confidence.</p>
+              </div>
+            </article>
+
+            <article class="home-before-book-card is-trust">
+              <div class="home-before-book-card-top">
+                <span class="home-before-book-icon" aria-hidden="true"><i data-lucide="calendar-x"></i></span>
+              </div>
+              <div>
+                <h3>Free Cancellation</h3>
+                <p>You can cancel within 48 hours under the booking policy.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section id="gallery" aria-label="Wedding Gallery">
         <div class="gp-gallery-sticky">
           <div class="gp-gallery-heading">
@@ -2243,30 +2552,30 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
           <div class="gp-gallery-grid" aria-hidden="true">
             <div class="gp-gallery-layer">
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery1.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery2.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery3.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery4.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery5.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/galleryImg.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery1.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery2.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery3.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery4.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery5.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery6.jpg" alt=""></div>
             </div>
 
             <div class="gp-gallery-layer">
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery2.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery3.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/galleryImg.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery1.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery4.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery5.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery7.jpg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery8.jpeg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery9.jpeg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery10.jpeg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery11.jpeg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery12.jpeg" alt=""></div>
             </div>
 
             <div class="gp-gallery-layer">
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/garlleryMain.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= $homeImageRoot ?>/gallery5.png" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery13.jpeg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery14.jpg" alt=""></div>
             </div>
 
             <div class="gp-gallery-scaler gp-gallery-photo">
-              <img src="<?= $homeImageRoot ?>/garlleryMain.png" alt="Golden Promise wedding gallery highlight">
+              <img src="<?= URLROOT ?>/app/views/main/images/garlleryMain.png" alt="Golden Promise wedding gallery highlight">
             </div>
           </div>
         </div>
@@ -2340,35 +2649,70 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       </section>
 
       <footer class="site-footer" id="contact" aria-label="Website Footer">
+        <div class="footer-ribbon-divider" aria-hidden="true">
+          <img class="footer-ribbon-img" src="<?= $homeImageRoot ?>/ribbonFooter.png" alt="">
+        </div>
         <div class="footer-inner">
+          <div class="footer-left">
 
-          <!-- Footer nav -->
-          <nav class="footer-nav" aria-label="Footer navigation">
-            <a href="#our-services">Services</a>
-            <a href="#top">Our Story</a>
-            <a href="#reviews">Review</a>
-          </nav>
+            <!-- Footer nav -->
+            <nav class="footer-nav" aria-label="Footer navigation">
+              <a href="#our-services">Services</a>
+              <a href="#top">Our Story</a>
+              <a href="#reviews">Review</a>
+            </nav>
 
-          <!-- Social icons with hover animation -->
-          <div class="footer-contact-card">
-            <h2 id="footerText">GPromise Wedding</h2>
-            <p id="footerLabel">Facebook</p>
-            <div class="footer-icons">
-              <button class="contact-btn active"
-                      data-text="GPromise Wedding"
-                      data-label="Facebook">
-                <i class="fa-brands fa-facebook-f"></i>
-              </button>
-              <button class="contact-btn"
-                      data-text="@gpromise_wedding"
-                      data-label="Instagram">
-                <i class="fa-brands fa-instagram" style="font-size:18px;"></i>
-              </button>
-              <button class="contact-btn"
-                      data-text="GPromise.com"
-                      data-label="Website">
-                <i class="fa-solid fa-globe"></i>
-              </button>
+            <!-- Social icons with hover animation -->
+            <div class="footer-contact-card">
+              <h2 id="footerText">GPromise Wedding</h2>
+              <p id="footerLabel">Facebook</p>
+              <div class="footer-icons">
+                <button class="contact-btn active"
+                        data-text="GPromise Wedding"
+                        data-label="Facebook">
+                  <i class="fa-brands fa-facebook-f"></i>
+                </button>
+                <button class="contact-btn"
+                        data-text="@gpromise_wedding"
+                        data-label="Instagram">
+                  <i class="fa-brands fa-instagram" style="font-size:18px;"></i>
+                </button>
+                <button class="contact-btn"
+                        data-text="GPromise.com"
+                        data-label="Website">
+                  <i class="fa-solid fa-globe"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-right-space" aria-label="Footer quick links and contact">
+            <div>
+              <h3 class="footer-column-title">Quick Links</h3>
+              <ul class="footer-quick-links">
+                <li><a href="#top">Home</a></li>
+                <li><a href="<?= URLROOT ?>/customerServices/service">Services</a></li>
+                <li><a href="<?= URLROOT ?>/customerServices/packages">Wedding Packages</a></li>
+                <li><a href="<?= URLROOT ?>/users/register?type=supplier">Suppliers</a></li>
+                <li><a href="#contact">Contact Us</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 class="footer-column-title">Contact</h3>
+              <ul class="footer-contact-list">
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s7-5.1 7-11a7 7 0 1 0-14 0c0 5.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                  <span>Yangon, Myanmar</span>
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                  <span>support@gpromise.com</span>
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.77.58 2.6a2 2 0 0 1-.45 2.11L8 9.67a16 16 0 0 0 6.33 6.33l1.24-1.24a2 2 0 0 1 2.11-.45c.83.26 1.7.46 2.6.58A2 2 0 0 1 22 16.92z"/></svg>
+                  <span>+95 XXX XXX XXXX</span>
+                </li>
+              </ul>
             </div>
           </div>
 
@@ -2632,21 +2976,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
     window.addEventListener("resize", updateGalleryScroll);
     updateGalleryScroll();
-
-    const galleryGrid = gallerySection?.querySelector(".gp-gallery-grid");
-    const galleryPhotos = galleryGrid?.querySelectorAll(".gp-gallery-photo");
-
-    galleryPhotos?.forEach((photo) => {
-      photo.addEventListener("mouseenter", () => {
-        galleryGrid.classList.add("gallery-photo-hovering");
-        galleryPhotos.forEach((item) => item.classList.toggle("active", item === photo));
-      });
-
-      photo.addEventListener("mouseleave", () => {
-        galleryGrid.classList.remove("gallery-photo-hovering");
-        photo.classList.remove("active");
-      });
-    });
 
     const reviewCards = reviewsSection?.querySelectorAll(".review-card");
 

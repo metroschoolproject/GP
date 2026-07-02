@@ -2373,68 +2373,6 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
       </article>
       <?php endif; ?>
     </div>
-    <section class="gp-before-book gp-reveal gp-reveal-d3" aria-label="Before you book">
-      <div class="gp-before-book-content">
-        <h2 class="gp-before-book-title">A calmer way to plan your wedding package.</h2>
-        <p class="gp-before-book-copy">
-          Compare curated packages, choose the celebration style that fits your day, and reserve trusted suppliers with a clear booking flow from the first step.
-        </p>
-
-        <div class="gp-before-book-timeline" aria-label="Booking steps">
-          <div class="gp-before-book-step">
-            <span class="gp-before-book-num">01</span>
-            <h3>Choose Package</h3>
-            <p>Review what is included and select the tier that matches your wedding plan.</p>
-          </div>
-          <div class="gp-before-book-step">
-            <span class="gp-before-book-num">02</span>
-            <h3>Confirm Details</h3>
-            <p>Add your event date, guest count, venue details, and package notes.</p>
-          </div>
-          <div class="gp-before-book-step">
-            <span class="gp-before-book-num">03</span>
-            <h3>Reserve Securely</h3>
-            <p>Submit your deposit request and track supplier updates from your account.</p>
-          </div>
-        </div>
-
-        <div class="gp-before-book-trust" aria-label="Booking assurance">
-          <div class="gp-before-book-trust-item">
-            <span class="gp-before-book-trust-icon" aria-hidden="true"><i data-lucide="shield-check"></i></span>
-            <span class="gp-before-book-trust-text">
-              <strong>Secure Booking</strong>
-              <span>Your data is protected</span>
-            </span>
-          </div>
-          <div class="gp-before-book-trust-item">
-            <span class="gp-before-book-trust-icon" aria-hidden="true"><i data-lucide="badge-check"></i></span>
-            <span class="gp-before-book-trust-text">
-              <strong>Verified Suppliers</strong>
-              <span>Reviewed by couples</span>
-            </span>
-          </div>
-          <div class="gp-before-book-trust-item">
-            <span class="gp-before-book-trust-icon" aria-hidden="true"><i data-lucide="calendar-x"></i></span>
-            <span class="gp-before-book-trust-text">
-              <strong>Free Cancellation</strong>
-              <span>Within 48 hours</span>
-            </span>
-          </div>
-        </div>
-
-        <a class="gp-before-book-cta" href="#package-standard">Explore Packages</a>
-      </div>
-      <div class="gp-before-book-visual" aria-hidden="true">
-        <div class="gp-before-book-photo-stack">
-          <span class="gp-before-book-photo">
-            <img src="<?= URLROOT ?>/app/views/main/images/packageHero1.png" alt="" loading="lazy">
-          </span>
-          <span class="gp-before-book-photo">
-            <img src="<?= URLROOT ?>/app/views/main/images/packageInfo1.png" alt="" loading="lazy">
-          </span>
-        </div>
-      </div>
-    </section>
     <?php endif; ?>
 
     <div class="gp-package-type-sections" aria-label="Package type details">

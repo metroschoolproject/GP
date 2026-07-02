@@ -3729,6 +3729,7 @@ document.querySelectorAll('.gp-item-card[data-package-id]').forEach(card => {
   }
 });
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

@@ -188,5 +188,6 @@ $banks = ['KBZ Pay', 'Wave Money', 'AYA Pay', 'Yoma Bank', 'CB Bank', 'Visa / Ma
     slipName.textContent = this.files[0] ? this.files[0].name : 'Click to upload screenshot or receipt';
   });
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body>
 </html>
