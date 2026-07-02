@@ -83,7 +83,9 @@ a{color:inherit;text-decoration:none}
 .gp-detail-topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .gp-detail-topbar-actions .gp-btn-sm,.gp-detail-topbar-actions .gp-badge{background:rgba(252,248,245,.62)}
 .gp-detail-topbar-actions .gp-btn-sm.primary{background:var(--plum);color:#fffaf5;border-color:var(--plum)}
-.gp-detail-topbar-actions .gp-btn-sm.danger{background:rgba(252,248,245,.68)}
+.gp-detail-topbar-actions .gp-btn-sm.primary,.gp-detail-topbar-actions .gp-btn-sm.is-disabled{min-width:132px;justify-content:center}
+.gp-detail-topbar-actions .gp-btn-sm.is-disabled{cursor:default;pointer-events:none;background:rgba(252,248,245,.38);border-color:rgba(178,143,110,.18);color:rgba(92,74,84,.48);backdrop-filter:blur(8px);box-shadow:inset 0 0 18px rgba(255,250,245,.36)}
+.gp-detail-topbar-actions .gp-btn-sm.danger{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
 .gp-detail-topbar-actions .gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
 .gp-detail-back{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:8px 14px;border-radius:10px;border:1px solid rgba(178,143,110,.26);background:rgba(252,248,245,.52);color:var(--muted);font-size:12px;font-weight:700;transition:all .18s}
 .gp-detail-back:hover{border-color:var(--plum);color:var(--plum);background:rgba(252,248,245,.84)}
@@ -129,7 +131,7 @@ a{color:inherit;text-decoration:none}
 .gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-label{color:var(--danger)}
 .gp-service-detail-panel{display:none}
 .gp-service-detail-panel.active{display:flex;flex-direction:column;gap:12px}
-.gp-service-detail-title{font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--text);line-height:1.15}
+.gp-service-detail-title{font-family:var(--font-b);font-size:19px;font-weight:600;color:var(--text);line-height:1.2}
 .gp-service-detail-meta{font-size:12px;color:var(--plum-lt);font-weight:600}
 .gp-service-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .gp-field{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 0}
@@ -204,6 +206,22 @@ a{color:inherit;text-decoration:none}
 .gp-flash-success{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 .gp-flash-error{background:#fdecea;color:#c62828;border:1px solid #ef9a9a;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 .gp-edit-form{margin-top:12px;display:none}
+.gp-page strong,
+.gp-page [style*="font-weight:700"],
+.gp-page [style*="font-weight:800"]{font-weight:600!important}
+.gp-page .gp-card-h,
+.gp-page .gp-info-title,
+.gp-page .gp-journey-ref,
+.gp-page .gp-journey-flow,
+.gp-page .gp-journey-status,
+.gp-page .gp-journey-dot,
+.gp-page .gp-journey-label,
+.gp-page .gp-journey-state,
+.gp-page .gp-service-detail-title,
+.gp-page .gp-tl-t,
+.gp-page .gp-order-name,
+.gp-page .gp-order-price,
+.gp-page .gp-summary-r.total{font-weight:600!important}
 
 /* ── Payment Proof Pill ── */
 .gp-proof-pill{border:1px solid var(--rule);border-radius:14px;background:var(--card);overflow:hidden}
@@ -309,6 +327,28 @@ a{color:inherit;text-decoration:none}
         }
         $journeyCopy = 'Follow each milestone from booking placement through completion.';
     }
+
+    $supplierApproved = false;
+    $supplierPending = false;
+    $supplierInitiated = false;
+    $supplierInitiatedName = '';
+    $cancelReason = '';
+    if (($booking['status'] ?? '') === 'cancellation_requested') {
+        foreach ($suppliers as $sup) {
+            if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
+            if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
+            if (($sup['status'] ?? '') === 'supplier_cancellation_requested') {
+                $supplierInitiated = true;
+                $supplierInitiatedName = $sup['shop_name'] ?? 'Your supplier';
+            }
+        }
+        foreach (array_reverse($logs ?? []) as $log) {
+            if (($log['new_status'] ?? '') === 'cancellation_requested' && !empty($log['note'])) {
+                $cancelReason = $log['note'];
+                break;
+            }
+        }
+    }
   ?>
 
   <div class="gp-detail-topbar" aria-label="Booking actions">
@@ -317,17 +357,24 @@ a{color:inherit;text-decoration:none}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           Back to Bookings
         </a>
+        <?php if (($booking['status'] ?? '') === 'cancellation_requested' && $supplierPending): ?>
+        <div class="gp-cancel-under-review">
+          <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
+          <?php if ($cancelReason): ?>
+          <div class="gp-cancel-under-review-reason"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
       </div>
       <div class="gp-detail-topbar-actions">
+        <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested'], true)): ?>
         <?php if (in_array($booking['status']??'', ['draft', 'pending_payment']) && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
-          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Proceed to Payment</a>
-        <?php elseif (($booking['status']??'') === 'pending_supplier_response'): ?>
-          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;" title="Payment available after supplier confirms">Awaiting Supplier Response</span>
+          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Payment</a>
+        <?php elseif ($heroHasRemainingBalance && !($hasPendingRemaining ?? false)): ?>
+          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Payment</a>
+        <?php else: ?>
+          <span class="gp-btn-sm is-disabled" title="Payment is not available for this booking state">Payment</span>
         <?php endif; ?>
-        <?php if ($heroHasRemainingBalance && !($hasPendingRemaining ?? false)): ?>
-          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance</a>
-        <?php elseif ($heroHasRemainingBalance && ($hasPendingRemaining ?? false)): ?>
-          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;">Remaining Payment Under Review</span>
         <?php endif; ?>
         <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
           <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
@@ -335,10 +382,89 @@ a{color:inherit;text-decoration:none}
       </div>
   </div>
 
+  <div class="gp-top-notices">
+    <?php if (in_array($currentStatus, ['paid', 'confirmed'], true) && $summaryBalanceTop > 0): ?>
+    <div class="gp-info-box">
+      <div class="gp-info-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+      <div>
+        <div class="gp-info-title">Deposit paid — complete full payment</div>
+        <div class="gp-info-copy">Your deposit has been paid. Remaining balance: <strong><?= $money($summaryBalanceTop) ?></strong>. You can pay now to complete the full payment.</div>
+        <div class="gp-info-actions">
+          <?php if (!($hasPendingRemaining ?? false)): ?>
+            <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance (<?= $money($summaryBalanceTop) ?>)</a>
+          <?php else: ?>
+            <span class="gp-btn-sm" style="cursor:default;opacity:0.78;">Remaining Payment Under Review</span>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($currentStatus === 'pending_supplier_response'): ?>
+    <div class="gp-info-box">
+      <div class="gp-info-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      </div>
+      <div>
+        <div class="gp-info-title">Waiting for supplier confirmation</div>
+        <div class="gp-info-copy">Your booking request has been sent. The supplier has up to 48 hours to accept or decline. You will be notified when they respond.</div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($currentStatus === 'pending_payment' && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
+    <div class="gp-info-box">
+      <div class="gp-info-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>
+      </div>
+      <div>
+        <div class="gp-info-title">Supplier accepted — please complete payment</div>
+        <div class="gp-info-copy">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($currentStatus === 'payment_submitted'): ?>
+    <div class="gp-payment-review-box">
+      <div class="gp-payment-review-head">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div class="gp-payment-review-title">Payment proof submitted — under review</div>
+          <div class="gp-payment-review-copy">Our team is reviewing your transfer details. We'll notify you once verified (usually within a few hours). No action needed from you right now.</div>
+        </div>
+      </div>
+      <?php if (!empty($depositPayment)): ?>
+      <div class="gp-payment-review-grid">
+        <?php if (!empty($depositPayment['bank_name'])): ?>
+        <div><div class="gp-payment-review-label">Bank / Method</div><div class="gp-payment-review-value"><?= $h($depositPayment['bank_name']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['transaction_ref'])): ?>
+        <div><div class="gp-payment-review-label">Payment reference</div><div class="gp-payment-review-value" style="font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['paid_amount'])): ?>
+        <div><div class="gp-payment-review-label">Amount Sent</div><div class="gp-payment-review-value"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
+        <?php endif; ?>
+        <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
+        <div><div class="gp-payment-review-label">Includes Platform Fee</div><div class="gp-payment-review-value"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div></div>
+        <?php endif; ?>
+        <?php if (!empty($depositPayment['paid_at'])): ?>
+        <div><div class="gp-payment-review-label">Transfer Date</div><div class="gp-payment-review-value"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+  </div>
+
   <section class="gp-journey-card<?= $journeyTone === 'cancel' ? ' is-cancel' : '' ?>" aria-label="Booking Journey">
     <div class="gp-journey-head">
-      <div class="gp-journey-ref">#<?= $h($bookingRef) ?></div>
-      <div class="gp-journey-flow"><?= $h($journeyFlowLabel) ?></div>
+      <div>
+        <div class="gp-journey-ref">#<?= $h($bookingRef) ?></div>
+        <div class="gp-journey-flow"><?= $h($journeyFlowLabel) ?></div>
+      </div>
+      <div class="gp-journey-status"><?= $h($journeyStatusLabel) ?></div>
     </div>
     <div class="gp-journey-steps">
       <?php foreach ($journeySteps as $stepIndex => $stepLabel): ?>
@@ -356,25 +482,6 @@ a{color:inherit;text-decoration:none}
       <?php endforeach; ?>
     </div>
   </section>
-
-  <?php if (in_array($currentStatus, ['paid', 'confirmed'], true) && $summaryBalanceTop > 0): ?>
-  <div class="gp-info-box">
-    <div class="gp-info-icon" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
-    </div>
-    <div>
-      <div class="gp-info-title">Deposit paid — complete full payment</div>
-      <div class="gp-info-copy">Your deposit has been paid. Remaining balance: <strong><?= $money($summaryBalanceTop) ?></strong>. You can pay now to complete the full payment.</div>
-      <div class="gp-info-actions">
-        <?php if (!($hasPendingRemaining ?? false)): ?>
-          <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Pay Remaining Balance (<?= $money($summaryBalanceTop) ?>)</a>
-        <?php else: ?>
-          <span class="gp-btn-sm" style="cursor:default;opacity:0.78;">Remaining Payment Under Review</span>
-        <?php endif; ?>
-      </div>
-    </div>
-  </div>
-  <?php endif; ?>
 
   <?php if (!empty($replacementHistory)): ?>
     <?php
@@ -633,7 +740,6 @@ a{color:inherit;text-decoration:none}
               <section class="gp-service-detail-panel <?= $idx === 0 ? 'active' : '' ?>" data-service-panel="<?= $itemId ?>" aria-label="<?= $h($item['service_name'] ?? 'Service') ?> details">
                 <div>
                   <div class="gp-service-detail-title"><?= $h($item['service_name'] ?? 'Wedding Service') ?></div>
-                  <div class="gp-service-detail-meta"><?= $h($category) ?> · <?= $h($supplier) ?></div>
                 </div>
                 <div class="gp-service-detail-grid">
                   <?php if (!empty($eventDateRaw)): ?>
@@ -917,73 +1023,6 @@ a{color:inherit;text-decoration:none}
   <div class="gp-bottom-actions">
     <?php if (!empty($vouchers)): ?>
     <a class="gp-btn-sm" href="<?=URLROOT?>/booking/vouchers">View All Vouchers</a>
-    <?php endif; ?>
-
-    <?php if (($booking['status'] ?? '') === 'cancellation_requested'): ?>
-      <?php
-      $supplierApproved = false;
-      $supplierPending = false;
-      $supplierInitiated = false;
-      $supplierInitiatedName = '';
-      foreach ($suppliers as $sup) {
-        if (($sup['status'] ?? '') === 'cancellation_approved') $supplierApproved = true;
-        if (($sup['status'] ?? '') === 'cancellation_pending') $supplierPending = true;
-        if (($sup['status'] ?? '') === 'supplier_cancellation_requested') {
-          $supplierInitiated = true;
-          $supplierInitiatedName = $sup['shop_name'] ?? 'Your supplier';
-        }
-      }
-      // Find cancellation reason from status logs
-      $cancelReason = '';
-      foreach (array_reverse($logs ?? []) as $log) {
-        if (($log['new_status'] ?? '') === 'cancellation_requested' && !empty($log['note'])) {
-          $cancelReason = $log['note'];
-          break;
-        }
-      }
-      ?>
-      <?php if ($supplierInitiated): ?>
-      <div style="background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:16px 18px;margin-top:8px;color:#9a3412">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <span style="font-size:18px">⚠️</span>
-          <div>
-            <strong style="font-size:14px">Your supplier has requested to cancel this booking</strong>
-            <div style="font-size:12px;color:#c2410c;margin-top:2px"><?= $h($supplierInitiatedName) ?> is unable to fulfill this booking. Our admin team will review the request and process your refund.</div>
-          </div>
-        </div>
-        <?php if ($cancelReason): ?>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fdba74;font-size:12px">
-          <span style="opacity:0.7;text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.08em">Reason from supplier</span><br>
-          <span style="font-weight:600"><?= $h($cancelReason) ?></span>
-        </div>
-        <?php endif; ?>
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #fdba74;font-size:12px;color:#c2410c;display:flex;align-items:center;gap:6px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          <span>You will be notified once the admin processes your refund. No action is required from you.</span>
-        </div>
-      </div>
-      <?php elseif ($supplierPending): ?>
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:8px">
-        <strong>Cancellation under review</strong> — Your supplier is reviewing your cancellation request. You'll be notified once they respond.
-        <?php if ($cancelReason): ?>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #fde68a;font-size:12px;color:#a16207"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
-        <?php endif; ?>
-      </div>
-      <?php elseif ($supplierApproved): ?>
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;font-size:13px;color:#166534;margin-top:8px">
-        <strong>Supplier approved</strong> — Your supplier has approved the cancellation. Admin will review and process your refund.
-        <?php if ($cancelReason): ?>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0;font-size:12px;color:#15803d"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
-        <?php endif; ?>
-      </div>
-      <?php else: ?>
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;color:#1e40af;margin-top:8px">
-        <strong>Cancellation requested</strong> — Your cancellation request is being reviewed.
-        <?php if ($cancelReason): ?>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bfdbfe;font-size:12px;color:#1d4ed8"><strong>Your reason:</strong> <?= $h($cancelReason) ?></div>
-        <?php endif; ?>
-      </div>
-      <?php endif; ?>
     <?php endif; ?>
 
     <!-- Refund Status (shown when booking is cancelled and refund exists) -->

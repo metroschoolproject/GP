@@ -159,5 +159,6 @@ document.getElementById('btnSaveNotif').addEventListener('click',function(){
   }).catch(function(){btn.disabled=false;btn.innerHTML=orig;if(window.lucide)lucide.createIcons();showMsg('Network error.','error');});
 });
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body>
 </html>

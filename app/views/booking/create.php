@@ -973,6 +973,11 @@ font-weight: 700;
   height: 100%;
   opacity: 0;
   pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.venue-date-input-wrap input::-webkit-calendar-picker-indicator {
+  display: none;
 }
 .venue-date-display {
   min-width: 0;
@@ -3724,6 +3729,7 @@ document.querySelectorAll('.gp-item-card[data-package-id]').forEach(card => {
   }
 });
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

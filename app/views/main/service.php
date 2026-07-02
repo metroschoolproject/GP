@@ -270,7 +270,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .nav-partner{
   padding:7px 17px;
-  background:#3f241a;
+  background: #6d4c5B;
   color:#fff8ef;
   box-shadow:none;
 }
@@ -858,7 +858,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 }
 .fb-select{
   background-color:rgba(245,232,217,.82);
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6' stroke='%239A687F' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6' stroke='%236d4c5B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;
   background-position:right 12px center;
   background-size:12px 12px;
@@ -1456,6 +1456,42 @@ button,input,select{font-family:var(--font-body);outline:none}
 
 /* footer */
 .gp-footer{padding:28px var(--pad-x);border-top:1px solid var(--c-rule);display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;color:var(--c-pale)}
+main{margin-bottom:0;background:#2A1710}
+.gp-track-wrap{margin-bottom:0}
+.gp-shared-footer{
+  position:relative !important;
+  z-index:2 !important;
+  overflow:visible !important;
+  width:100% !important;
+  margin-top:0 !important;
+  background:#2A1710 !important;
+  color:#fcf8f5 !important;
+}
+.gp-shared-footer::before{
+  top:-38px !important;
+  height:42px !important;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='42' viewBox='0 0 260 42'%3E%3Cpath fill='%232A1710' d='M0 42h260V24C218 0 174 44 130 24 86 4 42 44 0 24v18Z'/%3E%3C/svg%3E") repeat-x bottom left/260px 42px !important;
+  pointer-events:none !important;
+}
+.gp-shared-footer-inner{
+  position:relative !important;
+  z-index:1 !important;
+}
+.gp-shared-footer-nav a,
+.gp-shared-footer-contact-card h2,
+.gp-shared-footer-title{
+  color:#fcf8f5 !important;
+}
+.gp-shared-footer-contact-card p,
+.gp-shared-footer-links a,
+.gp-shared-footer-contact-list li,
+.gp-shared-footer-copy{
+  color:rgba(252,248,245,.78) !important;
+}
+.gp-shared-footer-nav a:hover,
+.gp-shared-footer-links a:hover{
+  color:#fcf8f5 !important;
+}
 
 /* recently viewed */
 .gp-recent{
@@ -2910,6 +2946,7 @@ document.getElementById('authRequiredModal').addEventListener('click', function(
 });
 </script>
 
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 <?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>
