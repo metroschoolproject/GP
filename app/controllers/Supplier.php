@@ -820,6 +820,8 @@ class Supplier extends SupplierControllerSupport
             'address'    => $supplier['owner_address'] ?? '',
             'avatar'     => $_SESSION['session_avatar'] ?? null,
             'joined'     => !empty($supplier['created_at']) ? date('Y-m-d', strtotime($supplier['created_at'])) : '-',
+            'lastLogin'  => !empty($supplier['last_login']) ? date('Y-m-d h:i A', strtotime($supplier['last_login'])) : '-',
+            'isOnline'   => !empty($supplier['is_online']),
 
             // Stats
             'service_count'  => $serviceCount,
@@ -1010,7 +1012,7 @@ class Supplier extends SupplierControllerSupport
 
     /**
      * JSON endpoint — update supplier profile.
-     * Expects JSON body: { name, email, phone, address, shop_name, description, business_url }
+     * Expects JSON body: { name, email, phone, address }
      */
     public function updateProfile()
     {
@@ -1033,9 +1035,6 @@ class Supplier extends SupplierControllerSupport
             $email   = trim((string)($payload['email'] ?? ''));
             $phone   = trim((string)($payload['phone'] ?? ''));
             $address = trim((string)($payload['address'] ?? ''));
-            $shopName    = trim((string)($payload['shop_name'] ?? ''));
-            $description = trim((string)($payload['description'] ?? ''));
-            $businessUrl = trim((string)($payload['business_url'] ?? ''));
 
             if ($name === '' || $email === '') {
                 echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
@@ -1052,9 +1051,6 @@ class Supplier extends SupplierControllerSupport
                 'email'        => $email,
                 'phone'        => $phone,
                 'address'      => $address,
-                'shop_name'    => $shopName,
-                'description'  => $description,
-                'business_url' => $businessUrl,
             ]);
 
             // Update session

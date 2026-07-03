@@ -40,11 +40,11 @@ $dashboardContent = function () use ($message, $old, $errors) {
   .btn-primary{display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;border:none;border-radius:.75rem;background:var(--primary);color:#FFFFFF;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .12s;text-decoration:none}
   .btn-primary:hover{background:var(--primary-hover)}
 
-  input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .12s}
-  input:focus,textarea:focus,select:focus{border-color:var(--primary)}
-  textarea{min-height:80px;resize:vertical}
-  input[type=number]{width:140px}
-  select{width:100%}
+  .admin-pkg-page input,.admin-pkg-page textarea,.admin-pkg-page select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:.5rem;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .12s}
+  .admin-pkg-page input:focus,.admin-pkg-page textarea:focus,.admin-pkg-page select:focus{border-color:var(--primary)}
+  .admin-pkg-page textarea{min-height:80px;resize:vertical}
+  .admin-pkg-page input[type=number]{width:140px}
+  .admin-pkg-page select{width:100%}
 
   .hint{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5}
   .stat-sub{font-size:11px;color:var(--muted);margin-top:2px}

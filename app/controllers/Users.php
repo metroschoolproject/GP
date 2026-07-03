@@ -531,6 +531,7 @@ public function register()
                 $verifyres = $this->usermodel->login($data);
                 if($verifyres){
                     $this->usermodel->markloginsuccess($data['email']);
+                    $this->logmodel->clearLoginFails($data['email'], $this->ip);
                     $this->userid = $_SESSION['session_uid'] ?? $this->userid;
                     $_SESSION['post_login_redirect'] = $this->getPostLoginRedirect($this->userid);
                     $_SESSION['pending_remember_me'] = !empty($input['remember_me']);
@@ -577,9 +578,10 @@ public function register()
 
     public function loginfailhandle($email){
         $this->usermodel->recordpasswordfail($email);
+        $this->logmodel->recordLoginFail($email, $this->ip);
         $loginfail_count = $this->logmodel->detect_loginfail($email);
         $attemptime = 3;
-        if ($loginfail_count['loginfails'] > $attemptime) {
+        if ((int)$loginfail_count['loginfails'] >= $attemptime) {
             $lockTime = new DateTime('+15 minutes');
             $this->usermodel->lockaccount($email, $lockTime->format('Y-m-d H:i:s'));
             $user = $this->usermodel->getuserinfo($email);
@@ -598,15 +600,20 @@ public function register()
                 'status' => 'lock',
                 'loginfailover' => true,
                 'lockedUntil' => ['date' => $lockTime->format('Y-m-d H:i:s')],
-                'loginfails' => $loginfail_count['loginfails']
+                'loginfails' => (int)$loginfail_count['loginfails'],
+                'attempt_count' => (int)$loginfail_count['loginfails'],
+                'max_attempts' => $attemptime,
+                'remaining_attempts' => 0
             ]);
             exit;
         } else {
+            $attemptCount = (int)$loginfail_count['loginfails'];
             echo json_encode([
                 'loginfailnotyet' => true,
                 'pwd' => false,
-                'attempt_count' => (int)$loginfail_count['loginfails'],
-                'max_attempts' => $attemptime
+                'attempt_count' => $attemptCount,
+                'max_attempts' => $attemptime,
+                'remaining_attempts' => max(0, $attemptime - $attemptCount)
             ]);
             exit;
         }
@@ -737,6 +744,7 @@ public function register()
             redirect($this->getPostLoginRedirect($user['user_id']));
         }
 
+        $_SESSION['login_success_flash'] = true;
         redirect('main/home');
     }
 

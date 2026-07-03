@@ -963,21 +963,26 @@ class PlatformPackage
             }
         }
 
-        // Category filter
+        // Category filter. The customer packages page also sends package tier
+        // values (standard/premium/luxury) through this field; those are
+        // inferred and filtered in the view, not stored as service categories.
         $category = trim((string)($filters['category'] ?? ''));
+        $tierFilters = ['standard', 'premium', 'luxury'];
         if ($category !== '' && $category !== 'all') {
-            if ($hasPackageCategory) {
-                $conditions[] = '(pc.slug = :cat_slug OR pc.name = :cat_name)';
-            } else {
-                $conditions[] = 'EXISTS (
-                    SELECT 1 FROM package_items pi2
-                    LEFT JOIN categories c2 ON c2.id = pi2.category_id
-                    WHERE pi2.package_id = p.package_id
-                      AND (c2.slug = :cat_slug OR c2.name = :cat_name)
-                )';
+            if (!in_array(strtolower($category), $tierFilters, true)) {
+                if ($hasPackageCategory) {
+                    $conditions[] = '(pc.slug = :cat_slug OR pc.name = :cat_name)';
+                } else {
+                    $conditions[] = 'EXISTS (
+                        SELECT 1 FROM package_items pi2
+                        LEFT JOIN categories c2 ON c2.id = pi2.category_id
+                        WHERE pi2.package_id = p.package_id
+                          AND (c2.slug = :cat_slug OR c2.name = :cat_name)
+                    )';
+                }
+                $bindings[':cat_slug'] = $category;
+                $bindings[':cat_name'] = $category;
             }
-            $bindings[':cat_slug'] = $category;
-            $bindings[':cat_name'] = $category;
         }
 
         // Date availability filter — only show packages where ALL services are available
@@ -1068,10 +1073,11 @@ class PlatformPackage
                        p.max_concurrent,
                        p.image_url,
                        p.sort_order,
-                       COUNT(pi.service_id) AS item_count,
+                       COUNT(DISTINCT pi.service_id) AS item_count,
+                       COUNT(DISTINCT COALESCE(pi.category_id, svc.category_id)) AS service_type_count,
                        COALESCE(SUM(CASE WHEN pi.service_id IS NOT NULL THEN ' . $this->packageLineTotalSql() . ' ELSE 0 END), 0) AS included_total
                 FROM packages p
-                LEFT JOIN package_items pi ON pi.package_id = p.package_id
+                LEFT JOIN package_items pi ON pi.package_id = p.package_id AND pi.deleted_at IS NULL
                 LEFT JOIN services svc ON svc.id = pi.service_id
                 ' . $categoryJoin . '
                 WHERE ' . $where . '
@@ -1102,6 +1108,7 @@ class PlatformPackage
              LEFT JOIN services svc ON svc.id = pi.service_id
              LEFT JOIN suppliers sup ON sup.supplier_id = pi.default_supplier_id
              WHERE pi.package_id IN ($placeholders)
+               AND pi.deleted_at IS NULL
                AND pi.service_id IS NOT NULL
              ORDER BY c.name ASC, svc.name ASC"
         );
@@ -1120,6 +1127,7 @@ class PlatformPackage
             $pid = (int)$pkg['package_id'];
             $pkg['categories'] = $itemsByPackage[$pid] ?? [];
             $pkg['service_count'] = (int)($pkg['item_count'] ?? 0);
+            $pkg['service_type_count'] = (int)($pkg['service_type_count'] ?? 0);
             $pkg = $this->withCustomerPackagePrice($pkg);
         }
         unset($pkg);

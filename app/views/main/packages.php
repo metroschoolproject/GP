@@ -12,6 +12,19 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => 'MMK ' . number_format((float)$v, 0);
+$packageServiceTypeCount = static function (array $pkg): int {
+    if (isset($pkg['service_type_count'])) {
+        return (int)$pkg['service_type_count'];
+    }
+    $categoryKeys = [];
+    foreach (($pkg['categories'] ?? []) as $cat) {
+        $key = trim((string)($cat['category_slug'] ?? $cat['category_name'] ?? ''));
+        if ($key !== '') {
+            $categoryKeys[strtolower($key)] = true;
+        }
+    }
+    return count($categoryKeys);
+};
 
 $activeCategory = $_GET['category'] ?? ($filters['category'] ?? 'all');
 $activeSort     = $_GET['sort'] ?? ($filters['sort'] ?? 'featured');
@@ -298,8 +311,9 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   filter: none;
   opacity: 0;
   transform: none;
-  transition: opacity 1s ease-in-out;
+  transition: opacity 1s ease-in-out, transform .18s linear;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 .gp-pkg-hero-bg.is-active {
   opacity: 1;
@@ -1116,6 +1130,22 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 .gp-package-type-card:hover{
   transform:translateY(-7px);
   box-shadow:0 24px 52px rgba(63,36,26,.17);
+}
+
+.gp-package-type-card.gp-scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 38px, 0) scale(.985);
+  transform-origin: center;
+}
+
+.gp-package-type-card.gp-scroll-reveal.visible {
+  animation: cardFlyIn 1.05s var(--ease-out-expo) both;
+  animation-delay: var(--card-reveal-delay, 0s);
+}
+
+.gp-package-type-card.gp-scroll-reveal.visible:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 24px 52px rgba(63,36,26,.17);
 }
 
 .gp-package-type-image{
@@ -2284,7 +2314,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   </button>
 
     <span class="gp-service-count-tag">
-      <?= count($pkg['services'] ?? []) ?: 5 ?> Services
+      <?php $serviceTypeCount = $packageServiceTypeCount((array)$pkg); ?>
+      <?= $serviceTypeCount ?> <?= $serviceTypeCount === 1 ? 'Service Type' : 'Service Types' ?>
     </span>
   </span>
 
@@ -2434,7 +2465,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   </button>
 
     <span class="gp-service-count-tag">
-      <?= count($pkg['services'] ?? []) ?: 5 ?> Services
+      <?php $serviceTypeCount = $packageServiceTypeCount((array)$pkg); ?>
+      <?= $serviceTypeCount ?> <?= $serviceTypeCount === 1 ? 'Service Type' : 'Service Types' ?>
     </span>
   </span>
 
@@ -2477,6 +2509,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof lucide !== 'undefined') lucide.createIcons();
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const packageHero = document.querySelector('.gp-pkg-hero');
   if (packageHero) {
@@ -2511,9 +2544,24 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       packageHero.classList.add('is-in');
     }
+
+    if (!prefersReducedMotion) {
+      const updateHeroParallax = () => {
+        const rect = packageHero.getBoundingClientRect();
+        const progress = Math.max(0, Math.min(1, -rect.top / Math.max(rect.height, 1)));
+        packageHeroLayers.forEach(layer => {
+          layer.style.transform = `scale(1.08) translateY(${progress * 34}px)`;
+        });
+      };
+      window.addEventListener('scroll', updateHeroParallax, { passive: true });
+      updateHeroParallax();
+    }
   }
 
-  const revealBoxes = document.querySelectorAll('.gp-reveal');
+  const packageCards = Array.from(document.querySelectorAll('.gp-package-type-card'));
+  packageCards.forEach(el => el.classList.add('gp-scroll-reveal'));
+
+  const revealBoxes = document.querySelectorAll('.gp-reveal, .gp-scroll-reveal');
   if (revealBoxes.length && 'IntersectionObserver' in window) {
     let revealCardIndex = 0;
     const observer = new IntersectionObserver((entries) => {
@@ -2525,7 +2573,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }, { threshold: 0.06, rootMargin: '0px 0px -40px 0px' });
     revealBoxes.forEach(el => {
-      if (el.matches('.gp-tier-card, .gp-pkg-card')) {
+      if (el.matches('.gp-tier-card, .gp-pkg-card, .gp-package-type-card')) {
         el.style.setProperty('--card-reveal-delay', `${Math.min(revealCardIndex * 0.14, 1.12).toFixed(2)}s`);
         revealCardIndex += 1;
       }

@@ -13,11 +13,11 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     --supplier-admin-bg: #fbfbf9;
     --supplier-admin-card: #FFFFFF;
     --supplier-admin-border: #ead8c7;
-    --supplier-admin-text: #6d4c5b;
-    --supplier-admin-muted: #A8A29E;
+    --supplier-admin-text: #111827;
+    --supplier-admin-muted: #b79c8b;
     --supplier-admin-soft: #FAFAF9;
     --supplier-admin-accent: #6d4c5b;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Poppins', system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
   }
   .supplier-dashboard-overview .supplier-admin-card {
@@ -32,8 +32,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   }
   .supplier-dashboard-overview .supplier-admin-page-title {
     margin: 0;
-    color: #6d4c5b;
-    font-family: "Playfair Display", serif;
+    color: var(--supplier-admin-text);
     font-size: clamp(27px, 2.5vw, 36px);
     font-weight: 650;
     letter-spacing: -.025em;
@@ -116,6 +115,18 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   .supplier-dashboard-overview canvas {
     max-width: 100%;
   }
+  .supplier-dashboard-overview .text-app-text {
+    color: var(--supplier-admin-text) !important;
+  }
+  .supplier-dashboard-overview .text-app-secondary {
+    color: #7b5c69 !important;
+  }
+  .supplier-dashboard-overview .text-app-muted {
+    color: var(--supplier-admin-muted) !important;
+  }
+  .supplier-dashboard-overview .text-app-primary {
+    color: var(--supplier-admin-accent) !important;
+  }
   .supplier-dashboard-overview .supplier-admin-layout-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -174,6 +185,7 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
     font-size: 12px;
     font-weight: 600;
     color: var(--supplier-admin-accent);
+    font-family: 'Poppins', system-ui, sans-serif;
     cursor: pointer;
     transition: all .15s ease;
     white-space: nowrap;

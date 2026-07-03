@@ -24,6 +24,8 @@ if (!isset($totalPages) || ($totalPages <= 1 && empty($showSinglePage))) {
 $classPrefix = $classPrefix ?? 'admin';
 $baseParams  = $baseParams ?? '';
 $h           = $h ?? 'htmlspecialchars';
+$prevText    = $prevText ?? '';
+$nextText    = $nextText ?? '';
 
 // Choose CSS class set
 if ($classPrefix === 'supplier') {
@@ -80,12 +82,14 @@ $end   = min($currentPage * $perPage, $totalCount);
         <a href="?page=<?= $currentPage - 1 . $h($paramStr) ?>"
            class="<?= $cls['btn'] ?>" aria-label="Previous page">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
+            <?php if ($prevText !== ''): ?><span class="page-btn-label"><?= $h($prevText) ?></span><?php endif; ?>
         </a>
         <?php else: ?>
         <span class="<?= $cls['btn'] ?><?= $cls['btnDis'] ? ' ' . $cls['btnDis'] : '' ?>"
               style="<?= $cls['btnDis'] ? '' : 'opacity:.35;pointer-events:none' ?>"
               aria-disabled="true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
+            <?php if ($prevText !== ''): ?><span class="page-btn-label"><?= $h($prevText) ?></span><?php endif; ?>
         </span>
         <?php endif; ?>
 
@@ -114,12 +118,14 @@ $end   = min($currentPage * $perPage, $totalCount);
         <a href="?page=<?= $currentPage + 1 . $h($paramStr) ?>"
            class="<?= $cls['btn'] ?>" aria-label="Next page">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            <?php if ($nextText !== ''): ?><span class="page-btn-label"><?= $h($nextText) ?></span><?php endif; ?>
         </a>
         <?php else: ?>
         <span class="<?= $cls['btn'] ?><?= $cls['btnDis'] ? ' ' . $cls['btnDis'] : '' ?>"
               style="<?= $cls['btnDis'] ? '' : 'opacity:.35;pointer-events:none' ?>"
               aria-disabled="true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            <?php if ($nextText !== ''): ?><span class="page-btn-label"><?= $h($nextText) ?></span><?php endif; ?>
         </span>
         <?php endif; ?>
     </div>

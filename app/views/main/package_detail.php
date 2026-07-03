@@ -399,6 +399,9 @@ img { display: block; max-width: 100%; }
   height: 100%;
   min-height: 340px;
   object-fit: cover;
+  transform: scale(1.04);
+  transition: transform .18s linear;
+  will-change: transform;
 }
 .gp-package-image-placeholder {
   display: grid;
@@ -1241,9 +1244,36 @@ img { display: block; max-width: 100%; }
   transition: opacity 0.6s var(--ease-out-expo), transform 0.6s var(--ease-out-expo);
 }
 .gp-reveal.visible { opacity: 1; transform: translateY(0); }
+.gp-detail-scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 34px, 0) scale(.985);
+  transform-origin: center;
+}
+.gp-detail-scroll-reveal.visible {
+  animation: detailCardFlyIn .92s var(--ease-out-expo) both;
+  animation-delay: var(--detail-reveal-delay, 0s);
+}
+.gp-detail-scroll-reveal.visible:hover {
+  transform: translateY(-3px);
+}
 .gp-reveal-d1 { transition-delay: 0.04s; }
 .gp-reveal-d2 { transition-delay: 0.08s; }
 .gp-reveal-d3 { transition-delay: 0.12s; }
+@keyframes detailCardFlyIn {
+  0% { opacity: 0; transform: translate3d(0, 34px, 0) scale(.985); }
+  62% { opacity: 1; transform: translate3d(0, -4px, 0) scale(1.006); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gp-package-main-image img,
+  .gp-reveal,
+  .gp-detail-scroll-reveal {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
 
 @media (max-width: 900px) {
   .gp-package-content-grid { grid-template-columns: 1fr; }
@@ -1315,7 +1345,7 @@ img { display: block; max-width: 100%; }
     <div class="gp-package-media-column">
       <div class="gp-package-main-image">
         <?php if ($packageImage !== ''): ?>
-          <img src="<?= $h($packageImage) ?>" alt="<?= $h($package['name'] ?? 'Package') ?>">
+          <img id="packageHeroImage" src="<?= $h($packageImage) ?>" alt="<?= $h($package['name'] ?? 'Package') ?>">
         <?php else: ?>
           <div class="gp-package-image-placeholder">
             <i data-lucide="image" style="width:44px;height:44px"></i>
@@ -1349,9 +1379,9 @@ img { display: block; max-width: 100%; }
           </div>
         <?php else: ?>
           <div class="gp-included-list">
-            <?php foreach ($includedServices as $svc): ?>
+            <?php foreach ($includedServices as $svcIndex => $svc): ?>
               <?php $detailUrl = $serviceDetailUrl($svc); ?>
-              <a class="gp-included-item" href="<?= $h($detailUrl) ?>">
+              <a class="gp-included-item gp-detail-scroll-reveal" style="--detail-reveal-delay: <?= number_format(min($svcIndex * 0.08, 0.48), 2, '.', '') ?>s" href="<?= $h($detailUrl) ?>">
   <span class="gp-included-thumb">
     <?php if (!empty($svc['image'])): ?>
       <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
@@ -1369,7 +1399,7 @@ img { display: block; max-width: 100%; }
         <?php endif; ?>
       </div>
 
-      <aside class="gp-package-description-card" aria-label="Package description">
+      <aside class="gp-package-description-card gp-reveal gp-reveal-d1" aria-label="Package description">
         <h2>Description</h2>
         <p><?= $h(trim((string)($package['description'] ?? '')) !== '' ? $package['description'] : 'A curated wedding package designed to bring your selected services together with Golden Promise care and coordination.') ?></p>
         <div class="gp-package-description-price">
@@ -1389,7 +1419,7 @@ img { display: block; max-width: 100%; }
       <div class="gp-track">
         <?php foreach ($addonServices as $si => $svc): ?>
           <?php $addonUrl = $addonDetailUrl($svc); ?>
-          <article class="gp-card gp-reveal gp-reveal-d<?= min($si % 4, 3) ?>" data-url="<?= $h($addonUrl) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($svc['name'] ?? 'add-on service') ?>">
+          <article class="gp-card gp-detail-scroll-reveal" style="--detail-reveal-delay: <?= number_format(min($si * 0.10, 0.60), 2, '.', '') ?>s" data-url="<?= $h($addonUrl) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($svc['name'] ?? 'add-on service') ?>">
             <div class="gc-body">
               <a class="gc-image-frame" href="<?= $h($addonUrl) ?>" tabindex="-1" aria-hidden="true">
                 <?php if (!empty($svc['image'])): ?>
@@ -1437,7 +1467,23 @@ img { display: block; max-width: 100%; }
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof lucide !== 'undefined') lucide.createIcons();
-  const revealBoxes = document.querySelectorAll('.gp-reveal');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const packageHeroImage = document.getElementById('packageHeroImage');
+  const packageHeroFrame = packageHeroImage?.closest('.gp-package-main-image');
+
+  if (packageHeroImage && packageHeroFrame && !prefersReducedMotion) {
+    const updatePackageHeroParallax = () => {
+      const rect = packageHeroFrame.getBoundingClientRect();
+      const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
+      const progress = Math.max(0, Math.min(1, (viewport - rect.top) / (viewport + rect.height)));
+      packageHeroImage.style.transform = `scale(1.08) translateY(${(progress - 0.5) * 36}px)`;
+    };
+    window.addEventListener('scroll', updatePackageHeroParallax, { passive: true });
+    window.addEventListener('resize', updatePackageHeroParallax);
+    updatePackageHeroParallax();
+  }
+
+  const revealBoxes = document.querySelectorAll('.gp-reveal, .gp-detail-scroll-reveal');
   if (revealBoxes.length && 'IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {

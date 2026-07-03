@@ -2863,13 +2863,17 @@ class Booking extends Controller
 
         $bookingIds = array_map(static fn($b) => (int)$b['id'], $bookings);
         $bookingTypes = $this->bookingModel->getBookingTypes($bookingIds);
+        $supplierNames = $this->bookingModel->getSupplierNamesForBookings($bookingIds);
 
         $enriched = [];
         foreach ($bookings as $b) {
-            $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
+            $bookingId = (int)$b['id'];
+            $bookingDate = !empty($b['created_at']) ? date('Ymd', strtotime((string)$b['created_at'])) : date('Ymd');
+            $b['booking_ref'] = 'BK-' . $bookingDate . '-' . str_pad((string)$bookingId, 3, '0', STR_PAD_LEFT);
             $b['total_amount'] = (float)$b['total_amount'];
             $b['paid_amount'] = (float)$b['paid_amount'];
-            $b['booking_type'] = $bookingTypes[(int)$b['id']] ?? 'Booking';
+            $b['booking_type'] = $bookingTypes[$bookingId] ?? 'Booking';
+            $b['supplier_names'] = $supplierNames[$bookingId] ?? '';
             $enriched[] = $b;
         }
 

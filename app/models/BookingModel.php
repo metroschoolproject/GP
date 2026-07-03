@@ -1491,14 +1491,21 @@ class BookingModel
     ): array
     {
         $sql = "SELECT b.*, u.name AS customer_name, u.email AS customer_email, u.phone AS customer_phone,
-                       (SELECT event_date FROM event_details ed WHERE ed.booking_id = b.id ORDER BY ed.event_date ASC LIMIT 1) AS event_date,
-                       (SELECT start_time FROM event_details ed WHERE ed.booking_id = b.id ORDER BY ed.event_date ASC, ed.start_time ASC LIMIT 1) AS event_start_time,
-                       (SELECT GROUP_CONCAT(DISTINCT sup.shop_name SEPARATOR ', ')
-                        FROM booking_suppliers bs2
-                        LEFT JOIN suppliers sup ON bs2.supplier_id = sup.supplier_id
-                        WHERE bs2.booking_id = b.id) AS supplier_names
+                       first_event.event_date,
+                       first_event.event_start_time
                 FROM bookings b
                 LEFT JOIN users u ON b.user_id = u.user_id
+                LEFT JOIN (
+                    SELECT ed.booking_id,
+                           MIN(ed.event_date) AS event_date,
+                           SUBSTRING_INDEX(
+                               GROUP_CONCAT(COALESCE(ed.start_time, '') ORDER BY ed.event_date ASC, ed.start_time ASC SEPARATOR ','),
+                               ',',
+                               1
+                           ) AS event_start_time
+                    FROM event_details ed
+                    GROUP BY ed.booking_id
+                ) first_event ON first_event.booking_id = b.id
                 WHERE 1=1";
 
         $params = [];
@@ -1670,6 +1677,42 @@ class BookingModel
             $this->db->dbbind($key, $val);
         }
         return (int)($this->db->getsingledata()['total'] ?? 0);
+    }
+
+    /**
+     * Batch-fetch supplier display names for bookings shown in the admin list.
+     *
+     * @param int[] $bookingIds
+     * @return array<int,string> booking_id => comma-separated supplier names
+     */
+    public function getSupplierNamesForBookings(array $bookingIds): array
+    {
+        if (empty($bookingIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_map(static fn($i) => ':id' . $i, array_keys($bookingIds)));
+
+        $this->db->dbquery(
+            "SELECT bs.booking_id,
+                    GROUP_CONCAT(DISTINCT sup.shop_name SEPARATOR ', ') AS supplier_names
+             FROM booking_suppliers bs
+             LEFT JOIN suppliers sup ON bs.supplier_id = sup.supplier_id
+             WHERE bs.booking_id IN ({$placeholders})
+             GROUP BY bs.booking_id"
+        );
+
+        foreach ($bookingIds as $i => $bid) {
+            $this->db->dbbind(':id' . $i, (int)$bid, PDO::PARAM_INT);
+        }
+
+        $rows = $this->db->getmultidata();
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int)$row['booking_id']] = (string)($row['supplier_names'] ?? '');
+        }
+
+        return $result;
     }
 
     /**
