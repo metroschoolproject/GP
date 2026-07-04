@@ -163,18 +163,20 @@ class CustomerServices extends Controller
         $sort = trim($_GET['sort'] ?? 'featured');
         $category = trim($_GET['category'] ?? 'all');
         $date = $this->validDate($_GET['date'] ?? '') ?: '';
+        $time = $this->validTime($_GET['time'] ?? '') ?: '';
         $filters = [
             'search' => $search,
             'sort' => $sort,
             'category' => $category,
             'date' => $date,
+            'time' => $time,
         ];
 
         $packageTypes = $packageModel->getPackageTypes($filters);
         $categories = $packageModel->getPackageCategories($filters);
 
         // Check active filters
-        $hasActiveFilters = $search !== '' || $category !== 'all' || $date !== '';
+        $hasActiveFilters = $search !== '' || $category !== 'all' || $date !== '' || $time !== '';
 
         // Cart count for header badge
         $cartCount = 0;
@@ -248,6 +250,8 @@ class CustomerServices extends Controller
         $this->view('main/package_detail', [
             'package' => $package,
             'cartCount' => $cartCount,
+            'selectedDate' => $this->validDate($_GET['date'] ?? '') ?: '',
+            'selectedTime' => $this->validTime($_GET['time'] ?? '') ?: '',
         ]);
     }
 
@@ -287,6 +291,7 @@ class CustomerServices extends Controller
             'category' => trim($_GET['category'] ?? 'all'),
             'sort' => trim($_GET['sort'] ?? 'featured'),
             'date' => $this->validDate($_GET['date'] ?? '') ?: '',
+            'time' => $this->validTime($_GET['time'] ?? '') ?: '',
             'price_min' => $priceMin,
             'price_max' => $priceMax,
         ];
@@ -311,5 +316,16 @@ class CustomerServices extends Controller
         }
 
         return (string)max(0, (float)$price);
+    }
+
+    private function validTime($time)
+    {
+        $time = trim((string)$time);
+        if (!preg_match('/^\d{2}:\d{2}$/', $time)) {
+            return null;
+        }
+
+        $parsed = DateTimeImmutable::createFromFormat('!H:i', $time);
+        return $parsed && $parsed->format('H:i') === $time ? $time : null;
     }
 }

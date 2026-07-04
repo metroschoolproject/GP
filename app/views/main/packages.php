@@ -1,7 +1,7 @@
 <?php
 $packages = $packages ?? [];
 $cartCount = (int)($cartCount ?? 0);
-$filters = $filters ?? ['search' => '', 'sort' => 'featured', 'category' => 'all'];
+$filters = $filters ?? ['search' => '', 'sort' => 'featured', 'category' => 'all', 'date' => '', 'time' => ''];
 $categories = $categories ?? [];
 $hasActiveFilters = $hasActiveFilters ?? false;
 $totalServices = $totalServices ?? count($packages);
@@ -12,9 +12,28 @@ $authNavLabel = $isLoggedIn ? 'Logout' : 'Sign in';
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => 'MMK ' . number_format((float)$v, 0);
+$packageServiceTypeCount = static function (array $pkg): int {
+    if (isset($pkg['service_type_count'])) {
+        return (int)$pkg['service_type_count'];
+    }
+    $categoryKeys = [];
+    foreach (($pkg['categories'] ?? []) as $cat) {
+        $key = trim((string)($cat['category_slug'] ?? $cat['category_name'] ?? ''));
+        if ($key !== '') {
+            $categoryKeys[strtolower($key)] = true;
+        }
+    }
+    return count($categoryKeys);
+};
 
 $activeCategory = $_GET['category'] ?? ($filters['category'] ?? 'all');
 $activeSort     = $_GET['sort'] ?? ($filters['sort'] ?? 'featured');
+$activeTime     = $filters['time'] ?? '';
+$detailCarryParams = array_filter([
+    'date' => $filters['date'] ?? '',
+    'time' => $activeTime,
+], static fn($value) => trim((string)$value) !== '');
+$detailCarryQuery = $detailCarryParams ? '?' . http_build_query($detailCarryParams) : '';
 $hasPackageTypeFilter = $activeCategory !== 'all';
 $hasPriceFilter = $activeSort !== 'featured';
 $resetUrl = URLROOT . '/customerServices/packages';
@@ -298,8 +317,9 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   filter: none;
   opacity: 0;
   transform: none;
-  transition: opacity 1s ease-in-out;
+  transition: opacity 1s ease-in-out, transform .18s linear;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 .gp-pkg-hero-bg.is-active {
   opacity: 1;
@@ -699,7 +719,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 }
 
 /* ─── HERO DATE PICKER (inline filter) ──────── */
-.venue-date-input-wrap {
+.venue-date-input-wrap,
+.venue-time-input-wrap {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -753,6 +774,32 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   height: 14px;
   color: #6D4C5B;
   pointer-events: none;
+}
+.venue-time-input-wrap {
+  min-width: 126px;
+  max-width: 154px;
+}
+.venue-time-input-wrap:hover {
+  background-color: #FFF8EF;
+  border-color: rgba(154,104,127,.36);
+}
+.venue-time-input-wrap input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  pointer-events: none;
+}
+.venue-time-display {
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
 }
 .gp-calendar-popover {
   position: fixed;
@@ -1129,6 +1176,22 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 .gp-package-type-card:hover{
   transform:translateY(-7px);
   box-shadow:0 24px 52px rgba(63,36,26,.17);
+}
+
+.gp-package-type-card.gp-scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 38px, 0) scale(.985);
+  transform-origin: center;
+}
+
+.gp-package-type-card.gp-scroll-reveal.visible {
+  animation: cardFlyIn 1.05s var(--ease-out-expo) both;
+  animation-delay: var(--card-reveal-delay, 0s);
+}
+
+.gp-package-type-card.gp-scroll-reveal.visible:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 24px 52px rgba(63,36,26,.17);
 }
 
 .gp-package-type-image{
@@ -2141,7 +2204,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   .gp-search-field-boutique select,
   .gp-pkg-select-wrap,
   .gp-pkg-select-trigger,
-  .venue-date-input-wrap {
+  .venue-date-input-wrap,
+  .venue-time-input-wrap {
     width: 100%;
     max-width: none;
   }
@@ -2217,9 +2281,11 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
                 </div>
                 <?php
                   $selectedDateVal = $filters['date'] ?? '';
+                  $selectedTimeVal = $filters['time'] ?? '';
                   $todayStr = date('Y-m-d');
                   $maxDateStr = date('Y-m-d', strtotime('+18 months'));
                   $dateDisplay = $selectedDateVal !== '' ? date('M j, Y', strtotime($selectedDateVal)) : 'Today';
+                  $timeDisplay = $selectedTimeVal !== '' ? date('g:i A', strtotime($selectedTimeVal)) : 'Select time';
                 ?>
                 <div class="gp-search-field-boutique">
                   <span class="venue-date-input-wrap">
@@ -2227,6 +2293,13 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
                     <span class="venue-date-display"><?= $h($dateDisplay) ?></span>
                     <i data-lucide="chevron-down"></i>
                     <input class="gp-calendar-input" type="date" name="date" value="<?= $h($selectedDateVal) ?>" min="<?= $h($todayStr) ?>" max="<?= $h($maxDateStr) ?>" aria-label="Filter by date">
+                  </span>
+                </div>
+                <div class="gp-search-field-boutique">
+                  <span class="venue-time-input-wrap">
+                    <i data-lucide="clock-3" style="width:13px;height:13px;color:#9A687F;pointer-events:none;flex-shrink:0;"></i>
+                    <span class="venue-time-display"><?= $h($timeDisplay) ?></span>
+                    <input class="gp-time-input" type="time" name="time" value="<?= $h($selectedTimeVal) ?>" aria-label="Choose event time">
                   </span>
                 </div>
               </div>
@@ -2253,19 +2326,25 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
     <?php if (trim((string)($filters['search'] ?? '')) !== ''): ?>
     <span class="gp-filter-chip-boutique">
       "<?= $h($filters['search']) ?>"
-      <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?category=<?= $h($activeCategory) ?>&sort=<?= $h($activeSort) ?>" aria-label="Clear search">✕</a>
+      <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?<?= $h(http_build_query(['category' => $activeCategory, 'sort' => $activeSort, 'date' => $filters['date'] ?? '', 'time' => $activeTime])) ?>" aria-label="Clear search">✕</a>
     </span>
     <?php endif; ?>
     <?php if ($activeCategory !== 'all'): ?>
     <span class="gp-filter-chip-boutique">
       <?= $h($activeCategory) ?>
-      <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?q=<?= $h($filters['search'] ?? '') ?>&sort=<?= $h($activeSort) ?>" aria-label="Clear category">✕</a>
+      <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?<?= $h(http_build_query(['q' => $filters['search'] ?? '', 'sort' => $activeSort, 'date' => $filters['date'] ?? '', 'time' => $activeTime])) ?>" aria-label="Clear category">✕</a>
     </span>
     <?php endif; ?>
     <?php if (!empty($filters['date'])): ?>
     <span class="gp-filter-chip-boutique">
       📅 <?= $h($filters['date']) ?>
-      <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?q=<?= $h($filters['search'] ?? '') ?>&category=<?= $h($activeCategory) ?>&sort=<?= $h($activeSort) ?>" aria-label="Clear date">✕</a>
+      <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?<?= $h(http_build_query(['q' => $filters['search'] ?? '', 'category' => $activeCategory, 'sort' => $activeSort, 'time' => $activeTime])) ?>" aria-label="Clear date">✕</a>
+    </span>
+    <?php endif; ?>
+    <?php if ($activeTime !== ''): ?>
+    <span class="gp-filter-chip-boutique">
+      <?= $h(date('g:i A', strtotime($activeTime))) ?>
+      <a class="gp-filter-chip-boutique-remove" href="<?= URLROOT ?>/customerServices/packages?<?= $h(http_build_query(['q' => $filters['search'] ?? '', 'category' => $activeCategory, 'sort' => $activeSort, 'date' => $filters['date'] ?? ''])) ?>" aria-label="Clear time">✕</a>
     </span>
     <?php endif; ?>
   </div>
@@ -2280,7 +2359,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
         <?php else: ?>
           <?php foreach ($visiblePackages as $pkg): ?>
             <?php $pkgImage = trim((string)($pkg['image_url'] ?? '')); ?>
-            <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>">
+            <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?><?= $h($detailCarryQuery) ?>">
 
   <span class="gp-package-type-image">
     <?php if ($pkgImage !== ''): ?>
@@ -2298,7 +2377,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   </button>
 
     <span class="gp-service-count-tag">
-      <?= count($pkg['services'] ?? []) ?: 5 ?> Services
+      <?php $serviceTypeCount = $packageServiceTypeCount((array)$pkg); ?>
+      <?= $serviceTypeCount ?> <?= $serviceTypeCount === 1 ? 'Service Type' : 'Service Types' ?>
     </span>
   </span>
 
@@ -2430,7 +2510,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
                 <?php foreach ($packagesByTier[$tierKey] as $pkg): 
                   $pkgImage = trim((string)($pkg['image_url'] ?? ''));
                 ?>
-                 <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?>">
+                 <a class="gp-package-type-card" href="<?= URLROOT ?>/customerServices/packageDetail/<?= $h($pkg['slug']) ?><?= $h($detailCarryQuery) ?>">
 
   <span class="gp-package-type-image">
     <?php if ($pkgImage !== ''): ?>
@@ -2448,7 +2528,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   </button>
 
     <span class="gp-service-count-tag">
-      <?= count($pkg['services'] ?? []) ?: 5 ?> Services
+      <?php $serviceTypeCount = $packageServiceTypeCount((array)$pkg); ?>
+      <?= $serviceTypeCount ?> <?= $serviceTypeCount === 1 ? 'Service Type' : 'Service Types' ?>
     </span>
   </span>
 
@@ -2491,6 +2572,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof lucide !== 'undefined') lucide.createIcons();
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const packageHero = document.querySelector('.gp-pkg-hero');
   if (packageHero) {
@@ -2525,9 +2607,24 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       packageHero.classList.add('is-in');
     }
+
+    if (!prefersReducedMotion) {
+      const updateHeroParallax = () => {
+        const rect = packageHero.getBoundingClientRect();
+        const progress = Math.max(0, Math.min(1, -rect.top / Math.max(rect.height, 1)));
+        packageHeroLayers.forEach(layer => {
+          layer.style.transform = `scale(1.08) translateY(${progress * 34}px)`;
+        });
+      };
+      window.addEventListener('scroll', updateHeroParallax, { passive: true });
+      updateHeroParallax();
+    }
   }
 
-  const revealBoxes = document.querySelectorAll('.gp-reveal');
+  const packageCards = Array.from(document.querySelectorAll('.gp-package-type-card'));
+  packageCards.forEach(el => el.classList.add('gp-scroll-reveal'));
+
+  const revealBoxes = document.querySelectorAll('.gp-reveal, .gp-scroll-reveal');
   if (revealBoxes.length && 'IntersectionObserver' in window) {
     let revealCardIndex = 0;
     const observer = new IntersectionObserver((entries) => {
@@ -2539,7 +2636,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }, { threshold: 0.06, rootMargin: '0px 0px -40px 0px' });
     revealBoxes.forEach(el => {
-      if (el.matches('.gp-tier-card, .gp-pkg-card')) {
+      if (el.matches('.gp-tier-card, .gp-pkg-card, .gp-package-type-card')) {
         el.style.setProperty('--card-reveal-delay', `${Math.min(revealCardIndex * 0.14, 1.12).toFixed(2)}s`);
         revealCardIndex += 1;
       }
@@ -2684,6 +2781,40 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.gp-pkg-select').forEach(select => {
     select.addEventListener('change', () => {
       select.closest('form')?.submit();
+    });
+  });
+
+  document.querySelectorAll('.gp-time-input').forEach(input => {
+    const wrap = input.closest('.venue-time-input-wrap');
+    const updateTimeDisplay = () => {
+      const display = wrap?.querySelector('.venue-time-display');
+      if (!display) return;
+      if (!input.value) {
+        display.textContent = 'Select time';
+        return;
+      }
+      const parts = input.value.split(':').map(Number);
+      if (parts.length !== 2 || parts.some(Number.isNaN)) {
+        display.textContent = 'Select time';
+        return;
+      }
+      const date = new Date();
+      date.setHours(parts[0], parts[1], 0, 0);
+      display.textContent = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    };
+    updateTimeDisplay();
+    input.addEventListener('change', () => {
+      updateTimeDisplay();
+      input.closest('form')?.submit();
+    });
+    wrap?.addEventListener('click', event => {
+      event.preventDefault();
+      input.focus();
+      if (typeof input.showPicker === 'function') {
+        input.showPicker();
+      } else {
+        input.click();
+      }
     });
   });
 

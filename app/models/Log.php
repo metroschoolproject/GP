@@ -49,10 +49,14 @@ class Log{
         if ($row) {
             $this->db->dbquery("
                 UPDATE login_attempts
-                SET attempt_count = attempt_count + 1,
+                SET attempt_count = CASE
+                        WHEN last_attempt > (NOW() - INTERVAL 15 MINUTE) THEN attempt_count + 1
+                        ELSE 1
+                    END,
                     locked_until = CASE
-                        WHEN attempt_count + 1 >= max_attempts THEN DATE_ADD(NOW(), INTERVAL 15 MINUTE)
-                        ELSE locked_until
+                        WHEN last_attempt > (NOW() - INTERVAL 15 MINUTE)
+                         AND attempt_count + 1 >= max_attempts THEN DATE_ADD(NOW(), INTERVAL 15 MINUTE)
+                        ELSE NULL
                     END,
                     last_attempt = NOW()
                 WHERE id = :id

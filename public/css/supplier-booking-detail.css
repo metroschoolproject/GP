@@ -27,6 +27,8 @@
     --sup-info-text: #4f46a5;
     --sup-neutral-bg: #F5F5F4;
     --sup-neutral-text: #78716C;
+    --sup-font-body: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --sup-font-display: var(--sup-font-body);
     width: 100%;
     max-width: 1600px;
     min-width: 0;
@@ -34,13 +36,22 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
-    font-family: 'Poppins', system-ui, sans-serif;
-    font-size: 13px;
+    font-family: var(--sup-font-body);
+    font-size: 13.5px;
     color: var(--sup-text);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
-  .sup-page * { box-sizing: border-box; }
+  .sup-page * {
+    box-sizing: border-box;
+    font-family: var(--sup-font-body) !important;
+  }
+  .sup-page button,
+  .sup-page input,
+  .sup-page select,
+  .sup-page textarea {
+    font-family: var(--sup-font-body);
+  }
 
   /* ── Header ── */
   .sup-header {
@@ -73,7 +84,8 @@
   .sup-back svg { width: 12px; height: 12px; }
 
   .sup-ref {
-    font-size: 24px;
+    font-family: var(--sup-font-display);
+    font-size: 22px;
     font-weight: 700;
     color: var(--sup-text);
     letter-spacing: -.02em;
@@ -115,8 +127,9 @@
     flex-shrink: 0;
   }
   .sup-cust-name {
+    font-family: var(--sup-font-display);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 650;
     color: var(--sup-text);
   }
   .sup-cust-items {
@@ -230,7 +243,7 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-family: 'Poppins', system-ui, sans-serif;
+    font-family: var(--sup-font-body);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: .03em;
@@ -352,8 +365,9 @@
     margin-bottom: 6px;
   }
   .sup-stat-value {
+    font-family: var(--sup-font-display);
     font-size: 24px;
-    font-weight: 700;
+    font-weight: 650;
     line-height: 1.1;
     color: var(--sup-text);
     letter-spacing: -.02em;
@@ -394,11 +408,12 @@
     gap: 12px;
   }
   .sup-card-title {
-    font-size: 11px;
+    font-family: var(--sup-font-display);
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--sup-muted);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--sup-text);
   }
   .sup-card-body { padding: 16px 20px; }
 
@@ -450,7 +465,7 @@
     flex-shrink: 0;
   }
   .sup-svc-thumb-placeholder svg { width: 16px; height: 16px; color: var(--sup-muted); }
-  .sup-svc-name { font-size: 13px; font-weight: 700; color: var(--sup-text); }
+  .sup-svc-name { font-family: var(--sup-font-display); font-size: 13px; font-weight: 700; line-height: 1.25; color: var(--sup-text); }
   .sup-svc-cat  { font-size: 11px; color: var(--sup-muted); margin-top: 2px; }
   .sup-svc-note {
     font-size: 11px;
@@ -476,7 +491,8 @@
     margin-top: 3px;
   }
   .sup-price {
-    font-weight: 700;
+    font-family: var(--sup-font-display);
+    font-weight: 650;
     font-size: 14px;
     color: var(--sup-text);
     text-align: right;
@@ -497,8 +513,9 @@
   }
   .sup-side-head svg { width: 12px; height: 12px; }
   .sup-contact-name {
+    font-family: var(--sup-font-display);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 650;
     color: var(--sup-text);
     margin-bottom: 4px;
   }
@@ -605,7 +622,8 @@
     justify-content: space-between;
   }
   .sup-modal-title {
-    font-size: 18px;
+    font-family: var(--sup-font-display);
+    font-size: 16px;
     font-weight: 700;
     color: var(--sup-text);
   }
@@ -632,7 +650,7 @@
   }
   .sup-input, .sup-textarea {
     width: 100%;
-    font-family: 'Poppins', system-ui, sans-serif;
+    font-family: var(--sup-font-body);
     font-size: 13px;
     color: var(--sup-text);
     background: var(--sup-surface);
@@ -829,10 +847,10 @@
   .sup-runsheet-head h2 {
     margin: 3px 0 0;
     color: #6d4c5b;
-    font-family: "Playfair Display", serif;
-    font-size: 27px;
-    font-weight: 650;
-    letter-spacing: -.025em;
+    font-family: var(--sup-font-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
   }
   .sup-runsheet-head p {
     margin: 0;
@@ -1009,7 +1027,7 @@
   .sup-service-drawer-title {
     margin: 0;
     color: #6d4c5b;
-    font: 700 21px "Playfair Display",serif;
+    font: 700 16px var(--sup-font-display);
   }
   .sup-service-drawer-close {
     display: inline-flex;
@@ -1202,10 +1220,10 @@
   .sup-assignment-title {
     margin: 0;
     color: #6d4c5b;
-    font-family: "Playfair Display", serif;
-    font-size: clamp(24px, 2.4vw, 34px);
-    font-weight: 650;
-    line-height: 1.1;
+    font-family: var(--sup-font-display);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.2;
   }
   .sup-assignment-category {
     margin-top: 6px;
@@ -1393,9 +1411,9 @@
   .sup-booking-details .sup-runsheet-head span { display: none; }
   .sup-booking-details .sup-runsheet-head h2 {
     margin: 0;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 800;
+    font-family: var(--sup-font-display);
+    font-size: 13px;
+    font-weight: 700;
     letter-spacing: 0;
   }
   .sup-booking-details .sup-runsheet-head p {
@@ -1628,9 +1646,9 @@
     letter-spacing: .11em;
   }
   .sup-service-drawer-title {
-    font-family: inherit;
-    font-size: 15px;
-    font-weight: 800;
+    font-family: var(--sup-font-display);
+    font-size: 16px;
+    font-weight: 700;
   }
   .sup-service-drawer-close {
     width: 32px;

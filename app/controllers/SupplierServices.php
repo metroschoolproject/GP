@@ -160,7 +160,13 @@ class SupplierServices extends SupplierControllerSupport
     public function serviceCreate()
     {
         $supplier = $this->authorizedSupplierForServiceManagement();
+        $payload = $this->jsonPayload();
         $data = $this->servicePayload((int)$supplier['supplier_id'], 'service');
+        $minLeadMissing = !array_key_exists('min_lead_days', $payload)
+            || trim((string)$payload['min_lead_days']) === '';
+        if ($minLeadMissing) {
+            $data['min_lead_days'] = max(0, min(365, (int)($supplier['min_advance_days'] ?? 0)));
+        }
         $this->validateDefaultEventTime($data);
         $data['status'] = 'inactive';
 

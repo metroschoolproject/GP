@@ -44,7 +44,23 @@ $copy = $tabCopy[$activeStatus] ?? $tabCopy['pending'];
 $dashboardTitle = 'Payments';
 $dashboardCrumb = ucfirst($activeStatus);
 $dashboardContentClass = 'admin-payment-outlet';
-$dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTotal, $expectedTotal, $missingCount, $h, $money, $dateTime, $activeStatus, $isPending, $copy) {
+$dashboardContent = function () use (
+    $pendingPayments,
+    $pendingCount,
+    $pendingTotal,
+    $expectedTotal,
+    $missingCount,
+    $h,
+    $money,
+    $dateTime,
+    $activeStatus,
+    $isPending,
+    $copy,
+    $currentPage,
+    $totalPages,
+    $totalCount,
+    $perPage
+) {
 ?>
 <style>
   .admin-payment-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#6d4c5b;font-size:13px}
@@ -127,9 +143,10 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
 
   .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-light)}
   .page-info{font-size:12px;color:var(--muted)}
-  .page-btns{display:flex;gap:4px}
-  .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
+  .page-btns{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .page-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:30px;min-width:30px;padding:0 10px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:700;cursor:pointer;transition:all .12s;text-decoration:none}
   .page-btn.active{background:var(--primary);color:#FFFFFF;border-color:var(--primary)}
+  .page-btn-label{line-height:1}
   .page-btn:disabled{opacity:.4;cursor:default}
 
   .toast{position:fixed;right:16px;top:16px;z-index:50;max-width:360px;opacity:0;pointer-events:none;transition:all .2s;border-radius:.75rem;border:1px solid var(--border);background:var(--surface);padding:12px 14px;font-size:12px;font-weight:800;color:var(--body)}
@@ -297,15 +314,9 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
               </td>
               <td>
                 <?php if ($isPending && $paymentId > 0): ?>
-                  <form class="payment-verification-form" data-booking-id="<?= $bookingId ?>">
-                    <input type="text" name="note" class="note-input" placeholder="Note">
-                    <div class="payment-actions">
-                      <button type="button" class="action-btn action-approve verify-payment-btn">Approve</button>
-                      <button type="button" class="action-btn action-reject reject-payment-btn">Reject</button>
-                    </div>
-                  </form>
+                  <a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>" class="btn-ghost">View Detail</a>
                 <?php elseif ($isPending): ?>
-                  <a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>" class="btn-ghost">Open</a>
+                  <a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>" class="btn-ghost">View Detail</a>
                 <?php else: ?>
                   <div class="review-meta"><?= $h($reviewedAt) ?></div>
                   <?php if ($reviewNote !== ''): ?>
@@ -323,6 +334,9 @@ $dashboardContent = function () use ($pendingPayments, $pendingCount, $pendingTo
     if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
         $h = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
         $baseParams = 'status=' . urlencode($activeStatus ?? 'pending');
+        $showSinglePage = true;
+        $prevText = 'Previous';
+        $nextText = 'Next';
         require APPROOT . '/views/partials/_pagination.php';
     }
     ?>

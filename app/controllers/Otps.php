@@ -134,9 +134,14 @@ class Otps extends Controller{
                         }
                     }
 
+                    $redirect = $_SESSION['post_login_redirect'] ?? 'main/home';
+                    if ($redirect === 'main/home') {
+                        $_SESSION['login_success_flash'] = true;
+                    }
+
                     echo json_encode([
                         'otp_try_status' => true,
-                        'redirect' => $_SESSION['post_login_redirect'] ?? 'main/home'
+                        'redirect' => $redirect
                     ]);
                     exit;
                 }else{

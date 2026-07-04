@@ -7,7 +7,7 @@
     <title>Wedding Admin Dashboard | Premium</title>
     <?php $dashboardCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
     <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $dashboardCssVersion ?>">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
@@ -53,19 +53,19 @@
         /* ── Typography ── */
         .dashboard-page-title {
             margin: 0;
-            color: #6d4c5b;
-            font-family: "Playfair Display", Georgia, serif;
-            font-size: clamp(27px, 2.5vw, 36px);
-            font-weight: 650;
-            letter-spacing: -0.025em;
-            line-height: 1.08;
+            color: #111827;
+            font-family: var(--dashboard-font);
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
         }
 
         .dashboard-page-copy {
-            margin-top: 0.4rem;
-            color: #7b5c69;
-            font-size: 12px;
-            font-weight: 500;
+            margin-top: 0.25rem;
+            color: #b79c8b;
+            font-size: 11px;
+            font-weight: 600;
         }
 
         .section-title {

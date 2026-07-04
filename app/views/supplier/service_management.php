@@ -13,7 +13,7 @@ $dashboardBreadcrumbs = [
 $dashboardSearchPlaceholder = 'Search services, packages...';
 $dashboardContentClass = 'bg-[#F4F1EE] px-0 py-0';
 $initialServiceTab = ($_GET['tab'] ?? '') === 'packages' ? 'packages' : 'services';
-$dashboardContent = function () use ($serviceManagementData, $initialServiceTab) {
+$dashboardContent = function () use ($supplier, $serviceManagementData, $initialServiceTab) {
     $serviceManagementPath = APPROOT . '/views/supplier/service_management.html';
     $serviceManagementHtml = file_exists($serviceManagementPath) ? file_get_contents($serviceManagementPath) : '';
     $serviceManagementStylesheet = URLROOT . '/public/css/supplier-service-management.css?v='
@@ -37,6 +37,9 @@ $dashboardContent = function () use ($serviceManagementData, $initialServiceTab)
             'packageStatus' => URLROOT . '/supplierServices/packageStatus/',
         ],
         'initialData' => $serviceManagementData ?? ['services' => [], 'packages' => [], 'categories' => []],
+        'supplierDefaults' => [
+            'minLeadDays' => max(0, min(365, (int)($supplier['min_advance_days'] ?? 0))),
+        ],
         'pageSize' => 24,
         'initialTab' => $initialServiceTab,
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ';</script><base target="_top">';

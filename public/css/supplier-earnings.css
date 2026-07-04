@@ -3,6 +3,11 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* ── KPI row ────────────────────────────────────────────────── */
+.er-page,
+.er-page * {
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
 .er-kpi-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

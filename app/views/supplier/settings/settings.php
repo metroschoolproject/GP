@@ -144,9 +144,9 @@ textarea.s-input { height:auto; min-height:80px; padding:12px 14px; resize:verti
           </div>
 
           <div class="s-row" style="margin-top:14px">
-            <label class="s-label">Minimum advance booking (days)</label>
+            <label class="s-label">Default minimum notice for new services (days)</label>
             <input id="minAdvanceDays" class="s-input" type="number" min="0" max="365" value="<?= (int)$minAdvanceDays ?>">
-            <p class="s-hint">How many days before the event customers must book. Set 0 for no minimum.</p>
+            <p class="s-hint">Used to prefill new services. Each service can still have its own booking notice.</p>
           </div>
 
           <div class="s-row">
@@ -249,18 +249,18 @@ if (window.lucide) lucide.createIcons();
 
 function msg(id,t,tp){var el=document.getElementById(id);if(!el)return;el.textContent=t;el.className='s-msg '+(tp||'');if(tp)setTimeout(function(){el.className='s-msg';el.textContent='';},5000);}
 
-function save(data, msgId, btn){
+function save(data, msgId, btn, onSuccess){
   btn.disabled=true;var orig=btn.innerHTML;btn.innerHTML='<i data-lucide="loader"></i> Saving…';if(window.lucide)lucide.createIcons();
   fetch('<?= URLROOT ?>/supplier/updateSettings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
   .then(function(r){return r.json()}).then(function(d){
     btn.disabled=false;btn.innerHTML=orig;if(window.lucide)lucide.createIcons();
-    if(d.ok)msg(msgId,'✓ Saved.','success');else msg(msgId,d.error||'Failed.','error');
+    if(d.ok){if(typeof onSuccess==='function')onSuccess();msg(msgId,'Saved.','success');}else msg(msgId,d.error||'Failed.','error');
   }).catch(function(){btn.disabled=false;btn.innerHTML=orig;if(window.lucide)lucide.createIcons();msg(msgId,'Network error.','error');});
 }
 
 // Availability toggle
 document.getElementById('toggleAvailable').addEventListener('change',function(){
-  var on=this.checked;
+  var checkbox=this;var on=checkbox.checked;
   fetch('<?= URLROOT ?>/supplier/updateSettings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_available:on?1:0})})
   .then(function(r){return r.json()}).then(function(d){
     if(d.ok){
@@ -270,8 +270,10 @@ document.getElementById('toggleAvailable').addEventListener('change',function(){
       b.querySelector('.s-avail-desc').textContent=on?'Customers can discover and book your services.':'Your services are hidden from customers.';
       b.querySelector('.s-avail-icon i').setAttribute('data-lucide',on?'check-circle':'pause-circle');
       if(window.lucide)lucide.createIcons();
+    }else{
+      checkbox.checked=!on;
     }
-  });
+  }).catch(function(){checkbox.checked=!on;});
 });
 
 // Booking preferences
@@ -287,11 +289,18 @@ document.getElementById('btnCancelBooking').addEventListener('click',function(){
 });
 
 document.getElementById('btnSaveBooking').addEventListener('click',function(){
-  save({
+  var minDays=Math.max(0,Math.min(365,parseInt(document.getElementById('minAdvanceDays').value,10)||0));
+  document.getElementById('minAdvanceDays').value=minDays;
+  var payload={
     auto_accept_bookings:document.getElementById('toggleAutoAccept').checked?1:0,
-    min_advance_days:parseInt(document.getElementById('minAdvanceDays').value)||0,
+    min_advance_days:minDays,
     cancellation_policy:document.getElementById('cancellationPolicy').value.trim()
-  },'bookingMsg',this);
+  };
+  save(payload,'bookingMsg',this,function(){
+    origAutoAccept=!!payload.auto_accept_bookings;
+    origMinDays=payload.min_advance_days;
+    origPolicy=payload.cancellation_policy;
+  });
 });
 
 // Notification preferences

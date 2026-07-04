@@ -33,17 +33,6 @@
     --bg: #f5e8d9;
     --white: #fcf8f5;
 
-    --scroll-height: 72px;
-    --scroll-width: clamp(240px, 38vw, 360px);
-    --intro-speed: 0.45s;
-    --open-speed: 1s;
-    --hold-speed: 4.2s;
-    --close-speed: 0.9s;
-    --outro-speed: 0.45s;
-    --open-delay: var(--intro-speed);
-    --close-delay: calc(var(--intro-speed) + var(--open-speed) + var(--hold-speed));
-    --outro-delay: calc(var(--close-delay) + var(--close-speed));
-    --paper-img: url('noti-bg.jpg');
   }
 
   body{
@@ -56,6 +45,38 @@
       radial-gradient(ellipse at 80% 92%, rgba(183,156,139,0.07) 0%, transparent 55%),
       var(--bg);
     color: var(--body-font-color);
+  }
+
+  .auth-home-logo {
+    position: fixed;
+    top: 22px;
+    left: 22px;
+    z-index: 95;
+    display: grid;
+    width: 74px;
+    height: 74px;
+    place-items: center;
+    overflow: hidden;
+    transition: transform 180ms ease;
+  }
+
+  .auth-home-logo:hover {
+    transform: translateY(-2px);
+  }
+
+  .auth-home-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @media (max-width: 640px) {
+    .auth-home-logo {
+      top: 12px;
+      left: 12px;
+      width: 58px;
+      height: 58px;
+    }
   }
 
   /* text animation — soft luxury dissolve */
@@ -579,162 +600,121 @@
   padding-right: 4px;
 }
 
+.attempt-popup {
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  z-index: 90;
+  width: min(calc(100vw - 32px), 440px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(185, 75, 75, 0.22);
+  border-radius: 12px;
+  background: rgba(252, 248, 245, 0.96);
+  box-shadow: 0 18px 44px rgba(74, 52, 47, 0.16);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-14px) scale(0.96);
+  transition: opacity 180ms ease;
+}
+
+.attempt-popup.show {
+  opacity: 1;
+  pointer-events: auto;
+  animation: attemptPopupIn 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.attempt-popup.is-locked {
+  border-color: rgba(185, 75, 75, 0.34);
+  background: rgba(255, 242, 242, 0.98);
+}
+
+.attempt-popup-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(185, 75, 75, 0.12);
+  color: var(--c-danger);
+  font-weight: 800;
+  transform: scale(0.82);
+  transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms;
+}
+
+.attempt-popup-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.25;
+}
+
+.attempt-popup.show .attempt-popup-icon {
+  transform: scale(1);
+  animation: attemptIconPulse 620ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms both;
+}
+
+.attempt-popup-title {
+  margin: 0;
+  color: #4a342f;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.attempt-popup-text {
+  margin: 3px 0 0;
+  color: #7b5c69;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+@keyframes attemptPopupIn {
+  0% { opacity: 0; transform: translateY(-18px) scale(0.94); filter: blur(4px); }
+  60% { opacity: 1; transform: translateY(3px) scale(1.01); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes attemptIconPulse {
+  0% { transform: scale(0.72) rotate(-8deg); }
+  64% { transform: scale(1.12) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@media (max-width: 640px) {
+  .attempt-popup {
+    left: 16px;
+    right: 16px;
+    top: 14px;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attempt-popup,
+  .attempt-popup-icon {
+    transition: opacity 160ms ease;
+  }
+}
+
 </style>
 
 
 <body class="flex  justify-center">
-  <style>
+  <a class="auth-home-logo" href="<?= URLROOT ?>/main/index" aria-label="Go to Golden Promise home">
+    <img src="<?= URLROOT ?>/public/images/home/gp_logo.png" alt="Golden Promise logo">
+  </a>
 
-    .scroll-wrapper {
-      display: none;
-      justify-content: flex-start;
-      align-items: flex-start;
-      position: fixed;
-      top: 18px;
-      left: 18px;
-      z-index: 50;
-      pointer-events: none;
-      /* Darker background makes the gold pop */
-    }
-
-    .scroll-wrapper.show {
-      display: flex;
-    }
-
-    .scroll-container {
-      display: flex;
-      align-items: stretch;
-      min-height: var(--scroll-height);
-      margin: 12px;
-      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
-      opacity: 0;
-      transform-origin: top left;
-      animation:
-        popDown var(--intro-speed) forwards cubic-bezier(0.2, 1.35, 0.35, 1),
-        popUp var(--outro-speed) forwards ease-in var(--outro-delay);
-    }
-
-    /* The vertical wooden rollers */
-    .roller-vertical {
-      width: 8px;
-      background: linear-gradient(to right, #3d2b1f, #e0d5c1 50%, #3d2b1f);
-      border-radius: 10px;
-      position: relative;
-      z-index: 5;
-      align-self: stretch;
-    }
-
-    .roller-vertical::before, .roller-vertical::after {
-      content: '';
-      position: absolute;
-      width: 15px;
-      height: 7px;
-      background: #2a1b0a;
-      left: -3px;
-      border-radius: 3px;
-    }
-    .roller-vertical::before { top: -6px; }
-    .roller-vertical::after { bottom: -6px; }
-
-    /* The paper using your specific image */
-    .scroll-paper {
-      background-image: var(--paper-img);
-      background-size: 100% 100%; /* Forces the image to stretch/shrink with the animation */
-      background-position: center;
-      background-repeat: no-repeat;
-      min-height: var(--scroll-height);
-      width: 0;
-      overflow: hidden;
-      position: relative;
-      
-      animation:
-        openScroll var(--open-speed) forwards ease-in-out var(--open-delay),
-        closeScroll var(--close-speed) forwards ease-in-out var(--close-delay);
-
-      /* Subtle shadow to make it look like it's tucked under the rollers */
-      box-shadow: inset 20px 0 20px -10px rgba(0,0,0,0.3), 
-                  inset -20px 0 20px -10px rgba(0,0,0,0.3);
-    }
-
-    .content-box {
-      width: var(--scroll-width);
-      min-height: var(--scroll-height);
-      padding: 18px 32px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Garamond', serif;
-      font-size: 14px;
-      color: #4a3721;
-      opacity: 0;
-      text-align: center;
-      animation:
-        fadeIn 0.35s forwards ease-out calc(var(--intro-speed) + var(--open-speed) - 0.15s),
-        fadeOut 0.25s forwards ease-in calc(var(--close-delay) - 0.2s);
-    }
-
-    .content-box p {
-      margin: 0;
-      line-height: 1.45;
-      overflow-wrap: break-word;
-    }
-
-    @keyframes popDown {
-      0% {
-        opacity: 0;
-        transform: translateY(-22px) scale(0.92);
-      }
-      70% {
-        opacity: 1;
-        transform: translateY(3px) scale(1.03);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    @keyframes popUp {
-      from {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-      to {
-        opacity: 0;
-        transform: translateY(-22px) scale(0.92);
-      }
-    }
-
-    @keyframes openScroll {
-      from { width: 0; }
-      to { width: var(--scroll-width); } 
-    }
-
-    @keyframes closeScroll {
-      from { width: var(--scroll-width); }
-      to { width: 0; }
-    }
-
-    @keyframes fadeIn {
-      to { opacity: 1; }
-    }
-
-    @keyframes fadeOut {
-      to { opacity: 0; }
-    }
-  </style>
-  <!-- Show The Information that User should Khow  -->
-  <div class="scroll-wrapper">
-    <div class="scroll-container">
-      <div class="roller-vertical"></div>
-      
-      <div class="scroll-paper">
-        <div class="content-box">
-          <p class="login_warning_bar"></p>
-        </div>
-      </div>
-      
-      <div class="roller-vertical"></div>
+  <div class="attempt-popup" id="attemptPopup" role="status" aria-live="polite" aria-atomic="true">
+    <div class="attempt-popup-icon" id="attemptPopupIcon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+    </div>
+    <div>
+      <p class="attempt-popup-title" id="attemptPopupTitle">Wrong password</p>
+      <p class="attempt-popup-text" id="attemptPopupText">Please try again.</p>
     </div>
   </div>
 
@@ -1058,10 +1038,12 @@
                                 setAuthLoading(false);
                                 console.log(res);
                                 const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
-                                showScrollMessage(accountLockMessage(lockedUntil));
-                                lock_warning_bar.classList.replace('hidden','show')
-                                lock_warning_bar.style.display = 'block';
-                                lock_warning_bar.innerHTML = accountLockMessage(lockedUntil);
+                                const lockMessage = accountLockMessage(lockedUntil);
+                                showAttemptPopup(0, res.max_attempts || 3, true, lockMessage);
+                                lock_warning_bar.classList.add('hidden');
+                                lock_warning_bar.classList.remove('show');
+                                lock_warning_bar.style.display = 'none';
+                                lock_warning_bar.innerHTML = '';
                                 lock_until_time.innerHTML = lockedUntil
                             }
 
@@ -1139,8 +1121,24 @@
                 })
                 .then(res => res.json())
                 .then(res => {
+                    if(res.status == 'lock' || res.loginfailover == true){
+                        setAuthLoading(false);
+                        const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
+                        const lockMessage = accountLockMessage(lockedUntil);
+                        showAttemptPopup(0, res.max_attempts || 3, true, lockMessage);
+                        login_warning_bar.classList.add('hidden');
+                        login_warning_bar.classList.remove('show');
+                        login_warning_bar.style.display = 'none';
+                        login_warning_bar.innerHTML = '';
+                        passwordInput.style.border = '1px solid #b94b4b';
+                        return;
+                    }
                     if(res.loginfailnotyet == true || res.pwd === false || res.status === false){
                         setAuthLoading(false);
+                        const remainingAttempts = Number.isFinite(Number(res.remaining_attempts))
+                            ? Number(res.remaining_attempts)
+                            : Math.max(0, Number(res.max_attempts || 3) - Number(res.attempt_count || 0));
+                        showAttemptPopup(remainingAttempts, res.max_attempts || 3, false);
                         const attemptText = res.attempt_count && res.max_attempts
                             ? ` Attempt ${res.attempt_count} of ${res.max_attempts}.`
                             : '';
@@ -1150,27 +1148,6 @@
                         pwErrText.textContent = `Wrong password. Please try again.${attemptText}`;
                         pwErr.style.opacity = '1';
                         pwErr.style.maxHeight = '24px';
-                        return;
-                    }
-                    if(res.loginfailover == true){
-                        setAuthLoading(false);
-                        const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
-                        showScrollMessage(accountLockMessage(lockedUntil));
-                        login_warning_bar.classList.replace('hidden','show');
-                        login_warning_bar.style.display = 'block';
-                        login_warning_bar.innerHTML = accountLockMessage(lockedUntil) + " We sent a login fail alert to your email.";
-                        console.log('hh')
-                        passwordInput.style.border = '1px solid #b94b4b';
-                        return;
-                    }
-                    if(res.status == 'lock'){
-                        setAuthLoading(false);
-                        const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
-                        showScrollMessage(accountLockMessage(lockedUntil));
-                        login_warning_bar.classList.replace('hidden','show');
-                        login_warning_bar.style.display = 'block';
-                        login_warning_bar.innerHTML = accountLockMessage(lockedUntil);
-                        passwordInput.style.border = '1px solid #b94b4b';
                         return;
                     }
                     if(res.status == true){
@@ -1446,44 +1423,60 @@
 
 
 
-            // clear login/register error messages when switching mode
-            function hideScrollMessage() {
-                const wrapper = document.querySelector('.scroll-wrapper');
-                if (wrapper) {
-                    wrapper.classList.remove('show');
-                }
-            }
-
-            function showScrollMessage(message) {
-                const wrapper = document.querySelector('.scroll-wrapper');
-                const text = document.querySelector('.login_warning_bar');
-
-                if (!wrapper || !text) return;
-
-                text.textContent = message;
-                wrapper.classList.add('show');
-
-                const animatedParts = wrapper.querySelectorAll('.scroll-container, .scroll-paper, .content-box');
-                animatedParts.forEach(el => {
-                    el.style.animation = 'none';
-                });
-
-                void wrapper.offsetWidth;
-
-                animatedParts.forEach(el => {
-                    el.style.animation = '';
-                });
-
-                clearTimeout(showScrollMessage.hideTimer);
-                showScrollMessage.hideTimer = setTimeout(hideScrollMessage, 7200);
-            }
-
             function accountLockMessage(lockedUntil) {
-                const untilText = lockedUntil
-                    ? ` You can try again after ${lockedUntil}.`
-                    : ' Please wait before trying again.';
+                const formattedUntil = formatLockTime(lockedUntil);
+                return lockedUntil
+                    ? `Too many wrong attempts. Try again after ${formattedUntil}, or reset your password.`
+                    : 'Too many wrong attempts. Please wait a little, or reset your password.';
+            }
 
-                return `Your account is locked because there were too many wrong password attempts.${untilText} You can also use Forgot Password if this was not you.`;
+            function formatLockTime(value) {
+                if (!value) return '';
+                const raw = String(value).trim();
+                const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+                if (!match) return raw;
+
+                const year = Number(match[1]);
+                const month = Number(match[2]);
+                const day = Number(match[3]);
+                let hour = Number(match[4]);
+                const minute = match[5];
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                hour = hour % 12 || 12;
+
+                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${hour}:${minute} ${ampm}`;
+            }
+
+            function showAttemptPopup(remainingAttempts, maxAttempts, isLocked = false, lockedMessage = '') {
+                const popup = document.getElementById('attemptPopup');
+                const icon = document.getElementById('attemptPopupIcon');
+                const title = document.getElementById('attemptPopupTitle');
+                const text = document.getElementById('attemptPopupText');
+                if (!popup || !icon || !title || !text) return;
+
+                const remaining = Math.max(0, Number(remainingAttempts) || 0);
+                const max = Math.max(1, Number(maxAttempts) || 3);
+                const attempt = Math.min(max, Math.max(1, max - remaining));
+                const warningIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+                const lockIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><path d="M12 15v2"/></svg>';
+
+                popup.classList.toggle('is-locked', isLocked || remaining === 0);
+                icon.innerHTML = isLocked || remaining === 0 ? lockIcon : warningIcon;
+                title.textContent = isLocked || remaining === 0
+                    ? 'Account locked'
+                    : 'Wrong password';
+                text.textContent = isLocked || remaining === 0
+                    ? (lockedMessage || 'Too many wrong attempts. Please wait a little, or reset your password.')
+                    : `Please try again. Attempt ${attempt} of ${max}.`;
+
+                popup.classList.remove('show');
+                void popup.offsetWidth;
+                popup.classList.add('show');
+
+                clearTimeout(showAttemptPopup.hideTimer);
+                showAttemptPopup.hideTimer = setTimeout(() => {
+                    popup.classList.remove('show');
+                }, 3800);
             }
 
             let authLoading = false;
@@ -1524,7 +1517,8 @@
             }
 
             function clearAuthErrors() {
-                hideScrollMessage();
+                const attemptPopup = document.getElementById('attemptPopup');
+                if (attemptPopup) attemptPopup.classList.remove('show');
                 document.querySelectorAll('.emailvalid, .warning-bar, .accountnotfound-warning-bar, .lock-until-time')
                     .forEach(el => {
                         el.classList.add('hidden');

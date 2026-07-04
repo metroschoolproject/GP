@@ -165,12 +165,18 @@ $dashboardContent = function () use (
         ? array_values(array_filter($myServiceRows, static fn($r) => in_array($r['status'] ?? '', ['confirmed', 'in_progress'], true)))
         : [];
 
-    // Supplier-initiated cancellation
+    // Supplier-initiated cancellation is service-row scoped after confirmation.
     $supplierCancellationRequested = in_array($supplierStatus, ['supplier_cancellation_requested'], true);
-    $canRequestCancellation = !$supplierCancellationRequested
-        && !$needsResponse
-        && in_array($bookingStatus, ['confirmed', 'paid'], true)
-        && in_array($supplierStatus, ['confirmed', 'in_progress'], true);
+    $canRequestCancellation = false;
+    foreach ($myServiceRows as $serviceRow) {
+        if (
+            in_array($bookingStatus, ['confirmed', 'paid', 'finalized'], true)
+            && in_array($serviceRow['status'] ?? '', ['accepted', 'confirmed', 'in_progress'], true)
+        ) {
+            $canRequestCancellation = true;
+            break;
+        }
+    }
 
 
     // Services of this supplier already routed to replacement.
@@ -285,6 +291,27 @@ $dashboardContent = function () use (
         </div>
       </div>
     </div>
+
+    <?php if ($canRequestCancellation || $supplierCancellationRequested): ?>
+    <div class="sup-response-bar">
+      <div class="sup-response-info">
+        <div class="sup-response-icon" style="color:var(--sup-danger-text)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5L1 14h14L8 1.5z"/><path d="M8 6v3M8 11.5h.01"/></svg>
+        </div>
+        <div>
+          <div class="sup-response-text">
+            <?= $supplierCancellationRequested ? 'Cancellation request submitted' : 'Need to cancel this confirmed booking?' ?>
+          </div>
+          <div class="sup-response-sub">
+            <?= $supplierCancellationRequested ? 'Admin will review and finalize the cancellation and refund process.' : 'Send a cancellation request to admin with your reason.' ?>
+          </div>
+        </div>
+      </div>
+      <?php if ($canRequestCancellation): ?>
+      <div class="sup-response-sub">Choose the affected service below. Admin will decide whether to arrange a replacement or take another action.</div>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <!-- Response required notice (no actions - those are on assignments page) -->
     <?php if ($needsResponse):
@@ -413,22 +440,21 @@ $dashboardContent = function () use (
   </header>
 
   <?php
-    // Collect unique non-addon services assigned to this supplier from myServiceRows
+    // Collect service rows assigned to this supplier. Keep rows separate because
+    // post-confirmation cancellation requests are decided per service.
     $assignedServices = [];
-    $seenSvcKeys = [];
     foreach ($myServiceRows as $row) {
         $svcName = $row['service_name'] ?? 'Service';
         $catName = $row['category_name'] ?? '';
-        $key = $svcName . '|' . $catName;
-        if (!isset($seenSvcKeys[$key])) {
-            $seenSvcKeys[$key] = true;
-            $assignedServices[] = [
-                'name' => $svcName,
-                'category' => $catName,
-                'status' => $row['status'] ?? 'pending',
-                'booking_supplier_id' => (int)$row['id'],
-            ];
-        }
+        $rowStatus = (string)($row['status'] ?? 'pending');
+        $assignedServices[] = [
+            'name' => $svcName,
+            'category' => $catName,
+            'status' => $rowStatus,
+            'booking_supplier_id' => (int)$row['id'],
+            'can_request_cancellation' => in_array($bookingStatus, ['confirmed', 'paid', 'finalized'], true)
+                && in_array($rowStatus, ['accepted', 'confirmed', 'in_progress'], true),
+        ];
     }
   ?>
   <section class="sup-assignment" aria-labelledby="supplier-assignment-title">
@@ -444,6 +470,39 @@ $dashboardContent = function () use (
       </div>
       <span class="sup-assignment-status"><?= $h($assignmentStatusLabel) ?></span>
     </div>
+    <?php if (!empty($assignedServices)): ?>
+    <div class="sup-assignment-services-list">
+      <?php foreach ($assignedServices as $service): ?>
+        <?php
+          $serviceStatus = (string)($service['status'] ?? 'pending');
+          $serviceStatusLabel = $serviceStatus === 'supplier_cancellation_requested'
+              ? 'Cancellation requested'
+              : ucwords(str_replace('_', ' ', $serviceStatus));
+        ?>
+        <div class="sup-assignment-service-card">
+          <div class="sup-assignment-service-info">
+            <strong><?= $h($service['name']) ?></strong>
+            <span class="sup-assignment-service-meta">
+              <?= $h($service['category'] !== '' ? $service['category'] : 'Service') ?> · <?= $h($serviceStatusLabel) ?>
+            </span>
+          </div>
+          <div class="sup-assignment-service-right">
+            <?php if (!empty($service['can_request_cancellation'])): ?>
+              <button type="button"
+                      class="sup-btn sup-btn--decline sup-btn--sm supplier-cancel-request-btn"
+                      data-booking-supplier-id="<?= (int)$service['booking_supplier_id'] ?>"
+                      data-service-name="<?= $h($service['name']) ?>">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                Request cancellation
+              </button>
+            <?php else: ?>
+              <span class="sup-assignment-status"><?= $h($serviceStatusLabel) ?></span>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
     <?php $isDayBased = ($primarySchedule['booking_type'] ?? '') === 'fullday'; ?>
     <div class="sup-assignment-facts">
       <div class="sup-assignment-fact">
@@ -676,6 +735,7 @@ $dashboardContent = function () use (
     </div>
   <?php endif; ?>
 
+  <?php if ($hasPackageSchedule): ?>
   <details class="sup-booking-details">
     <summary>View full booking details</summary>
     <div class="sup-booking-details-content">
@@ -704,11 +764,6 @@ $dashboardContent = function () use (
     <div class="sup-stat sup-stat--neutral">
       <div class="sup-stat-label">Venue</div>
       <div class="sup-stat-value sup-stat-value--sm"><?= $h($firstLocation !== '' ? $firstLocation : '—') ?></div>
-    </div>
-    <div class="sup-stat sup-stat--primary">
-      <div class="sup-stat-label">Your earnings</div>
-      <div class="sup-stat-value"><?= $money($supplierTotal) ?></div>
-      <div class="sup-stat-sub"><?= $money($supplierPaid) ?> paid · <?= $money($supplierRemaining) ?> remaining</div>
     </div>
   </div>
 
@@ -910,12 +965,6 @@ $dashboardContent = function () use (
           </div>
         </div>
       <?php endforeach; ?>
-      <?php if (!$hasPackageSchedule): ?>
-        <div class="sup-card">
-          <div class="sup-card-head"><span class="sup-card-title">Service schedule</span></div>
-          <div class="sup-empty">No detailed service schedule has been added for this booking yet.</div>
-        </div>
-      <?php endif; ?>
     </div>
 
     <!-- ── Sidebar ── -->
@@ -994,23 +1043,10 @@ $dashboardContent = function () use (
     </aside>
   </div>
 
-  <div class="sup-card sup-payment-card">
-    <div class="sup-card-head">
-      <span class="sup-card-title">Payment and earnings</span>
-      <span class="sup-badge <?= $statusBadgeClass($paymentStatus) ?>"><?= $h(ucfirst($paymentStatus ?: 'pending')) ?></span>
-    </div>
-    <div class="sup-payment-grid">
-      <div class="sup-payment-fact"><small>Your total earnings</small><strong><?= $money($supplierTotal) ?></strong></div>
-      <div class="sup-payment-fact"><small>Paid to date</small><strong><?= $money($supplierPaid) ?></strong></div>
-      <div class="sup-payment-fact"><small>Remaining</small><strong><?= $money($supplierRemaining) ?></strong></div>
-    </div>
-    <div class="sup-payment-track" aria-label="Payment progress">
-      <div class="sup-payment-fill" style="width:<?= max(0, min(100, $supplierPaidFraction * 100)) ?>%"></div>
-    </div>
-  </div>
   </div>
     </div>
   </details>
+  <?php endif; ?>
 
   <div class="sup-service-drawer-backdrop" data-service-drawer-close></div>
   <aside class="sup-service-drawer" id="supplier-service-detail-drawer" aria-hidden="true" aria-labelledby="supplier-service-drawer-title">
@@ -1042,6 +1078,35 @@ $dashboardContent = function () use (
       <div class="sup-drawer-timeline-list" data-service-timeline></div>
     </section>
   </aside>
+
+  <!-- ── Supplier Cancellation Modal ── -->
+  <div id="supplier-cancel-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="supplier-cancel-modal-title">
+    <div class="sup-modal">
+      <div class="sup-modal-head">
+        <h2 id="supplier-cancel-modal-title" class="sup-modal-title">Request cancellation</h2>
+        <button type="button" class="supplier-cancel-close sup-modal-close" aria-label="Close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+      <form id="supplier-cancel-form">
+        <input type="hidden" name="booking_supplier_id" id="supplier-cancel-booking-supplier-id" value="">
+        <div class="sup-modal-body">
+          <p id="supplier-cancel-service-label" style="margin:0 0 12px;font-size:12px;font-weight:700;color:var(--sup-text)"></p>
+          <div class="sup-field" style="margin-bottom:0">
+            <label class="sup-label" for="supplier-cancel-reason">Reason</label>
+            <textarea id="supplier-cancel-reason" name="reason" rows="4" minlength="10" required class="sup-textarea" placeholder="Tell admin and the customer why you need to cancel this booking."></textarea>
+          </div>
+          <p style="margin-top:10px;font-size:11.5px;color:var(--sup-muted);line-height:1.45">
+            This will send a cancellation request to admin. The booking is not cancelled until admin approves it.
+          </p>
+        </div>
+        <div class="sup-modal-foot">
+          <button type="button" class="supplier-cancel-close sup-btn sup-btn--ghost">Keep booking</button>
+          <button type="submit" class="sup-btn sup-btn--decline">Submit request</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- ── Reschedule Modal ── -->
   <div id="reschedule-modal" class="sup-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reschedule-modal-title">
@@ -1213,6 +1278,71 @@ $dashboardContent = function () use (
           setTimeout(function() { window.location.reload(); }, 1200);
         } else {
           supToastError(data.error || 'Could not send reschedule proposal.');
+        }
+      } catch (err) {
+        supToastError('Network error. Please try again.');
+      }
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = original;
+    });
+  }
+})();
+
+/* ── Supplier cancellation request ── */
+(function(){
+  var modal = document.getElementById('supplier-cancel-modal');
+  var form = document.getElementById('supplier-cancel-form');
+  var rowInput = document.getElementById('supplier-cancel-booking-supplier-id');
+  var serviceLabel = document.getElementById('supplier-cancel-service-label');
+  var closeBtns = document.querySelectorAll('.supplier-cancel-close');
+
+  if (modal && form) {
+    document.querySelectorAll('.supplier-cancel-request-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(){
+        if (rowInput) rowInput.value = btn.dataset.bookingSupplierId || '';
+        if (serviceLabel) serviceLabel.textContent = 'Service: ' + (btn.dataset.serviceName || 'Selected service');
+        modal.classList.add('is-open');
+      });
+    });
+    closeBtns.forEach(function(b){
+      b.addEventListener('click', function(){ modal.classList.remove('is-open'); });
+    });
+    modal.addEventListener('click', function(e){ if (e.target === modal) modal.classList.remove('is-open'); });
+
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      var submitBtn = form.querySelector('button[type="submit"]');
+      var original = submitBtn.innerHTML;
+      var reason = (document.getElementById('supplier-cancel-reason')?.value || '').trim();
+      var bookingSupplierId = (rowInput?.value || '').trim();
+      if (!bookingSupplierId) {
+        supToastError('Please choose the service you need to cancel.');
+        return;
+      }
+      if (reason.length < 10) {
+        supToastError('Please provide a reason with at least 10 characters.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Submitting…';
+
+      var formData = new FormData(form);
+      formData.set('reason', reason);
+      formData.set('booking_supplier_id', bookingSupplierId);
+      formData.append('booking_id', '<?= (int)($booking['id'] ?? 0) ?>');
+      formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+      try {
+        var resp = await fetch('<?= URLROOT ?>/supplier/bookingRequestCancellation', { method: 'POST', body: formData });
+        var data = await resp.json().catch(function(){ return {}; });
+        if (data.success) {
+          supToastSuccess(data.message || 'Cancellation request submitted.');
+          modal.classList.remove('is-open');
+          form.reset();
+          setTimeout(function() { window.location.reload(); }, 1200);
+        } else {
+          supToastError(data.error || 'Could not submit cancellation request.');
         }
       } catch (err) {
         supToastError('Network error. Please try again.');

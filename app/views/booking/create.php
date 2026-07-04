@@ -2257,6 +2257,11 @@ input[type="date"]:invalid {
                   $isFulldayItem = ($itemBookingType === 'fullday');
                 ?>
                 <?php if ($isPackageItem): ?>
+                  <?php
+                    $packagePreferredTime = !empty($item['start_time'])
+                        ? date('H:i', strtotime((string)$item['start_time']))
+                        : '10:00';
+                  ?>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div>
                       <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select event date</label>
@@ -2275,11 +2280,11 @@ input[type="date"]:invalid {
                       <label class="gp-detail-label">Wedding time</label>
                       <span class="gp-time-control">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                        <span class="gp-time-display" data-time-display>10:00 AM</span>
+                        <span class="gp-time-display" data-time-display><?= $h(date('g:i A', strtotime($packagePreferredTime))) ?></span>
                         <svg class="gp-time-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                         <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
                                name="preferred_time[<?= $i ?>]"
-                               value="10:00" required readonly tabindex="-1" aria-hidden="true">
+                               value="<?= $h($packagePreferredTime) ?>" required readonly tabindex="-1" aria-hidden="true">
                         <span class="gp-time-menu" data-time-menu></span>
                       </span>
                     </div>

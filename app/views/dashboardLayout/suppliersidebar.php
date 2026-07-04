@@ -5,7 +5,8 @@ $stats = $dashboardData['stats'] ?? [];
 
 $supplierNameRaw = $supplier['shop_name'] ?? 'Supplier Dashboard';
 $supplierName = htmlspecialchars($supplierNameRaw, ENT_QUOTES, 'UTF-8');
-$ownerEmail = htmlspecialchars($supplier['owner_email'] ?? ($_SESSION['session_email'] ?? ''), ENT_QUOTES, 'UTF-8');
+$supplierRoleRaw = $_SESSION['session_role'] ?? 'supplier';
+$supplierRole = htmlspecialchars(ucwords(str_replace('_', ' ', (string)$supplierRoleRaw)), ENT_QUOTES, 'UTF-8');
 $profileStatus = strtolower($supplier['status'] ?? 'verified');
 $paymentStatus = strtolower($supplier['payment_status'] ?? 'paid');
 $isAvailable = !empty($supplier['is_available']);
@@ -331,7 +332,7 @@ if (!function_exists('dashboard_supplier_path_matches')) {
                 <?php endif; ?>
                 <div class="min-w-0">
                     <p class="supplier-sidebar-name truncate text-sm font-semibold text-app-text"><?= $supplierName ?></p>
-                    <p class="supplier-sidebar-email truncate text-xs text-app-muted"><?= $ownerEmail ?></p>
+                    <p class="supplier-sidebar-email truncate text-xs text-app-muted"><?= $supplierRole ?></p>
                 </div>
             </div>
         

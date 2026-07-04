@@ -820,6 +820,8 @@ class Supplier extends SupplierControllerSupport
             'address'    => $supplier['owner_address'] ?? '',
             'avatar'     => $_SESSION['session_avatar'] ?? null,
             'joined'     => !empty($supplier['created_at']) ? date('Y-m-d', strtotime($supplier['created_at'])) : '-',
+            'lastLogin'  => !empty($supplier['last_login']) ? date('Y-m-d h:i A', strtotime($supplier['last_login'])) : '-',
+            'isOnline'   => !empty($supplier['is_online']),
 
             // Stats
             'service_count'  => $serviceCount,
@@ -897,15 +899,21 @@ class Supplier extends SupplierControllerSupport
 
         $supplierId = (int)($supplier['supplier_id'] ?? 0);
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        if (!is_array($input)) {
+            echo json_encode(['ok' => false, 'error' => 'Invalid settings payload.']);
+            return;
+        }
 
         $fields = [
-            'is_available'         => isset($input['is_available']) ? (int)$input['is_available'] : null,
-            'auto_accept_bookings' => isset($input['auto_accept_bookings']) ? (int)$input['auto_accept_bookings'] : null,
-            'min_advance_days'     => isset($input['min_advance_days']) ? max(0, (int)$input['min_advance_days']) : null,
-            'cancellation_policy'  => isset($input['cancellation_policy']) ? trim($input['cancellation_policy']) : null,
-            'bank_account'         => isset($input['bank_account']) ? trim($input['bank_account']) : null,
-            'bank_code'            => isset($input['bank_code']) ? trim($input['bank_code']) : null,
-            'notification_prefs'   => isset($input['notification_prefs']) ? json_encode($input['notification_prefs']) : null,
+            'is_available'         => array_key_exists('is_available', $input) ? ((int)!empty($input['is_available'])) : null,
+            'auto_accept_bookings' => array_key_exists('auto_accept_bookings', $input) ? ((int)!empty($input['auto_accept_bookings'])) : null,
+            'min_advance_days'     => array_key_exists('min_advance_days', $input) ? max(0, min(365, (int)$input['min_advance_days'])) : null,
+            'cancellation_policy'  => array_key_exists('cancellation_policy', $input) ? mb_substr(trim((string)$input['cancellation_policy']), 0, 2000) : null,
+            'bank_account'         => array_key_exists('bank_account', $input) ? mb_substr(trim((string)$input['bank_account']), 0, 100) : null,
+            'bank_code'            => array_key_exists('bank_code', $input) ? mb_substr(trim((string)$input['bank_code']), 0, 50) : null,
+            'notification_prefs'   => array_key_exists('notification_prefs', $input) && is_array($input['notification_prefs'])
+                ? json_encode($input['notification_prefs'])
+                : null,
         ];
 
         // Remove nulls (fields not sent)
@@ -917,24 +925,24 @@ class Supplier extends SupplierControllerSupport
         }
 
         try {
+            $db = new Database();
             $sets = [];
             $params = [];
             foreach ($fields as $col => $val) {
                 $sets[] = "$col = :$col";
                 $params[":$col"] = $val;
             }
-            $sets[] = 'updated_at = NOW()';
             $sql = 'UPDATE suppliers SET ' . implode(', ', $sets) . ' WHERE supplier_id = :sid';
             $params[':sid'] = $supplierId;
 
-            $this->db->dbquery($sql);
+            $db->dbquery($sql);
             foreach ($params as $k => $v) {
-                $this->db->dbbind($k, $v);
+                $db->dbbind($k, $v);
             }
-            $this->db->dbexecute();
+            $db->dbexecute();
 
             echo json_encode(['ok' => true]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             echo json_encode(['ok' => false, 'error' => 'Failed to update settings.']);
         }
     }
@@ -1010,7 +1018,7 @@ class Supplier extends SupplierControllerSupport
 
     /**
      * JSON endpoint — update supplier profile.
-     * Expects JSON body: { name, email, phone, address, shop_name, description, business_url }
+     * Expects JSON body: { name, email, phone, address }
      */
     public function updateProfile()
     {
@@ -1033,9 +1041,6 @@ class Supplier extends SupplierControllerSupport
             $email   = trim((string)($payload['email'] ?? ''));
             $phone   = trim((string)($payload['phone'] ?? ''));
             $address = trim((string)($payload['address'] ?? ''));
-            $shopName    = trim((string)($payload['shop_name'] ?? ''));
-            $description = trim((string)($payload['description'] ?? ''));
-            $businessUrl = trim((string)($payload['business_url'] ?? ''));
 
             if ($name === '' || $email === '') {
                 echo json_encode(['ok' => false, 'error' => 'Name and email are required.']);
@@ -1052,9 +1057,6 @@ class Supplier extends SupplierControllerSupport
                 'email'        => $email,
                 'phone'        => $phone,
                 'address'      => $address,
-                'shop_name'    => $shopName,
-                'description'  => $description,
-                'business_url' => $businessUrl,
             ]);
 
             // Update session

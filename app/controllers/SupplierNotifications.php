@@ -7,8 +7,8 @@ class SupplierNotifications extends SupplierControllerSupport
     public function notificationsJson()
     {
         $this->jsonResponse([
-            'unread_count' => $this->notificationModel->getUnreadCount($this->currentUserId()),
-            'notifications' => $this->notificationModel->getLatest($this->currentUserId(), 8),
+            'unread_count' => $this->notificationModel->getUnreadCount($this->currentUserId(), true),
+            'notifications' => $this->notificationModel->getLatest($this->currentUserId(), 8, true),
         ]);
     }
 

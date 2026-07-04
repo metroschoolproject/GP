@@ -600,6 +600,7 @@ class Booking extends Controller
         if (!$this->bookingModel->insertBookingSuppliers($bookingId)) {
             throw new RuntimeException('Could not assign suppliers');
         }
+        $autoAcceptedSuppliers = $this->bookingModel->autoAcceptEnabledSuppliers($bookingId);
         
         // CLEAR CART & LOG
         $this->bookingModel->clearCart($this->userId);
@@ -627,6 +628,20 @@ class Booking extends Controller
                 );
             }
 
+            $this->notificationModel->notifyBookingSuppliers(
+                $bookingId,
+                'New Package Booking',
+                $customerName . ' selected: ' . $serviceNames . '. Deposit payment is pending.',
+                'booking'
+            );
+            $this->notificationModel->notifyAdmins(
+                'New Package Booking',
+                $customerName . ' created a package booking for: ' . $serviceNames . '. Deposit payment is pending.',
+                'booking',
+                'booking',
+                $bookingId
+            );
+
             $this->jsonResponse([
                 'success' => true,
                 'booking_id' => $bookingId,
@@ -635,37 +650,64 @@ class Booking extends Controller
         } else {
             $this->bookingModel->updateStatus($bookingId, 'pending_supplier_response');
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_supplier_response', $this->userId);
-            $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
+            if ($autoAcceptedSuppliers > 0) {
+                $this->bookingModel->logStatusChange($bookingId, null, 'supplier_auto_accepted', null, $autoAcceptedSuppliers . ' supplier line(s) auto-accepted');
+            }
+            $allSuppliersAccepted = $this->bookingModel->allSuppliersAccepted($bookingId);
+            if ($allSuppliersAccepted) {
+                $this->bookingModel->updateStatus($bookingId, 'pending_payment');
+                $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'pending_payment', null, 'All suppliers auto-accepted');
+            } else {
+                $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
+            }
             $this->bookingModel->commit();
             $transactionStarted = false;
 
-            $this->notificationModel->notifyBookingSuppliers(
-                $bookingId,
-                'New Booking Request',
-                $customerName . ' is requesting: ' . $serviceNames . '. Please accept or decline within 24 hours.',
-                'booking'
-            );
-            $this->notificationModel->notifyAdmins(
-                'New Custom Booking Request',
-                $customerName . ' created a custom or mixed booking for: ' . $serviceNames . '. Supplier responses are pending.',
-                'booking',
-                'booking',
-                $bookingId
-            );
+            if ($allSuppliersAccepted) {
+                $this->notificationModel->notifyBookingCustomer(
+                    $bookingId,
+                    'Suppliers Accepted',
+                    'Your selected suppliers accepted automatically. Please complete your ' . BOOKING_DEPOSIT_PERCENT . '% deposit to confirm.',
+                    'booking'
+                );
+                $this->notificationModel->notifyAdmins(
+                    'New Auto-Accepted Booking',
+                    $customerName . ' created a booking for: ' . $serviceNames . '. All suppliers auto-accepted.',
+                    'booking',
+                    'booking',
+                    $bookingId
+                );
+            } else {
+                $this->notificationModel->notifyBookingSuppliers(
+                    $bookingId,
+                    'New Booking Request',
+                    $customerName . ' is requesting: ' . $serviceNames . '. Please accept or decline within 24 hours.',
+                    'booking'
+                );
+                $this->notificationModel->notifyAdmins(
+                    'New Custom Booking Request',
+                    $customerName . ' created a custom or mixed booking for: ' . $serviceNames . '. Supplier responses are pending.',
+                    'booking',
+                    'booking',
+                    $bookingId
+                );
 
-            // Email each supplier about the new booking request
-            $supplierEmails = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
-            if (!empty($supplierEmails)) {
-                $emailService = new EmailService();
-                foreach ($supplierEmails as $supplier) {
-                    $emailService->sendNewBookingRequest($supplier, $customerName, $items, $bookingId);
+                // Email each supplier about the new booking request
+                $supplierEmails = $this->bookingModel->getSupplierEmailsForBooking($bookingId);
+                if (!empty($supplierEmails)) {
+                    $emailService = new EmailService();
+                    foreach ($supplierEmails as $supplier) {
+                        $emailService->sendNewBookingRequest($supplier, $customerName, $items, $bookingId);
+                    }
                 }
             }
 
             $this->jsonResponse([
                 'success' => true,
                 'booking_id' => $bookingId,
-                'redirect' => URLROOT . '/booking/detail/' . $bookingId,
+                'redirect' => $allSuppliersAccepted
+                    ? URLROOT . '/booking/pay/' . $bookingId
+                    : URLROOT . '/booking/detail/' . $bookingId,
             ]);
         }
         } catch (SlotUnavailableException $e) {
@@ -1500,7 +1542,7 @@ class Booking extends Controller
         $bookings = $this->bookingModel->getCustomerBookings($this->userId, $filter, $perPage, $offset);
         $totalCount = $this->bookingModel->getCustomerBookingsCount($this->userId, $filter);
         $bookingStatusCounts = ['all' => $this->bookingModel->getCustomerBookingsCount($this->userId, 'all')];
-        foreach (['pending_payment', 'paid', 'confirmed', 'completed', 'cancelled', 'cancellation_requested'] as $statusKey) {
+        foreach (['pending_payment', 'paid', 'confirmed', 'pending_final_payment', 'finalized', 'completed', 'cancelled', 'cancellation_requested'] as $statusKey) {
             $bookingStatusCounts[$statusKey] = $this->bookingModel->getCustomerBookingsCount($this->userId, $statusKey);
         }
 
@@ -1531,8 +1573,8 @@ class Booking extends Controller
         $this->ensureAuthenticated();
 
         $this->jsonResponse([
-            'unread_count' => $this->notificationModel->getUnreadCount($this->userId),
-            'notifications' => $this->notificationModel->getLatest($this->userId, 8),
+            'unread_count' => $this->notificationModel->getUnreadCount($this->userId, true),
+            'notifications' => $this->notificationModel->getLatest($this->userId, 8, true),
         ]);
     }
 
@@ -1993,13 +2035,16 @@ class Booking extends Controller
             }
         }
         // When supplier has multiple rows, use the "worst" active status:
-        // pending > confirmed (pending needs action first)
+        // pending > confirmed/accepted (pending needs action first)
         if (count($myStatuses) > 1) {
             if (in_array('pending', $myStatuses, true)) {
                 $currentSupplierStatus = 'pending';
                 $isCancelledOrReplaced = false;
             } elseif (in_array('confirmed', $myStatuses, true)) {
                 $currentSupplierStatus = 'confirmed';
+                $isCancelledOrReplaced = false;
+            } elseif (in_array('accepted', $myStatuses, true)) {
+                $currentSupplierStatus = 'accepted';
                 $isCancelledOrReplaced = false;
             }
             if ($firstActiveRowId > 0) {
@@ -2493,6 +2538,7 @@ class Booking extends Controller
         }
 
         $shopName = $supplierRow['shop_name'] ?? 'A supplier';
+        $isSupplierCancellationRequest = ($supplierRow['status'] ?? '') === 'supplier_cancellation_requested';
 
         if ($action === 'approve') {
             if (!$this->bookingModel->approveDeclineRequest($bookingSupplierId)) {
@@ -2504,11 +2550,17 @@ class Booking extends Controller
             $declineReason = $supplierRow['decline_reason'] ?? '';
             $replacementId = $this->bookingModel->createReplacementRequest($bookingId, $supplierRow, $declineReason);
             $this->bookingModel->updateStatus($bookingId, 'replacement_pending');
-            $this->bookingModel->logStatusChange($bookingId, 'confirmed', 'replacement_pending', null, 'Admin approved decline request from ' . $shopName);
+            $this->bookingModel->logStatusChange(
+                $bookingId,
+                $isSupplierCancellationRequest ? 'cancellation_requested' : 'confirmed',
+                'replacement_pending',
+                null,
+                'Admin approved ' . ($isSupplierCancellationRequest ? 'supplier cancellation request' : 'decline request') . ' from ' . $shopName
+            );
 
             $this->notificationModel->notifyAdmins(
                 'Supplier Replacement Needed',
-                $shopName . ' decline approved for booking #' . $bookingId . '. Please choose a replacement supplier.',
+                $shopName . ' request approved for booking #' . $bookingId . '. Please choose a replacement supplier.',
                 'booking',
                 'booking',
                 $bookingId
@@ -2523,8 +2575,8 @@ class Booking extends Controller
             if ($supplierUserId) {
                 $this->notificationModel->notifyUser(
                     $supplierUserId,
-                    'Decline Request Approved',
-                    'Your decline request for booking #' . $bookingId . ' has been approved.',
+                    $isSupplierCancellationRequest ? 'Cancellation Request Approved' : 'Decline Request Approved',
+                    'Your request for booking #' . $bookingId . ' has been approved.',
                     'booking',
                     'booking',
                     $bookingId
@@ -2534,23 +2586,34 @@ class Booking extends Controller
             $this->jsonResponse([
                 'success' => true,
                 'replacement_id' => $replacementId,
-                'message' => 'Decline request approved. Replacement flow initiated.',
+                'message' => 'Request approved. Replacement flow initiated.',
             ]);
         } else {
-            // Reject the decline request — revert to pending
-            if (!$this->bookingModel->rejectDeclineRequest($bookingSupplierId)) {
+            // Reject the request — keep confirmed work confirmed, pending work pending.
+            $restoreStatus = $isSupplierCancellationRequest ? 'confirmed' : 'pending';
+            if (!$this->bookingModel->rejectDeclineRequest($bookingSupplierId, $restoreStatus)) {
                 $this->jsonResponse(['error' => 'Could not process. Status may have changed.'], 409);
                 return;
             }
 
-            $this->bookingModel->logStatusChange($bookingId, null, 'decline_request_rejected', null, 'Admin rejected decline request from ' . $shopName);
+            if ($isSupplierCancellationRequest && $this->bookingModel->countSupplierCancellationRequests($bookingId) === 0) {
+                $this->bookingModel->updateStatus($bookingId, 'confirmed');
+            }
+
+            $this->bookingModel->logStatusChange(
+                $bookingId,
+                null,
+                $isSupplierCancellationRequest ? 'supplier_cancellation_rejected' : 'decline_request_rejected',
+                null,
+                'Admin rejected ' . ($isSupplierCancellationRequest ? 'supplier cancellation request' : 'decline request') . ' from ' . $shopName
+            );
 
             $supplierUserId = $this->bookingModel->getSupplierUserId((int)($supplierRow['supplier_id'] ?? 0));
             if ($supplierUserId) {
                 $this->notificationModel->notifyUser(
                     $supplierUserId,
-                    'Decline Request Rejected',
-                    'Your decline request for booking #' . $bookingId . ' has been rejected. Please proceed with the booking as scheduled.',
+                    $isSupplierCancellationRequest ? 'Cancellation Request Rejected' : 'Decline Request Rejected',
+                    'Your request for booking #' . $bookingId . ' has been rejected. Please proceed with the booking as scheduled.',
                     'booking',
                     'booking',
                     $bookingId
@@ -2559,7 +2622,7 @@ class Booking extends Controller
 
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Decline request rejected. Supplier status reverted to pending.',
+                'message' => 'Request rejected. Supplier status restored.',
             ]);
         }
     }
@@ -2668,16 +2731,20 @@ class Booking extends Controller
         }
 
         $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $bookingSupplierId = (int)($_POST['booking_supplier_id'] ?? 0);
         $reason = trim($_POST['reason'] ?? '');
 
         if ($bookingId <= 0) {
             $this->jsonResponse(['error' => 'Invalid booking.'], 400);
         }
+        if ($bookingSupplierId <= 0) {
+            $this->jsonResponse(['error' => 'Please choose the service you need to cancel.'], 400);
+        }
         if ($reason === '' || mb_strlen($reason) < 10) {
             $this->jsonResponse(['error' => 'Please provide a reason (at least 10 characters).'], 422);
         }
 
-        if (!$this->bookingModel->supplierRequestCancellation($bookingId, $supplierId, $reason)) {
+        if (!$this->bookingModel->supplierRequestCancellation($bookingId, $supplierId, $reason, $bookingSupplierId)) {
             $this->jsonResponse(['error' => 'Could not submit cancellation request. The booking may no longer be cancellable.'], 400);
         }
 
@@ -2863,13 +2930,17 @@ class Booking extends Controller
 
         $bookingIds = array_map(static fn($b) => (int)$b['id'], $bookings);
         $bookingTypes = $this->bookingModel->getBookingTypes($bookingIds);
+        $supplierNames = $this->bookingModel->getSupplierNamesForBookings($bookingIds);
 
         $enriched = [];
         foreach ($bookings as $b) {
-            $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
+            $bookingId = (int)$b['id'];
+            $bookingDate = !empty($b['created_at']) ? date('Ymd', strtotime((string)$b['created_at'])) : date('Ymd');
+            $b['booking_ref'] = 'BK-' . $bookingDate . '-' . str_pad((string)$bookingId, 3, '0', STR_PAD_LEFT);
             $b['total_amount'] = (float)$b['total_amount'];
             $b['paid_amount'] = (float)$b['paid_amount'];
-            $b['booking_type'] = $bookingTypes[(int)$b['id']] ?? 'Booking';
+            $b['booking_type'] = $bookingTypes[$bookingId] ?? 'Booking';
+            $b['supplier_names'] = $supplierNames[$bookingId] ?? '';
             $enriched[] = $b;
         }
 

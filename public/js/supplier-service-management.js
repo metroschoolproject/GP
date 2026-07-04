@@ -7,6 +7,7 @@ const DATA_URLROOT = (serviceManagementConfig.urls?.data || '').replace(/\/suppl
 const PAGE_SIZE = Number(serviceManagementConfig.pageSize || 24);
 const PACKAGES_AVAILABLE = serviceManagementConfig.initialData?.meta?.supplier_packages_available !== false;
 const INITIAL_TAB = PACKAGES_AVAILABLE && serviceManagementConfig.initialTab === 'packages' ? 'packages' : 'services';
+const SUPPLIER_DEFAULT_MIN_LEAD_DAYS = Math.max(0, Math.min(365, Number(serviceManagementConfig.supplierDefaults?.minLeadDays || 0)));
 
 let currentTab = INITIAL_TAB, currentFilter = 'All', statusFilter = 'all', nextId = 200;
 let editingSvcId = null, editingPkgId = null;
@@ -1094,7 +1095,7 @@ function resetCreateForm() {
     var el = document.getElementById(id); if (el) el.value = '';
   });
   var typeEl = document.getElementById('csType'); if (typeEl) typeEl.value = '';
-  var leadEl = document.getElementById('csMinLeadDays'); if (leadEl) leadEl.value = '0';
+  var leadEl = document.getElementById('csMinLeadDays'); if (leadEl) leadEl.value = String(SUPPLIER_DEFAULT_MIN_LEAD_DAYS);
   var startEl = document.getElementById('csDefaultStartTime'); if (startEl) startEl.value = '';
   var endEl = document.getElementById('csDefaultEndTime'); if (endEl) endEl.value = '';
   resetImgBox('csImgBox', true);

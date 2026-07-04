@@ -6,6 +6,8 @@ $userEmail     = $email      ?? $_SESSION['session_email'] ?? '';
 $userPhone     = $phone      ?? '';
 $userAddress   = $address    ?? '';
 $userJoined    = $joined     ?? '-';
+$userLastLogin = $lastLogin  ?? '-';
+$isOnline      = !empty($isOnline);
 $profileAvatar = $avatar     ?? $_SESSION['session_avatar'] ?? null;
 $initials = strtoupper(substr(trim($userName), 0, 1));
 
@@ -39,53 +41,58 @@ $dashboardContentClass = 'profile-page px-6 py-6';
 
 $dashboardContent = function () use (
     $userName, $firstName, $lastName, $userEmail, $userPhone, $userAddress,
-    $userJoined, $profileAvatar, $initials, $h,
+    $userJoined, $userLastLogin, $isOnline, $profileAvatar, $initials, $h,
     $shopName, $description, $status, $businessUrl, $categoryNames,
     $paymentStatus, $businessLicenseUrl, $serviceCount, $totalBookings, $avgRating,
     $statusLabel, $statusBadgeClass
 ) {
 ?>
 <style>
-.profile-page { --ink:#6d4c5b; --muted:#A8A29E; --soft:#F4F1EE; --panel:#FFFFFF; --line:#ead8c7; --primary:#6d4c5b; color:var(--ink); }
-.profile-page h1 { font-size:clamp(28px,3vw,42px); font-weight:900; margin:6px 0 7px; color:var(--ink); }
-.profile-page .kicker { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.17em; color:var(--muted); }
-.profile-page p.desc { color:var(--muted); font-size:13px; }
+.profile-page { --bg:#F4F1EE; --surface:#FFFFFF; --soft:#FFFFFF; --hover:#eddecc; --border:#ead8c7; --border-light:#eddecc; --primary:#6d4c5b; --primary-hover:#7b5c69; --primary-soft:#eddecc; --text:#111827; --muted:#b79c8b; --body:#7b5c69; --success-bg:#ECFDF5; --success-text:#065F46; --warn-bg:#FFFBEB; --warn-text:#92400E; --danger-bg:#FEF2F2; --danger-text:#991B1B; --neutral-bg:#F5F5F4; --neutral-text:#78716C; min-height:100%; background:var(--bg); color:var(--body); font-size:13.5px; }
+.profile-page * { box-sizing:border-box; }
+.profile-page h1 { font-size:22px; font-weight:700; margin:0; color:var(--text); letter-spacing:-.3px; }
+.profile-page .kicker { margin-bottom:4px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); }
+.profile-page p.desc { color:var(--body); font-size:12px; font-weight:600; line-height:1.45; margin-top:8px; }
 
 /* Header */
-.p-header { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px 24px; display:flex; align-items:center; gap:20px; margin-bottom:16px; }
+.p-header { background:var(--surface); border:1px solid var(--border); border-radius:.75rem; padding:14px 16px; display:flex; align-items:center; gap:16px; margin-bottom:20px; box-shadow:0 1px 2px rgba(28,25,23,.04); }
 .p-avatar { width:72px; height:72px; border-radius:50%; background:var(--primary); color:#fff; font-size:28px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
 .p-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
 .p-header-info { flex:1; min-width:0; }
-.p-header-name { font-size:22px; font-weight:800; color:var(--ink); margin:0; }
+.p-header-name { font-size:20px; font-weight:700; color:var(--text); margin:0; letter-spacing:-.3px; }
 .p-header-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px; font-size:12px; color:var(--muted); }
 .p-header-meta .p-dot { width:3px; height:3px; border-radius:50%; background:var(--muted); flex-shrink:0; }
 .p-header-actions { display:flex; gap:8px; flex-shrink:0; }
 
 /* Badge */
 .p-badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
-.p-badge-green { background:#ECFDF5; color:#065F46; }
-.p-badge-amber { background:#FFFBEB; color:#92400E; }
-.p-badge-red { background:#FEF2F2; color:#991B1B; }
-.p-badge-gray { background:#F5F5F4; color:#57534E; }
+.p-badge-green { background:var(--success-bg); color:var(--success-text); }
+.p-badge-amber { background:var(--warn-bg); color:var(--warn-text); }
+.p-badge-red { background:var(--danger-bg); color:var(--danger-text); }
+.p-badge-gray { background:var(--neutral-bg); color:var(--neutral-text); }
+.p-presence { display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+.p-presence::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+.p-presence-online { background:#ECFDF5; color:#065F46; }
+.p-presence-offline { background:#F5F5F4; color:#78716C; }
 
 /* Stats row */
-.p-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
-.p-stat { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 18px; text-align:center; }
-.p-stat-num { font-size:22px; font-weight:800; color:var(--ink); }
+.p-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+.p-stat { background:var(--surface); border:1px solid var(--border); border-radius:.75rem; padding:14px 16px; text-align:center; }
+.p-stat-num { font-size:20px; font-weight:700; color:var(--text); letter-spacing:-.3px; }
 .p-stat-lbl { font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
 
 /* License card */
-.p-license { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 20px; display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
-.p-license-icon { width:42px; height:42px; border-radius:10px; background:var(--soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.p-license { background:var(--surface); border:1px solid var(--border); border-radius:.75rem; padding:14px 16px; display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap; box-shadow:0 1px 2px rgba(28,25,23,.04); }
+.p-license-icon { width:38px; height:38px; border-radius:.75rem; background:var(--primary-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .p-license-icon i { width:20px; height:20px; color:var(--muted); }
 .p-license-info { flex:1; min-width:0; }
 .p-license-label { font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:2px; }
-.p-license-value { font-size:14px; font-weight:700; color:var(--ink); }
+.p-license-value { font-size:13px; font-weight:700; color:var(--text); }
 .p-license-status { display:flex; align-items:center; gap:6px; flex-shrink:0; }
 .p-license-verified { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700; background:#ECFDF5; color:#065F46; }
 .p-license-pending { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700; background:#FFFBEB; color:#92400E; }
 .p-license-none { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700; background:var(--soft); color:var(--muted); }
-.p-license-view { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--ink); font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; text-decoration:none; }
+.p-license-view { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:.75rem; border:1px solid var(--border); background:var(--surface); color:var(--primary); font-size:12px; font-weight:700; cursor:pointer; transition:background .12s; text-decoration:none; }
 .p-license-view:hover { border-color:var(--primary); color:var(--primary); }
 .p-license-view i { width:14px; height:14px; }
 
@@ -94,19 +101,20 @@ $dashboardContent = function () use (
 .p-col { display:flex; flex-direction:column; gap:16px; }
 
 /* Card */
-.p-card { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
-.p-card-head { padding:14px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:var(--ink); }
+.p-card { background:var(--surface); border:1px solid var(--border); border-radius:.75rem; overflow:hidden; box-shadow:0 1px 2px rgba(28,25,23,.04); }
+.p-card-head { padding:14px 20px; border-bottom:1px solid var(--border-light); display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--text); }
 .p-card-head i { width:18px; height:18px; color:var(--muted); }
 .p-card-body { padding:18px; }
 
 /* Section title */
-.p-section-title { font-size:12px; font-weight:700; color:var(--ink); margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:6px; }
+.p-section-title { font-size:12px; font-weight:700; color:var(--text); margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--border-light); display:flex; align-items:center; gap:6px; }
 .p-section-title i { width:15px; height:15px; color:var(--muted); }
 
 /* Form */
 .p-label { display:block; font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
-.p-input { width:100%; height:44px; padding:0 14px; border:1px solid var(--line); border-radius:10px; background:var(--soft); color:var(--ink); font-size:13px; font-family:'DM Sans',sans-serif; transition:border-color .2s, box-shadow .2s, background .2s; box-sizing:border-box; }
-.p-input:focus { outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(109,76,91,.08); }
+.p-input { width:100%; height:34px; padding:0 10px; border:1px solid var(--border); border-radius:.75rem; background:var(--surface); color:var(--body); font-size:11px; font-weight:600; font-family:inherit; outline:none; transition:border-color .12s, box-shadow .12s, background .12s; box-sizing:border-box; }
+.p-input:focus { outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(109,76,91,.1); }
+.p-input:disabled { background:var(--neutral-bg); color:var(--neutral-text); cursor:not-allowed; opacity:1; }
 textarea.p-input { height:auto; min-height:80px; padding:12px 14px; resize:vertical; }
 .p-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
 .p-row.single { grid-template-columns:1fr; }
@@ -118,16 +126,16 @@ textarea.p-input { height:auto; min-height:80px; padding:12px 14px; resize:verti
 .pw-eye { position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:6px; color:var(--muted); opacity:.5; transition:opacity .2s; display:flex; align-items:center; border-radius:6px; line-height:0; }
 .pw-eye:hover { opacity:1; background:var(--soft); }
 .p-strength { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
-.p-str-bar { flex:1; height:3px; border-radius:999px; background:var(--line); transition:background .3s; }
+.p-str-bar { flex:1; height:3px; border-radius:999px; background:var(--border); transition:background .3s; }
 .p-str-bar.active { background:var(--primary); }
 .p-str-text { font-size:11px; color:var(--muted); white-space:nowrap; }
 
 /* Buttons */
-.p-btn { display:inline-flex; align-items:center; gap:7px; min-height:38px; padding:0 18px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; border:none; font-family:'DM Sans',sans-serif; }
+.p-btn { display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:0 14px; border-radius:.75rem; font-size:12px; font-weight:700; cursor:pointer; transition:background .12s, color .12s, border-color .12s; border:none; font-family:inherit; }
 .p-btn-primary { background:var(--primary); color:#fff; }
-.p-btn-primary:hover { opacity:.85; }
-.p-btn-outline { background:transparent; border:1px solid var(--line); color:var(--ink); }
-.p-btn-outline:hover { border-color:var(--primary); color:var(--primary); }
+.p-btn-primary:hover { background:var(--primary-hover); opacity:1; }
+.p-btn-outline { background:var(--surface); border:1px solid var(--border); color:var(--primary); }
+.p-btn-outline:hover { background:var(--primary-soft); border-color:var(--border); color:var(--primary); }
 .p-btn-danger { background:#dc3545; color:#fff; }
 .p-btn-danger:hover { background:#c82333; }
 .p-btn-danger:disabled { opacity:.5; cursor:not-allowed; }
@@ -140,7 +148,7 @@ textarea.p-input { height:auto; min-height:80px; padding:12px 14px; resize:verti
 .p-msg.error { display:block; background:#FEF2F2; color:#991B1B; }
 
 /* Danger */
-.p-danger { background:var(--panel); border:1px solid rgba(220,53,69,.2); border-radius:14px; padding:18px 22px; margin-top:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; }
+.p-danger { background:var(--surface); border:1px solid rgba(220,53,69,.2); border-radius:.75rem; padding:18px 22px; margin-top:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; }
 .p-danger-title { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:#dc3545; margin-bottom:2px; }
 .p-danger-title i { width:18px; height:18px; }
 .p-danger-desc { font-size:12px; color:var(--muted); }
@@ -192,6 +200,12 @@ textarea.p-input { height:auto; min-height:80px; padding:12px 14px; resize:verti
         <span><?= $h($userEmail) ?></span>
         <span class="p-dot"></span>
         <span>Joined <?= $h($userJoined) ?></span>
+        <span class="p-dot"></span>
+        <span>Last login <?= $h($userLastLogin) ?></span>
+        <span class="p-dot"></span>
+        <span class="p-presence <?= $isOnline ? 'p-presence-online' : 'p-presence-offline' ?>">
+          <?= $isOnline ? 'Online' : 'Offline' ?>
+        </span>
         <?php if ($categoryNames): ?>
           <span class="p-dot"></span>
           <span><?= $h($categoryNames) ?></span>
@@ -263,22 +277,23 @@ textarea.p-input { height:auto; min-height:80px; padding:12px 14px; resize:verti
         <div id="profileSaveMsg" class="p-msg"></div>
 
         <div class="p-section-title"><i data-lucide="building-2"></i> Business</div>
+        <p class="p-danger-desc" style="margin:-4px 0 12px">Business information is locked after supplier submission. Please contact admin if it needs to be changed.</p>
         <div class="p-row single">
           <div>
             <label class="p-label">Shop Name</label>
-            <input id="profileShopName" class="p-input" type="text" value="<?= $h($shopName) ?>">
+            <input id="profileShopName" class="p-input" type="text" value="<?= $h($shopName) ?>" disabled>
           </div>
         </div>
         <div class="p-row single">
           <div>
             <label class="p-label">Description</label>
-            <textarea id="profileDescription" class="p-input"><?= $h($description) ?></textarea>
+            <textarea id="profileDescription" class="p-input" disabled><?= $h($description) ?></textarea>
           </div>
         </div>
         <div class="p-row single">
           <div>
             <label class="p-label">Business URL</label>
-            <input id="profileBusinessUrl" class="p-input" type="url" value="<?= $h($businessUrl) ?>" placeholder="https://">
+            <input id="profileBusinessUrl" class="p-input" type="url" value="<?= $h($businessUrl) ?>" placeholder="https://" disabled>
           </div>
         </div>
 
@@ -453,9 +468,6 @@ document.getElementById('btnCancelProfile').addEventListener('click',function(){
   document.getElementById('profileEmail').value='<?= $h($userEmail) ?>';
   document.getElementById('profilePhone').value='<?= $h($userPhone) ?>';
   document.getElementById('profileAddress').value='<?= $h($userAddress) ?>';
-  document.getElementById('profileShopName').value='<?= $h($shopName) ?>';
-  document.getElementById('profileDescription').value='<?= $h($description) ?>';
-  document.getElementById('profileBusinessUrl').value='<?= $h($businessUrl) ?>';
   msg('profileSaveMsg','','');
 });
 btnSave.addEventListener('click',function(){
@@ -464,10 +476,7 @@ btnSave.addEventListener('click',function(){
     name:(document.getElementById('profileFirstName').value.trim()+' '+document.getElementById('profileLastName').value.trim()).trim(),
     email:document.getElementById('profileEmail').value.trim(),
     phone:document.getElementById('profilePhone').value.trim(),
-    address:document.getElementById('profileAddress').value.trim(),
-    shop_name:document.getElementById('profileShopName').value.trim(),
-    description:document.getElementById('profileDescription').value.trim(),
-    business_url:document.getElementById('profileBusinessUrl').value.trim()
+    address:document.getElementById('profileAddress').value.trim()
   })})
   .then(function(r){return r.json()}).then(function(d){btnSave.disabled=false;btnSave.innerHTML='<i data-lucide="save"></i> Save Changes';if(window.lucide)lucide.createIcons();
     if(d.ok)msg('profileSaveMsg','✓ Profile updated.','success');else msg('profileSaveMsg',d.error||'Failed.','error');})

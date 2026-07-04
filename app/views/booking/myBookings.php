@@ -6,16 +6,19 @@ $bookingStatusCounts = $bookingStatusCounts ?? [];
 $statusLabels = [
     'draft' => 'Draft', 'pending_payment' => 'Pending Payment', 'payment_submitted' => 'Verifying Payment',
     'paid' => 'Paid', 'pending_admin' => 'Pending Admin', 'confirmed' => 'Confirmed',
+    'pending_final_payment' => 'Pending Final Payment', 'finalized' => 'Finalized',
     'completed' => 'Completed', 'cancelled' => 'Cancelled', 'cancellation_requested' => 'Cancellation Requested',
 ];
 $statusColors = [
     'draft' => 'bg-gray-100 text-gray-600', 'pending_payment' => 'bg-amber-100 text-amber-700',
     'payment_submitted' => 'bg-yellow-100 text-yellow-800',
     'paid' => 'bg-blue-100 text-blue-700', 'pending_admin' => 'bg-amber-100 text-amber-700',
-    'confirmed' => 'bg-green-100 text-green-700', 'completed' => 'bg-emerald-100 text-emerald-700',
+    'confirmed' => 'bg-green-100 text-green-700',
+    'pending_final_payment' => 'bg-indigo-100 text-indigo-700', 'finalized' => 'bg-purple-100 text-purple-700',
+    'completed' => 'bg-emerald-100 text-emerald-700',
     'cancelled' => 'bg-red-100 text-red-700', 'cancellation_requested' => 'bg-orange-100 text-orange-700',
 ];
-$filterLabels = ['all' => 'All', 'pending_payment' => 'Pending', 'paid' => 'Paid', 'confirmed' => 'Confirmed', 'completed' => 'Completed', 'cancelled' => 'Cancelled', 'cancellation_requested' => 'Cancellation Requested'];
+$filterLabels = ['all' => 'All', 'pending_payment' => 'Pending', 'paid' => 'Paid', 'confirmed' => 'Confirmed', 'pending_final_payment' => 'Final Payment', 'finalized' => 'Finalized', 'completed' => 'Completed', 'cancelled' => 'Cancelled', 'cancellation_requested' => 'Cancellation Requested'];
 
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {

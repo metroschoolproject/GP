@@ -35,13 +35,15 @@ $dashboardContent = function () use ($categories, $stats, $search, $message) {
   .search-input:focus{border-color:var(--primary)}
 
   /* Toast notification — bottom-right */
-  .cat-toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:12px;font-size:13px;font-weight:600;font-family:'DM Sans',system-ui,sans-serif;box-shadow:0 8px 30px rgba(52,35,43,.22);transform:translateX(120%);transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s ease;pointer-events:none;opacity:0;max-width:380px}
+  .cat-toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;align-items:center;gap:10px;padding:14px 18px;border-radius:12px;border:1px solid var(--border);font-size:13px;font-weight:700;font-family:'DM Sans',system-ui,sans-serif;box-shadow:0 18px 48px rgba(52,35,43,.18);transform:translateX(120%);transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s ease;pointer-events:none;opacity:0;max-width:380px}
   .cat-toast.show{transform:translateX(0);opacity:1;pointer-events:auto}
-  .cat-toast-success{background:#166534;color:#fff}
-  .cat-toast-error{background:#991B1B;color:#fff}
+  .cat-toast-success{background:#fff;color:var(--primary);border-color:var(--border);box-shadow:0 18px 48px rgba(109,76,91,.18)}
+  .cat-toast-error{background:#fff;color:var(--danger);border-color:#e5c4c4}
   .cat-toast-icon{flex:0 0 auto;display:inline-flex}
-  .cat-toast-close{border:0;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;display:inline-flex;padding:2px;margin-left:4px;flex:0 0 auto}
-  .cat-toast-close:hover{color:#fff}
+  .cat-toast-success .cat-toast-icon{color:var(--primary)}
+  .cat-toast-error .cat-toast-icon{color:var(--danger)}
+  .cat-toast-close{border:0;background:transparent;color:var(--muted);cursor:pointer;display:inline-flex;padding:2px;margin-left:4px;flex:0 0 auto}
+  .cat-toast-close:hover{color:var(--primary)}
 
   .cat-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden}
   .cat-table th{padding:9px 20px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--soft);border-bottom:1px solid var(--border)}

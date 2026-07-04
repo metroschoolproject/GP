@@ -10,6 +10,9 @@ $homeImageRoot = URLROOT . '/public/images/home';
 $gpLogoPath = APPROOT . '/../public/images/home/gp_logo.png';
 $gpLogoUrl = $homeImageRoot . '/gp_logo.png?v=' . (is_file($gpLogoPath) ? filemtime($gpLogoPath) : time());
 $h = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+$showLoginSuccessPopup = !empty($_SESSION['login_success_flash']);
+$loginSuccessName = trim((string)($_SESSION['session_name'] ?? ''));
+unset($_SESSION['login_success_flash']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -49,6 +52,114 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       overflow: hidden;
       background: #f5e8d9;
       font-family: "Playfair Display", serif;
+    }
+
+    .login-success-pop {
+      position: fixed;
+      top: clamp(18px, 4vw, 32px);
+      left: 50%;
+      z-index: 3000;
+      width: min(calc(100vw - 32px), 420px);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1px solid rgba(109, 76, 91, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 250, 246, 0.96);
+      color: #2a1710;
+      box-shadow: 0 22px 70px rgba(42, 23, 16, 0.2);
+      transform: translate(-50%, -26px) scale(0.96);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        transform 520ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 320ms ease;
+    }
+
+    .login-success-pop.show {
+      transform: translate(-50%, 0) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .login-success-icon {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #ecfdf5;
+      color: #166534;
+      box-shadow: inset 0 0 0 1px rgba(22, 101, 52, 0.14);
+      transform: scale(0.78);
+      transition: transform 480ms cubic-bezier(0.34, 1.56, 0.64, 1) 110ms;
+    }
+
+    .login-success-pop.show .login-success-icon {
+      transform: scale(1);
+    }
+
+    .login-success-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .login-success-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .login-success-text {
+      margin: 4px 0 0;
+      color: #6d4c5b;
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .login-success-close {
+      width: 32px;
+      height: 32px;
+      flex: 0 0 32px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #7b5c69;
+      cursor: pointer;
+      transition: background 180ms ease, color 180ms ease;
+    }
+
+    .login-success-close:hover,
+    .login-success-close:focus-visible {
+      background: rgba(109, 76, 91, 0.1);
+      color: #2a1710;
+      outline: none;
+    }
+
+    @media (max-width: 520px) {
+      .login-success-pop {
+        top: 14px;
+        align-items: flex-start;
+        padding: 14px;
+      }
+
+      .login-success-title {
+        font-size: 16px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .login-success-pop,
+      .login-success-icon {
+        transition: opacity 180ms ease;
+      }
     }
   :root {
   --gp-soft-bg:
@@ -260,19 +371,21 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
    #our-services {
-  background:
+  /* background:
     linear-gradient(135deg, rgba(255,255,255,.92) 0%, rgba(248,243,237,.68) 28%, rgba(234,216,200,.98) 100%),
     radial-gradient(ellipse at 82% 20%, rgba(216,180,106,.34), transparent 44%),
     radial-gradient(ellipse at 18% 78%, rgba(111,46,54,.16), transparent 48%),
-    #F8F3ED !important;
+    #F8F3ED !important; */
+    background-color: #ead8c8;
 }
 
 #services {
-  background:
+  /* background:
     linear-gradient(145deg, rgba(255,253,252,.96) 0%, rgba(245,232,217,.62) 38%, rgba(240,223,231,.88) 100%),
     radial-gradient(ellipse at 12% 18%, rgba(216,180,106,.30), transparent 46%),
     radial-gradient(ellipse at 88% 76%, rgba(196,178,161,.38), transparent 50%),
-    #FAF7F4 !important;
+    #FAF7F4 !important; */
+    background-color:#ead8c8 ;
 }
 
     .site-header {
@@ -684,11 +797,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       min-height: 260vh;
       overflow: visible;
       padding: 0 16px;
-      background:
+      /* background:
         linear-gradient(132deg, rgba(255,255,255,.98) 0%, rgba(250,247,244,.62) 34%, rgba(248,243,237,.96) 100%),
         radial-gradient(ellipse at 80% 18%, rgba(216,180,106,.28), transparent 42%),
         radial-gradient(ellipse at 22% 82%, rgba(111,46,54,.14), transparent 50%),
-        #FFFDFC;
+        #FFFDFC; */
+        background-color: #ead8c8;
       color: #4a342f;
       scroll-snap-align: start;
       scroll-snap-stop: normal;
@@ -700,11 +814,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       top: 0;
       height: 100vh;
       overflow: hidden;
-      background:
+      /* background:
         linear-gradient(132deg, rgba(255,255,255,.98) 0%, rgba(250,247,244,.62) 34%, rgba(248,243,237,.96) 100%),
         radial-gradient(ellipse at 80% 18%, rgba(216,180,106,.28), transparent 42%),
         radial-gradient(ellipse at 22% 82%, rgba(111,46,54,.14), transparent 50%),
-        #FFFDFC;
+        #FFFDFC; */
+      background-color: #ead8c8;
+
       transform: translateZ(0);
     }
 
@@ -912,11 +1028,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       position: relative;
       width: 100%;
       padding: clamp(82px, 9vw, 118px) 24px;
-      background:
+      /* background:
         linear-gradient(140deg, rgba(255,253,252,.96) 0%, rgba(248,243,237,.58) 34%, rgba(234,216,200,.94) 100%),
         radial-gradient(ellipse at 18% 20%, rgba(216,180,106,.30), transparent 44%),
         radial-gradient(ellipse at 84% 76%, rgba(111,46,54,.16), transparent 48%),
-        #F8F3ED;
+        #F8F3ED; */
+      /* background-color: #ead8c8; */
       color: #211d1a;
       scroll-snap-align: start;
     }
@@ -2176,6 +2293,23 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 </head>
 
 <body>
+<?php if ($showLoginSuccessPopup): ?>
+  <div class="login-success-pop" id="loginSuccessPopup" role="status" aria-live="polite" aria-atomic="true">
+    <span class="login-success-icon" aria-hidden="true">
+      <i data-lucide="check" width="22" height="22"></i>
+    </span>
+    <div class="login-success-copy">
+      <p class="login-success-title">Login Successfully</p>
+      <p class="login-success-text">
+        <?= $loginSuccessName !== '' ? 'Welcome back, ' . $h($loginSuccessName) . '.' : 'Welcome back to Golden Promise.' ?>
+      </p>
+    </div>
+    <button class="login-success-close" type="button" aria-label="Close login success message">
+      <i data-lucide="x" width="18" height="18"></i>
+    </button>
+  </div>
+<?php endif; ?>
+
 <header class="site-header">
   <nav class="navbar flex items-center justify-between gap-4 px-5 py-3 max-[640px]:px-3 max-[640px]:py-2.5" aria-label="Main navigation">
 
@@ -2806,6 +2940,14 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       scrollableDistance: 1,
       canvasTravel: 0
     };
+
+    const loginSuccessPopup = document.getElementById("loginSuccessPopup");
+    if (loginSuccessPopup) {
+      const closeLoginSuccess = () => loginSuccessPopup.classList.remove("show");
+      requestAnimationFrame(() => loginSuccessPopup.classList.add("show"));
+      loginSuccessPopup.querySelector(".login-success-close")?.addEventListener("click", closeLoginSuccess);
+      window.setTimeout(closeLoginSuccess, 4200);
+    }
 
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));

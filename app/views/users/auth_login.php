@@ -27,9 +27,154 @@
     .psw_open_eye {
         display: none;
     }
+
+    .auth-home-logo {
+        position: fixed;
+        top: 22px;
+        left: 22px;
+        z-index: 55;
+        display: grid;
+        width: 74px;
+        height: 74px;
+        place-items: center;
+        overflow: hidden;
+        transition: transform 180ms ease;
+    }
+
+    .auth-home-logo:hover {
+        transform: translateY(-2px);
+    }
+
+    .auth-home-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    @media (max-width: 640px) {
+        .auth-home-logo {
+            top: 12px;
+            left: 12px;
+            width: 58px;
+            height: 58px;
+        }
+    }
+
+    .attempt-popup {
+        position: fixed;
+        top: 22px;
+        right: 22px;
+        z-index: 50;
+        width: min(calc(100vw - 32px), 440px);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid rgba(185, 75, 75, 0.22);
+        border-radius: 12px;
+        background: rgba(252, 248, 245, 0.97);
+        box-shadow: 0 18px 44px rgba(74, 52, 47, 0.16);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-14px) scale(0.96);
+        transition: opacity 180ms ease;
+    }
+
+    .attempt-popup.show {
+        opacity: 1;
+        pointer-events: auto;
+        animation: attemptPopupIn 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .attempt-popup.is-locked {
+        border-color: rgba(185, 75, 75, 0.34);
+        background: rgba(255, 242, 242, 0.98);
+    }
+
+    .attempt-popup-icon {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(185, 75, 75, 0.12);
+        color: #b94b4b;
+        font-weight: 800;
+        transform: scale(0.82);
+        transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms;
+    }
+
+    .attempt-popup-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke-width: 2.25;
+    }
+
+    .attempt-popup.show .attempt-popup-icon {
+        transform: scale(1);
+        animation: attemptIconPulse 620ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms both;
+    }
+
+    .attempt-popup-title {
+        margin: 0;
+        color: #4a342f;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .attempt-popup-text {
+        margin: 3px 0 0;
+        color: #7b5c69;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.45;
+    }
+
+    @keyframes attemptPopupIn {
+        0% { opacity: 0; transform: translateY(-18px) scale(0.94); filter: blur(4px); }
+        60% { opacity: 1; transform: translateY(3px) scale(1.01); filter: blur(0); }
+        100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes attemptIconPulse {
+        0% { transform: scale(0.72) rotate(-8deg); }
+        64% { transform: scale(1.12) rotate(3deg); }
+        100% { transform: scale(1) rotate(0); }
+    }
+
+    @media (max-width: 640px) {
+        .attempt-popup {
+            left: 16px;
+            right: 16px;
+            top: 14px;
+            width: auto;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .attempt-popup,
+        .attempt-popup-icon {
+            transition: opacity 160ms ease;
+        }
+    }
 </style>
 
 <body>
+    <a class="auth-home-logo" href="<?= URLROOT ?>/main/index" aria-label="Go to Golden Promise home">
+        <img src="<?= URLROOT ?>/public/images/home/gp_logo.png" alt="Golden Promise logo">
+    </a>
+
+    <div class="attempt-popup" id="attemptPopup" role="status" aria-live="polite" aria-atomic="true">
+        <div class="attempt-popup-icon" id="attemptPopupIcon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        </div>
+        <div>
+            <p class="attempt-popup-title" id="attemptPopupTitle">Wrong password</p>
+            <p class="attempt-popup-text" id="attemptPopupText">Please try again.</p>
+        </div>
+    </div>
 
     <section class="auth-shell w-full h-[100vh] flex justify-center items-center">
         <div class="w-[98%] h-10 bg-yellow-500 text-white text-sm absolute top-5  flex justify-center items-center rounded-md warning-bar hidden">
@@ -170,8 +315,12 @@
                         // If account locked 
                         if(res.status == 'lock'){
                             console.log(res);
-                            lock_warning_bar.classList.replace('hidden','show')
-                            lock_until_time.innerHTML = res.lockedUntil.date
+                            const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
+                            const lockMessage = accountLockMessage(lockedUntil);
+                            showAttemptPopup(0, res.max_attempts || 3, true, lockMessage);
+                            lock_warning_bar.classList.add('hidden');
+                            lock_warning_bar.classList.remove('show');
+                            lock_warning_bar.innerHTML = '';
                         }
 
                         // account not found 
@@ -187,6 +336,62 @@
             });
 
         })
+
+        function accountLockMessage(lockedUntil) {
+            const formattedUntil = formatLockTime(lockedUntil);
+            return lockedUntil
+                ? `Too many wrong attempts. Try again after ${formattedUntil}, or reset your password.`
+                : 'Too many wrong attempts. Please wait a little, or reset your password.';
+        }
+
+        function formatLockTime(value) {
+            if (!value) return '';
+            const raw = String(value).trim();
+            const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+            if (!match) return raw;
+
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            let hour = Number(match[4]);
+            const minute = match[5];
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12 || 12;
+
+            return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${hour}:${minute} ${ampm}`;
+        }
+
+        function showAttemptPopup(remainingAttempts, maxAttempts, isLocked = false, lockedMessage = '') {
+            const popup = document.getElementById('attemptPopup');
+            const icon = document.getElementById('attemptPopupIcon');
+            const title = document.getElementById('attemptPopupTitle');
+            const text = document.getElementById('attemptPopupText');
+            if (!popup || !icon || !title || !text) return;
+
+            const remaining = Math.max(0, Number(remainingAttempts) || 0);
+            const max = Math.max(1, Number(maxAttempts) || 3);
+            const attempt = Math.min(max, Math.max(1, max - remaining));
+            const warningIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+            const lockIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><path d="M12 15v2"/></svg>';
+
+            popup.classList.toggle('is-locked', isLocked || remaining === 0);
+            icon.innerHTML = isLocked || remaining === 0 ? lockIcon : warningIcon;
+            title.textContent = isLocked || remaining === 0
+                ? 'Account locked'
+                : 'Wrong password';
+            text.textContent = isLocked || remaining === 0
+                ? (lockedMessage || 'Too many wrong attempts. Please wait a little, or reset your password.')
+                : `Please try again. Attempt ${attempt} of ${max}.`;
+
+            popup.classList.remove('show');
+            void popup.offsetWidth;
+            popup.classList.add('show');
+
+            clearTimeout(showAttemptPopup.hideTimer);
+            showAttemptPopup.hideTimer = setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3800);
+        }
 
         // Handle Login 
         async function handleLogin(ccode){
@@ -211,11 +416,28 @@
             })
             .then(res => res.json())
             .then(res => {
-                if(res.loginfailover == true){
-                    login_warning_bar.classList.replace('hidden','show');
-                    login_warning_bar.innerHTML = "We sent Login Fail Alert to this email because you try to attemp over 5 times"
-                    console.log('hh')
+                if(res.status == 'lock' || res.loginfailover == true){
+                    const lockedUntil = res.lockedUntil && res.lockedUntil.date ? res.lockedUntil.date : '';
+                    const lockMessage = accountLockMessage(lockedUntil);
+                    showAttemptPopup(0, res.max_attempts || 3, true, lockMessage);
+                    login_warning_bar.classList.add('hidden');
+                    login_warning_bar.classList.remove('show');
+                    login_warning_bar.innerHTML = '';
+                    pwvalid.style.display = 'none';
+                    pwvalid.textContent = '';
+                    return;
+                }
+                if(res.loginfailnotyet == true || res.pwd === false || res.status === false){
+                    const remainingAttempts = Number.isFinite(Number(res.remaining_attempts))
+                        ? Number(res.remaining_attempts)
+                        : Math.max(0, Number(res.max_attempts || 3) - Number(res.attempt_count || 0));
+                    showAttemptPopup(remainingAttempts, res.max_attempts || 3, false);
+                    const attemptText = res.attempt_count && res.max_attempts
+                        ? ` Attempt ${res.attempt_count} of ${res.max_attempts}.`
+                        : '';
                     pwvalid.style.display = 'block';
+                    pwvalid.textContent = `Password is incorrect.${attemptText}`;
+                    return;
                 }
                 if(res.status == true){
                     window.location.href = "<?= URLROOT ?>/otps/otp";
