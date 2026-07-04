@@ -105,8 +105,8 @@ $dashboardContent = function () use (
     .inbox-page { --bg:#F4F1EE; --surface:#FFFFFF; --soft:#FFFFFF; --hover:#eddecc; --border:#ead8c7; --border-light:#eddecc; --primary:#6d4c5b; --primary-hover:#7b5c69; --primary-soft:#eddecc; --text:#111827; --muted:#b79c8b; --body:#7b5c69; max-width: 1600px; margin: 0 auto; color: var(--body); }
     .inbox-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
     .inbox-kicker { margin: 0 0 4px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-    .inbox-title { margin: 0; color: var(--text); font-size: 22px; font-weight: 700; line-height: 1.15; letter-spacing: -.3px; }
-    .inbox-subtitle { max-width: 620px; margin: 8px 0 0; color: var(--body); font-size: 12px; font-weight: 600; line-height: 1.55; }
+    .inbox-title { margin: 0; color: #6d4c5b; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.02em; }
+    .inbox-subtitle { max-width: 620px; margin: 8px 0 0; color: #7b5c69; font-size: 12px; font-weight: 500; line-height: 1.55; }
     .inbox-unread { display: inline-flex; align-items: center; gap: 9px; min-height: 34px; padding: 0 14px; border: 1px solid var(--border); border-radius: .75rem; background: var(--surface); color: var(--primary); font-size: 12px; font-weight: 700; box-shadow: 0 1px 2px rgba(28,25,23,.04); }
     .inbox-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #b94b4b; box-shadow: 0 0 0 5px rgba(185,75,75,.1); }
 

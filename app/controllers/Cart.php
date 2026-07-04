@@ -283,6 +283,10 @@ class Cart extends Controller
         if ($selectedDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
             $selectedDate = '';
         }
+        $selectedTime = trim((string)($_POST['selected_time'] ?? ''));
+        if ($selectedTime !== '' && !preg_match('/^\d{2}:\d{2}$/', $selectedTime)) {
+            $selectedTime = '';
+        }
 
         $itemData = [
             'item_type' => 'package',
@@ -290,6 +294,7 @@ class Cart extends Controller
             'price' => $packagePrice > 0 ? $packagePrice : (!empty($_POST['price']) ? (float)$_POST['price'] : null),
             'source' => 'package',
             'selected_date' => $selectedDate !== '' ? $selectedDate : null,
+            'start_time' => $selectedTime !== '' ? $selectedTime . ':00' : null,
         ];
 
         if (!$this->userId) {

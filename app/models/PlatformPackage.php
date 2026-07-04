@@ -776,16 +776,22 @@ class PlatformPackage
         }
 
         $item = $this->getPackageItemForQuantityUpdate($itemId);
-        if (!$item || !$this->isGuestPricedCategory($item['category_slug'] ?? '', $item['category_name'] ?? '')) {
+        if (!$item) {
             return false;
         }
 
+        $quantityType = $this->isGuestPricedCategory($item['category_slug'] ?? '', $item['category_name'] ?? '')
+            ? 'guests'
+            : 'fixed';
+
         $this->db->dbquery(
             'UPDATE package_items
-             SET quantity_type = "guests", quantity = :quantity
+             SET quantity_type = :quantity_type,
+                 quantity = :quantity
              WHERE id = :id
              LIMIT 1'
         );
+        $this->db->dbbind(':quantity_type', $quantityType);
         $this->db->dbbind(':quantity', max(1, (int)$quantity));
         $this->db->dbbind(':id', (int)$itemId);
 

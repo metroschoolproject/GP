@@ -3,6 +3,14 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* ── Bookings view ────────────────────────────────────────────── */
+.bk-page,
+.bk-page * {
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+.bk-page {
+    font-size: 13.5px;
+}
+
 .bk-kpi-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -263,7 +271,6 @@
     font-size: 12px;
     font-weight: 500;
     color: #78716C;
-    font-family: ui-monospace, monospace;
 }
 .bk-amount { font-weight: 600; }
 
@@ -359,12 +366,12 @@
 }
 .bk-empty-icon i[data-lucide] { width: 22px; height: 22px; }
 .bk-empty-title {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: #6d4c5b;
 }
 .bk-empty-sub {
-    font-size: 13px;
+    font-size: 11px;
     color: #A8A29E;
     margin-top: 4px;
     max-width: 320px;
@@ -476,7 +483,7 @@
 }
 
 .bk-card-customer {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 750;
     color: #6d4c5b;
     margin-bottom: 10px;
@@ -637,7 +644,7 @@
 .asn-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
 .asn-header-left { display: flex; flex-direction: column; }
 .asn-kicker { margin: 0 0 4px; color: #b79c8b; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.asn-title { margin: 0; font-size: 22px; font-weight: 700; color: #111827; letter-spacing: -.3px; font-family: 'Poppins', system-ui, sans-serif; }
+.asn-title { margin: 0; color: #6d4c5b; font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; font-family: 'Poppins', system-ui, sans-serif; }
 .asn-subtitle { max-width: 560px; margin: 4px 0 0; color: #7b5c69; font-size: 13px; line-height: 1.5; }
 .asn-count { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 28px; padding: 0 10px; border: 1px solid #ead8c7; border-radius: 999px; background: #fff; color: #6d4c5b; font-size: 11px; font-weight: 600; }
 .asn-count-dot { width: 6px; height: 6px; border-radius: 50%; background: #059669; }

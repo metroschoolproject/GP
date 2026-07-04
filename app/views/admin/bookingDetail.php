@@ -208,7 +208,7 @@ $badgeClass = static function (string $status): string {
 $supplierStatusDot = static function (string $status): string {
     return match (strtolower($status)) {
         'confirmed', 'accepted', 'managed' => 'bkd-dot--success',
-        'pending', 'pending_supplier_response', 'needs_replacement', 'decline_requested' => 'bkd-dot--warn',
+        'pending', 'pending_supplier_response', 'needs_replacement', 'decline_requested', 'supplier_cancellation_requested' => 'bkd-dot--warn',
         'rejected', 'cancelled' => 'bkd-dot--danger',
         default => 'bkd-dot--neutral',
     };
@@ -216,10 +216,16 @@ $supplierStatusDot = static function (string $status): string {
 
 $suppliersById = [];
 $replacementSourceById = [];
+$hasSupplierCancellationRequest = false;
+$supplierCancellationRequestSuppliers = [];
 foreach ($suppliers as $supplier) {
     $supplierRowId = (int)($supplier['id'] ?? 0);
     if ($supplierRowId > 0) {
         $suppliersById[$supplierRowId] = $supplier;
+    }
+    if (($supplier['status'] ?? '') === 'supplier_cancellation_requested') {
+        $hasSupplierCancellationRequest = true;
+        $supplierCancellationRequestSuppliers[] = $supplier;
     }
 }
 foreach ($suppliers as $supplier) {
@@ -294,6 +300,8 @@ $dashboardContent = function () use (
     $supplierStatusDot,
     $suppliersById,
     $replacementSourceById,
+    $hasSupplierCancellationRequest,
+    $supplierCancellationRequestSuppliers,
     $needsReplacementSuppliers,
     $logDot,
     $showAllLogs,
@@ -911,7 +919,8 @@ $dashboardContent = function () use (
     $isPendingPayment = $bookingStatus === 'pending_payment';
     $isPaymentSubmitted = $bookingStatus === 'payment_submitted' || $paymentStatus === 'pending';
     $isConfirmed = in_array($bookingStatus, ['confirmed', 'paid', 'finalized', 'completed'], true);
-    $isCancelled = in_array($bookingStatus, ['cancelled', 'cancellation_requested'], true);
+    $isServiceCancellationReview = !empty($supplierCancellationRequestSuppliers);
+    $isCancelled = in_array($bookingStatus, ['cancelled', 'cancellation_requested'], true) && !$isServiceCancellationReview;
     $canCancel = !in_array($bookingStatus, ['cancelled', 'completed'], true) && !$hasPendingPayment;
     $canMarkCompleted = in_array($bookingStatus, ['finalized', 'in_progress'], true);
 
@@ -923,6 +932,7 @@ $dashboardContent = function () use (
     elseif (in_array($bookingStatus, ['confirmed', 'paid'], true)) $currentStep = 4;
     elseif (in_array($bookingStatus, ['finalized', 'in_progress'], true)) $currentStep = 5;
     elseif ($bookingStatus === 'completed') $currentStep = 6;
+    elseif ($isServiceCancellationReview) $currentStep = 4;
     elseif ($isCancelled) $currentStep = 0;
 
     $steps = [
@@ -1199,6 +1209,37 @@ $dashboardContent = function () use (
     <?php endif; ?>
   </div>
 
+  <?php elseif ($isServiceCancellationReview): ?>
+  <div class="bkd-action bkd-action--urgent" style="border-color:#e8b66f;background:#fffdf7">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--warn"><i data-lucide="user-minus"></i></div>
+      <div>
+        <div class="bkd-action-title">Service Cancellation Requested</div>
+        <div class="bkd-action-sub">
+          <?= count($supplierCancellationRequestSuppliers) ?> service<?= count($supplierCancellationRequestSuppliers) !== 1 ? 's' : '' ?> need<?= count($supplierCancellationRequestSuppliers) === 1 ? 's' : '' ?> admin review. The booking is not fully cancelled.
+        </div>
+      </div>
+    </div>
+    <div class="bkd-action-body">
+      <?php foreach ($supplierCancellationRequestSuppliers as $cancelRequest): ?>
+        <?php
+          $cancelService = $h($cancelRequest['service_name'] ?? $cancelRequest['category_name'] ?? 'Service');
+          $cancelSupplier = $h($cancelRequest['shop_name'] ?? 'Supplier');
+          $cancelReason = trim((string)($cancelRequest['decline_reason'] ?? ''));
+        ?>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;background:#fff8ed;border:1px solid #f0ddb0;border-radius:.6rem;margin-bottom:8px">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:13px;font-weight:700;color:#92400e"><?= $cancelService ?></div>
+            <div style="font-size:11.5px;color:#7b5c69;margin-top:3px">Requested by <?= $cancelSupplier ?>. Approve a replacement flow or reject the request from the Suppliers section.</div>
+            <?php if ($cancelReason !== ''): ?>
+              <div style="font-size:11.5px;color:#a16207;margin-top:3px;font-style:italic">Reason: <?= $h($cancelReason) ?></div>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+
   <?php elseif ($isCancelled): ?>
   <div class="bkd-action bkd-action--danger">
     <div class="bkd-action-head">
@@ -1314,23 +1355,25 @@ $dashboardContent = function () use (
                 $replacementTarget = $suppliersById[(int)($supplier['replaced_by_id'] ?? 0)] ?? null;
                 $isNeedsReplacement = $sStatus === 'needs_replacement';
                 $isDeclineRequested = $sStatus === 'decline_requested';
+                $isSupplierCancellationRequested = $sStatus === 'supplier_cancellation_requested';
                 $isReplaced = $sStatus === 'replaced';
                 $isReplacement = ($replacementSourceById[(int)($supplier['id'] ?? 0)] ?? null) !== null;
                 $replacementRequestId = (int)($supplier['originated_replacement_request_id'] ?? $supplier['replacement_request_id'] ?? 0);
                 $stateLabel = $isNeedsReplacement ? 'Needs replacement'
                     : ($isDeclineRequested ? 'Decline requested'
+                    : ($isSupplierCancellationRequested ? 'Supplier cancellation requested'
                     : ($isReplaced ? 'Replaced'
                     : ($isReplacement ? 'Replacement assigned'
                     : ($sStatus === 'managed' ? 'Platform managed'
-                    : ucwords(str_replace('_', ' ', $sStatus))))));
+                    : ucwords(str_replace('_', ' ', $sStatus)))))));
               ?>
-              <div class="bkd-sup-row" data-booking-supplier-id="<?= (int)($supplier['id'] ?? 0) ?>" data-booking-id="<?= (int)($booking['id'] ?? 0) ?>" style="<?= ($isNeedsReplacement || $isDeclineRequested) ? 'border-color:#e8b66f;background:#fff8ed' : ($isReplaced ? 'opacity:.6' : '') ?>">
+              <div class="bkd-sup-row" data-booking-supplier-id="<?= (int)($supplier['id'] ?? 0) ?>" data-booking-id="<?= (int)($booking['id'] ?? 0) ?>" style="<?= ($isNeedsReplacement || $isDeclineRequested || $isSupplierCancellationRequested) ? 'border-color:#e8b66f;background:#fff8ed' : ($isReplaced ? 'opacity:.6' : '') ?>">
                 <span class="bkd-dot <?= $supplierStatusDot($sStatus) ?>"></span>
                 <div class="bkd-sup-info">
                   <div class="bkd-sup-name"><?= $h($sName) ?></div>
                   <div class="bkd-sup-sub"><?= $h($stateLabel) ?></div>
                   <div class="bkd-sup-svc"><?= $h($serviceName) ?></div>
-                  <?php if (($isDeclineRequested || $isNeedsReplacement) && !empty($supplier['decline_reason'])): ?>
+                  <?php if (($isDeclineRequested || $isNeedsReplacement || $isSupplierCancellationRequested) && !empty($supplier['decline_reason'])): ?>
                     <div class="bkd-sup-svc" style="color:#92400e;margin-top:4px;font-style:italic">Reason: <?= $h($supplier['decline_reason']) ?></div>
                   <?php endif; ?>
                   <?php if ($isNeedsReplacement && $replacementRequestId > 0): ?>
@@ -1338,10 +1381,10 @@ $dashboardContent = function () use (
                       <i data-lucide="user-plus" style="width:13px;height:13px"></i> Choose replacement
                     </a>
                   <?php endif; ?>
-                  <?php if ($isDeclineRequested): ?>
+                  <?php if ($isDeclineRequested || $isSupplierCancellationRequested): ?>
                     <div style="display:flex;gap:6px;margin-top:8px">
                       <button type="button" class="bkd-decline-approve-btn" data-booking-supplier-id="<?= (int)($supplier['id'] ?? 0) ?>" data-booking-id="<?= (int)($booking['id'] ?? 0) ?>" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;background:#6d4c5b;color:#fff;border:none;cursor:pointer">
-                        Approve decline
+                        <?= $isSupplierCancellationRequested ? 'Approve replacement' : 'Approve decline' ?>
                       </button>
                       <button type="button" class="bkd-decline-reject-btn" data-booking-supplier-id="<?= (int)($supplier['id'] ?? 0) ?>" data-booking-id="<?= (int)($booking['id'] ?? 0) ?>" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;background:#fff;color:#6d4c5b;border:1px solid #ead8c7;cursor:pointer">
                         Reject
@@ -1532,8 +1575,8 @@ $dashboardContent = function () use (
         <?php
           $refundAmount = $refundEstimate ? (float)$refundEstimate[0] : 0;
           $refundPolicy = $refundEstimate ? (string)$refundEstimate[1] : '';
-          $isCustomerRequest = $bookingStatus === 'cancellation_requested';
-          $isSupplierRequest = $bookingStatus === 'supplier_cancellation_requested';
+          $isSupplierRequest = $hasSupplierCancellationRequest;
+          $isCustomerRequest = $bookingStatus === 'cancellation_requested' && !$isSupplierRequest;
         ?>
         <button class="bkd-btn bkd-btn--danger" type="button" id="cancel-booking-btn">
           <?php if ($isCustomerRequest): ?>
@@ -2120,8 +2163,8 @@ $dashboardContent = function () use (
       if (!bsid || !bid) return;
 
       var confirmMsg = action === 'approve'
-        ? 'Approve this decline request? A replacement supplier will need to be arranged.'
-        : 'Reject this decline request? The supplier status will revert to pending.';
+        ? 'Approve this request? A replacement supplier will need to be arranged.'
+        : 'Reject this request? The supplier status will be restored.';
       if (!confirm(confirmMsg)) return;
 
       btn.disabled = true;
@@ -2138,17 +2181,17 @@ $dashboardContent = function () use (
         var data = await resp.json().catch(function() { return {}; });
 
         if (data.success) {
-          alert(data.message || (action === 'approve' ? 'Decline approved.' : 'Decline request rejected.'));
+          alert(data.message || (action === 'approve' ? 'Request approved.' : 'Request rejected.'));
           location.reload();
         } else {
           alert(data.error || 'Could not process. Please try again.');
           btn.disabled = false;
-          btn.textContent = action === 'approve' ? 'Approve decline' : 'Reject';
+          btn.textContent = action === 'approve' ? 'Approve request' : 'Reject';
         }
       } catch (err) {
         alert('Network error. Please try again.');
         btn.disabled = false;
-        btn.textContent = action === 'approve' ? 'Approve decline' : 'Reject';
+        btn.textContent = action === 'approve' ? 'Approve request' : 'Reject';
       }
     });
   });

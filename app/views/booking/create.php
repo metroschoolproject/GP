@@ -2146,6 +2146,11 @@ input[type="date"]:invalid {
                   $isFulldayItem = ($itemBookingType === 'fullday');
                 ?>
                 <?php if ($isPackageItem): ?>
+                  <?php
+                    $packagePreferredTime = !empty($item['start_time'])
+                        ? date('H:i', strtotime((string)$item['start_time']))
+                        : '10:00';
+                  ?>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div>
                       <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select event date</label>
@@ -2159,7 +2164,7 @@ input[type="date"]:invalid {
                       <label class="gp-detail-label" for="preferred-time-<?= $i ?>">Wedding time</label>
                       <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
                              name="preferred_time[<?= $i ?>]"
-                             value="10:00" required
+                             value="<?= $h($packagePreferredTime) ?>" required
                              style="max-width:160px;">
                     </div>
                   </div>

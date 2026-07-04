@@ -32,11 +32,11 @@ $dashboardTableHeadClass = 'text-left py-2 px-2 text-[10px] uppercase tracking-w
   }
   .supplier-dashboard-overview .supplier-admin-page-title {
     margin: 0;
-    color: var(--supplier-admin-text);
-    font-size: clamp(27px, 2.5vw, 36px);
-    font-weight: 650;
-    letter-spacing: -.025em;
-    line-height: 1.08;
+    color: #6d4c5b;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.2;
   }
   .supplier-dashboard-overview .supplier-admin-page-copy {
     margin-top: .4rem;

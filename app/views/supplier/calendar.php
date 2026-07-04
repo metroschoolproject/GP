@@ -33,7 +33,8 @@ $dashboardContent = function () use ($services, $h, $money, $calendarCssVersion,
   <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px">
     <div>
       <p style="margin-bottom:4px;color:#b79c8b;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Supplier workspace</p>
-      <h1 style="margin:0;font-size:22px;font-weight:700;color:#111827;letter-spacing:-.3px">Calendar</h1>
+      <h1 style="margin:0;color:#6d4c5b;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2">Calendar</h1>
+      <p style="margin:.4rem 0 0;color:#7b5c69;font-size:12px;font-weight:500">Availability, service capacity, and booking rhythm across your workspace.</p>
     </div>
     <a href="<?= URLROOT ?>/supplier/services ?>" class="btn-ghost" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid #ead8c7;border-radius:.75rem;background:#fff;color:#6d4c5b;font-size:12px;font-weight:700;font-family:inherit;text-decoration:none;cursor:pointer;transition:background .12s">
       <i class="ti ti-briefcase" style="font-size:14px"></i>
@@ -47,7 +48,7 @@ $dashboardContent = function () use ($services, $h, $money, $calendarCssVersion,
       <div style="width:28px;height:28px;border-radius:.75rem;background:#eddecc;display:flex;align-items:center;justify-content:center;color:#6d4c5b"><i class="ti ti-calendar-event" style="font-size:14px"></i></div>
       <div>
         <span style="font-size:13px;font-weight:700;color:#111827">Date capacity overview</span>
-        <span style="display:block;font-size:11px;color:#b79c8b;margin-top:1px">Pick a date to see remaining capacity across all your services</span>
+        <span style="display:block;font-size:12px;color:#7b5c69;font-weight:500;margin-top:1px">Pick a date to see remaining capacity across all your services</span>
       </div>
     </div>
 
@@ -89,7 +90,7 @@ $dashboardContent = function () use ($services, $h, $money, $calendarCssVersion,
     <div style="background:#fff;border:1px solid #ead8c7;border-radius:.75rem;padding:48px 20px;text-align:center;box-shadow:0 1px 2px rgba(28,25,23,.04)">
       <i class="ti ti-calendar-off" style="font-size:32px;color:#b79c8b"></i>
       <h2 style="margin:12px 0 6px;font-size:15px;font-weight:700;color:#111827">No service calendars yet</h2>
-      <p style="color:#b79c8b;font-size:12px;max-width:380px;margin:0 auto 16px">Create a service first, then set weekly availability and special dates from its calendar.</p>
+      <p style="color:#7b5c69;font-size:12px;font-weight:500;max-width:380px;margin:0 auto 16px">Create a service first, then set weekly availability and special dates from its calendar.</p>
       <a href="<?= URLROOT ?>/supplier/services ?>" style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid #ead8c7;border-radius:.75rem;background:#6d4c5b;color:#fff;font-size:12px;font-weight:700;text-decoration:none">Go to services</a>
     </div>
   <?php else: ?>

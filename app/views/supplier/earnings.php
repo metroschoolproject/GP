@@ -49,13 +49,13 @@ $dashboardContent = function () use (
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/supplier-earnings.css?v=<?= filemtime(APPROOT . '/../public/css/supplier-earnings.css') ?>">
 <script src="<?= URLROOT ?>/public/js/supplier-toast.js"></script>
 
-<section class="mx-auto max-w-[1600px] space-y-4 px-5 py-6 text-[13px] antialiased" style="font-family:'Poppins',system-ui,sans-serif;color:#6d4c5b">
+<section class="er-page mx-auto max-w-[1600px] space-y-4 px-5 py-6 text-[13px] antialiased" style="font-family:'Poppins',system-ui,sans-serif;color:#6d4c5b">
 
     <!-- ── Page header ───────────────────────────────────────────── -->
     <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <p style="margin-bottom:4px;color:#A8A29E;font-size:11px;font-weight:650">Supplier workspace</p>
-            <h1 style="margin:0;color:#6d4c5b;font-family:'Playfair Display',serif;font-size:clamp(27px,2.5vw,36px);font-weight:650;letter-spacing:-.025em;line-height:1.08">Your Earnings</h1>
+            <h1 style="margin:0;color:#6d4c5b;font-family:'Poppins',system-ui,sans-serif;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2">Your Earnings</h1>
             <p style="margin-top:6px;color:#7b5c69;font-size:12px;font-weight:500">Track your income, fees, and payout history in one place.</p>
         </div>
         <a href="<?= URLROOT ?>/supplier/paymentHistory" class="er-nav-link">

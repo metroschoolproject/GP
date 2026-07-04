@@ -1817,8 +1817,8 @@ class Admin extends Controller
                 : 'Could not update hall assignment. The room may not belong to this service.';
         } else {
             $_SESSION['admin_flash'] = $updated
-                ? 'Included guest count and base price updated.'
-                : 'Only per-guest services can use included guest count.';
+                ? 'Included quantity and base price updated.'
+                : 'Could not update included quantity. Please try again.';
         }
         redirect($packageId > 0 ? 'admin/packageDetail/' . $packageId : 'admin/packages');
     }

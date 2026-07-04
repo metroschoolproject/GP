@@ -314,15 +314,9 @@ $dashboardContent = function () use (
               </td>
               <td>
                 <?php if ($isPending && $paymentId > 0): ?>
-                  <form class="payment-verification-form" data-booking-id="<?= $bookingId ?>">
-                    <input type="text" name="note" class="note-input" placeholder="Note">
-                    <div class="payment-actions">
-                      <button type="button" class="action-btn action-approve verify-payment-btn">Approve</button>
-                      <button type="button" class="action-btn action-reject reject-payment-btn">Reject</button>
-                    </div>
-                  </form>
+                  <a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>" class="btn-ghost">View Detail</a>
                 <?php elseif ($isPending): ?>
-                  <a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>" class="btn-ghost">Open</a>
+                  <a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bookingId ?>" class="btn-ghost">View Detail</a>
                 <?php else: ?>
                   <div class="review-meta"><?= $h($reviewedAt) ?></div>
                   <?php if ($reviewNote !== ''): ?>

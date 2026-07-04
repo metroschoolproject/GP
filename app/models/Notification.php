@@ -32,10 +32,6 @@ class Notification
             return false;
         }
 
-        if (!$this->shouldNotify((int)$userId, $type)) {
-            return true; // Silently skipped — not an error
-        }
-
         return $this->create((int)$userId, $title, $message, $type, $referenceType, $referenceId);
     }
 
@@ -99,8 +95,22 @@ class Notification
         return true;
     }
 
-    public function getUnreadCount($userId = null)
+    public function getUnreadCount($userId = null, bool $respectPopupPreferences = false)
     {
+        if ($respectPopupPreferences && $userId) {
+            $query = 'SELECT type FROM notifications WHERE is_read = 0 AND (user_id = :user_id OR user_id IS NULL)';
+            $this->db->dbquery($query);
+            $this->db->dbbind(':user_id', (int)$userId);
+            $rows = $this->db->getmultidata() ?: [];
+            $total = 0;
+            foreach ($rows as $row) {
+                if ($this->shouldNotify((int)$userId, (string)($row['type'] ?? ''))) {
+                    $total++;
+                }
+            }
+            return $total;
+        }
+
         $query = 'SELECT COUNT(*) AS total FROM notifications WHERE is_read = 0';
 
         if ($userId) {
@@ -118,8 +128,12 @@ class Notification
         return (int)($row['total'] ?? 0);
     }
 
-    public function getLatest($userId = null, $limit = 8)
+    public function getLatest($userId = null, $limit = 8, bool $respectPopupPreferences = false)
     {
+        if ($respectPopupPreferences && $userId) {
+            return $this->getLatestForPopup((int)$userId, $limit);
+        }
+
         $query = 'SELECT id, title, message, type, reference_type, reference_id, is_read, created_at
                   FROM notifications';
 
@@ -138,6 +152,48 @@ class Notification
         $this->db->dbbind(':limit', max(1, min(20, (int)$limit)), PDO::PARAM_INT);
 
         return $this->db->getmultidata();
+    }
+
+    private function getLatestForPopup(int $userId, int $limit): array
+    {
+        $targetLimit = max(1, min(20, (int)$limit));
+        $offset = 0;
+        $batchSize = max($targetLimit * 3, 12);
+        $visible = [];
+
+        while (count($visible) < $targetLimit) {
+            $this->db->dbquery(
+                'SELECT id, title, message, type, reference_type, reference_id, is_read, created_at
+                   FROM notifications
+                  WHERE user_id = :user_id OR user_id IS NULL
+                  ORDER BY id DESC
+                  LIMIT :limit OFFSET :offset'
+            );
+            $this->db->dbbind(':user_id', $userId, PDO::PARAM_INT);
+            $this->db->dbbind(':limit', $batchSize, PDO::PARAM_INT);
+            $this->db->dbbind(':offset', $offset, PDO::PARAM_INT);
+            $rows = $this->db->getmultidata() ?: [];
+
+            if (empty($rows)) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                if ($this->shouldNotify($userId, (string)($row['type'] ?? ''))) {
+                    $visible[] = $row;
+                    if (count($visible) >= $targetLimit) {
+                        break;
+                    }
+                }
+            }
+
+            if (count($rows) < $batchSize) {
+                break;
+            }
+            $offset += $batchSize;
+        }
+
+        return $visible;
     }
 
     public function getAll($userId = null, $limit = 50, $offset = 0)
@@ -421,9 +477,6 @@ class Notification
         }
 
         foreach ($userIds as $userId) {
-            if (!$this->shouldNotify((int)$userId, $type)) {
-                continue; // Skip — supplier disabled this type
-            }
             if (!$this->create($userId, $title, $message, $type, 'booking', $bookingId)) {
                 return false;
             }

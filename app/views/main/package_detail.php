@@ -1,6 +1,8 @@
 <?php
 $package = $package ?? [];
 $cartCount = (int)($cartCount ?? 0);
+$selectedDate = $selectedDate ?? '';
+$selectedTime = $selectedTime ?? '';
 $categoryServices = $package['category_services'] ?? [];
 $addonServices = $package['addon_services'] ?? [];
 
@@ -1358,7 +1360,8 @@ img { display: block; max-width: 100%; }
         <form class="gp-package-cart-form gp-package-hero-form" method="POST" action="<?= URLROOT ?>/cart/addPackage">
           <input type="hidden" name="package_id" value="<?= (int)($package['package_id'] ?? 0) ?>">
           <input type="hidden" name="price" value="<?= $packageCustomerPrice ?>">
-          <input type="hidden" name="selected_date" class="pkg-selected-date" value="">
+          <input type="hidden" name="selected_date" class="pkg-selected-date" value="<?= $h($selectedDate) ?>">
+          <input type="hidden" name="selected_time" value="<?= $h($selectedTime) ?>">
           <button class="gp-package-cart-btn" type="submit">
             <span>Book now</span>
             <span class="gc-book-btn-icon" aria-hidden="true">

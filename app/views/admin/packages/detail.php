@@ -219,6 +219,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
   position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;
   font-family:'DM Sans',system-ui,-apple-system,sans-serif
 }
+#duplicateCategoryModal{z-index:1200}
 .publish-modal.is-open{display:flex}
 .publish-modal-backdrop{position:absolute;inset:0;background:rgba(17,24,39,.48);backdrop-filter:blur(3px)}
 .publish-modal-dialog{position:relative;width:min(100%,440px);overflow:hidden;border:1px solid var(--border);border-radius:1rem;background:var(--surface);box-shadow:0 24px 70px rgba(17,24,39,.22);animation:publish-modal-in .18s ease-out}
@@ -752,8 +753,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
               Publish package
             </button>
           </form>
-          <form method="POST" action="<?= URLROOT ?>/admin/packageDiscardDraft/<?= (int)$package['package_id'] ?>"
-                onsubmit="return confirm('Discard this draft? All unsaved changes will be lost.')">
+          <form id="discardDraftForm" method="POST" action="<?= URLROOT ?>/admin/packageDiscardDraft/<?= (int)$package['package_id'] ?>">
             <button class="btn-ghost btn-danger" type="submit">Discard draft</button>
           </form>
         </div>
@@ -1057,6 +1057,36 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
   </div>
 <?php endif; ?>
 
+<?php if ($isDraft): ?>
+  <div class="publish-modal" id="duplicateCategoryModal" aria-hidden="true">
+    <div class="publish-modal-backdrop" data-close-duplicate-category-modal></div>
+    <section class="publish-modal-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="duplicateCategoryModalTitle" aria-describedby="duplicateCategoryModalDescription">
+      <div class="publish-modal-body">
+        <div class="publish-modal-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+        </div>
+        <h2 class="publish-modal-title" id="duplicateCategoryModalTitle">Add another service?</h2>
+        <p class="publish-modal-copy" id="duplicateCategoryModalDescription">
+          This package already includes a <strong id="duplicateCategoryName">service</strong> service.
+          You can still add another one if this package needs multiple options from that category.
+        </p>
+        <div class="publish-modal-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          <span>Review the package total after adding it, because duplicate categories can change pricing and supplier coordination.</span>
+        </div>
+      </div>
+      <div class="publish-modal-actions">
+        <button class="btn-ghost" type="button" data-close-duplicate-category-modal>Cancel</button>
+        <button class="btn-primary" id="confirmDuplicateCategory" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add anyway
+        </button>
+      </div>
+    </section>
+  </div>
+<?php endif; ?>
+
 <?php if (!$isDraft): ?>
   <div class="publish-modal" id="editConfirmModal" aria-hidden="true">
     <div class="publish-modal-backdrop" data-close-edit-modal></div>
@@ -1105,6 +1135,35 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
         <button class="btn-primary" id="confirmPublishPackage" type="button">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Publish now
+        </button>
+      </div>
+    </section>
+  </div>
+<?php endif; ?>
+
+<?php if ($isDraft): ?>
+  <div class="publish-modal" id="discardDraftModal" aria-hidden="true">
+    <div class="publish-modal-backdrop" data-close-discard-modal></div>
+    <section class="publish-modal-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="discardModalTitle" aria-describedby="discardModalDescription">
+      <div class="publish-modal-body">
+        <div class="publish-modal-icon" style="background:var(--danger-bg);color:var(--danger)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </div>
+        <h2 class="publish-modal-title" id="discardModalTitle">Discard this draft?</h2>
+        <p class="publish-modal-copy" id="discardModalDescription">
+          All unsaved changes for <strong><?= $h($package['name'] ?? 'this package') ?></strong> will be lost.
+        </p>
+        <div class="publish-modal-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          <span>This cannot be undone. The published package, if one exists, will remain unchanged.</span>
+        </div>
+      </div>
+      <div class="publish-modal-actions">
+        <button class="btn-ghost" type="button" data-close-discard-modal>Keep draft</button>
+        <button class="btn-primary btn-danger-fill" id="confirmDiscardDraft" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+          Discard draft
         </button>
       </div>
     </section>
@@ -1257,6 +1316,54 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
     }
   });
 
+  /* ── Discard-draft confirmation ────────────────────────────────────── */
+  const discardDraftForm = document.getElementById('discardDraftForm');
+  const discardDraftModal = document.getElementById('discardDraftModal');
+  const confirmDiscardButton = document.getElementById('confirmDiscardDraft');
+  let discardConfirmed = false;
+  let discardTrigger = null;
+
+  function openDiscardModal() {
+    if (!discardDraftModal) return;
+    discardTrigger = document.activeElement;
+    discardDraftModal.classList.add('is-open');
+    discardDraftModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    confirmDiscardButton?.focus();
+  }
+
+  function closeDiscardModal() {
+    if (!discardDraftModal) return;
+    discardDraftModal.classList.remove('is-open');
+    discardDraftModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    discardTrigger?.focus();
+  }
+
+  discardDraftForm?.addEventListener('submit', event => {
+    if (discardConfirmed) return;
+    event.preventDefault();
+    openDiscardModal();
+  });
+
+  confirmDiscardButton?.addEventListener('click', () => {
+    if (!discardDraftForm) return;
+    discardConfirmed = true;
+    confirmDiscardButton.disabled = true;
+    confirmDiscardButton.textContent = 'Discarding...';
+    discardDraftForm.requestSubmit();
+  });
+
+  discardDraftModal?.querySelectorAll('[data-close-discard-modal]').forEach(element => {
+    element.addEventListener('click', closeDiscardModal);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && discardDraftModal?.classList.contains('is-open')) {
+      closeDiscardModal();
+    }
+  });
+
   /* ── Price card live update ─────────────────────────────────────────── */
   const priceInput = document.getElementById('packagePriceInput');
   const priceCardVal = document.getElementById('packagePriceCardValue');
@@ -1400,6 +1507,11 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
   const attireOptionsByService = <?= json_encode($attireOptionsByService, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
   const decoOptionsByService = <?= json_encode($decoOptionsByService, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
   const includedCategoryNames = <?= json_encode($includedCategoryNames, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+  const duplicateCategoryModal = document.getElementById('duplicateCategoryModal');
+  const duplicateCategoryName = document.getElementById('duplicateCategoryName');
+  const confirmDuplicateCategoryButton = document.getElementById('confirmDuplicateCategory');
+  let duplicateCategoryConfirmed = false;
+  let duplicateCategoryTrigger = null;
   const catalogSearch = document.getElementById('serviceCatalogSearch');
   const catalogSearchClear = document.getElementById('serviceSearchClear');
   const catalogCategoryFilter = document.getElementById('serviceCategoryFilter');
@@ -1411,6 +1523,42 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && serviceCatalogModal?.classList.contains('is-open')) {
       closeServiceCatalog();
+    }
+  });
+
+  function openDuplicateCategoryModal(categoryName) {
+    if (!duplicateCategoryModal) return;
+    duplicateCategoryTrigger = document.activeElement;
+    if (duplicateCategoryName) duplicateCategoryName.textContent = categoryName;
+    duplicateCategoryModal.classList.add('is-open');
+    duplicateCategoryModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    confirmDuplicateCategoryButton?.focus();
+  }
+
+  function closeDuplicateCategoryModal() {
+    if (!duplicateCategoryModal) return;
+    duplicateCategoryModal.classList.remove('is-open');
+    duplicateCategoryModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = serviceCatalogModal?.classList.contains('is-open') ? 'hidden' : '';
+    duplicateCategoryTrigger?.focus();
+  }
+
+  confirmDuplicateCategoryButton?.addEventListener('click', () => {
+    if (!addServiceForm) return;
+    duplicateCategoryConfirmed = true;
+    confirmDuplicateCategoryButton.disabled = true;
+    confirmDuplicateCategoryButton.textContent = 'Adding...';
+    addServiceForm.requestSubmit();
+  });
+
+  duplicateCategoryModal?.querySelectorAll('[data-close-duplicate-category-modal]').forEach(element => {
+    element.addEventListener('click', closeDuplicateCategoryModal);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && duplicateCategoryModal?.classList.contains('is-open')) {
+      closeDuplicateCategoryModal();
     }
   });
 
@@ -1818,10 +1966,11 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
       }
       const categoryId = opt?.dataset.categoryId || '';
       if (!categoryId || !includedCategoryNames[categoryId]) return;
+      if (duplicateCategoryConfirmed) return;
 
       const categoryName = opt.dataset.categoryName || includedCategoryNames[categoryId] || 'this category';
-      const ok = confirm('This package already includes a ' + categoryName + ' service. Add another ' + categoryName + ' service anyway?');
-      if (!ok) event.preventDefault();
+      event.preventDefault();
+      openDuplicateCategoryModal(categoryName);
     });
   }
 })();
