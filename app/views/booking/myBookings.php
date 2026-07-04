@@ -24,6 +24,25 @@ $plain = function ($v) {
     return $text;
 };
 $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
+$assetUrl = function ($path) use ($plain) {
+    $path = trim($plain($path));
+    if ($path === '') return '';
+    if (preg_match('#^(https?:)?//#i', $path) || str_starts_with($path, 'data:')) return $path;
+    if (str_starts_with($path, '/')) return $path;
+    return rtrim(URLROOT, '/') . '/' . ltrim($path, '/');
+};
+$itemImage = function ($item) use ($assetUrl) {
+    if (!is_array($item)) return '';
+    foreach (['thumbnail_url', 'image_url', 'service_image', 'package_image', 'image'] as $key) {
+        $value = trim((string)($item[$key] ?? ''));
+        if ($value !== '') return $assetUrl($value);
+    }
+    return '';
+};
+$itemInitial = function ($item) use ($plain) {
+    $name = trim($plain($item['service_name'] ?? $item['package_name'] ?? 'Wedding'));
+    return strtoupper(substr($name !== '' ? $name : 'W', 0, 1));
+};
 
 $getCountByStatus = function ($status) use ($bookings, $bookingStatusCounts) {
     if (array_key_exists($status, $bookingStatusCounts)) {
@@ -71,6 +90,7 @@ button { font-family: var(--font-b); cursor: pointer; }
     position: relative;
     z-index: 1;
     flex: 1;
+    min-height: calc(100svh - 68px);
     padding: 0 var(--pad-x) 80px;
     max-width: 1200px;
     margin: 0 auto;
@@ -146,18 +166,37 @@ button { font-family: var(--font-b); cursor: pointer; }
 }
 
 .gp-filters { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; overflow-x: auto; padding-bottom: 4px; }
-.gp-filter { padding: 6px 16px; border-radius: 9px; border: 1px solid var(--rule-strong); background: transparent; font-size: 12px; font-weight: 600; color: var(--text2); transition: all 0.2s; white-space: nowrap; text-decoration: none; }
-.gp-filter:hover { border-color: var(--plum); color: var(--plum); }
+.gp-filter { padding: 6px 16px; border-radius: 9px; border: 1px solid rgba(178,143,110,.24); background: rgba(255,250,245,.58); font-size: 12px; font-weight: 600; color: var(--text2); transition: all 0.2s; white-space: nowrap; text-decoration: none; }
+.gp-filter:hover { border-color: var(--plum); color: var(--plum); background: rgba(255,250,245,.86); }
 .gp-filter.active { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 
-.gp-card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 20px 24px; opacity: 0; transform: translateY(16px); transition: all 0.4s var(--ease-expo); }
+.gp-card { display: grid; grid-template-columns: 138px minmax(0, 1fr); gap: 20px; align-items: start; background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 14px 18px 14px 14px; opacity: 0; transform: translateY(16px); transition: opacity 0.4s var(--ease-expo), transform 0.24s var(--ease-expo), border-color 0.24s ease, box-shadow 0.24s ease, background 0.24s ease; box-shadow: 0 14px 34px rgba(74,52,47,.08); cursor: pointer; }
 .gp-card.visible { opacity: 1; transform: translateY(0); }
+.gp-card.visible:hover { 
+  transform: translateY(-4px); 
+  background: #fbeefbc3;
+    border:1px solid #faa781;
+    box-shadow:
+        0 0 0 1px rgba(212,182,133,.15),
+        0 18px 40px rgba(212,182,133,.18);
+
+ }
+.gp-card.visible:hover .gp-card-photo { transform: scale(1.035); }
 .gp-card + .gp-card { margin-top: 12px; }
 
+.gp-card-media { position: relative; height: 124px; min-height: 124px; border-radius: 16px; overflow: hidden; background: linear-gradient(135deg, rgba(107,68,89,.14), rgba(184,146,74,.18)); border: 1px solid rgba(178,143,110,.24); align-self: start; }
+.gp-card-photo { width: 100%; height: 124px; object-fit: cover; transition: transform .32s var(--ease-expo); }
+.gp-card-photo-placeholder { display: grid; place-items: center; width: 100%; height: 124px; color: rgba(107,68,89,.72); font-family: var(--font-d); font-size: 34px; font-weight: 700; background: linear-gradient(135deg, #fff8ef, #ead8c8); }
+.gp-card-avatar-stack { display: inline-flex; align-items: center; width: max-content; margin-top: 8px; padding: 0; border-radius: 999px; background: transparent; box-shadow: none; }
+.gp-card-avatar { display: grid; place-items: center; width: 30px; height: 30px; margin-left: -8px; overflow: hidden; border: 2px solid #fff8ef; border-radius: 50%; background: #6b4459; color: #fff8ef; font-size: 10px; font-weight: 800; letter-spacing: .02em; }
+.gp-card-avatar:first-child { margin-left: 0; }
+.gp-card-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.gp-card-avatar-plus { width: 22px; margin-left: 0; margin-right: 3px; border: 0; background: transparent; color: #2A1710; font-size: 18px; font-weight: 500; line-height: 1; overflow: visible; }
+.gp-card-avatar-more { background: #263645; color: #fff8ef; font-size: 10px; }
+.gp-card-content { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .gp-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .gp-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
-.gp-card-service { font-family: var(--font-d); font-size: 18px; font-weight: 600; color: var(--text); line-height: 1.2; }
-.gp-card-service-count { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; background: rgba(184,146,74,.14); border: 1px solid rgba(184,146,74,.24); color: #8a682d; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.gp-card-service { font-family: var(--font-b); font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.25; letter-spacing: 0; }
 .gp-card-supplier { font-size: 12px; color: var(--plum-lt); margin-top: 2px; }
 .gp-card-date { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
 .gp-card-status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
@@ -198,6 +237,9 @@ button { font-family: var(--font-b); cursor: pointer; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 640px) {
+  .gp-card { grid-template-columns: 1fr; padding: 14px; }
+  .gp-card-media { height: 190px; min-height: 190px; }
+  .gp-card-photo, .gp-card-photo-placeholder { height: 190px; }
   .gp-card-top { flex-direction: column; }
   .gp-card-bottom { flex-direction: column; align-items: flex-start; }
   .gp-header-nav { display: none; }
@@ -260,71 +302,94 @@ button { font-family: var(--font-b); cursor: pointer; }
       $firstHall = $firstItem ? trim((string)($firstItem['venue_room_name'] ?? '')) : '';
       $itemCount = count($items);
       $deposit = (float)$b['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
+      $firstImage = $itemImage($firstItem ?? []);
+      $avatarItems = array_slice($items, 0, 4);
+      $extraAvatarCount = max(0, $itemCount - count($avatarItems));
     ?>
-    <div class="gp-card" data-index="<?= $loop->index ?? 0 ?>">
-      <div class="gp-card-top">
-        <div>
-          <?php if ($firstItem): ?>
-            <div class="gp-card-title-row">
-              <div class="gp-card-service"><?= $h($firstItem['service_name'] ?? 'Wedding Service') ?></div>
-              <?php if ($itemCount > 1): ?>
-                <span class="gp-card-service-count"><?= $itemCount ?> Services Included</span>
-              <?php endif; ?>
-            </div>
-            <div class="gp-card-supplier"><?= $h($firstHall !== '' ? 'Hall: ' . $firstHall : ($firstItem['supplier_name'] ?? '')) ?></div>
-          <?php else: ?>
-            <div class="gp-card-service">Wedding Booking</div>
-          <?php endif; ?>
-          <div class="gp-card-date">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Ref: <?= $h($b['booking_ref'] ?? '') ?>
-          </div>
-        </div>
-        <span class="gp-card-status-badge <?= $statusColors[$b['status']] ?? 'bg-gray-100 text-gray-600' ?>">
-          <?= $statusLabels[$b['status']] ?? ucfirst($b['status']) ?>
-        </span>
+    <div class="gp-card" data-index="<?= $loop->index ?? 0 ?>" data-url="<?= URLROOT ?>/booking/detail/<?= (int)$b['id'] ?>" role="link" tabindex="0" aria-label="View booking <?= $h($b['booking_ref'] ?? '') ?>">
+      <div class="gp-card-media">
+        <?php if ($firstImage !== ''): ?>
+          <img class="gp-card-photo" src="<?= $h($firstImage) ?>" alt="<?= $h($firstItem['service_name'] ?? 'Wedding service') ?>">
+        <?php else: ?>
+          <div class="gp-card-photo-placeholder"><?= $h($itemInitial($firstItem ?? [])) ?></div>
+        <?php endif; ?>
       </div>
-
-      <div class="gp-card-divider"></div>
-
-      <div class="gp-card-bottom">
-        <div class="gp-card-payment">
-          Paid: <strong><?= $money((float)$b['paid_amount']) ?></strong>
-          / <?= $money((float)$b['total_amount']) ?>
-          <?php if ((float)$b['total_amount'] > 0): ?>
-            <span style="color:var(--muted);font-size:11px;">
-              (<?= round((float)$b['paid_amount'] / (float)$b['total_amount'] * 100) ?>%)
-            </span>
-          <?php endif; ?>
-          <?php
-            $cardRefund = $b['refund'] ?? null;
-            if ($cardRefund):
-              $rfStatus = (string)($cardRefund['status'] ?? 'pending');
-              $rfColors = [
-                'pending'    => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e'],
-                'processing' => ['bg' => '#eff6ff', 'border' => '#bfdbfe', 'text' => '#1e40af'],
-                'completed'  => ['bg' => '#f0fdf4', 'border' => '#bbf7d0', 'text' => '#166534'],
-                'rejected'   => ['bg' => '#fef2f2', 'border' => '#fecaca', 'text' => '#991b1b'],
-              ];
-              $rfc = $rfColors[$rfStatus] ?? $rfColors['pending'];
-              $rfLabels = ['pending' => 'Refund Pending', 'processing' => 'Refund Processing', 'completed' => 'Refunded', 'rejected' => 'Refund Rejected'];
-          ?>
-            <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $rfc['bg'] ?>;border:1px solid <?= $rfc['border'] ?>;color:<?= $rfc['text'] ?>">
-              <?= $rfLabels[$rfStatus] ?? 'Refund' ?>: <?= $money((float)($cardRefund['amount'] ?? 0)) ?>
+      <div class="gp-card-content">
+        <div class="gp-card-top">
+          <div>
+            <?php if ($firstItem): ?>
+              <div class="gp-card-title-row">
+                <div class="gp-card-service"><?= $h($firstItem['service_name'] ?? 'Wedding Service') ?></div>
+              </div>
+              <?php if ($itemCount > 1): ?>
+                <div class="gp-card-avatar-stack" aria-label="<?= $itemCount ?> booked services">
+                  <span class="gp-card-avatar gp-card-avatar-plus" aria-hidden="true">+</span>
+                  <?php foreach ($avatarItems as $avatarItem):
+                    $avatarImage = $itemImage($avatarItem);
+                  ?>
+                    <span class="gp-card-avatar">
+                      <?php if ($avatarImage !== ''): ?>
+                        <img src="<?= $h($avatarImage) ?>" alt="<?= $h($avatarItem['service_name'] ?? 'Service') ?>">
+                      <?php else: ?>
+                        <?= $h($itemInitial($avatarItem)) ?>
+                      <?php endif; ?>
+                    </span>
+                  <?php endforeach; ?>
+                  <?php if ($extraAvatarCount > 0): ?>
+                    <span class="gp-card-avatar gp-card-avatar-more">+<?= $extraAvatarCount ?></span>
+                  <?php endif; ?>
+                </div>
+              <?php endif; ?>
+            <?php else: ?>
+              <div class="gp-card-service">Wedding Booking</div>
+            <?php endif; ?>
+            <div class="gp-card-date">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Ref: <?= $h($b['booking_ref'] ?? '') ?>
             </div>
-          <?php endif; ?>
+          </div>
+          <span class="gp-card-status-badge <?= $statusColors[$b['status']] ?? 'bg-gray-100 text-gray-600' ?>">
+            <?= $statusLabels[$b['status']] ?? ucfirst($b['status']) ?>
+          </span>
         </div>
-        <div class="gp-card-actions">
-          <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/detail/<?= (int)$b['id'] ?>">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            View Details
-          </a>
-          <?php if (in_array($b['status'], ['paid', 'confirmed'])): ?>
-            <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/vouchers">View Voucher</a>
-          <?php endif; ?>
-          <?php if (!in_array($b['status'], ['cancelled', 'cancellation_requested', 'completed'])): ?>
-            <a class="gp-btn-sm danger" href="<?= URLROOT ?>/booking/cancel/<?= (int)$b['id'] ?>">Request Cancellation</a>
-          <?php endif; ?>
+
+        <div class="gp-card-divider"></div>
+
+        <div class="gp-card-bottom">
+          <div class="gp-card-payment">
+            Paid: <strong><?= $money((float)$b['paid_amount']) ?></strong>
+            / <?= $money((float)$b['total_amount']) ?>
+            <?php if ((float)$b['total_amount'] > 0): ?>
+              <span style="color:var(--muted);font-size:11px;">
+                (<?= round((float)$b['paid_amount'] / (float)$b['total_amount'] * 100) ?>%)
+              </span>
+            <?php endif; ?>
+            <?php
+              $cardRefund = $b['refund'] ?? null;
+              if ($cardRefund):
+                $rfStatus = (string)($cardRefund['status'] ?? 'pending');
+                $rfColors = [
+                  'pending'    => ['bg' => '#fffbeb', 'border' => '#fde68a', 'text' => '#92400e'],
+                  'processing' => ['bg' => '#eff6ff', 'border' => '#bfdbfe', 'text' => '#1e40af'],
+                  'completed'  => ['bg' => '#f0fdf4', 'border' => '#bbf7d0', 'text' => '#166534'],
+                  'rejected'   => ['bg' => '#fef2f2', 'border' => '#fecaca', 'text' => '#991b1b'],
+                ];
+                $rfc = $rfColors[$rfStatus] ?? $rfColors['pending'];
+                $rfLabels = ['pending' => 'Refund Pending', 'processing' => 'Refund Processing', 'completed' => 'Refunded', 'rejected' => 'Refund Rejected'];
+            ?>
+              <div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;background:<?= $rfc['bg'] ?>;border:1px solid <?= $rfc['border'] ?>;color:<?= $rfc['text'] ?>">
+                <?= $rfLabels[$rfStatus] ?? 'Refund' ?>: <?= $money((float)($cardRefund['amount'] ?? 0)) ?>
+              </div>
+            <?php endif; ?>
+          </div>
+          <div class="gp-card-actions">
+            <?php if (in_array($b['status'], ['paid', 'confirmed'])): ?>
+              <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/vouchers">View Voucher</a>
+            <?php endif; ?>
+            <?php if (!in_array($b['status'], ['cancelled', 'cancellation_requested', 'completed'])): ?>
+              <a class="gp-btn-sm danger" href="<?= URLROOT ?>/booking/cancel/<?= (int)$b['id'] ?>">Request Cancellation</a>
+            <?php endif; ?>
+          </div>
         </div>
       </div>
     </div>
@@ -370,6 +435,22 @@ button { font-family: var(--font-b); cursor: pointer; }
     }, { passive: true });
   }
   document.addEventListener('click',(e)=>{const btn=e.target.closest('.gp-profile-btn');if(btn){const x=btn.getAttribute('aria-expanded')==='true';document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));btn.setAttribute('aria-expanded',String(!x));return}document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'))});
+
+  document.querySelectorAll('.gp-card[data-url]').forEach(card => {
+    const openCard = () => {
+      const url = card.dataset.url;
+      if (url) window.location.href = url;
+    };
+    card.addEventListener('click', event => {
+      if (event.target.closest('a,button,input,select,textarea')) return;
+      openCard();
+    });
+    card.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openCard();
+    });
+  });
 })();
 </script>
 <?php require APPROOT . '/views/layouts/customerFooter.php'; ?>

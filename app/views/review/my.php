@@ -4,6 +4,9 @@ $pending   = $pending ?? [];
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $stars = fn($n) => str_repeat('★', max(0, min(5, (int)$n))) . str_repeat('☆', 5 - max(0, min(5, (int)$n)));
+$pendingCount = count($pending);
+$submittedCount = count($submitted);
+$allCount = $pendingCount + $submittedCount;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -26,9 +29,29 @@ a{color:inherit;text-decoration:none}
 .gp-header-nav{display:flex;align-items:center;gap:2px}
 .gp-header-nav a{padding:7px 16px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text2);transition:all .22s}
 .gp-header-nav a:hover,.gp-header-nav a.active{color:var(--plum);background:rgba(107,68,89,0.08)}
-.gp-page{flex:1;padding:40px var(--pad-x) 80px;max-width:900px;margin:0 auto;width:100%}
+.gp-page{flex:1;padding:18px var(--pad-x) 80px;max-width:900px;margin:0 auto;width:100%}
 .gp-page-title{font-family:var(--font-d);font-size:28px;font-weight:600;margin-bottom:6px}
-.gp-page-sub{font-size:13px;color:var(--muted);margin-bottom:32px}
+.gp-page-sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.gp-review-tags{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 30px}
+.gp-review-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:8px 14px;
+  border-radius:999px;
+  border:1px solid rgba(234,216,199,.9);
+  background:rgba(255,248,239,.72);
+  color:#6f625a;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .15s;
+}
+.gp-review-tag:hover{background:#fff8ef;color:#765a46;transform:translateY(-1px)}
+.gp-review-tag.is-active{background:#6D4C5B;border-color:#6D4C5B;color:#fff8ef}
+.gp-review-tag-count{font-size:11px;color:#b79c8b;font-weight:700}
+.gp-review-tag.is-active .gp-review-tag-count{color:rgba(255,248,239,.72)}
 .gp-btn-sm{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:999px;border:1px solid var(--rule-strong);font-size:11px;font-weight:600;color:var(--text2);transition:all .2s;text-decoration:none;cursor:pointer;background:none}
 .gp-btn-sm:hover{border-color:var(--plum);color:var(--plum)}
 .gp-btn-sm.primary{background:var(--plum);color:#fcf8f5;border-color:var(--plum)}
@@ -37,6 +60,7 @@ a{color:inherit;text-decoration:none}
 .gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5}
 .gp-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);margin-bottom:4px}
 .gp-section-title{font-family:var(--font-d);font-size:20px;font-weight:600;margin-bottom:16px}
+.gp-section-label,.gp-section-title{display:none}
 .gp-card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px}
 .gp-card-b{padding:16px 18px}
 .gp-review-card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
@@ -65,12 +89,20 @@ a{color:inherit;text-decoration:none}
 <main class="gp-page">
   <div class="gp-page-title">My Reviews</div>
   <p class="gp-page-sub">Manage reviews you've written and bookings awaiting your feedback.</p>
+  <div class="gp-review-tags" aria-label="Review filters">
+    <button class="gp-review-tag is-active" type="button" data-review-filter="all">
+      All <span class="gp-review-tag-count"><?= $allCount ?></span>
+    </button>
+    <button class="gp-review-tag" type="button" data-review-filter="pending">
+      Pending <span class="gp-review-tag-count"><?= $pendingCount ?></span>
+    </button>
+    <button class="gp-review-tag" type="button" data-review-filter="submitted">
+      Submitted <span class="gp-review-tag-count"><?= $submittedCount ?></span>
+    </button>
+  </div>
 
   <!-- Pending Reviews -->
-  <section class="gp-section">
-    <div class="gp-section-label">Awaiting Your Feedback</div>
-    <div class="gp-section-title">Pending Reviews (<?= count($pending) ?>)</div>
-
+  <section class="gp-section" data-review-section="pending">
     <?php if (empty($pending)): ?>
       <div class="gp-empty">No completed bookings are waiting for your review.</div>
     <?php else: ?>
@@ -90,11 +122,8 @@ a{color:inherit;text-decoration:none}
   </section>
 
   <!-- Submitted Reviews -->
-  <section class="gp-section">
-    <div class="gp-section-label">Your Reviews</div>
-    <div class="gp-section-title">Submitted Reviews (<?= count($submitted) ?>)</div>
-
-    <?php if (empty($submitted)): ?>
+  <section class="gp-section" data-review-section="submitted">
+    <?php if (empty($submitted) && !empty($pending)): ?>
       <div class="gp-empty">You haven't submitted any reviews yet.</div>
     <?php else: ?>
       <?php foreach ($submitted as $r): ?>
@@ -141,6 +170,17 @@ a{color:inherit;text-decoration:none}
 </main>
 
 <script>
+document.querySelectorAll('[data-review-filter]').forEach(button => {
+  button.addEventListener('click', () => {
+    const filter = button.dataset.reviewFilter || 'all';
+    document.querySelectorAll('[data-review-filter]').forEach(tag => {
+      tag.classList.toggle('is-active', tag === button);
+    });
+    document.querySelectorAll('[data-review-section]').forEach(section => {
+      section.hidden = filter !== 'all' && section.dataset.reviewSection !== filter;
+    });
+  });
+});
 function setEditStar(id, val) {
   const picker = document.getElementById('editPicker_' + id);
   if (picker) picker.dataset.value = val;

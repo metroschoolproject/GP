@@ -60,6 +60,7 @@ $h = fn($v) => htmlspecialchars($plain($v), ENT_QUOTES, 'UTF-8');
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-b); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
 a { color: inherit; text-decoration: none; }
+body > .gp-shared-footer{width:calc(100% + 40px);margin-top:132px;margin-right:-20px;margin-bottom:-40px;margin-left:-20px}
 
 .gp-orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.3; z-index: 0; pointer-events: none; }
 .gp-orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(107,68,89,0.10) 0%, transparent 70%); top: -150px; right: -80px; }

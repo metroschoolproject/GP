@@ -342,6 +342,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .home-nav-pill {
+      position: relative;
       gap: 8px;
       padding: 5px;
       border-radius: 10px;
@@ -351,7 +352,27 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       backdrop-filter: blur(12px);
     }
 
+    .home-nav-runner {
+      position: absolute;
+      left: 0;
+      top: 5px;
+      z-index: 0;
+      width: 0;
+      height: calc(100% - 10px);
+      border-radius: 8px;
+      background: rgba(252,248,245, 0.92);
+      opacity: 0;
+      transform: translateX(5px);
+      transition:
+        transform .34s cubic-bezier(.22,1,.36,1),
+        width .34s cubic-bezier(.22,1,.36,1),
+        opacity .18s ease;
+      pointer-events: none;
+    }
+
     .home-nav-pill a {
+      position: relative;
+      z-index: 1;
       border-radius: 8px;
       padding: 8px 20px;
       color: #FFF4E6;
@@ -359,8 +380,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       font-size: 15px;
     }
 
-    .home-nav-pill a:first-child {
-      background: rgba(252,248,245, 0.92);
+    .home-nav-pill a:hover,
+    .home-nav-pill a.is-active {
       color: #3F2F24;
     }
     /* dropdown */
@@ -2169,8 +2190,9 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     <!-- NAV LINKS -->
     <div class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[18px]">
       <div class="home-nav-pill flex items-center text-sm font-semibold text-[#4A342F] max-[980px]:hidden">
+        <span class="home-nav-runner" aria-hidden="true"></span>
 
-        <a class="transition duration-300 hover:text-[#5a4038]" href="#top">
+        <a class="is-active transition duration-300 hover:text-[#5a4038]" href="#top">
           Home
         </a>
 
@@ -2752,6 +2774,28 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     const gallerySection = document.getElementById("gallery");
     const reviewsSection = document.getElementById("reviews");
     const navbar = document.querySelector(".navbar");
+    document.querySelectorAll(".home-nav-pill").forEach((nav) => {
+      const runner = nav.querySelector(".home-nav-runner");
+      const links = Array.from(nav.querySelectorAll("a"));
+      if (!runner || !links.length) return;
+
+      const active = () => nav.querySelector("a.is-active") || links[0];
+      const moveTo = (link) => {
+        if (!link) return;
+        runner.style.width = link.offsetWidth + "px";
+        runner.style.transform = "translateX(" + link.offsetLeft + "px)";
+        runner.style.opacity = "1";
+      };
+
+      requestAnimationFrame(() => moveTo(active()));
+      links.forEach((link) => {
+        link.addEventListener("mouseenter", () => moveTo(link));
+        link.addEventListener("focus", () => moveTo(link));
+        link.addEventListener("click", () => moveTo(link));
+      });
+      nav.addEventListener("mouseleave", () => moveTo(active()));
+      window.addEventListener("resize", () => moveTo(active()));
+    });
     const howItWorksMotion = {
       currentX: 0,
       targetX: 0,

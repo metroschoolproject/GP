@@ -389,7 +389,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   align-items: stretch;
   position: relative;
   padding: 10px 18px 12px 10px;
-  background: var(--card);
+  background: rgba(252,248,245,0.78);
   border: 1px solid var(--rule);
   border-radius: 16px;
   overflow: visible;
@@ -545,7 +545,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   padding: 14px 14px 12px;
   border: 1px solid rgba(184,146,74,0.24);
   border-radius: 13px;
-  background: var(--card);
+  background: rgba(252,248,245,0.78);
 }
 .gp-package-includes-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -948,7 +948,7 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
 }
 
 .gp-summary-card {
-  background: var(--card);
+  background: rgba(252,248,245,0.78);
   border: 1px solid var(--rule);
   border-radius: 14px;
   overflow: hidden;
@@ -996,7 +996,10 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
   grid-template-columns: 56px minmax(0, 1fr) auto;
   gap: 15px;
   align-items: center;
-  padding: 10px 0 14px;
+  padding: 10px 12px 14px;
+  border: 1px solid rgba(178,143,110,0.18);
+  border-radius: 12px;
+  background: rgba(252,248,245,0.78);
 }
 
 .gp-summary-service-icon {
@@ -1947,37 +1950,6 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add more services
           </a>
-        </div>
-
-        <!-- Trust badges -->
-        <div class="gp-trust" aria-label="Assurances">
-          <div class="gp-trust-item">
-            <div class="gp-trust-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            </div>
-            <div>
-              <div class="gp-trust-title">Secure booking</div>
-              <div class="gp-trust-copy">Your data is protected</div>
-            </div>
-          </div>
-          <div class="gp-trust-item">
-            <div class="gp-trust-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 14.2 7.5 19 8.2 15.5 11.7 16.4 16.5 12 14.1 7.6 16.5 8.5 11.7 5 8.2 9.8 7.5 12 3Z"/><path d="m9.6 11.8 1.5 1.5 3.2-3.5"/></svg>
-            </div>
-            <div>
-              <div class="gp-trust-title">Verified suppliers</div>
-              <div class="gp-trust-copy">Reviewed by couples</div>
-            </div>
-          </div>
-          <div class="gp-trust-item">
-            <div class="gp-trust-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
-            </div>
-            <div>
-              <div class="gp-trust-title">Free cancellation</div>
-              <div class="gp-trust-copy">Within 48 hours</div>
-            </div>
-          </div>
         </div>
 
       </div><!-- /gp-summary-card -->

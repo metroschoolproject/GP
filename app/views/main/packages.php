@@ -707,7 +707,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   min-height: 40px;
   min-width: 142px;
   max-width: 190px;
-  width: 100%;
+  width: auto;
   padding: 9px 14px 9px 16px;
   border: 0.5px solid rgba(118,90,70,.20);
   border-radius: 8px;
@@ -719,11 +719,12 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   cursor: pointer;
   gap: 12px;
   overflow: hidden;
-  transition: border-color 0.2s, background-color 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s;
 }
 .venue-date-input-wrap:hover {
   background-color: #FFF8EF;
   border-color: rgba(154,104,127,.36);
+  color: #4f382a;
 }
 .venue-date-input-wrap input {
   position: absolute;
@@ -731,7 +732,12 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   width: 100%;
   height: 100%;
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.venue-date-input-wrap input::-webkit-calendar-picker-indicator {
+  display: none;
 }
 .venue-date-display {
   pointer-events: none;
@@ -741,11 +747,18 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   font-size: 13px;
   font-weight: 700;
 }
+.venue-date-input-wrap [data-lucide] {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: #6D4C5B;
+  pointer-events: none;
+}
 .gp-calendar-popover {
   position: fixed;
   z-index: 10010;
-  width: min(250px, calc(100vw - 32px));
-  padding: 12px;
+  width: min(228px, calc(100vw - 32px));
+  padding: 10px;
   border: 1px solid rgba(63, 36, 26, .14);
   border-radius: 10px;
   background: rgba(255, 248, 239, .98);
@@ -757,15 +770,15 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   color: #3F241A;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
-  margin-bottom: 9px;
+  margin-bottom: 8px;
 }
 .gp-calendar-nav {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: inline-grid;
   place-items: center;
   border: 0;
@@ -780,15 +793,15 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 .gp-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  gap: 2px;
 }
 .gp-calendar-day-name,
 .gp-calendar-day {
   display: grid;
   place-items: center;
-  height: 24px;
+  height: 22px;
   color: #6F5448;
-  font-size: 11px;
+  font-size: 10px;
 }
 .gp-calendar-day-name {
   color: rgba(63, 36, 26, .52);
@@ -2206,12 +2219,13 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
                   $selectedDateVal = $filters['date'] ?? '';
                   $todayStr = date('Y-m-d');
                   $maxDateStr = date('Y-m-d', strtotime('+18 months'));
-                  $dateDisplay = $selectedDateVal !== '' ? date('M j, Y', strtotime($selectedDateVal)) : 'Select date';
+                  $dateDisplay = $selectedDateVal !== '' ? date('M j, Y', strtotime($selectedDateVal)) : 'Today';
                 ?>
                 <div class="gp-search-field-boutique">
                   <span class="venue-date-input-wrap">
-                    <i data-lucide="calendar-days" style="width:13px;height:13px;color:#9A687F;pointer-events:none;flex-shrink:0;"></i>
+                    <i data-lucide="calendar-check"></i>
                     <span class="venue-date-display"><?= $h($dateDisplay) ?></span>
+                    <i data-lucide="chevron-down"></i>
                     <input class="gp-calendar-input" type="date" name="date" value="<?= $h($selectedDateVal) ?>" min="<?= $h($todayStr) ?>" max="<?= $h($maxDateStr) ?>" aria-label="Filter by date">
                   </span>
                 </div>
@@ -2715,6 +2729,44 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.textContent = isSaved ? '♥' : '♡';
   }
 
+  if (!document.getElementById('gp-wishlist-fly-style')) {
+    const flyStyle = document.createElement('style');
+    flyStyle.id = 'gp-wishlist-fly-style';
+    flyStyle.textContent = '.gp-flying-heart{position:fixed;z-index:12000;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#fff8ef;color:#e55b5b;font-size:20px;font-weight:800;box-shadow:0 12px 28px rgba(43,27,36,.22);pointer-events:none;will-change:transform,opacity}.gp-wishlist-target-pulse{animation:gpWishTargetPulse .72s ease both}@keyframes gpWishTargetPulse{0%,100%{transform:scale(1)}45%{transform:scale(1.08);filter:brightness(1.04)}}';
+    document.head.appendChild(flyStyle);
+  }
+
+  function flyHeartToWishlist(btn) {
+    if (!btn || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const start = btn.getBoundingClientRect();
+    const targets = Array.from(document.querySelectorAll('.home-profile-menu-item[href*="wishlist"]'));
+    const target = targets.find(function(el) {
+      const style = getComputedStyle(el);
+      return style.visibility !== 'hidden' && style.opacity !== '0';
+    }) || document.querySelector('.home-profile-avatar') || document.querySelector('.home-profile-btn');
+    if (!target) return;
+
+    const end = target.getBoundingClientRect();
+    const heart = document.createElement('span');
+    heart.className = 'gp-flying-heart';
+    heart.textContent = '♥';
+    heart.style.left = (start.left + start.width / 2 - 15) + 'px';
+    heart.style.top = (start.top + start.height / 2 - 15) + 'px';
+    document.body.appendChild(heart);
+
+    const dx = end.left + end.width / 2 - (start.left + start.width / 2);
+    const dy = end.top + end.height / 2 - (start.top + start.height / 2);
+    heart.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: 'translate(' + (dx * .48) + 'px,' + (dy * .22 - 34) + 'px) scale(1.18)', opacity: .96 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.38)', opacity: 0 }
+    ], { duration: 900, easing: 'cubic-bezier(.2,.86,.24,1)', fill: 'forwards' }).onfinish = function() {
+      heart.remove();
+      target.classList.add('gp-wishlist-target-pulse');
+      setTimeout(function(){ target.classList.remove('gp-wishlist-target-pulse'); }, 560);
+    };
+  }
+
   const localSaved = savedPackages();
   document.querySelectorAll('.gp-heart[data-item-type="package"]').forEach(function(btn){
     const itemId = parseInt(btn.dataset.itemId, 10);
@@ -2752,6 +2804,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isSaved = data.action === 'added';
         paintHeart(btn, isSaved);
+        if (isSaved) flyHeartToWishlist(btn);
 
         let ids = savedPackages();
         ids = isSaved ? ids.concat(itemId) : ids.filter(function(id){ return id !== itemId; });
@@ -2791,9 +2844,9 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateCalendarDisplay(input) {
     var display = input.closest('.venue-date-input-wrap')?.querySelector('.venue-date-display');
     if (!display) return;
-    if (!input.value) { display.textContent = 'Select date'; return; }
+    if (!input.value) { display.textContent = 'Today'; return; }
     var parsed = parseDateValue(input.value);
-    display.textContent = parsed ? parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date';
+    display.textContent = parsed ? parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today';
   }
 
   function positionCalendar(anchor) {

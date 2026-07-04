@@ -41,10 +41,11 @@ $summaryBalanceTop = max(0, $summaryTotalTop - $summaryPaidTop);
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2e4d4;--card:rgba(242,230,218,0.85);--card-elevated:rgba(237,223,209,0.90);--rule:rgba(178,143,110,0.22);--rule-strong:rgba(178,143,110,0.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
+:root{--bg:#f2e4d4;--card:rgba(255,250,245,0.92);--card-elevated:rgba(255,248,241,0.96);--rule:rgba(178,143,110,0.22);--rule-strong:rgba(178,143,110,0.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
 a{color:inherit;text-decoration:none}
+body > .gp-shared-footer{margin-top:76px}
 .gp-header{position:sticky;top:0;z-index:100;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;padding:0 var(--pad-x);height:68px;border-bottom:1px solid var(--rule);background:rgba(242,228,212,0.82);backdrop-filter:blur(24px) saturate(1.4)}
 .gp-brand{display:flex;align-items:center;gap:12px;font-size:17px;font-weight:800}
 .gp-brand-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--plum);color:#fffaf3;font-size:13px;font-weight:700}
@@ -73,18 +74,18 @@ a{color:inherit;text-decoration:none}
 .gp-profile-menu-item--danger{color:var(--danger)}
 .gp-profile-menu-item--danger:hover{background:rgba(185,75,75,.08)}
 
-.gp-page{position:relative;z-index:1;flex:1;padding:32px var(--pad-x) 96px;max-width:1180px;margin:0 auto;width:100%}
+.gp-page{position:relative;z-index:1;flex:1;padding:54px var(--pad-x) 96px;max-width:1180px;margin:0 auto;width:100%}
 .gp-back{margin-bottom:20px}
 .gp-back a{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);transition:color .2s}
 .gp-back a:hover{color:var(--plum)}
 
-.gp-detail-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 32px;padding-top:2px}
+.gp-detail-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 12px;padding-top:2px}
 .gp-detail-topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .gp-detail-topbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .gp-detail-topbar-actions .gp-btn-sm,.gp-detail-topbar-actions .gp-badge{background:rgba(252,248,245,.62)}
 .gp-detail-topbar-actions .gp-btn-sm.primary{background:var(--plum);color:#fffaf5;border-color:var(--plum)}
 .gp-detail-topbar-actions .gp-btn-sm.primary,.gp-detail-topbar-actions .gp-btn-sm.is-disabled{min-width:132px;justify-content:center}
-.gp-detail-topbar-actions .gp-btn-sm.is-disabled{cursor:default;pointer-events:none;background:rgba(252,248,245,.38);border-color:rgba(178,143,110,.18);color:rgba(92,74,84,.48);backdrop-filter:blur(8px);box-shadow:inset 0 0 18px rgba(255,250,245,.36)}
+.gp-detail-topbar-actions .gp-btn-sm.is-disabled{cursor:default;pointer-events:none;background:rgba(252,248,245,.48);border-color:rgba(178,143,110,.16);color:rgba(92,74,84,.48);filter:blur(.15px);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 0 18px rgba(255,250,245,.42)}
 .gp-detail-topbar-actions .gp-btn-sm.danger{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
 .gp-detail-topbar-actions .gp-btn-sm.danger:hover{background:var(--danger);color:#fcf8f5;border-color:var(--danger)}
 .gp-detail-back{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:8px 14px;border-radius:10px;border:1px solid rgba(178,143,110,.26);background:rgba(252,248,245,.52);color:var(--muted);font-size:12px;font-weight:700;transition:all .18s}
@@ -94,49 +95,65 @@ a{color:inherit;text-decoration:none}
 .gp-head em{font-style:italic;color:var(--plum-lt)}
 .gp-badge{display:inline-flex;padding:4px 12px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 
-.gp-layout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:32px;align-items:start}
+.gp-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(360px,.95fr);gap:24px;align-items:start}
 .gp-col{display:flex;flex-direction:column;gap:24px}
 
-.gp-card{background:var(--card);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.gp-card{background:rgba(255,251,247,.90);border:1px solid rgba(178,143,110,.18);border-radius:14px;overflow:hidden;box-shadow:0 18px 44px rgba(74,52,47,.05)}
 .gp-card--elevated{background:var(--card-elevated);border:1px solid var(--rule-strong)}
 .gp-status-card{order:2}
 .gp-event-card{order:1}
-.gp-card-h{padding:14px 24px;border-bottom:1px solid var(--rule);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--plum);background:rgba(107,68,89,.03)}
+.gp-card-h{padding:14px 24px;border-bottom:1px solid var(--rule);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--plum);background:rgba(255,252,248,.58)}
 .gp-card-b{padding:20px 24px;display:flex;flex-direction:column;gap:12px}
 .gp-info-box{background:var(--card);border:1px solid rgba(184,146,74,.24);border-radius:14px;padding:20px 24px;display:flex;align-items:flex-start;gap:16px;margin-bottom:24px}
 .gp-info-icon{flex-shrink:0;display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(184,146,74,.14);color:var(--gold)}
 .gp-info-title{font-weight:800;font-size:13px;color:var(--plum);margin-bottom:2px}
 .gp-info-copy{font-size:12px;color:var(--text2);line-height:1.55}
 .gp-info-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.gp-journey-card{margin:0 0 32px;padding:28px 32px 28px;background:var(--card-elevated);border:1px solid var(--rule-strong);border-radius:14px}
+.gp-top-notices{margin:0 0 16px}
+.gp-top-notices .gp-info-box{width:100%;margin:0 0 12px;padding:16px 20px;border:1px solid rgba(252,248,245,.10);border-radius:10px;background:#5a3147;color:#fcf8f5;box-shadow:0 16px 38px rgba(74,52,47,.18);animation:gpNoticeEnter 1.05s var(--ease-expo) both}
+.gp-top-notices .gp-info-icon{width:22px;height:22px;border-radius:7px;background:rgba(252,248,245,.10);color:#fcf8f5}
+.gp-top-notices .gp-info-title{color:#fcf8f5;font-size:13px;margin-bottom:3px}
+.gp-top-notices .gp-info-copy{color:rgba(252,248,245,.88);font-size:11.5px}
+.gp-top-notices .gp-info-copy strong{color:#fff}
+.gp-top-notices .gp-info-actions .gp-btn-sm.primary{background:rgba(252,248,245,.92);border-color:rgba(252,248,245,.92);color:#5a3147}
+.gp-payment-review-box{margin:0 0 12px;padding:16px 20px;border:1px solid rgba(252,248,245,.10);border-radius:10px;background:#5a3147;color:#fcf8f5;box-shadow:0 16px 38px rgba(74,52,47,.18);animation:gpNoticeEnter 1.05s var(--ease-expo) both}
+.gp-payment-review-head{display:flex;align-items:flex-start;gap:12px}
+.gp-payment-review-title{font-size:13px;font-weight:700;color:#fcf8f5}
+.gp-payment-review-copy{margin-top:3px;font-size:11.5px;line-height:1.55;color:rgba(252,248,245,.86)}
+.gp-payment-review-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 16px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(252,248,245,.12)}
+.gp-payment-review-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(252,248,245,.62)}
+.gp-payment-review-value{margin-top:2px;font-size:12px;color:#fff}
+@keyframes gpNoticeEnter{0%{opacity:0;transform:translateY(-22px)}70%{opacity:1;transform:translateY(3px)}100%{opacity:1;transform:translateY(0)}}
+.gp-journey-card{margin:0 0 16px;padding:20px 24px 24px;background:rgba(255,251,247,.90);border:1px solid rgba(178,143,110,.18);border-radius:14px;box-shadow:0 18px 44px rgba(74,52,47,.05)}
 .gp-journey-card.is-cancel{background:#fdf1ee;border-color:rgba(185,75,75,.22)}
-.gp-journey-head{display:block;margin-bottom:24px}
-.gp-journey-ref{font-family:var(--font-d);font-size:20px;font-weight:700;color:var(--plum-dk);line-height:1.25}
+.gp-journey-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.gp-journey-ref{font-family:var(--font-b);font-size:18px;font-weight:700;color:var(--plum-dk);line-height:1.25;letter-spacing:.01em}
 .gp-journey-flow{margin-top:4px;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .gp-journey-status{flex-shrink:0;display:inline-flex;align-items:center;margin-top:4px;padding:7px 14px;border-radius:999px;background:#f4ebef;color:#5a3849;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
 .gp-journey-card.is-cancel .gp-journey-status{background:rgba(185,75,75,.10);color:var(--danger)}
 .gp-journey-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:0;max-width:none;margin:0}
 .gp-journey-step{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
-.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:calc(50% + 16px);right:calc(-50% + 16px);top:16px;height:1px;background:var(--rule);z-index:0}
-.gp-journey-card.is-cancel .gp-journey-step:not(:last-child)::after{background:rgba(185,75,75,.16)}
-.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border-radius:50%;border:2px solid rgba(178,143,110,.45);background:var(--card-elevated);color:var(--muted);font-size:11px;font-weight:700}
-.gp-journey-step.is-complete .gp-journey-dot{border-color:#6b9e7e;background:#3d6b4f;color:#fff}
+.gp-journey-step:not(:last-child)::after{content:'';position:absolute;left:calc(50% + 20px);right:calc(-50% + 20px);top:19px;height:2px;background:rgba(178,143,110,.34);z-index:0}
+.gp-journey-card.is-cancel .gp-journey-step:not(:last-child)::after{background:rgba(185,75,75,.24)}
+.gp-journey-dot{position:relative;z-index:1;display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:2px solid rgba(178,143,110,.45);background:var(--card-elevated);color:var(--muted);font-size:12px;font-weight:700}
+.gp-journey-step.is-complete .gp-journey-dot{border-color: #f7edb3;background: #4b2f4a;color: #ffffff}
 .gp-journey-step.is-current .gp-journey-dot{border-color:var(--plum);background:var(--plum);color:#fff}
 .gp-journey-card.is-cancel .gp-journey-step.is-complete .gp-journey-dot{border-color:#d79a92;background:#d79a92;color:#fff}
 .gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-dot{border-color:var(--danger);background:var(--danger);color:#fff}
-.gp-journey-text{position:relative;z-index:1;min-width:0;padding-top:8px}
-.gp-journey-label{font-size:11px;font-weight:600;color:var(--text);line-height:1.25}
-.gp-journey-state{margin-top:3px;font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.gp-journey-step.is-current .gp-journey-label{color:var(--plum-dk);font-weight:800;font-size:11.5px}
+.gp-journey-text{position:relative;z-index:1;min-width:0;padding-top:10px}
+.gp-journey-label{font-size:12px;font-weight:600;color:var(--text);line-height:1.25}
+.gp-journey-state{margin-top:4px;font-size:9.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.gp-journey-step.is-current .gp-journey-label{color:var(--plum-dk);font-weight:800;font-size:12.5px}
 .gp-journey-card.is-cancel .gp-journey-step.is-current .gp-journey-label{color:var(--danger)}
 .gp-service-detail-panel{display:none}
 .gp-service-detail-panel.active{display:flex;flex-direction:column;gap:12px}
 .gp-service-detail-title{font-family:var(--font-b);font-size:19px;font-weight:600;color:var(--text);line-height:1.2}
 .gp-service-detail-meta{font-size:12px;color:var(--plum-lt);font-weight:600}
-.gp-service-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.gp-field{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 0}
-.gp-field-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.gp-field-v{font-size:13px;color:var(--text)}
+.gp-service-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.gp-field{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;min-height:66px;padding:12px 14px;border:1px solid rgba(178,143,110,.18);border-radius:12px;background:rgba(255,253,250,.56);box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
+.gp-field-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.gp-field-v{font-size:13px;color:var(--text);line-height:1.35}
+.gp-field-status-tag{display:inline-flex;align-items:center;width:max-content;max-width:100%;padding:4px 10px;border-radius:999px;background:rgba(107,68,89,.10);color:var(--plum);font-size:11px;font-weight:700;line-height:1.1}
 .gp-field-v.quote{font-style:italic;color:var(--text2);padding:8px 12px;background:rgba(107,68,89,0.04);border-radius:var(--r-sm);border-left:3px solid var(--plum-lt)}
 .gp-package-plan{margin-top:8px;padding-top:12px;border-top:1px solid var(--rule)}
 .gp-package-plan-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
@@ -171,10 +188,10 @@ a{color:inherit;text-decoration:none}
 .gp-item-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
 
 .gp-order-list{display:flex;flex-direction:column;gap:2px}
-.gp-order-item{width:100%;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border:0;border-bottom:1px solid var(--rule);border-radius:0;background:transparent;text-align:left;font-family:var(--font-b);color:var(--text);cursor:pointer;transition:color .15s}
+.gp-order-item{width:100%;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:0;border-bottom:1px solid var(--rule);border-radius:10px;background:transparent;text-align:left;font-family:var(--font-b);color:var(--text);cursor:pointer;transition:color .15s,background .15s,box-shadow .15s}
 .gp-order-item:last-child{border-bottom:none}
 .gp-order-item:hover{color:var(--plum)}
-.gp-order-item.active{color:var(--plum)}
+.gp-order-item.active{color:var(--plum);background:rgba(107,68,89,.15);box-shadow:inset 0 0 0 1px rgba(107,68,89,.08)}
 .gp-order-item.active .gp-order-thumb{background:var(--plum);color:#fff}
 .gp-order-item.active .gp-order-name{color:var(--plum);font-weight:800}
 .gp-order-item.active .gp-order-price{color:var(--plum);font-weight:800}
@@ -253,7 +270,7 @@ a{color:inherit;text-decoration:none}
 
 @media(max-width:900px){.gp-layout{grid-template-columns:1fr}.gp-detail-topbar{align-items:flex-start;flex-direction:column}.gp-detail-topbar-actions{justify-content:flex-start}.gp-journey-steps{max-width:100%}}
 @media(max-width:768px){.gp-service-detail-grid{grid-template-columns:1fr}.gp-order-item{align-items:start}.gp-order-price{grid-column:2;font-size:12px}}
-@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:12px;padding:18px 14px 20px}.gp-journey-head{grid-template-columns:1fr;margin-bottom:20px}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:16px;right:auto;top:32px;bottom:-20px;width:1px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px 0}.gp-order-thumb{width:44px;height:44px}}</style>
+@media(max-width:640px){.gp-header-nav{display:none}:root{--pad-x:16px}.gp-detail-topbar{margin-bottom:18px}.gp-journey-card{border-radius:12px;padding:18px 14px 20px}.gp-journey-head{grid-template-columns:1fr;margin-bottom:20px}.gp-journey-ref{font-size:16px}.gp-journey-steps{grid-template-columns:1fr;gap:12px}.gp-journey-step{align-items:flex-start;text-align:left;flex-direction:row}.gp-journey-step:not(:last-child)::after{left:20px;right:auto;top:40px;bottom:-20px;width:2px;height:auto}.gp-journey-text{padding-top:4px}.gp-order-item{padding:10px 0}.gp-order-thumb{width:44px;height:44px}}</style>
 </head><body>
 
 <?php $gpNavActive = 'bookings'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
@@ -367,14 +384,12 @@ a{color:inherit;text-decoration:none}
         <?php endif; ?>
       </div>
       <div class="gp-detail-topbar-actions">
-        <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested'], true)): ?>
         <?php if (in_array($booking['status']??'', ['draft', 'pending_payment']) && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
           <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/pay/<?=(int)($booking['id']??0)?>">Payment</a>
         <?php elseif ($heroHasRemainingBalance && !($hasPendingRemaining ?? false)): ?>
           <a class="gp-btn-sm primary" href="<?=URLROOT?>/booking/payRemaining/<?= $bookingId ?>">Payment</a>
         <?php else: ?>
           <span class="gp-btn-sm is-disabled" title="Payment is not available for this booking state">Payment</span>
-        <?php endif; ?>
         <?php endif; ?>
         <?php if (!in_array($booking['status']??'', ['cancelled','cancellation_requested','completed'])): ?>
           <a class="gp-btn-sm danger" href="<?=URLROOT?>/booking/cancel/<?=(int)($booking['id']??0)?>">Request Cancellation</a>
@@ -594,30 +609,6 @@ a{color:inherit;text-decoration:none}
     <h1>Booking <?= $h($bookingRef) ?></h1>
   </div>
 
-  <?php if ($currentStatus === 'pending_supplier_response'): ?>
-  <div class="gp-info-box">
-    <div class="gp-info-icon" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-    </div>
-    <div>
-      <div class="gp-info-title">Waiting for supplier confirmation</div>
-      <div class="gp-info-copy">Your booking request has been sent. The supplier has up to 48 hours to accept or decline. You will be notified when they respond.</div>
-    </div>
-  </div>
-  <?php endif; ?>
-
-  <?php if ($currentStatus === 'pending_payment' && ($booking['payment_status'] ?? '') === 'unpaid'): ?>
-  <div class="gp-info-box">
-    <div class="gp-info-icon" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>
-    </div>
-    <div>
-      <div class="gp-info-title">Supplier accepted — please complete payment</div>
-      <div class="gp-info-copy">Your booking request was accepted! Please pay your 20% deposit below to lock in your booking.</div>
-    </div>
-  </div>
-  <?php endif; ?>
-
   <?php if ($currentStatus === 'payment_submitted'): ?>
   <?php
     $proofBank = !empty($depositPayment['bank_name']) ? $depositPayment['bank_name'] : '';
@@ -766,7 +757,7 @@ a{color:inherit;text-decoration:none}
                   <?php if (!empty($ed['contact_phone'])): ?>
                   <div class="gp-field"><span class="gp-field-l">Contact Phone</span><span class="gp-field-v"><?=$h($ed['contact_phone'])?></span></div>
                   <?php endif; ?>
-                  <div class="gp-field"><span class="gp-field-l">Status</span><span class="gp-field-v"><?= $h(ucfirst($item['status'] ?? 'pending')) ?></span></div>
+                  <div class="gp-field"><span class="gp-field-l">Status</span><span class="gp-field-v gp-field-status-tag"><?= $h(ucfirst($item['status'] ?? 'pending')) ?></span></div>
                 </div>
                 <?php if (!empty($ed['special_requests'])): ?>
                 <div class="gp-field">
@@ -858,10 +849,7 @@ a{color:inherit;text-decoration:none}
           $summaryPaid = (float)($booking['paid_amount'] ?? 0);
           $summaryBalance = max(0, $summaryTotal - $summaryPaid);
           ?>
-          <div class="gp-summary-r"><span>Deposit paid (<?=$depositPercent?>%)</span><span><?=$money($summaryPaid)?></span></div>
-          <?php if ($summaryFee > 0): ?>
-          <div class="gp-summary-r"><span>Platform fee (<?=rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.')?>%)</span><span><?=$money($summaryFee)?></span></div>
-          <?php endif; ?>
+          <div class="gp-summary-r"><span>Deposit (<?=$depositPercent?>%)</span><span><?=$money($summaryDeposit)?></span></div>
           <div class="gp-summary-r balance"><span>Balance due</span><span><?=$money($summaryBalance)?></span></div>
           <div class="gp-summary-r total"><span>Total</span><span><?=$money($summaryTotal)?></span></div>
         </div>
@@ -1233,4 +1221,5 @@ function submitEditReview(reviewId) {
   });
 })();
 </script>
+<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body></html>
