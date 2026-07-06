@@ -1133,6 +1133,7 @@ async function saveCreateService() {
     var result = await apiRequest(serviceManagementUrls.serviceCreate, serviceFormPayload('cs', category));
     upsertItem(services, result.item);
     closeCreateServiceModal(); currentTab = 'services'; switchTab('services');
+    showToast(result.message || 'Service created successfully.', 'success');
   } catch (error) { showToast(error.message, 'error'); }
 }
 
@@ -1624,6 +1625,7 @@ async function updateService() {
     const result = await apiRequest(serviceManagementUrls.serviceUpdate + editingSvcId, payload);
     upsertItem(services, result.item);
     closeAll(); render();
+    showToast(result.message || 'Service updated successfully.', 'success');
   } catch (error) { showToast(error.message, 'error'); }
 }
 

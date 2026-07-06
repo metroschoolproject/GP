@@ -2011,7 +2011,7 @@ input[type="date"]:invalid {
     <p class="gp-page-subtitle">Review your selections and add any details your suppliers need.</p>
   </div>
 
-  <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
+  <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost" novalidate>
     <?= csrf_field() ?>
     <div class="gp-layout">
 
@@ -3195,10 +3195,6 @@ const packageScheduleState = new Map();
   function validateRequiredBookingInfo() {
     clearRequiredHighlights();
 
-    if (!form.reportValidity()) {
-      return false;
-    }
-
     const formData = new FormData(form);
     const cards = Array.from(document.querySelectorAll('.gp-item-card'));
     const missingMessages = [];
@@ -3211,6 +3207,7 @@ const packageScheduleState = new Map();
       const itemStart = fieldValue(formData, `item_start_time[${index}]`);
       const itemEnd = fieldValue(formData, `item_end_time[${index}]`);
       const itemPhone = fieldValue(formData, `item_contact_phone[${index}]`);
+      const itemContactName = fieldValue(formData, `item_contact_name[${index}]`);
       const itemLocation = fieldValue(formData, `item_location[${index}]`);
       const itemGuests = numberValue(formData, `item_guests[${index}]`);
       const guestInput = card.querySelector(`[name="item_guests[${index}]"]`);
@@ -3262,6 +3259,10 @@ const packageScheduleState = new Map();
           missing.push('contact phone (must be 10–11 digits)');
           rememberMissing(card.querySelector(`[name="item_contact_phone[${index}]"]`));
         }
+      }
+      if (!itemContactName) {
+        missing.push('contact name');
+        rememberMissing(card.querySelector(`[name="item_contact_name[${index}]"]`));
       }
       if (!itemLocation) {
         missing.push('location');

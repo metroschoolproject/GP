@@ -5,6 +5,7 @@ $suppliers = $suppliers ?? [];
 $eventDetails = $eventDetails ?? [];
 $logs = $logs ?? [];
 $payments = $payments ?? [];
+$vouchers = $vouchers ?? [];
 $packageSchedules = $packageSchedules ?? [];
 $bookingRef = $bookingRef ?? '';
 $depositPercent = (float)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
@@ -237,6 +238,13 @@ foreach ($suppliers as $supplier) {
 
 // Suppliers awaiting admin replacement
 $needsReplacementSuppliers = array_values(array_filter($suppliers, fn($s) => ($s['status'] ?? '') === 'needs_replacement'));
+$voucherCounts = ['active' => 0, 'used' => 0, 'expired' => 0];
+foreach ($vouchers as $voucher) {
+    $voucherStatusKey = strtolower((string)($voucher['status'] ?? 'active'));
+    if (isset($voucherCounts[$voucherStatusKey])) {
+        $voucherCounts[$voucherStatusKey]++;
+    }
+}
 
 $logDot = static function (string $status): string {
     return match (strtolower($status)) {
@@ -261,6 +269,8 @@ $dashboardContent = function () use (
     $booking,
     $items,
     $suppliers,
+    $vouchers,
+    $voucherCounts,
     $logs,
     $bookingRef,
     $money,
@@ -588,6 +598,44 @@ $dashboardContent = function () use (
   .bkd-action-title { font-size: 14px; font-weight: 700; color: var(--bkd-text); }
   .bkd-action-sub { font-size: 11px; color: var(--bkd-muted); font-weight: 600; margin-top: 1px; }
   .bkd-action-body { padding: 16px 20px; }
+
+  /* ── Voucher status ── */
+  .bkd-voucher-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .bkd-voucher-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--bkd-border);
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #fffaf5;
+    color: var(--bkd-body);
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .bkd-voucher-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--bkd-text);
+    overflow-wrap: anywhere;
+  }
+  .bkd-voucher-status {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 850;
+    line-height: 1;
+  }
+  .bkd-voucher-status--active { background: var(--bkd-success-bg); color: var(--bkd-success-text); }
+  .bkd-voucher-status--used { background: var(--bkd-info-bg); color: var(--bkd-info-text); }
+  .bkd-voucher-status--expired { background: var(--bkd-danger-bg); color: var(--bkd-danger-text); }
 
   /* ── Payment proof: compact inline ── */
   .bkd-pay-row {
@@ -1332,6 +1380,60 @@ $dashboardContent = function () use (
             </tbody>
           </table>
         </div>
+      </div>
+    </details>
+
+    <!-- Vouchers -->
+    <details class="bkd-section" open>
+      <summary>
+        <i data-lucide="ticket-check" style="width:16px;height:16px;color:var(--bkd-primary)"></i>
+        Vouchers
+        <span class="bkd-section-count"><?= count($vouchers) ?></span>
+      </summary>
+      <div class="bkd-section-body">
+        <div class="bkd-voucher-summary" aria-label="Voucher status summary">
+          <span class="bkd-voucher-chip"><?= (int)$voucherCounts['active'] ?> active</span>
+          <span class="bkd-voucher-chip"><?= (int)$voucherCounts['used'] ?> used</span>
+          <span class="bkd-voucher-chip"><?= (int)$voucherCounts['expired'] ?> expired</span>
+        </div>
+        <?php if (empty($vouchers)): ?>
+          <div class="bkd-empty">No vouchers generated for this booking yet.</div>
+        <?php else: ?>
+          <div class="bkd-table-wrap">
+            <table class="bkd-table">
+              <thead>
+                <tr>
+                  <th>Voucher</th>
+                  <th>Service</th>
+                  <th>Supplier</th>
+                  <th>Event</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($vouchers as $voucher): ?>
+                  <?php
+                    $voucherStatus = strtolower((string)($voucher['status'] ?? 'active'));
+                    $voucherTime = trim($timeOnly($voucher['start_time'] ?? null, '') . (!empty($voucher['end_time']) ? ' - ' . $timeOnly($voucher['end_time'], '') : ''), ' -');
+                  ?>
+                  <tr>
+                    <td><span class="bkd-voucher-code"><?= $h(strtoupper((string)($voucher['voucher_number'] ?? ''))) ?></span></td>
+                    <td>
+                      <div class="bkd-table-name"><?= $h($voucher['service_name'] ?? 'Service') ?></div>
+                      <?php if (!empty($voucher['category_name'])): ?><div class="bkd-table-sub"><?= $h($voucher['category_name']) ?></div><?php endif; ?>
+                    </td>
+                    <td><span class="bkd-table-name"><?= $h($voucher['supplier_name'] ?? 'Golden Promise') ?></span></td>
+                    <td>
+                      <div class="bkd-table-name"><?= $h($dateOnly($voucher['event_date'] ?? null, 'TBD')) ?></div>
+                      <div class="bkd-table-sub"><?= $h($voucherTime !== '' ? $voucherTime : 'Time not set') ?></div>
+                    </td>
+                    <td><span class="bkd-voucher-status bkd-voucher-status--<?= $h($voucherStatus) ?>"><?= $h(ucfirst($voucherStatus)) ?></span></td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
       </div>
     </details>
 

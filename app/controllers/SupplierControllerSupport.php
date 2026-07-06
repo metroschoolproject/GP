@@ -161,6 +161,10 @@ abstract class SupplierControllerSupport extends Controller
             unset($item);
         }
 
+        if (trim((string)($payload['img'] ?? '')) === '') {
+            $payload['img'] = $this->firstChildServicePhoto($payload);
+        }
+
         if (isset($payload['categories']) && is_array($payload['categories'])) {
             $payload['categories'] = array_values(array_filter(array_map(function ($category) {
                 return htmlspecialchars(trim((string)$category), ENT_QUOTES, 'UTF-8');
@@ -168,5 +172,30 @@ abstract class SupplierControllerSupport extends Controller
         }
 
         return $payload;
+    }
+
+    private function firstChildServicePhoto(array $payload): string
+    {
+        foreach (['rooms', 'decoration_styles', 'attire_items', 'food_items', 'car_items'] as $collectionKey) {
+            $items = $payload[$collectionKey] ?? [];
+
+            if (!is_array($items)) {
+                continue;
+            }
+
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+
+                $photo = trim((string)($item['photo_url'] ?? ''));
+
+                if ($photo !== '') {
+                    return $photo;
+                }
+            }
+        }
+
+        return '';
     }
 }

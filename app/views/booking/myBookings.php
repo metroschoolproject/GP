@@ -18,7 +18,7 @@ $statusColors = [
     'completed' => 'bg-emerald-100 text-emerald-700',
     'cancelled' => 'bg-red-100 text-red-700', 'cancellation_requested' => 'bg-orange-100 text-orange-700',
 ];
-$filterLabels = ['all' => 'All', 'pending_payment' => 'Pending', 'paid' => 'Paid', 'confirmed' => 'Confirmed', 'pending_final_payment' => 'Final Payment', 'finalized' => 'Finalized', 'completed' => 'Completed', 'cancelled' => 'Cancelled', 'cancellation_requested' => 'Cancellation Requested'];
+$filterLabels = ['all' => 'All', 'pending_payment' => 'Pending', 'paid' => 'Paid', 'confirmed' => 'Confirmed', 'pending_final_payment' => 'Final Payment', 'finalized' => 'Finalized', 'completed' => 'Completed', 'cancellation_requested' => 'Cancellation Requested', 'cancelled' => 'Cancelled'];
 
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $plain = function ($v) {
@@ -85,7 +85,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 800; color: var(--text); }
 .gp-brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--plum); color: #fffaf3; font-size: 13px; font-weight: 700; }
 .gp-header-nav { display: flex; align-items: center; gap: 2px; }
-.gp-header-nav a { padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text2); transition: all 0.22s; }
+	.gp-header-nav a { padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text2); transition: color 0.22s, background 0.22s; }
 .gp-header-nav a:hover { color: var(--plum); background: rgba(107,68,89,0.08); }
 .gp-header-actions { display: flex; align-items: center; gap: 10px; }
 
@@ -95,7 +95,7 @@ button { font-family: var(--font-b); cursor: pointer; }
     flex: 1;
     min-height: calc(100svh - 68px);
     padding: 0 var(--pad-x) 80px;
-    max-width: 1200px;
+    max-width: 1240px;
     margin: 0 auto;
     width: 100%;
 }
@@ -168,7 +168,7 @@ button { font-family: var(--font-b); cursor: pointer; }
     opacity:.9;
 }
 
-.gp-filters { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; overflow-x: auto; padding-bottom: 4px; }
+.gp-filters { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: nowrap; overflow: visible; padding-bottom: 4px; }
 .gp-filter { padding: 6px 16px; border-radius: 9px; border: 1px solid rgba(178,143,110,.24); background: rgba(255,250,245,.58); font-size: 12px; font-weight: 600; color: var(--text2); transition: all 0.2s; white-space: nowrap; text-decoration: none; }
 .gp-filter:hover { border-color: var(--plum); color: var(--plum); background: rgba(255,250,245,.86); }
 .gp-filter.active { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
@@ -200,6 +200,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .gp-card-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .gp-card-service { font-family: var(--font-b); font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.25; letter-spacing: 0; }
+.gp-card-service-count { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 10px; border: 1px solid rgba(184,146,74,.28); border-radius: 999px; background: rgba(255,250,245,.74); color: var(--plum); font-size: 10px; font-weight: 800; letter-spacing: .06em; line-height: 1; text-transform: uppercase; white-space: nowrap; }
 .gp-card-supplier { font-size: 12px; color: var(--plum-lt); margin-top: 2px; }
 .gp-card-date { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
 .gp-card-status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
@@ -210,12 +211,12 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-card-payment { font-size: 12px; color: var(--text2); }
 .gp-card-payment strong { color: var(--plum); }
 .gp-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.gp-btn-sm { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--rule-strong); font-size: 11px; font-weight: 600; color: var(--text2); background: transparent; transition: all 0.2s; text-decoration: none; }
+	.gp-btn-sm { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--rule-strong); font-size: 11px; font-weight: 600; color: var(--text2); background: transparent; transition: border-color 0.2s, color 0.2s, background 0.2s; text-decoration: none; }
 .gp-btn-sm:hover { border-color: var(--plum); color: var(--plum); background: rgba(107,68,89,0.04); }
 .gp-btn-sm.primary { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 .gp-btn-sm.primary:hover { background: var(--plum-dk); }
 .gp-profile-dropdown{position:relative}
-.gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--card);cursor:pointer;transition:all .2s;color:var(--plum);font-family:var(--font-b);font-size:13px;font-weight:600}
+	.gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--card);cursor:pointer;transition:border-color .2s, background .2s;color:var(--plum);font-family:var(--font-b);font-size:13px;font-weight:600}
 .gp-profile-btn:hover{border-color:var(--plum);background:rgba(107,68,89,.06)}
 .gp-profile-avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--plum);color:#fffaf3;font-size:12px;font-weight:800;letter-spacing:.5px}
 .gp-profile-name{white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis}
@@ -223,7 +224,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-profile-btn[aria-expanded="true"] .gp-profile-chevron{transform:rotate(180deg)}
 .gp-profile-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:180px;padding:6px;border-radius:12px;border:1px solid var(--rule);background:var(--card);box-shadow:0 12px 35px rgba(15,23,42,.1);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s ease}
 .gp-profile-btn[aria-expanded="true"]+.gp-profile-menu,.gp-profile-menu.show{opacity:1;visibility:visible;transform:translateY(0)}
-.gp-profile-menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);transition:all .15s}
+	.gp-profile-menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);transition:background .15s}
 .gp-profile-menu-item:hover{background:rgba(107,68,89,.06)}
 .gp-profile-menu-item--danger{color:var(--danger)}
 .gp-profile-menu-item--danger:hover{background:rgba(185,75,75,.08)}
@@ -243,6 +244,7 @@ button { font-family: var(--font-b); cursor: pointer; }
   .gp-card { grid-template-columns: 1fr; padding: 14px; }
   .gp-card-media { height: 190px; min-height: 190px; }
   .gp-card-photo, .gp-card-photo-placeholder { height: 190px; }
+  .gp-filters { flex-wrap: wrap; }
   .gp-card-top { flex-direction: column; }
   .gp-card-bottom { flex-direction: column; align-items: flex-start; }
   .gp-header-nav { display: none; }
@@ -254,7 +256,8 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; margin-top: 20px; border-top: 1px solid var(--rule); }
 .gp-pagination-info { font-size: 12px; color: var(--muted); }
 .gp-pagination-btns { display: flex; align-items: center; gap: 5px; }
-.gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--rule); border-radius: var(--r-sm); background: var(--card); color: var(--text2); font-size: 12px; font-weight: 600; font-family: var(--font-b); text-decoration: none; transition: all 0.15s; cursor: pointer; }
+	.gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--rule); border-radius: var(--r-sm); background: var(--card); color: var(--text2); font-size: 12px; font-weight: 600; font-family: var(--font-b); text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; cursor: pointer; }
+	.gp-filter:focus-visible,.gp-btn-sm:focus-visible,.gp-pagination-btn:focus-visible,.gp-profile-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .gp-pagination-btn:hover { background: var(--bg); color: var(--text); border-color: var(--gold); }
 .gp-pagination-btn-cur { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 .gp-pagination-btn-cur:hover { background: var(--plum-dk); }
@@ -305,6 +308,7 @@ button { font-family: var(--font-b); cursor: pointer; }
       $firstHall = $firstItem ? trim((string)($firstItem['venue_room_name'] ?? '')) : '';
       $itemCount = count($items);
       $deposit = (float)$b['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
+      $hasVoucher = !empty($b['vouchers'] ?? []);
       $firstImage = $itemImage($firstItem ?? []);
       $avatarItems = array_slice($items, 0, 4);
       $extraAvatarCount = max(0, $itemCount - count($avatarItems));
@@ -323,7 +327,9 @@ button { font-family: var(--font-b); cursor: pointer; }
             <?php if ($firstItem): ?>
               <div class="gp-card-title-row">
                 <div class="gp-card-service"><?= $h($firstItem['service_name'] ?? 'Wedding Service') ?></div>
+                <span class="gp-card-service-count"><?= $itemCount ?> Service<?= $itemCount === 1 ? '' : 's' ?> Included</span>
               </div>
+              <div class="gp-card-supplier"><?= $h($firstHall !== '' ? 'Hall: ' . $firstHall : ($firstItem['supplier_name'] ?? '')) ?></div>
               <?php if ($itemCount > 1): ?>
                 <div class="gp-card-avatar-stack" aria-label="<?= $itemCount ?> booked services">
                   <span class="gp-card-avatar gp-card-avatar-plus" aria-hidden="true">+</span>
@@ -386,7 +392,11 @@ button { font-family: var(--font-b); cursor: pointer; }
             <?php endif; ?>
           </div>
           <div class="gp-card-actions">
-            <?php if (in_array($b['status'], ['paid', 'confirmed'])): ?>
+            <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/detail/<?= (int)$b['id'] ?>">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              View Details
+            </a>
+            <?php if ($hasVoucher): ?>
               <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/vouchers">View Voucher</a>
             <?php endif; ?>
             <?php if (!in_array($b['status'], ['cancelled', 'cancellation_requested', 'completed'])): ?>

@@ -1347,6 +1347,155 @@
     font-size: 10px;
     font-weight: 600;
   }
+  .sup-vouchers {
+    margin-top: 14px;
+    border: 1px solid #d9c7b8;
+    border-radius: 18px;
+    background: #fffdfb;
+    box-shadow: 0 10px 26px rgba(52,35,43,.05);
+    overflow: hidden;
+  }
+  .sup-vouchers-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #eee0d5;
+  }
+  .sup-vouchers-title {
+    margin: 0;
+    color: #6d4c5b;
+    font-size: 18px;
+    font-weight: 750;
+    line-height: 1.25;
+  }
+  .sup-voucher-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  .sup-voucher-summary span {
+    border: 1px solid #ead8c7;
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: #fffaf5;
+    color: #7b5c69;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .sup-voucher-form {
+    padding: 16px 24px;
+    border-bottom: 1px solid #eee0d5;
+    background: #fdf9f6;
+  }
+  .sup-voucher-label {
+    display: block;
+    margin-bottom: 7px;
+    color: #7b5c69;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .sup-voucher-entry {
+    display: flex;
+    gap: 8px;
+  }
+  .sup-voucher-input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #dccbbd;
+    border-radius: 9px;
+    padding: 8px 11px;
+    background: #fff;
+    color: #3d2a33;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    outline: none;
+  }
+  .sup-voucher-input:focus {
+    border-color: #6d4c5b;
+    box-shadow: 0 0 0 3px rgba(109,76,91,.12);
+  }
+  .sup-voucher-help {
+    margin: 7px 0 0;
+    color: #a58b96;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .sup-voucher-list {
+    display: grid;
+  }
+  .sup-voucher-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 24px;
+    border-bottom: 1px solid #eee0d5;
+  }
+  .sup-voucher-card:last-child {
+    border-bottom: 0;
+  }
+  .sup-voucher-main {
+    min-width: 0;
+  }
+  .sup-voucher-code {
+    color: #3d2a33;
+    font-size: 12px;
+    font-weight: 850;
+    letter-spacing: .04em;
+  }
+  .sup-voucher-service {
+    margin-top: 3px;
+    color: #6d4c5b;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .sup-voucher-meta {
+    margin-top: 4px;
+    color: #9a7d6d;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+  .sup-voucher-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .sup-voucher-status {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 10px;
+    font-weight: 850;
+    line-height: 1;
+  }
+  .sup-voucher-status--active { background: #ECFDF5; color: #065f46; }
+  .sup-voucher-status--used { background: #e8e7ff; color: #4f46a5; }
+  .sup-voucher-status--expired { background: #FEF2F2; color: #991b1b; }
+  .sup-voucher-scan {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #ead8c7;
+    border-radius: 9px;
+    padding: 6px 10px;
+    background: #fff;
+    color: #6d4c5b;
+    font-size: 10px;
+    font-weight: 800;
+    text-decoration: none;
+  }
+  .sup-voucher-scan svg {
+    width: 13px;
+    height: 13px;
+  }
   .sup-quiet-notice {
     display: flex;
     align-items: flex-start;
@@ -1807,6 +1956,27 @@
     .sup-assignment-facts { grid-template-columns: 1fr; }
     .sup-assignment-fact { border-right: 0; border-bottom: 1px solid #eee0d5; }
     .sup-assignment-fact:last-child { border-bottom: 0; }
+    .sup-vouchers-head,
+    .sup-voucher-form,
+    .sup-voucher-card {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .sup-vouchers-head {
+      flex-direction: column;
+    }
+    .sup-voucher-entry,
+    .sup-voucher-card,
+    .sup-voucher-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .sup-voucher-actions,
+    .sup-voucher-entry .sup-btn,
+    .sup-voucher-actions .sup-btn {
+      width: 100%;
+      justify-content: center;
+    }
     .sup-service-detail-list { grid-template-columns: 1fr; }
     .sup-service-detail:nth-child(even) { padding-left: 0; }
     .sup-field-row { grid-template-columns: 1fr; }

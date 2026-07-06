@@ -3250,7 +3250,10 @@
 @layer components {
   .auth-shell {
     min-height: 100vh;
-    background-color: #f5e8d9;
+    background:
+      linear-gradient(rgba(245, 232, 217, 0.78), rgba(250, 245, 239, 0.82)),
+      url("../authbg.png") center / cover fixed no-repeat,
+      #f5e8d9;
   }
   .auth-card {
     border-radius: 0.75rem;

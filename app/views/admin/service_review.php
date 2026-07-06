@@ -8,7 +8,10 @@ $weekly = is_array($service['availability']['weekly'] ?? null) ? $service['avail
 $isVenue = strtolower((string)($service['category'] ?? '')) === 'venue';
 $isApproved = ($service['status'] ?? 'inactive') === 'active';
 $isReady = !empty($readiness['ready']);
-$coverImage = $service['img'] ?? ($media[0]['file_url'] ?? '');
+$coverImage = trim((string)($service['img'] ?? ''));
+if ($coverImage === '' && !empty($media[0]['file_url'])) {
+    $coverImage = (string)$media[0]['file_url'];
+}
 $priceMin = (float)($service['price_min'] ?? $service['price'] ?? 0);
 $priceMax = max($priceMin, (float)($service['price_max'] ?? $priceMin));
 $openDays = count(array_filter($weekly, static fn($row) => !empty($row['is_available'])));
