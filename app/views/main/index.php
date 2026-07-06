@@ -2501,7 +2501,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
         </div>
         <div class="mx-auto flex h-[72vh] min-h-[520px] w-full max-w-[1400px] flex-col overflow-hidden md:flex-row">
-          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:hover:flex-[4]">
+          <a href="<?= URLROOT ?>/customerServices/packages#package-standard" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:hover:flex-[4]">
             <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg2.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
@@ -2518,7 +2518,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
             <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Standard</h3>
           </a>
 
-          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
+          <a href="<?= URLROOT ?>/customerServices/packages#package-luxury" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
             <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg3.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
@@ -2535,7 +2535,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
             <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Luxury</h3>
           </a>
 
-          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
+          <a href="<?= URLROOT ?>/customerServices/packages#package-premium" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
             <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg1.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">

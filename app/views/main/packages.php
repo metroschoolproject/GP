@@ -926,6 +926,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   gap: 42px;
   min-height: auto;
   padding: 34px 0;
+  scroll-margin-top: 96px;
 }
 .gp-package-type-intro{
     display:flex;
