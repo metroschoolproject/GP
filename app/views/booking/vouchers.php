@@ -31,7 +31,7 @@ $imageUrl = function ($path) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#ead8c8;--card:#e6ddd8;--rule:rgba(8,29,43,0.18);--rule-strong:rgba(8,29,43,0.28);--plum:#6b4459;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#d7ad45;--gold-hi:#ffe886;--muted:#756a68;--text:#101010;--text2:#423c3b;--ticket-navy:#6b4459;--ticket-blue:#aebdc0;--ticket-cream:#d8d0cb;--ticket-ink:#071b2a;--ticket-paper:#f3eee8;--r-sm:8px;--r-md:14px;--r-lg:20px;--r-xl:24px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
+:root{--bg:#ead8c8;--card:#e6ddd8;--rule:rgba(8,29,43,0.18);--rule-strong:rgba(8,29,43,0.28);--plum:#6b4459;--plum-lt:#9b7289;--rose:#c27a8e;--gold:#d7ad45;--gold-hi:#ffe886;--muted:#756a68;--text:#101010;--text2:#423c3b;--ticket-navy:#d8c5b6;--ticket-blue:#aebdc0;--ticket-cream:#d8d0cb;--ticket-ink:#071b2a;--ticket-paper:#f3eee8;--ticket-bite:var(--bg);--r-sm:8px;--r-md:14px;--r-lg:20px;--r-xl:24px;--font-d:'Playfair Display',Georgia,serif;--font-b:'Poppins',system-ui,sans-serif;--pad-x:clamp(20px,5vw,72px);--ease-expo:cubic-bezier(0.19,1,0.22,1);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
 a{color:inherit;text-decoration:none}
@@ -78,10 +78,10 @@ a{color:inherit;text-decoration:none}
 .gp-voucher-shell{position:relative;min-height:310px;transform-style:preserve-3d;transition:transform .72s var(--ease-expo)}
 .gp-voucher.is-flipped .gp-voucher-shell{transform:rotateY(180deg)}
 .gp-voucher-face{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) 168px;border:0;border-radius:0;overflow:hidden;backface-visibility:hidden;box-shadow:0 16px 34px rgba(40,29,28,.14)}
-.gp-voucher-face::before,.gp-voucher-face::after{content:'';position:absolute;z-index:5;width:30px;height:30px;border-radius:50%;background:var(--bg);pointer-events:none}
-.gp-voucher-face::before{left:-18px;top:38px;box-shadow:0 26px 0 var(--bg),0 52px 0 var(--bg),0 78px 0 var(--bg),0 104px 0 var(--bg),0 130px 0 var(--bg),0 156px 0 var(--bg),0 182px 0 var(--bg),0 208px 0 var(--bg)}
-.gp-voucher-face::after{right:-18px;top:38px;box-shadow:0 26px 0 var(--bg),0 52px 0 var(--bg),0 78px 0 var(--bg),0 104px 0 var(--bg),0 130px 0 var(--bg),0 156px 0 var(--bg),0 182px 0 var(--bg),0 208px 0 var(--bg)}
-.gp-voucher:nth-of-type(3n+1) .gp-voucher-face{--ticket-bg:var(--ticket-navy);--ticket-fg:#f3eee8;--ticket-soft:rgba(243,238,232,.70);--ticket-faint:rgba(243,238,232,.38);--stub-bg:var(--ticket-navy);--stub-fg:#f3eee8}
+.gp-voucher-face::before,.gp-voucher-face::after{content:'';position:absolute;z-index:5;width:30px;height:30px;border-radius:50%;background:var(--ticket-bite);pointer-events:none}
+.gp-voucher-face::before{left:-18px;top:38px;box-shadow:0 26px 0 var(--ticket-bite),0 52px 0 var(--ticket-bite),0 78px 0 var(--ticket-bite),0 104px 0 var(--ticket-bite),0 130px 0 var(--ticket-bite),0 156px 0 var(--ticket-bite),0 182px 0 var(--ticket-bite),0 208px 0 var(--ticket-bite)}
+.gp-voucher-face::after{right:-18px;top:38px;box-shadow:0 26px 0 var(--ticket-bite),0 52px 0 var(--ticket-bite),0 78px 0 var(--ticket-bite),0 104px 0 var(--ticket-bite),0 130px 0 var(--ticket-bite),0 156px 0 var(--ticket-bite),0 182px 0 var(--ticket-bite),0 208px 0 var(--ticket-bite)}
+.gp-voucher:nth-of-type(3n+1) .gp-voucher-face{--ticket-bg:var(--ticket-navy);--ticket-fg:#071b2a;--ticket-soft:rgba(7,27,42,.68);--ticket-faint:rgba(7,27,42,.34);--stub-bg:var(--ticket-navy);--stub-fg:#071b2a}
 .gp-voucher:nth-of-type(3n+2) .gp-voucher-face{--ticket-bg:var(--ticket-blue);--ticket-fg:#071b2a;--ticket-soft:rgba(7,27,42,.72);--ticket-faint:rgba(7,27,42,.42);--stub-bg:var(--ticket-blue);--stub-fg:#071b2a}
 .gp-voucher:nth-of-type(3n) .gp-voucher-face{--ticket-bg:var(--ticket-cream);--ticket-fg:#071b2a;--ticket-soft:rgba(7,27,42,.72);--ticket-faint:rgba(7,27,42,.42);--stub-bg:var(--ticket-cream);--stub-fg:#071b2a}
 .gp-voucher-back{transform:rotateY(180deg);background:var(--card)}
@@ -93,7 +93,7 @@ a{color:inherit;text-decoration:none}
 .gp-ticket-mark{display:none}
 .gp-ticket-title{position:relative;z-index:1;min-width:0}
 .gp-ticket-title span{display:none}
-.gp-ticket-title .gp-ticket-service{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-family:var(--font-d);font-size:clamp(38px,5.2vw,62px);font-weight:500;line-height:.95;letter-spacing:0;text-transform:none;color:var(--ticket-fg)}
+.gp-ticket-title .gp-ticket-service{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-family:var(--font-d);font-size:clamp(26px,3.4vw,42px);font-weight:500;line-height:1.08;letter-spacing:0;text-transform:none;color:var(--ticket-fg)}
 .gp-ticket-title .gp-ticket-supplier{display:block;margin-top:10px;font-family:var(--font-d);font-size:17px;line-height:1.1;color:var(--ticket-soft)}
 .gp-ticket-title .gp-ticket-time{display:block;margin-top:18px;font-family:var(--font-d);font-size:13px;line-height:1.2;color:var(--ticket-soft)}
 .gp-ticket-art{position:relative;z-index:1;align-self:center;justify-self:stretch;height:210px;background:rgba(255,255,255,.14);overflow:hidden}
@@ -107,7 +107,7 @@ a{color:inherit;text-decoration:none}
 .gp-ticket-qr img{display:block;width:100%;height:100%;object-fit:cover;border-radius:6px}
 .gp-ticket-noqr{display:grid;place-items:center;width:112px;height:112px;border:2px solid currentColor;border-radius:0;color:var(--stub-fg);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;text-align:center}
 .gp-ticket-stub{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px 16px;background:var(--stub-bg);border-left:4px dashed var(--ticket-paper);color:var(--stub-fg)}
-.gp-ticket-stub::before,.gp-ticket-stub::after{content:'';position:absolute;left:-20px;width:38px;height:38px;border-radius:50%;background:var(--bg)}
+.gp-ticket-stub::before,.gp-ticket-stub::after{content:'';position:absolute;left:-20px;width:38px;height:38px;border-radius:50%;background:var(--ticket-bite)}
 .gp-ticket-stub::before{top:-22px}.gp-ticket-stub::after{bottom:-22px}
 .gp-stub-action{display:grid;gap:8px;justify-items:center;width:100%}
 .gp-stub-code{font-family:monospace;font-size:10px;letter-spacing:.06em;writing-mode:vertical-rl;text-orientation:mixed;color:currentColor}

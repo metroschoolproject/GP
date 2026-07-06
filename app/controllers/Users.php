@@ -199,7 +199,8 @@ public function register()
                 // Registration should still work if a cleanup query cannot run.
             }
 
-            if ($this->usermodel->registeremailcheck($data['email'])) {
+            $allowDuplicateRegisterEmails = defined('ALLOW_DUPLICATE_REGISTER_EMAILS') && ALLOW_DUPLICATE_REGISTER_EMAILS;
+            if (!$allowDuplicateRegisterEmails && $this->usermodel->registeremailcheck($data['email'])) {
                 echo json_encode([
                     'email' => true
                 ]);

@@ -35,7 +35,7 @@ foreach ($pendingPayments as $payment) {
 
 // Per-tab copy.
 $tabCopy = [
-    'pending'  => ['title' => 'Payment Verification', 'subtitle' => 'Review submitted booking deposits and remaining payments before confirming.', 'card' => 'Verification Queue', 'note' => $pendingCount . ' proofs waiting'],
+    'pending'  => ['title' => 'Deposit Verification', 'subtitle' => 'Review submitted booking deposits and remaining payments before confirming.', 'card' => 'Verification Queue', 'note' => $pendingCount . ' proofs waiting'],
     'verified' => ['title' => 'Verified Payments',    'subtitle' => 'Deposits and remaining payments you have confirmed as received.',              'card' => 'Verified payments', 'note' => $pendingCount . ' verified'],
     'rejected' => ['title' => 'Rejected Payments',    'subtitle' => 'Payment proofs that were rejected and returned to the customer.',              'card' => 'Rejected payments', 'note' => $pendingCount . ' rejected'],
 ];

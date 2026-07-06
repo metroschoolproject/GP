@@ -30,6 +30,10 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'goldenpromise');
 
+// TEMPORARY: Allow duplicate registration emails for local test-data entry.
+// Set back to false when test seeding is finished.
+define('ALLOW_DUPLICATE_REGISTER_EMAILS', true);
+
 define('GOOGLE_CLIENT_ID', '453132170855-j9npo21t5tr7n6c874ml66ta1l96km1j.apps.googleusercontent.com');
 define('GOOGLE_CLIENT_SECRET', env('GOOGLE_CLIENT_SECRET', ''));
 define('GOOGLE_REDIRECT_URI', URLROOT . '/users/googleCallback');
