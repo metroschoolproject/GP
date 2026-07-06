@@ -61,6 +61,7 @@ $getCountByStatus = function ($status) use ($bookings, $bookingStatusCounts) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title>My Bookings — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
@@ -466,6 +467,7 @@ button { font-family: var(--font-b); cursor: pointer; }
   });
 })();
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 <?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body>
 </html>

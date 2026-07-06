@@ -2410,6 +2410,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
           class="intro-image"
           src="<?= $homeImageRoot ?>/introImage.png"
           alt="Golden Promise intro"
+          decoding="async"
         />
       </div>
     </section>
@@ -2460,6 +2461,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                 class="absolute inset-0 h-full w-full object-cover"
                 src="<?= $homeImageRoot ?>/serviceImg1.png"
                 alt="Cinematic wedding reception with dramatic light"
+                loading="lazy"
+                decoding="async"
               >
             </figure>
           </div>
@@ -2470,6 +2473,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                 class="h-full min-h-[165px] w-full object-cover max-[767px]:min-h-[260px]"
                 src="<?= $homeImageRoot ?>/serviceImg2.png"
                 alt="Dark romantic wedding floral detail"
+                loading="lazy"
+                decoding="async"
               >
             </figure>
 
@@ -2485,6 +2490,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
                 class="h-full w-full object-cover"
                 src="<?= $homeImageRoot ?>/serviceImg3.png"
                 alt="Elegant wedding service detail"
+                loading="lazy"
+                decoding="async"
 
 
                 >
@@ -2574,7 +2581,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
             <article class="hiw-card" style="left: 216px; top: 500px;" data-reveal-at="0" tabindex="0">
               <div class="hiw-card-media">
-                <img src="<?= $homeImageRoot ?>/browse.png" alt="Browsing wedding packages">
+                <img src="<?= $homeImageRoot ?>/browse.png" alt="Browsing wedding packages" loading="lazy" decoding="async">
                 <h3 class="hiw-card-title">Browse Packages</h3>
               </div>
               <p class="hiw-card-copy">Choose the ceremony, styling, and celebration experience that feels like you.</p>
@@ -2582,7 +2589,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
             <article class="hiw-card" style="left: 866px; top: 360px;" data-reveal-at="0.24" tabindex="0">
               <div class="hiw-card-media">
-                <img src="<?= $homeImageRoot ?>/service2.png" alt="Couple details and bouquet">
+                <img src="<?= $homeImageRoot ?>/service2.png" alt="Couple details and bouquet" loading="lazy" decoding="async">
                 <h3 class="hiw-card-title">Choosing Packages</h3>
               </div>
               <p class="hiw-card-copy">Select the package that fits your celebration style.</p>
@@ -2590,7 +2597,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
             <article class="hiw-card" style="left: 866px; top: 640px;" data-reveal-at="0.34" tabindex="0">
               <div class="hiw-card-media">
-                <img src="<?= $homeImageRoot ?>/service1.jpg" alt="Wedding professionals at work">
+                <img src="<?= $homeImageRoot ?>/service1.jpg" alt="Wedding professionals at work" loading="lazy" decoding="async">
                 <h3 class="hiw-card-title">Choosing Services</h3>
               </div>
               <p class="hiw-card-copy">Add the services and details your wedding needs.</p>
@@ -2598,7 +2605,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
             <article class="hiw-card" style="left: 1536px; top: 500px;" data-reveal-at="0.58" tabindex="0">
               <div class="hiw-card-media">
-                <img src="<?= $homeImageRoot ?>/whyChooseUs2.png" alt="Hands joined with rings">
+                <img src="<?= $homeImageRoot ?>/whyChooseUs2.png" alt="Hands joined with rings" loading="lazy" decoding="async">
                 <h3 class="hiw-card-title">Deposit</h3>
               </div>
               <p class="hiw-card-copy">Secure your booking with the required deposit.</p>
@@ -2606,7 +2613,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
             <article class="hiw-card" style="left: 2176px; top: 500px;" data-reveal-at="0.72" tabindex="0">
               <div class="hiw-card-media">
-                <img src="<?= $homeImageRoot ?>/deposit.jpg" alt="Payment cards being exchanged">
+                <img src="<?= $homeImageRoot ?>/deposit.jpg" alt="Payment cards being exchanged" loading="lazy" decoding="async">
                 <h3 class="hiw-card-title">Final Payment</h3>
               </div>
               <p class="hiw-card-copy">Complete the remaining balance before the event.</p>
@@ -2614,7 +2621,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
             <article class="hiw-card" style="left: 2816px; top: 500px;" data-reveal-at="0.84" tabindex="0">
               <div class="hiw-card-media">
-                <img src="<?= $homeImageRoot ?>/hiddenIntro.png" alt="Wedding day celebration collage">
+                <img src="<?= $homeImageRoot ?>/hiddenIntro.png" alt="Wedding day celebration collage" loading="lazy" decoding="async">
                 <h3 class="hiw-card-title">Wedding Day</h3>
               </div>
               <p class="hiw-card-copy">Enjoy your beautifully prepared wedding day.</p>
@@ -2708,30 +2715,30 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
           <div class="gp-gallery-grid" aria-hidden="true">
             <div class="gp-gallery-layer">
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery1.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery2.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery3.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery4.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery5.png" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery6.jpg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery1.png" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery2.png" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery3.png" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery4.png" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery5.png" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery6.jpg" alt="" loading="lazy" decoding="async"></div>
             </div>
 
             <div class="gp-gallery-layer">
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery7.jpg" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery8.jpeg" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery9.jpeg" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery10.jpeg" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery11.jpeg" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery12.jpeg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery7.jpg" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery8.jpeg" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery9.jpeg" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery10.jpeg" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery11.jpeg" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery12.jpeg" alt="" loading="lazy" decoding="async"></div>
             </div>
 
             <div class="gp-gallery-layer">
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery13.jpeg" alt=""></div>
-              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery14.jpg" alt=""></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery13.jpeg" alt="" loading="lazy" decoding="async"></div>
+              <div class="gp-gallery-photo"><img src="<?= URLROOT ?>/app/views/main/images/gallery14.jpg" alt="" loading="lazy" decoding="async"></div>
             </div>
 
             <div class="gp-gallery-scaler gp-gallery-photo">
-              <img src="<?= URLROOT ?>/app/views/main/images/garlleryMain.png" alt="Golden Promise wedding gallery highlight">
+              <img src="<?= URLROOT ?>/app/views/main/images/garlleryMain.png" alt="Golden Promise wedding gallery highlight" loading="lazy" decoding="async">
             </div>
           </div>
         </div>
@@ -2806,7 +2813,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
       <footer class="site-footer" id="contact" aria-label="Website Footer">
         <div class="footer-ribbon-divider" aria-hidden="true">
-          <img class="footer-ribbon-img" src="<?= $homeImageRoot ?>/ribbonFooter.png" alt="">
+          <img class="footer-ribbon-img" src="<?= $homeImageRoot ?>/ribbonFooter.png" alt="" loading="lazy" decoding="async">
         </div>
         <div class="footer-inner">
           <div class="footer-left">

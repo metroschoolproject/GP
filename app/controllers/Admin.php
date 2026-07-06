@@ -3,6 +3,7 @@
 require_once APPROOT . '/services/UploadService.php';
 require_once APPROOT . '/services/EmailService.php';
 require_once APPROOT . '/services/SupplierKpiService.php';
+require_once APPROOT . '/services/GoogleAnalyticsService.php';
 require_once APPROOT . '/controllers/Booking.php';
 
 class Admin extends Controller
@@ -42,6 +43,18 @@ class Admin extends Controller
     public function overview()
     {
         $this->view('admin/admin_dashboard');
+    }
+
+    public function analyticsData()
+    {
+        $filter = $_GET['filter'] ?? 'week';
+        if (!in_array($filter, ['today', 'week', 'month', 'year'], true)) {
+            $filter = 'week';
+        }
+        $dateParam = trim($_GET['date'] ?? '');
+
+        $analyticsService = new GoogleAnalyticsService();
+        $this->jsonResponse($analyticsService->getDashboardSummaryForFilter($filter, $dateParam !== '' ? $dateParam : null));
     }
 
     /**

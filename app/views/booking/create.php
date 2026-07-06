@@ -2359,38 +2359,9 @@ input[type="date"]:invalid {
             <div class="gp-details-section">
               <div class="gp-fieldset-legend" style="margin-bottom:12px;">Your details</div>
               <div class="gp-details-grid">
-                <?php $pkgGuestCount = (int)($item['package_guest_count'] ?? 0); ?>
-                <?php if ($pkgGuestCount > 0): ?>
-                <div class="gp-detail-field">
-                  <label class="gp-detail-label"><?= $h($quantityLabel) ?></label>
-                  <input type="hidden" name="item_guests[<?= $i ?>]" value="<?= $pkgGuestCount ?>">
-                  <div class="gp-detail-input" style="background:#f9fafb;cursor:default;opacity:.85;">
-                    <strong><?= number_format($pkgGuestCount) ?></strong>
-                    <span class="gp-input-note" style="display:inline;margin-left:6px;">Set by package</span>
-                  </div>
-                </div>
-                <?php else: ?>
-                <div class="gp-detail-field">
-                  <label class="gp-detail-label is-required" for="guests-<?= $i ?>"><?= $h($quantityLabel) ?></label>
-                  <div class="gp-detail-stepper">
-                    <button class="gp-stepper-btn" type="button" data-stepper="minus" data-target="guests-<?= $i ?>" aria-label="Decrease">−</button>
-                    <input class="gp-detail-input gp-stepper-input" type="number" id="guests-<?= $i ?>"
-                           name="item_guests[<?= $i ?>]" min="0" max="<?= $itemMaxBooking ?>"
-                           data-max-booking="<?= $itemMaxBooking ?>"
-                           value="<?= $isVenue && $venueRoomCapacity > 0 ? min((int)$venueRoomCapacity, $itemMaxBooking) : '' ?>"
-                           <?php if ($isVenue && $venueRoomCapacity > 0): ?>data-venue-filled="true"<?php endif; ?>
-                           placeholder="Required">
-                    <button class="gp-stepper-btn" type="button" data-stepper="plus" data-target="guests-<?= $i ?>" aria-label="Increase">+</button>
-                  </div>
-                  <?php if ($isVenue && $venueRoomCapacity > 0): ?>
-                    <div class="gp-input-note">Max: <strong><?= (int)$venueRoomCapacity ?></strong> guests</div>
-                  <?php else: ?>
-                    <div class="gp-input-note">Suggested max: <strong><?= $itemMaxBooking ?></strong></div>
-                  <?php endif; ?>
-                  <div class="gp-input-note is-limit-warning" data-limit-message-for="guests-<?= $i ?>">This supplier can accept up to <?= $itemMaxBooking ?> for this booking.</div>
-                </div>
-                <?php endif; ?>
-                <div class="gp-detail-field">
+                <?php $pkgGuestCount = max(1, (int)($item['package_guest_count'] ?? 0)); ?>
+                <input type="hidden" name="item_guests[<?= $i ?>]" value="<?= $pkgGuestCount ?>">
+                <div class="gp-detail-field" style="grid-column: 1 / -1;">
                   <label class="gp-detail-label is-required" for="location-<?= $i ?>">Location / venue room</label>
                   <input class="gp-detail-input" type="text" id="location-<?= $i ?>"
                          name="item_location[<?= $i ?>]"
@@ -3212,6 +3183,7 @@ const packageScheduleState = new Map();
       const itemGuests = numberValue(formData, `item_guests[${index}]`);
       const guestInput = card.querySelector(`[name="item_guests[${index}]"]`);
       const itemMaxBooking = getQuantityMax(guestInput);
+      const isPackageCard = Boolean(card.dataset.packageId);
       const missing = [];
 
       const drawer = card.querySelector('.gp-service-drawer');
@@ -3271,7 +3243,7 @@ const packageScheduleState = new Map();
       if (itemGuests <= 0) {
         missing.push('guest count');
         rememberMissing(guestInput);
-      } else if (itemGuests > itemMaxBooking) {
+      } else if (!isPackageCard && itemGuests > itemMaxBooking) {
         missing.push('supplier limit: ' + itemMaxBooking);
         updateQuantityLimitState(guestInput, true);
         rememberMissing(guestInput);
@@ -3785,11 +3757,18 @@ async function loadPackageSchedule(packageId, date, index) {
         const status = isSlot
           ? (isAvailable ? packageEscapeHtml(item.availability_message || 'Available') : packageEscapeHtml(item.availability_message || 'Full'))
           : 'Managed';
+        const quantity = Number(item.quantity || 0);
+        const quantityType = String(item.quantity_type || '').toLowerCase();
+        const quantityText = quantity > 0
+          ? (quantityType === 'guests'
+              ? quantity.toLocaleString('en-US') + ' guests'
+              : (quantity > 1 ? 'Qty ' + quantity.toLocaleString('en-US') : 'Included'))
+          : 'Included';
         return `
         <div class="gp-package-service-row ${isAvailable ? '' : 'is-full'}">
           <div class="gp-package-service-main">
             <div class="gp-package-service-name">${packageEscapeHtml(item.service_name || 'Package service')}</div>
-            <div class="gp-package-service-meta">${packageTime(item.start_time)} – ${packageTime(item.end_time)} · ${packageEscapeHtml(item.supplier_name || 'Golden Promise')}</div>
+            <div class="gp-package-service-meta">${packageTime(item.start_time)} – ${packageTime(item.end_time)} · ${packageEscapeHtml(item.supplier_name || 'Golden Promise')} · ${packageEscapeHtml(quantityText)}</div>
           </div>
           <div class="gp-package-status">${status}</div>
         </div>

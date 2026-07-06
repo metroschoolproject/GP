@@ -2,6 +2,7 @@
     "require": {
         "stripe/stripe-php": "^14.8",
         "phpmailer/phpmailer": "^7.0",
-        "google/apiclient": "^2.19"
+        "google/apiclient": "^2.19",
+        "google/analytics-data": "^0.24.0"
     }
 }

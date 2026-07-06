@@ -25,6 +25,7 @@ $imageUrl = function ($path) {
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title>My Vouchers — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $v=file_exists(APPROOT.'/../public/css/app.css')?filemtime(APPROOT.'/../public/css/app.css'):time();?>
 <link rel="stylesheet" href="<?=URLROOT?>/public/css/app.css?v=<?=$v?>">
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
@@ -357,4 +358,5 @@ a{color:inherit;text-decoration:none}
   document.addEventListener('click',(e)=>{const btn=e.target.closest('.gp-profile-btn');if(btn){const x=btn.getAttribute('aria-expanded')==='true';document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));btn.setAttribute('aria-expanded',String(!x));return}document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'))});
 })();
 </script>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body></html>

@@ -1,5 +1,6 @@
 # Local environment secrets — never commit
 .env
+storage/*.json
 
 # OS / editor noise
 .DS_Store

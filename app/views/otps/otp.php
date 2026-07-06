@@ -240,12 +240,12 @@
         </div>
 
         <div class="otp-inputs" aria-label="One-time password">
-            <input type="text" inputmode="numeric" maxlength="1" class="otp-input" autofocus>
-            <input type="text" inputmode="numeric" maxlength="1" class="otp-input">
-            <input type="text" inputmode="numeric" maxlength="1" class="otp-input">
-            <input type="text" inputmode="numeric" maxlength="1" class="otp-input">
-            <input type="text" inputmode="numeric" maxlength="1" class="otp-input">
-            <input type="text" inputmode="numeric" maxlength="1" class="otp-input">
+            <input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="1" class="otp-input" autofocus>
+            <input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="1" class="otp-input">
+            <input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="1" class="otp-input">
+            <input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="1" class="otp-input">
+            <input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="1" class="otp-input">
+            <input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="1" class="otp-input">
         </div>
 
         <div class="timer-row">
@@ -266,18 +266,52 @@
 
     <script>
         const inputs = document.querySelectorAll(".otp-input");
+        const getOtp = () => Array.from(inputs).map(i => i.value).join('');
+
+        function submitOtpIfComplete() {
+            const otp = getOtp();
+            if (otp.length === inputs.length) {
+                sendOtpToServer(otp);
+            }
+        }
+
+        function fillOtpFromText(text, startIndex = 0) {
+            const digits = (text || '').replace(/\D/g, '').slice(0, inputs.length - startIndex);
+            if (!digits) return false;
+
+            digits.split('').forEach((digit, offset) => {
+                inputs[startIndex + offset].value = digit;
+            });
+
+            const nextIndex = Math.min(startIndex + digits.length, inputs.length - 1);
+            inputs[nextIndex].focus();
+            submitOtpIfComplete();
+            return true;
+        }
+
         inputs.forEach((input, index) => {
             input.addEventListener('input', (e) => {
-                const value = e.target.value;
+                const value = e.target.value.replace(/\D/g, '');
+                if (value.length > 1) {
+                    e.target.value = "";
+                    fillOtpFromText(value, index);
+                    return;
+                }
+
+                e.target.value = value;
                 if (value.length === 1 && index < inputs.length - 1) {
                     inputs[index + 1].focus();
                 }
                 if (value.length === 0 && index > 0 && e.inputType === 'deleteContentBackward') {
                     inputs[index - 1].focus();
                 }
-                const otp = Array.from(inputs).map(i => i.value).join('');
-                if (otp.length === inputs.length) {
-                    sendOtpToServer(otp);
+                submitOtpIfComplete();
+            });
+
+            input.addEventListener('paste', (e) => {
+                const pastedText = e.clipboardData?.getData('text') || '';
+                if (fillOtpFromText(pastedText, index)) {
+                    e.preventDefault();
                 }
             });
         });
@@ -338,6 +372,33 @@
         const otpInstruction = document.querySelector("#otpInstruction");
         let otpHasBeenSent = false;
 
+        function parseJsonResponse(response) {
+            return response.text().then(text => {
+                const body = text.trim();
+                if (!body) {
+                    return {
+                        ok: response.ok,
+                        data: {
+                            status: false,
+                            message: "Server returned an empty response. Please try again."
+                        }
+                    };
+                }
+
+                try {
+                    return { ok: response.ok, data: JSON.parse(body) };
+                } catch (error) {
+                    return {
+                        ok: false,
+                        data: {
+                            status: false,
+                            message: "Server returned an invalid response. Please refresh and try again."
+                        }
+                    };
+                }
+            });
+        }
+
         resentotp.addEventListener('click', () => {
             const atm_time = document.querySelector('.atm_time');
             atm_time.innerHTML = "";
@@ -350,7 +411,13 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ send_otp: true }),
             })
-            .then(res => res.json())
+            .then(parseJsonResponse)
+            .then(({ ok, data }) => {
+                if (!ok) {
+                    throw new Error(data.message || "Could not send OTP code. Please try again.");
+                }
+                return data;
+            })
             .then(data => {
                 if (data.status == true) {
                     otpHasBeenSent = true;
@@ -362,11 +429,11 @@
                     setTimer();
                     return;
                 }
-                atm_time.innerHTML = "Could not send OTP code. Please try again.";
+                atm_time.innerHTML = data.message || "Could not send OTP code. Please try again.";
             })
             .catch(err => {
                 console.error("Error sending OTP:", err);
-                atm_time.innerHTML = "Could not send OTP code. Please try again.";
+                atm_time.innerHTML = err.message || "Could not send OTP code. Please try again.";
             })
             .finally(() => {
                 resentotp.disabled = false;

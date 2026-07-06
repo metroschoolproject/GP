@@ -688,8 +688,10 @@ class SupplierServiceManager
             $missing[] = 'Add a valid package price.';
         }
 
-        if (empty($media)) {
-            $missing[] = 'Upload at least one portfolio photo.';
+        $mediaCount = count($media);
+        if ($mediaCount < 4) {
+            $remaining = 4 - $mediaCount;
+            $missing[] = 'Upload at least 4 portfolio photos. ' . $remaining . ' more ' . ($remaining === 1 ? 'photo is' : 'photos are') . ' required.';
         }
 
         if ($isVenue) {

@@ -943,14 +943,29 @@ $dashboardContent = function () use (
           $scheduleContact = trim((string)($packageDetail['contact_name'] ?? ''));
           $schedulePhone = trim((string)($packageDetail['contact_phone'] ?? ''));
           $scheduleRequests = trim((string)($packageDetail['special_requests'] ?? ''));
-          $relatedTimeline = array_map(static function ($timelineEvent) use ($supplierId, $ownTimelineServiceIds, $scheduleGuests) {
+          $packageServiceGuests = static function (array $timelineEvent) use ($scheduleGuests): string {
+              $roomCapacity = (int)($timelineEvent['venue_room_capacity'] ?? 0);
+              if ($roomCapacity > 0) {
+                  return number_format($roomCapacity);
+              }
+              $quantity = (int)($timelineEvent['quantity'] ?? 0);
+              if ($quantity > 0) {
+                  return number_format($quantity);
+              }
+              if ($scheduleGuests > 0) {
+                  return number_format($scheduleGuests);
+              }
+              return 'Not specified';
+          };
+          $relatedTimeline = array_map(static function ($timelineEvent) use ($supplierId, $ownTimelineServiceIds, $packageServiceGuests) {
               $timelineServiceId = (int)($timelineEvent['service_id'] ?? 0);
+              $guestText = $packageServiceGuests($timelineEvent);
               return [
                   'key' => (string)($timelineEvent['package_item_id'] ?? $timelineServiceId),
                   'service' => $timelineEvent['service_name'] ?? 'Package service',
                   'category' => $timelineEvent['category_name'] ?? 'Service',
                   'supplier' => $timelineEvent['supplier_name'] ?? 'Golden Promise',
-                  'guests' => $scheduleGuests > 0 ? number_format($scheduleGuests) : 'Not specified',
+                  'guests' => $guestText,
                   'start' => ($timelineEvent['booking_type'] ?? '') === 'fullday'
                       ? 'Day'
                       : (!empty($timelineEvent['start_time']) ? date('g:i A', strtotime($timelineEvent['start_time'])) : 'TBD'),
@@ -985,11 +1000,12 @@ $dashboardContent = function () use (
                 <?php
                   $isOwnTimelineService = (int)($event['supplier_id'] ?? 0) === $supplierId
                       || in_array((int)($event['service_id'] ?? 0), $ownTimelineServiceIds, true);
+                  $eventGuests = $packageServiceGuests($event);
                   $serviceDetailPayload = [
                       'title' => $event['service_name'] ?? 'Service detail',
                       'category' => $event['category_name'] ?? 'Service',
                       'supplier' => $event['supplier_name'] ?? 'Golden Promise',
-                      'guests' => $scheduleGuests > 0 ? number_format($scheduleGuests) : 'Not specified',
+                      'guests' => $eventGuests,
                       'date' => $formatDate($event['event_date'] ?? $firstDate),
                       'time' => ($event['booking_type'] ?? '') === 'fullday'
                           ? 'Full day'
@@ -1018,7 +1034,7 @@ $dashboardContent = function () use (
                     <?php endif; ?>
                   </td>
                   <td style="color:var(--sup-body);font-size:12px"><?= $h($event['supplier_name'] ?? 'Golden Promise') ?></td>
-                  <td><span class="sup-timeline-guest"><?= $scheduleGuests > 0 ? number_format($scheduleGuests) : '—' ?></span></td>
+                  <td><span class="sup-timeline-guest"><?= $eventGuests !== 'Not specified' ? $h($eventGuests) : '—' ?></span></td>
                   <?php if (($event['booking_type'] ?? '') === 'fullday'): ?>
                     <td style="font-weight:700" colspan="2">Day</td>
                   <?php else: ?>

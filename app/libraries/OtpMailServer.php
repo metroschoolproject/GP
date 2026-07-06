@@ -16,7 +16,7 @@ class OtpMailServer{
             "body" => $body
         ];
 
-        $this->mailserver->sendEmailOtp($data);
+        return $this->mailserver->sendEmailOtp($data);
     }
 }
 ?>

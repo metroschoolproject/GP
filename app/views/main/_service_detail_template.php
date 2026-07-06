@@ -1065,16 +1065,33 @@ button, input, select, textarea { font-family: var(--font-sans); }
 }
 
 .product-media .gallery-thumbs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
   gap: 10px;
-  padding: 14px 0 0;
-  overflow: visible;
+  padding: 14px 0 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-color: rgba(109,76,91,.55) rgba(234,216,199,.55);
+  scrollbar-width: thin;
+}
+
+.product-media .gallery-thumbs::-webkit-scrollbar {
+  display: block;
+  height: 7px;
+}
+
+.product-media .gallery-thumbs::-webkit-scrollbar-track {
+  background: rgba(234,216,199,.55);
+  border-radius: 999px;
+}
+
+.product-media .gallery-thumbs::-webkit-scrollbar-thumb {
+  background: rgba(109,76,91,.55);
+  border-radius: 999px;
 }
 
 .product-media .gallery-thumb {
-  flex: initial;
-  width: 100%;
+  flex: 0 0 92px;
+  width: 92px;
   height: 64px;
   border-radius: 6px;
   border: 1px solid transparent;
@@ -3278,8 +3295,8 @@ body:has(.gp-package-notice) .booking-grid {
   .page-shell { padding: 8px 16px 40px; margin-top: 18px; }
   .product-detail { gap: 24px; margin-top: 0; }
   .product-media .gallery-main { height: 280px; }
-  .product-media .gallery-thumbs { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-  .product-media .gallery-thumb { height: 52px; }
+  .product-media .gallery-thumbs { gap: 8px; padding-bottom: 9px; }
+  .product-media .gallery-thumb { flex-basis: 74px; width: 74px; height: 52px; }
   .product-fact { grid-template-columns: 1fr; gap: 4px; }
   .product-actions { flex-direction: column; align-items: stretch; }
   .product-action-primary,
@@ -3405,7 +3422,7 @@ body:has(.gp-package-notice) .booking-grid {
 
         <?php if (count($heroItems) > 1): ?>
           <div class="gallery-thumbs" id="heroThumbs">
-            <?php foreach (array_slice($heroItems, 0, 4) as $i => $item):
+            <?php foreach ($heroItems as $i => $item):
               $tv = ($item['type'] ?? 'image') === 'video';
             ?>
               <div class="gallery-thumb <?= $i === 0 ? 'active' : '' ?>" data-index="<?= $i ?>">
@@ -5081,7 +5098,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const heroDots = document.getElementById('heroDots');
   const heroPrev = document.getElementById('heroPrev');
   const heroNext = document.getElementById('heroNext');
-  const galleryHeroItems = <?= json_encode(array_slice($heroItems, 0, 4)) ?>;
+  const galleryHeroItems = <?= json_encode($heroItems) ?>;
 
   let currentIndex = 0;
   const totalItems = galleryHeroItems.length;

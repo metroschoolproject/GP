@@ -180,7 +180,7 @@ class SupplierProfile
                   FROM suppliers
                   LEFT JOIN users ON users.user_id = suppliers.user_id';
 
-        $conditions = [];
+        $conditions = ['suppliers.deleted_at IS NULL'];
         if ($status !== 'all') {
             $conditions[] = 'suppliers.status = :status';
         }
@@ -194,6 +194,12 @@ class SupplierProfile
                                   INNER JOIN categories search_c ON search_c.id = search_sc.category_id
                                   WHERE search_sc.supplier_id = suppliers.supplier_id
                                     AND search_c.name LIKE :search_category
+                              )
+                              OR EXISTS (
+                                  SELECT 1
+                                  FROM services search_services
+                                  WHERE search_services.supplier_id = suppliers.supplier_id
+                                    AND search_services.name LIKE :search_service
                               ))';
         }
         if ($categoryId > 0) {
@@ -225,6 +231,7 @@ class SupplierProfile
             $this->db->dbbind(':search_owner', $searchValue);
             $this->db->dbbind(':search_email', $searchValue);
             $this->db->dbbind(':search_category', $searchValue);
+            $this->db->dbbind(':search_service', $searchValue);
         }
         if ($categoryId > 0) {
             $this->db->dbbind(':category_id', $categoryId, PDO::PARAM_INT);
@@ -248,7 +255,7 @@ class SupplierProfile
         $query = 'SELECT COUNT(*) AS total
                   FROM suppliers
                   LEFT JOIN users ON users.user_id = suppliers.user_id';
-        $conditions = [];
+        $conditions = ['suppliers.deleted_at IS NULL'];
         if ($status !== 'all') {
             $conditions[] = 'suppliers.status = :status';
         }
@@ -262,6 +269,12 @@ class SupplierProfile
                                   INNER JOIN categories search_c ON search_c.id = search_sc.category_id
                                   WHERE search_sc.supplier_id = suppliers.supplier_id
                                     AND search_c.name LIKE :search_category
+                              )
+                              OR EXISTS (
+                                  SELECT 1
+                                  FROM services search_services
+                                  WHERE search_services.supplier_id = suppliers.supplier_id
+                                    AND search_services.name LIKE :search_service
                               ))';
         }
         if ($categoryId > 0) {
@@ -288,6 +301,7 @@ class SupplierProfile
             $this->db->dbbind(':search_owner', $searchValue);
             $this->db->dbbind(':search_email', $searchValue);
             $this->db->dbbind(':search_category', $searchValue);
+            $this->db->dbbind(':search_service', $searchValue);
         }
         if ($categoryId > 0) {
             $this->db->dbbind(':category_id', $categoryId, PDO::PARAM_INT);
@@ -346,6 +360,7 @@ class SupplierProfile
              FROM suppliers
              LEFT JOIN users ON users.user_id = suppliers.user_id
              WHERE suppliers.supplier_id = :supplier_id
+               AND suppliers.deleted_at IS NULL
              LIMIT 1'
         );
         $this->db->dbbind(':supplier_id', (int)$supplierId);

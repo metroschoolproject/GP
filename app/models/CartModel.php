@@ -746,6 +746,8 @@ class CartModel
                     pi.service_id,
                     {$itemConcurrentSelect}
                     s.name AS service_name,
+                    pi.quantity_type,
+                    pi.quantity,
                     s.booking_type,
                     s.max_concurrent,
                     {$servicePoolSelect}
@@ -757,7 +759,8 @@ class CartModel
                     ss.open_time AS schedule_start_time,
                     ss.close_time AS schedule_end_time,
                     {$defaultTimeSelect}
-                    vr.name AS venue_room_name
+                    vr.name AS venue_room_name,
+                    vr.capacity AS venue_room_capacity
              FROM package_items pi
              INNER JOIN services s ON s.id = pi.service_id
              LEFT JOIN categories c ON c.id = COALESCE(pi.category_id, s.category_id)
@@ -1392,11 +1395,11 @@ class CartModel
                     p.slug AS package_slug,
 
                     -- Admin-set guest count for the package (from guest-priced package_items)
-                    (SELECT pi2.quantity FROM package_items pi2
+                    (SELECT MAX(pi2.quantity) FROM package_items pi2
                      WHERE pi2.package_id = p.package_id
                        AND pi2.deleted_at IS NULL
                        AND pi2.quantity_type = 'guests'
-                     ORDER BY pi2.id ASC LIMIT 1) AS package_guest_count,
+                    ) AS package_guest_count,
 
                     -- Venue location for booking auto-fill
                     v.location AS service_location,

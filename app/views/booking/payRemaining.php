@@ -246,10 +246,10 @@ body > .gp-shared-footer{width:calc(100% + 40px);margin-top:132px;margin-right:-
                 </span>
                 <span class="file-upload-text">
                   <strong id="remainingSlipName">Drag &amp; drop or click to upload your transfer slip</strong>
-                  <small>JPG, PNG, WebP or PDF accepted</small>
+                  <small>JPG, PNG, WebP, HEIC, HEIF or PDF accepted</small>
                 </span>
               </label>
-              <input class="file-input" type="file" id="remainingSlipImage" name="slip_image" accept="image/jpeg,image/png,image/webp,application/pdf" required>
+              <input class="file-input" type="file" id="remainingSlipImage" name="slip_image" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf,application/pdf" required>
             </div>
           </div>
         </div>

@@ -323,7 +323,7 @@ $dashboardContent = function () use (
           $checks = [
             ['Service information', trim((string)($service['name'] ?? '')) !== '' && trim((string)($service['desc'] ?? '')) !== '', trim((string)($service['desc'] ?? '')) !== '' ? 'Complete' : 'Missing'],
             ['Pricing', $priceMin > 0 || in_array(strtolower((string)($service['category'] ?? '')), ['decoration','attire'], true), $priceMin > 0 ? $money($priceMin) : 'Category pricing'],
-            ['Portfolio', !empty($media), count($media) . ' photos'],
+            ['Portfolio', count($media) >= 4, count($media) . ' / 4 photos'],
             [$isVenue ? 'Venue halls' : 'Availability', $isVenue ? !empty($rooms) : $openDays > 0, $isVenue ? count($rooms) . (count($rooms) === 1 ? ' hall' : ' halls') : $openDays . ( $openDays === 1 ? ' open day' : ' open days')],
             ['Supplier payment', strtolower((string)($service['supplier_payment_status'] ?? '')) === 'paid', ucfirst((string)($service['supplier_payment_status'] ?? 'Not recorded'))],
           ];

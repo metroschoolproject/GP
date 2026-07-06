@@ -94,6 +94,87 @@ class Booking extends Controller
         return $vouchers;
     }
 
+    private function supplierServiceContext(array $row): string
+    {
+        $supplier = trim((string)($row['shop_name'] ?? $row['supplier_name'] ?? $row['old_shop_name'] ?? $row['old_supplier_name'] ?? ''));
+        $service = trim((string)($row['service_name'] ?? $row['new_service_name'] ?? $row['old_service_name'] ?? ''));
+        $category = trim((string)($row['category_name'] ?? ''));
+        $item = $service !== '' ? $service : $category;
+
+        if ($supplier !== '' && $item !== '') {
+            return $supplier . ' for ' . $item;
+        }
+        if ($supplier !== '') {
+            return $supplier;
+        }
+        if ($item !== '') {
+            return $item;
+        }
+
+        return 'Supplier';
+    }
+
+    private function replacementContext(array $replacement): string
+    {
+        $oldSupplier = trim((string)($replacement['old_shop_name'] ?? $replacement['old_supplier_name'] ?? ''));
+        $newSupplier = trim((string)($replacement['new_shop_name'] ?? ''));
+        $oldService = trim((string)($replacement['old_service_name'] ?? ''));
+        $newService = trim((string)($replacement['new_service_name'] ?? ''));
+        $service = $newService !== '' ? $newService : $oldService;
+        $parts = [];
+
+        if ($oldSupplier !== '' && $newSupplier !== '') {
+            $parts[] = $oldSupplier . ' replaced by ' . $newSupplier;
+        } elseif ($newSupplier !== '') {
+            $parts[] = 'Replacement supplier ' . $newSupplier;
+        } elseif ($oldSupplier !== '') {
+            $parts[] = $oldSupplier;
+        }
+
+        if ($service !== '') {
+            $parts[] = 'item: ' . $service;
+        }
+
+        return implode(' — ', $parts);
+    }
+
+    private function enrichStatusLogsForDisplay(array $logs, array $suppliers, array $replacementHistory): array
+    {
+        $supplierQueue = $suppliers;
+        $replacementQueue = $replacementHistory;
+
+        foreach ($logs as &$log) {
+            $status = (string)($log['new_status'] ?? '');
+            $note = trim((string)($log['note'] ?? ''));
+            $extra = '';
+
+            if (in_array($status, ['supplier_confirmed', 'supplier_rejected', 'decline_requested', 'supplier_needs_replacement'], true)) {
+                $row = array_shift($supplierQueue);
+                if ($row) {
+                    $extra = $this->supplierServiceContext($row);
+                }
+            }
+
+            $isReplacementLog = str_contains($status, 'replacement') || str_contains(strtolower($note), 'replacement');
+            if ($isReplacementLog) {
+                $replacement = array_shift($replacementQueue);
+                if (!$replacement && !empty($replacementHistory)) {
+                    $replacement = $replacementHistory[count($replacementHistory) - 1];
+                }
+                if ($replacement) {
+                    $extra = $this->replacementContext($replacement);
+                }
+            }
+
+            if ($extra !== '' && !str_contains($note, $extra)) {
+                $log['note'] = $note !== '' ? $note . ' — ' . $extra : $extra;
+            }
+        }
+        unset($log);
+
+        return $logs;
+    }
+
     private function buildPackageSchedules(array $items, array $eventDetails): array
     {
         $packageSchedules = [];
@@ -150,6 +231,7 @@ class Booking extends Controller
             if ($eventDate === '') {
                 continue;
             }
+            $packageDefaultGuests = max(0, (int)($event['guest_count'] ?? 0));
 
             // Start with the full schedule (needed for non-slot services and enrichment)
             $schedule = $this->cartModel->getPackageEventSchedule(
@@ -173,6 +255,11 @@ class Booking extends Controller
                 $serviceEvent['item_price'] = (float)($liveLine['item_price'] ?? 0);
                 $serviceEvent['supplier_status'] = $liveLine['status'] ?? 'pending';
                 $serviceEvent['is_replacement'] = !empty($liveLine['replacement_request_id']);
+            }
+            unset($serviceEvent);
+
+            foreach ($schedule as &$serviceEvent) {
+                $serviceEvent['package_default_guest_count'] = $packageDefaultGuests;
             }
             unset($serviceEvent);
 
@@ -202,12 +289,16 @@ class Booking extends Controller
                                 'category_id'      => (int)($liveLine['category_id'] ?? $first['category_id'] ?? 0),
                                 'category_name'    => $liveLine['category_name'] ?? $first['category_name'] ?? '',
                                 'booking_type'     => 'slot',
+                                'quantity_type'    => $first['quantity_type'] ?? '',
+                                'quantity'         => $first['quantity'] ?? null,
                                 'start_time'       => $first['start_time'],
                                 'end_time'         => $last['end_time'],
                                 'venue_room_name'  => $first['venue_room_name'] ?? '',
+                                'venue_room_capacity' => $first['venue_room_capacity'] ?? null,
                                 'item_price'       => (float)($liveLine['item_price'] ?? 0),
                                 'supplier_status'  => $liveLine['status'] ?? 'pending',
                                 'is_replacement'   => !empty($liveLine['replacement_request_id']),
+                                'package_default_guest_count' => $packageDefaultGuests,
                             ];
                         }
                     } else {
@@ -327,7 +418,10 @@ class Booking extends Controller
             $itemDate = trim($_POST['item_date'][$i] ?? '') ?: trim((string)($item['selected_date'] ?? ''));
             $itemStartTime = trim($_POST['item_start_time'][$i] ?? '') ?: trim((string)($item['start_time'] ?? ''));
             $itemEndTime = trim($_POST['item_end_time'][$i] ?? '') ?: trim((string)($item['end_time'] ?? ''));
-            $itemGuests = (int)($_POST['item_guests'][$i] ?? 0);
+            $isPackageItem = ($item['item_type'] ?? '') === 'package';
+            $itemGuests = $isPackageItem
+                ? max(1, (int)($item['package_guest_count'] ?? 0))
+                : (int)($_POST['item_guests'][$i] ?? 0);
             $itemLocation = trim($_POST['item_location'][$i] ?? '');
             $itemPhone = trim($_POST['item_contact_phone'][$i] ?? '');
             $itemContactName = trim($_POST['item_contact_name'][$i] ?? '');
@@ -392,7 +486,7 @@ class Booking extends Controller
                 }
                 if ($itemGuests <= 0) {
                     $currentItemErrors[] = 'Guest count is required';
-                } elseif (($item['item_type'] ?? '') !== 'package' && $itemGuests > $itemMaxBooking) {
+                } elseif (!$isPackageItem && $itemGuests > $itemMaxBooking) {
                     $currentItemErrors[] = 'This supplier can accept up to ' . $itemMaxBooking . ' for this booking.';
                 }
             }
@@ -1078,6 +1172,11 @@ class Booking extends Controller
             redirect('booking/myBookings');
             return;
         }
+        if (!in_array((string)($booking['status'] ?? ''), ['confirmed', 'pending_final_payment'], true)) {
+            $_SESSION['remaining_payment_flash'] = 'Remaining payment is available after your booking is confirmed.';
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
 
         $total = (float)$booking['total_amount'];
         $paid = (float)$booking['paid_amount'];
@@ -1141,6 +1240,11 @@ class Booking extends Controller
             redirect('booking/myBookings');
             return;
         }
+        if (!in_array((string)($booking['status'] ?? ''), ['confirmed', 'pending_final_payment'], true)) {
+            $_SESSION['remaining_payment_flash'] = 'Remaining payment is available after your booking is confirmed.';
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
 
         $total = (float)$booking['total_amount'];
         $paid = (float)$booking['paid_amount'];
@@ -1174,9 +1278,21 @@ class Booking extends Controller
             return;
         }
 
+        if (($slipFile['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+            $_SESSION['remaining_payment_flash'] = $this->paymentSlipUploadErrorMessage((int)$slipFile['error']);
+            redirect('booking/payRemaining/' . $bookingId);
+            return;
+        }
+
+        if (($slipFile['size'] ?? 0) > 10 * 1024 * 1024) {
+            $_SESSION['remaining_payment_flash'] = 'Your file is too large (' . number_format((float)$slipFile['size'] / 1024 / 1024, 1) . ' MB). Please upload a file under 10MB.';
+            redirect('booking/payRemaining/' . $bookingId);
+            return;
+        }
+
         $slipPath = $this->storePaymentSlip($slipFile);
         if ($slipPath === '') {
-            $_SESSION['remaining_payment_flash'] = 'Invalid file type. Please upload a JPG, PNG, WebP, or PDF file.';
+            $_SESSION['remaining_payment_flash'] = 'Invalid file type. Please upload a JPG, PNG, WebP, HEIC, HEIF, or PDF file.';
             redirect('booking/payRemaining/' . $bookingId);
             return;
         }
@@ -1214,14 +1330,14 @@ class Booking extends Controller
 
     private function storePaymentSlip(array $file): string
     {
-        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
 
         // Detect MIME — fall back to extension-based check if finfo is unreliable
         $mimeType = mime_content_type($file['tmp_name']);
         if (!in_array($mimeType, $allowed, true)) {
             // Retry with file extension (some phones produce files finfo misidentifies)
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $extMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'pdf' => 'application/pdf'];
+            $extMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'heic' => 'image/heic', 'heif' => 'image/heif', 'pdf' => 'application/pdf'];
             $mimeType = $extMap[$ext] ?? $mimeType;
         }
 
@@ -1233,7 +1349,7 @@ class Booking extends Controller
             return '';
         }
 
-        $extMap = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'application/pdf' => 'pdf'];
+        $extMap = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/heic' => 'heic', 'image/heif' => 'heif', 'application/pdf' => 'pdf'];
         $ext = $extMap[$mimeType] ?? 'jpg';
         $relDir = 'uploads/payment-slips/' . date('Y/m');
         $absDir = dirname(APPROOT) . '/public/' . $relDir;
@@ -1660,6 +1776,7 @@ class Booking extends Controller
         // Pricier supplier replacement awaiting the customer's approval + payment.
         $pendingReplacement = $this->bookingModel->getPendingCustomerReplacement($bookingId);
         $replacementHistory = $this->bookingModel->getReplacementHistory($bookingId);
+        $logs = $this->enrichStatusLogsForDisplay($logs, $suppliers, $replacementHistory);
         $refund = $this->bookingModel->getBookingRefund($bookingId);
 
         // Check if there's a pending remaining balance payment
@@ -2372,6 +2489,7 @@ class Booking extends Controller
         // Use the first row for primary logic; all rows are processed below
         $rowId = (int)$matchingRows[0]['id'];
         $supplierRow = $matchingRows[0];
+        $supplierContext = $this->supplierServiceContext($supplierRow);
 
         // Handle "request decline" — supplier wants to decline but is within the
         // cutoff window. This submits a request for admin approval instead.
@@ -2396,7 +2514,7 @@ class Booking extends Controller
                 return;
             }
 
-            $this->bookingModel->logStatusChange($bookingId, null, 'decline_requested', null, 'Supplier requested decline (within cutoff window)');
+            $this->bookingModel->logStatusChange($bookingId, null, 'decline_requested', null, $supplierContext . ' requested decline (within cutoff window)');
 
             $this->notificationModel->notifyAdmins(
                 'Decline Request Received',
@@ -2447,18 +2565,20 @@ class Booking extends Controller
             if (!$this->bookingModel->updateSupplierStatus($rowId, 'rejected', ['pending', 'confirmed'])) {
                 $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
             }
-            $this->bookingModel->logStatusChange($bookingId, null, 'replacement_declined', null, 'Replacement supplier declined; re-pick needed');
+            $activeReplFull = $this->bookingModel->getReplacement((int)($activeRepl['id'] ?? 0)) ?: $activeRepl;
+            $replacementContext = $this->replacementContext($activeReplFull);
+            $this->bookingModel->logStatusChange($bookingId, null, 'replacement_declined', null, 'Replacement declined; re-pick needed' . ($replacementContext !== '' ? ' — ' . $replacementContext : ''));
         } elseif ($isReplaceFlow) {
             $newStatus = 'needs_replacement';
             if (!$this->bookingModel->markSupplierNeedsReplacement($rowId, $declineReason)) {
                 $this->jsonResponse(['error' => 'This supplier response was already handled.'], 409);
             }
             $this->bookingModel->createReplacementRequest($bookingId, $supplierRow, $declineReason);
-            $this->bookingModel->logStatusChange($bookingId, null, 'supplier_needs_replacement', null, 'Supplier declined; awaiting admin replacement');
+            $this->bookingModel->logStatusChange($bookingId, null, 'supplier_needs_replacement', null, $supplierContext . ' declined; awaiting admin replacement');
             // Advance booking out of pending_supplier_response
             if ($isPendingSupplierResponse) {
                 $this->bookingModel->updateStatus($bookingId, 'suppliers_responding');
-                $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'suppliers_responding', null, 'Supplier declined; admin replacement needed');
+                $this->bookingModel->logStatusChange($bookingId, 'pending_supplier_response', 'suppliers_responding', null, $supplierContext . ' declined; admin replacement needed');
             }
             $this->notificationModel->notifyAdmins(
                 'Supplier Replacement Needed',
@@ -2485,7 +2605,7 @@ class Booking extends Controller
             // When targeting a specific service, only update that booking_item
             $targetServiceId = $rowIdParam > 0 ? (int)($matchingRows[0]['service_id'] ?? 0) : 0;
             $this->bookingModel->updateBookingItemsStatusBySupplier($bookingId, $supplierId, $itemStatus, $targetServiceId);
-            $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, 'Supplier ' . $action . 'ed booking');
+            $this->bookingModel->logStatusChange($bookingId, null, 'supplier_' . $newStatus, null, $supplierContext . ' ' . $action . 'ed booking');
         }
 
         // Gather customer info and first item details for emails (fetched once, used below)
@@ -2582,17 +2702,21 @@ class Booking extends Controller
                 ]);
                 if ($this->bookingModel->bookingReplacementsResolved($bookingId)) {
                     $this->bookingModel->updateStatus($bookingId, 'confirmed');
-                    $this->bookingModel->logStatusChange($bookingId, 'replacement_pending', 'confirmed', null, 'Replacement supplier accepted');
+                    $activeReplFull = $this->bookingModel->getReplacement((int)($activeRepl['id'] ?? 0)) ?: $activeRepl;
+                    $replacementContext = $this->replacementContext($activeReplFull);
+                    $this->bookingModel->logStatusChange($bookingId, 'replacement_pending', 'confirmed', null, 'Replacement supplier accepted' . ($replacementContext !== '' ? ' — ' . $replacementContext : ''));
                 } else {
                     // This service is resolved, but other replacement requests
                     // on the same booking are still awaiting action.
                     $this->bookingModel->updateStatus($bookingId, 'replacement_pending');
+                    $activeReplFull = $this->bookingModel->getReplacement((int)($activeRepl['id'] ?? 0)) ?: $activeRepl;
+                    $replacementContext = $this->replacementContext($activeReplFull);
                     $this->bookingModel->logStatusChange(
                         $bookingId,
                         null,
                         'replacement_supplier_accepted',
                         null,
-                        $shopName . ' accepted; other replacements are still pending'
+                        ($replacementContext !== '' ? $replacementContext : $shopName) . ' accepted; other replacements are still pending'
                     );
                 }
             }
@@ -2628,7 +2752,7 @@ class Booking extends Controller
                 $this->bookingModel->createReplacementRequest($bookingId, $supplierRow, $declineReason);
             }
             $this->bookingModel->updateStatus($bookingId, 'replacement_pending');
-            $this->bookingModel->logStatusChange($bookingId, 'confirmed', 'replacement_pending', null, $shopName . ' declined; replacement needed');
+            $this->bookingModel->logStatusChange($bookingId, 'confirmed', 'replacement_pending', null, $supplierContext . ' declined; replacement needed');
 
             // Alert admins to pick a replacement.
             $this->notificationModel->notifyAdmins(
@@ -2699,6 +2823,7 @@ class Booking extends Controller
         }
 
         $shopName = $supplierRow['shop_name'] ?? 'A supplier';
+        $supplierContext = $this->supplierServiceContext($supplierRow);
         $isSupplierCancellationRequest = ($supplierRow['status'] ?? '') === 'supplier_cancellation_requested';
 
         if ($action === 'approve') {
@@ -2716,7 +2841,7 @@ class Booking extends Controller
                 $isSupplierCancellationRequest ? 'cancellation_requested' : 'confirmed',
                 'replacement_pending',
                 null,
-                'Admin approved ' . ($isSupplierCancellationRequest ? 'supplier cancellation request' : 'decline request') . ' from ' . $shopName
+                'Admin approved ' . ($isSupplierCancellationRequest ? 'supplier cancellation request' : 'decline request') . ' from ' . $supplierContext
             );
 
             $this->notificationModel->notifyAdmins(
@@ -2766,7 +2891,7 @@ class Booking extends Controller
                 null,
                 $isSupplierCancellationRequest ? 'supplier_cancellation_rejected' : 'decline_request_rejected',
                 null,
-                'Admin rejected ' . ($isSupplierCancellationRequest ? 'supplier cancellation request' : 'decline request') . ' from ' . $shopName
+                'Admin rejected ' . ($isSupplierCancellationRequest ? 'supplier cancellation request' : 'decline request') . ' from ' . $supplierContext
             );
 
             $supplierUserId = $this->bookingModel->getSupplierUserId((int)($supplierRow['supplier_id'] ?? 0));
@@ -3320,6 +3445,10 @@ class Booking extends Controller
         $cap       = defined('MAX_REPLACEMENT_UPCHARGE_PCT') ? (float)MAX_REPLACEMENT_UPCHARGE_PCT : 25.0;
         $ceiling   = $oldPrice * (1 + $cap / 100);
         $beyondCap = $newPrice > $ceiling;
+        $replacementAssignment = $this->replacementContext(array_merge($replacement, [
+            'new_shop_name' => $chosen['shop_name'] ?? '',
+            'new_service_name' => $chosen['service_name'] ?? '',
+        ]));
 
         // Record the pick.
         $this->bookingModel->updateReplacement($replacementId, [
@@ -3340,6 +3469,7 @@ class Booking extends Controller
             if (!$this->bookingModel->performReplacementSwap($replacementId, false)) {
                 $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
             }
+            $this->bookingModel->logStatusChange($bookingId, null, 'replacement_assigned', $adminId, 'Replacement assigned' . ($replacementAssignment !== '' ? ' — ' . $replacementAssignment : ''));
             $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
             $newSupplierUserId = $this->bookingModel->getSupplierUserId((int)$chosen['supplier_id']);
             if ($newSupplierUserId > 0) {
@@ -3369,6 +3499,7 @@ class Booking extends Controller
             if (!$this->bookingModel->performReplacementSwap($replacementId, false)) {
                 $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
             }
+            $this->bookingModel->logStatusChange($bookingId, null, 'replacement_assigned', $adminId, 'Replacement assigned' . ($replacementAssignment !== '' ? ' — ' . $replacementAssignment : ''));
             $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
             $newSupplierUserId = $this->bookingModel->getSupplierUserId((int)$chosen['supplier_id']);
             if ($newSupplierUserId > 0) {
@@ -3399,6 +3530,7 @@ class Booking extends Controller
             'status' => 'pending_customer',
             'proposed_at' => date('Y-m-d H:i:s'),
         ]);
+        $this->bookingModel->logStatusChange($bookingId, null, 'replacement_pending_customer', $adminId, 'Replacement proposed' . ($replacementAssignment !== '' ? ' — ' . $replacementAssignment : '') . ' — price difference ' . $this->money($delta));
         $this->notificationModel->notifyBookingCustomer(
             $bookingId,
             'Replacement Needs Your Approval',

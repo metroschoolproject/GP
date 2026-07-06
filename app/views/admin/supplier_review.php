@@ -598,7 +598,7 @@ $dashboardContent = function () use ($supplier, $supplierName, $status, $warnLev
           <?php else: ?>
             <p class="srd-reviewed">Already reviewed (<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>).</p>
           <?php endif; ?>
-          <button class="srd-btn srd-btn-danger" type="button" onclick="openModal('permanent-delete')"><i data-lucide="trash-2" class="h-4 w-4"></i> Permanently delete</button>
+          <button class="srd-btn srd-btn-danger" type="button" onclick="openModal('permanentDelete')"><i data-lucide="trash-2" class="h-4 w-4"></i> Permanently delete</button>
         </div>
       </div>
 
@@ -775,8 +775,18 @@ function switchSrdTab(btn, name) {
   btn.classList.add('is-active');
   btn.closest('.srd-panel').querySelectorAll('.srd-tab-panel').forEach(function(p) { p.classList.toggle('is-active', p.dataset.srdPanel === name); });
 }
-function openModal(id) { document.getElementById('modal'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('open'); }
-function closeModal(id) { document.getElementById('modal'+id.charAt(0).toUpperCase()+id.slice(1)).classList.remove('open'); }
+function modalElement(id) {
+  var modalId = 'modal' + id.charAt(0).toUpperCase() + id.slice(1);
+  return document.getElementById(modalId);
+}
+function openModal(id) {
+  var modal = modalElement(id);
+  if (modal) modal.classList.add('open');
+}
+function closeModal(id) {
+  var modal = modalElement(id);
+  if (modal) modal.classList.remove('open');
+}
 document.querySelectorAll('.modal-overlay').forEach(function(m){ m.addEventListener('click',function(e){ if(e.target===m) m.classList.remove('open'); }); });
 
 var permInput = document.getElementById('perm-delete-confirm');

@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 date_default_timezone_set('Asia/Yangon'); 
 
 class Otps extends Controller{ 
@@ -19,13 +19,8 @@ class Otps extends Controller{
         $this->usermodel = $this->model('User');
         $this->otpmodel = $this->model('Otp');
         $this->otpmailserver = new OtpMailServer();
-        if (isset($_SESSION['session_uid'])) {
-            $this->userid = $_SESSION['session_uid'];
-        } else {
-            // Handle not logged-in case safely
-            $this->userid = null;
-        }
-        $this->toEmail = $_SESSION['session_email'];
+        $this->userid = $_SESSION['session_uid'] ?? null;
+        $this->toEmail = $_SESSION['session_email'] ?? '';
 
         $this->logger = new AuthLogger();
         $this->ip = $_SERVER['REMOTE_ADDR'];
@@ -43,23 +38,34 @@ class Otps extends Controller{
 
         header('Content-Type: application/json');
 
-        $otp = $this->generateOtpCode(6);
-        $expires = (new DateTime("+1 minutes"))->format('Y-m-d H:i:s');
-        $storeotp = $this->otpmodel->storeotp($otp,$this->userid,$expires);
+        try {
+            if (!$this->userid || $this->toEmail === '') {
+                http_response_code(401);
+                echo json_encode([
+                    'status' => false,
+                    'message' => 'Your login session expired. Please sign in again.'
+                ]);
+                exit;
+            }
 
-        if($storeotp){
-            $this->otpmailserver->otpMailServer($this->toEmail,$otp);
-            $this->logger->log([
-                'user_id' => $this->userid,
-                'identifier' => $this->toEmail,
-                'event_type' => 'sendingOTP_success',
-                'ip' => $this->ip,
-                'ua' => $this->ua,
-                'details' => 'OTP sent to email successfully.'
-            ]);
-            echo json_encode(['status' => true]);
-            exit;
-        }else{
+            $otp = $this->generateOtpCode(6);
+            $expires = (new DateTime("+1 minutes"))->format('Y-m-d H:i:s');
+            $storeotp = $this->otpmodel->storeotp($otp,$this->userid,$expires);
+            $sent = $storeotp ? $this->otpmailserver->otpMailServer($this->toEmail,$otp) : false;
+
+            if($storeotp && $sent){
+                $this->logger->log([
+                    'user_id' => $this->userid,
+                    'identifier' => $this->toEmail,
+                    'event_type' => 'sendingOTP_success',
+                    'ip' => $this->ip,
+                    'ua' => $this->ua,
+                    'details' => 'OTP sent to email successfully.'
+                ]);
+                echo json_encode(['status' => true]);
+                exit;
+            }
+
             $this->logger->log([
                 'user_id' => $this->userid,
                 'identifier' => $this->toEmail,
@@ -68,7 +74,19 @@ class Otps extends Controller{
                 'ua' => $this->ua,
                 'details' => 'Fail to send OTP'
             ]);
-            echo json_encode(['status' => false]);
+            http_response_code(500);
+            echo json_encode([
+                'status' => false,
+                'message' => 'Could not send OTP code. Please try again.'
+            ]);
+            exit;
+        } catch (Throwable $e) {
+            error_log('OTP resend error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'status' => false,
+                'message' => 'Could not send OTP code. Please try again.'
+            ]);
             exit;
         }
     }

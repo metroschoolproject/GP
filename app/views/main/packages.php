@@ -105,6 +105,7 @@ $sortPackageList($visiblePackages);
 $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time();
 ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
+<link rel="preload" as="image" href="<?= $h($packageHeroImages[0]) ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ballet:opsz@16..72&family=Great+Vibes&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -2364,7 +2365,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 
   <span class="gp-package-type-image">
     <?php if ($pkgImage !== ''): ?>
-      <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy">
+      <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy" decoding="async">
     <?php endif; ?>
 
      <button 
@@ -2515,7 +2516,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 
   <span class="gp-package-type-image">
     <?php if ($pkgImage !== ''): ?>
-      <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy">
+      <img src="<?= $h($pkgImage) ?>" alt="<?= $h($pkg['name'] ?? 'Package') ?>" loading="lazy" decoding="async">
     <?php endif; ?>
 
      <button 
@@ -2585,15 +2586,29 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     let packageHeroIndex = 0;
     let activeHeroLayer = 0;
-    window.setInterval(() => {
-      if (packageHeroLayers.length < 2 || packageHeroImages.length < 2) return;
-      packageHeroIndex = (packageHeroIndex + 1) % packageHeroImages.length;
-      const nextLayer = activeHeroLayer === 0 ? 1 : 0;
-      packageHeroLayers[nextLayer].style.backgroundImage = `url('${packageHeroImages[packageHeroIndex]}')`;
-      packageHeroLayers[nextLayer].classList.add('is-active');
-      packageHeroLayers[activeHeroLayer].classList.remove('is-active');
-      activeHeroLayer = nextLayer;
-    }, 5000);
+    const warmHeroImages = () => {
+      packageHeroImages.slice(1).forEach((src) => {
+        const image = new Image();
+        image.decoding = 'async';
+        image.src = src;
+      });
+    };
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(warmHeroImages);
+    } else {
+      window.setTimeout(warmHeroImages, 1200);
+    }
+    if (!prefersReducedMotion) {
+      window.setInterval(() => {
+        if (packageHeroLayers.length < 2 || packageHeroImages.length < 2 || document.hidden) return;
+        packageHeroIndex = (packageHeroIndex + 1) % packageHeroImages.length;
+        const nextLayer = activeHeroLayer === 0 ? 1 : 0;
+        packageHeroLayers[nextLayer].style.backgroundImage = `url('${packageHeroImages[packageHeroIndex]}')`;
+        packageHeroLayers[nextLayer].classList.add('is-active');
+        packageHeroLayers[activeHeroLayer].classList.remove('is-active');
+        activeHeroLayer = nextLayer;
+      }, 5000);
+    }
 
     if ('IntersectionObserver' in window) {
       const heroObserver = new IntersectionObserver((entries) => {

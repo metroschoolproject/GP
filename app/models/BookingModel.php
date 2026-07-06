@@ -1142,6 +1142,8 @@ class BookingModel
             "SELECT bsr.slot_id,
                     bsr.service_id,
                     bsr.package_item_id,
+                    pi.quantity_type,
+                    pi.quantity,
                     sts.start_time,
                     sts.end_time,
                     s.name AS service_name,
@@ -1150,7 +1152,8 @@ class BookingModel
                     c.name AS category_name,
                     COALESCE(pi.default_supplier_id, s.supplier_id) AS supplier_id,
                     COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name,
-                    vr.name AS venue_room_name
+                    vr.name AS venue_room_name,
+                    vr.capacity AS venue_room_capacity
              FROM booking_slot_reservations bsr
              INNER JOIN service_time_slots sts ON sts.id = bsr.slot_id
              INNER JOIN services s ON s.id = bsr.service_id
@@ -5098,8 +5101,9 @@ class BookingModel
             return false;
         }
 
-        // For package bookings: require supplier acceptance before confirming,
-        // but immediately confirm suppliers who opted into auto-accept.
+        // Package bookings may still need supplier acceptance after payment.
+        // Custom bookings reach payment only after supplier acceptance, so
+        // verifying the deposit can confirm the booking immediately.
         if ($this->isPackageBooking($bookingId)) {
             $this->autoAcceptEnabledSuppliers($bookingId);
             if ($this->allSuppliersAccepted($bookingId)) {
@@ -5109,6 +5113,9 @@ class BookingModel
                 $this->updateStatus($bookingId, 'pending_supplier_response');
                 $this->setSupplierResponseDeadline($bookingId, '+24 hours');
             }
+        } elseif ($this->allSuppliersAccepted($bookingId)) {
+            $this->updateStatus($bookingId, 'confirmed');
+            $this->generateVouchers($bookingId);
         }
 
         return true;
@@ -5489,13 +5496,12 @@ class BookingModel
                 throw new RuntimeException('Failed to create payment record.');
             }
 
-            // Update booking status to pending_final_payment.
-            // Accept any post-deposit status: 'confirmed' (package bookings),
-            // 'paid' or 'payment_verified' (non-package bookings).
+            // Update booking status to pending_final_payment only after the
+            // booking itself is confirmed.
             $this->db->dbquery(
                 "UPDATE bookings SET status = 'pending_final_payment'
                  WHERE id = :id
-                   AND status IN ('confirmed', 'paid', 'payment_verified')
+                   AND status = 'confirmed'
                  LIMIT 1"
             );
             $this->db->dbbind(':id', $bookingId, PDO::PARAM_INT);

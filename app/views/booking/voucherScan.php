@@ -21,6 +21,7 @@ $tone = $status === 'success' ? 'success' : ($status === 'used' ? 'used' : 'erro
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $h($title) ?> - Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $v = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $v ?>">
 <style>
@@ -59,5 +60,6 @@ p{margin:0;color:#5c4a54;font-size:14px;line-height:1.6}
     <a class="scan-btn" href="<?= URLROOT ?>/">Home</a>
   </div>
 </main>
+<?php include APPROOT . '/views/partials/cookie-consent.php'; ?>
 </body>
 </html>

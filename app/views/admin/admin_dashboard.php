@@ -121,6 +121,115 @@
             font-weight: 600 !important;
         }
 
+        .admin-analytics-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+            gap: 0.75rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .admin-analytics-card {
+            min-width: 0;
+            padding: 1.25rem;
+        }
+
+        .admin-analytics-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .admin-analytics-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 13px;
+            color: #6d4c5b;
+        }
+
+        .admin-analytics-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .admin-analytics-metric {
+            display: block;
+            min-width: 0;
+        }
+
+        .admin-analytics-pages {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .admin-analytics-page-row {
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .admin-analytics-page-main {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            min-width: 0;
+        }
+
+        .admin-analytics-page-rank {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 24px;
+            height: 24px;
+            border-radius: 8px;
+            background: #6d4c5b;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .admin-analytics-page-copy {
+            min-width: 0;
+        }
+
+        .admin-analytics-page-title-line,
+        .admin-analytics-page-path {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .admin-analytics-page-title-line {
+            color: #6d4c5b;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .admin-analytics-page-path {
+            color: #A8A29E;
+            font-size: 10px;
+        }
+
+        .admin-analytics-page-stats {
+            flex: 0 0 auto;
+            text-align: right;
+        }
+
+        @media (max-width: 1024px) {
+            .admin-analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .admin-analytics-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* ── Progress bar ── */
         .progress-track {
             height: 6px;
@@ -554,6 +663,53 @@
             </div>
         </section>
 
+        <!-- ── Customer Page Analytics ── -->
+        <section class="admin-analytics-grid">
+            <div class="card admin-analytics-card animate-up" style="animation-delay:0.66s">
+                <div class="admin-analytics-card-head">
+                    <div>
+                        <h2 class="section-title admin-analytics-title">
+                            <i data-lucide="bar-chart-3" class="h-4 w-4" style="color:#6d4c5b"></i>
+                            Customer Page Analytics
+                        </h2>
+                        <p id="gaPeriodLabel" class="mt-0.5" style="font-size:11px;color:#A8A29E">Last 30 days</p>
+                    </div>
+                    <span id="gaStatusBadge" class="badge badge-muted">Loading</span>
+                </div>
+                <div class="admin-analytics-metrics">
+                    <div class="queue-item admin-analytics-metric">
+                        <p class="stat-label">Users</p>
+                        <p id="gaTotalUsers" class="dashboard-fact mt-1 text-xl font-bold" style="color:#6d4c5b">--</p>
+                    </div>
+                    <div class="queue-item admin-analytics-metric">
+                        <p class="stat-label">Active Users</p>
+                        <p id="gaActiveUsers" class="dashboard-fact mt-1 text-xl font-bold" style="color:#6d4c5b">--</p>
+                    </div>
+                    <div class="queue-item admin-analytics-metric">
+                        <p class="stat-label">Sessions</p>
+                        <p id="gaSessions" class="dashboard-fact mt-1 text-xl font-bold" style="color:#6d4c5b">--</p>
+                    </div>
+                    <div class="queue-item admin-analytics-metric">
+                        <p class="stat-label">Page Views</p>
+                        <p id="gaPageViews" class="dashboard-fact mt-1 text-xl font-bold" style="color:#6d4c5b">--</p>
+                    </div>
+                </div>
+                <p id="gaMessage" class="mt-3 hidden" style="font-size:11px;color:#b45309;line-height:1.55"></p>
+            </div>
+
+            <div class="card admin-analytics-card animate-up" style="animation-delay:0.68s">
+                <div class="mb-4">
+                    <h2 class="section-title" style="font-size:13px;color:#6d4c5b">Most Visited Customer Pages</h2>
+                    <p class="mt-0.5" style="font-size:11px;color:#A8A29E">Ranked by Google Analytics page views</p>
+                </div>
+                <div id="gaTopPagesList" class="admin-analytics-pages">
+                    <div class="queue-item">
+                        <span class="stat-label">Loading customer page data...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ── ROW 3: Partners / Vendor / Community ── -->
         <section class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
 
@@ -661,6 +817,18 @@
             const response = await fetch('../admin/overviewData?' + params.toString());
             if (!response.ok) {
                 throw new Error('Dashboard data failed to load (HTTP ' + response.status + ')');
+            }
+            return response.json();
+        }
+
+        async function fetchAnalyticsData() {
+            const params = new URLSearchParams({ filter: currentFilter });
+            if (adminCalSelectedDate) {
+                params.set('date', adminCalSelectedDate);
+            }
+            const response = await fetch('../admin/analyticsData?' + params.toString());
+            if (!response.ok) {
+                throw new Error('Analytics data failed to load (HTTP ' + response.status + ')');
             }
             return response.json();
         }
@@ -931,6 +1099,94 @@
             refreshLucideIcons();
         }
 
+        function renderAnalytics(data) {
+            const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value; };
+            const formatCount = (value) => Number(value || 0).toLocaleString();
+            const statusBadge = document.getElementById("gaStatusBadge");
+            const message = document.getElementById("gaMessage");
+            const topPagesList = document.getElementById("gaTopPagesList");
+
+            setText("gaPeriodLabel", data.periodLabel || "Last 30 days");
+            setText("gaTotalUsers", formatCount(data.totalUsers));
+            setText("gaActiveUsers", formatCount(data.activeUsers));
+            setText("gaSessions", formatCount(data.sessions));
+            setText("gaPageViews", formatCount(data.screenPageViews));
+
+            if (statusBadge) {
+                statusBadge.className = data.available ? "badge badge-emerald" : "badge badge-amber";
+                statusBadge.innerText = data.available ? "Connected" : "Needs setup";
+            }
+
+            if (message) {
+                message.textContent = data.message || "";
+                message.classList.toggle("hidden", !data.message);
+            }
+
+            const pages = Array.isArray(data.topPages) ? data.topPages : [];
+            if (!topPagesList) return;
+            if (!data.available) {
+                topPagesList.innerHTML = `
+                    <div class="queue-item">
+                        <span class="stat-label">Connect GA4 to see top customer pages.</span>
+                    </div>
+                `;
+                return;
+            }
+            if (!pages.length) {
+                topPagesList.innerHTML = `
+                    <div class="queue-item">
+                        <span class="stat-label">No customer page traffic yet for this period.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            topPagesList.innerHTML = pages.map((page, index) => `
+                <div class="queue-item admin-analytics-page-row">
+                    <div class="admin-analytics-page-main">
+                        <span class="admin-analytics-page-rank">${index + 1}</span>
+                        <div class="admin-analytics-page-copy">
+                            <p class="admin-analytics-page-title-line">${escapeHtml(page.title || 'Untitled page')}</p>
+                            <p class="admin-analytics-page-path">${escapeHtml(page.path || '/')}</p>
+                        </div>
+                    </div>
+                    <div class="admin-analytics-page-stats">
+                        <p style="font-size:12px;color:#6d4c5b;font-weight:700;white-space:nowrap">${formatCount(page.views)} views</p>
+                        <p class="stat-label" style="white-space:nowrap">${formatCount(page.users)} users</p>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        async function loadAnalyticsData() {
+            try {
+                const data = await fetchAnalyticsData();
+                renderAnalytics(data);
+            } catch (error) {
+                renderAnalytics({
+                    available: false,
+                    periodLabel: "Last 30 days",
+                    totalUsers: 0,
+                    activeUsers: 0,
+                    sessions: 0,
+                    screenPageViews: 0,
+                    topPages: [],
+                    message: "Google Analytics data could not be loaded.",
+                });
+            } finally {
+                refreshLucideIcons();
+            }
+        }
+
         async function loadDashboardData() {
             if (isLoading) return;
             isLoading = true;
@@ -960,6 +1216,7 @@
                     document.querySelectorAll("[data-event-filter]").forEach(o => o.classList.toggle("active", o === opt));
                     closeEvtMenu();
                     loadDashboardData();
+                    loadAnalyticsData();
                 });
             });
             document.addEventListener("click", e => { if (!evtBtn.contains(e.target) && !evtMenu.contains(e.target)) closeEvtMenu(); });
@@ -1046,6 +1303,7 @@
                     updateAdminCalDisplay();
                     calPopover.hidden = true;
                     loadDashboardData();
+                    loadAnalyticsData();
                     return;
                 }
                 if (todayBtn) {
@@ -1055,6 +1313,7 @@
                     updateAdminCalDisplay();
                     calPopover.hidden = true;
                     loadDashboardData();
+                    loadAnalyticsData();
                     return;
                 }
                 if (clearBtn) {
@@ -1062,6 +1321,7 @@
                     updateAdminCalDisplay();
                     calPopover.hidden = true;
                     loadDashboardData();
+                    loadAnalyticsData();
                 }
             });
 
@@ -1099,6 +1359,7 @@
 
             refreshLucideIcons();
             loadDashboardData();
+            loadAnalyticsData();
         });
     </script>
 </body>

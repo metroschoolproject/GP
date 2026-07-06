@@ -29,12 +29,15 @@ $fallbackEventDetail = $eventDetails[0] ?? [];
 $summaryTotalTop = (float)($booking['total_amount'] ?? 0);
 $summaryPaidTop = (float)($booking['paid_amount'] ?? 0);
 $summaryBalanceTop = max(0, $summaryTotalTop - $summaryPaidTop);
+$remainingPaymentFlash = $_SESSION['remaining_payment_flash'] ?? null;
+unset($_SESSION['remaining_payment_flash']);
 ?>
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <link rel="icon" type="image/png" href="<?= URLROOT ?>/public/images/home/gp_logo.png">
 <title>Booking Detail — Golden Promise</title>
+<?php include APPROOT . '/views/partials/ga-tracking.php'; ?>
 <?php $v=file_exists(APPROOT.'/../public/css/app.css')?filemtime(APPROOT.'/../public/css/app.css'):time();?>
 <link rel="stylesheet" href="<?=URLROOT?>/public/css/app.css?v=<?=$v?>">
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
@@ -278,7 +281,7 @@ body > .gp-shared-footer{margin-top:76px}
 <main class="gp-page">
   <?php
     $currentStatus = $booking['status'] ?? '';
-    $heroHasRemainingBalance = in_array($currentStatus, ['paid', 'payment_verified', 'confirmed', 'pending_final_payment', 'finalized'], true) && $summaryBalanceTop > 0;
+    $heroHasRemainingBalance = in_array($currentStatus, ['confirmed', 'pending_final_payment', 'finalized'], true) && $summaryBalanceTop > 0;
 
     $journeyStatus = strtolower((string)($booking['status'] ?? ''));
     $journeyIsCancellation = in_array($journeyStatus, ['cancellation_requested', 'cancelled'], true);
@@ -334,7 +337,7 @@ body > .gp-shared-footer{margin-top:76px}
         } elseif ($journeyStatus === 'pending_final_payment') {
             $journeyCurrent = 3;
         } elseif ($journeyStatus === 'confirmed') {
-            $journeyCurrent = 3;
+            $journeyCurrent = 2;
         } elseif (in_array($journeyStatus, ['payment_submitted', 'pending_admin', 'paid'], true)) {
             $journeyCurrent = 1;
         } elseif ($journeyStatus === 'pending_payment') {
@@ -368,6 +371,10 @@ body > .gp-shared-footer{margin-top:76px}
     }
   ?>
 
+  <?php if ($remainingPaymentFlash): ?>
+    <div class="gp-flash-error"><?= $h($remainingPaymentFlash) ?></div>
+  <?php endif; ?>
+
   <div class="gp-detail-topbar" aria-label="Booking actions">
       <div class="gp-detail-topbar-left">
         <a class="gp-detail-back" href="<?=URLROOT?>/booking/myBookings">
@@ -398,7 +405,7 @@ body > .gp-shared-footer{margin-top:76px}
   </div>
 
   <div class="gp-top-notices">
-    <?php if (in_array($currentStatus, ['paid', 'confirmed'], true) && $summaryBalanceTop > 0): ?>
+    <?php if ($currentStatus === 'confirmed' && $summaryBalanceTop > 0): ?>
     <div class="gp-info-box">
       <div class="gp-info-icon" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -657,8 +664,8 @@ body > .gp-shared-footer{margin-top:76px}
   <?php endif; ?>
 
   <?php
-    // Remaining balance state — available after deposit is verified (paid, confirmed, or later)
-    $isConfirmedOrLater = in_array($currentStatus, ['paid', 'payment_verified', 'confirmed', 'pending_final_payment', 'finalized'], true);
+    // Remaining balance state — available after the booking itself is confirmed.
+    $isConfirmedOrLater = in_array($currentStatus, ['confirmed', 'pending_final_payment', 'finalized'], true);
     $summaryBalanceEarly = max(0, (float)($booking['total_amount'] ?? 0) - (float)($booking['paid_amount'] ?? 0));
     $hasRemainingBalance = $isConfirmedOrLater && $summaryBalanceEarly > 0;
     $hasPendingRemaining = $hasPendingRemaining ?? false;
@@ -727,6 +734,7 @@ body > .gp-shared-footer{margin-top:76px}
                 $category = trim((string)($item['category_name'] ?? 'Service'));
                 $supplier = trim((string)($item['supplier_name'] ?? 'Golden Promise'));
                 $packagePlan = $packageSchedules[$itemId] ?? [];
+                $isPackageDetailItem = ($item['item_type'] ?? '') === 'package';
               ?>
               <section class="gp-service-detail-panel <?= $idx === 0 ? 'active' : '' ?>" data-service-panel="<?= $itemId ?>" aria-label="<?= $h($item['service_name'] ?? 'Service') ?> details">
                 <div>
@@ -749,7 +757,7 @@ body > .gp-shared-footer{margin-top:76px}
                   </div>
                   <?php endif; ?>
                   <?php if (!empty($ed['guest_count'])): ?>
-                  <div class="gp-field"><span class="gp-field-l">Guests</span><span class="gp-field-v"><?=(int)$ed['guest_count']?></span></div>
+                  <div class="gp-field"><span class="gp-field-l"><?= $isPackageDetailItem ? 'Default Guests' : 'Guests' ?></span><span class="gp-field-v"><?= number_format((int)$ed['guest_count']) ?></span></div>
                   <?php endif; ?>
                   <?php if ($venueText !== ''): ?>
                   <div class="gp-field"><span class="gp-field-l">Venue</span><span class="gp-field-v"><?=$h($venueText)?></span></div>
@@ -781,6 +789,17 @@ body > .gp-shared-footer{margin-top:76px}
                         $start = !empty($event['start_time']) ? date('g:i A', strtotime($event['start_time'])) : 'TBD';
                         $end = !empty($event['end_time']) ? date('g:i A', strtotime($event['end_time'])) : '';
                         $hall = trim((string)($event['venue_room_name'] ?? ''));
+                        $quantity = (int)($event['quantity'] ?? 0);
+                        $defaultGuests = (int)($event['package_default_guest_count'] ?? 0);
+                        $quantityType = strtolower((string)($event['quantity_type'] ?? ''));
+                        $quantityText = '';
+                        if ($quantityType === 'guests' && $quantity > 0) {
+                          $quantityText = 'Default ' . number_format($quantity) . ' guest' . ($quantity === 1 ? '' : 's');
+                        } elseif ($defaultGuests > 0) {
+                          $quantityText = 'Default ' . number_format($defaultGuests) . ' guest' . ($defaultGuests === 1 ? '' : 's');
+                        } elseif ($quantity > 1) {
+                          $quantityText = 'Qty ' . number_format($quantity);
+                        }
                       ?>
                       <div class="gp-event-plan-item">
                         <div class="gp-event-plan-time"><?= $h($start) ?></div>
@@ -789,6 +808,7 @@ body > .gp-shared-footer{margin-top:76px}
                           <div class="gp-event-plan-meta">
                             <?= $h($event['category_name'] ?? 'Service') ?>
                             · <?= $h($event['supplier_name'] ?? 'Golden Promise') ?>
+                            <?php if ($quantityText !== ''): ?> · <?= $h($quantityText) ?><?php endif; ?>
                             <?php if ($end !== ''): ?> · Until <?= $h($end) ?><?php endif; ?>
                           </div>
                           <?php if ($hall !== ''): ?>
@@ -1233,5 +1253,4 @@ function submitEditReview(reviewId) {
   });
 })();
 </script>
-<?php require APPROOT . '/views/layouts/customerFooter.php'; ?>
 </body></html>
