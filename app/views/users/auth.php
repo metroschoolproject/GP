@@ -41,8 +41,8 @@
     margin: 0;
     align-items: center;
     background:
-      radial-gradient(ellipse at 20% 8%, rgba(109,76,91,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 92%, rgba(183,156,139,0.07) 0%, transparent 55%),
+      linear-gradient(rgba(245, 232, 217, 0.78), rgba(250, 245, 239, 0.82)),
+      url("<?= URLROOT ?>/public/authbg.png") center / cover fixed no-repeat,
       var(--bg);
     color: var(--body-font-color);
   }

@@ -23,7 +23,10 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             min-height: 100vh;
-            background: var(--bg);
+            background:
+                linear-gradient(rgba(245, 232, 217, 0.78), rgba(250, 245, 239, 0.82)),
+                url("<?= URLROOT ?>/public/authbg.png") center / cover fixed no-repeat,
+                var(--bg);
             font-family: var(--body-font);
             display: flex;
             align-items: center;

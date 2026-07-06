@@ -81,6 +81,14 @@ class SupplierServiceManager
                          services.price,
                          ' . $priceRangeFields . '
                          services.thumbnail_url,
+                         COALESCE(
+                             NULLIF(services.thumbnail_url, \'\'),
+                             (SELECT sm.file_url
+                              FROM service_media sm
+                              WHERE sm.service_id = services.id
+                              ORDER BY sm.id DESC
+                              LIMIT 1)
+                         ) AS display_thumbnail_url,
                          services.is_active,
                          services.publish_status,
                          services.booking_type,
@@ -1459,7 +1467,10 @@ class SupplierServiceManager
         );
         $this->db->dbbind(':service_id', (int)$serviceId);
 
-        return $this->db->getmultidata();
+        return array_map(function ($media) {
+            $media['file_url'] = $this->normalizePublicAssetUrl($media['file_url'] ?? '');
+            return $media;
+        }, $this->db->getmultidata());
     }
 
     public function addServiceMedia($supplierId, $serviceId, $fileUrl, $type = 'image')
@@ -1482,7 +1493,12 @@ class SupplierServiceManager
         $this->db->dbquery('SELECT id, file_url, type FROM service_media WHERE id = :id LIMIT 1');
         $this->db->dbbind(':id', $mediaId);
 
-        return $this->db->getsingledata();
+        $media = $this->db->getsingledata();
+        if ($media) {
+            $media['file_url'] = $this->normalizePublicAssetUrl($media['file_url'] ?? '');
+        }
+
+        return $media;
     }
 
     public function deleteServiceMedia($supplierId, $serviceId, $mediaId)
@@ -1815,6 +1831,7 @@ class SupplierServiceManager
         $venueName = html_entity_decode(trim((string)($service['venue_name'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         $category = strtolower((string)($service['category'] ?? ''));
+        $imageUrl = $service['display_thumbnail_url'] ?? $service['thumbnail_url'] ?? '';
 
         return [
             'id' => (int)$service['id'],
@@ -1830,7 +1847,7 @@ class SupplierServiceManager
             'status' => !empty($service['is_active']) ? 'active' : 'inactive',
             'publish_status' => $service['publish_status'] ?? 'draft',
             'desc' => html_entity_decode($service['description'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
-            'img' => $service['thumbnail_url'] ?? '',
+            'img' => $this->normalizePublicAssetUrl($imageUrl),
             'capacity' => (int)($service['max_concurrent'] ?? 1),
             'max_concurrent_package' => (int)($service['max_concurrent_package'] ?? 0),
             'max_concurrent_customize' => (int)($service['max_concurrent_customize'] ?? 0),
@@ -1849,6 +1866,36 @@ class SupplierServiceManager
             'car_items' => $category === 'car' ? $this->getCarItems((int)$service['id']) : [],
             'rental_pricing' => in_array($category, ['attire'], true) ? $this->getRentalPricing((int)$service['id']) : null,
         ];
+    }
+
+    private function normalizePublicAssetUrl($url)
+    {
+        $url = trim((string)$url);
+
+        if ($url === ''
+            || str_starts_with($url, 'data:')
+            || str_starts_with($url, 'blob:')
+        ) {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+        $path = is_string($path) && $path !== '' ? $path : $url;
+        $path = str_replace('\\', '/', $path);
+
+        if (preg_match('#/(?:GP/)?public/(.+)$#', $path, $matches)) {
+            return rtrim(URLROOT, '/') . '/public/' . ltrim($matches[1], '/');
+        }
+
+        if (preg_match('#/uploads/(.+)$#', $path, $matches)) {
+            return rtrim(IMG_ROOT, '/') . '/uploads/' . ltrim($matches[1], '/');
+        }
+
+        if (str_starts_with($path, 'uploads/')) {
+            return rtrim(IMG_ROOT, '/') . '/' . $path;
+        }
+
+        return $url;
     }
 
     private function saveVenueDetails($supplierId, $serviceId, $data)

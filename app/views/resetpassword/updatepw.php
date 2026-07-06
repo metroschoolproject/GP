@@ -23,6 +23,10 @@
         font-style: normal;
         padding: 0;
         margin: 0;
+        background:
+            linear-gradient(rgba(245, 232, 217, 0.78), rgba(250, 245, 239, 0.82)),
+            url("<?= URLROOT ?>/public/authbg.png") center / cover fixed no-repeat,
+            #f5e8d9;
 
     }
 
@@ -40,7 +44,7 @@
 </style>
 
 <body>
-    <section class="w-full h-[100vh] bg-gray-200 flex justify-center items-center">
+    <section class="w-full h-[100vh] flex justify-center items-center">
         <div class="w-[600px] min-h-[400px] bg-gray-100 rounded-lg px-14 py-10">
             <h3 class="text-cyan-800 text-2xl mb-4">Reset Password</h3>
             <span class="text-gray-500">If that email is registered, we sent a reset link. </span>
