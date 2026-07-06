@@ -42,10 +42,11 @@ unset($_SESSION['remaining_payment_flash']);
 <?php $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(APPROOT . '/../public/css/app.css') : time(); ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/app.css?v=<?= $publicCssVersion ?>">
 <style>
-:root{--bg:#fbeee0;--surface:#faf6f1;--card:#fcf8f5;--rule:rgba(178,143,110,.22);--rule-s:rgba(178,143,110,.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--green:#166534;--blue:#2563eb;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px}
+:root{--bg:#f2e4d4;--surface:#faf6f1;--card:#fcf8f5;--rule:rgba(178,143,110,.22);--rule-s:rgba(178,143,110,.45);--plum:#6b4459;--plum-dk:#4e3141;--plum-lt:#9b7289;--gold:#b8924a;--muted:#a08878;--text:#1a1118;--text2:#5c4a54;--green:#166534;--blue:#2563eb;--danger:#b94b4b;--r-sm:8px;--r-md:14px;--r-lg:20px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Poppins',system-ui,sans-serif;font-size:14px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
 a{color:inherit;text-decoration:none}
+body > .gp-shared-footer{width:calc(100% + 40px);margin-top:132px;margin-right:-20px;margin-bottom:-40px;margin-left:-20px}
 
 .checkout{position:relative;z-index:1;width:100%;max-width:1120px}
 .page-head{margin-bottom:28px;text-align:left}

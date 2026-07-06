@@ -998,8 +998,8 @@ font-weight: 700;
 .gp-calendar-popover {
   position: fixed;
   z-index: 10010;
-  width: min(250px, calc(100vw - 32px));
-  padding: 12px;
+  width: min(228px, calc(100vw - 32px));
+  padding: 10px;
   border: 1px solid rgba(63,36,26,0.14);
   border-radius: 10px;
   background: rgba(255,248,239,0.98);
@@ -1011,17 +1011,17 @@ font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  color: #3f241a;
-  font-size: 12px;
+  gap: 10px;
+  color: #3F241A;
+  font-size: 11px;
   font-weight: 900;
-  margin-bottom: 9px;
+  margin-bottom: 8px;
 }
 .gp-calendar-nav {
   display: inline-grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border: 0;
   border-radius: 7px;
   background: transparent;
@@ -1036,15 +1036,15 @@ font-weight: 700;
 .gp-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  gap: 2px;
 }
 .gp-calendar-day-name,
 .gp-calendar-day {
   display: grid;
   place-items: center;
-  height: 24px;
+  height: 22px;
   color: #6f5448;
-  font-size: 11px;
+  font-size: 10px;
 }
 .gp-calendar-day-name {
   color: rgba(63,36,26,0.52);
@@ -1205,6 +1205,117 @@ font-weight: 700;
   outline: none;
   border-color: var(--mauve);
   box-shadow: 0 0 0 3px rgba(140,95,114,0.1);
+}
+.gp-detail-input[type="time"][name^="preferred_time"] {
+  min-height: 40px;
+  border: 0.5px solid rgba(118,90,70,.20);
+  border-radius: 7px;
+  background: transparent;
+  color: #3F241A;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: none;
+  color-scheme: light;
+}
+.gp-time-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(160px, 100%);
+  min-height: 40px;
+  border: 0.5px solid rgba(118,90,70,.20);
+  border-radius: 7px;
+  background: linear-gradient(180deg,#fff8ef,#fcf8f5);
+  box-shadow: 0 4px 14px rgba(63,36,26,0.06);
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  cursor: pointer;
+}
+.gp-time-control:hover {
+  border-color: rgba(154,104,127,.36);
+  background: #fff8ef;
+}
+.gp-time-control:focus-within {
+  border-color: rgba(154,104,127,.42);
+  box-shadow: 0 0 0 3px rgba(140,95,114,0.10), 0 6px 18px rgba(63,36,26,0.08);
+}
+.gp-time-control svg {
+  position: absolute;
+  left: 12px;
+  width: 14px;
+  height: 14px;
+  color: #7A4E3D;
+  pointer-events: none;
+  stroke-width: 2;
+}
+.gp-time-control .gp-time-chevron {
+  left: auto;
+  right: 10px;
+  width: 13px;
+  height: 13px;
+}
+.gp-time-display {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 30px 9px 34px;
+  color: #3F241A;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gp-time-control .gp-detail-input[type="time"][name^="preferred_time"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.gp-time-control .gp-detail-input[type="time"][name^="preferred_time"]:focus {
+  box-shadow: none;
+}
+.gp-time-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 10030;
+  display: none;
+  width: 188px;
+  max-height: 214px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid rgba(154,104,127,.20);
+  border-radius: 10px;
+  background: #fff8ef;
+  box-shadow: 0 18px 40px rgba(63,36,26,.18);
+}
+.gp-time-control.is-open .gp-time-menu { display: grid; gap: 2px; }
+.gp-time-menu::-webkit-scrollbar { width: 5px; }
+.gp-time-menu::-webkit-scrollbar-track { background: rgba(154,104,127,.08); border-radius: 999px; }
+.gp-time-menu::-webkit-scrollbar-thumb { background: rgba(154,104,127,.45); border-radius: 999px; }
+.gp-time-option {
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  padding: 9px 10px;
+  background: transparent;
+  color: #5b3b2d;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+.gp-time-option:hover,
+.gp-time-option:focus { background: rgba(154,104,127,.14); color: #3F241A; }
+.gp-time-option.is-selected { background: #6D4C5B; color: #fff8ef; }
+.gp-detail-input[type="time"][name^="preferred_time"]::-webkit-calendar-picker-indicator {
+  opacity: .68;
+  cursor: pointer;
 }
 .gp-detail-input.error, .gp-detail-textarea.error { border-color: var(--danger); }
 .gp-detail-input.is-missing,
@@ -1900,7 +2011,7 @@ input[type="date"]:invalid {
     <p class="gp-page-subtitle">Review your selections and add any details your suppliers need.</p>
   </div>
 
-  <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost">
+  <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost" novalidate>
     <?= csrf_field() ?>
     <div class="gp-layout">
 
@@ -2154,29 +2265,44 @@ input[type="date"]:invalid {
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div>
                       <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select event date</label>
-                      <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
-                             name="item_date[<?= $i ?>]"
-                             min="<?= $minDateStr ?>"
-                             data-min-lead-days="<?= $minLeadDays ?>"
-                             data-index="<?= $i ?>" required>
+                      <span class="venue-date-input-wrap" role="button" tabindex="0" aria-label="Open date calendar">
+                        <i data-lucide="calendar-days" class="venue-date-icon"></i>
+                        <span class="venue-date-display">Choose date</span>
+                        <i data-lucide="chevron-down" class="venue-date-chevron" size="13"></i>
+                        <input class="gp-calendar-input gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+                               name="item_date[<?= $i ?>]"
+                               min="<?= $minDateStr ?>"
+                               data-min-lead-days="<?= $minLeadDays ?>"
+                               data-index="<?= $i ?>" required>
+                      </span>
                     </div>
                     <div>
-                      <label class="gp-detail-label" for="preferred-time-<?= $i ?>">Wedding time</label>
-                      <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
-                             name="preferred_time[<?= $i ?>]"
-                             value="<?= $h($packagePreferredTime) ?>" required
-                             style="max-width:160px;">
+                      <label class="gp-detail-label">Wedding time</label>
+                      <span class="gp-time-control">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                        <span class="gp-time-display" data-time-display><?= $h(date('g:i A', strtotime($packagePreferredTime))) ?></span>
+                        <svg class="gp-time-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                        <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
+                               name="preferred_time[<?= $i ?>]"
+                               value="<?= $h($packagePreferredTime) ?>" required readonly tabindex="-1" aria-hidden="true">
+                        <span class="gp-time-menu" data-time-menu></span>
+                      </span>
                     </div>
                   </div>
                 <?php else: ?>
                   <label class="gp-detail-label" for="slot-date-<?= $i ?>">Select date</label>
-                  <input class="gp-detail-input" type="date" id="slot-date-<?= $i ?>"
-                         name="item_date[<?= $i ?>]"
-                         min="<?= $minDateStr ?>"
-                         data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
-                         data-min-lead-days="<?= $minLeadDays ?>"
-                         data-before-wedding="<?= $isBeforeWedding ? 'yes' : 'no' ?>"
-                         data-index="<?= $i ?>" required>
+                  <span class="venue-date-input-wrap" role="button" tabindex="0" aria-label="Open date calendar">
+                    <i data-lucide="calendar-days" class="venue-date-icon"></i>
+                    <span class="venue-date-display">Choose date</span>
+                    <i data-lucide="chevron-down" class="venue-date-chevron" size="13"></i>
+                    <input class="gp-calendar-input gp-detail-input" type="date" id="slot-date-<?= $i ?>"
+                           name="item_date[<?= $i ?>]"
+                           min="<?= $minDateStr ?>"
+                           data-service-id="<?= (int)($item['item_id'] ?? 0) ?>"
+                           data-min-lead-days="<?= $minLeadDays ?>"
+                           data-before-wedding="<?= $isBeforeWedding ? 'yes' : 'no' ?>"
+                           data-index="<?= $i ?>" required>
+                  </span>
                 <?php endif; ?>
 
                 <?php if ($isFulldayItem):
@@ -2197,12 +2323,17 @@ input[type="date"]:invalid {
                 <?php else: ?>
                   <div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:end;margin-top:10px;">
                     <div>
-                      <label class="gp-detail-label" for="preferred-time-<?= $i ?>">Wedding time</label>
-                      <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
-                             name="preferred_time[<?= $i ?>]"
-                             value="10:00"
-                             data-slot-index="<?= $i ?>"
-                             style="max-width:140px;">
+                      <label class="gp-detail-label">Wedding time</label>
+                      <span class="gp-time-control" style="width:min(140px,100%);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                        <span class="gp-time-display" data-time-display>10:00 AM</span>
+                        <svg class="gp-time-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                        <input class="gp-detail-input" type="time" id="preferred-time-<?= $i ?>"
+                               name="preferred_time[<?= $i ?>]"
+                               value="10:00"
+                               data-slot-index="<?= $i ?>" readonly tabindex="-1" aria-hidden="true">
+                        <span class="gp-time-menu" data-time-menu></span>
+                      </span>
                     </div>
                     <div>
                       <label class="gp-detail-label" style="margin:0;">Time slots (auto-suggested<?= $isBeforeWedding ? ' before' : ' around' ?> wedding time)</label>
@@ -3064,10 +3195,6 @@ const packageScheduleState = new Map();
   function validateRequiredBookingInfo() {
     clearRequiredHighlights();
 
-    if (!form.reportValidity()) {
-      return false;
-    }
-
     const formData = new FormData(form);
     const cards = Array.from(document.querySelectorAll('.gp-item-card'));
     const missingMessages = [];
@@ -3080,6 +3207,7 @@ const packageScheduleState = new Map();
       const itemStart = fieldValue(formData, `item_start_time[${index}]`);
       const itemEnd = fieldValue(formData, `item_end_time[${index}]`);
       const itemPhone = fieldValue(formData, `item_contact_phone[${index}]`);
+      const itemContactName = fieldValue(formData, `item_contact_name[${index}]`);
       const itemLocation = fieldValue(formData, `item_location[${index}]`);
       const itemGuests = numberValue(formData, `item_guests[${index}]`);
       const guestInput = card.querySelector(`[name="item_guests[${index}]"]`);
@@ -3131,6 +3259,10 @@ const packageScheduleState = new Map();
           missing.push('contact phone (must be 10–11 digits)');
           rememberMissing(card.querySelector(`[name="item_contact_phone[${index}]"]`));
         }
+      }
+      if (!itemContactName) {
+        missing.push('contact name');
+        rememberMissing(card.querySelector(`[name="item_contact_name[${index}]"]`));
       }
       if (!itemLocation) {
         missing.push('location');
@@ -3351,7 +3483,7 @@ function updateCalendarDisplay(input) {
 function positionCalendar(anchor) {
   if (!gpCalendar || !anchor) return;
   const rect = anchor.getBoundingClientRect();
-  const width = Math.min(250, window.innerWidth - 32);
+  const width = Math.min(228, window.innerWidth - 32);
   const left = Math.max(16, Math.min(rect.left, window.innerWidth - width - 16));
   gpCalendar.style.width = width + 'px';
   gpCalendar.style.left = left + 'px';
@@ -3678,6 +3810,92 @@ function getPreferredTime(index) {
   const el = document.getElementById('preferred-time-' + index);
   return el ? el.value : '';
 }
+
+function formatPreferredTimeLabel(value) {
+  const parts = String(value || '').split(':').map(Number);
+  if (parts.length < 2 || parts.some(Number.isNaN)) return 'Choose time';
+  const hours = parts[0];
+  const minutes = parts[1];
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 || 12;
+  return hour12 + ':' + String(minutes).padStart(2, '0') + ' ' + period;
+}
+
+function closeTimeMenus(exceptControl) {
+  document.querySelectorAll('.gp-time-control.is-open').forEach(control => {
+    if (control !== exceptControl) control.classList.remove('is-open');
+  });
+}
+
+function buildTimeOptions(control, input) {
+  const menu = control.querySelector('[data-time-menu]');
+  if (!menu || menu.dataset.ready === '1') return;
+  const values = [];
+  for (let hour = 6; hour <= 23; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      values.push(String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0'));
+    }
+  }
+  if (input.value && !values.includes(input.value)) values.unshift(input.value);
+  menu.innerHTML = values.map(value => (
+    '<button class="gp-time-option" type="button" data-time-value="' + value + '">' +
+      formatPreferredTimeLabel(value) +
+    '</button>'
+  )).join('');
+  menu.dataset.ready = '1';
+}
+
+document.querySelectorAll('.gp-time-control').forEach(control => {
+  const input = control.querySelector('input[type="time"][name^="preferred_time"]');
+  const display = control.querySelector('[data-time-display]');
+  if (!input || !display) return;
+
+  const syncDisplay = () => {
+    display.textContent = formatPreferredTimeLabel(input.value);
+    control.querySelectorAll('.gp-time-option').forEach(option => {
+      option.classList.toggle('is-selected', option.dataset.timeValue === input.value);
+    });
+  };
+
+  buildTimeOptions(control, input);
+  syncDisplay();
+
+  control.addEventListener('click', event => {
+    const option = event.target.closest('[data-time-value]');
+    if (option) {
+      event.preventDefault();
+      input.value = option.dataset.timeValue;
+      syncDisplay();
+      control.classList.remove('is-open');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+    if (event.target.closest('[data-time-menu]')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const willOpen = !control.classList.contains('is-open');
+    closeTimeMenus(control);
+    control.classList.toggle('is-open', willOpen);
+    syncDisplay();
+  });
+
+  control.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    closeTimeMenus(control);
+    control.classList.toggle('is-open');
+  });
+});
+
+document.addEventListener('click', event => {
+  if (event.target.closest('.gp-time-control')) return;
+  closeTimeMenus();
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeTimeMenus();
+});
 
 document.querySelectorAll('[data-service-id]').forEach(input => {
   input.addEventListener('change', function() {

@@ -55,7 +55,9 @@ $notificationConfig = $notificationConfig ?? [
         color: #fcf8f5 !important;
     }
 
-    .gp-customer-notification .dashboard-notification-title {
+    .gp-customer-notification .dashboard-notification-header .dashboard-notification-title,
+    .gp-customer-notification #dashboardNotificationPanel .dashboard-notification-title,
+    .gp-customer-notification #dashboardNotificationPanel .dashboard-notification-title.text-app-text {
         color: #fcf8f5 !important;
         font-size: 14px !important;
         font-weight: 800 !important;

@@ -53,9 +53,8 @@ a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 button { font-family: var(--font-body); cursor: pointer; }
 
-/* ══ TEXTURE ═══════════════════════════════════ */
-.gp-texture { position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background-image: radial-gradient(ellipse at 20% 8%, rgba(109,76,91,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 92%, rgba(183,156,139,0.07) 0%, transparent 55%); }
+/* ══ CLEAN BACKGROUND ══════════════════════════ */
+.gp-texture { display:none; }
 
 /* ══ HEADER ════════════════════════════════════ */
 .gp-header { position: sticky; top: 0; z-index: 50; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px; padding: 16px var(--pad-x); border-bottom: 1px solid rgba(184,154,109,0.25); background: rgba(248,245,239,0.90); backdrop-filter: blur(18px); }
@@ -81,38 +80,55 @@ button { font-family: var(--font-body); cursor: pointer; }
 .gp-menu-item--danger:hover { background: rgba(185,75,75,0.08); }
 
 /* ══ BOUTIQUE HERO ═══════════════════════════ */
-.gp-boutique-hero { padding: 72px var(--pad-x) 48px; text-align: center; }
-.gp-boutique-hero-overline { display: inline-flex; align-items: center; gap: 14px; font-size: 12px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--c-gold); margin-bottom: 16px; }
+.gp-boutique-hero { position:relative; overflow:hidden; padding: 32px var(--pad-x) 24px; text-align: center; }
+.gp-boutique-hero::after { display:none; }
+.gp-boutique-hero-overline { display: none; }
 .gp-boutique-hero-overline::before, .gp-boutique-hero-overline::after { content: ''; display: block; width: 28px; height: 1.5px; background: var(--c-gold); }
 .gp-boutique-hero h1 { font-family: var(--font-display); font-size: clamp(42px, 5vw, 68px); font-weight: 600; line-height: 0.92; color: var(--c-text); letter-spacing: -0.02em; }
 .gp-boutique-hero h1 em { font-style: italic; color: var(--c-strong); }
-.gp-boutique-hero p { max-width: 480px; margin: 16px auto 0; font-size: 15px; line-height: 1.7; color: var(--c-muted); }
+.gp-boutique-hero p { display:none; }
 
 /* ══ BOUTIQUE DIVIDER ═══════════════════════ */
-.gp-divider-boutique { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 0 var(--pad-x) 36px; user-select: none; }
+.gp-divider-boutique { display: none; }
 .gp-divider-line { flex: 1; max-width: 100px; height: 1px; background: linear-gradient(to right, transparent, var(--c-rule), transparent); }
 .gp-divider-diamond { width: 6px; height: 6px; border: 1px solid var(--c-muted); transform: rotate(45deg); opacity: 0.4; }
 
 /* ══ PROFILE CARD (boutique panel style) ════ */
-.gp-profile-section { padding: 0 var(--pad-x) 64px; max-width: 620px; margin: 0 auto; }
-.gp-boutique-panel { background: linear-gradient(145deg, rgba(250,245,239,0.95), rgba(245,232,217,0.92)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(212,160,71,0.15); border-radius: 20px; box-shadow: 0 20px 50px -12px rgba(109,76,91,0.12), inset 0 1px 0 rgba(252,248,245,0.60); overflow: hidden; margin-bottom: 20px; }
+.gp-profile-section { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:24px; padding: 0 var(--pad-x) 84px; max-width: 1180px; margin: 0 auto; }
+.gp-boutique-panel { background: rgba(255,253,250,.82); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border: 1px solid rgba(212,160,71,0.14); border-radius: 18px; box-shadow: 0 20px 50px -22px rgba(109,76,91,0.28), inset 0 1px 0 rgba(252,248,245,0.82); overflow: hidden; margin-bottom: 0; }
 .gp-boutique-panel:focus-within { border-color: rgba(212,160,71,0.30); box-shadow: 0 0 0 4px rgba(212,160,71,0.08), 0 20px 50px -12px rgba(109,76,91,0.16); }
-.gp-panel-head { padding: 22px 28px 0; display: flex; align-items: center; gap: 16px; }
-.gp-panel-avatar { width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, var(--c-strong), #8b5e6f); color: #fffaf3; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 28px; font-weight: 500; letter-spacing: -1px; overflow: hidden; box-shadow: 0 0 0 4px rgba(109,76,91,0.06), 0 8px 24px rgba(109,76,91,0.10); }
+.gp-boutique-panel:nth-child(1){grid-column:1 / -1;grid-row:1}
+.gp-boutique-panel:nth-child(2){grid-column:1;grid-row:2}
+.gp-boutique-panel:nth-child(3){grid-column:2;grid-row:2}
+.gp-boutique-panel:nth-child(4){grid-column:1 / -1;grid-row:3}
+.gp-panel-head { padding: 26px 32px 0; display: flex; align-items: center; gap: 16px; }
+.gp-panel-avatar { width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, #f3e6e4, #ead7d6); color: var(--c-strong); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 28px; font-weight: 500; letter-spacing: -1px; overflow: hidden; box-shadow: 0 0 0 4px rgba(109,76,91,0.06), 0 8px 24px rgba(109,76,91,0.10); }
 .gp-panel-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .gp-panel-id { flex: 1; }
 .gp-panel-id .name { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin-bottom: 2px; }
 .gp-panel-id .email { font-size: 13px; color: var(--c-muted); }
 .gp-panel-id .joined { font-size: 11px; color: var(--c-pale); margin-top: 4px; display: flex; align-items: center; gap: 5px; }
-.gp-panel-body { padding: 24px 28px 28px; }
+.gp-panel-body { padding: 28px 32px 30px; }
+.gp-panel-title{display:flex;align-items:center;gap:16px;margin-bottom:28px}
+.gp-panel-title-avatar{position:relative;display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:#f3e6e4;color:var(--c-strong);overflow:visible;box-shadow:0 0 0 6px rgba(109,76,91,.04),0 12px 24px rgba(109,76,91,.12);flex:0 0 auto;isolation:isolate}
+.gp-panel-title-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.gp-panel-title-avatar #pgInitial{font-family:var(--font-body);font-size:25px}
+.gp-avatar-edit{position:absolute;right:-7px;bottom:-7px;z-index:20;display:grid;place-items:center;width:30px;height:30px;min-height:0;padding:0;border-radius:50%;border:2px solid rgba(255,253,248,.92);background:rgba(109,76,91,.72);color:rgba(255,250,243,.9);font-size:0;box-shadow:0 8px 20px rgba(109,76,91,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.gp-avatar-edit::before{content:'↻';font-size:13px;font-weight:400;line-height:1}
+.gp-avatar-edit:hover{background:rgba(126,88,107,.86);transform:translateY(-1px)}
+.gp-panel-title-text{font-family:var(--font-body);font-size:20px;font-weight:700;color:#1f1d1c;line-height:1}
+.gp-panel-title-text::after{display:none}
+.gp-security-title{display:block;margin-top:2px;color:#211d1a;font-family:var(--font-body);font-size:20px;font-weight:700;line-height:1.2}
+.gp-panel-subtitle{display:block;margin-top:9px;color:var(--c-muted);font-size:12px;font-family:var(--font-body)}
+.gp-title-stack{display:block}
 
 /* ══ FORM FIELDS ════════════════════════════ */
-.gp-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.gp-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 24px; }
 .gp-field-row.single { grid-template-columns: 1fr; }
 .gp-field-row:last-child { margin-bottom: 0; }
 .gp-field-boutique { display: flex; flex-direction: column; gap: 4px; }
-.gp-field-boutique label { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-strong); padding-left: 2px; }
-.gp-field-boutique input { height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(212,160,71,0.12); background: rgba(252,248,245,0.72); font-size: 13px; font-weight: 500; color: var(--c-text); width: 100%; transition: border-color 0.2s, background 0.2s; font-family: var(--font-body); }
+.gp-field-boutique label { font-size: 11px; font-weight: 800; letter-spacing: 0.11em; text-transform: uppercase; color: var(--c-strong); padding-left: 2px; }
+.gp-field-boutique input { height: 60px; padding: 0 18px; border-radius: 11px; border: 1px solid rgba(109,76,91,0.14); background: rgba(255,253,250,0.76); font-size: 14px; font-weight: 500; color: var(--c-text); width: 100%; transition: border-color 0.2s, background 0.2s; font-family: var(--font-body); box-shadow:inset 0 1px 0 rgba(252,248,245,.8); }
 .gp-field-boutique input:hover { background: rgba(252,248,245,0.90); border-color: rgba(212,160,71,0.25); }
 .gp-field-boutique input:focus { border-color: var(--c-gold); background: #fcf8f5; box-shadow: 0 0 0 3px rgba(212,160,71,0.10); outline: none; }
 .gp-field-boutique input::placeholder { color: var(--c-pale); }
@@ -138,9 +154,14 @@ button { font-family: var(--font-body); cursor: pointer; }
 
 /* ══ TOGGLE ══════════════════════════════ */
 
-.gp-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 0; }
-.gp-toggle-row + .gp-toggle-row { border-top: 1px solid var(--c-rule); }
-.gp-toggle-label { font-size: 13px; font-weight: 600; }
+.gp-toggle-row { display: grid; grid-template-columns:54px 1fr auto; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; }
+.gp-toggle-row + .gp-toggle-row { border-top: 0; }
+.gp-toggle-row::before{content:'';display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#f6e9e9;color:var(--c-strong);font-size:20px}
+.gp-toggle-row:nth-of-type(2)::before{content:'◷'}
+.gp-toggle-row:nth-of-type(3)::before{content:'□'}
+.gp-toggle-row:nth-of-type(4)::before{content:'☆'}
+.gp-toggle-row:nth-of-type(5)::before{content:'✉'}
+.gp-toggle-label { font-size: 14px; font-weight: 700; color:#211d1a; }
 .gp-toggle-desc { font-size: 11px; color: var(--c-muted); margin-top: 2px; }
 .gp-toggle { width: 48px; height: 28px; border-radius: 14px; background: rgba(212,160,71,0.18); cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
 .gp-toggle.on { background: var(--c-strong); }
@@ -148,7 +169,7 @@ button { font-family: var(--font-body); cursor: pointer; }
 .gp-toggle.on::after { transform: translateX(20px); }
 
 /* ══ BUTTONS ═════════════════════════════ */
-.gp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 24px; border-radius: 12px; font-family: var(--font-body); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.25s var(--ease); border: none; }
+.gp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 28px; border-radius: 9px; font-family: var(--font-body); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.25s var(--ease); border: none; }
 .gp-btn-primary { background: linear-gradient(135deg, var(--c-strong) 0%, #8b5e6f 100%); color: #fffaf3; box-shadow: 0 4px 14px rgba(109,76,91,0.22); }
 .gp-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(109,76,91,0.30); }
 .gp-btn-primary:active { transform: translateY(0); }
@@ -165,8 +186,9 @@ button { font-family: var(--font-body); cursor: pointer; }
 .gp-section-rule span { font-family: var(--font-display); font-size: 13px; font-style: italic; color: var(--c-muted); white-space: nowrap; }
 
 /* ══ PHOTO CHIP ═════════════════════════ */
-.gp-photo-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 10px; border-radius: 999px; border: 1px solid rgba(212,160,71,0.18); background: rgba(250,245,239,0.80); font-size: 12px; font-weight: 600; color: #8b6f3e; cursor: pointer; transition: all 0.2s; font-family: var(--font-body); }
-.gp-photo-chip:hover { border-color: var(--c-gold); background: rgba(212,160,71,0.06); }
+.gp-photo-chip { display: inline-flex; align-items:center; justify-content:center; gap: 8px; min-height:48px; padding:0 22px; border-radius:9px; border: 0; background: var(--c-strong); font-size: 13px; font-weight: 700; color: #fffaf3; cursor: pointer; transition: all 0.2s; font-family: var(--font-body); }
+.gp-photo-chip::before{content:'▣';font-size:13px}
+.gp-photo-chip:hover { background:#7e586b; transform:translateY(-1px); }
 
 /* ══ INLINE MESSAGE ═════════════════════ */
 .gp-inline-msg { display: none; padding: 10px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; margin-bottom: 14px; }
@@ -177,69 +199,53 @@ button { font-family: var(--font-body); cursor: pointer; }
   .gp-header-nav { display: none; }
   .gp-field-row { grid-template-columns: 1fr; }
 }
+@media (max-width: 980px) {
+  .gp-profile-section{grid-template-columns:1fr;max-width:720px}
+  .gp-boutique-panel:nth-child(n){grid-column:1;grid-row:auto;min-height:0}
+}
+
+/* Keep the shared footer wave blended with the profile page background. */
+body .gp-shared-footer::before{
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='42' viewBox='0 0 260 42'%3E%3Cpath fill='%23f5e8d9' d='M0 0h260v18C218 42 174-2 130 18 86 38 42-2 0 18V0Z'/%3E%3C/svg%3E") repeat-x top left/260px 42px;
+}
 </style>
 </head>
 <body>
-<div class="gp-texture" aria-hidden="true"></div>
 
 <?php $gpNavActive = 'profile'; require APPROOT . '/views/layouts/customerHomeNav.php'; ?>
 
 <!-- HERO ================================================= -->
 <section class="gp-boutique-hero">
-  <div class="gp-boutique-hero-overline">Your Account</div>
   <h1>My <em>Profile</em></h1>
-  <p>Manage your personal details, security, and preferences in one place.</p>
 </section>
-
-<div class="gp-divider-boutique">
-  <div class="gp-divider-line"></div>
-  <div class="gp-divider-diamond"></div>
-  <div class="gp-divider-line"></div>
-</div>
 
 <!-- CONTENT ============================================== -->
 <section class="gp-profile-section">
 
-  <!-- PHOTO + IDENTITY panel -->
-  <div class="gp-boutique-panel">
-    <div class="gp-panel-head">
-      <div class="gp-panel-avatar" id="pgAvatar"><?php if (!empty($profileAvatar)): ?><img src="<?= $h($profileAvatar) ?>" alt="" id="pgImg"><?php else: ?><span id="pgInitial"><?= $initials ?></span><?php endif; ?></div>
-      <div class="gp-panel-id">
-        <div class="name"><?= $h($userName) ?></div>
-        <div class="email"><?= $h($userEmail) ?></div>
-        <div class="joined">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Member since <?= $h($userJoined) ?>
-        </div>
-      </div>
-    </div>
-    <div class="gp-panel-body" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <span style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-muted);">Photo</span>
-      <button type="button" class="gp-photo-chip" id="btnPhoto"><?= empty($profileAvatar) ? 'Add Photo' : 'Change' ?></button>
-      <?php if (!empty($profileAvatar)): ?>
-      <button type="button" class="gp-btn gp-btn-sm gp-btn-ghost" id="btnRemove" style="color:var(--c-danger);">Remove</button>
-      <?php endif; ?>
-      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
-    </div>
-  </div>
-
   <!-- PERSONAL INFO panel -->
   <div class="gp-boutique-panel">
     <div class="gp-panel-body">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--c-strong)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span style="font-family:var(--font-display);font-size:16px;font-weight:600;">Personal Information</span>
+      <div class="gp-panel-title">
+        <span class="gp-panel-title-avatar" id="pgAvatar">
+          <?php if (!empty($profileAvatar)): ?><img src="<?= $h($profileAvatar) ?>" alt="" id="pgImg"><?php else: ?><span id="pgInitial">▣</span><?php endif; ?>
+          <button type="button" class="gp-avatar-edit" id="btnPhoto" aria-label="<?= empty($profileAvatar) ? 'Add profile photo' : 'Change profile photo' ?>"></button>
+        </span>
+        <span>
+          <span class="gp-panel-title-text">Personal Information</span>
+          <span class="gp-panel-subtitle">Member since <?= $h($userJoined) ?></span>
+        </span>
       </div>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
       <div id="profileSaveMsg" class="gp-inline-msg"></div>
       <div class="gp-field-row">
         <div class="gp-field-boutique"><label>First Name</label><input id="profFirstName" type="text" value="<?= $h($firstName) ?>" placeholder="First name"></div>
         <div class="gp-field-boutique"><label>Last Name</label><input id="profLastName" type="text" value="<?= $h($lastName) ?>" placeholder="Last name"></div>
       </div>
-      <div class="gp-field-row single">
-        <div class="gp-field-boutique"><label>Email</label><input id="profEmail" type="email" value="<?= $h($userEmail) ?>" placeholder="you@example.com"></div>
-      </div>
       <div class="gp-field-row">
+        <div class="gp-field-boutique"><label>Email</label><input id="profEmail" type="email" value="<?= $h($userEmail) ?>" placeholder="you@example.com"></div>
         <div class="gp-field-boutique"><label>Phone</label><input id="profPhone" type="tel" value="<?= $h($userPhone) ?>" placeholder="+95"></div>
+      </div>
+      <div class="gp-field-row single">
         <div class="gp-field-boutique"><label>Last Login</label><input type="text" value="<?= $h($userLastLogin) ?>" readonly style="color:var(--c-muted);"></div>
       </div>
       <div class="gp-actions"><button class="gp-btn gp-btn-ghost" id="btnCancelInfo">Cancel</button><button class="gp-btn gp-btn-primary" id="btnSaveInfo">Save Changes</button></div>
@@ -249,9 +255,8 @@ button { font-family: var(--font-body); cursor: pointer; }
   <!-- PASSWORD panel -->
   <div class="gp-boutique-panel">
     <div class="gp-panel-body">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--c-strong)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span style="font-family:var(--font-display);font-size:16px;font-weight:600;"><?= $userHasPw ? 'Change Password' : 'Set a Password' ?></span>
+      <div class="gp-panel-title">
+        <span class="gp-title-stack"><span class="gp-security-title"><?= $userHasPw ? 'Change Password' : 'Set Password' ?></span></span>
       </div>
 
       <?php if ($userIsOauth): ?>
@@ -300,9 +305,8 @@ button { font-family: var(--font-body); cursor: pointer; }
   <!-- PREFERENCES panel -->
   <div class="gp-boutique-panel">
     <div class="gp-panel-body">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--c-strong)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span style="font-family:var(--font-display);font-size:16px;font-weight:600;">Notification Preferences</span>
+      <div class="gp-panel-title">
+        <span class="gp-panel-title-text">Notification Preferences</span>
       </div>
       <div class="gp-toggle-row"><div><div class="gp-toggle-label">Booking Updates</div><div class="gp-toggle-desc">When suppliers confirm or update your bookings</div></div><div class="gp-toggle on"></div></div>
       <div class="gp-toggle-row"><div><div class="gp-toggle-label">Payment Reminders</div><div class="gp-toggle-desc">Before deposit and final payment deadlines</div></div><div class="gp-toggle on"></div></div>
@@ -316,8 +320,8 @@ button { font-family: var(--font-body); cursor: pointer; }
     <div class="gp-panel-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--c-danger)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span style="font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--c-danger);">Danger Zone</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--c-danger)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.6 20h18.8L12 3Z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>
+          <span style="font-family:var(--font-body);font-size:16px;font-weight:700;color:var(--c-danger);">Danger Zone</span>
         </div>
         <div style="font-size:12px;color:var(--c-muted);">Delete your account and all associated data permanently.</div>
       </div>
@@ -522,7 +526,7 @@ document.getElementById('btnUpdatePw').addEventListener('click', function(){
 });
 
 // ── PHOTO UPLOAD ──
-var fi=document.getElementById('fileInput'),bp=document.getElementById('btnPhoto'),br=document.getElementById('btnRemove');
+var fi=document.getElementById('fileInput'),bp=document.getElementById('btnPhoto');
 bp.addEventListener('click',function(){fi.click();});
 fi.addEventListener('change',function(){
     var file = this.files[0];
@@ -553,18 +557,7 @@ fi.addEventListener('change',function(){
             }
             // Header avatar
             if (hd) { hd.innerHTML = '<img src="' + imgUrl + '" alt="">'; }
-            bp.textContent = 'Change';
-            // Show remove button
-            if (!document.getElementById('btnRemove')) {
-                var rm = document.createElement('button');
-                rm.type = 'button'; rm.id = 'btnRemove';
-                rm.className = 'gp-btn gp-btn-sm gp-btn-ghost';
-                rm.style.color = 'var(--c-danger)';
-                rm.textContent = 'Remove';
-                rm.addEventListener('click', removePhoto);
-                bp.parentNode.insertBefore(rm, bp.nextSibling);
-                br = rm;
-            }
+            bp.textContent = 'Change Photo';
         } else {
             bp.textContent = 'Add Photo';
             alert(data.error || 'Upload failed.');
@@ -599,16 +592,12 @@ function removePhoto() {
             pg.appendChild(initSpan);
             if (hd) { hd.innerHTML = '<?= $initials ?>'; }
             bp.textContent = 'Add Photo';
-            var rmBtn = document.getElementById('btnRemove');
-            if (rmBtn) rmBtn.remove();
         } else {
             alert(data.error || 'Failed to remove photo.');
         }
     })
     .catch(function(){ alert('Network error.'); });
 }
-
-if (br) br.addEventListener('click', removePhoto);
 
 // ── DELETE ACCOUNT MODAL ──
 var delModal     = document.getElementById('deleteAccountModal');

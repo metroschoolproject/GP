@@ -455,6 +455,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     }
 
     .home-nav-pill {
+      position: relative;
       gap: 8px;
       padding: 5px;
       border-radius: 10px;
@@ -464,7 +465,27 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       backdrop-filter: blur(12px);
     }
 
+    .home-nav-runner {
+      position: absolute;
+      left: 0;
+      top: 5px;
+      z-index: 0;
+      width: 0;
+      height: calc(100% - 10px);
+      border-radius: 8px;
+      background: rgba(252,248,245, 0.92);
+      opacity: 0;
+      transform: translateX(5px);
+      transition:
+        transform .34s cubic-bezier(.22,1,.36,1),
+        width .34s cubic-bezier(.22,1,.36,1),
+        opacity .18s ease;
+      pointer-events: none;
+    }
+
     .home-nav-pill a {
+      position: relative;
+      z-index: 1;
       border-radius: 8px;
       padding: 8px 20px;
       color: #FFF4E6;
@@ -472,8 +493,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       font-size: 15px;
     }
 
-    .home-nav-pill a:first-child {
-      background: rgba(252,248,245, 0.92);
+    .home-nav-pill a:hover,
+    .home-nav-pill a.is-active {
       color: #3F2F24;
     }
     /* dropdown */
@@ -2303,8 +2324,9 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     <!-- NAV LINKS -->
     <div class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[18px]">
       <div class="home-nav-pill flex items-center text-sm font-semibold text-[#4A342F] max-[980px]:hidden">
+        <span class="home-nav-runner" aria-hidden="true"></span>
 
-        <a class="transition duration-300 hover:text-[#5a4038]" href="#top">
+        <a class="is-active transition duration-300 hover:text-[#5a4038]" href="#top">
           Home
         </a>
 
@@ -2479,7 +2501,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
         </div>
         <div class="mx-auto flex h-[72vh] min-h-[520px] w-full max-w-[1400px] flex-col overflow-hidden md:flex-row">
-          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:hover:flex-[4]">
+          <a href="<?= URLROOT ?>/customerServices/packages#package-standard" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:hover:flex-[4]">
             <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg2.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
@@ -2496,7 +2518,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
             <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Standard</h3>
           </a>
 
-          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
+          <a href="<?= URLROOT ?>/customerServices/packages#package-luxury" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
             <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg3.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
@@ -2513,7 +2535,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
             <h3 class="font-serif-elegant absolute bottom-6 left-6 z-10 text-3xl uppercase text-white md:left-8">Luxury</h3>
           </a>
 
-          <a href="<?= URLROOT ?>/customerServices/packages" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
+          <a href="<?= URLROOT ?>/customerServices/packages#package-premium" class="group relative min-h-[170px] flex-1 overflow-hidden rounded-[18px] border-white/15 transition-[flex] duration-700 ease-[cubic-bezier(0.25,1,0.3,1)] md:h-full md:rounded-[24px] md:border-l md:hover:flex-[4]">
             <div class="absolute inset-0 bg-cover bg-center opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-100" style="background-image: url('<?= URLROOT ?>/app/views/main/images/packageImg1.png');"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
             <div class="absolute left-6 top-1/4 z-10 max-w-sm translate-y-0 text-white opacity-100 transition duration-500 md:left-10 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
@@ -2886,6 +2908,28 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     const gallerySection = document.getElementById("gallery");
     const reviewsSection = document.getElementById("reviews");
     const navbar = document.querySelector(".navbar");
+    document.querySelectorAll(".home-nav-pill").forEach((nav) => {
+      const runner = nav.querySelector(".home-nav-runner");
+      const links = Array.from(nav.querySelectorAll("a"));
+      if (!runner || !links.length) return;
+
+      const active = () => nav.querySelector("a.is-active") || links[0];
+      const moveTo = (link) => {
+        if (!link) return;
+        runner.style.width = link.offsetWidth + "px";
+        runner.style.transform = "translateX(" + link.offsetLeft + "px)";
+        runner.style.opacity = "1";
+      };
+
+      requestAnimationFrame(() => moveTo(active()));
+      links.forEach((link) => {
+        link.addEventListener("mouseenter", () => moveTo(link));
+        link.addEventListener("focus", () => moveTo(link));
+        link.addEventListener("click", () => moveTo(link));
+      });
+      nav.addEventListener("mouseleave", () => moveTo(active()));
+      window.addEventListener("resize", () => moveTo(active()));
+    });
     const howItWorksMotion = {
       currentX: 0,
       targetX: 0,

@@ -2847,8 +2847,37 @@ if('IntersectionObserver' in window){
   if (!document.getElementById('gp-wishlist-toast-styles')) {
     var style = document.createElement('style');
     style.id = 'gp-wishlist-toast-styles';
-    style.textContent = '@keyframes wToastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes wToastOut{from{opacity:1;transform:translateX(-50%) translateY(0)}to{opacity:0;transform:translateX(-50%) translateY(20px)}}';
+    style.textContent = '@keyframes wToastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes wToastOut{from{opacity:1;transform:translateX(-50%) translateY(0)}to{opacity:0;transform:translateX(-50%) translateY(20px)}}.gp-flying-heart{position:fixed;z-index:12000;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#fff8ef;color:#e55b5b;font-size:20px;font-weight:800;box-shadow:0 12px 28px rgba(43,27,36,.22);pointer-events:none;will-change:transform,opacity}.gp-wishlist-target-pulse{animation:gpWishTargetPulse .72s ease both}@keyframes gpWishTargetPulse{0%,100%{transform:scale(1)}45%{transform:scale(1.08);filter:brightness(1.04)}}';
     document.head.appendChild(style);
+  }
+
+  function flyHeartToWishlist(btn) {
+    if (!btn || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var start = btn.getBoundingClientRect();
+    var target = Array.from(document.querySelectorAll('.home-profile-menu-item[href*="wishlist"]')).find(function(el) {
+      return getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).opacity !== '0';
+    }) || document.querySelector('.home-profile-avatar') || document.querySelector('.home-profile-btn');
+    if (!target) return;
+
+    var end = target.getBoundingClientRect();
+    var heart = document.createElement('span');
+    heart.className = 'gp-flying-heart';
+    heart.textContent = '♥';
+    heart.style.left = (start.left + start.width / 2 - 15) + 'px';
+    heart.style.top = (start.top + start.height / 2 - 15) + 'px';
+    document.body.appendChild(heart);
+
+    var dx = end.left + end.width / 2 - (start.left + start.width / 2);
+    var dy = end.top + end.height / 2 - (start.top + start.height / 2);
+    heart.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: 'translate(' + (dx * .48) + 'px,' + (dy * .22 - 34) + 'px) scale(1.18)', opacity: .96 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.38)', opacity: 0 }
+    ], { duration: 900, easing: 'cubic-bezier(.2,.86,.24,1)', fill: 'forwards' }).onfinish = function() {
+      heart.remove();
+      target.classList.add('gp-wishlist-target-pulse');
+      setTimeout(function(){ target.classList.remove('gp-wishlist-target-pulse'); }, 560);
+    };
   }
 
   document.querySelectorAll('.gp-heart, .gp-heart-light').forEach(function(btn){
@@ -2883,6 +2912,7 @@ if('IntersectionObserver' in window){
             btn.dataset.saved = '1';
             btn.style.transform = 'scale(1.3)';
             setTimeout(function() { btn.style.transform = ''; }, 200);
+            flyHeartToWishlist(btn);
             showWishlistToast('Added to wishlist!', 'View wishlist', wishlistPageUrl);
           } else {
             btn.classList.remove('is-saved');

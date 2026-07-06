@@ -4330,36 +4330,6 @@ body:has(.gp-package-notice) .booking-grid {
 
 </main>
 
-<?php if (!empty($recentServices)): ?>
-<section class="recently-viewed-section" style="background:#f5e8d9;padding:48px 24px;">
-  <div style="max-width:1240px;margin:0 auto;">
-    <p style="text-align:center;font-size:12px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#b8860b;margin:0 0 8px;">Continue exploring</p>
-    <h2 style="text-align:center;font-family:'Playfair Display',serif;font-size:clamp(28px,3.5vw,42px);font-weight:600;color:#211d1a;margin:0 0 32px;">Recently Viewed</h2>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
-      <?php foreach ($recentServices as $rs): ?>
-        <?php $recentImg = trim((string)($rs['cover_image'] ?? '')); ?>
-        <a href="<?= URLROOT ?>/customerServices/detail/<?= (int)$rs['service_id'] ?>" style="display:block;background:#fff;border-radius:12px;overflow:hidden;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.06);" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
-          <div style="aspect-ratio:4/3;background:#ead8c7;overflow:hidden;">
-            <?php if ($recentImg !== ''): ?>
-              <img src="<?= URLROOT ?>/<?= htmlspecialchars($recentImg) ?>" alt="<?= htmlspecialchars($rs['name'] ?? '') ?>" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
-            <?php else: ?>
-              <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#b8a89a;font-size:24px;">📷</div>
-            <?php endif; ?>
-          </div>
-          <div style="padding:12px;">
-            <p style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#b8860b;margin:0 0 4px;"><?= htmlspecialchars($rs['category'] ?? 'Service') ?></p>
-            <h3 style="font-size:14px;font-weight:600;color:#211d1a;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($rs['name'] ?? '') ?></h3>
-            <?php if (!empty($rs['starting_price'])): ?>
-              <p style="font-size:12px;color:#6f625a;margin:6px 0 0;">From <?= number_format((float)$rs['starting_price']) ?> MMK</p>
-            <?php endif; ?>
-          </div>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </div>
-</section>
-<?php endif; ?>
-
 <?php if ($isLoggedIn): ?>
 <!-- Floating cart -->
 <a class="floating-cart" href="<?= URLROOT ?>/cart" aria-label="Open cart<?= $cartCount > 0 ? ' with ' . $cartCount . ' selected service' . ($cartCount === 1 ? '' : 's') : '' ?>">
@@ -5333,6 +5303,43 @@ document.addEventListener('DOMContentLoaded', () => {
   var heart = document.getElementById('dtHeart');
   if (!heart) return;
 
+  if (!document.getElementById('gp-wishlist-fly-style')) {
+    var flyStyle = document.createElement('style');
+    flyStyle.id = 'gp-wishlist-fly-style';
+    flyStyle.textContent = '.gp-flying-heart{position:fixed;z-index:12000;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#fff8ef;color:#e55b5b;font-size:20px;font-weight:800;box-shadow:0 12px 28px rgba(43,27,36,.22);pointer-events:none;will-change:transform,opacity}.gp-wishlist-target-pulse{animation:gpWishTargetPulse .72s ease both}@keyframes gpWishTargetPulse{0%,100%{transform:scale(1)}45%{transform:scale(1.08);filter:brightness(1.04)}}';
+    document.head.appendChild(flyStyle);
+  }
+
+  function flyHeartToWishlist(btn) {
+    if (!btn || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var start = btn.getBoundingClientRect();
+    var target = Array.from(document.querySelectorAll('.tb-profile-menu-item[href*="wishlist"], .home-profile-menu-item[href*="wishlist"]')).find(function(el) {
+      var style = getComputedStyle(el);
+      return style.visibility !== 'hidden' && style.opacity !== '0';
+    }) || document.querySelector('.tb-profile-avatar') || document.querySelector('.tb-profile-btn') || document.querySelector('.home-profile-avatar') || document.querySelector('.home-profile-btn');
+    if (!target) return;
+
+    var end = target.getBoundingClientRect();
+    var flying = document.createElement('span');
+    flying.className = 'gp-flying-heart';
+    flying.textContent = '♥';
+    flying.style.left = (start.left + start.width / 2 - 15) + 'px';
+    flying.style.top = (start.top + start.height / 2 - 15) + 'px';
+    document.body.appendChild(flying);
+
+    var dx = end.left + end.width / 2 - (start.left + start.width / 2);
+    var dy = end.top + end.height / 2 - (start.top + start.height / 2);
+    flying.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: 'translate(' + (dx * .48) + 'px,' + (dy * .22 - 34) + 'px) scale(1.18)', opacity: .96 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.38)', opacity: 0 }
+    ], { duration: 900, easing: 'cubic-bezier(.2,.86,.24,1)', fill: 'forwards' }).onfinish = function() {
+      flying.remove();
+      target.classList.add('gp-wishlist-target-pulse');
+      setTimeout(function(){ target.classList.remove('gp-wishlist-target-pulse'); }, 560);
+    };
+  }
+
   heart.addEventListener('click', function(){
     var isLoggedIn = <?= !empty($_SESSION['session_uid']) ? 'true' : 'false' ?>;
     if (!isLoggedIn) {
@@ -5358,6 +5365,7 @@ document.addEventListener('DOMContentLoaded', () => {
           heart.classList.add('is-saved');
           heart.dataset.saved = '1';
           heart.innerHTML = '<span class="dt-heart-emoji">♥</span> Saved';
+          flyHeartToWishlist(heart);
         } else {
           heart.classList.remove('is-saved');
           heart.dataset.saved = '0';
