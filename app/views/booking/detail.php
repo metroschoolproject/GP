@@ -919,18 +919,30 @@ a{color:inherit;text-decoration:none}
       </div>
       <?php endif; ?>
 
-      <?php if (!empty($vouchers)): ?>
-      <div class="gp-card">
-        <div class="gp-card-h">Vouchers</div>
-        <div class="gp-card-b" style="gap:8px;">
-          <?php foreach ($vouchers as $vc): ?>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px;">
-            <span style="font-weight:500;"><?=$h($vc['service_name'])?></span>
-            <span style="font-family:monospace;font-size:11px;color:var(--muted);"><?=$h($vc['voucher_number'])?></span>
-          </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
+	      <?php if (!empty($vouchers)): ?>
+	      <div class="gp-card">
+	        <div class="gp-card-h">Vouchers</div>
+	        <div class="gp-card-b" style="gap:8px;">
+	          <?php foreach ($vouchers as $vc): ?>
+	          <?php
+	            $vcStatus = (string)($vc['status'] ?? 'active');
+	            $vcDate = !empty($vc['event_date']) ? date('d M Y', strtotime($vc['event_date'])) : '';
+	          ?>
+	          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);font-size:12px;">
+	            <span style="min-width:0;">
+	              <span style="display:block;font-weight:700;overflow-wrap:anywhere;"><?=$h($vc['service_name'] ?? 'Service')?></span>
+	              <span style="display:block;color:var(--muted);font-size:11px;overflow-wrap:anywhere;">
+	                <?=$h($vc['supplier_name'] ?? 'Golden Promise')?><?=$vcDate ? ' · ' . $h($vcDate) : ''?>
+	              </span>
+	            </span>
+	            <span style="text-align:right;">
+	              <span style="display:block;font-family:monospace;font-size:11px;color:var(--muted);"><?=$h($vc['voucher_number'] ?? '')?></span>
+	              <span style="display:inline-flex;margin-top:3px;padding:2px 7px;border-radius:999px;background:<?= $vcStatus === 'active' ? '#ecfdf5' : ($vcStatus === 'used' ? '#f3f4f6' : '#fef2f2') ?>;color:<?= $vcStatus === 'active' ? '#166534' : ($vcStatus === 'used' ? '#4b5563' : '#991b1b') ?>;font-size:10px;font-weight:800;text-transform:uppercase;"><?=$h($vcStatus)?></span>
+	            </span>
+	          </div>
+	          <?php endforeach; ?>
+	        </div>
+	      </div>
       <?php endif; ?>
     </div>
   </div>

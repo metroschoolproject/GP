@@ -3178,13 +3178,6 @@ class BookingModel
      */
     public function generateVouchers(int $bookingId): bool
     {
-        $this->db->dbquery("SELECT COUNT(*) AS cnt FROM booking_vouchers WHERE booking_id = :bid");
-        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
-        $existing = $this->db->getsingledata();
-        if ((int)($existing['cnt'] ?? 0) > 0) {
-            return true;
-        }
-
         $prefixes = [
             'service' => 'VCH-SRV',
             'package' => 'VCH-PKG',
@@ -3192,35 +3185,143 @@ class BookingModel
         ];
         $hasSupplierPackages = $this->tableExists('supplier_packages');
         $supplierPackageName = $hasSupplierPackages ? 'sp.name' : 'NULL';
+        $supplierPackageShop = $hasSupplierPackages ? 'sp_sup.shop_name' : 'NULL';
         $supplierPackageSupplierId = $hasSupplierPackages ? 'sp_sup.supplier_id' : 'NULL';
         $supplierPackageJoin = $hasSupplierPackages
             ? "LEFT JOIN supplier_packages sp ON bi.item_id = sp.id AND bi.item_type = 'supplier_package'
                LEFT JOIN suppliers sp_sup ON sp.supplier_id = sp_sup.supplier_id"
             : '';
-
         $this->db->dbquery(
-            "SELECT bi.*,
-                    COALESCE(s.name, p.name, {$supplierPackageName}) AS service_name,
-                    cat.name AS category_name,
-                    COALESCE(sup.supplier_id, {$supplierPackageSupplierId}, pi.default_supplier_id) AS supplier_id,
-                    ed.location
-             FROM booking_items bi
-             LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
-             LEFT JOIN packages p ON bi.item_id = p.package_id AND bi.item_type = 'package'
-             {$supplierPackageJoin}
-             LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
-             LEFT JOIN (SELECT package_id, MIN(default_supplier_id) AS default_supplier_id FROM package_items GROUP BY package_id) pi ON bi.item_id = pi.package_id AND bi.item_type = 'package'
-             LEFT JOIN categories cat ON s.category_id = cat.id
-             LEFT JOIN event_details ed ON ed.booking_id = bi.booking_id AND ed.id = (
-                SELECT MIN(id) FROM event_details WHERE booking_id = bi.booking_id
-             )
-             WHERE bi.booking_id = :bid"
+            "DELETE bv
+               FROM booking_vouchers bv
+               INNER JOIN booking_items bi
+                       ON bi.booking_id = bv.booking_id
+                      AND bi.item_type = 'package'
+               LEFT JOIN packages p ON p.package_id = bi.item_id
+              WHERE bv.booking_id = :bid
+                AND bv.status = 'active'
+                AND bv.service_id IS NULL
+                AND bv.service_name = COALESCE(bi.item_name, p.name)"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+
+        $this->db->dbquery(
+            "SELECT voucher_lines.*
+               FROM (
+                    SELECT
+                        bi.id AS id,
+                        'package' AS item_type,
+                        bs.service_id AS item_id,
+                        bi.booking_date,
+                        COALESCE(bs.item_price, pi.default_price, pi.customize_price, 0) AS price,
+                        COALESCE(s.name, 'Package Service') AS service_name,
+                        COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name,
+                        COALESCE(cat.name, pi_cat.name, 'Service') AS category_name,
+                        bs.supplier_id AS supplier_id,
+                        ed.location,
+                        COALESCE(slot_times.start_time, bi.start_time, ed.start_time) AS start_time,
+                        COALESCE(slot_times.end_time, bi.end_time, ed.end_time) AS end_time
+                    FROM booking_items bi
+                    INNER JOIN booking_suppliers bs
+                            ON bs.booking_id = bi.booking_id
+                           AND bs.package_item_id IS NOT NULL
+                           AND bs.status NOT IN ('rejected', 'cancelled', 'replaced')
+                    INNER JOIN package_items pi
+                            ON pi.id = bs.package_item_id
+                           AND pi.package_id = bi.item_id
+                    LEFT JOIN services s ON s.id = bs.service_id
+                    LEFT JOIN suppliers sup ON sup.supplier_id = bs.supplier_id
+                    LEFT JOIN categories cat ON cat.id = s.category_id
+                    LEFT JOIN categories pi_cat ON pi_cat.id = pi.category_id
+                    LEFT JOIN (
+                        SELECT bsr.booking_id, bsr.package_item_id,
+                               MIN(st.start_time) AS start_time,
+                               MAX(st.end_time) AS end_time
+                          FROM booking_slot_reservations bsr
+                          INNER JOIN service_time_slots st ON st.id = bsr.slot_id
+                         WHERE bsr.released_at IS NULL
+                         GROUP BY bsr.booking_id, bsr.package_item_id
+                    ) slot_times
+                           ON slot_times.booking_id = bi.booking_id
+                          AND slot_times.package_item_id = bs.package_item_id
+                    LEFT JOIN event_details ed ON ed.booking_id = bi.booking_id AND ed.id = (
+                        SELECT MIN(id) FROM event_details WHERE booking_id = bi.booking_id
+                    )
+                    WHERE bi.booking_id = :bid_package
+                      AND bi.item_type = 'package'
+
+                    UNION ALL
+
+                    SELECT
+                        bi.id AS id,
+                        bi.item_type,
+                        bi.item_id,
+                        bi.booking_date,
+                        bi.price,
+                        COALESCE(bi.item_name, s.name, {$supplierPackageName}) AS service_name,
+                        COALESCE(bi.supplier_name, sup.shop_name, {$supplierPackageShop}, 'Golden Promise') AS supplier_name,
+                        COALESCE(bi.category_name, cat.name, 'Service') AS category_name,
+                        COALESCE(sup.supplier_id, {$supplierPackageSupplierId}) AS supplier_id,
+                        ed.location,
+                        bi.start_time,
+                        bi.end_time
+                    FROM booking_items bi
+                    LEFT JOIN services s ON bi.item_id = s.id AND bi.item_type = 'service'
+                    {$supplierPackageJoin}
+                    LEFT JOIN suppliers sup ON s.supplier_id = sup.supplier_id
+                    LEFT JOIN categories cat ON s.category_id = cat.id
+                    LEFT JOIN event_details ed ON ed.booking_id = bi.booking_id AND ed.id = (
+                        SELECT MIN(id) FROM event_details WHERE booking_id = bi.booking_id
+                    )
+                    WHERE bi.booking_id = :bid_other
+                      AND bi.item_type <> 'package'
+               ) voucher_lines
+              ORDER BY voucher_lines.item_type, voucher_lines.service_name, voucher_lines.id"
+        );
+        $this->db->dbbind(':bid_package', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':bid_other', $bookingId, PDO::PARAM_INT);
         $items = $this->db->getmultidata();
+        if (empty($items)) {
+            return true;
+        }
+
+        $this->db->dbquery(
+            "SELECT service_name, supplier_id, event_date, start_time, end_time, price
+               FROM booking_vouchers
+              WHERE booking_id = :bid"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $existingRows = $this->db->getmultidata() ?: [];
+        $existing = [];
+        foreach ($existingRows as $row) {
+            $key = implode('|', [
+                (string)($row['service_name'] ?? ''),
+                (string)($row['supplier_id'] ?? ''),
+                (string)($row['event_date'] ?? ''),
+                (string)($row['start_time'] ?? ''),
+                (string)($row['end_time'] ?? ''),
+                number_format((float)($row['price'] ?? 0), 2, '.', ''),
+            ]);
+            $existing[$key] = ($existing[$key] ?? 0) + 1;
+        }
 
         $idx = 0;
         foreach ($items as $item) {
+            $eventDate = $item['booking_date'] ? date('Y-m-d', strtotime($item['booking_date'])) : null;
+            $itemKey = implode('|', [
+                (string)($item['service_name'] ?? 'Service'),
+                (string)($item['supplier_id'] ?? ''),
+                (string)($eventDate ?? ''),
+                (string)($item['start_time'] ?? ''),
+                (string)($item['end_time'] ?? ''),
+                number_format((float)($item['price'] ?? 0), 2, '.', ''),
+            ]);
+            if (($existing[$itemKey] ?? 0) > 0) {
+                $existing[$itemKey]--;
+                continue;
+            }
+
             $prefix = $prefixes[$item['item_type']] ?? 'VCH';
             $voucherNumber = $prefix . '-' . strtoupper(substr(md5($item['id'] . '-' . $bookingId . '-' . (++$idx)), 0, 8));
 
@@ -3233,13 +3334,15 @@ class BookingModel
             );
             $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
             $this->db->dbbind(':vnum', $voucherNumber);
-            $serviceId = ($item['item_type'] ?? '') === 'service' ? (int)($item['item_id'] ?? 0) : null;
+            $serviceId = in_array(($item['item_type'] ?? ''), ['service', 'package'], true)
+                ? (int)($item['item_id'] ?? 0)
+                : null;
             $supplierId = !empty($item['supplier_id']) ? (int)$item['supplier_id'] : null;
             $this->db->dbbind(':sid', $serviceId, $serviceId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
             $this->db->dbbind(':supid', $supplierId, $supplierId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
             $this->db->dbbind(':sname', $item['service_name'] ?? 'Service');
             $this->db->dbbind(':cname', $item['category_name'] ?? 'Service');
-            $this->db->dbbind(':edate', $item['booking_date'] ? date('Y-m-d', strtotime($item['booking_date'])) : null);
+            $this->db->dbbind(':edate', $eventDate);
             $this->db->dbbind(':stime', $item['start_time'] ?? null);
             $this->db->dbbind(':etime', $item['end_time'] ?? null);
             $this->db->dbbind(':loc', $item['location'] ?? null);
@@ -3259,9 +3362,47 @@ class BookingModel
     public function getBookingVouchers(int $bookingId): array
     {
         $this->db->dbquery(
-            "SELECT * FROM booking_vouchers WHERE booking_id = :bid ORDER BY id ASC"
+            "SELECT bv.*,
+                    COALESCE(sup.shop_name, bi.supplier_name, 'Golden Promise') AS supplier_name,
+                    b.user_id
+               FROM booking_vouchers bv
+               INNER JOIN bookings b ON b.id = bv.booking_id
+               LEFT JOIN suppliers sup ON sup.supplier_id = bv.supplier_id
+               LEFT JOIN (
+                    SELECT booking_id, item_name, MAX(supplier_name) AS supplier_name
+                      FROM booking_items
+                     GROUP BY booking_id, item_name
+               ) bi ON bi.booking_id = bv.booking_id
+                   AND bi.item_name = bv.service_name
+              WHERE bv.booking_id = :bid
+              ORDER BY bv.id ASC"
         );
         $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        return $this->db->getmultidata();
+    }
+
+    /**
+     * Get vouchers for one supplier on a booking.
+     */
+    public function getSupplierBookingVouchers(int $bookingId, int $supplierId): array
+    {
+        if ($bookingId <= 0 || $supplierId <= 0) {
+            return [];
+        }
+
+        $this->db->dbquery(
+            "SELECT bv.*,
+                    COALESCE(sup.shop_name, 'Your shop') AS supplier_name,
+                    b.user_id
+               FROM booking_vouchers bv
+               INNER JOIN bookings b ON b.id = bv.booking_id
+               LEFT JOIN suppliers sup ON sup.supplier_id = bv.supplier_id
+              WHERE bv.booking_id = :bid
+                AND bv.supplier_id = :sid
+              ORDER BY bv.event_date ASC, bv.start_time ASC, bv.id ASC"
+        );
+        $this->db->dbbind(':bid', $bookingId, PDO::PARAM_INT);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
         return $this->db->getmultidata();
     }
 
@@ -3270,9 +3411,22 @@ class BookingModel
      */
     public function getCustomerVouchers(int $userId, ?string $statusFilter = null, int $limit = 12, int $offset = 0): array
     {
-        $sql = "SELECT bv.*, b.user_id
+        $sql = "SELECT bv.*,
+                       b.user_id,
+                       COALESCE(sup.shop_name, bi.supplier_name, 'Golden Promise') AS supplier_name,
+                       COALESCE(s.thumbnail_url, bi.thumbnail_url) AS thumbnail_url
                 FROM booking_vouchers bv
                 INNER JOIN bookings b ON bv.booking_id = b.id
+                LEFT JOIN services s ON s.id = bv.service_id
+                LEFT JOIN suppliers sup ON sup.supplier_id = bv.supplier_id
+                LEFT JOIN (
+                    SELECT booking_id, item_name,
+                           MAX(supplier_name) AS supplier_name,
+                           MAX(thumbnail_url) AS thumbnail_url
+                      FROM booking_items
+                     GROUP BY booking_id, item_name
+                ) bi ON bi.booking_id = bv.booking_id
+                    AND bi.item_name = bv.service_name
                 WHERE b.user_id = :uid";
 
         if ($statusFilter && $statusFilter !== 'all') {
@@ -3292,6 +3446,29 @@ class BookingModel
         return $this->db->getmultidata();
     }
 
+    public function getCustomerVoucherStatusCounts(int $userId): array
+    {
+        $this->db->dbquery(
+            "SELECT bv.status, COUNT(*) AS total
+               FROM booking_vouchers bv
+               INNER JOIN bookings b ON bv.booking_id = b.id
+              WHERE b.user_id = :uid
+              GROUP BY bv.status"
+        );
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        $rows = $this->db->getmultidata() ?: [];
+        $counts = ['all' => 0, 'active' => 0, 'used' => 0, 'expired' => 0];
+        foreach ($rows as $row) {
+            $status = (string)($row['status'] ?? 'active');
+            $total = (int)($row['total'] ?? 0);
+            if (isset($counts[$status])) {
+                $counts[$status] = $total;
+            }
+            $counts['all'] += $total;
+        }
+        return $counts;
+    }
+
     public function getCustomerVouchersCount(int $userId, ?string $statusFilter = null): int
     {
         $sql = "SELECT COUNT(*) AS total
@@ -3309,6 +3486,88 @@ class BookingModel
             $this->db->dbbind(':status', $statusFilter);
         }
         return (int)($this->db->getsingledata()['total'] ?? 0);
+    }
+
+    public function expirePastVouchers(?int $userId = null): int
+    {
+        $sql = "UPDATE booking_vouchers bv
+                INNER JOIN bookings b ON b.id = bv.booking_id
+                   SET bv.status = 'expired'
+                 WHERE bv.status = 'active'
+                   AND bv.event_date IS NOT NULL
+                   AND bv.event_date < CURDATE()";
+        if ($userId !== null) {
+            $sql .= " AND b.user_id = :uid";
+        }
+
+        $this->db->dbquery($sql);
+        if ($userId !== null) {
+            $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        }
+        $this->db->dbexecute();
+        return $this->db->rowcount();
+    }
+
+    public function markVoucherUsedByCode(string $voucherNumber, int $supplierId): bool
+    {
+        $code = strtoupper(trim($voucherNumber));
+        if ($code === '' || $supplierId <= 0) {
+            return false;
+        }
+
+        $this->db->dbquery(
+            "UPDATE booking_vouchers
+                SET status = 'used'
+              WHERE voucher_number = :code
+                AND supplier_id = :sid
+                AND status = 'active'
+              LIMIT 1"
+        );
+        $this->db->dbbind(':code', $code);
+        $this->db->dbbind(':sid', $supplierId, PDO::PARAM_INT);
+        $this->db->dbexecute();
+        return $this->db->rowcount() === 1;
+    }
+
+    public function getVoucherByNumber(string $voucherNumber): ?array
+    {
+        $code = strtoupper(trim($voucherNumber));
+        if ($code === '') {
+            return null;
+        }
+
+        $this->db->dbquery(
+            "SELECT bv.*,
+                    b.user_id,
+                    COALESCE(sup.shop_name, 'Golden Promise') AS supplier_name
+               FROM booking_vouchers bv
+               INNER JOIN bookings b ON b.id = bv.booking_id
+               LEFT JOIN suppliers sup ON sup.supplier_id = bv.supplier_id
+              WHERE bv.voucher_number = :code
+              LIMIT 1"
+        );
+        $this->db->dbbind(':code', $code);
+        $voucher = $this->db->getsingledata();
+        return $voucher ?: null;
+    }
+
+    public function syncCustomerVouchers(int $userId): void
+    {
+        $this->db->dbquery(
+            "SELECT id
+               FROM bookings
+              WHERE user_id = :uid
+                AND status IN ('confirmed', 'pending_final_payment', 'finalized', 'completed')"
+        );
+        $this->db->dbbind(':uid', $userId, PDO::PARAM_INT);
+        $bookings = $this->db->getmultidata() ?: [];
+        foreach ($bookings as $booking) {
+            $bookingId = (int)($booking['id'] ?? 0);
+            if ($bookingId > 0) {
+                $this->generateVouchers($bookingId);
+            }
+        }
+        $this->expirePastVouchers($userId);
     }
 
     /**

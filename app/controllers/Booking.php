@@ -61,6 +61,39 @@ class Booking extends Controller
         return htmlspecialchars($this->plain($v), ENT_QUOTES, 'UTF-8');
     }
 
+    private function voucherScanSignature(string $voucherNumber, int $supplierId): string
+    {
+        $payload = strtoupper(trim($voucherNumber)) . '|' . $supplierId;
+        $secret = DB_NAME . '|' . DB_USER . '|' . APPROOT;
+        return substr(hash_hmac('sha256', $payload, $secret), 0, 32);
+    }
+
+    private function voucherScanUrl(array $voucher): string
+    {
+        $voucherNumber = strtoupper(trim((string)($voucher['voucher_number'] ?? '')));
+        $supplierId = (int)($voucher['supplier_id'] ?? 0);
+        if ($voucherNumber === '' || $supplierId <= 0) {
+            return '';
+        }
+
+        return URLROOT . '/booking/scanVoucher/'
+            . rawurlencode($voucherNumber) . '/'
+            . $this->voucherScanSignature($voucherNumber, $supplierId);
+    }
+
+    private function enrichVoucherScanUrls(array $vouchers): array
+    {
+        foreach ($vouchers as &$voucher) {
+            $scanUrl = $this->voucherScanUrl($voucher);
+            $voucher['scan_url'] = $scanUrl;
+            $voucher['qr_image_url'] = $scanUrl !== ''
+                ? 'https://api.qrserver.com/v1/create-qr-code/?size=132x132&margin=8&data=' . rawurlencode($scanUrl)
+                : '';
+        }
+        unset($voucher);
+        return $vouchers;
+    }
+
     private function buildPackageSchedules(array $items, array $eventDetails): array
     {
         $packageSchedules = [];
@@ -1545,12 +1578,18 @@ class Booking extends Controller
         foreach (['pending_payment', 'paid', 'confirmed', 'pending_final_payment', 'finalized', 'completed', 'cancelled', 'cancellation_requested'] as $statusKey) {
             $bookingStatusCounts[$statusKey] = $this->bookingModel->getCustomerBookingsCount($this->userId, $statusKey);
         }
+        $this->bookingModel->expirePastVouchers($this->userId);
 
         // Enrich each booking with items count, booking ref, and refund info
         $enriched = [];
         foreach ($bookings as $b) {
             $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
             $b['items'] = $this->bookingModel->getBookingItems((int)$b['id']);
+            if (in_array((string)($b['status'] ?? ''), ['confirmed', 'pending_final_payment', 'finalized', 'completed'], true)) {
+                $this->bookingModel->generateVouchers((int)$b['id']);
+                $this->bookingModel->expirePastVouchers($this->userId);
+            }
+            $b['vouchers'] = $this->bookingModel->getBookingVouchers((int)$b['id']);
             $b['total_amount'] = (float)$b['total_amount'];
             $b['paid_amount'] = (float)$b['paid_amount'];
             $b['refund'] = $this->bookingModel->getBookingRefund((int)$b['id']) ?: null;
@@ -1606,6 +1645,7 @@ class Booking extends Controller
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $logs = $this->bookingModel->getStatusLogs($bookingId);
+        $this->bookingModel->expirePastVouchers($this->userId);
         $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
         $depositPayment = $this->bookingModel->getDepositPayment($bookingId);
@@ -1660,20 +1700,106 @@ class Booking extends Controller
         $this->ensureAuthenticated();
 
         $filter = trim($_GET['status'] ?? 'all');
+        $allowedFilters = ['all', 'active', 'used', 'expired'];
+        if (!in_array($filter, $allowedFilters, true)) {
+            $filter = 'all';
+        }
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 12;
         $offset = ($page - 1) * $perPage;
 
+        $this->bookingModel->syncCustomerVouchers($this->userId);
         $vouchers = $this->bookingModel->getCustomerVouchers($this->userId, $filter, $perPage, $offset);
+        $vouchers = $this->enrichVoucherScanUrls($vouchers);
         $totalCount = $this->bookingModel->getCustomerVouchersCount($this->userId, $filter);
+        $voucherStatusCounts = $this->bookingModel->getCustomerVoucherStatusCounts($this->userId);
 
         $this->view('booking/vouchers', [
             'vouchers' => $vouchers,
             'activeFilter' => $filter,
+            'voucherStatusCounts' => $voucherStatusCounts,
             'currentPage' => $page,
             'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
             'totalCount' => $totalCount,
             'perPage' => $perPage,
+        ]);
+    }
+
+    public function scanVoucher(?string $voucherNumber = null, ?string $signature = null): void
+    {
+        $voucherNumber = strtoupper(trim(rawurldecode((string)$voucherNumber)));
+        $signature = trim((string)$signature);
+        $voucher = $this->bookingModel->getVoucherByNumber($voucherNumber);
+
+        if (!$voucher) {
+            $this->view('booking/voucherScan', [
+                'status' => 'error',
+                'title' => 'Voucher Not Found',
+                'message' => 'This QR code does not match an active Golden Promise voucher.',
+            ]);
+            return;
+        }
+
+        $expected = $this->voucherScanSignature((string)$voucher['voucher_number'], (int)$voucher['supplier_id']);
+        if ($signature === '' || !hash_equals($expected, $signature)) {
+            $this->view('booking/voucherScan', [
+                'status' => 'error',
+                'title' => 'Invalid QR Code',
+                'message' => 'This voucher QR code could not be verified.',
+                'voucher' => $voucher,
+            ]);
+            return;
+        }
+
+        if (!$this->userId) {
+            $_SESSION['post_login_return_url'] = 'booking/scanVoucher/'
+                . rawurlencode((string)$voucher['voucher_number']) . '/'
+                . rawurlencode($signature);
+            redirect('users/auth');
+            return;
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0 || $supplierId !== (int)$voucher['supplier_id']) {
+            $this->view('booking/voucherScan', [
+                'status' => 'error',
+                'title' => 'Supplier Account Required',
+                'message' => 'Only the assigned supplier can scan and use this voucher.',
+                'voucher' => $voucher,
+            ]);
+            return;
+        }
+
+        $currentStatus = (string)($voucher['status'] ?? '');
+        if ($currentStatus === 'used') {
+            $this->view('booking/voucherScan', [
+                'status' => 'used',
+                'title' => 'Voucher Already Used',
+                'message' => 'This voucher has already been marked as used.',
+                'voucher' => $voucher,
+            ]);
+            return;
+        }
+        if ($currentStatus === 'expired') {
+            $this->view('booking/voucherScan', [
+                'status' => 'error',
+                'title' => 'Voucher Expired',
+                'message' => 'This voucher is expired and cannot be used.',
+                'voucher' => $voucher,
+            ]);
+            return;
+        }
+
+        $used = $this->bookingModel->markVoucherUsedByCode((string)$voucher['voucher_number'], $supplierId);
+        $voucher = $this->bookingModel->getVoucherByNumber((string)$voucher['voucher_number']) ?: $voucher;
+
+        $this->view('booking/voucherScan', [
+            'status' => $used ? 'success' : 'used',
+            'title' => $used ? 'Voucher Used' : 'Voucher Already Used',
+            'message' => $used
+                ? 'The voucher was verified and marked as used.'
+                : 'This voucher could not be used again.',
+            'voucher' => $voucher,
         ]);
     }
 
@@ -2080,6 +2206,12 @@ class Booking extends Controller
         }, $items));
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
+        if (in_array((string)($booking['status'] ?? ''), ['confirmed', 'pending_final_payment', 'finalized', 'completed'], true)) {
+            $this->bookingModel->generateVouchers($bookingId);
+            $this->bookingModel->expirePastVouchers();
+        }
+        $vouchers = $this->bookingModel->getSupplierBookingVouchers($bookingId, $supplierId);
+        $vouchers = $this->enrichVoucherScanUrls($vouchers);
 
         // Pass per-service time schedules for any package items so suppliers
         // can see the time windows assigned to their services.
@@ -2103,6 +2235,7 @@ class Booking extends Controller
             'items' => $items,
             'eventDetails' => $eventDetails,
             'suppliers' => $suppliers,
+            'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
             'supplierStatus' => $currentSupplierStatus ?? 'pending',
             'supplierRowId' => $currentSupplierRowId ?? 0,
@@ -2117,6 +2250,34 @@ class Booking extends Controller
             'activeReplacement' => $activeReplacement,
             'refund' => $refund ?: null,
             'isCancelledOrReplaced' => $isCancelledOrReplaced ?? false,
+        ]);
+    }
+
+    public function markVoucherUsed(): void
+    {
+        $this->ensureAuthenticated();
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Supplier account required.'], 403);
+        }
+
+        $voucherNumber = trim((string)($_POST['voucher_number'] ?? ''));
+        if ($voucherNumber === '') {
+            $this->jsonResponse(['error' => 'Voucher code is required.'], 422);
+        }
+
+        if (!$this->bookingModel->markVoucherUsedByCode($voucherNumber, $supplierId)) {
+            $this->jsonResponse(['error' => 'Voucher not found, expired, already used, or assigned to another supplier.'], 422);
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Voucher marked as used.',
         ]);
     }
 
@@ -3030,6 +3191,10 @@ class Booking extends Controller
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $logs = $this->bookingModel->getStatusLogs($bookingId);
         $payments = $this->bookingModel->getBookingPayments($bookingId);
+        if (in_array((string)($booking['status'] ?? ''), ['confirmed', 'pending_final_payment', 'finalized', 'completed'], true)) {
+            $this->bookingModel->generateVouchers($bookingId);
+            $this->bookingModel->expirePastVouchers();
+        }
         $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
         $packageSchedules = $this->buildPackageSchedules($items, $eventDetails);

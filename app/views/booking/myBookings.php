@@ -66,7 +66,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 800; color: var(--text); }
 .gp-brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--plum); color: #fffaf3; font-size: 13px; font-weight: 700; }
 .gp-header-nav { display: flex; align-items: center; gap: 2px; }
-.gp-header-nav a { padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text2); transition: all 0.22s; }
+	.gp-header-nav a { padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text2); transition: color 0.22s, background 0.22s; }
 .gp-header-nav a:hover { color: var(--plum); background: rgba(107,68,89,0.08); }
 .gp-header-actions { display: flex; align-items: center; gap: 10px; }
 
@@ -149,11 +149,11 @@ button { font-family: var(--font-b); cursor: pointer; }
 }
 
 .gp-filters { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; overflow-x: auto; padding-bottom: 4px; }
-.gp-filter { padding: 6px 16px; border-radius: 9px; border: 1px solid var(--rule-strong); background: transparent; font-size: 12px; font-weight: 600; color: var(--text2); transition: all 0.2s; white-space: nowrap; text-decoration: none; }
+	.gp-filter { padding: 6px 16px; border-radius: 9px; border: 1px solid var(--rule-strong); background: transparent; font-size: 12px; font-weight: 600; color: var(--text2); transition: border-color 0.2s, color 0.2s, background 0.2s; white-space: nowrap; text-decoration: none; }
 .gp-filter:hover { border-color: var(--plum); color: var(--plum); }
 .gp-filter.active { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 
-.gp-card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 20px 24px; opacity: 0; transform: translateY(16px); transition: all 0.4s var(--ease-expo); }
+	.gp-card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 20px 24px; opacity: 0; transform: translateY(16px); transition: opacity 0.4s var(--ease-expo), transform 0.4s var(--ease-expo); }
 .gp-card.visible { opacity: 1; transform: translateY(0); }
 .gp-card + .gp-card { margin-top: 12px; }
 
@@ -171,12 +171,12 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-card-payment { font-size: 12px; color: var(--text2); }
 .gp-card-payment strong { color: var(--plum); }
 .gp-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.gp-btn-sm { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--rule-strong); font-size: 11px; font-weight: 600; color: var(--text2); background: transparent; transition: all 0.2s; text-decoration: none; }
+	.gp-btn-sm { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--rule-strong); font-size: 11px; font-weight: 600; color: var(--text2); background: transparent; transition: border-color 0.2s, color 0.2s, background 0.2s; text-decoration: none; }
 .gp-btn-sm:hover { border-color: var(--plum); color: var(--plum); background: rgba(107,68,89,0.04); }
 .gp-btn-sm.primary { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 .gp-btn-sm.primary:hover { background: var(--plum-dk); }
 .gp-profile-dropdown{position:relative}
-.gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--card);cursor:pointer;transition:all .2s;color:var(--plum);font-family:var(--font-b);font-size:13px;font-weight:600}
+	.gp-profile-btn{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--rule-strong);background:var(--card);cursor:pointer;transition:border-color .2s, background .2s;color:var(--plum);font-family:var(--font-b);font-size:13px;font-weight:600}
 .gp-profile-btn:hover{border-color:var(--plum);background:rgba(107,68,89,.06)}
 .gp-profile-avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--plum);color:#fffaf3;font-size:12px;font-weight:800;letter-spacing:.5px}
 .gp-profile-name{white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis}
@@ -184,7 +184,7 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-profile-btn[aria-expanded="true"] .gp-profile-chevron{transform:rotate(180deg)}
 .gp-profile-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:180px;padding:6px;border-radius:12px;border:1px solid var(--rule);background:var(--card);box-shadow:0 12px 35px rgba(15,23,42,.1);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s ease}
 .gp-profile-btn[aria-expanded="true"]+.gp-profile-menu,.gp-profile-menu.show{opacity:1;visibility:visible;transform:translateY(0)}
-.gp-profile-menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);transition:all .15s}
+	.gp-profile-menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text);transition:background .15s}
 .gp-profile-menu-item:hover{background:rgba(107,68,89,.06)}
 .gp-profile-menu-item--danger{color:var(--danger)}
 .gp-profile-menu-item--danger:hover{background:rgba(185,75,75,.08)}
@@ -212,7 +212,8 @@ button { font-family: var(--font-b); cursor: pointer; }
 .gp-pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; margin-top: 20px; border-top: 1px solid var(--rule); }
 .gp-pagination-info { font-size: 12px; color: var(--muted); }
 .gp-pagination-btns { display: flex; align-items: center; gap: 5px; }
-.gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--rule); border-radius: var(--r-sm); background: var(--card); color: var(--text2); font-size: 12px; font-weight: 600; font-family: var(--font-b); text-decoration: none; transition: all 0.15s; cursor: pointer; }
+	.gp-pagination-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--rule); border-radius: var(--r-sm); background: var(--card); color: var(--text2); font-size: 12px; font-weight: 600; font-family: var(--font-b); text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s; cursor: pointer; }
+	.gp-filter:focus-visible,.gp-btn-sm:focus-visible,.gp-pagination-btn:focus-visible,.gp-profile-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .gp-pagination-btn:hover { background: var(--bg); color: var(--text); border-color: var(--gold); }
 .gp-pagination-btn-cur { background: var(--plum); color: #fcf8f5; border-color: var(--plum); }
 .gp-pagination-btn-cur:hover { background: var(--plum-dk); }
@@ -261,9 +262,10 @@ button { font-family: var(--font-b); cursor: pointer; }
       $items = $b['items'] ?? [];
       $firstItem = $items[0] ?? null;
       $firstHall = $firstItem ? trim((string)($firstItem['venue_room_name'] ?? '')) : '';
-      $itemCount = count($items);
-      $deposit = (float)$b['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
-    ?>
+	      $itemCount = count($items);
+	      $deposit = (float)$b['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
+	      $hasVoucher = !empty($b['vouchers'] ?? []);
+	    ?>
     <div class="gp-card" data-index="<?= $loop->index ?? 0 ?>">
       <div class="gp-card-top">
         <div>
@@ -279,7 +281,7 @@ button { font-family: var(--font-b); cursor: pointer; }
             <div class="gp-card-service">Wedding Booking</div>
           <?php endif; ?>
           <div class="gp-card-date">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+	            <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Ref: <?= $h($b['booking_ref'] ?? '') ?>
           </div>
         </div>
@@ -322,9 +324,9 @@ button { font-family: var(--font-b); cursor: pointer; }
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             View Details
           </a>
-          <?php if (in_array($b['status'], ['paid', 'confirmed'])): ?>
-            <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/vouchers">View Voucher</a>
-          <?php endif; ?>
+	          <?php if ($hasVoucher): ?>
+	            <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/vouchers">View Voucher</a>
+	          <?php endif; ?>
           <?php if (!in_array($b['status'], ['cancelled', 'cancellation_requested', 'completed'])): ?>
             <a class="gp-btn-sm danger" href="<?= URLROOT ?>/booking/cancel/<?= (int)$b['id'] ?>">Request Cancellation</a>
           <?php endif; ?>
