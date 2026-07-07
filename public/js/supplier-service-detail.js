@@ -1,5 +1,6 @@
 const serviceDetailConfig = window.serviceDetailConfig || { urls: {}, servicePayloadBase: {} };
 const urls = serviceDetailConfig.urls;
+const mediaLimits = Object.assign({ min: 4, max: 10, count: 0 }, serviceDetailConfig.media || {});
 
 // ── CUSTOM CONFIRM MODAL ──────────────────────────────────────
 let sdConfirmResolve = null;
@@ -238,11 +239,50 @@ function appendMedia(media) {
     <button type="button" class="sd-gallery-del" onclick="deleteServiceMedia(${media.id})"><i class="ti ti-trash" style="font-size:13px"></i></button>
   `;
   grid.insertBefore(item, addButton || null);
+  updateMediaLimitState();
 }
+
+function currentMediaCount() {
+  return document.querySelectorAll('#mediaGrid .sd-gallery-item').length;
+}
+
+function updateMediaLimitState() {
+  const count = currentMediaCount();
+  const atMax = count >= mediaLimits.max;
+  const headerAdd = document.getElementById('serviceMediaAddBtn');
+  const gridAdd = document.getElementById('serviceMediaGridAddBtn');
+  const message = atMax
+    ? `Maximum ${mediaLimits.max} portfolio photos reached.`
+    : `${count}/${mediaLimits.max} portfolio photos uploaded. Minimum ${mediaLimits.min} required.`;
+
+  [headerAdd, gridAdd].forEach(element => {
+    if (!element) return;
+    element.classList.toggle('is-disabled', atMax);
+    element.setAttribute('aria-disabled', atMax ? 'true' : 'false');
+    element.title = message;
+    element.style.opacity = atMax ? '0.55' : '';
+  });
+}
+
+function notifyMediaLimitIfReached(event) {
+  if (currentMediaCount() < mediaLimits.max) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  showMessage('mediaMessage', `Maximum ${mediaLimits.max} portfolio photos reached. Delete one photo before uploading another.`);
+  return true;
+}
+
+document.getElementById('serviceMediaAddBtn')?.addEventListener('click', notifyMediaLimitIfReached);
+document.getElementById('serviceMediaGridAddBtn')?.addEventListener('click', notifyMediaLimitIfReached);
 
 async function uploadServiceMedia(file) {
   if (!file) return;
   showMessage('mediaMessage', '');
+
+  if (currentMediaCount() >= mediaLimits.max) {
+    showMessage('mediaMessage', `You can upload a maximum of ${mediaLimits.max} portfolio photos.`);
+    return;
+  }
 
   try {
     const img = await fileToDataUrl(file);
@@ -271,11 +311,14 @@ async function deleteServiceMedia(mediaId) {
   try {
     await jsonPost(urls.mediaDelete + encodeURIComponent(mediaId));
     document.querySelector(`[data-media-id="${mediaId}"]`)?.remove();
+    updateMediaLimitState();
     showMessage('mediaMessage', 'Photo deleted.', true);
   } catch (error) {
     showMessage('mediaMessage', error.message);
   }
 }
+
+updateMediaLimitState();
 
 let decoDrafts = [];
 let activeDecoIndex = 0;

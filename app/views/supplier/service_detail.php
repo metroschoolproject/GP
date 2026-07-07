@@ -177,6 +177,11 @@ $serviceDetailConfig = [
         'overrideDelete' => $overrideDeleteUrl,
         'serviceManage' => $serviceManageUrl,
     ],
+    'media' => [
+        'min' => 4,
+        'max' => 10,
+        'count' => $mediaCount,
+    ],
     'servicePayloadBase' => [
         'name' => $serviceNameRaw,
         'desc' => $serviceDescriptionRaw,

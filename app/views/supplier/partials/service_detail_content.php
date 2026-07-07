@@ -134,9 +134,9 @@ if (!empty($attentionItems[0]['label'])) {
         <div class="sd-card-head">
           <div>
             <div class="sd-card-title">Portfolio photos</div>
-            <div class="sd-card-sub">Shown to customers browsing your listing</div>
+            <div class="sd-card-sub">Upload 4 to 10 photos for customers browsing your listing</div>
           </div>
-          <label class="btn btn-primary btn-sm" style="cursor:pointer">
+          <label class="btn btn-primary btn-sm" id="serviceMediaAddBtn" style="cursor:pointer">
             <i class="ti ti-photo-plus" style="font-size:13px"></i> Add photo
             <input id="serviceMediaInput" type="file" accept="image/*" style="display:none">
           </label>
@@ -150,7 +150,7 @@ if (!empty($attentionItems[0]['label'])) {
                 <button type="button" class="sd-gallery-del" onclick="deleteServiceMedia(<?= (int)($item['id'] ?? 0) ?>)"><i class="ti ti-trash" style="font-size:13px"></i></button>
               </div>
             <?php endforeach; ?>
-            <label class="sd-gallery-add">
+            <label class="sd-gallery-add" id="serviceMediaGridAddBtn">
               <i class="ti ti-plus"></i>
               <span>Upload photo</span>
               <input type="file" accept="image/*" data-media-picker style="display:none">

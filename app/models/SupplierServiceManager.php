@@ -1481,6 +1481,10 @@ class SupplierServiceManager
             return null;
         }
 
+        if ($this->countServiceMedia($serviceId, $supplierId) >= 10) {
+            return false;
+        }
+
         $this->db->dbquery(
             'INSERT INTO service_media(service_id, file_url, type)
              VALUES(:service_id, :file_url, :type)'
@@ -1501,6 +1505,23 @@ class SupplierServiceManager
         }
 
         return $media;
+    }
+
+    public function countServiceMedia($serviceId, $supplierId): int
+    {
+        if (!$this->getServiceById($serviceId, $supplierId)) {
+            return 0;
+        }
+
+        $this->db->dbquery(
+            'SELECT COUNT(*) AS total
+             FROM service_media
+             WHERE service_id = :service_id'
+        );
+        $this->db->dbbind(':service_id', (int)$serviceId);
+        $row = $this->db->getsingledata();
+
+        return (int)($row['total'] ?? 0);
     }
 
     public function deleteServiceMedia($supplierId, $serviceId, $mediaId)

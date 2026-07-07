@@ -7,7 +7,6 @@ $message = $message ?? '';
 $notificationRole = $notificationRole ?? 'admin';
 $notificationBaseUrl = URLROOT . '/' . $notificationRole . '/notifications';
 $notificationDetailUrl = URLROOT . '/' . $notificationRole . '/notification/';
-$notificationMarkAllUrl = URLROOT . '/' . $notificationRole . '/markAllNotificationsRead';
 $notificationSidebar = $notificationSidebar ?? APPROOT . '/views/dashboardLayout/adminsidebar.php';
 $notificationKicker = $notificationKicker ?? 'Operations inbox';
 $notificationSubtitle = $notificationSubtitle ?? 'Review payments, booking changes, supplier approvals, and system updates from one focused queue.';
@@ -90,7 +89,6 @@ $dashboardContent = function () use (
     $groupLabel,
     $queryParams,
     $tabUrl,
-    $notificationMarkAllUrl,
     $notificationKicker,
     $notificationSubtitle,
     $notificationRole,
@@ -117,11 +115,7 @@ $dashboardContent = function () use (
     .inbox-tab.active { border-color: var(--primary); background: var(--primary); color: #FFFFFF; box-shadow: none; }
     .inbox-tab-count { display: inline-flex; min-width: 20px; height: 20px; align-items: center; justify-content: center; border-radius: 999px; padding: 0 5px; background: rgba(109,76,91,.09); font-size: 9px; }
     .inbox-tab.active .inbox-tab-count { background: rgba(252,248,245,.16); }
-    .inbox-mark-form { flex: 0 0 auto; margin: 0; }
-    .inbox-mark-all { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 7px; border-radius: .75rem; padding: 0 14px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-    .inbox-mark-all { border: 1px solid var(--border); background: var(--surface); color: var(--primary); white-space: nowrap; }
-    .inbox-mark-all:disabled { cursor: default; opacity: .45; }
-    .inbox-tab:focus-visible, .inbox-mark-all:focus-visible, .inbox-action:focus-visible, .page-btn:focus-visible { outline: 3px solid rgba(109,76,91,.2); outline-offset: 2px; }
+    .inbox-tab:focus-visible, .inbox-action:focus-visible, .page-btn:focus-visible { outline: 3px solid rgba(109,76,91,.2); outline-offset: 2px; }
 
     .inbox-flash { display: flex; align-items: center; gap: 9px; margin-bottom: 15px; border: 1px solid #d8e5de; border-radius: 11px; background: #f3f8f5; padding: 12px 14px; color: #4f7c69; font-size: 12px; font-weight: 700; }
     .inbox-day { margin-top: 22px; }
@@ -163,7 +157,6 @@ $dashboardContent = function () use (
         .inbox-header { align-items: flex-start; flex-direction: column; }
         .inbox-toolbar { align-items: stretch; flex-direction: column; }
         .inbox-tabs { width: 100%; }
-        .inbox-mark-form, .inbox-mark-all { width: 100%; }
         .inbox-item { grid-template-columns: auto minmax(0,1fr); align-items: start; }
         .inbox-side { grid-column: 2; min-width: 0; justify-items: start; }
         .inbox-time { display: none; }
@@ -218,13 +211,6 @@ $dashboardContent = function () use (
                 <span class="inbox-tab-count"><?= number_format((int)$stats['unread']) ?></span>
             </a>
         </nav>
-
-        <form class="inbox-mark-form" method="post" action="<?= $h($notificationMarkAllUrl) ?>">
-            <button class="inbox-mark-all" type="submit" <?= (int)$stats['unread'] === 0 ? 'disabled' : '' ?>>
-                <i data-lucide="check-check" class="h-4 w-4"></i>
-                Mark as read
-            </button>
-        </form>
     </section>
 
     <?php if (empty($notifications)): ?>

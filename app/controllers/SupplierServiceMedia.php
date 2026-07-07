@@ -14,6 +14,10 @@ class SupplierServiceMedia extends SupplierControllerSupport
             $this->jsonResponse(['status' => 'error', 'message' => 'Service id is required.'], 422);
         }
 
+        if ($this->serviceManagementModel->countServiceMedia($serviceId, (int)$supplier['supplier_id']) >= 10) {
+            $this->jsonResponse(['status' => 'error', 'message' => 'You can upload a maximum of 10 portfolio photos.'], 422);
+        }
+
         $fileUrl = $this->uploadService->storeServiceImageFromPayload($payload['img'] ?? '', (int)$supplier['supplier_id'], 'media');
 
         if ($fileUrl === '') {
