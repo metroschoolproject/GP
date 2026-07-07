@@ -1,6 +1,10 @@
 <?php
 $refunds = $refunds ?? [];
 $stats = $stats ?? [];
+$currentPage = (int)($currentPage ?? 1);
+$totalPages = (int)($totalPages ?? 1);
+$totalCount = (int)($totalCount ?? count($refunds));
+$perPage = (int)($perPage ?? 20);
 
 $dashboardTitle = 'Payments';
 $dashboardCrumb = 'Refund queue';
@@ -27,69 +31,124 @@ $completedToday = (float)($stats['completed_today'] ?? 0);
 $flash = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
 
-$dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $pendingCount, $processingCount, $completedCount, $pendingAmount, $completedToday, $flash) {
+$dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $pendingCount, $processingCount, $completedCount, $pendingAmount, $completedToday, $flash, $currentPage, $totalPages, $totalCount, $perPage) {
 ?>
-<style>
-    :root { --rq-bg: #fbfbf9; --rq-surface: #FFFFFF; --rq-border: #ead8c7; --rq-text: #6d4c5b; --rq-muted: #9b7d89; --rq-muted2: #7b5c69; --rq-plum: #6d4c5b; }
-    .refund-queue-shell { min-height:100%; padding:30px; background:var(--rq-bg) }
-    .rq-page { max-width:1200px; margin:0 auto; color:var(--rq-text) }
-    .rq-kicker { margin:0 0 7px; color:var(--rq-muted); font-size:10px; font-weight:800; letter-spacing:.18em; text-transform:uppercase }
-    .rq-title { margin:0; font-family:"Playfair Display",serif; font-size:clamp(28px,3vw,40px); font-weight:650; line-height:1 }
+	<style>
+	    :root {
+	        --rq-bg:#fbfaf8;
+	        --rq-surface:#fffdfb;
+	        --rq-panel:#fff8ef;
+	        --rq-border:#ead8c7;
+	        --rq-border-strong:#dec8b6;
+	        --rq-text:#5b3f4a;
+	        --rq-ink:#3f2a32;
+	        --rq-muted:#a98c99;
+	        --rq-muted2:#7b5c69;
+	        --rq-plum:#6d4c5b;
+	        --rq-green:#059669;
+	        --rq-red:#dc2626;
+	    }
+	    .refund-queue-shell{min-height:100%;padding:34px 32px 46px;background:var(--rq-bg)}
+	    .rq-page{max-width:1320px;margin:0 auto;color:var(--rq-text)}
+	    .rq-header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+	    .rq-kicker{margin:0 0 8px;color:var(--rq-muted);font-size:10px;font-weight:850;letter-spacing:.2em;text-transform:uppercase}
+	    .rq-title{margin:0;font-family:"Playfair Display",serif;font-size:clamp(34px,3.6vw,48px);font-weight:650;line-height:.96;color:var(--rq-text)}
+	    .rq-subtitle{max-width:420px;margin:0;color:#a58b96;font-size:12px;font-weight:600;line-height:1.5}
 
-    .rq-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:24px }
-    .rq-stat { padding:18px; border:1px solid var(--rq-border); border-radius:12px; background:var(--rq-surface) }
-    .rq-stat-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--rq-muted) }
-    .rq-stat-value { margin-top:6px; font-size:22px; font-weight:750; font-variant-numeric:tabular-nums }
-    .rq-stat-note { margin-top:4px; font-size:11px; color:#a58b96 }
-    .rq-stat-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; margin-left:6px; vertical-align:2px }
-    .rq-stat-badge.warn { background:#FFFBEB; color:#92400E }
-    .rq-stat-badge.info { background:#EEF2FF; color:#3730A3 }
+	    .rq-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:26px}
+	    .rq-stat{position:relative;overflow:hidden;min-height:122px;padding:20px 22px;border:1px solid var(--rq-border);border-radius:8px;background:var(--rq-surface);box-shadow:0 12px 30px rgba(52,35,43,.035)}
+	    .rq-stat::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,rgba(109,76,91,.34),rgba(216,180,106,.52));opacity:.75}
+	    .rq-stat-label{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.12em;color:var(--rq-muted)}
+	    .rq-stat-value{margin-top:13px;color:var(--rq-text);font-size:26px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums}
+	    .rq-stat-note{margin-top:9px;font-size:11px;font-weight:650;color:#a58b96}
+	    .rq-stat-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;border-radius:999px;font-size:10px;font-weight:850;letter-spacing:0}
+	    .rq-stat-badge.warn{background:#fff4dc;color:#92400e}
+	    .rq-stat-badge.info{background:#eef2ff;color:#3730a3}
 
-    .rq-table-wrap { margin-top:24px; overflow-x:auto; border:1px solid var(--rq-border); border-radius:15px; background:var(--rq-surface); box-shadow:0 18px 45px rgba(52,35,43,.06) }
-    .rq-table { width:100%; font-size:13px; border-collapse:collapse }
-    .rq-table th { padding:12px 16px; text-align:left; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--rq-muted); border-bottom:1px solid var(--rq-border); background:#f9f6f2 }
-    .rq-table td { padding:12px 16px; border-bottom:1px solid var(--rq-border); vertical-align:middle }
-    .rq-table tr:last-child td { border-bottom:none }
+	    .rq-table-wrap{margin-top:24px;overflow:hidden;border:1px solid var(--rq-border);border-radius:8px;background:var(--rq-surface);box-shadow:0 18px 45px rgba(52,35,43,.06)}
+	    .rq-table-scroll{overflow-x:auto}
+	    .rq-table{width:100%;min-width:1080px;font-size:13px;border-collapse:collapse;table-layout:fixed}
+	    .rq-table th{padding:15px 18px;text-align:left;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.09em;color:var(--rq-muted);border-bottom:1px solid var(--rq-border);background:#fbf7f2}
+	    .rq-table td{padding:17px 18px;border-bottom:1px solid #f0e3d8;vertical-align:middle}
+	    .rq-table tr:last-child td{border-bottom:none}
+	    .rq-table tbody tr{transition:background .16s ease}
+	    .rq-table tbody tr:hover{background:#fffaf5}
+	    .rq-col-booking{width:14%}
+	    .rq-col-customer{width:18%}
+	    .rq-col-amount{width:12%}
+	    .rq-col-policy{width:22%}
+	    .rq-col-status{width:12%}
+	    .rq-col-requested{width:13%}
+	    .rq-col-actions{width:150px}
+	    .rq-booking-link{display:inline-flex;color:var(--rq-plum);font-size:12px;font-weight:800;text-decoration:none}
+	    .rq-booking-link:hover{text-decoration:underline;text-underline-offset:3px}
+	    .rq-name{font-weight:800;color:var(--rq-ink);line-height:1.2}
+	    .rq-email{margin-top:3px;font-size:11px;color:var(--rq-muted);line-height:1.35;word-break:break-word}
+	    .rq-amount{font-weight:850;font-variant-numeric:tabular-nums;color:var(--rq-plum);line-height:1.3}
+	    .rq-policy{max-width:300px;color:var(--rq-muted2);font-size:12px;font-weight:600;line-height:1.38}
+	    .rq-requested{color:var(--rq-muted2);font-size:11.5px;font-weight:650;line-height:1.45}
+	    .rq-status-note{margin-top:5px;color:var(--rq-muted);font-size:10.5px;font-weight:700}
 
-    .rq-name { font-weight:600 }
-    .rq-email { font-size:11px; color:var(--rq-muted) }
-    .rq-amount { font-weight:700; font-variant-numeric:tabular-nums; color:var(--rq-plum) }
-    .rq-policy { font-size:11px; color:var(--rq-muted2); max-width:200px; line-height:1.35 }
+	    .rq-badge{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:0 12px;border-radius:999px;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.04em}
+	    .rq-badge.pending{background:#fff7e8;color:#a85b0b}
+	    .rq-badge.processing{background:#eef2ff;color:#3730a3}
+	    .rq-badge.completed{background:#ecfdf5;color:#065f46}
+	    .rq-badge.rejected{background:#fef2f2;color:#991b1b}
 
-    .rq-badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:999px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em }
-    .rq-badge.pending { background:#fffbeb; color:#92400E }
-    .rq-badge.processing { background:#eff6ff; color:#3730A3 }
-    .rq-badge.completed { background:#ecfdf5; color:#065F46 }
-    .rq-badge.rejected { background:#fef2f2; color:#991B1B }
+	    .rq-actions{display:grid;grid-template-columns:1fr;gap:7px;justify-items:stretch}
+	    .rq-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:36px;padding:0 15px;border:1px solid transparent;border-radius:8px;font-family:inherit;font-size:11px;font-weight:850;cursor:pointer;transition:transform .14s ease,box-shadow .14s ease,background .14s ease}
+	    .rq-btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(52,35,43,.12)}
+	    .rq-btn-primary{background:var(--rq-plum);color:#fff}
+	    .rq-btn-primary:hover{background:#5a3e4a}
+	    .rq-btn-success{background:var(--rq-green);color:#fff}
+	    .rq-btn-success:hover{background:#047857}
+	    .rq-btn-danger{background:var(--rq-red);color:#fff}
+	    .rq-btn-danger:hover{background:#b91c1c}
+	    .rq-btn-ghost{background:#f8f1ea;color:var(--rq-muted2);border-color:#ead8c7}
 
-    .rq-actions { display:flex; gap:6px; flex-wrap:wrap }
-    .rq-btn { display:inline-flex; align-items:center; gap:4px; min-height:32px; padding:0 14px; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:.14s; font-family:inherit }
-    .rq-btn-primary { background:var(--rq-plum); color:#FFFFFF }
-    .rq-btn-primary:hover { background:#5a3e4a }
-    .rq-btn-success { background:#16a34a; color:#fff }
-    .rq-btn-success:hover { background:#15803d }
-    .rq-btn-danger { background:#dc2626; color:#fff }
-    .rq-btn-danger:hover { background:#b91c1c }
+	    .rq-empty{text-align:center;padding:54px 20px;color:var(--rq-muted)}
+	    .rq-empty svg{margin:auto;color:#b79c8b}
+	    .pagination{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;border-top:1px solid var(--rq-border);background:#fff}
+	    .page-info{font-size:12px;color:var(--rq-muted);font-weight:650}
+	    .page-btns{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+	    .page-btn{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 10px;border:1px solid var(--rq-border);border-radius:8px;background:#fff;color:var(--rq-muted2);font-size:12px;font-weight:800;text-decoration:none}
+	    .page-btn:hover{background:#f9f6f2;color:var(--rq-plum)}
+	    .page-btn.active{background:var(--rq-plum);border-color:var(--rq-plum);color:#fff}
 
-    .rq-empty { text-align:center; padding:40px 20px; color:var(--rq-muted) }
+	    .rq-modal-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(38,24,31,.38);align-items:center;justify-content:center;padding:18px}
+	    .rq-modal-overlay.show{display:flex}
+	    .rq-modal{width:min(440px,92vw);padding:24px;border:1px solid var(--rq-border);border-radius:8px;background:var(--rq-surface);box-shadow:0 24px 64px rgba(52,35,43,.2)}
+	    .rq-modal-title{margin-bottom:16px;color:var(--rq-ink);font-size:18px;font-weight:850}
+	    .rq-modal-label{display:block;margin-bottom:5px;color:var(--rq-muted);font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
+	    .rq-modal-input{width:100%;box-sizing:border-box;margin-bottom:13px;padding:9px 12px;border:1px solid var(--rq-border);border-radius:8px;background:#fff;color:var(--rq-ink);font-family:inherit;font-size:13px}
+	    .rq-modal-input:focus{outline:none;border-color:var(--rq-plum);box-shadow:0 0 0 3px rgba(109,76,91,.12)}
+	    .rq-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
 
-    .rq-modal-overlay { display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.3); align-items:center; justify-content:center }
-    .rq-modal-overlay.show { display:flex }
-    .rq-modal { width:min(420px,92vw); padding:24px; border-radius:16px; background:var(--rq-surface); box-shadow:0 24px 64px rgba(52,35,43,.18) }
-    .rq-modal-title { font-size:16px; font-weight:700; margin-bottom:16px }
-    .rq-modal-label { display:block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--rq-muted); margin-bottom:4px }
-    .rq-modal-input { width:100%; padding:8px 12px; border:1px solid var(--rq-border); border-radius:8px; font-size:13px; font-family:inherit; margin-bottom:12px; box-sizing:border-box }
-    .rq-modal-input:focus { outline:none; border-color:var(--rq-plum); box-shadow:0 0 0 3px rgba(109,76,91,.12) }
-    .rq-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px }
+	    .rq-flash{margin:18px 0 0;padding:12px 16px;border-radius:8px;font-size:13px;font-weight:700}
+	    .rq-flash-success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+	    .rq-flash-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+	    @media(max-width:1100px){
+	        .rq-stats{grid-template-columns:1fr}
+	        .rq-header{align-items:flex-start;flex-direction:column}
+	    }
+	    @media(max-width:700px){
+	        .refund-queue-shell{padding:24px 16px 36px}
+	        .rq-title{font-size:32px}
+	        .rq-stat{min-height:0}
+	        .pagination{align-items:flex-start;flex-direction:column}
+	        .rq-modal-actions{flex-direction:column-reverse}
+	        .rq-modal-actions .rq-btn{width:100%}
+	    }
+	</style>
 
-    .rq-flash { margin-bottom:18px; padding:12px 16px; border-radius:10px; font-size:13px; font-weight:600 }
-    .rq-flash-success { background:#ecfdf5; color:#065F46; border:1px solid #a7f3d0 }
-    .rq-flash-error { background:#fef2f2; color:#991B1B; border:1px solid #fecaca }
-</style>
-
-<div class="rq-page">
-    <p class="rq-kicker">Financial Operations</p>
-    <h1 class="rq-title">Refund Queue</h1>
+	<div class="rq-page">
+	    <div class="rq-header">
+	        <div>
+	            <p class="rq-kicker">Financial Operations</p>
+	            <h1 class="rq-title">Refund Queue</h1>
+	        </div>
+	        <p class="rq-subtitle">Review pending refund amounts, upload transfer proof, and close completed refunds from one queue.</p>
+	    </div>
 
     <?php if ($flash): ?>
         <?php $flashOK = strpos($flash,'updated')!==false||strpos($flash,'completed')!==false||strpos($flash,'processed')!==false; ?>
@@ -114,38 +173,48 @@ $dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $p
         </div>
     </div>
 
-    <div class="rq-table-wrap">
-        <?php if (empty($refunds)): ?>
+	    <div class="rq-table-wrap">
+	        <?php if (empty($refunds)): ?>
         <div class="rq-empty">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10z"/><path d="M8 15s1.5-2 4-2 4 2 4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
             <p style="font-size:14px;margin:8px 0 0">No pending refunds</p>
             <p style="font-size:12px;color:#a58b96;margin:4px 0 0">All refund requests have been processed.</p>
-        </div>
-        <?php else: ?>
-        <table class="rq-table">
-            <thead><tr>
-                <th>Booking</th><th>Customer</th><th>Amount</th><th>Policy</th><th>Status</th><th>Requested</th><th class="sr-only">Actions</th>
-            </tr></thead>
-            <tbody>
-            <?php foreach ($refunds as $rf):
-                $rId = (int)($rf['id']??0); $rStatus = (string)($rf['status']??'pending'); $bId = (int)($rf['booking_id']??0); ?>
-                <tr>
-                    <td><a href="<?= URLROOT ?>/admin/bookingDetail/<?= $bId ?>" style="color:var(--rq-plum);font-weight:600;text-decoration:none;font-size:12px">#<?= $h($rf['booking_ref']??$bId) ?></a></td>
-                    <td>
-                        <div class="rq-name"><?= $h($rf['customer_name']??'—') ?></div>
-                        <div class="rq-email"><?= $h($rf['customer_email']??'') ?></div>
+	        </div>
+	        <?php else: ?>
+	        <div class="rq-table-scroll">
+	        <table class="rq-table">
+	            <colgroup>
+	                <col class="rq-col-booking">
+	                <col class="rq-col-customer">
+	                <col class="rq-col-amount">
+	                <col class="rq-col-policy">
+	                <col class="rq-col-status">
+	                <col class="rq-col-requested">
+	                <col class="rq-col-actions">
+	            </colgroup>
+	            <thead><tr>
+	                <th>Booking</th><th>Customer</th><th>Amount</th><th>Policy</th><th>Status</th><th>Requested</th><th>Actions</th>
+	            </tr></thead>
+	            <tbody>
+	            <?php foreach ($refunds as $rf):
+	                $rId = (int)($rf['id']??0); $rStatus = (string)($rf['status']??'pending'); $bId = (int)($rf['booking_id']??0); ?>
+	                <tr>
+	                    <td><a class="rq-booking-link" href="<?= URLROOT ?>/admin/bookingDetail/<?= $bId ?>">#<?= $h($rf['booking_ref']??$bId) ?></a></td>
+	                    <td>
+	                        <div class="rq-name"><?= $h($rf['customer_name']??'—') ?></div>
+	                        <div class="rq-email"><?= $h($rf['customer_email']??'') ?></div>
                     </td>
                     <td class="rq-amount"><?= $money($rf['amount']??0) ?></td>
                     <td><div class="rq-policy"><?= $h($rf['policy_reason']??$rf['reason']??'—') ?></div></td>
-                    <td>
-                        <span class="rq-badge <?= $h($rStatus) ?>"><?= ucfirst($rStatus) ?></span>
-                        <?php if(!empty($rf['refund_bank_name'])): ?><div style="font-size:10px;color:var(--rq-muted);margin-top:2px">via <?= $h($rf['refund_bank_name']) ?></div><?php endif; ?>
-                    </td>
-                    <td style="font-size:11px;color:var(--rq-muted2)"><?= $dateTime($rf['requested_at']) ?></td>
-                    <td>
-                        <div class="rq-actions">
-                            <?php if($rStatus==='pending'): ?>
-                            <button class="rq-btn rq-btn-primary" onclick="openProcessModal(<?=$rId?>,<?=(float)($rf['amount']??0)?>)">Process</button>
+	                    <td>
+	                        <span class="rq-badge <?= $h($rStatus) ?>"><?= ucfirst($rStatus) ?></span>
+	                        <?php if(!empty($rf['refund_bank_name'])): ?><div class="rq-status-note">via <?= $h($rf['refund_bank_name']) ?></div><?php endif; ?>
+	                    </td>
+	                    <td class="rq-requested"><?= $dateTime($rf['requested_at']) ?></td>
+	                    <td>
+	                        <div class="rq-actions">
+	                            <?php if($rStatus==='pending'): ?>
+	                            <button class="rq-btn rq-btn-primary" onclick="openProcessModal(<?=$rId?>,<?=(float)($rf['amount']??0)?>)">Process</button>
                             <button class="rq-btn rq-btn-danger" onclick="openRejectModal(<?=$rId?>)">Reject</button>
                             <?php elseif($rStatus==='processing'): ?>
                             <button class="rq-btn rq-btn-success" onclick="completeRefund(<?=$rId?>)">Complete</button>
@@ -154,10 +223,17 @@ $dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $p
                         </div>
                     </td>
                 </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php endif; ?>
+	            <?php endforeach; ?>
+	            </tbody>
+	        </table>
+	        </div>
+	        <?php endif; ?>
+        <?php
+        if (isset($currentPage, $totalPages, $totalCount, $perPage)) {
+            $baseParams = '';
+            require APPROOT . '/views/partials/_pagination.php';
+        }
+        ?>
     </div>
 </div>
 
@@ -178,8 +254,8 @@ $dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $p
         <label class="rq-modal-label">Note (optional)</label>
         <input type="text" name="note" class="rq-modal-input">
         <div class="rq-modal-actions">
-            <button type="button" class="rq-btn" onclick="closeModals()" style="background:#f1f1f1;color:#374151">Cancel</button>
-            <button type="submit" class="rq-btn rq-btn-primary">Submit Proof</button>
+	            <button type="button" class="rq-btn rq-btn-ghost" onclick="closeModals()">Cancel</button>
+	            <button type="submit" class="rq-btn rq-btn-primary">Submit Proof</button>
         </div>
     </form>
 </div></div>
@@ -192,7 +268,7 @@ $dashboardContent = function () use ($refunds, $stats, $h, $money, $dateTime, $p
         <label class="rq-modal-label">Reason</label>
         <textarea name="reason" class="rq-modal-input" rows="3" required></textarea>
         <div class="rq-modal-actions">
-            <button type="button" class="rq-btn" onclick="closeModals()" style="background:#f1f1f1;color:#374151">Cancel</button>
+	            <button type="button" class="rq-btn rq-btn-ghost" onclick="closeModals()">Cancel</button>
             <button type="submit" class="rq-btn rq-btn-danger">Reject</button>
         </div>
     </form>

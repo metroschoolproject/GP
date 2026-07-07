@@ -134,6 +134,16 @@ $wishlistCount    = (int)($wishlistCount ?? 0);
 $wishlistServiceIds = $wishlistServiceIds ?? [];
 $wishlistPageUrl    = URLROOT . '/main/wishlist';
 $resetUrl = URLROOT . '/customerServices/service';
+$liveSearchSeed = array_map(function ($svc) use ($moneyRange) {
+    return [
+        'id' => (int)($svc['id'] ?? 0),
+        'name' => (string)($svc['name'] ?? 'Service'),
+        'supplier' => (string)($svc['supplier_name'] ?? 'Supplier'),
+        'category' => (string)($svc['category'] ?? ''),
+        'price' => $moneyRange($svc),
+        'url' => URLROOT . '/customerServices/detail/' . (int)($svc['id'] ?? 0),
+    ];
+}, array_slice($services, 0, 40));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -630,6 +640,8 @@ button,input,select{font-family:var(--font-body);outline:none}
     animation-play-state:paused;
 }
 .fb-search{
+    position:relative;
+    z-index:4;
     display:flex;
     align-items:center;
     gap:10px;
@@ -639,10 +651,11 @@ button,input,select{font-family:var(--font-body);outline:none}
     background:rgba(245,232,217,.88);
     border:0.5px solid rgba(118,90,70,.24);
     border-radius:14px;
-    overflow:hidden;
+    overflow:visible;
 }
 .fb-search:focus-within,
 .fb-search.is-active{
+    z-index:90;
     background:#fcf8f5;
     border-color:rgba(154,104,127,.42);
     box-shadow:0 10px 26px rgba(63,36,26,.10);
@@ -668,7 +681,109 @@ button,input,select{font-family:var(--font-body);outline:none}
   transform:scale(.82);
 }
 
+.fb-live-search{
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(100% + 10px);
+  z-index:120;
+  display:none;
+  padding:8px;
+  border:1px solid rgba(118,90,70,.18);
+  border-radius:14px;
+  background:#fcf8f5;
+  box-shadow:0 18px 42px rgba(43,31,24,.18);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  text-align:left;
+}
+.fb-live-search.is-open{display:block}
+.fb-live-search::before{
+  content:"";
+  position:absolute;
+  top:-7px;
+  left:112px;
+  width:14px;
+  height:14px;
+  border-left:1px solid rgba(118,90,70,.14);
+  border-top:1px solid rgba(118,90,70,.14);
+  background:#fcf8f5;
+  transform:rotate(45deg);
+}
+.fb-live-search-list{
+  position:relative;
+  z-index:1;
+  display:grid;
+  gap:4px;
+  max-height:304px;
+  overflow:auto;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(118,90,70,.34) transparent;
+}
+.fb-live-search-list::-webkit-scrollbar{width:5px}
+.fb-live-search-list::-webkit-scrollbar-thumb{background:rgba(118,90,70,.34);border-radius:999px}
+.fb-live-option{
+  width:100%;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px 12px;
+  align-items:center;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  padding:11px 12px;
+  color:#4f382a;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.fb-live-option:hover,
+.fb-live-option.is-active,
+.fb-live-option:focus-visible{
+  outline:none;
+  background:rgba(245,232,217,.84);
+}
+.fb-live-name{
+  display:block;
+  overflow:hidden;
+  color:#3f241a;
+  font-size:13px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.fb-live-meta{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+  color:#8b6a56;
+  font-size:10.5px;
+  font-weight:700;
+}
+.fb-live-meta span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.fb-live-price{
+  color:#6d4c5b;
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.fb-live-empty{
+  padding:16px 13px;
+  color:#8b6a56;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.45;
+}
+.fb-live-empty strong{display:block;color:#4f382a;font-size:13px;margin-bottom:2px}
+
 .fb-controls{
+  position:relative;
+  z-index:1;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -2102,7 +2217,7 @@ main{margin-bottom:0;background:#2A1710}
         <input type="hidden" name="from_filter" value="1">
         <div class="fb-search <?= trim((string)($filters['search'] ?? '')) !== '' ? 'is-active' : '' ?>">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="search" name="q" value="<?= $h($filters['search'] ?? '') ?>" placeholder="Search services…" aria-label="Search">
+          <input type="search" name="q" value="<?= $h($filters['search'] ?? '') ?>" placeholder="Search services…" aria-label="Search" autocomplete="off" spellcheck="false" data-live-search-input aria-autocomplete="list" aria-expanded="false" aria-controls="serviceLiveSearchPanel">
           <button class="fb-find" type="submit" aria-label="Find services">
     <svg width="13" height="13" viewBox="0 0 24 24"
          fill="none"
@@ -2113,7 +2228,10 @@ main{margin-bottom:0;background:#2A1710}
         <circle cx="11" cy="11" r="8"/>
         <path d="m21 21-4.35-4.35"/>
     </svg>
-</button>
+	</button>
+          <div class="fb-live-search" id="serviceLiveSearchPanel" role="listbox" aria-label="Service suggestions" data-live-search-panel>
+            <div class="fb-live-search-list" data-live-search-list></div>
+          </div>
         </div>
         <div class="fb-controls">
           <label class="fb-chip fb-date-chip <?= $activeDate !== '' ? 'on' : '' ?>" id="serviceDateChip">
@@ -2371,6 +2489,8 @@ main{margin-bottom:0;background:#2A1710}
 (function(){
 'use strict';
 
+const liveSearchSeed=<?= json_encode($liveSearchSeed, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
 /* ── navigation toggles ───────────────────── */
 const menuButton=document.getElementById('menuButton');
 const mobileMenu=document.getElementById('mobileMenu');
@@ -2560,6 +2680,157 @@ filterForm?.addEventListener('submit',event=>{
   }
 });
 updateBudgetNotice();
+
+/* ── live service search ───────────────────── */
+const liveSearchInput=document.querySelector('[data-live-search-input]');
+const liveSearchPanel=document.querySelector('[data-live-search-panel]');
+const liveSearchList=document.querySelector('[data-live-search-list]');
+let liveSearchItems=[];
+let liveSearchActive=-1;
+let liveSearchTimer=null;
+let liveSearchAbort=null;
+
+function liveNormalize(value){
+  return String(value || '').toLowerCase().replace(/\s+/g,'').trim();
+}
+function liveMatchSeed(query){
+  const raw=String(query || '').toLowerCase().trim();
+  const compact=liveNormalize(query);
+  if(!raw) return [];
+  return liveSearchSeed.filter(item=>{
+    const text=[item.name,item.supplier,item.category].join(' ').toLowerCase();
+    const compactText=liveNormalize(text);
+    return text.includes(raw) || compactText.includes(compact);
+  }).sort((a,b)=>{
+    const an=String(a.name || '').toLowerCase();
+    const bn=String(b.name || '').toLowerCase();
+    const aStart=an.startsWith(raw) ? 0 : 1;
+    const bStart=bn.startsWith(raw) ? 0 : 1;
+    return aStart-bStart || an.localeCompare(bn);
+  }).slice(0,8);
+}
+function liveSetOpen(open){
+  if(!liveSearchPanel || !liveSearchInput) return;
+  liveSearchPanel.classList.toggle('is-open',open);
+  liveSearchInput.setAttribute('aria-expanded',open ? 'true' : 'false');
+}
+function liveSetActive(index){
+  liveSearchActive=index;
+  liveSearchList?.querySelectorAll('.fb-live-option').forEach((option,i)=>{
+    option.classList.toggle('is-active',i===index);
+    option.setAttribute('aria-selected',i===index ? 'true' : 'false');
+  });
+}
+function liveGoTo(item){
+  if(!item) return;
+  window.location.href=item.url || ('<?= URLROOT ?>/customerServices/service?q=' + encodeURIComponent(item.name || ''));
+}
+function liveRender(items, query, loading=false){
+  if(!liveSearchList) return;
+  liveSearchItems=items || [];
+  liveSearchActive=-1;
+  liveSearchList.innerHTML='';
+
+  if(liveSearchItems.length){
+    liveSearchItems.forEach((item,index)=>{
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='fb-live-option';
+      button.setAttribute('role','option');
+      button.setAttribute('aria-selected','false');
+      button.dataset.index=String(index);
+
+      const copy=document.createElement('span');
+      const name=document.createElement('span');
+      name.className='fb-live-name';
+      name.textContent=item.name || 'Service';
+      const meta=document.createElement('span');
+      meta.className='fb-live-meta';
+      const supplier=document.createElement('span');
+      supplier.textContent=item.supplier || 'Supplier';
+      const category=document.createElement('span');
+      category.textContent=item.category ? '• '+item.category : '';
+      meta.append(supplier,category);
+      copy.append(name,meta);
+
+      const price=document.createElement('span');
+      price.className='fb-live-price';
+      price.textContent=item.price || 'View';
+      button.append(copy,price);
+      button.addEventListener('mouseenter',()=>liveSetActive(index));
+      button.addEventListener('click',()=>liveGoTo(item));
+      liveSearchList.appendChild(button);
+    });
+    liveSetOpen(true);
+    return;
+  }
+
+  if(query.trim() !== ''){
+    const empty=document.createElement('div');
+    empty.className='fb-live-empty';
+    const strong=document.createElement('strong');
+    strong.textContent=loading ? 'Searching...' : 'No matching services yet';
+    const span=document.createElement('span');
+    span.textContent=loading ? 'Looking through Golden Promise services.' : 'Press Enter to search all services for "' + query.trim() + '".';
+    empty.append(strong,span);
+    liveSearchList.appendChild(empty);
+    liveSetOpen(true);
+  } else {
+    liveSetOpen(false);
+  }
+}
+function liveFetch(query){
+  if(liveSearchAbort) liveSearchAbort.abort();
+  liveSearchAbort=new AbortController();
+  const params=filterForm ? new URLSearchParams(new FormData(filterForm)) : new URLSearchParams();
+  params.set('q',query);
+  fetch('<?= URLROOT ?>/customerServices/liveSearch?' + params.toString(),{
+    headers:{'Accept':'application/json'},
+    signal:liveSearchAbort.signal
+  })
+    .then(response=>response.ok ? response.json() : null)
+    .then(data=>{
+      if(!data || !Array.isArray(data.results)) return;
+      liveRender(data.results,query,false);
+    })
+    .catch(error=>{
+      if(error.name !== 'AbortError') liveRender(liveMatchSeed(query),query,false);
+    });
+}
+function liveUpdate(){
+  const query=liveSearchInput?.value || '';
+  const local=liveMatchSeed(query);
+  liveRender(local,query,query.trim().length >= 2 && local.length === 0);
+  clearTimeout(liveSearchTimer);
+  if(query.trim().length >= 2){
+    liveSearchTimer=setTimeout(()=>liveFetch(query),170);
+  }
+}
+if(liveSearchInput && liveSearchPanel && liveSearchList){
+  liveSearchInput.addEventListener('input',liveUpdate);
+  liveSearchInput.addEventListener('focus',()=>{ if(liveSearchInput.value.trim() !== '') liveUpdate(); });
+  liveSearchInput.addEventListener('keydown',event=>{
+    if(!liveSearchPanel.classList.contains('is-open')) return;
+    if(event.key==='ArrowDown'){
+      event.preventDefault();
+      liveSetActive(Math.min(liveSearchActive+1,liveSearchItems.length-1));
+    } else if(event.key==='ArrowUp'){
+      event.preventDefault();
+      liveSetActive(Math.max(liveSearchActive-1,0));
+    } else if(event.key==='Enter' && liveSearchActive >= 0){
+      event.preventDefault();
+      liveGoTo(liveSearchItems[liveSearchActive]);
+    } else if(event.key==='Escape'){
+      liveSetOpen(false);
+      liveSearchInput.blur();
+    }
+  });
+  liveSearchPanel.addEventListener('mousedown',event=>event.preventDefault());
+  document.addEventListener('click',event=>{
+    if(event.target.closest('.fb-search')) return;
+    liveSetOpen(false);
+  });
+}
 
 function closeServiceSelects(exceptWrap=null){
   document.querySelectorAll('.fb-select-wrap.is-open').forEach(wrap=>{

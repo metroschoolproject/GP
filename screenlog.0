@@ -271,3 +271,13 @@ Cannot exec './tunnel.sh': Operation not permitted
 
 ✅ Tunnel active: https://fe755b9fcf271f36-204-157-173-92.serveousercontent.com/GP/
 
+Cannot exec '/bin/bash': Operation not permitted
+🔄 Starting tunnel to localhost:80...
+   Press Ctrl+C to stop
+
+[21:11:48] Connecting...
+  Forwarding HTTP traffic from https://787cb2bb07c0b16e-117-55-251-46.serveousercontent.com
+
+✅ Tunnel active: https://787cb2bb07c0b16e-117-55-251-46.serveousercontent.com/GP/
+
+  Port forwarding for 787cb2bb07c0b16e-117-55-251-46.serveousercontent.com expired

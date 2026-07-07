@@ -309,7 +309,6 @@ button { font-family: var(--font-b); cursor: pointer; }
       $firstHall = $firstItem ? trim((string)($firstItem['venue_room_name'] ?? '')) : '';
       $itemCount = count($items);
       $deposit = (float)$b['total_amount'] * (BOOKING_DEPOSIT_PERCENT / 100);
-      $hasVoucher = !empty($b['vouchers'] ?? []);
       $firstImage = $itemImage($firstItem ?? []);
       $avatarItems = array_slice($items, 0, 4);
       $extraAvatarCount = max(0, $itemCount - count($avatarItems));
@@ -397,9 +396,6 @@ button { font-family: var(--font-b); cursor: pointer; }
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               View Details
             </a>
-            <?php if ($hasVoucher): ?>
-              <a class="gp-btn-sm" href="<?= URLROOT ?>/booking/vouchers">View Voucher</a>
-            <?php endif; ?>
             <?php if (!in_array($b['status'], ['cancelled', 'cancellation_requested', 'completed'])): ?>
               <a class="gp-btn-sm danger" href="<?= URLROOT ?>/booking/cancel/<?= (int)$b['id'] ?>">Request Cancellation</a>
             <?php endif; ?>

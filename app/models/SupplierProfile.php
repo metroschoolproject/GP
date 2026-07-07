@@ -62,6 +62,19 @@ class SupplierProfile
                         WHERE supplier_categories.supplier_id = suppliers.supplier_id
                     ) AS category_names,
                     (
+                        SELECT GROUP_CONCAT(supplier_categories.category_id ORDER BY supplier_categories.category_id SEPARATOR \',\')
+                        FROM supplier_categories
+                        WHERE supplier_categories.supplier_id = suppliers.supplier_id
+                    ) AS category_id_csv,
+                    (
+                        SELECT supplier_documents.file_url
+                        FROM supplier_documents
+                        WHERE supplier_documents.supplier_id = suppliers.supplier_id
+                          AND supplier_documents.type = \'cover_photo\'
+                        ORDER BY supplier_documents.id DESC
+                        LIMIT 1
+                    ) AS cover_photo_url,
+                    (
                         SELECT supplier_documents.file_url
                         FROM supplier_documents
                         WHERE supplier_documents.supplier_id = suppliers.supplier_id

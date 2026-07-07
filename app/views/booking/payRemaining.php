@@ -126,11 +126,19 @@ body > .gp-shared-footer{width:calc(100% + 40px);margin-top:132px;margin-right:-
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);font-size:12px}
 .history-item:last-child{border-bottom:none}
 .history-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.payment-history-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px;padding-top:12px;border-top:1px solid var(--rule)}
+.payment-page-info{font-size:11px;font-weight:700;color:var(--muted)}
+.payment-page-buttons{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap}
+.payment-page-btn{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 9px;border:1px solid var(--rule);border-radius:8px;background:var(--card);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .16s}
+.payment-page-btn:hover:not(:disabled){border-color:var(--gold);color:var(--plum);background:#fffaf5}
+.payment-page-btn.is-active{border-color:var(--plum);background:var(--plum);color:#fcf8f5}
+.payment-page-btn:disabled{opacity:.38;cursor:default}
 @media(max-width:760px){
   .checkout-layout{grid-template-columns:1fr}
   .checkout-side{position:static;order:-1}
   .bank-grid{grid-template-columns:repeat(2,1fr)}
   .field-row{grid-template-columns:1fr}
+  .payment-history-pager{align-items:flex-start;flex-direction:column}
 }
 </style>
 </head>
@@ -296,8 +304,9 @@ body > .gp-shared-footer{width:calc(100% + 40px);margin-top:132px;margin-right:-
           Payment History
         </div>
         <div class="card-body">
+          <div data-payment-history-list data-page-size="5">
           <?php foreach ($remainingPayments as $rp): ?>
-          <div class="history-item">
+          <div class="history-item" data-payment-history-item>
             <div>
               <span style="font-weight:600;"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
               <?php if (($rp['bank_name'] ?? '') !== ''): ?>
@@ -319,6 +328,11 @@ body > .gp-shared-footer{width:calc(100% + 40px);margin-top:132px;margin-right:-
             </div>
           </div>
           <?php endforeach; ?>
+          </div>
+          <div class="payment-history-pager" data-payment-history-pager hidden>
+            <div class="payment-page-info" data-payment-page-info></div>
+            <div class="payment-page-buttons" data-payment-page-buttons></div>
+          </div>
         </div>
       </div>
       <?php endif; ?>
@@ -399,6 +413,54 @@ if (remainingSlipInput && remainingSlipName) {
 document.getElementById('paymentForm').addEventListener('submit', () => {
   const raw = amountInput.value.replace(/[^0-9]/g, '');
   amountInput.value = raw;
+});
+
+document.querySelectorAll('[data-payment-history-list]').forEach(function(list) {
+  const items = Array.from(list.querySelectorAll('[data-payment-history-item]'));
+  const pageSize = Math.max(1, parseInt(list.dataset.pageSize || '5', 10));
+  const pager = list.parentElement?.querySelector('[data-payment-history-pager]');
+  const info = pager?.querySelector('[data-payment-page-info]');
+  const buttons = pager?.querySelector('[data-payment-page-buttons]');
+  const totalPages = Math.ceil(items.length / pageSize);
+  let currentPage = 1;
+
+  if (!pager || !info || !buttons || totalPages <= 1) return;
+  pager.hidden = false;
+
+  function render() {
+    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+    const start = (currentPage - 1) * pageSize;
+    const end = Math.min(start + pageSize, items.length);
+
+    items.forEach(function(item, index) {
+      item.style.display = index >= start && index < end ? 'flex' : 'none';
+    });
+
+    info.textContent = 'Showing ' + (start + 1) + '-' + end + ' of ' + items.length;
+    buttons.innerHTML = '';
+
+    const makeButton = function(label, page, options) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'payment-page-btn' + (options?.active ? ' is-active' : '');
+      button.textContent = label;
+      button.disabled = !!options?.disabled;
+      if (options?.active) button.setAttribute('aria-current', 'page');
+      button.addEventListener('click', function() {
+        currentPage = page;
+        render();
+      });
+      buttons.appendChild(button);
+    };
+
+    makeButton('Prev', currentPage - 1, {disabled: currentPage === 1});
+    for (let page = 1; page <= totalPages; page++) {
+      makeButton(String(page), page, {active: page === currentPage});
+    }
+    makeButton('Next', currentPage + 1, {disabled: currentPage === totalPages});
+  }
+
+  render();
 });
 </script>
 <?php require APPROOT . '/views/layouts/customerFooter.php'; ?>

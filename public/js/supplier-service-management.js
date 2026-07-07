@@ -28,20 +28,71 @@ function showToast(message, type) {
   if (!toast) {
     const div = document.createElement('div');
     div.id = 'smToast';
-    div.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;max-width:420px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.18);transition:all 0.3s ease;pointer-events:none;opacity:0;';
+    div.style.cssText = 'position:fixed;inset:0;z-index:9999;display:grid;place-items:end center;padding:20px;pointer-events:none;opacity:0;transition:opacity .18s ease;';
+    div.innerHTML = '<div class="sm-toast-panel" role="status" style="pointer-events:auto;display:flex;align-items:flex-start;gap:12px;max-width:min(520px,calc(100vw - 32px));min-width:min(360px,calc(100vw - 32px));border:1px solid rgba(214,190,173,.95);border-radius:16px;background:rgba(255,251,247,.98);padding:14px 16px;box-shadow:0 18px 42px rgba(58,40,38,.18);transform:translateY(10px) scale(.98);transition:transform .18s ease;backdrop-filter:blur(10px)">' +
+      '<div class="sm-toast-icon" aria-hidden="true" style="flex:0 0 auto;display:grid;place-items:center;width:34px;height:34px;border-radius:999px;background:#6d4c5b;color:#fff8ef"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"></svg></div>' +
+      '<div class="sm-toast-copy" style="min-width:0;flex:1 1 auto"><p class="sm-toast-title" style="margin:0 0 2px;color:#6d4c5b;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase">Notice</p><p class="sm-toast-message" style="margin:0;color:#3f2f34;font-size:13px;font-weight:600;line-height:1.5;word-break:break-word"></p></div>' +
+      '<button type="button" class="sm-toast-close" aria-label="Dismiss notification" style="flex:0 0 auto;display:grid;place-items:center;width:28px;height:28px;margin-left:2px;border:0;border-radius:999px;background:transparent;color:#8f7580;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>' +
+      '</div>';
     document.body.appendChild(div);
     return showToast(message, type);
   }
-  toast.textContent = message;
-  toast.style.opacity = '1';
-  toast.style.transform = 'translateX(-50%) translateY(0)';
-  toast.style.background = type === 'success' ? '#166534' : type === 'info' ? '#1e40af' : '#991b1b';
-  toast.style.color = '#fff';
+
+  const panel = toast.querySelector('.sm-toast-panel') || toast.firstElementChild;
+  const icon = toast.querySelector('.sm-toast-icon svg');
+  const title = toast.querySelector('.sm-toast-title');
+  const text = toast.querySelector('.sm-toast-message');
+  const closeBtn = toast.querySelector('.sm-toast-close');
+  toast.classList.remove('is-success', 'is-info', 'is-error');
+  toast.classList.add(type === 'success' ? 'is-success' : type === 'info' ? 'is-info' : 'is-error');
+
+  if (title) {
+    title.textContent = type === 'success' ? 'Success' : type === 'info' ? 'Notice' : 'Attention';
+  }
+  if (text) {
+    text.textContent = message;
+  } else {
+    toast.textContent = message;
+  }
+  if (icon) {
+    icon.innerHTML = type === 'success'
+      ? '<path d="M20 7 9 18l-5-5"/>'
+      : type === 'info'
+        ? '<path d="M12 16v-4"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="9"/>'
+        : '<path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/>';
+  }
+  if (panel) {
+    panel.style.background = type === 'success'
+      ? 'rgba(240,253,250,.98)'
+      : type === 'info'
+        ? 'rgba(239,246,255,.98)'
+        : 'rgba(255,247,247,.98)';
+    panel.style.borderColor = type === 'success'
+      ? 'rgba(94, 234, 212, .65)'
+      : type === 'info'
+        ? 'rgba(96, 165, 250, .55)'
+        : 'rgba(248, 113, 113, .55)';
+  }
+
+  toast.hidden = false;
+  requestAnimationFrame(() => toast.classList.add('is-visible'));
   clearTimeout(toast._timer);
   toast._timer = setTimeout(function(){
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(-50%) translateY(8px)';
+    toast.classList.remove('is-visible');
+    window.setTimeout(function() {
+      toast.hidden = true;
+    }, 180);
   }, 3500);
+}
+
+function hideToast() {
+  const toast = document.getElementById('smToast');
+  if (!toast) return;
+  clearTimeout(toast._timer);
+  toast.classList.remove('is-visible');
+  window.setTimeout(function() {
+    toast.hidden = true;
+  }, 180);
 }
 
 function normalizeServiceItem(item) {
@@ -375,6 +426,7 @@ function addVenueRoom(prefix) {
   if (!list) return;
 
   list.insertAdjacentHTML('beforeend', venueRoomRowHtml(prefix));
+  showToast('Room added. Fill in the details and save to keep it.', 'info');
 }
 
 function removeVenueRoom(button, prefix) {
@@ -560,7 +612,33 @@ function renderFoodItems(listId, itemClass, items = []) {
   list.innerHTML = rows.map(s => foodItemRowHtml(itemClass, s)).join('');
 }
 
+function resolveFoodItemTarget(listId, itemClass) {
+  if (itemClass) {
+    return { listId, itemClass };
+  }
+
+  const shorthandMap = {
+    cs: { listId: 'csFoodItemsList', itemClass: 'cs-food-item' },
+    es: { listId: 'esFoodItemsList', itemClass: 'es-food-item' },
+    'cs-catering': { listId: 'csCateringItemsList', itemClass: 'cs-catering-item' },
+    'es-catering': { listId: 'esCateringItemsList', itemClass: 'es-catering-item' }
+  };
+
+  return shorthandMap[listId] || { listId, itemClass: 'food-item' };
+}
+
 function addFoodItem(listId, itemClass) {
+  const target = resolveFoodItemTarget(listId, itemClass);
+  const resolvedListId = target.listId;
+  const resolvedItemClass = target.itemClass;
+  const list = document.getElementById(resolvedListId);
+  if (!list) return;
+
+  list.insertAdjacentHTML('beforeend', foodItemRowHtml(resolvedItemClass));
+  showToast('Item added. Fill in the details and save to keep it.', 'info');
+}
+
+function addFoodItemLegacy(listId, itemClass) {
   const list = document.getElementById(listId);
   if (!list) return;
   list.insertAdjacentHTML('beforeend', foodItemRowHtml(itemClass));
@@ -651,6 +729,7 @@ function addDecorationStyle(prefix) {
   const list = document.getElementById(prefix + 'StylesList');
   if (!list) return;
   list.insertAdjacentHTML('beforeend', decorationStyleRowHtml(prefix));
+  showToast('Style added. Fill in the details and save to keep it.', 'info');
 }
 
 function removeDecorationStyle(btn, prefix) {
@@ -742,6 +821,7 @@ function addAttireItem(prefix) {
   var list = document.getElementById(prefix + 'AttireItemsList');
   if (!list) return;
   list.insertAdjacentHTML('beforeend', attireItemRowHtml(prefix));
+  showToast('Item added. Fill in the details and save to keep it.', 'info');
 }
 
 function removeAttireItem(button, prefix) {
@@ -1679,6 +1759,7 @@ async function updatePackage() {
     const result = await apiRequest(serviceManagementUrls.packageUpdate + editingPkgId, payload);
     upsertItem(packages, result.item);
     closeAll(); render();
+    showToast(result.message || 'Package updated successfully.', 'success');
   } catch (error) { showToast(error.message, 'error'); }
 }
 
@@ -1728,6 +1809,7 @@ async function savePackage() {
     });
     upsertItem(packages, result.item);
     closeAll(); currentTab='packages'; switchTab('packages');
+    showToast(result.message || 'Package created successfully.', 'success');
   } catch (error) { showToast(error.message, 'error'); }
 }
 
@@ -1986,6 +2068,7 @@ if (searchEl) {
 }
 
 installNonNegativeNumberGuards();
+document.getElementById('smToastClose')?.addEventListener('click', hideToast);
 renderCategoryControls();
 if (!PACKAGES_AVAILABLE) {
   const packageTab = document.getElementById('tab-packages');

@@ -74,7 +74,7 @@ a{color:inherit;text-decoration:none}body > .gp-shared-footer{margin-top:76px}.g
 
     <div class="gp-review-note is-warning">
       <span class="gp-review-note-icon">!</span>
-      <span><strong>Cancellation is not final until the admin team reviews it.</strong><br>If a <?= $depositPercent ?>% deposit has been paid, refund handling depends on the event date, supplier work already started, and the cancellation policy.</span>
+      <span><strong>Cancellation is not final until the admin team reviews it.</strong><br>If a <?= $depositPercent ?>% deposit has been paid, customer refund handling depends on whether the cancellation is requested within 7 days of the booking date.</span>
     </div>
   </div>
 
@@ -107,7 +107,7 @@ a{color:inherit;text-decoration:none}body > .gp-shared-footer{margin-top:76px}.g
               </div>
               <?php endif; ?>
               <?php if ($refundEstimate[0] <= 0): ?>
-              <div class="gp-refund-note" style="color:#92400e">Based on the cancellation policy, no refund is applicable for cancellations less than 2 days before the event.</div>
+              <div class="gp-refund-note" style="color:#92400e">Based on the cancellation policy, no refund is applicable after 7 days from the booking date.</div>
               <?php endif; ?>
             </div>
           </div>

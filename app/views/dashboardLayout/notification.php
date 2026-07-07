@@ -17,6 +17,15 @@ $notificationDefaultUrl = $notificationConfig['defaultUrl']
     ?? $notificationDefaultUrl
     ?? ($notificationBasePath ? URLROOT . $notificationBasePath . '/dashboard' : '#');
 $notificationReferenceUrls = $notificationConfig['referenceUrls'] ?? $notificationReferenceUrls ?? [];
+if ($notificationRole === 'admin') {
+    $notificationReferenceUrls = array_merge([
+        'booking' => URLROOT . '/admin/bookingDetail/',
+        'replacement' => URLROOT . '/admin/replacementPicker/',
+        'payment' => URLROOT . '/admin/payments?payment=',
+        'supplier' => URLROOT . '/admin/supplier/',
+        'service' => URLROOT . '/admin/service/',
+    ], $notificationReferenceUrls);
+}
 $notificationEmptyText = $notificationConfig['emptyText'] ?? 'No notifications yet.';
 $notificationReviewLabel = $notificationConfig['reviewLabel'] ?? 'Review all';
 ?>

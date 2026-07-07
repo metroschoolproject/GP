@@ -60,7 +60,8 @@ class Payments extends Controller
             $bankName     = trim($_POST['bank_name'] ?? '');
             $accountName  = trim($_POST['account_name'] ?? '');
             $transactionRef = trim($_POST['transaction_ref'] ?? '');
-            $paidAmount   = (float)str_replace(',', '', $_POST['paid_amount'] ?? '0');
+            $expectedFee = $this->getMembershipFee();
+            $paidAmount   = $expectedFee;
             $paidAt       = trim($_POST['paid_at'] ?? '');
             $mobileNumber = trim($_POST['mobile_number'] ?? '');
             $remark       = trim($_POST['remark'] ?? '');
@@ -69,19 +70,11 @@ class Payments extends Controller
                 !$this->isAllowedMethod($bankName)
                 || $accountName === ''
                 || $transactionRef === ''
-                || $paidAmount <= 0
+                || $expectedFee <= 0
                 || $paidAt === ''
                 || $mobileNumber === ''
             ) {
                 $data['message'] = 'Please fill in all required fields.';
-                $this->view('payments/supplier_fee', $data);
-                return;
-            }
-
-            // Validate amount matches the membership fee
-            $expectedFee = $this->getMembershipFee();
-            if ($paidAmount < $expectedFee) {
-                $data['message'] = 'The payment amount must be at least ' . number_format($expectedFee, 0) . ' MMK.';
                 $this->view('payments/supplier_fee', $data);
                 return;
             }

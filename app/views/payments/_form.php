@@ -39,6 +39,7 @@ $bankIcons = [
 .form-field label .req{color:#b94b4b}
 .form-field label .opt{font-weight:400}
 .form-field input[type=text],.form-field input[type=number],.form-field input[type=datetime-local]{width:100%;border:1px solid var(--border);border-radius:.75rem;background:var(--soft);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .12s,box-shadow .12s}
+.form-field input[readonly]{background:#f6f0ea;color:var(--text);font-weight:800;cursor:not-allowed}
 .form-field input:focus{border-color:var(--primary);background:#fcf8f5;box-shadow:0 0 0 3px rgba(109,76,91,.1)}
 @media(max-width:640px){.bank-grid{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr}}
 </style>
@@ -110,7 +111,7 @@ $bankIcons = [
         <div class="form-grid">
             <div class="form-field">
                 <label for="paid_amount">Amount Paid (<?= $currency ?>) <span class="req">*</span></label>
-                <input type="number" id="paid_amount" name="paid_amount" placeholder="<?= number_format($amount, 0, '.', '') ?>" min="1" step="1" required>
+                <input type="number" id="paid_amount" name="paid_amount" value="<?= number_format($amount, 0, '.', '') ?>" min="<?= number_format($amount, 0, '.', '') ?>" step="1" readonly required>
             </div>
             <div class="form-field">
                 <label for="paid_at">Date &amp; Time of Transfer <span class="req">*</span></label>

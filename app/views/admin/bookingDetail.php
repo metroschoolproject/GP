@@ -5,12 +5,12 @@ $suppliers = $suppliers ?? [];
 $eventDetails = $eventDetails ?? [];
 $logs = $logs ?? [];
 $payments = $payments ?? [];
-$vouchers = $vouchers ?? [];
 $packageSchedules = $packageSchedules ?? [];
 $bookingRef = $bookingRef ?? '';
 $depositPercent = (float)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 $refund = $refund ?? null;
 $refundEstimate = $refundEstimate ?? null;
+$openReplacements = $openReplacements ?? [];
 
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
@@ -238,13 +238,6 @@ foreach ($suppliers as $supplier) {
 
 // Suppliers awaiting admin replacement
 $needsReplacementSuppliers = array_values(array_filter($suppliers, fn($s) => ($s['status'] ?? '') === 'needs_replacement'));
-$voucherCounts = ['active' => 0, 'used' => 0, 'expired' => 0];
-foreach ($vouchers as $voucher) {
-    $voucherStatusKey = strtolower((string)($voucher['status'] ?? 'active'));
-    if (isset($voucherCounts[$voucherStatusKey])) {
-        $voucherCounts[$voucherStatusKey]++;
-    }
-}
 
 $logDot = static function (string $status): string {
     return match (strtolower($status)) {
@@ -269,8 +262,6 @@ $dashboardContent = function () use (
     $booking,
     $items,
     $suppliers,
-    $vouchers,
-    $voucherCounts,
     $logs,
     $bookingRef,
     $money,
@@ -313,6 +304,7 @@ $dashboardContent = function () use (
     $hasSupplierCancellationRequest,
     $supplierCancellationRequestSuppliers,
     $needsReplacementSuppliers,
+    $openReplacements,
     $logDot,
     $showAllLogs,
     $visibleLogs,
@@ -327,6 +319,11 @@ $dashboardContent = function () use (
     $canCancel = !in_array(($booking['status'] ?? ''), ['cancelled', 'completed'], true);
     $canMarkReceived = !in_array(($booking['status'] ?? ''), ['payment_verified', 'paid', 'confirmed', 'pending_final_payment', 'finalized', 'completed', 'cancelled'], true);
     $canMarkCompleted = in_array(($booking['status'] ?? ''), ['finalized', 'in_progress'], true);
+    $replacementDeltaProofs = array_values(array_filter($openReplacements, static function ($replacement) {
+        return ($replacement['status'] ?? '') === 'pending_customer'
+            && !empty($replacement['customer_approved_at'])
+            && !empty($replacement['delta_payment_slip']);
+    }));
 ?>
 <style>
   /* ── Booking Detail — Option B: Priority-First ── */
@@ -598,44 +595,6 @@ $dashboardContent = function () use (
   .bkd-action-title { font-size: 14px; font-weight: 700; color: var(--bkd-text); }
   .bkd-action-sub { font-size: 11px; color: var(--bkd-muted); font-weight: 600; margin-top: 1px; }
   .bkd-action-body { padding: 16px 20px; }
-
-  /* ── Voucher status ── */
-  .bkd-voucher-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .bkd-voucher-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid var(--bkd-border);
-    border-radius: 999px;
-    padding: 6px 10px;
-    background: #fffaf5;
-    color: var(--bkd-body);
-    font-size: 11px;
-    font-weight: 800;
-  }
-  .bkd-voucher-code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--bkd-text);
-    overflow-wrap: anywhere;
-  }
-  .bkd-voucher-status {
-    display: inline-flex;
-    border-radius: 999px;
-    padding: 4px 8px;
-    font-size: 10px;
-    font-weight: 850;
-    line-height: 1;
-  }
-  .bkd-voucher-status--active { background: var(--bkd-success-bg); color: var(--bkd-success-text); }
-  .bkd-voucher-status--used { background: var(--bkd-info-bg); color: var(--bkd-info-text); }
-  .bkd-voucher-status--expired { background: var(--bkd-danger-bg); color: var(--bkd-danger-text); }
 
   /* ── Payment proof: compact inline ── */
   .bkd-pay-row {
@@ -994,7 +953,7 @@ $dashboardContent = function () use (
 
     $refParts = $bookingRef ? explode('-', $bookingRef, 2) : ['Booking #' . $bookingId, ''];
     $refDisplay = $h($refParts[0]) . (!empty($refParts[1]) ? '-<em>' . $h($refParts[1]) . '</em>' : '');
-    $eventDate = $dateOnly($firstEvent['event_date'] ?? null, 'Not scheduled');
+    $bookingCreatedAt = $dateTime($booking['created_at'] ?? null, 'Date unavailable');
     $createdAt = $dateOnly($booking['created_at'] ?? null);
 
     // Non-addon items for event schedule
@@ -1023,7 +982,7 @@ $dashboardContent = function () use (
         <i data-lucide="chevron-left" style="width:14px;height:14px"></i> Back
       </a>
       <span class="bkd-ref"><?= $refDisplay ?></span>
-      <span class="bkd-top-meta"><?= $h($custName) ?> · Event <?= $h($eventDate) ?></span>
+      <span class="bkd-top-meta"><?= $h($custName) ?> · Booked <?= $h($bookingCreatedAt) ?></span>
     </div>
     <div class="bkd-top-right">
       <span class="bkd-badge <?= $badgeClass($bookingStatus) ?>" id="booking-status-value"><?= $h(ucwords(str_replace('_', ' ', $bookingStatus))) ?></span>
@@ -1138,6 +1097,56 @@ $dashboardContent = function () use (
       <?php if (!empty($needsReplacementSuppliers[0]['originated_replacement_request_id'] ?? $needsReplacementSuppliers[0]['replacement_request_id'] ?? 0)): ?>
         <div style="margin-top:6px;font-size:11px;color:var(--bkd-muted)">Pick a replacement supplier from the same category. You'll be notified if the new supplier accepts.</div>
       <?php endif; ?>
+    </div>
+  </div>
+  <?php endif; ?>
+
+  <?php if (!empty($replacementDeltaProofs)): ?>
+  <!-- Replacement extra charge submitted — needs verification -->
+  <div class="bkd-action bkd-action--urgent" style="border-color:#6b9e7e;background:#fbfffc">
+    <div class="bkd-action-head">
+      <div class="bkd-action-icon bkd-action-icon--success"><i data-lucide="receipt-text"></i></div>
+      <div>
+        <div class="bkd-action-title">Replacement Extra Charge Submitted — Needs Verification</div>
+        <div class="bkd-action-sub">Customer paid the price difference for a replacement supplier. Verify it from the replacement screen, not deposit review.</div>
+      </div>
+    </div>
+    <div class="bkd-action-body">
+      <?php foreach ($replacementDeltaProofs as $deltaProof): ?>
+        <?php
+          $deltaReplacementId = (int)($deltaProof['id'] ?? 0);
+          $deltaAmount = (float)($deltaProof['delta_paid_amount'] ?? $deltaProof['price_delta'] ?? 0);
+          $deltaSlip = trim((string)($deltaProof['delta_payment_slip'] ?? ''));
+          $deltaSlipExt = strtolower(pathinfo($deltaSlip, PATHINFO_EXTENSION));
+          $deltaIsImageSlip = $deltaSlip !== '' && in_array($deltaSlipExt, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+          $oldLabel = trim((string)($deltaProof['old_shop_name'] ?? $deltaProof['old_service_name'] ?? 'Original supplier'));
+          $newLabel = trim((string)($deltaProof['new_shop_name'] ?? $deltaProof['new_service_name'] ?? 'Replacement supplier'));
+        ?>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:12px 14px;background:#f6fbf7;border:1px solid #cde6d3;border-radius:.7rem;margin-bottom:8px">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:13px;font-weight:800;color:#244d35"><?= $h($oldLabel) ?> <span style="color:#7b5c69;font-weight:700">to</span> <?= $h($newLabel) ?></div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+              <span class="bkd-pay-chip" style="background:#fff;border-color:#cde6d3"><span class="bkd-pay-chip-label">Extra charge</span><span class="bkd-pay-chip-value"><?= $money($deltaAmount) ?></span></span>
+              <?php if (!empty($deltaProof['delta_bank_name'])): ?>
+                <span class="bkd-pay-chip" style="background:#fff;border-color:#cde6d3"><span class="bkd-pay-chip-value"><?= $h($deltaProof['delta_bank_name']) ?></span></span>
+              <?php endif; ?>
+              <?php if (!empty($deltaProof['delta_transaction_ref'])): ?>
+                <span class="bkd-pay-chip" style="background:#fff;border-color:#cde6d3"><span class="bkd-pay-chip-label">Ref</span><span class="bkd-pay-chip-value"><?= $h($deltaProof['delta_transaction_ref']) ?></span></span>
+              <?php endif; ?>
+              <?php if ($deltaSlip !== ''): ?>
+                <a href="<?= URLROOT ?>/<?= $h($deltaSlip) ?>" target="_blank" class="bkd-pay-chip" style="background:#fff;border-color:#cde6d3;text-decoration:none">
+                  <span class="bkd-pay-chip-value"><?= $deltaIsImageSlip ? 'View slip' : 'Open proof' ?></span>
+                </a>
+              <?php endif; ?>
+            </div>
+          </div>
+          <?php if ($deltaReplacementId > 0): ?>
+            <a href="<?= URLROOT ?>/admin/replacementPicker/<?= $deltaReplacementId ?>" class="bkd-btn" style="flex-shrink:0;height:34px;padding:0 14px;font-size:11px;font-weight:800;background:#3d6b4f;color:#fff;border:1px solid #6b9e7e;border-radius:.55rem;cursor:pointer;text-decoration:none">
+              Verify extra charge
+            </a>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
     </div>
   </div>
   <?php endif; ?>
@@ -1380,60 +1389,6 @@ $dashboardContent = function () use (
             </tbody>
           </table>
         </div>
-      </div>
-    </details>
-
-    <!-- Vouchers -->
-    <details class="bkd-section" open>
-      <summary>
-        <i data-lucide="ticket-check" style="width:16px;height:16px;color:var(--bkd-primary)"></i>
-        Vouchers
-        <span class="bkd-section-count"><?= count($vouchers) ?></span>
-      </summary>
-      <div class="bkd-section-body">
-        <div class="bkd-voucher-summary" aria-label="Voucher status summary">
-          <span class="bkd-voucher-chip"><?= (int)$voucherCounts['active'] ?> active</span>
-          <span class="bkd-voucher-chip"><?= (int)$voucherCounts['used'] ?> used</span>
-          <span class="bkd-voucher-chip"><?= (int)$voucherCounts['expired'] ?> expired</span>
-        </div>
-        <?php if (empty($vouchers)): ?>
-          <div class="bkd-empty">No vouchers generated for this booking yet.</div>
-        <?php else: ?>
-          <div class="bkd-table-wrap">
-            <table class="bkd-table">
-              <thead>
-                <tr>
-                  <th>Voucher</th>
-                  <th>Service</th>
-                  <th>Supplier</th>
-                  <th>Event</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($vouchers as $voucher): ?>
-                  <?php
-                    $voucherStatus = strtolower((string)($voucher['status'] ?? 'active'));
-                    $voucherTime = trim($timeOnly($voucher['start_time'] ?? null, '') . (!empty($voucher['end_time']) ? ' - ' . $timeOnly($voucher['end_time'], '') : ''), ' -');
-                  ?>
-                  <tr>
-                    <td><span class="bkd-voucher-code"><?= $h(strtoupper((string)($voucher['voucher_number'] ?? ''))) ?></span></td>
-                    <td>
-                      <div class="bkd-table-name"><?= $h($voucher['service_name'] ?? 'Service') ?></div>
-                      <?php if (!empty($voucher['category_name'])): ?><div class="bkd-table-sub"><?= $h($voucher['category_name']) ?></div><?php endif; ?>
-                    </td>
-                    <td><span class="bkd-table-name"><?= $h($voucher['supplier_name'] ?? 'Golden Promise') ?></span></td>
-                    <td>
-                      <div class="bkd-table-name"><?= $h($dateOnly($voucher['event_date'] ?? null, 'TBD')) ?></div>
-                      <div class="bkd-table-sub"><?= $h($voucherTime !== '' ? $voucherTime : 'Time not set') ?></div>
-                    </td>
-                    <td><span class="bkd-voucher-status bkd-voucher-status--<?= $h($voucherStatus) ?>"><?= $h(ucfirst($voucherStatus)) ?></span></td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
       </div>
     </details>
 
@@ -1891,6 +1846,31 @@ $dashboardContent = function () use (
   </div>
 </div>
 
+<div class="bkd-modal-backdrop" id="declineRequestModal" aria-hidden="true">
+  <div class="bkd-modal" role="dialog" aria-modal="true" aria-labelledby="declineRequestTitle" aria-describedby="declineRequestCopy">
+    <div class="bkd-modal-head">
+      <div class="bkd-modal-icon" id="declineRequestIcon" aria-hidden="true" style="background:#fdf6ee;color:#8b6914">
+        <i data-lucide="refresh-cw"></i>
+      </div>
+      <div>
+        <h2 class="bkd-modal-title" id="declineRequestTitle">Approve replacement request?</h2>
+        <p class="bkd-modal-copy" id="declineRequestCopy">A replacement supplier will need to be arranged for this package service.</p>
+      </div>
+    </div>
+    <div class="bkd-modal-body">
+      <div style="border:1px solid var(--bkd-border-light);border-radius:.75rem;background:var(--bkd-soft);padding:12px;color:var(--bkd-body);font-size:12px;line-height:1.5" id="declineRequestNote">
+        The supplier row will move into the replacement queue.
+      </div>
+      <div class="bkd-modal-actions">
+        <button type="button" class="bkd-btn bkd-btn--ghost" id="declineRequestCancel">Cancel</button>
+        <button type="button" class="bkd-btn bkd-btn--primary" id="declineRequestConfirm">
+          <i data-lucide="check"></i> Approve request
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="fixed right-4 top-4 z-50 max-w-sm -translate-y-2 opacity-0 pointer-events-none transition-all duration-300"></div>
 
 <script>
@@ -2257,6 +2237,63 @@ $dashboardContent = function () use (
   }
 
   /* ── Decline request approve/reject ── */
+  function requestDeclineRequestDecision(action, trigger) {
+    var modal = document.getElementById('declineRequestModal');
+    var title = document.getElementById('declineRequestTitle');
+    var copy = document.getElementById('declineRequestCopy');
+    var note = document.getElementById('declineRequestNote');
+    var icon = document.getElementById('declineRequestIcon');
+    var cancelBtn = document.getElementById('declineRequestCancel');
+    var confirmBtn = document.getElementById('declineRequestConfirm');
+    if (!modal || !title || !copy || !note || !cancelBtn || !confirmBtn) {
+      return Promise.resolve(false);
+    }
+
+    var approving = action === 'approve';
+    title.textContent = approving ? 'Approve replacement request?' : 'Reject decline request?';
+    copy.textContent = approving
+      ? 'A replacement supplier will need to be arranged for this package service.'
+      : 'The supplier status will be restored and this booking service will remain assigned.';
+    note.textContent = approving
+      ? 'The supplier row will move into the replacement queue so admin can invite or assign a replacement.'
+      : 'Use this when the supplier should keep the assignment or contact admin another way.';
+    icon.style.background = approving ? '#fdf6ee' : '#fdf2f4';
+    icon.style.color = approving ? '#8b6914' : '#8b3a4a';
+    icon.innerHTML = approving ? '<i data-lucide="refresh-cw"></i>' : '<i data-lucide="x-circle"></i>';
+    confirmBtn.className = approving ? 'bkd-btn bkd-btn--primary' : 'bkd-btn bkd-btn--danger';
+    confirmBtn.innerHTML = approving ? '<i data-lucide="check"></i> Approve request' : '<i data-lucide="x-circle"></i> Reject request';
+    if (window.lucide) lucide.createIcons();
+
+    return new Promise(function(resolve) {
+      function close(result) {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        cancelBtn.removeEventListener('click', onCancel);
+        confirmBtn.removeEventListener('click', onConfirm);
+        document.removeEventListener('keydown', onKeydown);
+        modal.removeEventListener('click', onBackdrop);
+        if (trigger) trigger.focus();
+        resolve(result);
+      }
+      function onCancel() { close(false); }
+      function onConfirm() { close(true); }
+      function onKeydown(event) {
+        if (event.key === 'Escape') close(false);
+      }
+      function onBackdrop(event) {
+        if (event.target === modal) close(false);
+      }
+
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      cancelBtn.addEventListener('click', onCancel);
+      confirmBtn.addEventListener('click', onConfirm);
+      document.addEventListener('keydown', onKeydown);
+      modal.addEventListener('click', onBackdrop);
+      setTimeout(function(){ confirmBtn.focus(); }, 30);
+    });
+  }
+
   document.querySelectorAll('.bkd-decline-approve-btn, .bkd-decline-reject-btn').forEach(function(btn) {
     btn.addEventListener('click', async function() {
       var action = btn.classList.contains('bkd-decline-approve-btn') ? 'approve' : 'reject';
@@ -2264,10 +2301,8 @@ $dashboardContent = function () use (
       var bid = btn.dataset.bookingId;
       if (!bsid || !bid) return;
 
-      var confirmMsg = action === 'approve'
-        ? 'Approve this request? A replacement supplier will need to be arranged.'
-        : 'Reject this request? The supplier status will be restored.';
-      if (!confirm(confirmMsg)) return;
+      var confirmed = await requestDeclineRequestDecision(action, btn);
+      if (!confirmed) return;
 
       btn.disabled = true;
       btn.textContent = action === 'approve' ? 'Approving…' : 'Rejecting…';
@@ -2283,15 +2318,15 @@ $dashboardContent = function () use (
         var data = await resp.json().catch(function() { return {}; });
 
         if (data.success) {
-          alert(data.message || (action === 'approve' ? 'Request approved.' : 'Request rejected.'));
-          location.reload();
+          showToast(data.message || (action === 'approve' ? 'Request approved.' : 'Request rejected.'));
+          setTimeout(function(){ location.reload(); }, 700);
         } else {
-          alert(data.error || 'Could not process. Please try again.');
+          showToast(data.error || 'Could not process. Please try again.', 'error');
           btn.disabled = false;
           btn.textContent = action === 'approve' ? 'Approve request' : 'Reject';
         }
       } catch (err) {
-        alert('Network error. Please try again.');
+        showToast('Network error. Please try again.', 'error');
         btn.disabled = false;
         btn.textContent = action === 'approve' ? 'Approve request' : 'Reject';
       }

@@ -3,7 +3,6 @@ $booking = $booking ?? [];
 $items = $items ?? [];
 $eventDetails = $eventDetails ?? [];
 $suppliers = $suppliers ?? [];
-$vouchers = $vouchers ?? [];
 $bookingRef = $bookingRef ?? '';
 $supplierStatus = strtolower($supplierStatus ?? 'pending');
 $supplierId = (int)($supplierId ?? 0);
@@ -121,7 +120,6 @@ $dashboardCrumb = $bookingRef ?: 'Booking detail';
 $dashboardContentClass = 'min-w-0 bg-app-content px-6 py-6 overflow-y-auto';
 $dashboardContent = function () use (
     $booking, $items, $eventDetails, $suppliers, $detailByItem,
-    $vouchers,
     $bookingRef, $supplierStatus, $supplierId, $money, $h, $formatDate, $formatTime,
     $statusBadgeClass,
     $totalGuests, $hasGuestData, $firstDate, $firstStart, $firstEnd,
@@ -531,75 +529,6 @@ $dashboardContent = function () use (
         <?php endif; ?>
       </div>
     </div>
-  </section>
-
-  <?php
-    $voucherCounts = ['active' => 0, 'used' => 0, 'expired' => 0];
-    foreach ($vouchers as $voucher) {
-        $voucherStatusKey = strtolower((string)($voucher['status'] ?? 'active'));
-        if (isset($voucherCounts[$voucherStatusKey])) {
-            $voucherCounts[$voucherStatusKey]++;
-        }
-    }
-  ?>
-  <section class="sup-vouchers" aria-labelledby="supplier-vouchers-title">
-    <div class="sup-vouchers-head">
-      <div>
-        <p class="sup-assignment-kicker">Voucher check-in</p>
-        <h2 class="sup-vouchers-title" id="supplier-vouchers-title">Customer vouchers for your services</h2>
-      </div>
-      <div class="sup-voucher-summary" aria-label="Voucher status summary">
-        <span><?= (int)$voucherCounts['active'] ?> active</span>
-        <span><?= (int)$voucherCounts['used'] ?> used</span>
-        <span><?= (int)$voucherCounts['expired'] ?> expired</span>
-      </div>
-    </div>
-
-    <form class="sup-voucher-form" id="supplier-voucher-form">
-      <label class="sup-voucher-label" for="supplier-voucher-code">Enter voucher code</label>
-      <div class="sup-voucher-entry">
-        <input type="text" id="supplier-voucher-code" name="voucher_number" class="sup-voucher-input" placeholder="VCH-SRV-XXXXXXXX" autocomplete="off">
-        <button type="submit" class="sup-btn sup-btn--accept">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 5"/></svg>
-          Mark used
-        </button>
-      </div>
-      <p class="sup-voucher-help">Scan the customer QR code, or enter the voucher code shown in their booking.</p>
-    </form>
-
-    <?php if (empty($vouchers)): ?>
-      <div class="sup-empty">No vouchers have been generated for your services on this booking yet.</div>
-    <?php else: ?>
-      <div class="sup-voucher-list">
-        <?php foreach ($vouchers as $voucher): ?>
-          <?php
-            $voucherStatus = strtolower((string)($voucher['status'] ?? 'active'));
-            $voucherCode = strtoupper((string)($voucher['voucher_number'] ?? ''));
-            $voucherTime = trim($formatTime($voucher['start_time'] ?? '') . (!empty($voucher['end_time']) ? ' - ' . $formatTime($voucher['end_time']) : ''), ' -');
-          ?>
-          <article class="sup-voucher-card" data-voucher-card data-voucher-code="<?= $h($voucherCode) ?>">
-            <div class="sup-voucher-main">
-              <div class="sup-voucher-code"><?= $h($voucherCode) ?></div>
-              <div class="sup-voucher-service"><?= $h($voucher['service_name'] ?? 'Service') ?></div>
-              <div class="sup-voucher-meta">
-                <?= $h($formatDate($voucher['event_date'] ?? null)) ?>
-                <?php if ($voucherTime !== ''): ?> · <?= $h($voucherTime) ?><?php endif; ?>
-                <?php if (!empty($voucher['location'])): ?> · <?= $h($voucher['location']) ?><?php endif; ?>
-              </div>
-            </div>
-            <div class="sup-voucher-actions">
-              <span class="sup-voucher-status sup-voucher-status--<?= $h($voucherStatus) ?>" data-voucher-status><?= $h(ucfirst($voucherStatus)) ?></span>
-              <?php if (!empty($voucher['scan_url'])): ?>
-                <a class="sup-voucher-scan" href="<?= $h($voucher['scan_url']) ?>">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3"/><path d="M6 6h4v4H6z"/></svg>
-                  Scan link
-                </a>
-              <?php endif; ?>
-            </div>
-          </article>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
   </section>
 
   <?php
@@ -1373,61 +1302,6 @@ $dashboardContent = function () use (
       submitBtn.innerHTML = original;
     });
   }
-})();
-
-/* ── Voucher redemption ── */
-(function(){
-  var form = document.getElementById('supplier-voucher-form');
-  var input = document.getElementById('supplier-voucher-code');
-  if (!form || !input) return;
-
-  form.addEventListener('submit', async function(event) {
-    event.preventDefault();
-    var code = (input.value || '').trim().toUpperCase();
-    if (!code) {
-      supToastError('Please enter a voucher code.');
-      return;
-    }
-
-    var submitBtn = form.querySelector('button[type="submit"]');
-    var original = submitBtn ? submitBtn.innerHTML : '';
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = 'Checking...';
-    }
-
-    var formData = new FormData();
-    formData.append('voucher_number', code);
-    formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-
-    try {
-      var resp = await fetch('<?= URLROOT ?>/booking/markVoucherUsed', { method: 'POST', body: formData });
-      var data = await resp.json().catch(function(){ return {}; });
-      if (data.success) {
-        supToastSuccess(data.message || 'Voucher marked as used.');
-        var card = Array.from(document.querySelectorAll('[data-voucher-card]')).find(function(item) {
-          return (item.dataset.voucherCode || '').toUpperCase() === code;
-        });
-        if (card) {
-          var status = card.querySelector('[data-voucher-status]');
-          if (status) {
-            status.className = 'sup-voucher-status sup-voucher-status--used';
-            status.textContent = 'Used';
-          }
-        }
-        input.value = '';
-      } else {
-        supToastError(data.error || 'Could not mark this voucher as used.');
-      }
-    } catch (error) {
-      supToastError('Network error. Please try again.');
-    }
-
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = original;
-    }
-  });
 })();
 
 /* ── Supplier cancellation request ── */

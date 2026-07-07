@@ -2,6 +2,7 @@
 $assignments = $assignments ?? [];
 $pendingAssignments = $pendingAssignments ?? [];
 $activeAssignments = $activeAssignments ?? [];
+$replacementInvitations = $replacementInvitations ?? [];
 $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 $money = fn($v) => number_format((float)$v, 0) . ' MMK';
 $formatDate = function ($value) {
@@ -20,7 +21,7 @@ $daysUntil = function ($date) {
 $dashboardTitle = 'Assignments';
 $dashboardCrumb = 'My assignments';
 $dashboardContentClass = 'bg-[#F4F1EE] px-0 py-0 overflow-y-auto';
-$dashboardContent = function () use ($assignments, $pendingAssignments, $activeAssignments, $h, $money, $formatDate, $daysUntil) {
+$dashboardContent = function () use ($assignments, $pendingAssignments, $activeAssignments, $replacementInvitations, $h, $money, $formatDate, $daysUntil) {
 ?>
 <link rel="stylesheet" href="<?= URLROOT ?>/public/css/supplier-bookings.css?v=<?= filemtime(APPROOT . '/../public/css/supplier-bookings.css') ?>">
 <script src="<?= URLROOT ?>/public/js/supplier-toast.js"></script>
@@ -30,7 +31,7 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
         <div class="asn-header-left">
             <p class="asn-kicker">Assignments</p>
             <h1 class="asn-title">My Assignments</h1>
-            <?php $totalCount = count($assignments); ?>
+            <?php $totalCount = count($assignments) + count($replacementInvitations); ?>
             <span class="asn-count">
                 <span class="asn-count-dot"></span>
                 <?= $totalCount ?> assignment<?= $totalCount === 1 ? '' : 's' ?>
@@ -48,13 +49,74 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
         </div>
     </header>
 
-    <?php if (empty($assignments)): ?>
+    <?php if (empty($assignments) && empty($replacementInvitations)): ?>
         <div class="asn-empty">
             <span class="asn-empty-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 2v2M11 2v2M2 7h12"/></svg></span>
             <h2>No assignments yet</h2>
             <p>When a customer books your services, you'll see assignments here to accept or manage.</p>
         </div>
     <?php else: ?>
+
+        <?php if (!empty($replacementInvitations)): ?>
+        <section class="asn-section">
+            <div class="asn-section-head">
+                <h2 class="asn-section-title">Replacement Invitations</h2>
+                <span class="asn-section-count asn-section-count--amber"><?= count($replacementInvitations) ?></span>
+            </div>
+            <div class="asn-grid">
+            <?php foreach ($replacementInvitations as $inv):
+                $bookingId = (int)($inv['booking_id'] ?? 0);
+                $status = (string)($inv['status'] ?? 'invited');
+                $eventDate = $inv['event_date'] ?? '';
+                $delta = (float)($inv['price_delta'] ?? 0);
+            ?>
+                <article class="asn-card" data-invitation-id="<?= (int)$inv['id'] ?>">
+                    <div class="asn-card-top">
+                        <span class="asn-card-ref"><?= $h($inv['booking_ref'] ?? ('BK-' . str_pad((string)$bookingId, 3, '0', STR_PAD_LEFT))) ?></span>
+                        <span class="asn-card-customer"><?= $h($inv['customer_name'] ?? 'Customer') ?></span>
+                        <span class="asn-countdown asn-countdown--soon">Replacement option</span>
+                    </div>
+                    <div class="asn-card-meta">
+                        <span><strong><?= $h($formatDate($eventDate)) ?></strong></span>
+                        <?php if (!empty($inv['venue'])): ?>
+                        <span class="asn-card-meta-sep">·</span>
+                        <span><?= $h($inv['venue']) ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="asn-services-list">
+                        <div class="asn-service-row">
+                            <div class="asn-service-info">
+                                <div class="asn-service-name-row">
+                                    <span class="asn-service-name"><?= $h($inv['service_name'] ?? 'Replacement service') ?></span>
+                                    <span class="asn-service-cat"><?= $h($inv['category_name'] ?? '') ?></span>
+                                </div>
+                                <div class="asn-service-replacement">
+                                    Replacement for <?= $h($inv['original_supplier_name'] ?? 'original supplier') ?>
+                                    <?= !empty($inv['original_service_name']) ? ' · ' . $h($inv['original_service_name']) : '' ?>
+                                </div>
+                                <div class="asn-service-replacement">
+                                    <?= $money($inv['price'] ?? 0) ?> · <?= $delta > 0 ? '+' . $money($delta) . ' over original' : 'No extra cost to customer' ?>
+                                </div>
+                            </div>
+                            <?php if ($status === 'invited'): ?>
+                            <div class="asn-service-actions">
+                                <button type="button" class="asn-response-btn asn-response-btn--accept asn-invite-respond-btn" data-action="accept" data-invitation-id="<?= (int)$inv['id'] ?>">Accept</button>
+                                <button type="button" class="asn-response-btn asn-response-btn--decline asn-invite-respond-btn" data-action="decline" data-invitation-id="<?= (int)$inv['id'] ?>">Decline</button>
+                            </div>
+                            <?php else: ?>
+                            <span class="asn-service-status <?= $status === 'accepted' || $status === 'chosen' ? 'asn-service-status--confirmed' : 'asn-service-status--pending' ?>"><?= $h(ucfirst($status)) ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="asn-card-bottom">
+                        <span class="asn-response-pill asn-response-pill--awaiting">Admin will show accepted options to the customer.</span>
+                        <a href="<?= URLROOT ?>/supplier/bookingDetail/<?= $bookingId ?>" class="asn-view-btn">View details</a>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
 
         <!-- ── Pending: Action Required ── -->
         <?php if (!empty($pendingAssignments)): ?>
@@ -424,6 +486,36 @@ $dashboardContent = function () use ($assignments, $pendingAssignments, $activeA
         button.disabled = false;
         button.innerHTML = original;
     }
+
+    document.querySelectorAll('.asn-invite-respond-btn').forEach(function(button) {
+        button.addEventListener('click', async function() {
+            var action = button.dataset.action || '';
+            var invitationId = button.dataset.invitationId || '';
+            button.disabled = true;
+            var original = button.innerHTML;
+            button.innerHTML = action === 'accept' ? 'Accepting…' : 'Declining…';
+
+            var formData = new FormData();
+            formData.append('invitation_id', invitationId);
+            formData.append('action', action);
+            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
+            try {
+                var resp = await fetch('<?= URLROOT ?>/supplier/replacementInvitationRespond', { method: 'POST', body: formData });
+                var data = await resp.json().catch(function() { return {}; });
+                if (data.success) {
+                    supToastSuccess(data.message || 'Replacement invitation updated.');
+                    markServiceResolved(button, action);
+                    return;
+                }
+                supToastError(data.error || 'Could not update invitation.');
+            } catch (err) {
+                supToastError('Network error. Please try again.');
+            }
+            button.disabled = false;
+            button.innerHTML = original;
+        });
+    });
 
     function markServiceResolved(button, action) {
         var serviceRow = button.closest('.asn-service-row');

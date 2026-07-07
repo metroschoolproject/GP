@@ -33,6 +33,8 @@ $notificationConfig = $notificationConfig ?? [
     'detailUrlBase' => URLROOT . '/supplier/notification/',
     'referenceUrls' => [
         'booking' => URLROOT . '/supplier/bookingDetail/',
+        'replacement' => URLROOT . '/supplier/assignments?replacement=',
+        'replacement_invitation' => URLROOT . '/supplier/assignments?invitation=',
         'service' => URLROOT . '/supplier/serviceDetail/',
         'payment' => URLROOT . '/supplier/dashboard?payment=',
         'publish_request' => URLROOT . '/supplier/serviceDetail/',

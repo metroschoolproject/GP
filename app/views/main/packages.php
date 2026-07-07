@@ -802,6 +802,104 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   font-size: 13px;
   font-weight: 700;
 }
+.gp-time-popover {
+  position: fixed;
+  z-index: 10011;
+  width: min(250px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid rgba(63, 36, 26, .14);
+  border-radius: 10px;
+  background: rgba(255, 248, 239, .98);
+  box-shadow: 0 24px 60px rgba(63, 36, 26, .18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.gp-time-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #3F241A;
+  font-size: 11px;
+  font-weight: 900;
+}
+.gp-time-head i {
+  width: 14px;
+  height: 14px;
+  color: #7A4E3D;
+}
+.gp-time-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr .92fr;
+  gap: 6px;
+}
+.gp-time-col {
+  display: grid;
+  gap: 3px;
+  max-height: 162px;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(122, 78, 61, .34) rgba(122, 78, 61, .08);
+}
+.gp-time-col::-webkit-scrollbar { width: 5px; }
+.gp-time-col::-webkit-scrollbar-track { background: rgba(122, 78, 61, .08); border-radius: 999px; }
+.gp-time-col::-webkit-scrollbar-thumb { background: rgba(122, 78, 61, .34); border-radius: 999px; }
+.gp-time-option {
+  display: grid;
+  min-height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #6F5448;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.gp-time-option:hover {
+  background: rgba(122, 78, 61, .12);
+}
+.gp-time-option.is-selected {
+  background: #3F241A;
+  color: #FFF8EF;
+}
+.gp-time-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(63, 36, 26, .10);
+}
+.gp-time-action {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 7px;
+  padding: 0 11px;
+  background: transparent;
+  color: #7A4E3D;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.gp-time-action:hover {
+  background: rgba(63, 36, 26, .08);
+}
+.gp-time-action.is-primary {
+  background: #3F241A;
+  color: #FFF8EF;
+}
+.gp-time-action.is-primary:hover {
+  background: #5a3628;
+}
 .gp-calendar-popover {
   position: fixed;
   z-index: 10010;
@@ -2800,39 +2898,168 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const timePopover = document.createElement('div');
+  timePopover.className = 'gp-time-popover';
+  timePopover.hidden = true;
+  document.body.appendChild(timePopover);
+
+  let activeTimeInput = null;
+  let timeDraft = { hour: 10, minute: 0, period: 'AM' };
+
+  const formatTimeDisplay = value => {
+    if (!value) return 'Select time';
+    const parts = value.split(':').map(Number);
+    if (parts.length !== 2 || parts.some(Number.isNaN)) return 'Select time';
+    const date = new Date();
+    date.setHours(parts[0], parts[1], 0, 0);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const syncTimeDisplay = input => {
+    const display = input.closest('.venue-time-input-wrap')?.querySelector('.venue-time-display');
+    if (display) display.textContent = formatTimeDisplay(input.value);
+  };
+
+  const valueToDraft = value => {
+    const parts = String(value || '').split(':').map(Number);
+    if (parts.length !== 2 || parts.some(Number.isNaN)) {
+      return { hour: 10, minute: 0, period: 'AM' };
+    }
+    const period = parts[0] >= 12 ? 'PM' : 'AM';
+    return {
+      hour: parts[0] % 12 || 12,
+      minute: Math.max(0, Math.min(59, parts[1])),
+      period
+    };
+  };
+
+  const draftToValue = draft => {
+    let hour24 = draft.hour % 12;
+    if (draft.period === 'PM') hour24 += 12;
+    return String(hour24).padStart(2, '0') + ':' + String(draft.minute).padStart(2, '0');
+  };
+
+  const positionTimePopover = anchor => {
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const width = Math.min(250, window.innerWidth - 32);
+    const left = Math.max(16, Math.min(rect.left, window.innerWidth - width - 16));
+    timePopover.style.width = width + 'px';
+    timePopover.style.left = left + 'px';
+    timePopover.style.top = (rect.bottom + 10) + 'px';
+  };
+
+  const renderTimePopover = () => {
+    const hours = Array.from({ length: 12 }, (_, index) => index + 1);
+    const minutes = Array.from({ length: 60 }, (_, index) => index);
+    const periods = ['AM', 'PM'];
+    const option = (type, value, label, selected) => (
+      '<button type="button" class="gp-time-option' + (selected ? ' is-selected' : '') + '" data-time-' + type + '="' + value + '">' + label + '</button>'
+    );
+
+    timePopover.innerHTML = `
+      <div class="gp-time-head">
+        <span>Event time</span>
+        <i data-lucide="clock-3" aria-hidden="true"></i>
+      </div>
+      <div class="gp-time-columns">
+        <div class="gp-time-col" aria-label="Hour">
+          ${hours.map(hour => option('hour', hour, String(hour).padStart(2, '0'), timeDraft.hour === hour)).join('')}
+        </div>
+        <div class="gp-time-col" aria-label="Minute">
+          ${minutes.map(minute => option('minute', minute, String(minute).padStart(2, '0'), timeDraft.minute === minute)).join('')}
+        </div>
+        <div class="gp-time-col" aria-label="AM or PM">
+          ${periods.map(period => option('period', period, period, timeDraft.period === period)).join('')}
+        </div>
+      </div>
+      <div class="gp-time-actions">
+        <button type="button" class="gp-time-action" data-time-clear>Clear</button>
+        <button type="button" class="gp-time-action is-primary" data-time-apply>Apply</button>
+      </div>
+    `;
+    if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [timePopover] });
+    timePopover.querySelectorAll('.gp-time-option.is-selected').forEach(button => {
+      button.scrollIntoView({ block: 'center' });
+    });
+  };
+
+  const openTimePopover = input => {
+    const calendarPopover = document.getElementById('gpCalendarPopover');
+    if (calendarPopover) calendarPopover.hidden = true;
+    activeTimeInput = input;
+    timeDraft = valueToDraft(input.value);
+    renderTimePopover();
+    timePopover.hidden = false;
+    positionTimePopover(input.closest('.venue-time-input-wrap') || input);
+  };
+
+  const closeTimePopover = () => {
+    timePopover.hidden = true;
+    activeTimeInput = null;
+  };
+
   document.querySelectorAll('.gp-time-input').forEach(input => {
     const wrap = input.closest('.venue-time-input-wrap');
-    const updateTimeDisplay = () => {
-      const display = wrap?.querySelector('.venue-time-display');
-      if (!display) return;
-      if (!input.value) {
-        display.textContent = 'Select time';
-        return;
-      }
-      const parts = input.value.split(':').map(Number);
-      if (parts.length !== 2 || parts.some(Number.isNaN)) {
-        display.textContent = 'Select time';
-        return;
-      }
-      const date = new Date();
-      date.setHours(parts[0], parts[1], 0, 0);
-      display.textContent = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    };
-    updateTimeDisplay();
-    input.addEventListener('change', () => {
-      updateTimeDisplay();
-      input.closest('form')?.submit();
-    });
+    syncTimeDisplay(input);
+    input.tabIndex = -1;
+    input.addEventListener('change', () => syncTimeDisplay(input));
     wrap?.addEventListener('click', event => {
       event.preventDefault();
-      input.focus();
-      if (typeof input.showPicker === 'function') {
-        input.showPicker();
-      } else {
-        input.click();
-      }
+      event.stopPropagation();
+      closePackageSelects();
+      openTimePopover(input);
     });
   });
+
+  timePopover.addEventListener('click', event => {
+    event.stopPropagation();
+    const hour = event.target.closest('[data-time-hour]');
+    const minute = event.target.closest('[data-time-minute]');
+    const period = event.target.closest('[data-time-period]');
+    if (hour) timeDraft.hour = Number(hour.dataset.timeHour);
+    if (minute) timeDraft.minute = Number(minute.dataset.timeMinute);
+    if (period) timeDraft.period = period.dataset.timePeriod;
+    if (hour || minute || period) {
+      renderTimePopover();
+      return;
+    }
+    if (event.target.closest('[data-time-clear]') && activeTimeInput) {
+      activeTimeInput.value = '';
+      syncTimeDisplay(activeTimeInput);
+      closeTimePopover();
+      activeTimeInput.form?.requestSubmit ? activeTimeInput.form.requestSubmit() : activeTimeInput.form?.submit();
+      return;
+    }
+    if (event.target.closest('[data-time-apply]') && activeTimeInput) {
+      activeTimeInput.value = draftToValue(timeDraft);
+      syncTimeDisplay(activeTimeInput);
+      closeTimePopover();
+      activeTimeInput.form?.requestSubmit ? activeTimeInput.form.requestSubmit() : activeTimeInput.form?.submit();
+    }
+  });
+
+  timePopover.addEventListener('mousedown', event => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+
+  document.addEventListener('click', event => {
+    if (timePopover.hidden) return;
+    if (event.target.closest('.gp-time-popover') || event.target.closest('.venue-time-input-wrap')) return;
+    closeTimePopover();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !timePopover.hidden) closeTimePopover();
+  });
+
+  window.addEventListener('resize', () => {
+    if (!timePopover.hidden && activeTimeInput) positionTimePopover(activeTimeInput.closest('.venue-time-input-wrap') || activeTimeInput);
+  });
+  window.addEventListener('scroll', () => {
+    if (!timePopover.hidden) closeTimePopover();
+  }, { passive: true });
 
   // Profile dropdown toggle
   const profileBtns = document.querySelectorAll('.gp-profile-btn');
@@ -3041,6 +3268,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function openCalendar(input) {
+    document.querySelectorAll('.gp-time-popover').forEach(function(popover) {
+      popover.hidden = true;
+    });
     gpCalendarInput = input;
     gpCalendarMonth = parseDateValue(input.value) || parseDateValue(input.min) || new Date();
     renderCalendar();

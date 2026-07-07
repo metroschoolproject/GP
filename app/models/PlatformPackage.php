@@ -1818,8 +1818,7 @@ class PlatformPackage
             || strpos($label, 'decor') !== false
             || strpos($label, 'music') !== false
             || strpos($label, 'photo') !== false
-            || strpos($label, 'makeup') !== false
-            || strpos($label, 'studio') !== false;
+            || strpos($label, 'makeup') !== false;
     }
 
     private function isAttireCategory($slug, $name): bool

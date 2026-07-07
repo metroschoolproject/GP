@@ -1558,6 +1558,8 @@ button { font-family: var(--font-b); outline: none; cursor: pointer; }
         <input type="hidden" name="start_time" value="<?= $h($warningItem['start_time'] ?? '') ?>">
         <input type="hidden" name="end_time" value="<?= $h($warningItem['end_time'] ?? '') ?>">
         <input type="hidden" name="addon_package_id" value="<?= $h($warningItem['addon_package_id'] ?? '') ?>">
+        <input type="hidden" name="addon_package_date" value="<?= $h($warningItem['addon_package_date'] ?? '') ?>">
+        <input type="hidden" name="addon_package_time" value="<?= $h($warningItem['addon_package_time'] ?? '') ?>">
         <input type="hidden" name="confirm_included_service" value="1">
         <button class="gp-included-btn primary" type="submit">Add anyway</button>
       </form>

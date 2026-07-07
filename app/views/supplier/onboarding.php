@@ -1,3 +1,11 @@
+<?php
+$existingCoverPhotoUrl = trim((string)($cover_photo_url ?? ''));
+$existingBusinessLicenseUrl = trim((string)($business_license_url ?? ''));
+$hasExistingCoverPhoto = $existingCoverPhotoUrl !== '';
+$hasExistingBusinessLicense = $existingBusinessLicenseUrl !== '';
+$existingCoverPhotoLabel = $hasExistingCoverPhoto ? basename(parse_url($existingCoverPhotoUrl, PHP_URL_PATH) ?: $existingCoverPhotoUrl) : '';
+$existingBusinessLicenseLabel = $hasExistingBusinessLicense ? basename(parse_url($existingBusinessLicenseUrl, PHP_URL_PATH) ?: $existingBusinessLicenseUrl) : '';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1882,11 +1890,11 @@
                               placeholder="Tell us what your business provides..." required><?= htmlspecialchars($business_description ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                 </div>
                 <div class="profile-materials">
-                    <label class="upload-zone photo-zone" id="coverDropZone" for="coverPhotoInput">
+                    <label class="upload-zone photo-zone <?= $hasExistingCoverPhoto ? 'has-file' : '' ?>" id="coverDropZone" for="coverPhotoInput">
                         <input id="coverPhotoInput" name="cover_photo" type="file"
-                               accept="image/jpeg,image/png,image/webp" class="sr-only" required>
+                               accept="image/jpeg,image/png,image/webp" class="sr-only" <?= $hasExistingCoverPhoto ? '' : 'required' ?>>
                         <div class="photo-preview" aria-hidden="true">
-                            <img id="coverPreviewImg" alt="">
+                            <img id="coverPreviewImg" alt="" <?= $hasExistingCoverPhoto ? 'src="' . htmlspecialchars(URLROOT . '/' . ltrim($existingCoverPhotoUrl, '/'), ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
                             <div class="photo-preview-mark">
                                 <span class="upload-zone-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1899,14 +1907,14 @@
                         </div>
                         <span class="upload-copy">
                             <span class="upload-kicker">Cover photo</span>
-                            <span class="upload-title">Choose your best business photo</span>
-                            <span class="upload-meta">JPG, PNG, WEBP · max 5 MB</span>
-                            <span class="file-name" id="uploadLabel"></span>
+                            <span class="upload-title"><?= $hasExistingCoverPhoto ? 'Current cover photo saved' : 'Choose your best business photo' ?></span>
+                            <span class="upload-meta"><?= $hasExistingCoverPhoto ? 'Upload a new image only if you want to replace it' : 'JPG, PNG, WEBP · max 5 MB' ?></span>
+                            <span class="file-name" id="uploadLabel"><?= htmlspecialchars($existingCoverPhotoLabel, ENT_QUOTES, 'UTF-8') ?></span>
                         </span>
                     </label>
-                    <label class="upload-zone license-zone" id="licenseDropZone" for="businessLicenseInput">
+                    <label class="upload-zone license-zone <?= $hasExistingBusinessLicense ? 'has-file' : '' ?>" id="licenseDropZone" for="businessLicenseInput">
                         <input id="businessLicenseInput" name="business_license" type="file"
-                               accept="image/jpeg,image/png,image/webp,application/pdf" class="sr-only" required>
+                               accept="image/jpeg,image/png,image/webp,application/pdf" class="sr-only" <?= $hasExistingBusinessLicense ? '' : 'required' ?>>
                         <span class="photo-preview license-preview" aria-hidden="true">
                             <img id="licensePreviewImg" alt="">
                             <span class="photo-preview-mark">
@@ -1921,9 +1929,9 @@
                             </span>
                         </span>
                         <span class="upload-copy">
-                            <span class="file-name" id="licenseLabel"></span>
-                            <span class="upload-title">Upload business license</span>
-                            <span class="upload-meta">PDF, JPG, PNG, WEBP · max 5 MB</span>
+                            <span class="file-name" id="licenseLabel"><?= htmlspecialchars($existingBusinessLicenseLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="upload-title"><?= $hasExistingBusinessLicense ? 'Current business license saved' : 'Upload business license' ?></span>
+                            <span class="upload-meta"><?= $hasExistingBusinessLicense ? 'Upload a new file only if you want to replace it' : 'PDF, JPG, PNG, WEBP · max 5 MB' ?></span>
                         </span>
                         <span class="license-lines" aria-hidden="true">
                             <span></span>
@@ -1950,12 +1958,12 @@
                         </div>
                         <div class="agreement-scroll">
                             <strong>1. Membership Fees</strong><br>Supplier Member အဖြစ် စတင်လက်တွဲရန် သတ်မှတ်ထားသော Members Fees ကို ကြိုတင်ပေးသွင်းရမည်။<br><br>
-                            <strong>2. Service Fees</strong><br>ပေးချေငွေ၏ 10% ကို Admin Service Charge အဖြစ် ကောက်ခံမည်။<br><br>
+                            <strong>2. Service Fees</strong><br> platform မှ သတ်မှတ်ထားသော percentage အတိုင်း ပေးချေငွေထဲမှ Admin Service Charge အဖြစ် ကောက်ခံမည်။<br><br>
                             <strong>3. Booking Cancelation Policy</strong><br>အချိန်တစ်ဝက်အလိုတွင် Cancel ပြုလုပ်ပါက Package တန်ဖိုး၏ 50%, တစ်ဝက်ကျော်ပါက 100% လျော်ကြေးပေးဆောင်ရမည်။<br><br>
                             <strong>4. Excessive Cancelation</strong><br>Booking Cancelation 3 ကြိမ်ထက်ကျော်ပါက Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
-                            <strong>5. Customer Reviews</strong><br>Bad Review 5 ကြိမ်ထက်ကျော်ပါက Member အဖြစ်မှ ဖယ်ရှားမည်။<br><br>
+                            <strong>5. Customer Reviews</strong><br>Bad Review 5 ကြိမ်ထက်ကျော်ပါက Warming ပေးမည်။<br><br>
                             <strong>6. Package Participation</strong><br>Member ဝင်ပြီး 3 လအတွင်း Booking 5 ကြိမ် ရရှိထားရမည်။<br><br>
-                            <strong>7. Bonus Program</strong><br>အရောင်းရဆုံး နံပါတ် (1) Supplier ဖြစ်ပါက Bonus ချီးမြှင့်ပေးမည်။<br><br>
+                            <strong>7. Bonus Program</strong><br>သတ်မှတ်ထားသော  ကာလအတွင်း အရောင်းရဆုံး နံပါတ် (1) Supplier ဖြစ်ပါက Package အကျိုးခံစားခွင့်ရှိမည်။<br><br>
                             <strong>8. Payment Terms</strong><br>Admin Service Fees နှင့် Charges များ နုတ်ယူပြီးမှ ကျန်ရှိသောငွေကို Supplier ထံ လွှဲပြောင်းပေးမည်။<br><br>
                             <strong>9. Supplier Responsibilities</strong><br>Service Quality နှင့် အချိန်တိကျမှုကို တာဝန်ယူရမည်။<br><br>
                             <strong>10. Fraud & Policy Violations</strong><br>Platform ပြင်ပ Customer များနှင့် တိုက်ရိုက်ဆက်သွယ်ပြီး ငွေလက်ခံခြင်း မပြုရ။<br><br>
@@ -2159,6 +2167,8 @@
     const agreementBusinessName = document.getElementById('agreementBusinessName');
     const agreementPhone = document.getElementById('agreementPhone');
     const agreementBusinessUrl = document.getElementById('agreementBusinessUrl');
+    const existingCoverPhotoLabel = <?= json_encode($existingCoverPhotoLabel) ?>;
+    const existingBusinessLicenseLabel = <?= json_encode($existingBusinessLicenseLabel) ?>;
 
     const CAPTIONS = [
         ['Begin your journey',           'Golden Promise · Partner Program'],
@@ -2487,11 +2497,13 @@
     // ── File upload ──
     function updateFileCard(input, dropZone, label, emptyText, previewImg = null) {
         const file = input?.files?.[0];
-        dropZone?.classList.toggle('has-file', Boolean(file));
-        if (label) label.textContent = file ? file.name : emptyText;
+        const existingText = input?.dataset?.existingLabel || '';
+        dropZone?.classList.toggle('has-file', Boolean(file) || existingText !== '');
+        if (label) label.textContent = file ? file.name : (existingText || emptyText);
 
         if (!previewImg) return;
         if (!file || !file.type.startsWith('image/')) {
+            if (existingText && previewImg.getAttribute('src')) return;
             previewImg.removeAttribute('src');
             return;
         }
@@ -2635,8 +2647,10 @@
     const start = restoreDraft();
     current = start;
     syncCategoryNextBtn();
-    updateFileCard(coverInput, coverDrop, uploadLabel, 'No photo selected', coverPreviewImg);
-    updateFileCard(licenseInput, licenseDrop, licenseLabel, 'No license selected', licensePreviewImg);
+    if (coverInput) coverInput.dataset.existingLabel = existingCoverPhotoLabel || '';
+    if (licenseInput) licenseInput.dataset.existingLabel = existingBusinessLicenseLabel || '';
+    updateFileCard(coverInput, coverDrop, uploadLabel, existingCoverPhotoLabel ? 'Current cover photo saved' : 'No photo selected', coverPreviewImg);
+    updateFileCard(licenseInput, licenseDrop, licenseLabel, existingBusinessLicenseLabel ? 'Current business license saved' : 'No license selected', licensePreviewImg);
     showCategoryTiles(getSelectedCategoryChecks().length > 0);
     buildDots();
     syncAgreementMode(start);

@@ -1,6 +1,8 @@
 <?php
 $replacement = $replacement ?? [];
 $candidates  = $candidates ?? [];
+$invitations = $invitations ?? [];
+$invitationModeEnabled = $invitationModeEnabled ?? false;
 $bookingRef  = $bookingRef ?? ('#' . ($replacement['booking_id'] ?? ''));
 $maxUpchargePct = $maxUpchargePct ?? 25;
 
@@ -29,6 +31,8 @@ $dashboardContentClass = 'admin-booking-outlet';
 $dashboardContent = function () use (
     $replacement,
     $candidates,
+    $invitations,
+    $invitationModeEnabled,
     $bookingRef,
     $maxUpchargePct,
     $pendingCustomer,
@@ -38,6 +42,10 @@ $dashboardContent = function () use (
     $dateOnly
 ) {
     $oldPrice = (float)($replacement['old_price'] ?? 0);
+    $invitationByService = [];
+    foreach ($invitations as $invitation) {
+        $invitationByService[(int)($invitation['service_id'] ?? 0)] = $invitation;
+    }
 ?>
 <style>
   .admin-booking-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-family:'DM Sans',system-ui,sans-serif;color:#6d4c5b;font-size:13px;overflow-y:auto}
@@ -72,7 +80,23 @@ $dashboardContent = function () use (
   .swap-arrow{display:grid;place-items:center;color:var(--primary)}
   .payment-state{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid #f0ddb0}
   .payment-state-copy{color:#7b5c69;font-size:12px;line-height:1.5}
+  .payment-proof{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid #f0ddb0}
+  .payment-proof-item{padding:10px 12px;border:1px solid rgba(146,64,14,.14);border-radius:.65rem;background:rgba(255,255,255,.62)}
+  .payment-proof-item .k{font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#b7792f}
+  .payment-proof-item .v{margin-top:4px;color:#111827;font-size:12px;font-weight:800;overflow-wrap:anywhere}
+  .proof-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;color:#065F46;font-size:12px;font-weight:800;text-decoration:none}
+  .proof-link:hover{text-decoration:underline}
   .empty{padding:36px;text-align:center;color:var(--muted)}
+  .invite-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+  .invite-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px}
+  .invite-card{padding:11px 12px;border:1px solid var(--border);border-radius:.65rem;background:#fff;font-size:12px}
+  .invite-card strong{display:block;color:var(--text);font-size:13px}
+  .invite-status{display:inline-flex;margin-top:7px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase}
+  .invite-status.invited{background:#fef3c7;color:#92400e}
+  .invite-status.accepted{background:#dcfce7;color:#166534}
+  .invite-status.declined,.invite-status.cancelled{background:#fee2e2;color:#991b1b}
+  .invite-status.chosen{background:#dbeafe;color:#1e40af}
+  .cand-check{width:16px;height:16px;accent-color:var(--primary)}
   #replMsg{margin-top:12px;font-size:12.5px;font-weight:700}
   .confirm-modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;font-family:'DM Sans',system-ui,sans-serif}
   .confirm-modal.is-open{display:flex}
@@ -93,6 +117,7 @@ $dashboardContent = function () use (
   @media(max-width:600px){
     .admin-booking-outlet{padding:20px 16px}
     .meta{grid-template-columns:1fr 1fr}
+    .payment-proof{grid-template-columns:1fr}
     .swap-summary{grid-template-columns:1fr}
     .swap-arrow{transform:rotate(90deg)}
     .confirm-actions{flex-direction:column-reverse}
@@ -154,24 +179,78 @@ $dashboardContent = function () use (
           <span class="pill appr">Awaiting customer action</span>
         <?php endif; ?>
       </div>
+      <?php if ($replacementProofSubmitted): ?>
+        <div class="payment-proof" aria-label="Replacement payment proof details">
+          <div class="payment-proof-item">
+            <div class="k">Payment channel</div>
+            <div class="v"><?= $h($replacement['delta_bank_name'] ?? '-') ?></div>
+          </div>
+          <div class="payment-proof-item">
+            <div class="k">Transaction reference</div>
+            <div class="v"><?= $h($replacement['delta_transaction_ref'] ?? '-') ?></div>
+          </div>
+          <div class="payment-proof-item">
+            <div class="k">Account name</div>
+            <div class="v"><?= $h($replacement['delta_account_name'] ?? '-') ?></div>
+          </div>
+          <div class="payment-proof-item">
+            <div class="k">Mobile number</div>
+            <div class="v"><?= $h($replacement['delta_mobile_number'] ?? '-') ?></div>
+          </div>
+        </div>
+        <?php if (!empty($replacement['delta_payment_slip'])): ?>
+          <a class="proof-link" href="<?= $h(URLROOT . '/' . ltrim((string)$replacement['delta_payment_slip'], '/')) ?>" target="_blank" rel="noopener">
+            Open payment proof
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+          </a>
+        <?php endif; ?>
+      <?php endif; ?>
     </div>
   <?php else: ?>
     <div class="panel">
-      <div class="eyebrow" style="margin-bottom:10px">Available replacements &middot; same category, free on the date &middot; upgrades within +<?= (int)$maxUpchargePct ?>% are absorbed by the platform</div>
+      <div class="invite-toolbar">
+        <div class="eyebrow">Available replacements &middot; same category, free on the date &middot; invite one or many suppliers</div>
+        <?php if ($invitationModeEnabled && !empty($candidates)): ?>
+          <button class="btn" id="inviteSelectedBtn" type="button">Invite selected</button>
+        <?php endif; ?>
+      </div>
+      <?php if ($invitationModeEnabled && !empty($invitations)): ?>
+        <div class="invite-list">
+          <?php foreach ($invitations as $invitation):
+            $status = (string)($invitation['status'] ?? 'invited');
+          ?>
+            <div class="invite-card">
+              <strong><?= $h($invitation['shop_name'] ?? 'Supplier') ?></strong>
+              <span><?= $h($invitation['service_name'] ?? 'Replacement service') ?> · <?= $money($invitation['price'] ?? 0) ?></span>
+              <span class="invite-status <?= $h($status) ?>"><?= $h(str_replace('_', ' ', $status)) ?></span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php elseif (!$invitationModeEnabled): ?>
+        <div class="note" style="margin-bottom:10px;color:#92400e">Run <code>database/migration_add_replacement_invitations.sql</code> to enable multi-supplier invitations. The old one-supplier assignment flow is still available.</div>
+      <?php endif; ?>
       <?php if (empty($candidates)): ?>
         <div class="empty">No eligible suppliers in this category are free on the wedding date.<br>Try cancelling this item with a refund instead.</div>
       <?php else: ?>
         <table class="cand">
           <thead>
-            <tr><th>Supplier</th><th>Service</th><th>Price</th><th>vs original</th><th>Handling</th><th></th></tr>
+            <tr><th></th><th>Supplier</th><th>Service</th><th>Price</th><th>vs original</th><th>Handling</th><th></th></tr>
           </thead>
           <tbody>
           <?php foreach ($candidates as $c):
               $delta = (float)($c['price_delta'] ?? 0);
               $needs = !empty($c['needs_customer_approval']);
               $overCap = !empty($c['over_cap']);
+              $serviceId = (int)($c['service_id'] ?? 0);
+              $existingInvite = $invitationByService[$serviceId] ?? null;
+              $existingStatus = (string)($existingInvite['status'] ?? '');
           ?>
             <tr>
+              <td>
+                <?php if ($invitationModeEnabled): ?>
+                  <input class="cand-check" type="checkbox" value="<?= $serviceId ?>" <?= in_array($existingStatus, ['invited','accepted','chosen'], true) ? 'disabled' : '' ?>>
+                <?php endif; ?>
+              </td>
               <td><strong><?= $h($c['shop_name'] ?? '-') ?></strong></td>
               <td><?= $h($c['service_name'] ?? '-') ?></td>
               <td><?= $money($c['price'] ?? 0) ?></td>
@@ -182,7 +261,11 @@ $dashboardContent = function () use (
                 <?php endif; ?>
               </td>
               <td>
-                <?php if ($needs): ?>
+                <?php if ($existingStatus !== ''): ?>
+                  <span class="invite-status <?= $h($existingStatus) ?>"><?= $h(str_replace('_', ' ', $existingStatus)) ?></span>
+                <?php elseif ($invitationModeEnabled): ?>
+                  <span class="pill appr">Supplier accepts first</span>
+                <?php elseif ($needs): ?>
                   <span class="pill appr">Customer approves + pays</span>
                 <?php elseif (!empty($c['within_cap_upgrade'])): ?>
                   <span class="pill upgrade">Auto (platform absorbs upgrade)</span>
@@ -191,10 +274,11 @@ $dashboardContent = function () use (
                 <?php endif; ?>
               </td>
               <td style="text-align:right">
-                <button class="btn assign-btn" data-service="<?= (int)$c['service_id'] ?>"
+                <button class="btn <?= $invitationModeEnabled ? 'invite-btn' : 'assign-btn' ?>" data-service="<?= $serviceId ?>"
                         data-needs="<?= $needs ? 1 : 0 ?>"
-                        data-service-name="<?= $h($c['service_name'] ?? 'this replacement') ?>">
-                  <?= $needs ? 'Propose' : 'Assign' ?>
+                        data-service-name="<?= $h($c['service_name'] ?? 'this replacement') ?>"
+                        <?= in_array($existingStatus, ['invited','accepted','chosen'], true) ? 'disabled' : '' ?>>
+                  <?= $invitationModeEnabled ? ($existingStatus !== '' ? 'Sent' : 'Invite') : ($needs ? 'Propose' : 'Assign') ?>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
                 </button>
               </td>
@@ -332,6 +416,30 @@ $dashboardContent = function () use (
         action: 'Send proposal'
       }, assign, b);
     });
+  });
+
+  function inviteServices(serviceIds, btn) {
+    const ids = [...new Set((serviceIds || []).filter(Boolean))];
+    if (!ids.length) {
+      msg.style.color = '#991B1B';
+      msg.textContent = 'Choose at least one supplier service to invite.';
+      return;
+    }
+    const data = { replacement_id: replId };
+    ids.forEach((id, index) => { data['service_ids[' + index + ']'] = id; });
+    post(base + '/admin/inviteReplacementSuppliers', data, btn);
+  }
+
+  document.querySelectorAll('.invite-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      inviteServices([b.getAttribute('data-service')], b);
+    });
+  });
+
+  const inviteSelectedBtn = document.getElementById('inviteSelectedBtn');
+  inviteSelectedBtn?.addEventListener('click', () => {
+    const ids = Array.from(document.querySelectorAll('.cand-check:checked')).map(input => input.value);
+    inviteServices(ids, inviteSelectedBtn);
   });
 
   const verifyBtn = document.getElementById('verifyBtn');

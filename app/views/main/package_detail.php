@@ -118,9 +118,12 @@ $serviceDetailUrl = function ($svc) use ($package) {
     ];
     return $url . '?' . http_build_query($params);
 };
-$addonDetailUrl = function ($svc) use ($package) {
+$addonDetailUrl = function ($svc) use ($package, $selectedDate, $selectedTime) {
+    $params = ['addon_package_id' => (int)($package['package_id'] ?? 0)];
+    if (!empty($selectedDate)) $params['date'] = $selectedDate;
+    if (!empty($selectedTime)) $params['time'] = $selectedTime;
     return URLROOT . '/customerServices/detail/' . (int)($svc['id'] ?? 0)
-        . '?' . http_build_query(['addon_package_id' => (int)($package['package_id'] ?? 0)]);
+        . '?' . http_build_query($params);
 };
 ?>
 <!DOCTYPE html>
@@ -1192,14 +1195,21 @@ img { display: block; max-width: 100%; }
   gap: 12px;
   min-height: 48px;
   padding: 6px 8px 6px 20px;
+  appearance: none;
   border: 1px solid rgba(154,104,127,.22);
   border-radius: 12px;
   background: #6D4C5B;
   color: #fff8ef;
   font-size: 13px;
   font-weight: 800;
+  font-family: var(--font-body);
+  cursor: pointer;
   white-space: nowrap;
   transition: background .18s var(--ease-out-expo), transform .18s var(--ease-out-expo);
+}
+.gp-addon-section .gc-book-form {
+  display: inline-flex;
+  flex: 0 0 auto;
 }
 .gp-addon-section .gc-book-btn:hover {
   background: #7E4F65;
@@ -1447,12 +1457,19 @@ img { display: block; max-width: 100%; }
                   <strong><?= $money($svc['display_price'] ?? $svc['price'] ?? 0) ?></strong>
                   <span><?= $h($addonDurationText($svc)) ?></span>
                 </div>
-                <a class="gc-book-btn" href="<?= $h($addonUrl) ?>">
-                  <span>Add</span>
-                  <span class="gc-book-btn-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-                  </span>
-                </a>
+                <form class="gc-book-form" method="POST" action="<?= URLROOT ?>/cart/add">
+                  <input type="hidden" name="service_id" value="<?= (int)($svc['id'] ?? 0) ?>">
+                  <input type="hidden" name="addon_package_id" value="<?= (int)($package['package_id'] ?? 0) ?>">
+                  <input type="hidden" name="selected_date" value="<?= $h($selectedDate) ?>">
+                  <input type="hidden" name="start_time" value="<?= $h($selectedTime) ?>">
+                  <input type="hidden" name="source" value="custom">
+                  <button class="gc-book-btn" type="submit">
+                    <span>Add-on</span>
+                    <span class="gc-book-btn-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                    </span>
+                  </button>
+                </form>
               </div>
             </div>
           </article>

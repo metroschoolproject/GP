@@ -32,6 +32,7 @@ $dashboardBreadcrumbs = [
     ['label' => 'All bookings', 'url' => null],
 ];
 $dashboardContentClass = 'admin-booking-outlet';
+$today = date('Y-m-d');
 
 $filters = [
     'all' => 'All',
@@ -69,13 +70,6 @@ $statusBadge = static function (string $status) use ($h) {
     return '<span class="badge ' . $class . '">' . $h($label) . '</span>';
 };
 
-$summaryItems = [
-    ['label' => 'Total bookings', 'value' => (int)($stats['total'] ?? 0), 'sub' => 'All booking records', 'class' => ''],
-    ['label' => 'Paid', 'value' => (int)($stats['paid_count'] ?? 0), 'sub' => $money($stats['total_revenue'] ?? 0), 'class' => 'success'],
-    ['label' => 'Confirmed', 'value' => (int)($stats['confirmed_count'] ?? 0), 'sub' => 'Supplier accepted', 'class' => ''],
-    ['label' => 'Cancelled', 'value' => (int)($stats['cancelled_count'] ?? 0), 'sub' => 'Stopped bookings', 'class' => 'danger'],
-];
-
 $dashboardContent = function () use (
     $bookings,
     $activeFilter,
@@ -86,12 +80,12 @@ $dashboardContent = function () use (
     $typeFilter,
     $filters,
     $filterCounts,
-    $summaryItems,
     $money,
     $h,
     $dateOnly,
     $timeOnly,
     $statusBadge,
+    $today,
     $currentPage,
     $totalPages,
     $totalCount,
@@ -125,13 +119,6 @@ $dashboardContent = function () use (
   .date-range-label{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
   .active-filter-note{display:flex;align-items:center;gap:6px;width:100%;margin-top:2px;color:var(--body);font-size:10px;font-weight:700}
   .active-filter-note svg{width:12px;height:12px;color:var(--primary)}
-  .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
-  .stat{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:14px 16px}
-  .stat-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-  .stat-value{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.3px}
-  .stat-value.success{color:var(--success-text)}
-  .stat-value.danger{color:var(--danger-text)}
-  .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;overflow:hidden;box-shadow:0 1px 2px rgba(28,25,23,.04)}
   .card-head{padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
   .card-head-left{display:flex;align-items:center;gap:8px}
@@ -176,9 +163,31 @@ $dashboardContent = function () use (
   .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
   .page-btn.active{background:var(--primary);color:#FFFFFF;border-color:var(--primary)}
   .page-btn:disabled{opacity:.4;cursor:default}
-  @media(max-width:1250px){.summary-row{grid-template-columns:repeat(2,1fr)}.booking-search{margin-left:0;width:100%}}
-  @media(max-width:760px){.admin-booking-outlet{padding:20px 16px}.page-header{align-items:flex-start;flex-direction:column}.summary-row{grid-template-columns:1fr}.divider{display:none}.booking-search{display:grid;grid-template-columns:1fr}.control-input,.booking-search .btn-ghost,.date-input{width:100%;min-width:0}.date-range{display:grid;grid-template-columns:auto 1fr 1fr}.active-filter-note{grid-column:1/-1}}
+  @media(max-width:1250px){.booking-search{margin-left:0;width:100%}}
+  @media(max-width:760px){.admin-booking-outlet{padding:20px 16px}.page-header{align-items:flex-start;flex-direction:column}.divider{display:none}.booking-search{display:grid;grid-template-columns:1fr}.control-input,.booking-search .btn-ghost,.date-input{width:100%;min-width:0}.date-range{display:grid;grid-template-columns:auto 1fr 1fr}.active-filter-note{grid-column:1/-1}}
 </style>
+
+<script>
+(function () {
+  const fromInput = document.querySelector('input[name="date_from"]');
+  const toInput = document.querySelector('input[name="date_to"]');
+  if (!fromInput || !toInput) return;
+
+  const today = '<?= $h($today) ?>';
+  const clamp = () => {
+    if (fromInput.value && fromInput.value < today) fromInput.value = today;
+    if (toInput.value && toInput.value < today) toInput.value = today;
+    toInput.min = fromInput.value || today;
+    if (fromInput.value && toInput.value && toInput.value < fromInput.value) {
+      toInput.value = fromInput.value;
+    }
+  };
+
+  fromInput.addEventListener('change', clamp);
+  toInput.addEventListener('change', clamp);
+  clamp();
+})();
+</script>
 
 <div class="admin-booking-page">
   <div class="page-header">
@@ -217,8 +226,8 @@ $dashboardContent = function () use (
         <option value="mixed" <?= $typeFilter === 'mixed' ? 'selected' : '' ?>>Mixed</option>
       </select>
       <div class="date-range">
-        <input class="control-input date-input" type="date" name="date_from" value="<?= $h($dateFrom) ?>" aria-label="Event date from">
-        <input class="control-input date-input" type="date" name="date_to" value="<?= $h($dateTo) ?>" aria-label="Event date to">
+        <input class="control-input date-input" type="date" name="date_from" value="<?= $h($dateFrom) ?>" min="<?= $h($today) ?>" aria-label="Event date from">
+        <input class="control-input date-input" type="date" name="date_to" value="<?= $h($dateTo) ?>" min="<?= $h($today) ?>" aria-label="Event date to">
       </div>
       <button type="submit" class="btn-ghost">
         <i data-lucide="sliders-horizontal" class="h-3.5 w-3.5" aria-hidden="true"></i>
@@ -239,16 +248,6 @@ $dashboardContent = function () use (
         </div>
       <?php endif; ?>
     </form>
-  </div>
-
-  <div class="summary-row">
-    <?php foreach ($summaryItems as $item): ?>
-      <div class="stat">
-        <div class="stat-label"><?= $h($item['label']) ?></div>
-        <div class="stat-value <?= $h($item['class']) ?>"><?= $h($item['value']) ?></div>
-        <div class="stat-sub"><?= $h($item['sub']) ?></div>
-      </div>
-    <?php endforeach; ?>
   </div>
 
   <div class="card">

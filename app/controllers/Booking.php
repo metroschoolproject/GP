@@ -142,11 +142,30 @@ class Booking extends Controller
     {
         $supplierQueue = $suppliers;
         $replacementQueue = $replacementHistory;
+        $suppliersByRowId = [];
+        foreach ($suppliers as $supplier) {
+            $rowId = (int)($supplier['id'] ?? 0);
+            if ($rowId > 0) {
+                $suppliersByRowId[$rowId] = $supplier;
+            }
+        }
 
         foreach ($logs as &$log) {
             $status = (string)($log['new_status'] ?? '');
             $note = trim((string)($log['note'] ?? ''));
             $extra = '';
+
+            if ($status === 'cancellation_requested'
+                && preg_match('/^Supplier requested cancellation for service row #(\d+)\.\s*Reason:\s*(.*)$/i', $note, $matches)
+            ) {
+                $rowId = (int)$matches[1];
+                $reason = trim((string)($matches[2] ?? ''));
+                $context = isset($suppliersByRowId[$rowId])
+                    ? $this->supplierServiceContext($suppliersByRowId[$rowId])
+                    : 'Your supplier';
+                $log['note'] = $context . ' requested cancellation.' . ($reason !== '' ? ' Reason: ' . $reason : '');
+                continue;
+            }
 
             if (in_array($status, ['supplier_confirmed', 'supplier_rejected', 'decline_requested', 'supplier_needs_replacement'], true)) {
                 $row = array_shift($supplierQueue);
@@ -404,6 +423,15 @@ class Booking extends Controller
         
         if (empty($items)) {
             $this->jsonResponse(['error' => 'Cart is empty'], 400);
+        }
+
+        $hasPackageItems = !empty(array_filter($items, static fn($item) => ($item['item_type'] ?? '') === 'package' && empty($item['package_cart_item_id'])));
+        $hasCustomItems = !empty(array_filter($items, static fn($item) => ($item['item_type'] ?? '') !== 'package'));
+        if (($hasPackageItems || $hasCustomItems) && ($_POST['refund_policy_agreed'] ?? '') !== '1') {
+            $this->jsonResponse([
+                'error' => 'Please review and accept the refund policy before completing this booking.',
+                'agreement_required' => true,
+            ], 422);
         }
         
         // PARSE PER-ITEM DATA
@@ -727,7 +755,6 @@ class Booking extends Controller
         if (!$this->bookingModel->insertBookingSuppliers($bookingId)) {
             throw new RuntimeException('Could not assign suppliers');
         }
-        $autoAcceptedSuppliers = $this->bookingModel->autoAcceptEnabledSuppliers($bookingId);
         
         // CLEAR CART & LOG
         $this->bookingModel->clearCart($this->userId);
@@ -739,8 +766,12 @@ class Booking extends Controller
 
         // FORK: package bookings go straight to payment; custom/mixed require supplier approval first
         if ($this->bookingModel->isPackageBooking($bookingId)) {
+            if (!$this->bookingModel->autoConfirmAllSuppliers($bookingId)) {
+                throw new RuntimeException('Could not auto-confirm package suppliers');
+            }
             $this->bookingModel->updateStatus($bookingId, 'pending_payment');
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_payment', $this->userId);
+            $this->bookingModel->logStatusChange($bookingId, null, 'supplier_auto_accepted', null, 'All package supplier line(s) auto-accepted');
             $this->bookingModel->commit();
             $transactionStarted = false;
 
@@ -775,6 +806,7 @@ class Booking extends Controller
                 'redirect' => URLROOT . '/booking/pay/' . $bookingId,
             ]);
         } else {
+            $autoAcceptedSuppliers = $this->bookingModel->autoAcceptEnabledSuppliers($bookingId);
             $this->bookingModel->updateStatus($bookingId, 'pending_supplier_response');
             $this->bookingModel->logStatusChange($bookingId, 'draft', 'pending_supplier_response', $this->userId);
             if ($autoAcceptedSuppliers > 0) {
@@ -1110,8 +1142,8 @@ class Booking extends Controller
             'Replacement Delta Paid — Verify',
             'Customer paid the difference for booking #' . (int)$r['booking_id'] . '. Verify the payment to finalize the replacement.',
             'payment',
-            'booking',
-            (int)$r['booking_id']
+            'replacement',
+            $replacementId
         );
         $this->notificationModel->notifyBookingCustomer(
             (int)$r['booking_id'],
@@ -1157,6 +1189,57 @@ class Booking extends Controller
             'We will look for another replacement option.',
             'booking'
         );
+        redirect('booking/detail/' . $bookingId);
+    }
+
+    public function chooseReplacementSupplier(): void
+    {
+        $this->ensureAuthenticated();
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('booking/myBookings');
+            return;
+        }
+
+        $invitationId = (int)($_POST['invitation_id'] ?? 0);
+        $choice = $this->bookingModel->chooseAcceptedReplacementInvitation($invitationId, (int)$this->userId);
+        if (!$choice) {
+            $_SESSION['booking_flash_error'] = 'That replacement option is no longer available.';
+            redirect('booking/myBookings');
+            return;
+        }
+
+        $replacementId = (int)$choice['replacement_id'];
+        $bookingId = (int)$choice['booking_id'];
+        $delta = round((float)($choice['price_delta'] ?? 0), 2);
+
+        if ($delta > 0) {
+            $paymentId = $this->bookingModel->createReplacementDeltaPayment($bookingId, $delta);
+            $this->bookingModel->updateReplacement($replacementId, [
+                'delta_payment_id' => $paymentId,
+                'status' => 'pending_customer',
+                'requires_customer_approval' => 1,
+            ]);
+            $this->bookingModel->logStatusChange($bookingId, null, 'replacement_customer_chose_supplier', (int)$this->userId, 'Customer chose replacement supplier; payment difference required');
+            redirect('booking/payReplacementDelta/' . $replacementId);
+            return;
+        }
+
+        if (!$this->bookingModel->performReplacementSwap($replacementId, false)) {
+            $_SESSION['booking_flash_error'] = $this->bookingModel->getReplacementSwapError();
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
+
+        $this->bookingModel->markChosenInvitationSwapAccepted($replacementId);
+        $this->bookingModel->logStatusChange($bookingId, null, 'replacement_customer_chose_supplier', (int)$this->userId, 'Customer chose accepted replacement supplier');
+        $this->notificationModel->notifyBookingCustomer(
+            $bookingId,
+            'Replacement Confirmed',
+            ($choice['shop_name'] ?? 'Your replacement supplier') . ' is confirmed for your package service.',
+            'booking'
+        );
+        $_SESSION['booking_flash_success'] = 'Replacement supplier selected.';
         redirect('booking/detail/' . $bookingId);
     }
 
@@ -1694,18 +1777,11 @@ class Booking extends Controller
         foreach (['pending_payment', 'paid', 'confirmed', 'pending_final_payment', 'finalized', 'completed', 'cancelled', 'cancellation_requested'] as $statusKey) {
             $bookingStatusCounts[$statusKey] = $this->bookingModel->getCustomerBookingsCount($this->userId, $statusKey);
         }
-        $this->bookingModel->expirePastVouchers($this->userId);
-
         // Enrich each booking with items count, booking ref, and refund info
         $enriched = [];
         foreach ($bookings as $b) {
             $b['booking_ref'] = $this->bookingModel->generateBookingRef((int)$b['id']);
             $b['items'] = $this->bookingModel->getBookingItems((int)$b['id']);
-            if (in_array((string)($b['status'] ?? ''), ['confirmed', 'pending_final_payment', 'finalized', 'completed'], true)) {
-                $this->bookingModel->generateVouchers((int)$b['id']);
-                $this->bookingModel->expirePastVouchers($this->userId);
-            }
-            $b['vouchers'] = $this->bookingModel->getBookingVouchers((int)$b['id']);
             $b['total_amount'] = (float)$b['total_amount'];
             $b['paid_amount'] = (float)$b['paid_amount'];
             $b['refund'] = $this->bookingModel->getBookingRefund((int)$b['id']) ?: null;
@@ -1761,8 +1837,6 @@ class Booking extends Controller
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $suppliers = $this->bookingModel->getBookingSuppliers($bookingId);
         $logs = $this->bookingModel->getStatusLogs($bookingId);
-        $this->bookingModel->expirePastVouchers($this->userId);
-        $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
         $depositPayment = $this->bookingModel->getDepositPayment($bookingId);
         $packageSchedules = $this->buildPackageSchedules($items, $eventDetails);
@@ -1776,6 +1850,7 @@ class Booking extends Controller
         // Pricier supplier replacement awaiting the customer's approval + payment.
         $pendingReplacement = $this->bookingModel->getPendingCustomerReplacement($bookingId);
         $replacementHistory = $this->bookingModel->getReplacementHistory($bookingId);
+        $replacementChoices = $this->bookingModel->getAcceptedReplacementChoicesForBooking($bookingId);
         $logs = $this->enrichStatusLogsForDisplay($logs, $suppliers, $replacementHistory);
         $refund = $this->bookingModel->getBookingRefund($bookingId);
 
@@ -1792,7 +1867,6 @@ class Booking extends Controller
             'eventDetails' => $eventDetails,
             'suppliers' => $suppliers,
             'logs' => $logs,
-            'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
             'depositPercent' => BOOKING_DEPOSIT_PERCENT,
             'depositPayment' => $depositPayment ?: [],
@@ -1802,6 +1876,7 @@ class Booking extends Controller
             'canEditReview' => $canEditReview,
             'pendingReplacement' => $pendingReplacement ?: null,
             'replacementHistory' => $replacementHistory,
+            'replacementChoices' => $replacementChoices,
             'refund' => $refund ?: null,
             'platformFeePercent' => get_platform_fee_percent(),
             'hasPendingRemaining' => $hasPendingRemaining,
@@ -1815,108 +1890,15 @@ class Booking extends Controller
     public function vouchers(): void
     {
         $this->ensureAuthenticated();
-
-        $filter = trim($_GET['status'] ?? 'all');
-        $allowedFilters = ['all', 'active', 'used', 'expired'];
-        if (!in_array($filter, $allowedFilters, true)) {
-            $filter = 'all';
-        }
-        $page = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = 12;
-        $offset = ($page - 1) * $perPage;
-
-        $this->bookingModel->syncCustomerVouchers($this->userId);
-        $vouchers = $this->bookingModel->getCustomerVouchers($this->userId, $filter, $perPage, $offset);
-        $vouchers = $this->enrichVoucherScanUrls($vouchers);
-        $totalCount = $this->bookingModel->getCustomerVouchersCount($this->userId, $filter);
-        $voucherStatusCounts = $this->bookingModel->getCustomerVoucherStatusCounts($this->userId);
-
-        $this->view('booking/vouchers', [
-            'vouchers' => $vouchers,
-            'activeFilter' => $filter,
-            'voucherStatusCounts' => $voucherStatusCounts,
-            'currentPage' => $page,
-            'totalPages' => max(1, (int)ceil($totalCount / $perPage)),
-            'totalCount' => $totalCount,
-            'perPage' => $perPage,
-        ]);
+        redirect('booking/myBookings');
     }
 
     public function scanVoucher(?string $voucherNumber = null, ?string $signature = null): void
     {
-        $voucherNumber = strtoupper(trim(rawurldecode((string)$voucherNumber)));
-        $signature = trim((string)$signature);
-        $voucher = $this->bookingModel->getVoucherByNumber($voucherNumber);
-
-        if (!$voucher) {
-            $this->view('booking/voucherScan', [
-                'status' => 'error',
-                'title' => 'Voucher Not Found',
-                'message' => 'This QR code does not match an active Golden Promise voucher.',
-            ]);
-            return;
-        }
-
-        $expected = $this->voucherScanSignature((string)$voucher['voucher_number'], (int)$voucher['supplier_id']);
-        if ($signature === '' || !hash_equals($expected, $signature)) {
-            $this->view('booking/voucherScan', [
-                'status' => 'error',
-                'title' => 'Invalid QR Code',
-                'message' => 'This voucher QR code could not be verified.',
-                'voucher' => $voucher,
-            ]);
-            return;
-        }
-
-        if (!$this->userId) {
-            $_SESSION['post_login_return_url'] = 'booking/scanVoucher/'
-                . rawurlencode((string)$voucher['voucher_number']) . '/'
-                . rawurlencode($signature);
-            redirect('users/auth');
-            return;
-        }
-
-        $supplierId = $this->currentSupplierId();
-        if ($supplierId <= 0 || $supplierId !== (int)$voucher['supplier_id']) {
-            $this->view('booking/voucherScan', [
-                'status' => 'error',
-                'title' => 'Supplier Account Required',
-                'message' => 'Only the assigned supplier can scan and use this voucher.',
-                'voucher' => $voucher,
-            ]);
-            return;
-        }
-
-        $currentStatus = (string)($voucher['status'] ?? '');
-        if ($currentStatus === 'used') {
-            $this->view('booking/voucherScan', [
-                'status' => 'used',
-                'title' => 'Voucher Already Used',
-                'message' => 'This voucher has already been marked as used.',
-                'voucher' => $voucher,
-            ]);
-            return;
-        }
-        if ($currentStatus === 'expired') {
-            $this->view('booking/voucherScan', [
-                'status' => 'error',
-                'title' => 'Voucher Expired',
-                'message' => 'This voucher is expired and cannot be used.',
-                'voucher' => $voucher,
-            ]);
-            return;
-        }
-
-        $used = $this->bookingModel->markVoucherUsedByCode((string)$voucher['voucher_number'], $supplierId);
-        $voucher = $this->bookingModel->getVoucherByNumber((string)$voucher['voucher_number']) ?: $voucher;
-
         $this->view('booking/voucherScan', [
-            'status' => $used ? 'success' : 'used',
-            'title' => $used ? 'Voucher Used' : 'Voucher Already Used',
-            'message' => $used
-                ? 'The voucher was verified and marked as used.'
-                : 'This voucher could not be used again.',
-            'voucher' => $voucher,
+            'status' => 'error',
+            'title' => 'Voucher Unavailable',
+            'message' => 'Voucher features are no longer available.',
         ]);
     }
 
@@ -2148,6 +2130,8 @@ class Booking extends Controller
         }
 
         $assignments = $this->bookingModel->getSupplierAssignments($supplierId);
+        $replacementInvitations = $this->bookingModel->getSupplierReplacementInvitations($supplierId);
+        $supplier = $this->supplierProfileModel->getById($supplierId);
 
         // Group by booking_id so each card shows all assigned services
         $grouped = [];
@@ -2223,7 +2207,52 @@ class Booking extends Controller
             'pendingAssignments' => $pendingAssignments,
             'activeAssignments' => $activeAssignments,
             'assignments' => $grouped,
+            'replacementInvitations' => $replacementInvitations,
+            'supplier' => $supplier ?: [],
             'supplierId' => $supplierId,
+        ]);
+    }
+
+    public function supplierReplacementInvitationRespond(): void
+    {
+        $supplierId = $this->currentSupplierId();
+        if ($supplierId <= 0) {
+            $this->jsonResponse(['error' => 'Supplier account required.'], 403);
+        }
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $invitationId = (int)($_POST['invitation_id'] ?? 0);
+        $action = (string)($_POST['action'] ?? '');
+        $invitation = $this->bookingModel->respondReplacementInvitation($invitationId, $supplierId, $action);
+        if (!$invitation) {
+            $this->jsonResponse(['error' => 'This replacement invitation was already handled.'], 409);
+        }
+
+        $bookingId = (int)$invitation['booking_id'];
+        $statusLabel = $action === 'accept' ? 'accepted' : 'declined';
+        $this->bookingModel->logStatusChange($bookingId, null, 'replacement_invitation_' . $statusLabel, null, ($invitation['shop_name'] ?? 'Supplier') . ' ' . $statusLabel . ' replacement invitation');
+        if ($action === 'accept') {
+            $this->notificationModel->notifyBookingCustomer(
+                $bookingId,
+                'Replacement Option Available',
+                ($invitation['shop_name'] ?? 'A supplier') . ' accepted the replacement request. Open your booking to choose from accepted suppliers.',
+                'booking'
+            );
+        }
+        $this->notificationModel->notifyAdmins(
+            'Replacement Invitation ' . ucfirst($statusLabel),
+            ($invitation['shop_name'] ?? 'A supplier') . ' ' . $statusLabel . ' the replacement invitation for booking #' . $bookingId . '.',
+            'booking',
+            'replacement',
+            (int)$invitation['replacement_id']
+        );
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => $action === 'accept' ? 'Replacement invitation accepted.' : 'Replacement invitation declined.',
         ]);
     }
 
@@ -2323,13 +2352,6 @@ class Booking extends Controller
         }, $items));
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
-        if (in_array((string)($booking['status'] ?? ''), ['confirmed', 'pending_final_payment', 'finalized', 'completed'], true)) {
-            $this->bookingModel->generateVouchers($bookingId);
-            $this->bookingModel->expirePastVouchers();
-        }
-        $vouchers = $this->bookingModel->getSupplierBookingVouchers($bookingId, $supplierId);
-        $vouchers = $this->enrichVoucherScanUrls($vouchers);
-
         // Pass per-service time schedules for any package items so suppliers
         // can see the time windows assigned to their services.
         $allItems = $this->bookingModel->getBookingItems($bookingId);
@@ -2352,7 +2374,6 @@ class Booking extends Controller
             'items' => $items,
             'eventDetails' => $eventDetails,
             'suppliers' => $suppliers,
-            'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
             'supplierStatus' => $currentSupplierStatus ?? 'pending',
             'supplierRowId' => $currentSupplierRowId ?? 0,
@@ -2374,28 +2395,7 @@ class Booking extends Controller
     {
         $this->ensureAuthenticated();
         $this->requireCsrf();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['error' => 'Method not allowed'], 405);
-        }
-
-        $supplierId = $this->currentSupplierId();
-        if ($supplierId <= 0) {
-            $this->jsonResponse(['error' => 'Supplier account required.'], 403);
-        }
-
-        $voucherNumber = trim((string)($_POST['voucher_number'] ?? ''));
-        if ($voucherNumber === '') {
-            $this->jsonResponse(['error' => 'Voucher code is required.'], 422);
-        }
-
-        if (!$this->bookingModel->markVoucherUsedByCode($voucherNumber, $supplierId)) {
-            $this->jsonResponse(['error' => 'Voucher not found, expired, already used, or assigned to another supplier.'], 422);
-        }
-
-        $this->jsonResponse([
-            'success' => true,
-            'message' => 'Voucher marked as used.',
-        ]);
+        $this->jsonResponse(['error' => 'Voucher feature is unavailable.'], 410);
     }
 
     /**
@@ -3190,10 +3190,27 @@ class Booking extends Controller
             $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
             return $date && $date->format('Y-m-d') === $value ? $value : '';
         };
-        $dateFrom = $validDate($dateFrom);
-        $dateTo = $validDate($dateTo);
-        if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
-            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+        $today = date('Y-m-d');
+        $normalizeBookingDate = static function (string $value) use ($validDate, $today): string {
+            $date = $validDate($value);
+            if ($date === '') {
+                return '';
+            }
+
+            return $date < $today ? $today : $date;
+        };
+        $dateFrom = $normalizeBookingDate($dateFrom);
+        $dateTo = $normalizeBookingDate($dateTo);
+        if ($dateFrom === '' && $dateTo === '') {
+            $dateFrom = $today;
+            $dateTo = $today;
+        } elseif ($dateFrom === '') {
+            $dateFrom = $today;
+        } elseif ($dateTo === '') {
+            $dateTo = $dateFrom;
+        }
+        if ($dateFrom > $dateTo) {
+            $dateTo = $dateFrom;
         }
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 15;
@@ -3316,18 +3333,27 @@ class Booking extends Controller
         $eventDetails = $this->bookingModel->getEventDetails($bookingId);
         $logs = $this->bookingModel->getStatusLogs($bookingId);
         $payments = $this->bookingModel->getBookingPayments($bookingId);
-        if (in_array((string)($booking['status'] ?? ''), ['confirmed', 'pending_final_payment', 'finalized', 'completed'], true)) {
-            $this->bookingModel->generateVouchers($bookingId);
-            $this->bookingModel->expirePastVouchers();
-        }
-        $vouchers = $this->bookingModel->getBookingVouchers($bookingId);
         $bookingRef = $this->bookingModel->generateBookingRef($bookingId);
         $packageSchedules = $this->buildPackageSchedules($items, $eventDetails);
 
         $refund = $this->bookingModel->getBookingRefund($bookingId);
+        $openReplacements = $this->bookingModel->getOpenReplacementsForBooking($bookingId);
         // Show appropriate refund estimate based on who would be cancelling
         $currentStatus = (string)($booking['status'] ?? '');
-        $estimateCancelledBy = $currentStatus === 'cancellation_requested' ? 'customer' : 'admin';
+        $hasSupplierCancellationRequest = false;
+        foreach ($suppliers as $supplier) {
+            if (($supplier['status'] ?? '') === 'supplier_cancellation_requested') {
+                $hasSupplierCancellationRequest = true;
+                break;
+            }
+        }
+        if ($hasSupplierCancellationRequest) {
+            $estimateCancelledBy = 'supplier';
+        } elseif ($currentStatus === 'cancellation_requested') {
+            $estimateCancelledBy = 'customer';
+        } else {
+            $estimateCancelledBy = 'admin';
+        }
         $refundEstimate = $this->bookingModel->calculateRefund($bookingId, $estimateCancelledBy);
 
         $this->view('admin/bookingDetail', [
@@ -3337,11 +3363,11 @@ class Booking extends Controller
             'eventDetails' => $eventDetails,
             'logs' => $logs,
             'payments' => $payments,
-            'vouchers' => $vouchers,
             'bookingRef' => $bookingRef,
             'packageSchedules' => $packageSchedules,
             'depositPercent' => BOOKING_DEPOSIT_PERCENT,
             'refund' => $refund ?: null,
+            'openReplacements' => $openReplacements,
             'refundEstimate' => $refundEstimate ?: null,
             'hasPendingRemaining' => $this->bookingModel->hasPendingRemainingPayment($bookingId),
         ]);
@@ -3389,12 +3415,61 @@ class Booking extends Controller
             return;
         }
         $candidates = $this->bookingModel->findReplacementCandidates($replacementId);
+        $invitations = $this->bookingModel->getReplacementInvitations($replacementId);
 
         $this->view('admin/replacementPicker', [
             'replacement' => $replacement,
             'candidates'  => $candidates,
+            'invitations' => $invitations,
+            'invitationModeEnabled' => $this->bookingModel->replacementInvitationsEnabled(),
             'bookingRef'  => $this->bookingModel->generateBookingRef((int)$replacement['booking_id']),
             'maxUpchargePct' => defined('MAX_REPLACEMENT_UPCHARGE_PCT') ? MAX_REPLACEMENT_UPCHARGE_PCT : 25,
+        ]);
+    }
+
+    public function adminInviteReplacementSuppliers(): void
+    {
+        $adminId = $this->requireRole('admin', true);
+        $this->requireCsrf();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        }
+
+        $replacementId = (int)($_POST['replacement_id'] ?? 0);
+        $serviceIds = $_POST['service_ids'] ?? ($_POST['service_id'] ?? []);
+        if (!is_array($serviceIds)) {
+            $serviceIds = [$serviceIds];
+        }
+
+        $result = $this->bookingModel->inviteReplacementSuppliers($replacementId, $serviceIds, $adminId);
+        if (!empty($result['error'])) {
+            $this->jsonResponse(['error' => $result['error']], 422);
+        }
+
+        $replacement = $this->bookingModel->getReplacement($replacementId);
+        $bookingId = (int)($replacement['booking_id'] ?? 0);
+        $this->bookingModel->logStatusChange($bookingId, null, 'replacement_suppliers_invited', $adminId, 'Admin invited ' . (int)$result['created'] . ' supplier option(s)');
+
+        foreach ($this->bookingModel->getReplacementInvitations($replacementId) as $invitation) {
+            if (($invitation['status'] ?? '') !== 'invited') {
+                continue;
+            }
+            $supplierUserId = $this->bookingModel->getSupplierUserId((int)$invitation['supplier_id']);
+            if ($supplierUserId > 0) {
+                $this->notificationModel->notifyUser(
+                    $supplierUserId,
+                    'Replacement Request — Please Respond',
+                    'Admin invited you as a replacement option for a package booking. Please accept or decline the invitation.',
+                    'booking',
+                    'replacement_invitation',
+                    (int)$invitation['id']
+                );
+            }
+        }
+
+        $this->jsonResponse([
+            'success' => true,
+            'message' => 'Invitation sent to ' . (int)$result['created'] . ' supplier option(s).',
         ]);
     }
 
@@ -3580,12 +3655,15 @@ class Booking extends Controller
         if (!$this->bookingModel->performReplacementSwap($replacementId, true)) {
             $this->jsonResponse(['error' => $this->bookingModel->getReplacementSwapError()], 500);
         }
+        $alreadyAcceptedViaInvitation = $this->bookingModel->markChosenInvitationSwapAccepted($replacementId);
         if (!$this->bookingModel->markPaymentSuccess((int)$payment['id'], $adminId)) {
             $this->jsonResponse(['error' => 'Payment was already reviewed.'], 409);
         }
-        $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
+        if (!$alreadyAcceptedViaInvitation) {
+            $this->bookingModel->setSupplierResponseDeadline($bookingId, '+24 hours');
+        }
         $newSupplierUserId = $this->bookingModel->getSupplierUserId((int)($replacement['new_supplier_id'] ?? 0));
-        if ($newSupplierUserId > 0) {
+        if ($newSupplierUserId > 0 && !$alreadyAcceptedViaInvitation) {
             $this->notificationModel->notifyUser(
                 $newSupplierUserId,
                 'New Package Booking — Please Respond',
@@ -3674,7 +3752,14 @@ class Booking extends Controller
     public function adminRefundQueue(): void
     {
         $this->requireRole('admin');
-        $refunds = $this->bookingModel->getRefundQueue();
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+        $totalCount = $this->bookingModel->getRefundQueueCount();
+        $totalPages = max(1, (int)ceil($totalCount / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        $refunds = $this->bookingModel->getRefundQueue($perPage, $offset);
         $stats = $this->bookingModel->getRefundStats();
 
         // Enrich with booking refs
@@ -3686,6 +3771,10 @@ class Booking extends Controller
         $this->view('admin/refundQueue', [
             'refunds' => $refunds,
             'stats' => $stats,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalCount' => $totalCount,
+            'perPage' => $perPage,
         ]);
     }
 

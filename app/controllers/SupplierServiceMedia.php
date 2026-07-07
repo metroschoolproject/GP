@@ -21,7 +21,10 @@ class SupplierServiceMedia extends SupplierControllerSupport
         $fileUrl = $this->uploadService->storeServiceImageFromPayload($payload['img'] ?? '', (int)$supplier['supplier_id'], 'media');
 
         if ($fileUrl === '') {
-            $this->jsonResponse(['status' => 'error', 'message' => 'Please upload a valid image.'], 422);
+            $this->jsonResponse([
+                'status' => 'error',
+                'message' => 'Please upload a JPG, PNG, or WebP photo under 5 MB.',
+            ], 422);
         }
 
         $media = $this->serviceManagementModel->addServiceMedia((int)$supplier['supplier_id'], $serviceId, $fileUrl, 'image');

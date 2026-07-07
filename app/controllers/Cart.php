@@ -27,9 +27,9 @@ class Cart extends Controller
             unset($_SESSION['cart_pending']);
             $addonPackageId = (int)($pending['addon_package_id'] ?? 0);
             if ($addonPackageId > 0) {
-                $packageCartItem = $this->cartModel->findPackageCartItem($this->userId, $addonPackageId);
+                $packageCartItem = $this->ensurePackageCartItemForAddon($this->userId, $addonPackageId, $pending);
                 if (!$packageCartItem) {
-                    $_SESSION['cart_addon_error'] = 'Add the package to your cart before selecting its add-on services.';
+                    $_SESSION['cart_addon_error'] = 'We could not attach that add-on to its package.';
                     redirect('customerServices/packages');
                     return;
                 }
@@ -37,6 +37,7 @@ class Cart extends Controller
             }
             if (
                 ($pending['item_type'] ?? '') === 'service'
+                && empty($pending['package_cart_item_id'])
                 && empty($pending['confirm_included_service'])
                 && ($conflict = $this->cartModel->findCartPackageIncludingService($this->userId, (int)($pending['item_id'] ?? 0)))
             ) {
@@ -60,7 +61,7 @@ class Cart extends Controller
                 foreach ($guestItems as $gItem) {
                     $addonPackageId = (int)($gItem['addon_package_id'] ?? 0);
                     if ($addonPackageId > 0) {
-                        $packageCartItem = $this->cartModel->findPackageCartItem($this->userId, $addonPackageId);
+                        $packageCartItem = $this->ensurePackageCartItemForAddon($this->userId, $addonPackageId, $gItem);
                         if (!$packageCartItem) continue;
                         $gItem['package_cart_item_id'] = (int)$packageCartItem['cart_item_id'];
                     }
@@ -225,9 +226,9 @@ class Cart extends Controller
         }
 
         if (!empty($itemData['addon_package_id'])) {
-            $packageCartItem = $this->cartModel->findPackageCartItem($this->userId, (int)$itemData['addon_package_id']);
+            $packageCartItem = $this->ensurePackageCartItemForAddon($this->userId, (int)$itemData['addon_package_id'], $itemData);
             if (!$packageCartItem) {
-                $_SESSION['cart_addon_error'] = 'Add the package to your cart before selecting its add-on services.';
+                $_SESSION['cart_addon_error'] = 'We could not attach that add-on to its package.';
                 redirect('customerServices/packages');
                 return;
             }
@@ -235,7 +236,9 @@ class Cart extends Controller
         }
 
         if (empty($_POST['confirm_included_service'])) {
-            $conflict = $this->cartModel->findCartPackageIncludingService($this->userId, $serviceId);
+            $conflict = empty($itemData['package_cart_item_id'])
+                ? $this->cartModel->findCartPackageIncludingService($this->userId, $serviceId)
+                : false;
             if ($conflict) {
                 $_SESSION['cart_included_service_warning'] = [
                     'item' => $itemData,
@@ -307,6 +310,53 @@ class Cart extends Controller
 
         $this->cartModel->addItem($this->userId, $itemData);
         redirect('cart');
+    }
+
+    private function ensurePackageCartItemForAddon(int $userId, int $packageId, array $addonData): array|false
+    {
+        $packageCartItem = $this->cartModel->findPackageCartItem($userId, $packageId);
+        if ($packageCartItem) {
+            return $packageCartItem;
+        }
+
+        $packageModel = $this->model('PlatformPackage');
+        $package = $packageModel->getPackageById($packageId);
+        if (!$package || empty($package['is_active']) || !empty($package['deleted_at'])) {
+            return false;
+        }
+
+        $selectedDate = trim((string)($addonData['selected_date'] ?? $addonData['date'] ?? ''));
+        if ($selectedDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
+            $selectedDate = '';
+        }
+
+        $selectedTime = trim((string)($addonData['start_time'] ?? $addonData['selected_time'] ?? ''));
+        if ($selectedTime !== '' && preg_match('/^\d{2}:\d{2}$/', $selectedTime)) {
+            $selectedTime .= ':00';
+        } elseif ($selectedTime !== '' && !preg_match('/^\d{2}:\d{2}:\d{2}$/', $selectedTime)) {
+            $selectedTime = '';
+        }
+
+        $packagePrice = (float)($package['package_price'] ?? $package['base_price'] ?? 0);
+        $packageCartItemId = $this->cartModel->addItem($userId, [
+            'item_type' => 'package',
+            'item_id' => $packageId,
+            'price' => $packagePrice > 0 ? $packagePrice : null,
+            'source' => 'package',
+            'selected_date' => $selectedDate !== '' ? $selectedDate : null,
+            'start_time' => $selectedTime !== '' ? $selectedTime : null,
+        ]);
+
+        if (!$packageCartItemId) {
+            return $this->cartModel->findPackageCartItem($userId, $packageId);
+        }
+
+        return [
+            'cart_item_id' => (int)$packageCartItemId,
+            'package_id' => $packageId,
+            'package_name' => $package['name'] ?? 'Wedding package',
+            'package_slug' => $package['slug'] ?? '',
+        ];
     }
 
     /**

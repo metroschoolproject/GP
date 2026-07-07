@@ -196,7 +196,8 @@ class Payment
         int $limit = 20,
         int $offset = 0,
         string $dateFrom = '',
-        string $dateTo = ''
+        string $dateTo = '',
+        string $type = 'all'
     ): array {
         $query = "SELECT p.id,
                          p.booking_id,
@@ -215,6 +216,7 @@ class Payment
                          p.verified_note,
                          p.created_at,
                          p.type,
+                         repl.id AS replacement_id,
                          CASE
                              WHEN b.id IS NOT NULL
                              THEN CONCAT('BK-', DATE_FORMAT(b.created_at, '%Y%m%d'), '-', LPAD(b.id, 3, '0'))
@@ -229,10 +231,14 @@ class Payment
                   LEFT JOIN users supplier_user ON supplier_user.user_id = s.user_id
                   LEFT JOIN bookings b ON b.id = p.booking_id
                   LEFT JOIN users customer ON customer.user_id = b.user_id
+                  LEFT JOIN booking_supplier_replacements repl ON repl.delta_payment_id = p.id
                   WHERE 1 = 1";
 
         if ($status !== 'all') {
             $query .= ' AND p.status = :status';
+        }
+        if ($type !== 'all') {
+            $query .= ' AND p.type = :type';
         }
         if ($dateFrom !== '') {
             $query .= ' AND COALESCE(p.verified_at, p.created_at) >= :date_from';
@@ -246,6 +252,9 @@ class Payment
         $this->db->dbquery($query);
         if ($status !== 'all') {
             $this->db->dbbind(':status', $status);
+        }
+        if ($type !== 'all') {
+            $this->db->dbbind(':type', $type);
         }
         if ($dateFrom !== '') {
             $this->db->dbbind(':date_from', $dateFrom);
@@ -261,7 +270,8 @@ class Payment
     public function getAdminPaymentHistoryCount(
         string $status = 'all',
         string $dateFrom = '',
-        string $dateTo = ''
+        string $dateTo = '',
+        string $type = 'all'
     ): int {
         $query = "SELECT COUNT(*) AS total
                   FROM payments p
@@ -274,6 +284,9 @@ class Payment
         if ($status !== 'all') {
             $query .= ' AND p.status = :status';
         }
+        if ($type !== 'all') {
+            $query .= ' AND p.type = :type';
+        }
         if ($dateFrom !== '') {
             $query .= ' AND COALESCE(p.verified_at, p.created_at) >= :date_from';
         }
@@ -284,6 +297,9 @@ class Payment
         $this->db->dbquery($query);
         if ($status !== 'all') {
             $this->db->dbbind(':status', $status);
+        }
+        if ($type !== 'all') {
+            $this->db->dbbind(':type', $type);
         }
         if ($dateFrom !== '') {
             $this->db->dbbind(':date_from', $dateFrom);

@@ -32,9 +32,27 @@ class Supplier extends SupplierControllerSupport
             'submitted' => false,
             'message' => '',
         ];
+        if ($supplier) {
+            $data = array_merge($data, [
+                'business_name' => $supplier['shop_name'] ?? '',
+                'business_description' => $supplier['description'] ?? '',
+                'phone' => $supplier['owner_phone'] ?? '',
+                'business_address' => $supplier['owner_address'] ?? '',
+                'category_ids' => array_values(array_filter(array_map('intval', explode(',', (string)($supplier['category_id_csv'] ?? ''))))),
+                'business_url' => $supplier['business_url'] ?? '',
+                'cover_photo_url' => $supplier['cover_photo_url'] ?? '',
+                'business_license_url' => $supplier['business_license_url'] ?? '',
+                'agreement_accepted' => !empty($supplier['agreement_accepted']),
+            ]);
+        }
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $this->requireCsrf(false);
+            $wasRejected = strtolower((string)($supplier['status'] ?? '')) === 'rejected';
+            $existingCoverPhoto = trim((string)($supplier['cover_photo_url'] ?? '')) !== '';
+            $existingBusinessLicense = trim((string)($supplier['business_license_url'] ?? '')) !== '';
+            $hasCoverPhotoUpload = $this->uploadService->hasUploaded('cover_photo');
+            $hasBusinessLicenseUpload = $this->uploadService->hasUploaded('business_license');
             $data = [
                 'email' => trim($_POST['email'] ?? ($_SESSION['pending_register_email'] ?? '')),
                 'business_name' => trim($_POST['business_name'] ?? ''),
@@ -50,6 +68,8 @@ class Supplier extends SupplierControllerSupport
                 'agreement_accepted_at' => date('Y-m-d H:i:s'),
                 'agreement_version' => 'supplier-v1',
                 'categories' => $this->supplierProfileModel->getCategories(),
+                'cover_photo_url' => $supplier['cover_photo_url'] ?? '',
+                'business_license_url' => $supplier['business_license_url'] ?? '',
             ];
 
             if (
@@ -61,8 +81,8 @@ class Supplier extends SupplierControllerSupport
                 $data['business_url'] === '' ||
                 empty($data['category_ids']) ||
                 !$data['agreement_accepted'] ||
-                !$this->uploadService->hasUploaded('cover_photo') ||
-                !$this->uploadService->hasUploaded('business_license')
+                (!$hasCoverPhotoUpload && !$existingCoverPhoto) ||
+                (!$hasBusinessLicenseUpload && !$existingBusinessLicense)
             ) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please fill all required supplier information.';
@@ -75,10 +95,10 @@ class Supplier extends SupplierControllerSupport
             } elseif (!$this->supplierProfileModel->areValidCategories($data['category_ids'])) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please choose at least one valid business category.';
-            } elseif (!$this->uploadService->isValidCoverPhoto($_FILES['cover_photo'])) {
+            } elseif ($hasCoverPhotoUpload && !$this->uploadService->isValidCoverPhoto($_FILES['cover_photo'])) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please upload a valid cover photo under 5MB.';
-            } elseif (!$this->uploadService->isValidBusinessLicense($_FILES['business_license'])) {
+            } elseif ($hasBusinessLicenseUpload && !$this->uploadService->isValidBusinessLicense($_FILES['business_license'])) {
                 $data['submitted'] = false;
                 $data['message'] = 'Please upload a valid business license document under 5MB.';
             } else {
@@ -91,17 +111,17 @@ class Supplier extends SupplierControllerSupport
                 $_SESSION['supplier_profile'] = $data;
 
                 if ($saved) {
-                    if (!$this->saveSupplierDocumentOrRespond($saved, $data, 'cover_photo', 'cover-photo', 'cover photo', $isAjax)) {
+                    if ($hasCoverPhotoUpload && !$this->saveSupplierDocumentOrRespond($saved, $data, 'cover_photo', 'cover-photo', 'cover photo', $isAjax)) {
                         return;
                     }
 
-                    if (!$this->saveSupplierDocumentOrRespond($saved, $data, 'business_license', 'business-license', 'business license', $isAjax)) {
+                    if ($hasBusinessLicenseUpload && !$this->saveSupplierDocumentOrRespond($saved, $data, 'business_license', 'business-license', 'business license', $isAjax)) {
                         return;
                     }
 
                     $this->notificationModel->notifyAdmins(
-                        'New supplier application',
-                        $data['business_name'] . ' submitted a supplier application.',
+                        $wasRejected ? 'Supplier application resubmitted' : 'New supplier application',
+                        $data['business_name'] . ($wasRejected ? ' updated and resubmitted a supplier application.' : ' submitted a supplier application.'),
                         'approval',
                         'supplier',
                         (int)$saved['supplier_id']
@@ -428,6 +448,11 @@ class Supplier extends SupplierControllerSupport
     public function bookingRespond()
     {
         return $this->forwardTo(Booking::class, 'supplierRespond', func_get_args());
+    }
+
+    public function replacementInvitationRespond()
+    {
+        return $this->forwardTo(Booking::class, 'supplierReplacementInvitationRespond', func_get_args());
     }
 
     public function bookingCancellationRespond()

@@ -5,7 +5,6 @@ $items = $items ?? [];
 $eventDetails = $eventDetails ?? [];
 $suppliers = $suppliers ?? [];
 $logs = $logs ?? [];
-$vouchers = $vouchers ?? [];
 $bookingRef = $bookingRef ?? '';
 $depositPercent = (int)($depositPercent ?? BOOKING_DEPOSIT_PERCENT);
 $platformFeePercent = (float)($platformFeePercent ?? get_platform_fee_percent());
@@ -14,6 +13,7 @@ $existingReview = $existingReview ?? null;
 $canEditReview = $canEditReview ?? false;
 $pendingReplacement = $pendingReplacement ?? null;
 $replacementHistory = is_array($replacementHistory ?? null) ? $replacementHistory : [];
+$replacementChoices = is_array($replacementChoices ?? null) ? $replacementChoices : [];
 
 $statusLabels = ['draft'=>'Draft','pending_supplier_response'=>'Awaiting Supplier Response','pending_payment'=>'Pending Payment','payment_submitted'=>'Verifying Payment','paid'=>'Paid','pending_admin'=>'Pending Admin','confirmed'=>'Confirmed','pending_final_payment'=>'Pending Final Payment','finalized'=>'Finalized','completed'=>'Completed','cancelled'=>'Cancelled','cancellation_requested'=>'Cancellation Requested'];
 $money = fn($v) => number_format((float)$v,0) . ' MMK';
@@ -112,6 +112,13 @@ body > .gp-shared-footer{margin-top:76px}
 .gp-info-title{font-weight:800;font-size:13px;color:var(--plum);margin-bottom:2px}
 .gp-info-copy{font-size:12px;color:var(--text2);line-height:1.55}
 .gp-info-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.gp-payment-history-pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)}
+.gp-payment-page-info{font-size:11px;font-weight:700;color:var(--muted)}
+.gp-payment-page-buttons{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.gp-payment-page-btn{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 9px;border:1px solid var(--rule);border-radius:8px;background:var(--card);color:var(--text2);font-family:var(--font-b);font-size:11px;font-weight:700;cursor:pointer;transition:all .16s}
+.gp-payment-page-btn:hover:not(:disabled){border-color:var(--gold);color:var(--plum);background:#fffaf5}
+.gp-payment-page-btn.is-active{border-color:var(--plum);background:var(--plum);color:#fcf8f5}
+.gp-payment-page-btn:disabled{opacity:.38;cursor:default}
 .gp-top-notices{margin:0 0 16px}
 .gp-top-notices .gp-info-box{width:100%;margin:0 0 12px;padding:16px 20px;border:1px solid rgba(252,248,245,.10);border-radius:10px;background:#5a3147;color:#fcf8f5;box-shadow:0 16px 38px rgba(74,52,47,.18);animation:gpNoticeEnter 1.05s var(--ease-expo) both}
 .gp-top-notices .gp-info-icon{width:22px;height:22px;border-radius:7px;background:rgba(252,248,245,.10);color:#fcf8f5}
@@ -242,18 +249,6 @@ body > .gp-shared-footer{margin-top:76px}
 .gp-page .gp-order-name,
 .gp-page .gp-order-price,
 .gp-page .gp-summary-r.total{font-weight:600!important}
-
-/* ── Payment Proof Pill ── */
-.gp-proof-pill{border:1px solid var(--rule);border-radius:14px;background:var(--card);overflow:hidden}
-.gp-proof-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:14px 24px;border:0;background:transparent;font-family:var(--font-b);cursor:pointer;text-align:left;transition:background .15s}
-.gp-proof-toggle:hover{background:rgba(107,68,89,.03)}
-.gp-proof-icon{flex-shrink:0;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:rgba(184,146,74,.12);color:var(--gold)}
-.gp-proof-label{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap}
-.gp-proof-meta{font-size:12px;font-weight:500;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gp-proof-chevron{flex-shrink:0;margin-left:auto;display:grid;place-items:center;color:var(--muted);transition:transform .2s}
-.gp-proof-toggle[aria-expanded="true"] .gp-proof-chevron{transform:rotate(180deg)}
-.gp-proof-detail{padding:0 24px 20px}
-.gp-proof-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 16px}
 
 /* ── Replacement decline modal ── */
 .gp-repl-modal{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:20px;background:rgba(26,17,24,0.38);opacity:0;pointer-events:none;transition:opacity .2s ease}
@@ -505,7 +500,7 @@ body > .gp-shared-footer{margin-top:76px}
     </div>
   </section>
 
-  <?php if (!empty($replacementHistory)): ?>
+  <?php if (!empty($replacementHistory) || !empty($replacementChoices)): ?>
     <?php
     $replStatusLabels = [
         'pending_admin' => 'Finding replacement',
@@ -529,6 +524,34 @@ body > .gp-shared-footer{margin-top:76px}
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d4c5b" stroke-width="2"><path d="M16 3l5 5-5 5M21 8H8a5 5 0 0 0 0 10h1"/></svg>
         <strong style="font-size:14px;color:var(--text)">Service Replacement</strong>
       </div>
+      <?php if (!empty($replacementChoices)): ?>
+        <div style="padding:16px 18px;border-bottom:1px solid var(--rule);background:rgba(107,68,89,.035)">
+          <div style="font-size:12px;font-weight:700;color:var(--plum);margin-bottom:10px">Accepted suppliers available</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+            <?php foreach ($replacementChoices as $choice):
+              $delta = (float)($choice['price_delta'] ?? 0);
+            ?>
+              <form method="POST" action="<?= URLROOT ?>/booking/chooseReplacementSupplier" style="display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid rgba(178,143,110,.24);border-radius:12px;background:rgba(255,251,247,.9)">
+                <input type="hidden" name="csrf_token" value="<?= $h(csrf_token()) ?>">
+                <input type="hidden" name="invitation_id" value="<?= (int)$choice['id'] ?>">
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:#1f2937"><?= $h($choice['shop_name'] ?? 'Supplier') ?></div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:2px"><?= $h($choice['service_name'] ?? 'Replacement service') ?><?= !empty($choice['category_name']) ? ' · ' . $h($choice['category_name']) : '' ?></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--text2)">
+                  <span><?= $money($choice['price'] ?? 0) ?></span>
+                  <span style="font-weight:700;color:<?= $delta > 0 ? '#991b1b' : '#065F46' ?>">
+                    <?= $delta > 0 ? '+' . $money($delta) : 'No extra cost' ?>
+                  </span>
+                </div>
+                <button type="submit" style="height:34px;border:0;border-radius:10px;background:var(--plum);color:#fff;font-family:var(--font-b);font-size:12px;font-weight:700;cursor:pointer">
+                  <?= $delta > 0 ? 'Choose & Pay Difference' : 'Choose Supplier' ?>
+                </button>
+              </form>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
       <div style="padding:0 18px">
       <?php foreach ($replacementHistory as $idx => $repl):
         $isLast = $idx === count($replacementHistory) - 1;
@@ -615,53 +638,6 @@ body > .gp-shared-footer{margin-top:76px}
   <div class="gp-head">
     <h1>Booking <?= $h($bookingRef) ?></h1>
   </div>
-
-  <?php if ($currentStatus === 'payment_submitted'): ?>
-  <?php
-    $proofBank = !empty($depositPayment['bank_name']) ? $depositPayment['bank_name'] : '';
-    $proofRef = !empty($depositPayment['transaction_ref']) ? $depositPayment['transaction_ref'] : '';
-    $proofAmount = !empty($depositPayment['paid_amount']) ? number_format((float)$depositPayment['paid_amount'], 0) . ' MMK' : '';
-    $proofDate = !empty($depositPayment['paid_at']) ? date('M j', strtotime($depositPayment['paid_at'])) : '';
-    $proofMetaParts = array_filter([$proofBank, $proofAmount, $proofDate]);
-    $proofMeta = !empty($proofMetaParts) ? implode(' · ', $proofMetaParts) : '';
-  ?>
-  <div class="gp-proof-pill" id="paymentProofPill" style="margin-bottom:24px;">
-    <button class="gp-proof-toggle" type="button" onclick="toggleProofDetails()" aria-expanded="false">
-      <span class="gp-proof-icon" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      </span>
-      <span class="gp-proof-label">Payment under review</span>
-      <?php if ($proofMeta !== ''): ?>
-      <span class="gp-proof-meta"><?= $h($proofMeta) ?></span>
-      <?php endif; ?>
-      <span class="gp-proof-chevron" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </span>
-    </button>
-    <?php if (!empty($depositPayment)): ?>
-    <div class="gp-proof-detail" id="proofDetail" style="display:none;">
-      <div class="gp-proof-detail-grid">
-        <?php if (!empty($depositPayment['paid_at'])): ?>
-        <div><div class="gp-field-l">Transfer Date</div><div class="gp-field-v"><?= $h(date('d M Y, g:i A', strtotime($depositPayment['paid_at']))) ?></div></div>
-        <?php endif; ?>
-        <?php if (!empty($depositPayment['bank_name'])): ?>
-        <div><div class="gp-field-l">Bank / Method</div><div class="gp-field-v"><?= $h($depositPayment['bank_name']) ?></div></div>
-        <?php endif; ?>
-        <?php if (!empty($depositPayment['transaction_ref'])): ?>
-        <div><div class="gp-field-l">Reference</div><div class="gp-field-v" style="font-family:monospace;"><?= $h($depositPayment['transaction_ref']) ?></div></div>
-        <?php endif; ?>
-        <?php if (!empty($depositPayment['paid_amount'])): ?>
-        <div><div class="gp-field-l">Amount Sent</div><div class="gp-field-v"><?= number_format((float)$depositPayment['paid_amount'], 0) ?> MMK</div></div>
-        <?php endif; ?>
-        <?php if ((float)($depositPayment['platform_fee'] ?? 0) > 0): ?>
-        <div><div class="gp-field-l">Platform Fee (<?= rtrim(rtrim(number_format($platformFeePercent, 2), '0'), '.') ?>%)</div><div class="gp-field-v"><?= number_format((float)$depositPayment['platform_fee'], 0) ?> MMK</div></div>
-        <?php endif; ?>
-      </div>
-      <div class="gp-info-copy" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--rule);">Our team is reviewing your transfer. No action needed from you right now.</div>
-    </div>
-    <?php endif; ?>
-  </div>
-  <?php endif; ?>
 
   <?php
     // Remaining balance state — available after the booking itself is confirmed.
@@ -897,8 +873,9 @@ body > .gp-shared-footer{margin-top:76px}
           <?php if (!empty($remainingPaymentsList)): ?>
           <div style="padding-top:8px;">
             <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Payment History</div>
+            <div data-payment-history-list data-page-size="5">
             <?php foreach ($remainingPaymentsList as $rp): ?>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px;">
+            <div data-payment-history-item style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12px;">
               <div>
                 <span style="font-weight:600;"><?= date('M d, Y', strtotime($rp['created_at'])) ?></span>
                 <?php if (($rp['bank_name'] ?? '') !== ''): ?>
@@ -920,6 +897,11 @@ body > .gp-shared-footer{margin-top:76px}
               </div>
             </div>
             <?php endforeach; ?>
+            </div>
+            <div class="gp-payment-history-pager" data-payment-history-pager hidden>
+              <div class="gp-payment-page-info" data-payment-page-info></div>
+              <div class="gp-payment-page-buttons" data-payment-page-buttons></div>
+            </div>
           </div>
           <?php endif; ?>
           </div>
@@ -927,31 +909,6 @@ body > .gp-shared-footer{margin-top:76px}
       </div>
       <?php endif; ?>
 
-	      <?php if (!empty($vouchers)): ?>
-	      <div class="gp-card">
-	        <div class="gp-card-h">Vouchers</div>
-	        <div class="gp-card-b" style="gap:8px;">
-	          <?php foreach ($vouchers as $vc): ?>
-	          <?php
-	            $vcStatus = (string)($vc['status'] ?? 'active');
-	            $vcDate = !empty($vc['event_date']) ? date('d M Y', strtotime($vc['event_date'])) : '';
-	          ?>
-	          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);font-size:12px;">
-	            <span style="min-width:0;">
-	              <span style="display:block;font-weight:700;overflow-wrap:anywhere;"><?=$h($vc['service_name'] ?? 'Service')?></span>
-	              <span style="display:block;color:var(--muted);font-size:11px;overflow-wrap:anywhere;">
-	                <?=$h($vc['supplier_name'] ?? 'Golden Promise')?><?=$vcDate ? ' · ' . $h($vcDate) : ''?>
-	              </span>
-	            </span>
-	            <span style="text-align:right;">
-	              <span style="display:block;font-family:monospace;font-size:11px;color:var(--muted);"><?=$h($vc['voucher_number'] ?? '')?></span>
-	              <span style="display:inline-flex;margin-top:3px;padding:2px 7px;border-radius:999px;background:<?= $vcStatus === 'active' ? '#ecfdf5' : ($vcStatus === 'used' ? '#f3f4f6' : '#fef2f2') ?>;color:<?= $vcStatus === 'active' ? '#166534' : ($vcStatus === 'used' ? '#4b5563' : '#991b1b') ?>;font-size:10px;font-weight:800;text-transform:uppercase;"><?=$h($vcStatus)?></span>
-	            </span>
-	          </div>
-	          <?php endforeach; ?>
-	        </div>
-	      </div>
-      <?php endif; ?>
     </div>
   </div>
 
@@ -1041,10 +998,6 @@ body > .gp-shared-footer{margin-top:76px}
   <?php endif; ?>
 
   <div class="gp-bottom-actions">
-    <?php if (!empty($vouchers)): ?>
-    <a class="gp-btn-sm" href="<?=URLROOT?>/booking/vouchers">View All Vouchers</a>
-    <?php endif; ?>
-
     <!-- Refund Status (shown when booking is cancelled and refund exists) -->
     <?php
       $refund = $refund ?? null;
@@ -1144,8 +1097,6 @@ body > .gp-shared-footer{margin-top:76px}
 
 <script>
 document.addEventListener('click',(e)=>{const btn=e.target.closest('.gp-profile-btn');if(btn){const x=btn.getAttribute('aria-expanded')==='true';document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'));btn.setAttribute('aria-expanded',String(!x));return}document.querySelectorAll('.gp-profile-btn').forEach(b=>b.setAttribute('aria-expanded','false'))});
-
-function toggleProofDetails(){const btn=document.querySelector('.gp-proof-toggle');const detail=document.getElementById('proofDetail');if(!btn||!detail)return;const open=btn.getAttribute('aria-expanded')==='true';btn.setAttribute('aria-expanded',open?'false':'true');detail.style.display=open?'none':'block';}
 
 document.querySelectorAll('[data-service-select]').forEach((button) => {
   button.addEventListener('click', () => {
@@ -1250,6 +1201,57 @@ function submitEditReview(reviewId) {
 
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && modal?.classList.contains('is-open')) closeModal();
+  });
+})();
+
+/* ── Payment history pagination ── */
+(function(){
+  document.querySelectorAll('[data-payment-history-list]').forEach(function(list) {
+    const items = Array.from(list.querySelectorAll('[data-payment-history-item]'));
+    const pageSize = Math.max(1, parseInt(list.dataset.pageSize || '5', 10));
+    const pager = list.parentElement?.querySelector('[data-payment-history-pager]');
+    const info = pager?.querySelector('[data-payment-page-info]');
+    const buttons = pager?.querySelector('[data-payment-page-buttons]');
+    const totalPages = Math.ceil(items.length / pageSize);
+    let currentPage = 1;
+
+    if (!pager || !info || !buttons || totalPages <= 1) return;
+    pager.hidden = false;
+
+    function render() {
+      currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+      const start = (currentPage - 1) * pageSize;
+      const end = Math.min(start + pageSize, items.length);
+
+      items.forEach(function(item, index) {
+        item.style.display = index >= start && index < end ? 'flex' : 'none';
+      });
+
+      info.textContent = 'Showing ' + (start + 1) + '-' + end + ' of ' + items.length;
+      buttons.innerHTML = '';
+
+      const makeButton = function(label, page, options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'gp-payment-page-btn' + (options?.active ? ' is-active' : '');
+        button.textContent = label;
+        button.disabled = !!options?.disabled;
+        if (options?.active) button.setAttribute('aria-current', 'page');
+        button.addEventListener('click', function() {
+          currentPage = page;
+          render();
+        });
+        buttons.appendChild(button);
+      };
+
+      makeButton('Prev', currentPage - 1, {disabled: currentPage === 1});
+      for (let page = 1; page <= totalPages; page++) {
+        makeButton(String(page), page, {active: page === currentPage});
+      }
+      makeButton('Next', currentPage + 1, {disabled: currentPage === totalPages});
+    }
+
+    render();
   });
 })();
 </script>

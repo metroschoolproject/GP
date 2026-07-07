@@ -777,6 +777,13 @@ class Admin extends Controller
         return call_user_func_array([$bookingController, 'adminAssignReplacement'], func_get_args());
     }
 
+    public function inviteReplacementSuppliers()
+    {
+        $this->requireCsrf();
+        $bookingController = new Booking();
+        return call_user_func_array([$bookingController, 'adminInviteReplacementSuppliers'], func_get_args());
+    }
+
     public function verifyReplacementPayment()
     {
         $this->requireCsrf();
@@ -820,6 +827,10 @@ class Admin extends Controller
 
         if ($referenceType === 'booking' && $referenceId > 0) {
             redirect('admin/bookingDetail/' . $referenceId);
+        }
+
+        if ($referenceType === 'replacement' && $referenceId > 0) {
+            redirect('admin/replacementPicker/' . $referenceId);
         }
 
         if ($referenceType === 'payment' && $referenceId > 0) {
@@ -1316,24 +1327,48 @@ class Admin extends Controller
 
         $dateFrom = trim($_GET['date_from'] ?? '');
         $dateTo   = trim($_GET['date_to'] ?? '');
+        $today = date('Y-m-d');
+        $normalizeFutureDate = static function (string $date) use ($today): string {
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                return '';
+            }
 
-        // Default to last 30 days if no dates provided
+            return $date < $today ? $today : $date;
+        };
+        $dateFrom = $normalizeFutureDate($dateFrom);
+        $dateTo = $normalizeFutureDate($dateTo);
+        $paymentType = trim((string)($_GET['type'] ?? 'all'));
+        $allowedPaymentTypes = ['all', 'deposit', 'remaining', 'full', 'replacement_delta', 'supplier_fee', 'payout'];
+        if (!in_array($paymentType, $allowedPaymentTypes, true)) {
+            $paymentType = 'all';
+        }
+
+        // Payment date filters are future-only in this admin view.
         if ($dateFrom === '' && $dateTo === '') {
-            $dateFrom = date('Y-m-d', strtotime('-30 days'));
-            $dateTo   = date('Y-m-d');
+            $dateFrom = $today;
+            $dateTo   = $today;
+        } elseif ($dateFrom === '') {
+            $dateFrom = $today;
+        } elseif ($dateTo === '') {
+            $dateTo = $dateFrom;
+        }
+
+        if ($dateTo < $dateFrom) {
+            $dateTo = $dateFrom;
         }
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
 
-        $totalCount = $this->paymentModel->getAdminPaymentHistoryCount($status, $dateFrom, $dateTo);
+        $totalCount = $this->paymentModel->getAdminPaymentHistoryCount($status, $dateFrom, $dateTo, $paymentType);
 
         $this->view('admin/payments', [
-            'payments' => $this->paymentModel->getAdminPaymentHistory($status, $perPage, $offset, $dateFrom, $dateTo),
+            'payments' => $this->paymentModel->getAdminPaymentHistory($status, $perPage, $offset, $dateFrom, $dateTo, $paymentType),
             'status' => $status,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
+            'paymentTypeFilter' => $paymentType,
             'selectedPaymentId' => isset($_GET['payment']) ? (int)$_GET['payment'] : null,
             'message' => $_SESSION['admin_flash'] ?? '',
             'currentPage' => $page,
@@ -3338,6 +3373,7 @@ class Admin extends Controller
         $notifs = $db->getmultidata();
         $notifUrlMap = [
             'booking' => URLROOT . '/admin/bookingDetail/',
+            'replacement' => URLROOT . '/admin/replacementPicker/',
             'supplier' => URLROOT . '/admin/supplier/',
             'service' => URLROOT . '/admin/service/',
         ];

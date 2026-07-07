@@ -2699,7 +2699,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
               </div>
               <div>
                 <h3>Free Cancellation</h3>
-                <p>You can cancel within 48 hours under the booking policy.</p>
+                <p>You can cancel within 7 days of the booking date under the booking policy.</p>
               </div>
             </article>
           </div>

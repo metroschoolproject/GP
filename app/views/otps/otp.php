@@ -372,6 +372,16 @@
         const otpInstruction = document.querySelector("#otpInstruction");
         let otpHasBeenSent = false;
 
+        function setOtpMessage(message, type = 'error') {
+            const atm_time = document.querySelector('.atm_time');
+            if (!atm_time) return;
+            atm_time.textContent = message || "";
+            atm_time.classList.remove('success-message', 'error-message');
+            if (type) {
+                atm_time.classList.add(type === 'success' ? 'success-message' : 'error-message');
+            }
+        }
+
         function parseJsonResponse(response) {
             return response.text().then(text => {
                 const body = text.trim();
@@ -400,9 +410,7 @@
         }
 
         resentotp.addEventListener('click', () => {
-            const atm_time = document.querySelector('.atm_time');
-            atm_time.innerHTML = "";
-            atm_time.className = 'error-message';
+            setOtpMessage("", null);
             resentotp.disabled = true;
             resendBtnText.textContent = "Sending OTP...";
 
@@ -422,18 +430,17 @@
                 if (data.status == true) {
                     otpHasBeenSent = true;
                     otpInstruction.textContent = "Enter the one-time password sent to your registered email.";
-                    atm_time.className = 'success-message';
-                    atm_time.innerHTML = "OTP code sent. Please check your email.";
+                    setOtpMessage("OTP code sent. Please check your email.", 'success');
                     inputs.forEach(input => input.value = "");
                     inputs[0].focus();
                     setTimer();
                     return;
                 }
-                atm_time.innerHTML = data.message || "Could not send OTP code. Please try again.";
+                setOtpMessage(data.message || "Could not send OTP code. Please try again.");
             })
             .catch(err => {
                 console.error("Error sending OTP:", err);
-                atm_time.innerHTML = err.message || "Could not send OTP code. Please try again.";
+                setOtpMessage(err.message || "Could not send OTP code. Please try again.");
             })
             .finally(() => {
                 resentotp.disabled = false;

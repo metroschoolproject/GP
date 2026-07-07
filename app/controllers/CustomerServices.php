@@ -77,6 +77,8 @@ class CustomerServices extends Controller
                         'package_id' => (int)$addonPackage['package_id'],
                         'package_name' => $addonPackage['name'] ?? 'Wedding package',
                         'package_slug' => $addonPackage['slug'] ?? '',
+                        'selected_date' => $selectedDate,
+                        'selected_time' => $this->validTime($_GET['time'] ?? '') ?: '',
                     ];
                 }
             }
@@ -120,6 +122,42 @@ class CustomerServices extends Controller
             'cartCount' => $cartCount,
             'recentlyViewedServices' => $recentlyViewedServices,
         ]);
+    }
+
+    public function liveSearch()
+    {
+        header('Content-Type: application/json');
+
+        $query = trim((string)($_GET['q'] ?? ''));
+        if (strlen($query) < 2) {
+            echo json_encode(['ok' => true, 'query' => $query, 'results' => []]);
+            return;
+        }
+
+        $filters = $this->filtersFromRequest();
+        $filters['search'] = $query;
+        $filters['limit'] = 8;
+
+        $catalogModel = $this->model('CustomerServiceCatalog');
+        $services = $catalogModel->getServices($filters);
+        $results = array_map(function ($service) {
+            $price = (float)($service['display_price'] ?? $service['customize_price'] ?? $service['price_max'] ?? $service['price'] ?? 0);
+
+            return [
+                'id' => (int)($service['id'] ?? 0),
+                'name' => (string)($service['name'] ?? 'Service'),
+                'supplier' => (string)($service['supplier_name'] ?? 'Supplier'),
+                'category' => (string)($service['category'] ?? ''),
+                'price' => $price > 0 ? 'MMK ' . number_format($price, 0) : '',
+                'url' => URLROOT . '/customerServices/detail/' . (int)($service['id'] ?? 0),
+            ];
+        }, $services);
+
+        echo json_encode([
+            'ok' => true,
+            'query' => $query,
+            'results' => $results,
+        ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
     }
 
     /**

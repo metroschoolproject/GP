@@ -54,6 +54,9 @@ foreach (preg_split('/\s+/', $customerDisplayName) as $part) {
     if (strlen($customerInitials) >= 2) break;
 }
 $customerInitials = $customerInitials !== '' ? strtoupper($customerInitials) : 'Y';
+$hasPackageItems = !empty(array_filter($items, static fn($item) => ($item['item_type'] ?? '') === 'package' && empty($item['package_cart_item_id'])));
+$hasCustomItems = !empty(array_filter($items, static fn($item) => ($item['item_type'] ?? '') !== 'package'));
+$refundPolicyRequired = $hasPackageItems || $hasCustomItems;
 
 $defaultDate = '';
 $defaultStartTime = '';
@@ -1752,25 +1755,122 @@ input[data-suggested-filled="true"] {
   animation: spin 0.6s linear infinite;
 }
 
-/* Toast */
-.gp-toast {
+/* Refund policy agreement modal */
+.gp-policy-modal {
   position: fixed;
-  top: 20px; right: 20px;
-  z-index: 999;
-  padding: 14px 20px;
-  border-radius: var(--r-md);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.10);
-  font-size: 13px;
-  font-weight: 500;
-  max-width: 380px;
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: all 0.35s var(--ease);
-  pointer-events: none;
+  inset: 0;
+  z-index: 1100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(44,31,40,0.46);
+  backdrop-filter: blur(6px);
 }
-.gp-toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-.gp-toast.error { background: #fef2f2; border: 1px solid #fecaca; color: var(--danger); }
-.gp-toast.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.gp-policy-modal.show { display: flex; }
+.gp-policy-card {
+  width: min(560px, 100%);
+  max-height: min(680px, calc(100vh - 48px));
+  overflow: auto;
+  border: 1px solid rgba(140,95,114,0.18);
+  border-radius: 16px;
+  background: #fcf8f5;
+  box-shadow: 0 26px 70px rgba(44,31,40,0.28);
+}
+.gp-policy-head {
+  padding: 22px 24px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.gp-policy-kicker {
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.gp-policy-title {
+  margin: 6px 0 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.05;
+}
+.gp-policy-body {
+  display: grid;
+  gap: 12px;
+  padding: 18px 24px;
+  color: var(--ink2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.gp-policy-rule {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 11px;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.52);
+}
+.gp-policy-rule strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.gp-policy-rule span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--mauve-xs);
+  color: var(--mauve-dk);
+  font-size: 12px;
+  font-weight: 800;
+}
+.gp-policy-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 13px;
+  border: 1px solid rgba(122,156,130,0.24);
+  border-radius: 12px;
+  background: rgba(122,156,130,0.08);
+  color: var(--ink2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gp-policy-check input {
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  accent-color: var(--mauve-dk);
+  flex-shrink: 0;
+}
+.gp-policy-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid var(--rule);
+}
+.gp-policy-btn {
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--rule-md);
+  padding: 0 16px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.gp-policy-btn.secondary { background: transparent; color: var(--ink2); }
+.gp-policy-btn.primary { border-color: var(--mauve-dk); background: var(--mauve-dk); color: #fcf8f5; }
+.gp-policy-btn.primary:disabled { opacity: .48; cursor: not-allowed; }
 
 /* Footer */
 .gp-footer {
@@ -2013,6 +2113,7 @@ input[type="date"]:invalid {
 
   <form id="booking-form" method="POST" action="<?= URLROOT ?>/booking/createPost" novalidate>
     <?= csrf_field() ?>
+    <input type="hidden" name="refund_policy_agreed" id="refund-policy-agreed" value="0">
     <div class="gp-layout">
 
       <!-- LEFT: item cards -->
@@ -2592,10 +2693,51 @@ input[type="date"]:invalid {
   <span>Golden Promise Sdn. Bhd.</span>
 </footer>
 
-<div class="gp-toast" id="gp-toast" role="alert"></div>
+<?php if ($refundPolicyRequired): ?>
+<div class="gp-policy-modal" id="refund-policy-modal" role="dialog" aria-modal="true" aria-labelledby="refund-policy-title" aria-hidden="true">
+  <div class="gp-policy-card">
+    <div class="gp-policy-head">
+      <div class="gp-policy-kicker">Booking agreement</div>
+      <h2 class="gp-policy-title" id="refund-policy-title">Refund Policy</h2>
+    </div>
+    <div class="gp-policy-body">
+      <div class="gp-policy-rule">
+        <span>1</span>
+        <div>
+          <strong>Refund is available within 7 days from booking date.</strong>
+          Customers can receive a refund when cancellation is requested within 7 days after creating the booking.
+        </div>
+      </div>
+      <div class="gp-policy-rule">
+        <span>2</span>
+        <div>
+          <strong>No refund after 7 days from booking date.</strong>
+          After the 7-day window has passed, customer cancellation is not eligible for a refund.
+        </div>
+      </div>
+      <div class="gp-policy-rule">
+        <span>3</span>
+        <div>
+          <strong>Supplier or admin cancellation is reviewed separately.</strong>
+          If a supplier cannot provide the service, Golden Promise will help arrange a replacement or review the refund case.
+        </div>
+      </div>
+      <label class="gp-policy-check" for="refund-policy-check">
+        <input type="checkbox" id="refund-policy-check">
+        <span>I have read and agree to the booking refund policy.</span>
+      </label>
+    </div>
+    <div class="gp-policy-actions">
+      <button type="button" class="gp-policy-btn secondary" id="refund-policy-cancel">Review booking</button>
+      <button type="button" class="gp-policy-btn primary" id="refund-policy-accept" disabled>Agree &amp; continue</button>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 <div class="gp-calendar-popover" id="gpCalendarPopover" hidden></div>
 
 <script>
+const refundPolicyRequired = <?= $refundPolicyRequired ? 'true' : 'false' ?>;
 const packageScheduleState = new Map();
 
 (function () {
@@ -2943,12 +3085,8 @@ const packageScheduleState = new Map();
     });
   });
 
-  /* ─── Toast ───────────────────────────────── */
-  const toast = document.getElementById('gp-toast');
   function showToast(msg, type) {
-    toast.textContent = msg;
-    toast.className = 'gp-toast ' + type + ' show';
-    setTimeout(() => toast.classList.remove('show'), 5000);
+    showBookingReminder([msg], type === 'success' ? 'Success' : 'Please complete the following:');
   }
 
   /* ─── Form submission ─────────────────────── */
@@ -3328,6 +3466,72 @@ const packageScheduleState = new Map();
     }
   }
 
+  const refundPolicyModal = document.getElementById('refund-policy-modal');
+  const refundPolicyInput = document.getElementById('refund-policy-agreed');
+  const refundPolicyCheck = document.getElementById('refund-policy-check');
+  const refundPolicyAccept = document.getElementById('refund-policy-accept');
+  const refundPolicyCancel = document.getElementById('refund-policy-cancel');
+  let refundPolicyAccepted = false;
+  let refundPolicyResolver = null;
+
+  function closeRefundPolicyModal(result) {
+    if (!refundPolicyModal) return;
+    refundPolicyModal.classList.remove('show');
+    refundPolicyModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    if (refundPolicyResolver) {
+      refundPolicyResolver(result);
+      refundPolicyResolver = null;
+    }
+  }
+
+  function requestRefundPolicyAgreement() {
+    if (!refundPolicyRequired || refundPolicyAccepted) {
+      if (refundPolicyInput) refundPolicyInput.value = '1';
+      return Promise.resolve(true);
+    }
+    if (!refundPolicyModal) return Promise.resolve(true);
+
+    refundPolicyModal.classList.add('show');
+    refundPolicyModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    if (refundPolicyCheck) refundPolicyCheck.focus();
+
+    return new Promise(resolve => {
+      refundPolicyResolver = resolve;
+    });
+  }
+
+  refundPolicyCheck?.addEventListener('change', () => {
+    if (refundPolicyAccept) refundPolicyAccept.disabled = !refundPolicyCheck.checked;
+  });
+
+  refundPolicyAccept?.addEventListener('click', () => {
+    if (!refundPolicyCheck?.checked) return;
+    refundPolicyAccepted = true;
+    if (refundPolicyInput) refundPolicyInput.value = '1';
+    closeRefundPolicyModal(true);
+  });
+
+  refundPolicyCancel?.addEventListener('click', () => {
+    if (refundPolicyInput) refundPolicyInput.value = '0';
+    closeRefundPolicyModal(false);
+  });
+
+  refundPolicyModal?.addEventListener('click', event => {
+    if (event.target === refundPolicyModal) {
+      if (refundPolicyInput) refundPolicyInput.value = '0';
+      closeRefundPolicyModal(false);
+    }
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && refundPolicyModal?.classList.contains('show')) {
+      if (refundPolicyInput) refundPolicyInput.value = '0';
+      closeRefundPolicyModal(false);
+    }
+  });
+
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     submitBtn.disabled = true;
@@ -3338,6 +3542,14 @@ const packageScheduleState = new Map();
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalSubmitHtml;
     if (!validateRequiredBookingInfo()) return;
+
+    const agreedToPolicy = await requestRefundPolicyAgreement();
+    if (!agreedToPolicy) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalSubmitHtml;
+      showToast('Please agree to the refund policy before continuing to payment.', 'error');
+      return;
+    }
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="gp-spinner"></span> Creating booking…';
@@ -3356,6 +3568,12 @@ const packageScheduleState = new Map();
           const first = data.unavailable[0];
           const svcName = first.service_name || 'A package service';
           showToast(svcName + ': ' + (first.message || 'not available'), 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalSubmitHtml;
+        } else if (data.agreement_required) {
+          refundPolicyAccepted = false;
+          if (refundPolicyInput) refundPolicyInput.value = '0';
+          requestRefundPolicyAgreement();
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalSubmitHtml;
         } else {

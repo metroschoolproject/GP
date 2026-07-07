@@ -1,6 +1,11 @@
 const serviceDetailConfig = window.serviceDetailConfig || { urls: {}, servicePayloadBase: {} };
 const urls = serviceDetailConfig.urls;
 const mediaLimits = Object.assign({ min: 4, max: 10, count: 0 }, serviceDetailConfig.media || {});
+const portfolioUploadRules = {
+  maxBytes: 5 * 1024 * 1024,
+  allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+  allowedExtensions: ['jpg', 'jpeg', 'png', 'webp']
+};
 
 // ── CUSTOM CONFIRM MODAL ──────────────────────────────────────
 let sdConfirmResolve = null;
@@ -92,17 +97,40 @@ function currentServiceMinLeadDays() {
   return Math.max(0, Math.min(365, parseInt(element?.value || '0', 10) || 0));
 }
 
+function friendlyConnectionError() {
+  return new Error('We could not connect to the server. Please check your internet connection and try again.');
+}
+
 async function jsonPost(url, payload = {}) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest'
-    },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json();
+  let response;
+
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (error) {
+    throw friendlyConnectionError();
+  }
+
+  const responseText = await response.text();
+  let data = {};
+
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (error) {
+    if (response.status === 413) {
+      throw new Error('This photo is too large. Please choose a JPG, PNG, or WebP image under 5 MB.');
+    }
+
+    throw new Error('The upload could not be completed. Please choose a smaller JPG, PNG, or WebP photo and try again.');
+  }
+
   if (!response.ok || data.status === 'error') {
     throw new Error(data.message || 'Request failed.');
   }
@@ -110,13 +138,28 @@ async function jsonPost(url, payload = {}) {
 }
 
 async function jsonGet(url) {
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  });
-  const data = await response.json();
+  let response;
+
+  try {
+    response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
+  } catch (error) {
+    throw friendlyConnectionError();
+  }
+
+  const responseText = await response.text();
+  let data = {};
+
+  try {
+    data = responseText ? JSON.parse(responseText) : {};
+  } catch (error) {
+    throw new Error('The server response could not be read. Please refresh the page and try again.');
+  }
+
   if (!response.ok || data.status === 'error') {
     throw new Error(data.message || 'Request failed.');
   }
@@ -226,6 +269,24 @@ function fileToDataUrl(file) {
   });
 }
 
+function validatePortfolioPhoto(file) {
+  if (!file) return '';
+
+  const extension = String(file.name || '').split('.').pop().toLowerCase();
+  const hasAllowedType = portfolioUploadRules.allowedTypes.includes(file.type);
+  const hasAllowedExtension = portfolioUploadRules.allowedExtensions.includes(extension);
+
+  if (!hasAllowedType && !hasAllowedExtension) {
+    return 'Please upload a JPG, PNG, or WebP photo.';
+  }
+
+  if (file.size > portfolioUploadRules.maxBytes) {
+    return 'This photo is too large. Please choose an image under 5 MB.';
+  }
+
+  return '';
+}
+
 function appendMedia(media) {
   const grid = document.getElementById('mediaGrid');
   const addButton = grid?.querySelector('.sd-gallery-add');
@@ -281,6 +342,12 @@ async function uploadServiceMedia(file) {
 
   if (currentMediaCount() >= mediaLimits.max) {
     showMessage('mediaMessage', `You can upload a maximum of ${mediaLimits.max} portfolio photos.`);
+    return;
+  }
+
+  const validationMessage = validatePortfolioPhoto(file);
+  if (validationMessage) {
+    showMessage('mediaMessage', validationMessage);
     return;
   }
 

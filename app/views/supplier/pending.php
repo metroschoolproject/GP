@@ -1,9 +1,15 @@
 <?php
 $supplierName = htmlspecialchars($supplier['shop_name'] ?? 'Your supplier account', ENT_QUOTES, 'UTF-8');
-$supplierStatus = htmlspecialchars(ucfirst($supplier['status'] ?? 'pending'), ENT_QUOTES, 'UTF-8');
+$rawSupplierStatus = strtolower((string)($supplier['status'] ?? 'pending'));
+$isRejected = $rawSupplierStatus === 'rejected';
+$supplierStatus = htmlspecialchars(ucfirst($rawSupplierStatus), ENT_QUOTES, 'UTF-8');
 $serviceName = htmlspecialchars($supplier['service_name'] ?? 'Service information', ENT_QUOTES, 'UTF-8');
 $emailAddress = htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8');
 $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($supplier['created_at'])) : 'Recently';
+$pageTitle = $isRejected ? 'Application needs updates' : 'Review in progress';
+$pageCopy = $isRejected
+    ? 'Your supplier application was not approved yet. Please update your onboarding information and submit again for admin review.'
+    : 'Thanks for submitting your application. Our admin team is reviewing your supplier profile — we\'ll notify you by email once it\'s approved.';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -67,6 +73,17 @@ $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($sup
             border: 2px solid transparent;
             border-top-color: var(--accent);
             animation: spin-ring 1.4s linear infinite;
+        }
+
+        .review-spinner.is-rejected::before {
+            border-top-color: #b94b4b;
+            animation: none;
+        }
+
+        .review-spinner.is-rejected::after {
+            background: #b94b4b;
+            opacity: 0.24;
+            animation: none;
         }
 
         .review-spinner::after {
@@ -167,6 +184,17 @@ $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($sup
             flex-shrink: 0;
         }
 
+        .review-badge.is-rejected {
+            background: #fef2f2;
+            color: #9f1239;
+            border-color: #fecdd3;
+        }
+
+        .review-badge.is-rejected .badge-dot {
+            background: #e11d48;
+            animation: none;
+        }
+
         .badge-dot {
             width: 6px;
             height: 6px;
@@ -239,6 +267,12 @@ $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($sup
             color: var(--muted);
         }
 
+        .timeline-dot.rejected {
+            background: #fef2f2;
+            border: 2px solid #fecdd3;
+            color: #9f1239;
+        }
+
         @keyframes pulse-border {
             0%, 100% { box-shadow: 0 0 0 0 rgba(109, 76, 91, 0.15); }
             50% { box-shadow: 0 0 0 6px rgba(109, 76, 91, 0); }
@@ -276,6 +310,12 @@ $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($sup
             font-size: 0.8125rem;
             color: var(--info-text);
             line-height: 1.5;
+        }
+
+        .review-tip.is-rejected {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            color: #9a3412;
         }
 
         .review-tip-icon {
@@ -359,12 +399,12 @@ $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($sup
     <main>
         <section class="review-card">
             <!-- Animated spinner -->
-            <div class="review-spinner" aria-hidden="true"></div>
+            <div class="review-spinner <?= $isRejected ? 'is-rejected' : '' ?>" aria-hidden="true"></div>
 
             <!-- Header -->
-            <h1 class="review-title">Review in progress</h1>
+            <h1 class="review-title"><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></h1>
             <p class="review-copy">
-                Thanks for submitting your application. Our admin team is reviewing your supplier profile — we'll notify you by email once it's approved.
+                <?= htmlspecialchars($pageCopy, ENT_QUOTES, 'UTF-8') ?>
             </p>
 
             <!-- Status summary -->
@@ -373,7 +413,7 @@ $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($sup
                     <p class="review-summary-name"><?= $supplierName ?></p>
                     <p class="review-summary-service"><?= $serviceName ?></p>
                 </div>
-                <span class="review-badge">
+                <span class="review-badge <?= $isRejected ? 'is-rejected' : '' ?>">
                     <span class="badge-dot"></span>
                     <?= $supplierStatus ?>
                 </span>
@@ -389,10 +429,10 @@ $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($sup
                     </div>
                 </div>
                 <div class="timeline-step">
-                    <span class="timeline-dot active" aria-label="In progress">2</span>
+                    <span class="timeline-dot <?= $isRejected ? 'rejected' : 'active' ?>" aria-label="<?= $isRejected ? 'Rejected' : 'In progress' ?>"><?= $isRejected ? '!' : '2' ?></span>
                     <div class="timeline-content">
                         <p class="timeline-label">Admin review</p>
-                        <p class="timeline-date">In progress</p>
+                        <p class="timeline-date"><?= $isRejected ? 'Needs updates' : 'In progress' ?></p>
                     </div>
                 </div>
                 <div class="timeline-step">
@@ -405,16 +445,26 @@ $submittedDate = !empty($supplier['created_at']) ? date('M j, Y', strtotime($sup
             </div>
 
             <!-- Info tip -->
-            <div class="review-tip">
+            <div class="review-tip <?= $isRejected ? 'is-rejected' : '' ?>">
                 <span class="review-tip-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 </span>
-                <span>Typically reviewed within <strong>24–48 hours</strong>. You can close this page and come back anytime.</span>
+                <span>
+                    <?php if ($isRejected): ?>
+                        Update your profile, documents, and agreement, then resubmit. Admin will review the new application again.
+                    <?php else: ?>
+                        Typically reviewed within <strong>24–48 hours</strong>. You can close this page and come back anytime.
+                    <?php endif; ?>
+                </span>
             </div>
 
             <!-- Actions -->
             <div class="review-actions">
-                <a href="<?= URLROOT ?>/main/home" class="btn-primary">Back home</a>
+                <?php if ($isRejected): ?>
+                    <a href="<?= URLROOT ?>/supplier/onboarding" class="btn-primary">Resubmit application</a>
+                <?php else: ?>
+                    <a href="<?= URLROOT ?>/main/home" class="btn-primary">Back home</a>
+                <?php endif; ?>
                 <a href="<?= URLROOT ?>/users/logout" class="btn-ghost">Sign out</a>
             </div>
 

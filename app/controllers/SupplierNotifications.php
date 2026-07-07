@@ -80,6 +80,16 @@ class SupplierNotifications extends SupplierControllerSupport
         $this->notificationModel->markRead((int)$notificationId, $this->currentUserId());
         $referenceType = (string)($notification['reference_type'] ?? '');
         $referenceId = (int)($notification['reference_id'] ?? 0);
+        $title = strtolower((string)($notification['title'] ?? ''));
+        $message = strtolower((string)($notification['message'] ?? ''));
+
+        if (
+            in_array($referenceType, ['replacement', 'replacement_invitation'], true)
+            || str_contains($title, 'replacement request')
+            || (str_contains($title, 'replacement') && str_contains($message, 'accept or decline'))
+        ) {
+            redirect('supplier/assignments');
+        }
 
         if ($referenceType === 'booking' && $referenceId > 0) {
             redirect('supplier/bookingDetail/' . $referenceId);

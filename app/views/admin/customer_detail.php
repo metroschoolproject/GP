@@ -193,20 +193,17 @@ $dashboardContent = function () use (
 
           <div class="cv-actions">
             <?php if ($isDeleted): ?>
-              <p class="cv-empty-sm" style="padding:8px 0">This account is soft-deleted. Login is blocked.</p>
+              <p class="cv-empty-sm" style="padding:8px 0">This account is deleted. Login is blocked.</p>
             <?php else: ?>
               <button type="button" class="cv-btn cv-btn-edit" data-open-modal="edit"><i data-lucide="pencil"></i> Edit contact</button>
 
               <?php if ($rawStatus === 'active' || $rawStatus === 'locked'): ?>
-                <button type="button" class="cv-btn cv-btn-warn" data-open-modal="suspend"><i data-lucide="pause-circle"></i> Suspend</button>
                 <button type="button" class="cv-btn cv-btn-danger" data-open-modal="ban"><i data-lucide="ban"></i> Ban</button>
               <?php else: ?>
                 <form method="POST" action="<?= URLROOT ?>/admin/customerUnban/<?= $cid ?>"><?= csrf_field() ?>
                   <button type="submit" class="cv-btn cv-btn-ok"><i data-lucide="circle-check"></i> Restore to active</button>
                 </form>
               <?php endif; ?>
-
-              <button type="button" class="cv-btn cv-btn-danger" data-open-modal="delete"><i data-lucide="trash-2"></i> Soft-delete</button>
             <?php endif; ?>
             <button type="button" class="cv-btn cv-btn-danger" data-open-modal="permanent-delete"><i data-lucide="trash-2"></i> Permanently delete</button>
           </div>
@@ -272,22 +269,6 @@ $dashboardContent = function () use (
   </div>
 </div>
 
-<!-- Suspend modal -->
-<div class="cv-modal" id="modal-suspend" role="dialog" aria-modal="true" aria-labelledby="modal-suspend-title">
-  <div class="cv-modal-box">
-    <div class="cv-modal-head"><h3 class="cv-modal-title" id="modal-suspend-title">Suspend customer</h3><button type="button" class="cv-modal-close" data-close-modal><i data-lucide="x"></i></button></div>
-    <form method="POST" action="<?= URLROOT ?>/admin/customerSuspend/<?= $cid ?>"><?= csrf_field() ?>
-      <div class="cv-modal-body">
-        <div class="cv-field"><label for="suspend-reason">Reason (required)</label><textarea id="suspend-reason" name="reason" required placeholder="Why is this account being suspended?"></textarea></div>
-        <div class="cv-modal-foot">
-          <button type="button" class="cv-btn cv-btn-edit" data-close-modal>Cancel</button>
-          <button type="submit" class="cv-btn cv-btn-warn"><i data-lucide="pause-circle"></i> Suspend</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-
 <!-- Ban modal -->
 <div class="cv-modal" id="modal-ban" role="dialog" aria-modal="true" aria-labelledby="modal-ban-title">
   <div class="cv-modal-box">
@@ -307,22 +288,6 @@ $dashboardContent = function () use (
   </div>
 </div>
 
-<!-- Delete modal -->
-<div class="cv-modal" id="modal-delete" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
-  <div class="cv-modal-box">
-    <div class="cv-modal-head"><h3 class="cv-modal-title" id="modal-delete-title">Delete account</h3><button type="button" class="cv-modal-close" data-close-modal><i data-lucide="x"></i></button></div>
-    <form method="POST" action="<?= URLROOT ?>/admin/customerDelete/<?= $cid ?>"><?= csrf_field() ?>
-      <div class="cv-modal-body">
-        <div class="cv-warn-note"><i data-lucide="alert-triangle"></i><span>Soft-delete hides the account from default lists and blocks login. Records (bookings, payments) are kept.<?= $activeBookings > 0 ? ' This customer has ' . $activeBookings . ' active booking' . ($activeBookings === 1 ? '' : 's') . '.' : '' ?></span></div>
-        <div class="cv-field"><label for="delete-reason">Reason (required)</label><textarea id="delete-reason" name="reason" required placeholder="Why is this account being deleted?"></textarea></div>
-        <div class="cv-modal-foot">
-          <button type="button" class="cv-btn cv-btn-edit" data-close-modal>Cancel</button>
-          <button type="submit" class="cv-btn cv-btn-danger"><i data-lucide="trash-2"></i> Delete account</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
 <?php endif; ?>
 
 <!-- Permanent delete modal -->

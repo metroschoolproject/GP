@@ -269,6 +269,8 @@ $packageName = trim((string)($packageContext['package_name'] ?? 'Wedding package
 $packageSlug = trim((string)($packageContext['package_slug'] ?? ''));
 $addonPackageName = trim((string)($addonContext['package_name'] ?? 'Wedding package'));
 $addonPackageSlug = trim((string)($addonContext['package_slug'] ?? ''));
+$addonPackageDate = trim((string)($addonContext['selected_date'] ?? ''));
+$addonPackageTime = trim((string)($addonContext['selected_time'] ?? ''));
 $packageDetailUrl = $packageSlug !== ''
     ? URLROOT . '/customerServices/packageDetail/' . rawurlencode($packageSlug)
     : ($addonPackageSlug !== ''
@@ -4170,9 +4172,11 @@ body:has(.gp-package-notice) .booking-grid {
             <input type="hidden" name="start_time" id="cartStartTime" value="<?= $h($isSlotBooking ? ($firstSlot['start_time'] ?? '') : ($isVenue ? ($firstVenueRoom['start_time'] ?? '') : '')) ?>">
             <input type="hidden" name="end_time" id="cartEndTime" value="<?= $h($isSlotBooking ? ($firstSlot['end_time'] ?? '') : ($isVenue ? ($firstVenueRoom['end_time'] ?? '') : '')) ?>">
             <input type="hidden" name="price" id="cartPrice" value="<?= $h($activeServicePrice) ?>">
-            <input type="hidden" name="source" value="custom">
+            <input type="hidden" name="source" value="<?= $isAddonContext ? 'package' : 'custom' ?>">
             <?php if ($isAddonContext): ?>
               <input type="hidden" name="addon_package_id" value="<?= (int)$addonContext['package_id'] ?>">
+              <input type="hidden" name="addon_package_date" value="<?= $h($addonPackageDate) ?>">
+              <input type="hidden" name="addon_package_time" value="<?= $h($addonPackageTime) ?>">
             <?php endif; ?>
             <?php if ($isRentalCategory && !empty($attireItems)): ?>
               <input type="hidden" name="attire_item_id" id="cartAttireItemId" value="">

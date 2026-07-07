@@ -7,6 +7,7 @@ $message = $message ?? '';
 $notificationRole = $notificationRole ?? 'admin';
 $notificationBaseUrl = URLROOT . '/' . $notificationRole . '/notifications';
 $notificationDetailUrl = URLROOT . '/' . $notificationRole . '/notification/';
+$notificationMarkAllUrl = URLROOT . '/' . $notificationRole . '/markAllNotificationsRead';
 $notificationSidebar = $notificationSidebar ?? APPROOT . '/views/dashboardLayout/adminsidebar.php';
 $notificationKicker = $notificationKicker ?? 'Operations inbox';
 $notificationSubtitle = $notificationSubtitle ?? 'Review payments, booking changes, supplier approvals, and system updates from one focused queue.';
@@ -34,10 +35,14 @@ $typeMeta = static function ($type) {
     return $meta[$type] ?? $meta['system'];
 };
 
-$actionLabel = static function ($item) {
+$actionLabel = static function ($item) use ($notificationRole) {
     $referenceType = strtolower((string)($item['reference_type'] ?? ''));
+    $type = strtolower((string)($item['type'] ?? ''));
     $title = strtolower((string)($item['title'] ?? ''));
 
+    if ($referenceType === 'replacement' && ($type === 'payment' || strpos($title, 'delta') !== false)) return 'Verify extra charge';
+    if ($referenceType === 'replacement') return 'Open replacement';
+    if ($referenceType === 'replacement_invitation') return $notificationRole === 'supplier' ? 'Open assignments' : 'Open replacement';
     if ($referenceType === 'payment') return 'Review payment';
     if ($referenceType === 'supplier') return 'Review supplier';
     if ($referenceType === 'service') return 'Review service';
@@ -92,6 +97,7 @@ $dashboardContent = function () use (
     $notificationKicker,
     $notificationSubtitle,
     $notificationRole,
+    $notificationMarkAllUrl,
     $currentPage,
     $totalPages,
     $totalCount,
@@ -115,7 +121,12 @@ $dashboardContent = function () use (
     .inbox-tab.active { border-color: var(--primary); background: var(--primary); color: #FFFFFF; box-shadow: none; }
     .inbox-tab-count { display: inline-flex; min-width: 20px; height: 20px; align-items: center; justify-content: center; border-radius: 999px; padding: 0 5px; background: rgba(109,76,91,.09); font-size: 9px; }
     .inbox-tab.active .inbox-tab-count { background: rgba(252,248,245,.16); }
-    .inbox-tab:focus-visible, .inbox-action:focus-visible, .page-btn:focus-visible { outline: 3px solid rgba(109,76,91,.2); outline-offset: 2px; }
+    .inbox-tab:focus-visible, .inbox-action:focus-visible, .inbox-mark-all:focus-visible, .page-btn:focus-visible { outline: 3px solid rgba(109,76,91,.2); outline-offset: 2px; }
+    .inbox-mark-all-form { flex: 0 0 auto; }
+    .inbox-mark-all { display: inline-flex; min-height: 34px; align-items: center; gap: 7px; border: 1px solid var(--primary); border-radius: .75rem; padding: 0 14px; background: var(--primary); color: #FFFFFF; font-family: inherit; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: background .12s, border-color .12s; }
+    .inbox-mark-all:hover { border-color: var(--primary-hover); background: var(--primary-hover); }
+    .inbox-mark-all svg { width: 14px; height: 14px; }
+    .inbox-mark-all:disabled { cursor: not-allowed; opacity: .55; }
 
     .inbox-flash { display: flex; align-items: center; gap: 9px; margin-bottom: 15px; border: 1px solid #d8e5de; border-radius: 11px; background: #f3f8f5; padding: 12px 14px; color: #4f7c69; font-size: 12px; font-weight: 700; }
     .inbox-day { margin-top: 22px; }
@@ -157,6 +168,8 @@ $dashboardContent = function () use (
         .inbox-header { align-items: flex-start; flex-direction: column; }
         .inbox-toolbar { align-items: stretch; flex-direction: column; }
         .inbox-tabs { width: 100%; }
+        .inbox-mark-all-form { width: 100%; }
+        .inbox-mark-all { width: 100%; justify-content: center; }
         .inbox-item { grid-template-columns: auto minmax(0,1fr); align-items: start; }
         .inbox-side { grid-column: 2; min-width: 0; justify-items: start; }
         .inbox-time { display: none; }
@@ -168,7 +181,7 @@ $dashboardContent = function () use (
         .pagination { align-items: flex-start; flex-direction: column; }
     }
     @media (prefers-reduced-motion: reduce) {
-        .inbox-item, .inbox-tab, .inbox-action { transition: none; }
+        .inbox-item, .inbox-tab, .inbox-action, .inbox-mark-all { transition: none; }
     }
 </style>
 
@@ -211,6 +224,14 @@ $dashboardContent = function () use (
                 <span class="inbox-tab-count"><?= number_format((int)$stats['unread']) ?></span>
             </a>
         </nav>
+        <?php if ($notificationRole === 'supplier'): ?>
+            <form class="inbox-mark-all-form" method="post" action="<?= $h($notificationMarkAllUrl) ?>">
+                <button type="submit" class="inbox-mark-all" <?= (int)$stats['unread'] <= 0 ? 'disabled' : '' ?>>
+                    Mark as read
+                    <i data-lucide="check-check"></i>
+                </button>
+            </form>
+        <?php endif; ?>
     </section>
 
     <?php if (empty($notifications)): ?>

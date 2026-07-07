@@ -62,7 +62,12 @@ class Review extends Controller
             return;
         }
 
-        $this->reviewModel->create($bookingId, $this->userId, $rating, $comment);
+        $reviewId = $this->reviewModel->create($bookingId, $this->userId, $rating, $comment);
+        if ($reviewId <= 0) {
+            $_SESSION['review_error'] = 'This booking has no reviewable service record.';
+            redirect('booking/detail/' . $bookingId);
+            return;
+        }
 
         $_SESSION['review_success'] = 'Thank you! Your review has been submitted.';
         redirect('booking/detail/' . $bookingId);

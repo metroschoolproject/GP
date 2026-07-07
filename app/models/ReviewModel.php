@@ -62,34 +62,90 @@ class ReviewModel
 
     public function create(int $bookingId, int $customerId, int $rating, string $comment): int
     {
-        // Resolve supplier_id, service_id, and booking_item_id from the first service item
-        $this->db->dbquery(
-            'SELECT bi.id AS booking_item_id, bi.item_id AS service_id, s.supplier_id
-              FROM booking_items bi
-              JOIN services s ON s.id = bi.item_id AND bi.item_type = \'service\'
-             WHERE bi.booking_id = :booking_id
-             LIMIT 1'
-        );
-        $this->db->dbbind(':booking_id', $bookingId);
-        $row = $this->db->getsingledata();
-        $supplierId = $row ? (int)$row['supplier_id'] : null;
-        $serviceId = $row ? (int)$row['service_id'] : 0;
-        $bookingItemId = $row ? (int)$row['booking_item_id'] : 0;
+        $target = $this->resolveReviewTarget($bookingId);
+        if (!$target) {
+            return 0;
+        }
 
-        $this->db->dbquery(
-            'INSERT INTO reviews (booking_id, booking_item_id, service_id, customer_id, supplier_id, rating, comment, created_at)
-             VALUES (:booking_id, :booking_item_id, :service_id, :customer_id, :supplier_id, :rating, :comment, NOW())'
-        );
-        $this->db->dbbind(':booking_id', $bookingId);
-        $this->db->dbbind(':booking_item_id', $bookingItemId);
-        $this->db->dbbind(':service_id', $serviceId);
-        $this->db->dbbind(':customer_id', $customerId);
-        $this->db->dbbind(':supplier_id', $supplierId);
-        $this->db->dbbind(':rating', $rating);
-        $this->db->dbbind(':comment', $comment);
-        $this->db->dbexecute();
+        $bookingItemId = (int)($target['booking_item_id'] ?? 0);
+        $serviceId = (int)$target['service_id'];
+        $supplierId = (int)$target['supplier_id'];
+
+        try {
+            $this->db->dbquery(
+                'INSERT INTO reviews (booking_id, booking_item_id, service_id, customer_id, supplier_id, rating, comment, created_at)
+                 VALUES (:booking_id, :booking_item_id, :service_id, :customer_id, :supplier_id, :rating, :comment, NOW())'
+            );
+            $this->db->dbbind(':booking_id', $bookingId, PDO::PARAM_INT);
+            $this->db->dbbind(
+                ':booking_item_id',
+                $bookingItemId > 0 ? $bookingItemId : null,
+                $bookingItemId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL
+            );
+            $this->db->dbbind(':service_id', $serviceId, PDO::PARAM_INT);
+            $this->db->dbbind(':customer_id', $customerId, PDO::PARAM_INT);
+            $this->db->dbbind(':supplier_id', $supplierId, PDO::PARAM_INT);
+            $this->db->dbbind(':rating', $rating, PDO::PARAM_INT);
+            $this->db->dbbind(':comment', $comment);
+            $this->db->dbexecute();
+        } catch (PDOException $e) {
+            error_log('Review insert failed for booking ' . $bookingId . ': ' . $e->getMessage());
+            return 0;
+        }
 
         return (int)$this->db->lastinsertid();
+    }
+
+    private function resolveReviewTarget(int $bookingId): array|false
+    {
+        $this->db->dbquery(
+            'SELECT bi.id AS booking_item_id, bi.item_id AS service_id, s.supplier_id
+               FROM booking_items bi
+               INNER JOIN services s ON s.id = bi.item_id
+              WHERE bi.booking_id = :booking_id
+                AND bi.item_type = \'service\'
+              ORDER BY bi.id ASC
+              LIMIT 1'
+        );
+        $this->db->dbbind(':booking_id', $bookingId);
+        $direct = $this->db->getsingledata();
+        if (
+            $direct
+            && (int)($direct['booking_item_id'] ?? 0) > 0
+            && (int)($direct['service_id'] ?? 0) > 0
+            && (int)($direct['supplier_id'] ?? 0) > 0
+        ) {
+            return $direct;
+        }
+
+        $this->db->dbquery(
+            'SELECT NULL AS booking_item_id, bs.service_id, bs.supplier_id
+               FROM booking_suppliers bs
+               INNER JOIN package_items pi
+                       ON pi.id = bs.package_item_id
+                      AND pi.service_id = bs.service_id
+                      AND pi.deleted_at IS NULL
+               INNER JOIN booking_items bi
+                       ON bi.booking_id = bs.booking_id
+                      AND bi.item_type = \'package\'
+                      AND bi.item_id = pi.package_id
+               INNER JOIN services s ON s.id = bs.service_id
+              WHERE bs.booking_id = :booking_id
+                AND bs.status NOT IN (\'rejected\', \'cancelled\', \'replaced\')
+              ORDER BY bs.id ASC
+              LIMIT 1'
+        );
+        $this->db->dbbind(':booking_id', $bookingId);
+        $package = $this->db->getsingledata();
+        if (
+            $package
+            && (int)($package['service_id'] ?? 0) > 0
+            && (int)($package['supplier_id'] ?? 0) > 0
+        ) {
+            return $package;
+        }
+
+        return false;
     }
 
     public function update(int $reviewId, int $customerId, int $rating, string $comment): bool

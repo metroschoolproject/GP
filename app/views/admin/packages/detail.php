@@ -824,8 +824,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                         || str_contains($categoryLabel, 'decor')
                         || str_contains($categoryLabel, 'music')
                         || str_contains($categoryLabel, 'photo')
-                        || str_contains($categoryLabel, 'makeup')
-                        || str_contains($categoryLabel, 'studio');
+                        || str_contains($categoryLabel, 'makeup');
               $priceLabel = $isAttireSvc
                 ? ($attireCount > 0
                   ? $attireCount . ' dress ' . ($attireCount === 1 ? 'design' : 'designs') . ' available'
