@@ -563,16 +563,33 @@ img { display: block; max-width: 100%; }
 }
 
 .gp-included-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
   width: 116px;
   height: 86px;
   border-radius: 14px;
   overflow: hidden;
+  background: rgba(232, 214, 223, 0.56);
+  color: rgba(126, 79, 101, 0.75);
 }
 
 .gp-included-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.gp-included-placeholder {
+  display: none;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.gp-included-thumb.is-empty .gp-included-placeholder {
+  display: grid;
+}
+.gp-included-thumb.is-empty img {
+  display: none;
 }
 
 /* make the right side relative so the tag can sit at top-right */
@@ -1109,6 +1126,9 @@ img { display: block; max-width: 100%; }
   color: var(--c-pale);
   opacity: .45;
 }
+.gp-addon-section .gc-image-frame:not(.is-empty) .gc-image-placeholder {
+  display: none;
+}
 .gp-addon-section .gc-top {
   order: 2;
   margin: 14px 4px 0;
@@ -1395,10 +1415,11 @@ img { display: block; max-width: 100%; }
             <?php foreach ($includedServices as $svcIndex => $svc): ?>
               <?php $detailUrl = $serviceDetailUrl($svc); ?>
               <a class="gp-included-item gp-detail-scroll-reveal" style="--detail-reveal-delay: <?= number_format(min($svcIndex * 0.08, 0.48), 2, '.', '') ?>s" href="<?= $h($detailUrl) ?>">
-  <span class="gp-included-thumb">
+  <span class="gp-included-thumb <?= empty($svc['image']) ? 'is-empty' : '' ?>">
     <?php if (!empty($svc['image'])): ?>
-      <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
+      <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy" onerror="this.parentElement.classList.add('is-empty');this.remove();">
     <?php endif; ?>
+    <span class="gp-included-placeholder"><i data-lucide="image" style="width:22px;height:22px"></i></span>
   </span>
 
   <span class="gp-included-copy">
@@ -1434,12 +1455,11 @@ img { display: block; max-width: 100%; }
           <?php $addonUrl = $addonDetailUrl($svc); ?>
           <article class="gp-card gp-detail-scroll-reveal" style="--detail-reveal-delay: <?= number_format(min($si * 0.10, 0.60), 2, '.', '') ?>s" data-url="<?= $h($addonUrl) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($svc['name'] ?? 'add-on service') ?>">
             <div class="gc-body">
-              <a class="gc-image-frame" href="<?= $h($addonUrl) ?>" tabindex="-1" aria-hidden="true">
+              <a class="gc-image-frame <?= empty($svc['image']) ? 'is-empty' : '' ?>" href="<?= $h($addonUrl) ?>" tabindex="-1" aria-hidden="true">
                 <?php if (!empty($svc['image'])): ?>
-                  <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
-                <?php else: ?>
-                  <span class="gc-image-placeholder"><i data-lucide="image" style="width:24px;height:24px"></i></span>
+                  <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy" onerror="this.parentElement.classList.add('is-empty');this.remove();">
                 <?php endif; ?>
+                <span class="gc-image-placeholder"><i data-lucide="image" style="width:24px;height:24px"></i></span>
                 <span class="gc-tags">
                   <span class="gc-tag"><?= $h($svc['category_name'] ?? $svc['category'] ?? 'Service') ?></span>
                 </span>

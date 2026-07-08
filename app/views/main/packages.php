@@ -137,6 +137,12 @@ $publicCssVersion = file_exists(APPROOT . '/../public/css/app.css') ? filemtime(
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html,
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 body {
   background: #ead8c8;
   color: var(--c-text);
@@ -1020,11 +1026,11 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 }
 .gp-package-type-section {
   display: grid;
-  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
-  align-items: center;
-  gap: 42px;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(28px, 4vw, 56px);
   min-height: auto;
-  padding: 34px 0;
+  padding: 46px 0;
   scroll-margin-top: 96px;
 }
 .gp-package-type-intro{
@@ -1099,11 +1105,10 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 .gp-package-type-cards {
   position: relative;
   min-width: 0;
-  display: grid;
-  align-items: center;
+  display: block;
 }
 .gp-package-type-carousel-head {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: flex-start;
   min-height: 0;
@@ -1139,16 +1144,18 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   transform: none;
 }
 .gp-package-type-viewport {
-  overflow: hidden;
+  overflow: visible;
   min-width: 0;
-  min-height: 470px;
-  padding: 18px 0 0;
+  min-height: 0;
+  padding: 0;
   grid-row: 1;
 }
 .gp-package-type-track{
-    display:flex;
-    justify-content:flex-start;
-    gap:28px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(280px, 360px));
+    justify-content:start;
+    gap:24px;
+    transform:none !important;
 }
 
 .gp-filtered-package-results {
@@ -1163,9 +1170,9 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 }
 .gp-filtered-package-track{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(360px,420px));
+    grid-template-columns:repeat(auto-fit,minmax(min(100%, 300px),360px));
     justify-content:center;
-    gap:30px;
+    gap:24px;
 }
 .gp-filtered-package-track .gp-package-type-card {
   flex: none;
@@ -1177,13 +1184,13 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
     align-items:center;
     text-align:center;
 
-    width:400px;
-    max-width:400px;
-    flex:0 0 400px;
+    width:100%;
+    max-width:360px;
+    flex:none;
 
-    min-height:470px;
-    padding:12px;
-    border-radius:24px;
+    min-height:430px;
+    padding:10px;
+    border-radius:18px;
     background:#fff8ef;
     border:1px solid rgba(201,193,187,.58);
     box-shadow:0 18px 42px rgba(63,36,26,.13);
@@ -1262,9 +1269,12 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   align-items:center;
   text-align:center;
 
-  min-height:470px;
-  padding:12px;
-  border-radius:24px;
+  width:100%;
+  max-width:360px;
+  flex:none;
+  min-height:430px;
+  padding:10px;
+  border-radius:18px;
   background:#fff8ef;
   border:1px solid rgba(201,193,187,.58);
   box-shadow:0 18px 42px rgba(63,36,26,.13);
@@ -1297,8 +1307,8 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 .gp-package-type-image{
   position:relative;
   width:100%;
-  height:250px;
-  border-radius:18px;
+  height:220px;
+  border-radius:14px;
   overflow:hidden;
   border:0;
   background:#f5e8d9;
@@ -1350,9 +1360,9 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
 }
 
 .gp-package-type-card h4{
-  margin:18px 0 8px;
+  margin:16px 0 8px;
   text-align:center;
-  font-size:18px;
+  font-size:17px;
   font-weight:800;
   color:#211d1a;
 }
@@ -2191,11 +2201,13 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
     justify-content: center;
   }
   .gp-package-type-track {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
     justify-content: center;
   }
   .gp-package-type-card {
-    flex-basis: min(72vw, 230px);
-    max-width: min(72vw, 230px);
+    width: 100%;
+    max-width: 320px;
+    min-height: 410px;
   }
   .gp-package-type-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2257,6 +2269,10 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
   }
   .gp-search-filter-row { flex-direction: column; align-items: stretch; }
   .gp-package-type-list {
+    grid-template-columns: 1fr;
+  }
+  .gp-package-type-track,
+  .gp-filtered-package-track {
     grid-template-columns: 1fr;
   }
   .gp-before-book-content {
@@ -2759,41 +2775,6 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     revealBoxes.forEach(el => el.classList.add('visible'));
   }
-
-  document.querySelectorAll('[data-package-type-carousel]').forEach(carousel => {
-    const section = carousel.closest('.gp-package-type-section');
-    const viewport = carousel.querySelector('.gp-package-type-viewport');
-    const track = carousel.querySelector('.gp-package-type-track');
-    const cards = Array.from(carousel.querySelectorAll('.gp-package-type-card'));
-    const prev = section?.querySelector('.gp-package-type-prev');
-    const next = section?.querySelector('.gp-package-type-next');
-    if (!viewport || !track || cards.length <= 3 || !prev || !next) return;
-
-    let index = 0;
-    const maxIndex = Math.max(cards.length - 3, 0);
-    const getStep = () => {
-      const first = cards[0];
-      if (!first) return 0;
-      const gap = parseFloat(window.getComputedStyle(track).columnGap || window.getComputedStyle(track).gap || '0') || 0;
-      return first.getBoundingClientRect().width + gap;
-    };
-    const update = () => {
-      index = Math.max(0, Math.min(index, maxIndex));
-      track.style.transform = `translateX(-${index * getStep()}px)`;
-      prev.disabled = index === 0;
-      next.disabled = index === maxIndex;
-    };
-    prev.addEventListener('click', () => {
-      index -= 1;
-      update();
-    });
-    next.addEventListener('click', () => {
-      index += 1;
-      update();
-    });
-    window.addEventListener('resize', update);
-    update();
-  });
 
   const closePackageSelects = (exceptWrap = null) => {
     document.querySelectorAll('.gp-pkg-select-wrap.is-open').forEach(wrap => {

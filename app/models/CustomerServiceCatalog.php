@@ -92,6 +92,13 @@ class CustomerServiceCatalog
                     services.price,
                     ' . $priceRangeFields . '
                     services.thumbnail_url,
+                    (
+                        SELECT sm.file_url
+                        FROM service_media sm
+                        WHERE sm.service_id = services.id
+                        ORDER BY sm.id ASC
+                        LIMIT 1
+                    ) AS fallback_media_url,
                     services.booking_type,
                     services.duration_minutes,
                     services.pricing_unit,
@@ -222,6 +229,13 @@ class CustomerServiceCatalog
                        services.price,
                        ' . $priceRangeFields . '
                        services.thumbnail_url,
+                       (
+                           SELECT sm.file_url
+                           FROM service_media sm
+                           WHERE sm.service_id = services.id
+                           ORDER BY sm.id ASC
+                           LIMIT 1
+                       ) AS fallback_media_url,
                        services.booking_type,
                        services.duration_minutes,
                        services.min_lead_days,
@@ -267,6 +281,13 @@ class CustomerServiceCatalog
                     services.price,
                     ' . $priceRangeFields . '
                     services.thumbnail_url,
+                    (
+                        SELECT sm.file_url
+                        FROM service_media sm
+                        WHERE sm.service_id = services.id
+                        ORDER BY sm.id ASC
+                        LIMIT 1
+                    ) AS fallback_media_url,
                     services.booking_type,
                     services.duration_minutes,
                     services.buffer_minutes,
@@ -382,9 +403,12 @@ class CustomerServiceCatalog
         }
 
         $seen = [];
-        return array_values(array_filter($media, function ($item) use (&$seen) {
+        return array_values(array_filter(array_map(function ($item) {
+            $item['file_url'] = $this->normalizePublicAssetUrl($item['file_url'] ?? '');
+            return $item;
+        }, $media), function ($item) use (&$seen) {
             $url = trim((string)($item['file_url'] ?? ''));
-            if ($url === '' || isset($seen[$url])) {
+            if ($url === '' || isset($seen[$url]) || ($this->isLocalPublicAssetUrl($url) && !$this->localPublicAssetExists($url))) {
                 return false;
             }
             $seen[$url] = true;
@@ -549,7 +573,7 @@ class CustomerServiceCatalog
                 'package_price' => (float)($room['price_min'] ?? $room['price'] ?? 0),
                 'customize_price' => max((float)($room['price_min'] ?? $room['price'] ?? 0), (float)($room['price_max'] ?? $room['price_min'] ?? $room['price'] ?? 0)),
                 'min_lead_days' => $room['min_lead_days'] !== null ? $minLeadDays : null,
-                'photo_url' => trim((string)($room['photo_url'] ?? '')),
+                'photo_url' => $this->bestItemPhoto($room['photo_url'] ?? ''),
                 'earliest_booking_date' => $earliestDate,
                 'lead_time_blocked' => $leadTimeBlocked,
                 'start_time' => $room['start_time'] ?? '09:00:00',
@@ -905,7 +929,7 @@ class CustomerServiceCatalog
                 'price' => (float)($row['price'] ?? 0),
                 'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
                 'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
-                'photo_url' => trim((string)($row['photo_url'] ?? '')),
+                'photo_url' => $this->bestItemPhoto($row['photo_url'] ?? ''),
             ];
         }, $this->db->getmultidata());
     }
@@ -949,7 +973,7 @@ class CustomerServiceCatalog
                 'price' => (float)($row['price'] ?? 0),
                 'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
                 'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
-                'photo_url' => trim((string)($row['photo_url'] ?? '')),
+                'photo_url' => $this->bestItemPhoto($row['photo_url'] ?? ''),
                 'pricing_model' => $row['pricing_model'] ?? 'flat',
             ];
         }, $this->db->getmultidata());
@@ -977,7 +1001,7 @@ class CustomerServiceCatalog
                 'price' => (float)($row['price'] ?? 0),
                 'package_price' => (float)($row['package_price'] ?? $row['price'] ?? 0),
                 'customize_price' => (float)($row['customize_price'] ?? $row['price'] ?? 0),
-                'photo_url' => trim((string)($row['photo_url'] ?? '')),
+                'photo_url' => $this->bestItemPhoto($row['photo_url'] ?? ''),
             ];
         }, $this->db->getmultidata());
     }
@@ -1044,6 +1068,10 @@ class CustomerServiceCatalog
     {
         $priceMin = (float)($service['price_min'] ?? $service['price'] ?? 0);
         $priceMax = max($priceMin, (float)($service['price_max'] ?? $priceMin));
+        $imageUrl = $this->bestServiceImage(
+            $service['thumbnail_url'] ?? $service['image'] ?? '',
+            $service['fallback_media_url'] ?? ''
+        );
 
         return [
             'id' => (int)$service['id'],
@@ -1056,7 +1084,7 @@ class CustomerServiceCatalog
             'package_price' => $priceMin,
             'customize_price' => $priceMax,
             'display_price' => $priceMax,
-            'image' => $service['thumbnail_url'] ?? '',
+            'image' => $imageUrl,
             'category' => $service['category'] ?: 'Wedding Service',
             'category_slug' => $service['category_slug'] ?? '',
             'supplier_name' => $service['supplier_name'] ?? 'Golden Promise supplier',
@@ -1078,6 +1106,86 @@ class CustomerServiceCatalog
                 'return_days' => ($service['return_days'] ?? null) !== null ? (int)$service['return_days'] : null,
             ],
         ];
+    }
+
+    private function bestServiceImage(...$candidates): string
+    {
+        foreach ($candidates as $candidate) {
+            $url = $this->normalizePublicAssetUrl($candidate);
+            if ($url === '') {
+                continue;
+            }
+
+            if (!$this->isLocalPublicAssetUrl($url) || $this->localPublicAssetExists($url)) {
+                return $url;
+            }
+        }
+
+        return '';
+    }
+
+    private function bestItemPhoto($candidate): string
+    {
+        $url = $this->normalizePublicAssetUrl($candidate);
+        if ($url === '') {
+            return '';
+        }
+
+        return (!$this->isLocalPublicAssetUrl($url) || $this->localPublicAssetExists($url)) ? $url : '';
+    }
+
+    private function normalizePublicAssetUrl($url): string
+    {
+        $url = trim((string)$url);
+
+        if ($url === ''
+            || str_starts_with($url, 'data:')
+            || str_starts_with($url, 'blob:')
+        ) {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+        $path = is_string($path) && $path !== '' ? $path : $url;
+        $path = str_replace('\\', '/', $path);
+
+        if (preg_match('#/(?:GP/)?public/(.+)$#', $path, $matches)) {
+            return rtrim(URLROOT, '/') . '/public/' . ltrim($matches[1], '/');
+        }
+
+        if (preg_match('#/uploads/(.+)$#', $path, $matches)) {
+            return rtrim(IMG_ROOT, '/') . '/uploads/' . ltrim($matches[1], '/');
+        }
+
+        if (str_starts_with($path, 'uploads/')) {
+            return rtrim(IMG_ROOT, '/') . '/' . $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return rtrim(URLROOT, '/') . '/' . $path;
+        }
+
+        return $url;
+    }
+
+    private function isLocalPublicAssetUrl(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        $path = is_string($path) ? str_replace('\\', '/', $path) : '';
+
+        return preg_match('#/(?:GP/)?public/#', $path) === 1;
+    }
+
+    private function localPublicAssetExists(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        $path = is_string($path) ? str_replace('\\', '/', $path) : '';
+
+        if (!preg_match('#/(?:GP/)?public/(.+)$#', $path, $matches)) {
+            return true;
+        }
+
+        return is_file(dirname(APPROOT) . '/public/' . ltrim($matches[1], '/'));
     }
 
     private function earliestBookingDate(int $minLeadDays): string
@@ -1408,6 +1516,7 @@ class CustomerServiceCatalog
         $items = $this->db->getmultidata();
 
         foreach ($items as &$item) {
+            $item['photo_url'] = $this->bestItemPhoto($item['photo_url'] ?? '');
             $this->db->dbquery(
                 'SELECT * FROM attire_rental_options
                  WHERE attire_item_id = :attire_item_id

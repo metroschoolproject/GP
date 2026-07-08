@@ -351,6 +351,7 @@ $heroBgUrl = $firstMediaType === 'video'
 $heroItems = array_values(array_filter($media, function ($m) {
     return trim((string)($m['file_url'] ?? ''));
 }));
+$heroItemsJson = json_encode($heroItems, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -3417,7 +3418,7 @@ body:has(.gp-package-notice) .booking-grid {
                 <span class="gallery-play-btn"><i data-lucide="play" fill="currentColor"></i></span>
               </div>
             <?php else: ?>
-              <img id="heroImg" src="<?= $h($firstMedia['file_url']) ?>" alt="<?= $h($service['name'] ?? '') ?>">
+              <img id="heroImg" src="<?= $h($firstMedia['file_url']) ?>" alt="<?= $h($service['name'] ?? '') ?>" onerror="window.gpServiceHeroImageFailed && window.gpServiceHeroImageFailed(0)">
             <?php endif; ?>
           <?php endif; ?>
         </div>
@@ -3432,7 +3433,7 @@ body:has(.gp-package-notice) .booking-grid {
                   <video src="<?= $h($item['file_url']) ?>" muted preload="metadata"></video>
                   <span class="gallery-thumb-video"><i data-lucide="play" size="12" fill="currentColor"></i></span>
                 <?php else: ?>
-                  <img src="<?= $h($item['file_url']) ?>" alt="">
+                  <img src="<?= $h($item['file_url']) ?>" alt="" onerror="this.closest('.gallery-thumb')?.remove();">
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>
@@ -3536,7 +3537,8 @@ body:has(.gp-package-notice) .booking-grid {
         <div class="attire-card <?= $isLockedAttire ? 'is-locked' : '' ?>" data-attire-card data-attire-idx="<?= $idx ?>" data-attire-id="<?= (int)$ai['id'] ?>" data-locked="<?= $isLockedAttire ? '1' : '0' ?>">
           <div class="attire-card-media">
             <?php if ($aiPhoto): ?>
-              <img src="<?= $h($aiPhoto) ?>" alt="<?= $h($ai['name']) ?>">
+              <img src="<?= $h($aiPhoto) ?>" alt="<?= $h($ai['name']) ?>" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+              <div class="attire-card-placeholder" style="display:none"><i data-lucide="shirt" size="32"></i></div>
             <?php else: ?>
               <div class="attire-card-placeholder"><i data-lucide="shirt" size="32"></i></div>
             <?php endif; ?>
@@ -3736,7 +3738,8 @@ body:has(.gp-package-notice) .booking-grid {
                 <div class="hall-row-body">
                   <div class="hall-photo <?= $roomPhotoUrl === '' ? 'is-empty' : '' ?>">
                     <?php if ($roomPhotoUrl !== ''): ?>
-                      <img src="<?= $h($roomPhotoUrl) ?>" alt="<?= $h(($room['name'] ?: 'Venue hall') . ' photo') ?>" loading="lazy">
+                      <img src="<?= $h($roomPhotoUrl) ?>" alt="<?= $h(($room['name'] ?: 'Venue hall') . ' photo') ?>" loading="lazy" onerror="this.parentElement.classList.add('is-empty');this.nextElementSibling.style.display='';this.remove();">
+                      <i data-lucide="image" size="20" style="display:none"></i>
                     <?php else: ?>
                       <i data-lucide="image" size="20"></i>
                     <?php endif; ?>
@@ -3818,7 +3821,8 @@ body:has(.gp-package-notice) .booking-grid {
                 <span class="radio-dot"></span>
                 <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
                   <?php if ($stylePhoto): ?>
-                    <img src="<?= $h($stylePhoto) ?>" alt="" style="width:52px;height:52px;border-radius:var(--radius-lg);object-fit:cover;flex-shrink:0">
+                    <img src="<?= $h($stylePhoto) ?>" alt="" style="width:52px;height:52px;border-radius:var(--radius-lg);object-fit:cover;flex-shrink:0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div style="display:none;width:52px;height:52px;border-radius:var(--radius-lg);background:var(--cream);align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="palette" size="20" style="color:var(--muted-light)"></i></div>
                   <?php else: ?>
                     <div style="width:52px;height:52px;border-radius:var(--radius-lg);background:var(--cream);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="palette" size="20" style="color:var(--muted-light)"></i></div>
                   <?php endif; ?>
@@ -3883,7 +3887,8 @@ body:has(.gp-package-notice) .booking-grid {
                 <span class="radio-dot"></span>
                 <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
                   <?php if ($foodPhoto): ?>
-                    <img src="<?= $h($foodPhoto) ?>" alt="" style="width:52px;height:52px;border-radius:var(--radius-lg);object-fit:cover;flex-shrink:0">
+                    <img src="<?= $h($foodPhoto) ?>" alt="" style="width:52px;height:52px;border-radius:var(--radius-lg);object-fit:cover;flex-shrink:0" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div style="display:none;width:52px;height:52px;border-radius:var(--radius-lg);background:var(--cream);align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="utensils" size="20" style="color:var(--muted-light)"></i></div>
                   <?php else: ?>
                     <div style="width:52px;height:52px;border-radius:var(--radius-lg);background:var(--cream);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="utensils" size="20" style="color:var(--muted-light)"></i></div>
                   <?php endif; ?>
@@ -5102,11 +5107,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const heroDots = document.getElementById('heroDots');
   const heroPrev = document.getElementById('heroPrev');
   const heroNext = document.getElementById('heroNext');
-  const galleryHeroItems = <?= json_encode($heroItems) ?>;
+  const galleryHeroItems = <?= $heroItemsJson ?: '[]' ?>;
+  const galleryFallbackImage = <?= json_encode($fallbackImage, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+  const failedHeroIndexes = new Set();
 
   let currentIndex = 0;
   const totalItems = galleryHeroItems.length;
   let heroAutoTimer = null;
+
+  window.gpServiceHeroImageFailed = function(index) {
+    const failedIndex = Number(index) || 0;
+    failedHeroIndexes.add(failedIndex);
+    const nextIndex = galleryHeroItems.findIndex((item, itemIndex) => {
+      return itemIndex !== failedIndex && !failedHeroIndexes.has(itemIndex) && (item.type || 'image') !== 'video' && item.file_url;
+    });
+
+    if (nextIndex >= 0) {
+      currentIndex = nextIndex;
+      swapHeroMedia(nextIndex);
+      return;
+    }
+
+    if (heroMain) {
+      heroMain.innerHTML = '<img id="heroImg" src="' + galleryFallbackImage + '" alt="<?= $h($service['name'] ?? 'Service photo') ?>">';
+    }
+  };
 
   function swapHeroMedia(index) {
     if (!heroMain || totalItems === 0) return;
@@ -5134,6 +5159,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       const img = document.createElement('img');
       img.src = src; img.alt = '<?= $h($service['name'] ?? '') ?>'; img.id = 'heroImg';
+      img.onerror = () => window.gpServiceHeroImageFailed(index);
       if (existingMedia) existingMedia.replaceWith(img);
       if (overlay) overlay.remove();
     }

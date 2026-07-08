@@ -215,6 +215,13 @@ class PlatformPackage
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,
+                    (
+                        SELECT sm.file_url
+                        FROM service_media sm
+                        WHERE sm.service_id = svc.id
+                        ORDER BY sm.id ASC
+                        LIMIT 1
+                    ) AS fallback_media_url,
                     svc.price,
                     svc.price_min,
                     svc.price_max,
@@ -1273,6 +1280,13 @@ class PlatformPackage
                     svc.name AS service_name,
                     svc.description AS service_description,
                     svc.thumbnail_url,
+                    (
+                        SELECT sm.file_url
+                        FROM service_media sm
+                        WHERE sm.service_id = svc.id
+                        ORDER BY sm.id ASC
+                        LIMIT 1
+                    ) AS fallback_media_url,
                     svc.price,
                     svc.price_min,
                     svc.price_max,
@@ -1320,6 +1334,7 @@ class PlatformPackage
                 'price_min' => $item['price_min'],
                 'price_max' => $item['price_max'],
                 'thumbnail_url' => $item['thumbnail_url'],
+                'fallback_media_url' => $item['fallback_media_url'] ?? '',
                 'supplier_name' => $item['supplier_name'],
                 'avg_rating' => $item['avg_rating'],
                 'review_count' => $item['review_count'],
@@ -1421,6 +1436,13 @@ class PlatformPackage
                     services.name,
                     services.description,
                     services.thumbnail_url AS image,
+                    (
+                        SELECT sm.file_url
+                        FROM service_media sm
+                        WHERE sm.service_id = services.id
+                        ORDER BY sm.id ASC
+                        LIMIT 1
+                    ) AS fallback_media_url,
                     COALESCE(services.price_max, services.price_min, services.price, 0) AS display_price,
                     categories.name AS category_name,
                     categories.slug AS category_slug,
@@ -1446,7 +1468,13 @@ class PlatformPackage
         $this->db->dbbind(':package_id', $packageId, PDO::PARAM_INT);
         $this->db->dbbind(':limit', $limit, PDO::PARAM_INT);
 
-        return $this->db->getmultidata();
+        return array_map(function ($service) {
+            $service['image'] = $this->bestServiceImage(
+                $service['image'] ?? '',
+                $service['fallback_media_url'] ?? ''
+            );
+            return $service;
+        }, $this->db->getmultidata());
     }
 
     /**
@@ -1475,6 +1503,13 @@ class PlatformPackage
                        services.price_min,
                        services.price_max,
                        services.thumbnail_url,
+                       (
+                           SELECT sm.file_url
+                           FROM service_media sm
+                           WHERE sm.service_id = services.id
+                           ORDER BY sm.id ASC
+                           LIMIT 1
+                       ) AS fallback_media_url,
                        services.booking_type,
                        services.duration_minutes,
                        services.pricing_unit,
@@ -1548,6 +1583,10 @@ class PlatformPackage
     {
         $priceMin = (float)($service['price_min'] ?? $service['price'] ?? 0);
         $priceMax = max($priceMin, (float)($service['price_max'] ?? $priceMin));
+        $imageUrl = $this->bestServiceImage(
+            $service['thumbnail_url'] ?? $service['image'] ?? '',
+            $service['fallback_media_url'] ?? ''
+        );
 
         return [
             'id' => (int)$service['id'],
@@ -1557,7 +1596,7 @@ class PlatformPackage
             'price' => (float)($service['price'] ?? $priceMin),
             'price_min' => $priceMin,
             'price_max' => $priceMax,
-            'image' => $service['thumbnail_url'] ?? '',
+            'image' => $imageUrl,
             'supplier_name' => $service['supplier_name'] ?? '',
             'rating' => round((float)($service['avg_rating'] ?? 0), 1),
             'review_count' => (int)($service['review_count'] ?? 0),
@@ -1572,6 +1611,76 @@ class PlatformPackage
             'buy_price' => ($service['buy_price'] ?? null) !== null ? (float)$service['buy_price'] : null,
             'return_days' => ($service['return_days'] ?? null) !== null ? (int)$service['return_days'] : null,
         ];
+    }
+
+    private function bestServiceImage(...$candidates): string
+    {
+        foreach ($candidates as $candidate) {
+            $url = $this->normalizePublicAssetUrl($candidate);
+            if ($url === '') {
+                continue;
+            }
+
+            if (!$this->isLocalPublicAssetUrl($url) || $this->localPublicAssetExists($url)) {
+                return $url;
+            }
+        }
+
+        return '';
+    }
+
+    private function normalizePublicAssetUrl($url): string
+    {
+        $url = trim((string)$url);
+
+        if ($url === ''
+            || str_starts_with($url, 'data:')
+            || str_starts_with($url, 'blob:')
+        ) {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH);
+        $path = is_string($path) && $path !== '' ? $path : $url;
+        $path = str_replace('\\', '/', $path);
+
+        if (preg_match('#/(?:GP/)?public/(.+)$#', $path, $matches)) {
+            return rtrim(URLROOT, '/') . '/public/' . ltrim($matches[1], '/');
+        }
+
+        if (preg_match('#/uploads/(.+)$#', $path, $matches)) {
+            return rtrim(IMG_ROOT, '/') . '/uploads/' . ltrim($matches[1], '/');
+        }
+
+        if (str_starts_with($path, 'uploads/')) {
+            return rtrim(IMG_ROOT, '/') . '/' . $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return rtrim(URLROOT, '/') . '/' . $path;
+        }
+
+        return $url;
+    }
+
+    private function isLocalPublicAssetUrl(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        $path = is_string($path) ? str_replace('\\', '/', $path) : '';
+
+        return preg_match('#/(?:GP/)?public/#', $path) === 1;
+    }
+
+    private function localPublicAssetExists(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+        $path = is_string($path) ? str_replace('\\', '/', $path) : '';
+
+        if (!preg_match('#/(?:GP/)?public/(.+)$#', $path, $matches)) {
+            return true;
+        }
+
+        return is_file(dirname(APPROOT) . '/public/' . ltrim($matches[1], '/'));
     }
 
     private function withCustomerPackagePrice(array $package): array
@@ -1635,7 +1744,7 @@ class PlatformPackage
 
     private function servicePackagePrice($service)
     {
-        foreach (['price_min', 'price', 'price_max'] as $field) {
+        foreach (['price', 'price_min', 'price_max'] as $field) {
             $price = (float)($service[$field] ?? 0);
             if ($price > 0) {
                 return $price;
@@ -1647,7 +1756,7 @@ class PlatformPackage
 
     private function packageUnitPriceSql($svcAlias = 'svc', $piAlias = 'pi')
     {
-        return "COALESCE(NULLIF({$piAlias}.default_price, 0), NULLIF({$svcAlias}.price_min, 0), NULLIF({$svcAlias}.price, 0), NULLIF({$svcAlias}.price_max, 0), 0)";
+        return "COALESCE(NULLIF({$piAlias}.default_price, 0), NULLIF({$svcAlias}.price, 0), NULLIF({$svcAlias}.price_min, 0), NULLIF({$svcAlias}.price_max, 0), 0)";
     }
 
     private function packageQuantitySql($piAlias = 'pi')
@@ -1845,7 +1954,7 @@ class PlatformPackage
 
     private function serviceCustomizePrice($service)
     {
-        foreach (['price_max', 'price_min', 'price'] as $field) {
+        foreach (['price_max', 'price', 'price_min'] as $field) {
             $price = (float)($service[$field] ?? 0);
             if ($price > 0) {
                 return $price;

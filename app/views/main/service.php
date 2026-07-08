@@ -1350,6 +1350,7 @@ button,input,select{font-family:var(--font-body);outline:none}
     height:250px;
 
     padding:0;
+    background:linear-gradient(160deg, #ede0d0, #ddcebb);
 }
 
 .gc-image-frame img{
@@ -1361,6 +1362,15 @@ button,input,select{font-family:var(--font-body);outline:none}
     transition:transform .45s var(--ease);
 }
 .gp-card:hover .gc-image-frame img{transform:scale(1.035)}
+.gc-image-placeholder{
+    position:absolute;
+    inset:0;
+    display:grid;
+    place-items:center;
+    color:var(--c-pale);
+    opacity:.45;
+}
+.gc-image-frame:not(.is-empty) .gc-image-placeholder{display:none}
 .gc-location{
     order:3;
     margin:7px 4px 0;
@@ -1516,6 +1526,7 @@ button,input,select{font-family:var(--font-body);outline:none}
 .gp-gc-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
 .gp-gc:hover .gp-gc-img img{transform:scale(1.06)}
 .gp-gc-img-ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--c-pale);opacity:.4}
+.gp-gc-img:not(.is-empty) .gp-gc-img-ph{display:none}
 .gp-gc-bdg{position:absolute;top:12px;left:12px;z-index:2;background:rgba(255,250,246,.92);backdrop-filter:blur(6px);border:1px solid rgba(185,74,72,.12);border-radius:999px;padding:4px 10px;font-size:10px;font-weight:700;color:var(--c-red);letter-spacing:.04em;text-transform:uppercase}
 .gp-gc-body{padding:18px 20px 22px;flex:1;display:flex;flex-direction:column}
 .gp-gc-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
@@ -2362,10 +2373,11 @@ main{margin-bottom:0;background:#2A1710}
       <article class="gp-card rev" style="--card-reveal-delay: <?= number_format(min($ci * 0.14, 1.12), 2, '.', '') ?>s" data-idx="<?= $ci ?>" data-url="<?= $h($dUrl) ?>" data-img="<?= $h(trim((string)($svc['image'] ?? ''))) ?>" role="link" tabindex="0" aria-label="View details for <?= $h($svc['name'] ?? 'service') ?>">
         <button class="gp-heart <?= $isSaved ? 'is-saved' : '' ?>" aria-label="<?= $isSaved ? 'Remove from wishlist' : 'Add to wishlist' ?>" data-item-type="service" data-item-id="<?= $svcId ?>" data-saved="<?= $isSaved ? '1' : '0' ?>"><?= $isSaved ? '♥' : '♡' ?></button>
         <div class="gc-body">
-          <div class="gc-image-frame">
+          <div class="gc-image-frame <?= trim((string)($svc['image'] ?? '')) === '' ? 'is-empty' : '' ?>">
             <?php if(trim((string)($svc['image'] ?? '')) !== ''): ?>
-              <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>">
+              <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" onerror="this.parentElement.classList.add('is-empty');this.remove();">
             <?php endif; ?>
+            <div class="gc-image-placeholder" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
             <div class="gc-tags">
               <span class="gc-tag"><?= $h($svc['category'] ?? 'Service') ?></span>
             </div>
@@ -2431,10 +2443,11 @@ main{margin-bottom:0;background:#2A1710}
     ?>
     <article class="gp-gc rev rev-d<?= min(($ri % 5) + 1, 5) ?>">
       <button class="gp-heart-light <?= $risSaved ? 'is-saved' : '' ?>" aria-label="<?= $risSaved ? 'Remove from wishlist' : 'Add to wishlist' ?>" data-item-type="service" data-item-id="<?= $rsvcId ?>"><?= $risSaved ? '♥' : '♡' ?></button>
-      <a class="gp-gc-img" href="<?= $h($rUrl) ?>" tabindex="-1" aria-hidden="true">
+      <a class="gp-gc-img <?= trim((string)($svc['image'] ?? '')) === '' ? 'is-empty' : '' ?>" href="<?= $h($rUrl) ?>" tabindex="-1" aria-hidden="true">
         <?php if (trim((string)($svc['image'] ?? '')) !== ''): ?>
-          <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy">
-        <?php else: ?><div class="gp-gc-img-ph"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><?php endif; ?>
+          <img src="<?= $h($svc['image']) ?>" alt="<?= $h($svc['name'] ?? '') ?>" loading="lazy" onerror="this.parentElement.classList.add('is-empty');this.remove();">
+        <?php endif; ?>
+        <div class="gp-gc-img-ph"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
         <span class="gp-gc-bdg"><?= $h($svc['category'] ?? 'Service') ?></span>
       </a>
       <div class="gp-gc-body">

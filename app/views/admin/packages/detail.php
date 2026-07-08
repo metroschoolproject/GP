@@ -75,6 +75,16 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
     return '<span class="service-meta">—</span>';
   };
 
+  $guestDisplayUnitPrice = function (array $item): float {
+    foreach (['price', 'unit_price', 'price_min', 'price_max'] as $field) {
+      $price = (float)($item[$field] ?? 0);
+      if ($price > 0) {
+        return $price;
+      }
+    }
+    return 0.0;
+  };
+
   $addableServices = array_filter($serviceOptions, function ($svc) use ($includedServiceIds) {
     $svcId = (int)($svc['id'] ?? 0);
     if ($svcId > 0 && isset($includedServiceIds[$svcId])) {
@@ -611,6 +621,10 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                       || in_array(strtolower(trim((string)($item['category_name'] ?? ''))), ['attire'], true);
           $itemHallOptions = $hallOptionsByService[(int)($item['service_id'] ?? 0)] ?? [];
           $quantity = max(1, (int)($item['quantity'] ?? 1));
+          $itemGuestUnitPrice = $isGuestPriced ? $guestDisplayUnitPrice($item) : 0;
+          $itemDisplayPrice = $isGuestPriced && $itemGuestUnitPrice > 0
+            ? $itemGuestUnitPrice * $quantity
+            : $itemPkgPrice;
         ?>
           <article class="included-item">
             <div class="included-item-top">
@@ -701,8 +715,8 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
               <div class="included-prices">
                 <div class="included-price is-primary">
                   <span>Package price</span>
-                  <strong><?= $money($itemPkgPrice) ?></strong>
-                  <small><?= $isGuestPriced ? $money($itemPkgPrice / $quantity) . ' per guest' : 'Included package rate' ?></small>
+                  <strong><?= $money($itemDisplayPrice) ?></strong>
+                  <small><?= $isGuestPriced ? $money($itemGuestUnitPrice) . ' per guest' : 'Included package rate' ?></small>
                 </div>
                 <div class="included-price">
                   <?php
