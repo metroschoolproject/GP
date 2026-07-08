@@ -2551,7 +2551,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
         <div class="gp-tier-panel">
           <div>
             <h2>Luxury</h2>
-            <span class="gp-tier-price">+ 100M MMK</span>
+            <span class="gp-tier-price">+ 600M MMK</span>
             <p>Elevated styling, beauty, and planning support for a refined wedding experience.</p>
           </div>
           <a class="gp-tier-action" href="#package-luxury">View Luxury</a>
@@ -2569,7 +2569,7 @@ mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 720' preserveAspect
         <div class="gp-tier-panel">
           <div>
             <h2>Premium</h2>
-            <span class="gp-tier-price">+ 60M MMK</span>
+            <span class="gp-tier-price">+ 100M MMK</span>
             <p>A complete, high-touch package for couples who want every detail beautifully handled.</p>
           </div>
           <a class="gp-tier-action" href="#package-premium">View Premium</a>

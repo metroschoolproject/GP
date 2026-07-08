@@ -736,12 +736,14 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                     <form class="guest-form" method="POST"
                           action="<?= URLROOT ?>/admin/packageUpdateItem/<?= (int)$item['id'] ?>"
                           style="margin-top:0">
-                      <input class="guest-input" type="number" name="max_concurrent" min="0" max="65535" step="1"
-                             value="<?= $itemMaxConcurrent ?>" aria-label="Package booking limit"
+                      <input class="guest-input" type="number" name="max_concurrent" min="0" max="<?= $svcMaxConcurrentPkg > 0 ? (int)$svcMaxConcurrentPkg : 65535 ?>" step="1"
+                             value="<?= $itemMaxConcurrent > 0 ? $itemMaxConcurrent : '' ?>"
+                             placeholder="<?= $svcMaxConcurrentPkg > 0 ? (int)$svcMaxConcurrentPkg : 'No limit' ?>"
+                             aria-label="Package booking limit"
                              style="width:80px!important">
                       <button class="btn-ghost btn-sm" type="submit">Update</button>
                     </form>
-                    <small style="margin-top:6px;display:block"><?= $itemMaxConcurrent > 0 ? 'Override: ' . $itemMaxConcurrent . ' bookings ' . $perUnit : '0 = no override (uses supplier default)' ?></small>
+                    <small style="margin-top:6px;display:block"><?= $itemMaxConcurrent > 0 ? 'Admin override: ' . $itemMaxConcurrent . ' bookings ' . $perUnit : 'Blank = use supplier default' ?><?= $svcMaxConcurrentPkg > 0 ? ' · Max ' . $svcMaxConcurrentPkg : '' ?></small>
                   <?php else: ?>
                     <strong><?= $effectiveCap > 0 ? $effectiveCap : '—' ?></strong>
                     <small><?= $supplierLabel ?><?= $itemMaxConcurrent > 0 ? ' · Admin override: ' . $itemMaxConcurrent : ' · No override' ?></small>
@@ -854,6 +856,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
                       data-guest-priced="<?= $isGuestPricedSvc ? '1' : '0' ?>"
                       data-attire="<?= $isAttireSvc ? '1' : '0' ?>"
                       data-booking-type="<?= $h($svc['booking_type'] ?? 'fullday') ?>"
+                      data-package-limit="<?= (int)($svc['max_concurrent_package'] ?? 0) ?>"
                       data-room-count="<?= count($hallOptionsByService[$svcId] ?? []) ?>"
                       data-attire-count="<?= $attireCount ?>"
                       data-deco-count="<?= count($decoOptionsByService[$svcId] ?? []) ?>">
@@ -1019,9 +1022,9 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
         <!-- ── Per-item concurrency override ─────────────────────────── -->
         <div id="itemConcurrentRow" class="guest-count-row" style="display:none">
-          <label for="itemConcurrentInput" id="itemConcurrentLabel">Package bookings per slot</label>
-          <input id="itemConcurrentInput" type="number" name="max_concurrent" min="0" max="65535" step="1" value="0">
-          <span class="guest-count-note" id="itemConcurrentNote">Optional capacity override for this included service in the same generated time slot. 0 = use the supplier service default.</span>
+          <label for="itemConcurrentInput" id="itemConcurrentLabel">Package booking limit</label>
+          <input id="itemConcurrentInput" type="number" name="max_concurrent" min="0" max="65535" step="1" value="" placeholder="Supplier default">
+          <span class="guest-count-note" id="itemConcurrentNote">Leave blank to use the supplier's package limit. Enter a number only to override it for this package.</span>
         </div>
 
         <!-- Confirm / Add button -->
@@ -1665,7 +1668,16 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
 
       const visual = document.createElement('div');
       visual.className = 'hall-card-img';
-      visual.innerHTML = '<div class="hall-card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="hall-card-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>';
+      const hallPhotoUrl = String(hall.photo_url || '').trim();
+      if (hallPhotoUrl) {
+        const img = document.createElement('img');
+        img.src = hallPhotoUrl;
+        img.alt = '';
+        visual.appendChild(img);
+      } else {
+        visual.innerHTML = '<div class="hall-card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>';
+      }
+      visual.insertAdjacentHTML('beforeend', '<div class="hall-card-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>');
 
       const body = document.createElement('div');
       body.className = 'hall-card-body';
@@ -1793,6 +1805,7 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
     /* show per-item concurrency override for all services */
     const itemConcurrentRow = document.getElementById('itemConcurrentRow');
     const itemConcurrentLabel = document.getElementById('itemConcurrentLabel');
+    const itemConcurrentInput = document.getElementById('itemConcurrentInput');
     const itemConcurrentNote = document.getElementById('itemConcurrentNote');
     if (itemConcurrentRow) {
       itemConcurrentRow.style.display = hasVal ? 'flex' : 'none';
@@ -1800,8 +1813,18 @@ $dashboardContent = function () use ($package, $message, $serviceOptions, $hallO
         const bookingType = (opt.dataset.bookingType || 'fullday');
         const isSlot = bookingType === 'slot';
         const unit = isSlot ? 'per slot' : 'per day';
+        const supplierPackageLimit = parseInt(opt.dataset.packageLimit || '0', 10);
         if (itemConcurrentLabel) itemConcurrentLabel.textContent = isSlot ? 'Package bookings per slot' : 'Package bookings per day';
-        if (itemConcurrentNote) itemConcurrentNote.textContent = 'Optional capacity override for this included service ' + (isSlot ? 'in the same generated time slot.' : 'on the same day.') + ' 0 = use the supplier service default.';
+        if (itemConcurrentInput) {
+          itemConcurrentInput.value = '';
+          itemConcurrentInput.max = supplierPackageLimit > 0 ? String(supplierPackageLimit) : '65535';
+          itemConcurrentInput.placeholder = supplierPackageLimit > 0 ? String(supplierPackageLimit) : 'No limit';
+        }
+        if (itemConcurrentNote) {
+          itemConcurrentNote.textContent = supplierPackageLimit > 0
+            ? 'Supplier maximum: ' + supplierPackageLimit + ' package booking' + (supplierPackageLimit === 1 ? '' : 's') + ' ' + unit + '. Leave blank to use it; override cannot be higher than this.'
+            : 'Supplier has no package booking limit set. Leave blank for no limit; enter a number to set a package-only limit.';
+        }
       }
     }
 

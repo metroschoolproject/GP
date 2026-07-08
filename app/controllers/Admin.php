@@ -1815,6 +1815,11 @@ class Admin extends Controller
         $itemMaxConcurrent = isset($_POST['max_concurrent']) && $_POST['max_concurrent'] !== ''
             ? max(0, (int)$_POST['max_concurrent'])
             : null;
+        $supplierPackageLimit = $packageModel->getServicePackageLimit($serviceId);
+        if ($itemMaxConcurrent !== null && $itemMaxConcurrent > 0 && $supplierPackageLimit > 0 && $itemMaxConcurrent > $supplierPackageLimit) {
+            $_SESSION['admin_flash'] = 'Package booking limit cannot exceed the supplier limit of ' . $supplierPackageLimit . '.';
+            redirect('admin/packageDetail/' . (int)$packageId);
+        }
         $added = $packageModel->addPackageService((int)$packageId, $serviceId, $guestCount, $hallId > 0 ? $hallId : null, $attireItemId > 0 ? $attireItemId : null, $decoStyleId > 0 ? $decoStyleId : null, $itemMaxConcurrent);
         if ($added) {
             $this->refreshPackageBasePrice($packageModel, (int)$packageId);
@@ -1845,7 +1850,14 @@ class Admin extends Controller
         $isConcurrentUpdate = array_key_exists('max_concurrent', $_POST) && !$isHallUpdate;
         $updated = false;
         if ($isConcurrentUpdate) {
-            $updated = $packageModel->updatePackageItemConcurrent((int)$itemId, (int)$_POST['max_concurrent']);
+            $rawMaxConcurrent = trim((string)($_POST['max_concurrent'] ?? ''));
+            $requestedMaxConcurrent = $rawMaxConcurrent === '' ? 0 : max(0, (int)$rawMaxConcurrent);
+            $supplierPackageLimit = $packageModel->getPackageItemServicePackageLimit((int)$itemId);
+            if ($requestedMaxConcurrent > 0 && $supplierPackageLimit > 0 && $requestedMaxConcurrent > $supplierPackageLimit) {
+                $_SESSION['admin_flash'] = 'Package booking limit cannot exceed the supplier limit of ' . $supplierPackageLimit . '.';
+                redirect('admin/packageDetail/' . $packageId);
+            }
+            $updated = $packageModel->updatePackageItemConcurrent((int)$itemId, $requestedMaxConcurrent);
         } elseif ($isHallUpdate) {
             $updated = $packageModel->updatePackageItemHall((int)$itemId, (int)$_POST['hall_id']);
         } else {

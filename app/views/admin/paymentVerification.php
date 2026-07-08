@@ -9,6 +9,19 @@ $dateTime = static function ($value, string $fallback = '-') {
     $timestamp = strtotime((string)$value);
     return $timestamp ? date('M j, Y', $timestamp) : $fallback;
 };
+$paymentProofPaths = static function ($raw): array {
+    $raw = trim((string)$raw);
+    if ($raw === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    $paths = is_array($decoded) ? $decoded : [$raw];
+
+    return array_values(array_filter(array_map(static fn($path) => trim((string)$path), $paths), static function ($path) {
+        return $path !== '' && preg_match('/\.(jpe?g|png|webp|gif|pdf)$/i', $path) === 1;
+    }));
+};
 
 $pendingCount = count($pendingPayments);
 $pendingTotal = 0.0;
@@ -53,6 +66,7 @@ $dashboardContent = function () use (
     $h,
     $money,
     $dateTime,
+    $paymentProofPaths,
     $activeStatus,
     $isPending,
     $copy,
@@ -257,8 +271,8 @@ $dashboardContent = function () use (
               $accountName = (string)($payment['account_name'] ?? '-');
               $mobileNumber = (string)($payment['mobile_number'] ?? '');
               $reference = trim((string)($payment['transaction_ref'] ?? ''));
-              $slipPath = trim((string)($payment['payment_slip_path'] ?? ''));
-              $hasSlip = $slipPath !== '' && preg_match('/\.(jpe?g|png|webp|gif|pdf)$/i', $slipPath) === 1;
+              $slipPaths = $paymentProofPaths($payment['payment_slip_path'] ?? '');
+              $hasSlip = !empty($slipPaths);
               $submittedAt = $dateTime($payment['payment_created_at'] ?? $payment['paid_at'] ?? null);
               $paymentStatus = (string)($payment['payment_status'] ?? ($isPending ? 'pending' : ''));
               $reviewedAt = $dateTime($payment['verified_at'] ?? null);
@@ -292,10 +306,12 @@ $dashboardContent = function () use (
               <td><span class="ref-code"><?= $h($reference !== '' ? $reference : '-') ?></span></td>
               <td>
                 <?php if ($hasSlip): ?>
-                  <a class="slip-link" href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" rel="noopener">
-                    <i data-lucide="image" class="h-3.5 w-3.5" aria-hidden="true"></i>
-                    View
-                  </a>
+                  <?php foreach ($slipPaths as $index => $slipPath): ?>
+                    <a class="slip-link" href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" rel="noopener">
+                      <i data-lucide="image" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                      View<?= count($slipPaths) > 1 ? ' ' . ($index + 1) : '' ?>
+                    </a>
+                  <?php endforeach; ?>
                 <?php else: ?>
                   <span class="muted-text">-</span>
                 <?php endif; ?>

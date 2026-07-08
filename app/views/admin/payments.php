@@ -102,6 +102,19 @@ $dashboardContent = function () use (
     $perPage,
     $paymentTypeMeta
 ) {
+    $paymentProofPaths = static function ($raw): array {
+        $raw = trim((string)$raw);
+        if ($raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        $paths = is_array($decoded) ? $decoded : [$raw];
+
+        return array_values(array_filter(array_map(static fn($path) => trim((string)$path), $paths), static function ($path) {
+            return $path !== '' && preg_match('/\.(jpe?g|png|webp|pdf)$/i', $path) === 1;
+        }));
+    };
 ?>
 <style>
   .admin-payment-outlet{min-height:100%;background:#F4F1EE;padding:28px 32px;font-size:13.5px;overflow-y:auto}
@@ -221,8 +234,9 @@ $dashboardContent = function () use (
 
   .pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-light)}
   .page-info{font-size:12px;color:var(--muted)}
-  .page-btns{display:flex;gap:4px}
-  .page-btn{height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s}
+  .page-btns{display:flex;gap:4px;flex-wrap:wrap}
+  .page-btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:28px;min-width:28px;padding:0 8px;border:1px solid var(--border);border-radius:.75rem;background:var(--surface);color:var(--body);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:all .12s;text-decoration:none}
+  .page-btn-label{line-height:1}
   .page-btn:hover{background:var(--soft)}
   .page-btn.active{background:var(--primary);color:#FFFFFF;border-color:var(--primary)}
   .page-btn:disabled{opacity:.4;cursor:default}
@@ -381,8 +395,8 @@ $dashboardContent = function () use (
               $bankDisplay = htmlspecialchars($payment['bank_name'] ?? $payment['method'] ?? '-', ENT_QUOTES, 'UTF-8');
               $senderName  = htmlspecialchars($payment['account_name'] ?? '-', ENT_QUOTES, 'UTF-8');
               $txnRef      = trim((string)($payment['transaction_ref'] ?? ''));
-              $slipPath    = trim((string)($payment['payment_slip_path'] ?? ''));
-              $hasSlip     = $slipPath !== '' && preg_match('/\.(jpe?g|png|webp|pdf)$/i', $slipPath) === 1;
+              $slipPaths   = $paymentProofPaths($payment['payment_slip_path'] ?? '');
+              $hasSlip     = !empty($slipPaths);
               $isCustomerPayment = !empty($payment['booking_id']);
               $recordRef = $isCustomerPayment
                 ? ($payment['booking_ref'] ?? ('Booking #' . (int)$payment['booking_id']))
@@ -416,10 +430,12 @@ $dashboardContent = function () use (
               </td>
               <td>
                 <?php if ($hasSlip): ?>
-                  <a class="slip-link" href="<?= URLROOT ?>/<?= htmlspecialchars($slipPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
-                    <i data-lucide="image" class="h-3.5 w-3.5"></i>
-                    View
-                  </a>
+                  <?php foreach ($slipPaths as $index => $slipPath): ?>
+                    <a class="slip-link" href="<?= URLROOT ?>/<?= htmlspecialchars($slipPath, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
+                      <i data-lucide="image" class="h-3.5 w-3.5"></i>
+                      View<?= count($slipPaths) > 1 ? ' ' . ($index + 1) : '' ?>
+                    </a>
+                  <?php endforeach; ?>
                 <?php else: ?>
                   <span class="reviewed-by">—</span>
                 <?php endif; ?>
@@ -508,6 +524,9 @@ $dashboardContent = function () use (
         if (!empty($selectedPaymentId)) {
             $baseParams .= '&payment=' . (int)$selectedPaymentId;
         }
+        $showSinglePage = true;
+        $prevText = 'Previous';
+        $nextText = 'Next';
         require APPROOT . '/views/partials/_pagination.php';
     }
     ?>

@@ -369,11 +369,11 @@ body > .gp-shared-footer{width:calc(100% + 40px);margin-top:132px;margin-right:-
                     <span>Upload</span>
                   </div>
                   <div class="gp-slip-text">
-                    <strong id="slipFileName">Drag &amp; drop or click to upload your transfer slip</strong>
-                    <small>JPG, PNG, WebP or PDF accepted</small>
+                    <strong id="slipFileName">Drag &amp; drop or click to upload your transfer slips</strong>
+                    <small>Up to 5 files. JPG, PNG, WebP or PDF accepted</small>
                   </div>
                 </label>
-                <input class="gp-file-input" type="file" id="slip_image" name="slip_image" accept=".jpg,.jpeg,.png,.webp,.pdf" required>
+                <input class="gp-file-input" type="file" id="slip_image" name="slip_image[]" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple required>
                 
                 
                 <div class="gp-field-error" id="slipError" aria-live="polite"></div>
@@ -469,14 +469,27 @@ function selectBank(bankName) {
 
 bankBtns.forEach(btn => btn.addEventListener('click', () => selectBank(btn.dataset.bank)));
 
-function getSlipError(file) {
-  if (!file) return 'Please upload your payment slip or receipt.';
-  const extension = file.name.split('.').pop().toLowerCase();
-  if (!allowedSlipTypes.includes(file.type) && !allowedSlipExtensions.includes(extension)) {
-    return 'Use a JPG, PNG, WebP, or PDF payment proof.';
-  }
-  if (file.size > maxSlipBytes) {
-    return 'Choose a file under 10 MB.';
+function getSlipFiles() {
+  return slipInput ? Array.from(slipInput.files || []) : [];
+}
+
+function describeSlipFiles(files) {
+  if (!files.length) return 'Drag & drop or click to upload your transfer slips';
+  if (files.length === 1) return files[0].name;
+  return files.length + ' payment slips selected';
+}
+
+function getSlipError(files) {
+  if (!files.length) return 'Please upload your payment slip or receipt.';
+  if (files.length > 5) return 'Upload no more than 5 payment slips.';
+  for (const file of files) {
+    const extension = file.name.split('.').pop().toLowerCase();
+    if (!allowedSlipTypes.includes(file.type) && !allowedSlipExtensions.includes(extension)) {
+      return 'Use JPG, PNG, WebP, or PDF payment proofs only.';
+    }
+    if (file.size > maxSlipBytes) {
+      return 'Each file must be under 10 MB.';
+    }
   }
   return '';
 }
@@ -490,13 +503,13 @@ function setSlipError(message) {
 
 function validateSlip(showMessage = false) {
   if (!slipInput) return false;
-  const file = slipInput.files[0] || null;
-  const message = getSlipError(file);
+  const files = getSlipFiles();
+  const message = getSlipError(files);
 
-  slipFileName.textContent = file ? file.name : 'Drag & drop or click to upload your transfer slip';
-  slipLabel.classList.toggle('has-file', !!file && message === '');
+  slipFileName.textContent = describeSlipFiles(files);
+  slipLabel.classList.toggle('has-file', files.length > 0 && message === '');
 
-  if (showMessage || file || message === '') {
+  if (showMessage || files.length > 0 || message === '') {
     setSlipError(message);
   } else {
     setSlipError('');

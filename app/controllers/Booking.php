@@ -988,26 +988,34 @@ class Booking extends Controller
             return;
         }
 
-        $slipFile = $_FILES['slip_image'] ?? null;
-        if (!$slipFile || ($slipFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        $slipFiles = $this->collectPaymentSlipFiles($_FILES['slip_image'] ?? null);
+        if (empty($slipFiles)) {
             $_SESSION['booking_payment_flash'] = 'Please upload your payment slip or receipt.';
             redirect('booking/pay/' . $bookingId);
             return;
         }
 
-        if (($slipFile['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            $_SESSION['booking_payment_flash'] = $this->paymentSlipUploadErrorMessage((int)$slipFile['error']);
+        if (count($slipFiles) > 5) {
+            $_SESSION['booking_payment_flash'] = 'Please upload no more than 5 payment slips at once.';
             redirect('booking/pay/' . $bookingId);
             return;
         }
 
-        if (($slipFile['size'] ?? 0) > 10 * 1024 * 1024) {
-            $_SESSION['booking_payment_flash'] = 'Your file is too large (' . number_format($slipFile['size'] / 1024 / 1024, 1) . ' MB). Please upload a file under 10MB.';
-            redirect('booking/pay/' . $bookingId);
-            return;
+        foreach ($slipFiles as $slipFile) {
+            if (($slipFile['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+                $_SESSION['booking_payment_flash'] = $this->paymentSlipUploadErrorMessage((int)$slipFile['error']);
+                redirect('booking/pay/' . $bookingId);
+                return;
+            }
+
+            if (($slipFile['size'] ?? 0) > 10 * 1024 * 1024) {
+                $_SESSION['booking_payment_flash'] = 'One of your files is too large (' . number_format((float)$slipFile['size'] / 1024 / 1024, 1) . ' MB). Please upload files under 10MB each.';
+                redirect('booking/pay/' . $bookingId);
+                return;
+            }
         }
 
-        $slipPath = $this->storePaymentSlip($slipFile);
+        $slipPath = $this->storePaymentSlipSet($slipFiles);
         if ($slipPath === '') {
             $_SESSION['booking_payment_flash'] = 'Invalid file type. Please upload a JPG, PNG, WebP, or PDF file.';
             redirect('booking/pay/' . $bookingId);
@@ -1354,26 +1362,34 @@ class Booking extends Controller
             return;
         }
 
-        $slipFile = $_FILES['slip_image'] ?? null;
-        if (!$slipFile || ($slipFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        $slipFiles = $this->collectPaymentSlipFiles($_FILES['slip_image'] ?? null);
+        if (empty($slipFiles)) {
             $_SESSION['remaining_payment_flash'] = 'Please upload your payment slip or receipt.';
             redirect('booking/payRemaining/' . $bookingId);
             return;
         }
 
-        if (($slipFile['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            $_SESSION['remaining_payment_flash'] = $this->paymentSlipUploadErrorMessage((int)$slipFile['error']);
+        if (count($slipFiles) > 5) {
+            $_SESSION['remaining_payment_flash'] = 'Please upload no more than 5 payment slips at once.';
             redirect('booking/payRemaining/' . $bookingId);
             return;
         }
 
-        if (($slipFile['size'] ?? 0) > 10 * 1024 * 1024) {
-            $_SESSION['remaining_payment_flash'] = 'Your file is too large (' . number_format((float)$slipFile['size'] / 1024 / 1024, 1) . ' MB). Please upload a file under 10MB.';
-            redirect('booking/payRemaining/' . $bookingId);
-            return;
+        foreach ($slipFiles as $slipFile) {
+            if (($slipFile['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+                $_SESSION['remaining_payment_flash'] = $this->paymentSlipUploadErrorMessage((int)$slipFile['error']);
+                redirect('booking/payRemaining/' . $bookingId);
+                return;
+            }
+
+            if (($slipFile['size'] ?? 0) > 10 * 1024 * 1024) {
+                $_SESSION['remaining_payment_flash'] = 'One of your files is too large (' . number_format((float)$slipFile['size'] / 1024 / 1024, 1) . ' MB). Please upload files under 10MB each.';
+                redirect('booking/payRemaining/' . $bookingId);
+                return;
+            }
         }
 
-        $slipPath = $this->storePaymentSlip($slipFile);
+        $slipPath = $this->storePaymentSlipSet($slipFiles);
         if ($slipPath === '') {
             $_SESSION['remaining_payment_flash'] = 'Invalid file type. Please upload a JPG, PNG, WebP, HEIC, HEIF, or PDF file.';
             redirect('booking/payRemaining/' . $bookingId);
@@ -1409,6 +1425,53 @@ class Booking extends Controller
 
         $_SESSION['booking_payment_flash'] = 'Your remaining payment proof has been submitted. We will verify shortly.';
         redirect('booking/detail/' . $bookingId);
+    }
+
+    private function collectPaymentSlipFiles(?array $fileInput): array
+    {
+        if (!$fileInput) {
+            return [];
+        }
+
+        if (!is_array($fileInput['name'] ?? null)) {
+            return (($fileInput['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) ? [] : [$fileInput];
+        }
+
+        $files = [];
+        foreach ($fileInput['name'] as $index => $name) {
+            $error = (int)($fileInput['error'][$index] ?? UPLOAD_ERR_NO_FILE);
+            if ($error === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+
+            $files[] = [
+                'name' => $name,
+                'type' => $fileInput['type'][$index] ?? '',
+                'tmp_name' => $fileInput['tmp_name'][$index] ?? '',
+                'error' => $error,
+                'size' => (int)($fileInput['size'][$index] ?? 0),
+            ];
+        }
+
+        return $files;
+    }
+
+    private function storePaymentSlipSet(array $files): string
+    {
+        $paths = [];
+        foreach ($files as $file) {
+            $path = $this->storePaymentSlip($file);
+            if ($path === '') {
+                return '';
+            }
+            $paths[] = $path;
+        }
+
+        if (count($paths) === 1) {
+            return $paths[0];
+        }
+
+        return json_encode($paths, JSON_UNESCAPED_SLASHES);
     }
 
     private function storePaymentSlip(array $file): string

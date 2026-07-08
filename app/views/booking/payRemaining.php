@@ -253,11 +253,11 @@ body > .gp-shared-footer{width:calc(100% + 40px);margin-top:132px;margin-right:-
                   Upload
                 </span>
                 <span class="file-upload-text">
-                  <strong id="remainingSlipName">Drag &amp; drop or click to upload your transfer slip</strong>
-                  <small>JPG, PNG, WebP, HEIC, HEIF or PDF accepted</small>
+                  <strong id="remainingSlipName">Drag &amp; drop or click to upload your transfer slips</strong>
+                  <small>Up to 5 files. JPG, PNG, WebP, HEIC, HEIF or PDF accepted</small>
                 </span>
               </label>
-              <input class="file-input" type="file" id="remainingSlipImage" name="slip_image" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf,application/pdf" required>
+              <input class="file-input" type="file" id="remainingSlipImage" name="slip_image[]" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif,.pdf,application/pdf" multiple required>
             </div>
           </div>
         </div>
@@ -349,6 +349,9 @@ const submitBtn = document.getElementById('submitBtn');
 const remainingSlipInput = document.getElementById('remainingSlipImage');
 const remainingSlipName = document.getElementById('remainingSlipName');
 const remainingTransferCard = document.getElementById('remainingTransferCard');
+const maxSlipBytes = 10 * 1024 * 1024;
+const allowedSlipTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
+const allowedSlipExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'pdf'];
 
 function safeId(name) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -405,12 +408,44 @@ amountInput.addEventListener('input', validateAmount);
 
 if (remainingSlipInput && remainingSlipName) {
   remainingSlipInput.addEventListener('change', function () {
-    remainingSlipName.textContent = this.files[0] ? this.files[0].name : 'Drag & drop or click to upload your transfer slip';
+    const files = Array.from(this.files || []);
+    remainingSlipName.textContent = files.length > 1
+      ? files.length + ' payment slips selected'
+      : (files[0] ? files[0].name : 'Drag & drop or click to upload your transfer slips');
   });
 }
 
+function validateSlipFiles() {
+  const files = remainingSlipInput ? Array.from(remainingSlipInput.files || []) : [];
+  if (!files.length) {
+    alert('Please upload your payment slip or receipt.');
+    return false;
+  }
+  if (files.length > 5) {
+    alert('Upload no more than 5 payment slips.');
+    return false;
+  }
+  for (const file of files) {
+    const extension = file.name.split('.').pop().toLowerCase();
+    if (!allowedSlipTypes.includes(file.type) && !allowedSlipExtensions.includes(extension)) {
+      alert('Use JPG, PNG, WebP, HEIC, HEIF, or PDF payment proofs only.');
+      return false;
+    }
+    if (file.size > maxSlipBytes) {
+      alert('Each file must be under 10 MB.');
+      return false;
+    }
+  }
+  return true;
+}
+
 // Form submit — set clean numeric value
-document.getElementById('paymentForm').addEventListener('submit', () => {
+document.getElementById('paymentForm').addEventListener('submit', (event) => {
+  if (!validateSlipFiles()) {
+    event.preventDefault();
+    remainingSlipInput?.focus();
+    return;
+  }
   const raw = amountInput.value.replace(/[^0-9]/g, '');
   amountInput.value = raw;
 });

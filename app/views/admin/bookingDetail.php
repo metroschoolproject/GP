@@ -29,6 +29,22 @@ $timeOnly = static function ($value, string $fallback = '-') {
     $timestamp = strtotime((string)$value);
     return $timestamp ? date('H:i', $timestamp) : $fallback;
 };
+$paymentProofPaths = static function ($raw): array {
+    $raw = trim((string)$raw);
+    if ($raw === '') {
+        return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    $paths = is_array($decoded) ? $decoded : [$raw];
+
+    return array_values(array_filter(array_map(static fn($path) => trim((string)$path), $paths), static function ($path) {
+        return $path !== '' && preg_match('/\.(jpe?g|png|webp|gif|pdf)$/i', $path) === 1;
+    }));
+};
+$isPaymentProofImage = static function ($path): bool {
+    return in_array(strtolower(pathinfo((string)$path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+};
 
 $totalAmount = (float)($booking['total_amount'] ?? 0);
 $paidAmount = (float)($booking['paid_amount'] ?? 0);
@@ -60,9 +76,9 @@ $paymentStatus = (string)($reviewPayment['status'] ?? ($booking['payment_status'
 $paymentMethod = (string)($reviewPayment['bank_name'] ?? $reviewPayment['method'] ?? '-');
 $transactionRef = (string)($reviewPayment['transaction_ref'] ?? '');
 $sentAmount = (float)($reviewPayment['paid_amount'] ?? $reviewPayment['amount'] ?? $paidAmount);
-$slipPath = trim((string)($reviewPayment['payment_slip_path'] ?? ''));
-$slipExt = strtolower(pathinfo($slipPath, PATHINFO_EXTENSION));
-$isImageSlip = $slipPath !== '' && in_array($slipExt, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+$slipPaths = $paymentProofPaths($reviewPayment['payment_slip_path'] ?? '');
+$slipPath = $slipPaths[0] ?? '';
+$isImageSlip = $slipPath !== '' && $isPaymentProofImage($slipPath);
 $isAwaitingReview = $hasPendingRemainingPayment || in_array($bookingStatusForPayment, ['payment_submitted', 'pending_final_payment'], true) || $paymentStatus === 'pending';
 
 $firstEvent = $eventDetails[0] ?? [];
@@ -282,8 +298,10 @@ $dashboardContent = function () use (
     $paymentMethod,
     $transactionRef,
     $sentAmount,
+    $slipPaths,
     $slipPath,
     $isImageSlip,
+    $isPaymentProofImage,
     $isAwaitingReview,
     $firstEvent,
     $eventDetailsByItem,
@@ -1163,15 +1181,16 @@ $dashboardContent = function () use (
     </div>
     <div class="bkd-action-body">
       <div class="bkd-pay-row">
-        <?php if ($slipPath !== ''): ?>
-          <a href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" class="bkd-pay-thumb <?= !$isImageSlip ? 'bkd-pay-thumb--file' : '' ?>">
-            <?php if ($isImageSlip): ?>
-              <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip">
+        <?php foreach ($slipPaths as $proofIndex => $proofPath): ?>
+          <?php $proofIsImage = $isPaymentProofImage($proofPath); ?>
+          <a href="<?= URLROOT ?>/<?= $h($proofPath) ?>" target="_blank" class="bkd-pay-thumb <?= !$proofIsImage ? 'bkd-pay-thumb--file' : '' ?>" title="Payment proof <?= $proofIndex + 1 ?>">
+            <?php if ($proofIsImage): ?>
+              <img src="<?= URLROOT ?>/<?= $h($proofPath) ?>" alt="Payment slip <?= $proofIndex + 1 ?>">
             <?php else: ?>
               <i data-lucide="file-text"></i>
             <?php endif; ?>
           </a>
-        <?php endif; ?>
+        <?php endforeach; ?>
         <div class="bkd-pay-chip">
           <span class="bkd-pay-chip-label">Sent</span>
           <span class="bkd-pay-chip-value"><?= $money($sentAmount) ?></span>
@@ -1250,17 +1269,20 @@ $dashboardContent = function () use (
         <div class="bkd-action-sub">Payment verified · Suppliers notified · Balance: <?= $money($balanceDue) ?></div>
       </div>
     </div>
-    <?php if (!empty($slipPath)): ?>
+    <?php if (!empty($slipPaths)): ?>
     <div class="bkd-action-body" style="padding-top:0">
       <details style="margin-top:8px">
-        <summary style="cursor:pointer;font-size:11px;font-weight:700;color:var(--bkd-primary)">View deposit slip</summary>
-        <a href="<?= URLROOT ?>/<?= $h($slipPath) ?>" target="_blank" class="bkd-proof-link" style="margin-top:8px;display:block">
-          <?php if ($isImageSlip): ?>
-            <img src="<?= URLROOT ?>/<?= $h($slipPath) ?>" alt="Payment slip" style="max-height:200px">
-          <?php else: ?>
-            <span class="bkd-proof-file"><i data-lucide="file-text"></i> Open document</span>
-          <?php endif; ?>
-        </a>
+        <summary style="cursor:pointer;font-size:11px;font-weight:700;color:var(--bkd-primary)">View deposit <?= count($slipPaths) > 1 ? 'slips' : 'slip' ?></summary>
+        <?php foreach ($slipPaths as $proofIndex => $proofPath): ?>
+          <?php $proofIsImage = $isPaymentProofImage($proofPath); ?>
+          <a href="<?= URLROOT ?>/<?= $h($proofPath) ?>" target="_blank" class="bkd-proof-link" style="margin-top:8px;display:block">
+            <?php if ($proofIsImage): ?>
+              <img src="<?= URLROOT ?>/<?= $h($proofPath) ?>" alt="Payment slip <?= $proofIndex + 1 ?>" style="max-height:200px">
+            <?php else: ?>
+              <span class="bkd-proof-file"><i data-lucide="file-text"></i> Open document <?= count($slipPaths) > 1 ? $proofIndex + 1 : '' ?></span>
+            <?php endif; ?>
+          </a>
+        <?php endforeach; ?>
       </details>
     </div>
     <?php endif; ?>

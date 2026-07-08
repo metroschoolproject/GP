@@ -14,6 +14,7 @@ class BookingModel
     private array $paymentColumnCache = [];
     private array $replacementColumnCache = [];
     private array $tableExistsCache = [];
+    private ?bool $paymentSlipPathColumnExpanded = null;
     private ?string $replacementSwapError = null;
     private ?string $paymentVerificationError = null;
     private ?array $lastUnavailableService = null;
@@ -334,6 +335,23 @@ class BookingModel
         $this->paymentColumnCache[$column] = (bool)$this->db->getsingledata();
 
         return $this->paymentColumnCache[$column];
+    }
+
+    private function ensurePaymentSlipPathCapacity(): void
+    {
+        if ($this->paymentSlipPathColumnExpanded !== null || !$this->paymentHasColumn('payment_slip_path')) {
+            return;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM payments LIKE 'payment_slip_path'");
+        $column = $this->db->getsingledata();
+        $type = strtolower((string)($column['Type'] ?? ''));
+        if ($type !== '' && !str_contains($type, 'text')) {
+            $this->db->dbquery('ALTER TABLE payments MODIFY payment_slip_path TEXT NULL');
+            $this->db->dbexecute();
+        }
+
+        $this->paymentSlipPathColumnExpanded = true;
     }
 
     private function replacementHasColumn(string $column): bool
@@ -5134,6 +5152,8 @@ class BookingModel
         float $platformFee = 0.0,
         float $supplierAmount = 0.0
     ): bool {
+        $this->ensurePaymentSlipPathCapacity();
+
         $columns = ['booking_id', 'amount', 'type', 'method', 'status', 'transaction_ref', 'escrow_status'];
         $values = [':bid', ':amount', "'deposit'", ':method', "'pending'", ':ref', "'held'"];
         $bindings = [
@@ -5842,6 +5862,8 @@ class BookingModel
         float $paidAmount = 0.0,
         string $paidAt = ''
     ): bool {
+        $this->ensurePaymentSlipPathCapacity();
+
         $this->db->beginTransaction();
         try {
             // Create remaining payment record

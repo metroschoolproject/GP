@@ -1967,10 +1967,9 @@ $existingBusinessLicenseLabel = $hasExistingBusinessLicense ? basename(parse_url
                             <strong>8. Payment Terms</strong><br>Admin Service Fees နှင့် Charges များ နုတ်ယူပြီးမှ ကျန်ရှိသောငွေကို Supplier ထံ လွှဲပြောင်းပေးမည်။<br><br>
                             <strong>9. Supplier Responsibilities</strong><br>Service Quality နှင့် အချိန်တိကျမှုကို တာဝန်ယူရမည်။<br><br>
                             <strong>10. Fraud & Policy Violations</strong><br>Platform ပြင်ပ Customer များနှင့် တိုက်ရိုက်ဆက်သွယ်ပြီး ငွေလက်ခံခြင်း မပြုရ။<br><br>
-                            <strong>11. Marketing & Content Usage</strong><br>Admin Team မှ Photo, Video, Content များကို Marketing ရည်ရွယ်ချက်တွက် အသုံးပြုခွင့်ရှိသည်။<br><br>
-                            <strong>12. Price Control</strong><br>Booking Confirmed ပြီးနောက် Package Price ပြောင်းလဲခြင်း မပြုလုပ်ရ။<br><br>
-                            <strong>13. Confidentiality</strong><br>Customer ၏ Personal Information များကို ခွင့်ပြုချက်မရှိဘဲ မျှဝေခြင်း မပြုရ။<br><br>
-                            <strong>14. Force Majeure</strong><br>ထိန်းချုပ်မရသော အခြေအနေများကြောင့် Service မပေးနိုင်ပါက နှစ်ဖက်စလုံးအား တာဝန်ကင်းလွတ်ခွင့် ရှိသည်။
+                            <strong>11. Price Control</strong><br>Booking Confirmed ပြီးနောက် Package Price ပြောင်းလဲခြင်း မပြုလုပ်ရ။<br><br>
+                            <strong>12. Confidentiality</strong><br>Customer ၏ Personal Information များကို ခွင့်ပြုချက်မရှိဘဲ မျှဝေခြင်း မပြုရ။<br><br>
+                            <strong>13. Force Majeure</strong><br>ထိန်းချုပ်မရသော အခြေအနေများကြောင့် Service မပေးနိုင်ပါက နှစ်ဖက်စလုံးအား တာဝန်ကင်းလွတ်ခွင့် ရှိသည်။
                         </div>
                         <div class="agreement-footer">
                             <label class="agree-check-row">

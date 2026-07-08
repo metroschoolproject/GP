@@ -730,6 +730,10 @@ class PlatformPackage
             $itemMaxConcurrent = $itemMaxConcurrent !== null
                 ? max(0, min(65535, (int)$itemMaxConcurrent))
                 : null;
+            $servicePackageLimit = max(0, (int)($service['max_concurrent_package'] ?? 0));
+            if ($itemMaxConcurrent !== null && $servicePackageLimit > 0 && $itemMaxConcurrent > $servicePackageLimit) {
+                return false;
+            }
             $this->db->dbbind(':item_max_concurrent', $itemMaxConcurrent, $itemMaxConcurrent !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
         }
 
@@ -774,6 +778,35 @@ class PlatformPackage
         $row = $this->db->getsingledata();
 
         return $row ? (int)$row['package_id'] : 0;
+    }
+
+    public function getServicePackageLimit(int $serviceId): int
+    {
+        $this->db->dbquery(
+            'SELECT max_concurrent_package
+             FROM services
+             WHERE id = :service_id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':service_id', $serviceId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+
+        return max(0, (int)($row['max_concurrent_package'] ?? 0));
+    }
+
+    public function getPackageItemServicePackageLimit(int $itemId): int
+    {
+        $this->db->dbquery(
+            'SELECT svc.max_concurrent_package
+             FROM package_items pi
+             INNER JOIN services svc ON svc.id = pi.service_id
+             WHERE pi.id = :item_id
+             LIMIT 1'
+        );
+        $this->db->dbbind(':item_id', $itemId, PDO::PARAM_INT);
+        $row = $this->db->getsingledata();
+
+        return max(0, (int)($row['max_concurrent_package'] ?? 0));
     }
 
     public function updatePackageItemQuantity($itemId, $quantity)
@@ -859,6 +892,10 @@ class PlatformPackage
         }
 
         $value = max(0, min(65535, (int)$maxConcurrent));
+        $servicePackageLimit = $this->getPackageItemServicePackageLimit((int)$itemId);
+        if ($value > 0 && $servicePackageLimit > 0 && $value > $servicePackageLimit) {
+            return false;
+        }
         $this->db->dbquery(
             'UPDATE package_items
              SET max_concurrent = :mc
@@ -900,11 +937,13 @@ class PlatformPackage
 
     public function getVenueRoomsForService($serviceId)
     {
+        $roomPhotoSelect = $this->hasVenueRoomPhotoColumn() ? 'vr.photo_url,' : "'' AS photo_url,";
         $this->db->dbquery(
             'SELECT vr.id,
                     vr.name,
                     vr.capacity,
                     vr.price,
+                    ' . $roomPhotoSelect . '
                     v.name AS venue_name,
                     v.location AS venue_location,
                     v.description AS venue_description
@@ -915,11 +954,25 @@ class PlatformPackage
         );
         $this->db->dbbind(':service_id', (int)$serviceId);
 
-        return $this->db->getmultidata();
+        return array_map(function ($room) {
+            $room['photo_url'] = $this->bestServiceImage($room['photo_url'] ?? '');
+            return $room;
+        }, $this->db->getmultidata());
     }
 
     public function getAdminServiceOptions()
     {
+        $roomPhotoFallbackSelect = $this->hasVenueRoomPhotoColumn()
+            ? '(
+                        SELECT vr.photo_url
+                        FROM venues v
+                        INNER JOIN venue_rooms vr ON vr.venue_id = v.id
+                        WHERE v.service_id = services.id
+                          AND COALESCE(vr.photo_url, "") <> ""
+                        ORDER BY vr.id ASC
+                        LIMIT 1
+                    )'
+            : 'NULL';
         $this->db->dbquery(
             'SELECT services.id,
                     services.name,
@@ -928,7 +981,16 @@ class PlatformPackage
                     services.price_min,
                     services.price_max,
                     services.thumbnail_url,
+                    (
+                        SELECT sm.file_url
+                        FROM service_media sm
+                        WHERE sm.service_id = services.id
+                        ORDER BY sm.id ASC
+                        LIMIT 1
+                    ) AS fallback_media_url,
+                    ' . $roomPhotoFallbackSelect . ' AS venue_room_photo_url,
                     services.booking_type,
+                    services.max_concurrent_package,
                     services.category_id,
                     categories.name AS category_name,
                     categories.slug AS category_slug,
@@ -946,6 +1008,12 @@ class PlatformPackage
 
         return array_map(function ($service) {
             $service['display_price'] = $this->servicePackagePrice($service);
+            $service['image'] = $this->bestServiceImage(
+                $service['thumbnail_url'] ?? '',
+                $service['fallback_media_url'] ?? '',
+                $service['venue_room_photo_url'] ?? ''
+            );
+            $service['thumbnail_url'] = $service['image'];
             return $service;
         }, $this->db->getmultidata());
     }
@@ -1601,6 +1669,7 @@ class PlatformPackage
             'rating' => round((float)($service['avg_rating'] ?? 0), 1),
             'review_count' => (int)($service['review_count'] ?? 0),
             'booking_type' => $service['booking_type'] ?? 'fullday',
+            'max_concurrent_package' => (int)($service['max_concurrent_package'] ?? 0),
             'duration_minutes' => (int)($service['duration_minutes'] ?? 0),
             'pricing_unit' => $service['pricing_unit'] ?? 'per_session',
             'borrow_package_price' => ($service['borrow_package_price'] ?? null) !== null ? (float)$service['borrow_package_price'] : null,
@@ -1683,6 +1752,20 @@ class PlatformPackage
         return is_file(dirname(APPROOT) . '/public/' . ltrim($matches[1], '/'));
     }
 
+    private ?bool $venueRoomPhotoColumnExists = null;
+
+    private function hasVenueRoomPhotoColumn(): bool
+    {
+        if ($this->venueRoomPhotoColumnExists !== null) {
+            return $this->venueRoomPhotoColumnExists;
+        }
+
+        $this->db->dbquery("SHOW COLUMNS FROM venue_rooms LIKE 'photo_url'");
+        $this->venueRoomPhotoColumnExists = (bool)$this->db->getsingledata();
+
+        return $this->venueRoomPhotoColumnExists;
+    }
+
     private function withCustomerPackagePrice(array $package): array
     {
         $includedTotal = (float)($package['included_total'] ?? 0);
@@ -1709,6 +1792,7 @@ class PlatformPackage
                     services.price_max,
                     services.category_id,
                     services.supplier_id,
+                    services.max_concurrent_package,
                     categories.name AS category_name,
                     categories.slug AS category_slug
              FROM services
